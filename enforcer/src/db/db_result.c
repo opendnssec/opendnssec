@@ -38,7 +38,7 @@ static mm_alloc_t __result_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_result_t));
 
 db_result_t* db_result_new(void) {
     db_result_t* result =
-        (db_result_t*)mm_alloc_new0(&__result_alloc);
+        (db_result_t*)calloc(1, sizeof(result_t));
 
     return result;
 }
@@ -69,13 +69,8 @@ void db_result_free(db_result_t* result) {
         if (result->backend_meta_data_list) {
             db_backend_meta_data_list_free(result->backend_meta_data_list);
         }
-        mm_alloc_delete(&__result_alloc, result);
+        free(result);
     }
-}
-
-void db_result_alloc_nuke()
-{
-    mm_alloc_free(&__result_alloc);
 }
 
 /* TODO: unit test */
@@ -177,7 +172,7 @@ static mm_alloc_t __result_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_result_l
 
 db_result_list_t* db_result_list_new(void) {
     db_result_list_t* result_list =
-        (db_result_list_t*)mm_alloc_new0(&__result_list_alloc);
+        (db_result_list_t*)calloc(1, sizeof(result_list_t));
 
     return result_list;
 }
@@ -190,7 +185,7 @@ db_result_list_t* db_result_list_new_copy(const db_result_list_t* from_result_li
         return NULL;
     }
 
-    result_list = (db_result_list_t*)mm_alloc_new0(&__result_list_alloc);
+    result_list = (db_result_list_t*)calloc(1, sizeof(result_list_t));
     if (result_list) {
         if (db_result_list_copy(result_list, from_result_list)) {
             db_result_list_free(result_list);
@@ -219,13 +214,8 @@ void db_result_list_free(db_result_list_t* result_list) {
                 db_result_free(result_list->current);
             }
         }
-        mm_alloc_delete(&__result_list_alloc, result_list);
+        free(result_list);
     }
-}
-
-void db_result_list_alloc_nuke()
-{
-    mm_alloc_free(&__result_list_alloc);
 }
 
 /* TODO: unit test */

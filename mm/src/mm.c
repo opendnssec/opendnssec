@@ -29,18 +29,3 @@
 #include "mm.h"
 #include <unistd.h>
 
-void mm_alloc_free(mm_alloc_t* alloc)
-{
-    free(alloc);
-}
-
-void* mm_alloc_new0(mm_alloc_t* alloc)
-{
-    return calloc(1, alloc->size);
-}
-
-void mm_alloc_delete(mm_alloc_t* alloc, void* ptr)
-{
-    (void)alloc;
-    free(ptr);
-}

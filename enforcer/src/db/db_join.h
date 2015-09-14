@@ -60,8 +60,6 @@ db_join_t* db_join_new(void);
  */
 void db_join_free(db_join_t* join);
 
-void db_join_alloc_nuke();
-
 /**
  * Get the from table name of a database join.
  * \param[in] join a db_join_t pointer.
@@ -160,8 +158,6 @@ db_join_list_t* db_join_list_new(void);
  * \param[in] join_list a db_join_list_t pointer.
  */
 void db_join_list_free(db_join_list_t* join_list);
-
-void db_join_list_alloc_nuke();
 
 /**
  * Add a database join to a database join list, this takes over the ownership

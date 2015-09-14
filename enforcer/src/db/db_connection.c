@@ -38,7 +38,7 @@ static mm_alloc_t __connection_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_connectio
 
 db_connection_t* db_connection_new(void) {
     db_connection_t* connection =
-        (db_connection_t*)mm_alloc_new0(&__connection_alloc);
+        (db_connection_t*)calloc(1, sizeof(connection_t));
 
     return connection;
 }
@@ -48,13 +48,8 @@ void db_connection_free(db_connection_t* connection) {
         if (connection->backend) {
             db_backend_free(connection->backend);
         }
-        mm_alloc_delete(&__connection_alloc, connection);
+        free(connection);
     }
-}
-
-void db_connection_alloc_nuke()
-{
-    mm_alloc_free(&__connection_alloc);
 }
 
 int db_connection_set_configuration_list(db_connection_t* connection, const db_configuration_list_t* configuration_list) {

@@ -40,7 +40,7 @@ static mm_alloc_t __object_field_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_object_
 
 db_object_field_t* db_object_field_new(void) {
     db_object_field_t* object_field =
-        (db_object_field_t*)mm_alloc_new0(&__object_field_alloc);
+        (db_object_field_t*)calloc(1, sizeof(object_field_t));
 
     if (object_field) {
         object_field->type = DB_TYPE_EMPTY;
@@ -69,13 +69,8 @@ db_object_field_t* db_object_field_new_copy(const db_object_field_t* from_object
 
 void db_object_field_free(db_object_field_t* object_field) {
     if (object_field) {
-        mm_alloc_delete(&__object_field_alloc, object_field);
+        free(object_field);
     }
-}
-
-void db_object_field_alloc_nuke()
-{
-    mm_alloc_free(&__object_field_alloc);
 }
 
 /* TODO: unit test */
@@ -187,7 +182,7 @@ static mm_alloc_t __object_field_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_ob
 
 db_object_field_list_t* db_object_field_list_new(void) {
     db_object_field_list_t* object_field_list =
-        (db_object_field_list_t*)mm_alloc_new0(&__object_field_list_alloc);
+        (db_object_field_list_t*)calloc(1, sizeof(object_field_list_t));
 
     return object_field_list;
 }
@@ -222,13 +217,8 @@ void db_object_field_list_free(db_object_field_list_t* object_field_list) {
                 this = next;
             }
         }
-        mm_alloc_delete(&__object_field_list_alloc, object_field_list);
+        free(object_field_list);
     }
-}
-
-void db_object_field_list_alloc_nuke()
-{
-    mm_alloc_free(&__object_field_list_alloc);
 }
 
 /* TODO: unit test */
@@ -322,7 +312,7 @@ static mm_alloc_t __object_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_object_t));
 
 db_object_t* db_object_new(void) {
     db_object_t* object =
-        (db_object_t*)mm_alloc_new0(&__object_alloc);
+        (db_object_t*)calloc(1, sizeof(object_t));
 
     return object;
 }
@@ -335,13 +325,8 @@ void db_object_free(db_object_t* object) {
         if (object->backend_meta_data_list) {
             db_backend_meta_data_list_free(object->backend_meta_data_list);
         }
-        mm_alloc_delete(&__object_alloc, object);
+        free(object);
     }
-}
-
-void db_object_alloc_nuke()
-{
-    mm_alloc_free(&__object_alloc);
 }
 
 const db_connection_t* db_object_connection(const db_object_t* object) {

@@ -114,7 +114,7 @@ static inline void __db_backend_mysql_finish(db_backend_mysql_statement_t* state
     while (statement->bind_input) {
         bind = statement->bind_input;
         statement->bind_input = bind->next;
-        mm_alloc_delete(&__mysql_bind_alloc, bind);
+        free(bind);
     }
     while (statement->bind_output) {
         bind = statement->bind_output;
@@ -122,7 +122,7 @@ static inline void __db_backend_mysql_finish(db_backend_mysql_statement_t* state
         if (bind->bind && bind->bind->buffer) {
             free(bind->bind->buffer);
         }
-        mm_alloc_delete(&__mysql_bind_alloc, bind);
+        free(bind);
     }
     if (statement->mysql_bind_output) {
         free(statement->mysql_bind_output);
@@ -131,7 +131,7 @@ static inline void __db_backend_mysql_finish(db_backend_mysql_statement_t* state
         db_object_field_list_free(statement->object_field_list);
     }
 
-    mm_alloc_delete(&__mysql_statement_alloc, statement);
+    free(statement);
 }
 
 /**
@@ -168,7 +168,7 @@ static inline int __db_backend_mysql_prepare(db_backend_mysql_t* backend_mysql, 
      * Prepare the statement.
      */
     ods_log_debug("%s", sql);
-    if (!(*statement = mm_alloc_new0(&__mysql_statement_alloc))
+    if (!(*statement = calloc(1, sizeof(mysql_statement_t)))
         || !((*statement)->statement = mysql_stmt_init(backend_mysql->db))
         || mysql_stmt_prepare((*statement)->statement, sql, size))
     {
@@ -195,7 +195,7 @@ static inline int __db_backend_mysql_prepare(db_backend_mysql_t* backend_mysql, 
         }
 
         for (i = 0; i < params; i++) {
-            if (!(bind = mm_alloc_new0(&__mysql_bind_alloc))) {
+            if (!(bind = calloc(1, sizeof(mysql_bind_t)))) {
                 __db_backend_mysql_finish(*statement);
                 *statement = NULL;
                 return DB_ERROR_UNKNOWN;
@@ -234,7 +234,7 @@ static inline int __db_backend_mysql_prepare(db_backend_mysql_t* backend_mysql, 
         for (i = 0; i < params; i++) {
             if (!field
                 || !object_field
-                || !(bind = mm_alloc_new0(&__mysql_bind_alloc)))
+                || !(bind = calloc(1, sizeof(mysql_bind_t))))
             {
                 mysql_free_result(result_metadata);
                 __db_backend_mysql_finish(*statement);
@@ -2118,7 +2118,7 @@ static void db_backend_mysql_free(void* data) {
         if (backend_mysql->db) {
             (void)db_backend_mysql_disconnect(backend_mysql);
         }
-        mm_alloc_delete(&__mysql_alloc, backend_mysql);
+        free(backend_mysql);
     }
 }
 
@@ -2212,7 +2212,7 @@ static int db_backend_mysql_transaction_rollback(void* data) {
 db_backend_handle_t* db_backend_mysql_new_handle(void) {
     db_backend_handle_t* backend_handle = NULL;
     db_backend_mysql_t* backend_mysql =
-        (db_backend_mysql_t*)mm_alloc_new0(&__mysql_alloc);
+        (db_backend_mysql_t*)calloc(1, sizeof(mysql_t));
 
     if (backend_mysql && (backend_handle = db_backend_handle_new())) {
         if (db_backend_handle_set_data(backend_handle, (void*)backend_mysql)
@@ -2231,7 +2231,7 @@ db_backend_handle_t* db_backend_mysql_new_handle(void) {
             || db_backend_handle_set_transaction_rollback(backend_handle, db_backend_mysql_transaction_rollback))
         {
             db_backend_handle_free(backend_handle);
-            mm_alloc_delete(&__mysql_alloc, backend_mysql);
+            free(backend_mysql);
             return NULL;
         }
     }

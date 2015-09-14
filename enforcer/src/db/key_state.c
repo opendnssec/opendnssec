@@ -176,11 +176,11 @@ static mm_alloc_t __key_state_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(key_state_t))
 
 key_state_t* key_state_new(const db_connection_t* connection) {
     key_state_t* key_state =
-        (key_state_t*)mm_alloc_new0(&__key_state_alloc);
+        (key_state_t*)calloc(1, sizeof(key_state_t));
 
     if (key_state) {
         if (!(key_state->dbo = __key_state_new_object(connection))) {
-            mm_alloc_delete(&__key_state_alloc, key_state);
+            free(key_state);
             return NULL;
         }
         db_value_reset(&(key_state->id));
@@ -223,13 +223,8 @@ void key_state_free(key_state_t* key_state) {
         if (key_state->private_key_data_id) {
             key_data_free(key_state->private_key_data_id);
         }
-        mm_alloc_delete(&__key_state_alloc, key_state);
+        free(key_state);
     }
-}
-
-void key_state_alloc_nuke()
-{
-    mm_alloc_free(&__key_state_alloc);
 }
 
 void key_state_reset(key_state_t* key_state) {
@@ -1201,11 +1196,11 @@ static mm_alloc_t __key_state_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(key_stat
 
 key_state_list_t* key_state_list_new(const db_connection_t* connection) {
     key_state_list_t* key_state_list =
-        (key_state_list_t*)mm_alloc_new0(&__key_state_list_alloc);
+        (key_state_list_t*)calloc(1, sizeof(key_state_list_t));
 
     if (key_state_list) {
         if (!(key_state_list->dbo = __key_state_new_object(connection))) {
-            mm_alloc_delete(&__key_state_list_alloc, key_state_list);
+            free(key_state_list);
             return NULL;
         }
     }
@@ -1277,13 +1272,8 @@ void key_state_list_free(key_state_list_t* key_state_list) {
         if (key_state_list->key_data_id_list) {
             key_data_list_free(key_state_list->key_data_id_list);
         }
-        mm_alloc_delete(&__key_state_list_alloc, key_state_list);
+        free(key_state_list);
     }
-}
-
-void key_state_list_alloc_nuke()
-{
-    mm_alloc_free(&__key_state_list_alloc);
 }
 
 int key_state_list_copy(key_state_list_t* key_state_list, const key_state_list_t* from_key_state_list) {

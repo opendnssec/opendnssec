@@ -43,48 +43,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-void db_alloc_nuke()
-{
-    db_connection_alloc_nuke();
-    db_configuration_alloc_nuke();
-    db_configuration_list_alloc_nuke();
-    hsm_key_alloc_nuke();
-    hsm_key_list_alloc_nuke();
-    database_version_alloc_nuke();
-    database_version_list_alloc_nuke();
-    db_result_alloc_nuke();
-    db_result_list_alloc_nuke();
-    db_value_set_alloc_nuke();
-    db_object_field_alloc_nuke();
-    db_object_field_list_alloc_nuke();
-    db_object_alloc_nuke();
-    zone_alloc_nuke();
-    zone_list_alloc_nuke();
-    db_clause_alloc_nuke();
-    db_clause_list_alloc_nuke();
-    database_version_list_alloc_nuke();
-    db_value_alloc_nuke();
-    key_dependency_alloc_nuke();
-    key_dependency_list_alloc_nuke();
-    key_data_alloc_nuke();
-    key_data_list_alloc_nuke();
-    db_join_alloc_nuke();
-    db_join_list_alloc_nuke();
-    policy_alloc_nuke();
-    policy_list_alloc_nuke();
-    policy_key_alloc_nuke();
-    policy_key_list_alloc_nuke();
-    key_state_alloc_nuke();
-    key_state_list_alloc_nuke();
-}
-
 /* DB BACKEND HANDLE */
 
 static mm_alloc_t __backend_handle_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_backend_handle_t));
 
 db_backend_handle_t* db_backend_handle_new(void) {
     db_backend_handle_t* backend_handle =
-        (db_backend_handle_t*)mm_alloc_new0(&__backend_handle_alloc);
+        (db_backend_handle_t*)calloc(1, sizeof(backend_handle_t));
 
     return backend_handle;
 }
@@ -97,7 +62,7 @@ void db_backend_handle_free(db_backend_handle_t* backend_handle) {
         if (backend_handle->free_function) {
             (*backend_handle->free_function)(backend_handle->data);
         }
-        mm_alloc_delete(&__backend_handle_alloc, backend_handle);
+        free(backend_handle);
     }
 }
 
@@ -455,7 +420,7 @@ static mm_alloc_t __backend_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_backend_t));
 
 db_backend_t* db_backend_new(void) {
     db_backend_t* backend =
-        (db_backend_t*)mm_alloc_new0(&__backend_alloc);
+        (db_backend_t*)calloc(1, sizeof(backend_t));
 
     return backend;
 }
@@ -468,7 +433,7 @@ void db_backend_free(db_backend_t* backend) {
         if (backend->name) {
             free(backend->name);
         }
-        mm_alloc_delete(&__backend_alloc, backend);
+        free(backend);
     }
 }
 
@@ -746,7 +711,7 @@ static mm_alloc_t __backend_meta_data_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_ba
 
 db_backend_meta_data_t* db_backend_meta_data_new(void) {
     db_backend_meta_data_t* backend_meta_data =
-        (db_backend_meta_data_t*)mm_alloc_new0(&__backend_meta_data_alloc);
+        (db_backend_meta_data_t*)calloc(1, sizeof(backend_meta_data_t));
 
     return backend_meta_data;
 }
@@ -759,7 +724,7 @@ db_backend_meta_data_t* db_backend_meta_data_new_copy(const db_backend_meta_data
         return NULL;
     }
 
-    backend_meta_data = (db_backend_meta_data_t*)mm_alloc_new0(&__backend_meta_data_alloc);
+    backend_meta_data = (db_backend_meta_data_t*)calloc(1, sizeof(backend_meta_data_t));
     if (backend_meta_data) {
         if (db_backend_meta_data_copy(backend_meta_data, from_backend_meta_data)) {
             db_backend_meta_data_free(backend_meta_data);
@@ -778,7 +743,7 @@ void db_backend_meta_data_free(db_backend_meta_data_t* backend_meta_data) {
         if (backend_meta_data->value) {
             db_value_free(backend_meta_data->value);
         }
-        mm_alloc_delete(&__backend_meta_data_alloc, backend_meta_data);
+        free(backend_meta_data);
     }
 }
 
@@ -888,7 +853,7 @@ static mm_alloc_t __backend_meta_data_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(
 
 db_backend_meta_data_list_t* db_backend_meta_data_list_new(void) {
     db_backend_meta_data_list_t* backend_meta_data_list =
-        (db_backend_meta_data_list_t*)mm_alloc_new0(&__backend_meta_data_list_alloc);
+        (db_backend_meta_data_list_t*)calloc(1, sizeof(backend_meta_data_list_t));
 
     return backend_meta_data_list;
 }
@@ -901,7 +866,7 @@ db_backend_meta_data_list_t* db_backend_meta_data_list_new_copy(const db_backend
         return NULL;
     }
 
-    backend_meta_data_list = (db_backend_meta_data_list_t*)mm_alloc_new0(&__backend_meta_data_list_alloc);
+    backend_meta_data_list = (db_backend_meta_data_list_t*)calloc(1, sizeof(backend_meta_data_list_t));
     if (backend_meta_data_list) {
         if (db_backend_meta_data_list_copy(backend_meta_data_list, from_backend_meta_data_list)) {
             db_backend_meta_data_list_free(backend_meta_data_list);
@@ -924,7 +889,7 @@ void db_backend_meta_data_list_free(db_backend_meta_data_list_t* backend_meta_da
                 this = next;
             }
         }
-        mm_alloc_delete(&__backend_meta_data_list_alloc, backend_meta_data_list);
+        free(backend_meta_data_list);
     }
 }
 

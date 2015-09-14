@@ -470,11 +470,11 @@ static mm_alloc_t __policy_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(policy_t));
 
 policy_t* policy_new(const db_connection_t* connection) {
     policy_t* policy =
-        (policy_t*)mm_alloc_new0(&__policy_alloc);
+        (policy_t*)calloc(1, sizeof(policy_t));
 
     if (policy) {
         if (!(policy->dbo = __policy_new_object(connection))) {
-            mm_alloc_delete(&__policy_alloc, policy);
+            free(policy);
             return NULL;
         }
         db_value_reset(&(policy->id));
@@ -532,13 +532,8 @@ void policy_free(policy_t* policy) {
         if (policy->hsm_key_list) {
             hsm_key_list_free(policy->hsm_key_list);
         }
-        mm_alloc_delete(&__policy_alloc, policy);
+        free(policy);
     }
-}
-
-void policy_alloc_nuke()
-{
-    mm_alloc_free(&__policy_alloc);
 }
 
 void policy_reset(policy_t* policy) {
@@ -3683,11 +3678,11 @@ static mm_alloc_t __policy_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(policy_list
 
 policy_list_t* policy_list_new(const db_connection_t* connection) {
     policy_list_t* policy_list =
-        (policy_list_t*)mm_alloc_new0(&__policy_list_alloc);
+        (policy_list_t*)calloc(1, sizeof(policy_list_t));
 
     if (policy_list) {
         if (!(policy_list->dbo = __policy_new_object(connection))) {
-            mm_alloc_delete(&__policy_list_alloc, policy_list);
+            free(policy_list);
             return NULL;
         }
     }
@@ -3756,13 +3751,8 @@ void policy_list_free(policy_list_t* policy_list) {
         if (policy_list->object_list) {
             free(policy_list->object_list);
         }
-        mm_alloc_delete(&__policy_list_alloc, policy_list);
+        free(policy_list);
     }
-}
-
-void policy_list_alloc_nuke()
-{
-    mm_alloc_free(&__policy_list_alloc);
 }
 
 int policy_list_copy(policy_list_t* policy_list, const policy_list_t* from_policy_list) {

@@ -285,15 +285,13 @@ static db_object_t* __zone_new_object(const db_connection_t* connection) {
 
 /* ZONE */
 
-static mm_alloc_t __zone_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(zone_t));
-
 zone_t* zone_new(const db_connection_t* connection) {
     zone_t* zone =
-        (zone_t*)mm_alloc_new0(&__zone_alloc);
+        (zone_t*)calloc(1, sizeof(zone_t));
 
     if (zone) {
         if (!(zone->dbo = __zone_new_object(connection))) {
-            mm_alloc_delete(&__zone_alloc, zone);
+            free(zone);
             return NULL;
         }
         db_value_reset(&(zone->id));
@@ -360,14 +358,10 @@ void zone_free(zone_t* zone) {
         if (zone->key_dependency_list) {
             key_dependency_list_free(zone->key_dependency_list);
         }
-        mm_alloc_delete(&__zone_alloc, zone);
+        free(zone);
     }
 }
 
-void zone_alloc_nuke()
-{
-    mm_alloc_free(&__zone_alloc);
-}
 
 void zone_reset(zone_t* zone) {
     if (zone) {
@@ -2685,15 +2679,13 @@ int zone_count(zone_t* zone, db_clause_list_t* clause_list, size_t* count) {
 
 /* ZONE LIST */
 
-static mm_alloc_t __zone_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(zone_list_t));
-
 zone_list_t* zone_list_new(const db_connection_t* connection) {
     zone_list_t* zone_list =
-        (zone_list_t*)mm_alloc_new0(&__zone_list_alloc);
+        (zone_list_t*)calloc(1, sizeof(zone_list_t));
 
     if (zone_list) {
         if (!(zone_list->dbo = __zone_new_object(connection))) {
-            mm_alloc_delete(&__zone_list_alloc, zone_list);
+            free(zone_list);
             return NULL;
         }
     }
@@ -2765,13 +2757,8 @@ void zone_list_free(zone_list_t* zone_list) {
         if (zone_list->policy_id_list) {
             policy_list_free(zone_list->policy_id_list);
         }
-        mm_alloc_delete(&__zone_list_alloc, zone_list);
+        free(zone_list);
     }
-}
-
-void zone_list_alloc_nuke()
-{
-    mm_alloc_free(&__zone_list_alloc);
 }
 
 int zone_list_copy(zone_list_t* zone_list, const zone_list_t* from_zone_list) {

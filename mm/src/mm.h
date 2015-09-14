@@ -39,17 +39,4 @@ struct mm_alloc
 	size_t size;
 };
 
-void* mm_alloc_new0(mm_alloc_t*);
-
-/**
- * Completely free allocator. Lock will be destroyed. *ALL* contents
- * MUST be free'd individually.
- *
- * @param alloc: Allocator to free, must not me NULL;
- */
-void mm_alloc_free(mm_alloc_t* alloc);
-
-void mm_alloc_delete(mm_alloc_t*, void*);
-
-
 #endif

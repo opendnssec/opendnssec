@@ -41,7 +41,7 @@ static mm_alloc_t __join_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_join_t));
 
 db_join_t* db_join_new(void) {
     db_join_t* join =
-        (db_join_t*)mm_alloc_new0(&__join_alloc);
+        (db_join_t*)calloc(1, sizeof(join_t));
 
     return join;
 }
@@ -60,13 +60,8 @@ void db_join_free(db_join_t* join) {
         if (join->to_field) {
             free(join->to_field);
         }
-        mm_alloc_delete(&__join_alloc, join);
+        free(join);
     }
-}
-
-void db_join_alloc_nuke()
-{
-    mm_alloc_free(&__join_alloc);
 }
 
 const char* db_join_from_table(const db_join_t* join) {
@@ -206,7 +201,7 @@ static mm_alloc_t __join_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_join_list_
 
 db_join_list_t* db_join_list_new(void) {
     db_join_list_t* join_list =
-        (db_join_list_t*)mm_alloc_new0(&__join_list_alloc);
+        (db_join_list_t*)calloc(1, sizeof(join_list_t));
 
     return join_list;
 }
@@ -223,13 +218,8 @@ void db_join_list_free(db_join_list_t* join_list) {
                 this = next;
             }
         }
-        mm_alloc_delete(&__join_list_alloc, join_list);
+        free(join_list);
     }
-}
-
-void db_join_list_alloc_nuke()
-{
-    mm_alloc_free(&__join_list_alloc);
 }
 
 int db_join_list_add(db_join_list_t* join_list, db_join_t* join) {

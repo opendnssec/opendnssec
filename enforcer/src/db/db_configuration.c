@@ -41,7 +41,7 @@ static mm_alloc_t __configuration_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_config
 
 db_configuration_t* db_configuration_new(void) {
     db_configuration_t* configuration =
-        (db_configuration_t*)mm_alloc_new0(&__configuration_alloc);
+        (db_configuration_t*)calloc(1, sizeof(configuration_t));
 
     return configuration;
 }
@@ -54,13 +54,8 @@ void db_configuration_free(db_configuration_t* configuration) {
         if (configuration->value) {
             free(configuration->value);
         }
-        mm_alloc_delete(&__configuration_alloc, configuration);
+        free(configuration);
     }
-}
-
-void db_configuration_alloc_nuke()
-{
-    mm_alloc_free(&__configuration_alloc);
 }
 
 const char* db_configuration_name(const db_configuration_t* configuration) {
@@ -140,14 +135,9 @@ static mm_alloc_t __configuration_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_c
 
 db_configuration_list_t* db_configuration_list_new(void) {
     db_configuration_list_t* configuration_list =
-        (db_configuration_list_t*)mm_alloc_new0(&__configuration_list_alloc);
+        (db_configuration_list_t*)calloc(1, sizeof(configuration_list_t));
 
     return configuration_list;
-}
-
-void db_configuration_list_alloc_nuke()
-{
-    mm_alloc_free(&__configuration_list_alloc);
 }
 
 void db_configuration_list_free(db_configuration_list_t* configuration_list) {
@@ -162,7 +152,7 @@ void db_configuration_list_free(db_configuration_list_t* configuration_list) {
                 this = next;
             }
         }
-        mm_alloc_delete(&__configuration_list_alloc, configuration_list);
+        free(configuration_list);
     }
 }
 
