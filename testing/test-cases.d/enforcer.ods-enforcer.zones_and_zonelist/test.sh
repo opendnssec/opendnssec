@@ -207,12 +207,12 @@ log_grep ods-enforcer-zone_del_2 stderr  "Unable to delete zone, zone ods1 not f
 
 # This sleep is necessary to ensure that deleting zone ods1 is completely
 # done, otherwise deleting the other zones will partially fail (silently)
-sleep 30 &&
+ods_enforcer_idle &&
 
 # Delete all remaining zones 
 echo "y " | log_this ods-enforcer-zone_del_3  ods-enforcer zone delete --all  &&
 # Need a sleep to make sure all are gone
-sleep 60 &&
+ods_enforcer_idle &&
 
 log_this ods-enforcer-zone_del_list_3  ods-enforcer zone list  &&
 log_grep ods-enforcer-zone_del_list_3   stdout "No zones in database." &&
@@ -224,12 +224,12 @@ echo "Internal Zone file contents empty" &&
 ##################  TEST:  Zonelist.xml  import ###########################
 
 cp zonelist.xml.gold_local "$ZONELIST_FILE" &&
-sleep 5 &&
+ods_enforcer_idle &&
 # we no longer have a good way to test this, just sleep for 2 minutes, as it should take only 20 seconds or so for now
 #num_completed_updates=`syslog_grep_count2 "Completed updating all zones that need required action"` &&
 log_this ods-enforcer-zonelist-import ods-enforcer zonelist import &&
 #syslog_waitfor_count 30 $(( num_completed_updates + 1 )) "Completed updating all zones that need required action" &&
-sleep 120 &&
+ods_enforcer_idle &&
 log_this ods-enforcer-zone_add_list_2  ods-enforcer zone list  &&
 log_grep ods-enforcer-zone_add_list_2   stdout "ods0[[:space:]]*default" &&
 log_grep ods-enforcer-zone_add_list_2   stdout "ods1[[:space:]]*Policy1" &&
@@ -258,7 +258,7 @@ echo "zones.xml contents OK" &&
 # Now do another import with a file that has one extra zone and one zone removed
 # and some of the data changed
 cp zonelist.xml.test_local "$ZONELIST_FILE" &&
-sleep 20 &&
+ods_enforcer_idle &&
 log_this ods-enforcer-zonelist-import ods-enforcer zonelist import --remove-missing-zones && 
 log_this ods-enforcer-zonelist-enforce ods-enforcer enforce && 
 syslog_waitfor_count 30 2 ".zonelist_import_cmd. internal zonelist exported successfully" &&
@@ -279,7 +279,7 @@ log_grep ods-enforcer-zone_add_list_3   stdout "ods12[[:space:]]*default" &&
 log_grep ods-enforcer-zone_add_list_3   stdout "ods13[[:space:]]*default" &&
 log_grep ods-enforcer-zone_add_list_3   stdout "ods14[[:space:]]*default" &&
 
-sleep 120 &&
+ods_enforcer_idle &&
 
 ods-enforcer zonelist export > zonelist.xml.temp3 &&
 cp $ZONELIST_FILE zonelist.xml.temp3 &&
@@ -314,7 +314,7 @@ ods_stop_signer &&
 # Now import an empty zonelist
 cp zonelist.xml "$ZONELIST_FILE" &&
 log_this ods-enforcer-zonelist-import-empty ods-enforcer zonelist import --remove-missing-zones && 
-sleep 240 &&
+ods_enforcer_idle &&
 log_this ods-enforcer-zonelist-import-empty   ods-enforcer zone list &&
 log_grep ods-enforcer-zonelist-import-empty   stdout "No zones in database." &&
 

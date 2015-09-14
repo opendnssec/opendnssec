@@ -20,6 +20,7 @@ ods_reset_env &&
 ods_start_ods-control &&
 
 # Make sure all keys are in use
+# note that the first enforce is not scheduled immediately, for almost a minut from now
 sleep 60 && ods_enforcer_idle &&
 
 # Check that we have 2 keys per zone
