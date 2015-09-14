@@ -30,7 +30,6 @@
 #include "hsm_key.h"
 #include "db_error.h"
 
-#include "mm.h"
 
 #include <string.h>
 
@@ -240,7 +239,7 @@ static db_object_t* __hsm_key_new_object(const db_connection_t* connection) {
 
 /* HSM KEY */
 
-static mm_alloc_t __hsm_key_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(hsm_key_t));
+
 
 hsm_key_t* hsm_key_new(const db_connection_t* connection) {
     hsm_key_t* hsm_key =
@@ -1903,7 +1902,7 @@ int hsm_key_count(hsm_key_t* hsm_key, db_clause_list_t* clause_list, size_t* cou
 
 /* HSM KEY LIST */
 
-static mm_alloc_t __hsm_key_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(hsm_key_list_t));
+
 
 hsm_key_list_t* hsm_key_list_new(const db_connection_t* connection) {
     hsm_key_list_t* hsm_key_list =

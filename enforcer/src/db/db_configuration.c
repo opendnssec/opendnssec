@@ -30,18 +30,17 @@
 #include "db_configuration.h"
 #include "db_error.h"
 
-#include "mm.h"
 
 #include <stdlib.h>
 #include <string.h>
 
 /* DB CONFIGURATION */
 
-static mm_alloc_t __configuration_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_configuration_t));
+
 
 db_configuration_t* db_configuration_new(void) {
     db_configuration_t* configuration =
-        (db_configuration_t*)calloc(1, sizeof(configuration_t));
+        (db_configuration_t*)calloc(1, sizeof(db_configuration_t));
 
     return configuration;
 }
@@ -131,11 +130,11 @@ int db_configuration_not_empty(const db_configuration_t* configuration) {
 
 /* DB CONFIGURATION LIST */
 
-static mm_alloc_t __configuration_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_configuration_list_t));
+
 
 db_configuration_list_t* db_configuration_list_new(void) {
     db_configuration_list_t* configuration_list =
-        (db_configuration_list_t*)calloc(1, sizeof(configuration_list_t));
+        (db_configuration_list_t*)calloc(1, sizeof(db_configuration_list_t));
 
     return configuration_list;
 }

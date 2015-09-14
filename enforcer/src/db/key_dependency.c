@@ -30,7 +30,6 @@
 #include "key_dependency.h"
 #include "db_error.h"
 
-#include "mm.h"
 
 #include <string.h>
 
@@ -140,7 +139,7 @@ static db_object_t* __key_dependency_new_object(const db_connection_t* connectio
 
 /* KEY DEPENDENCY */
 
-static mm_alloc_t __key_dependency_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(key_dependency_t));
+
 
 key_dependency_t* key_dependency_new(const db_connection_t* connection) {
     key_dependency_t* key_dependency =
@@ -1213,7 +1212,7 @@ int key_dependency_count(key_dependency_t* key_dependency, db_clause_list_t* cla
 
 /* KEY DEPENDENCY LIST */
 
-static mm_alloc_t __key_dependency_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(key_dependency_list_t));
+
 
 key_dependency_list_t* key_dependency_list_new(const db_connection_t* connection) {
     key_dependency_list_t* key_dependency_list =

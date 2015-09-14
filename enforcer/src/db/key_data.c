@@ -30,7 +30,6 @@
 #include "key_data.h"
 #include "db_error.h"
 
-#include "mm.h"
 
 #include <string.h>
 
@@ -260,7 +259,7 @@ static db_object_t* __key_data_new_object(const db_connection_t* connection) {
 
 /* KEY DATA */
 
-static mm_alloc_t __key_data_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(key_data_t));
+
 
 key_data_t* key_data_new(const db_connection_t* connection) {
     key_data_t* key_data =
@@ -2014,7 +2013,7 @@ int key_data_count(key_data_t* key_data, db_clause_list_t* clause_list, size_t* 
 
 /* KEY DATA LIST */
 
-static mm_alloc_t __key_data_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(key_data_list_t));
+
 
 key_data_list_t* key_data_list_new(const db_connection_t* connection) {
     key_data_list_t* key_data_list =

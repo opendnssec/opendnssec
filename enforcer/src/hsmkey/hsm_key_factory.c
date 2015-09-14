@@ -28,7 +28,6 @@
 
 #include "config.h"
 
-#include "mm.h"
 #include "db/hsm_key.h"
 #include "db/policy.h"
 #include "db/policy_key.h"

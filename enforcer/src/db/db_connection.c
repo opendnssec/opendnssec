@@ -30,15 +30,14 @@
 #include "db_connection.h"
 #include "db_error.h"
 
-#include "mm.h"
 
 #include <stdlib.h>
 
-static mm_alloc_t __connection_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_connection_t));
+
 
 db_connection_t* db_connection_new(void) {
     db_connection_t* connection =
-        (db_connection_t*)calloc(1, sizeof(connection_t));
+        (db_connection_t*)calloc(1, sizeof(db_connection_t));
 
     return connection;
 }

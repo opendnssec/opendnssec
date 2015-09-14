@@ -30,20 +30,19 @@
 #include "db_clause.h"
 #include "db_error.h"
 
-#include "mm.h"
 
 #include <stdlib.h>
 #include <string.h>
 
 /* DB CLAUSE */
 
-static mm_alloc_t __clause_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_clause_t));
+
 
 /* TODO: add more check for type and what value/list is set, maybe add type to new */
 
 db_clause_t* db_clause_new(void) {
     db_clause_t* clause =
-        (db_clause_t*)calloc(1, sizeof(clause_t));
+        (db_clause_t*)calloc(1, sizeof(db_clause_t));
 
     if (clause) {
         clause->type = DB_CLAUSE_UNKNOWN;
@@ -251,11 +250,11 @@ db_value_t* db_clause_get_value(db_clause_t* clause) {
 
 /* DB CLAUSE LIST */
 
-static mm_alloc_t __clause_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_clause_list_t));
+
 
 db_clause_list_t* db_clause_list_new(void) {
     db_clause_list_t* clause_list =
-        (db_clause_list_t*)calloc(1, sizeof(clause_list_t));
+        (db_clause_list_t*)calloc(1, sizeof(db_clause_list_t));
 
     return clause_list;
 }

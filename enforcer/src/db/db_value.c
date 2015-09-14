@@ -30,17 +30,16 @@
 #include "db_value.h"
 #include "db_error.h"
 
-#include "mm.h"
 
 #include <string.h>
 
 /* DB VALUE */
 
-static mm_alloc_t __value_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_value_t));
+
 
 db_value_t* db_value_new() {
     db_value_t* value =
-        (db_value_t*)calloc(1, sizeof(value_t));
+        (db_value_t*)calloc(1, sizeof(db_value_t));
 
     if (value) {
         value->type = DB_TYPE_EMPTY;
@@ -57,7 +56,7 @@ db_value_t* db_value_new_copy(const db_value_t* from_value) {
         return NULL;
     }
 
-    if (!(value = (db_value_t*)calloc(1, sizeof(value_t)))
+    if (!(value = (db_value_t*)calloc(1, sizeof(db_value_t)))
         || db_value_copy(value, from_value))
     {
         db_value_free(value);
@@ -717,15 +716,15 @@ int db_value_set_primary_key(db_value_t* value) {
 
 /* DB VALUE SET */
 
-static mm_alloc_t __value_set_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_value_set_t));
-static mm_alloc_t __4_value_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_value_t) * 4);
-static mm_alloc_t __8_value_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_value_t) * 8);
-static mm_alloc_t __12_value_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_value_t) * 12);
-static mm_alloc_t __16_value_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_value_t) * 16);
-static mm_alloc_t __24_value_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_value_t) * 24);
-static mm_alloc_t __32_value_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_value_t) * 32);
-static mm_alloc_t __64_value_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_value_t) * 64);
-static mm_alloc_t __128_value_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_value_t) * 128);
+
+
+
+
+
+
+
+
+
 
 db_value_set_t* db_value_set_new(size_t size) {
     db_value_set_t* value_set;
@@ -735,31 +734,31 @@ db_value_set_t* db_value_set_new(size_t size) {
         return NULL;
     }
 
-    value_set = (db_value_set_t*)calloc(1, sizeof(value_set_t));
+    value_set = (db_value_set_t*)calloc(1, sizeof(db_value_set_t));
     if (value_set) {
         if (size <= 4) {
-            value_set->values = (db_value_t*)calloc(1, sizeof(4_value_t));
+            value_set->values = (db_value_t*)calloc(1, sizeof(db_value_t));
         }
         else if (size <= 8) {
-            value_set->values = (db_value_t*)calloc(1, sizeof(8_value_t));
+            value_set->values = (db_value_t*)calloc(1, sizeof(db_value_t));
         }
         else if (size <= 12) {
-            value_set->values = (db_value_t*)calloc(1, sizeof(12_value_t));
+            value_set->values = (db_value_t*)calloc(1, sizeof(db_value_t));
         }
         else if (size <= 16) {
-            value_set->values = (db_value_t*)calloc(1, sizeof(16_value_t));
+            value_set->values = (db_value_t*)calloc(1, sizeof(db_value_t));
         }
         else if (size <= 24) {
-            value_set->values = (db_value_t*)calloc(1, sizeof(24_value_t));
+            value_set->values = (db_value_t*)calloc(1, sizeof(db_value_t));
         }
         else if (size <= 32) {
-            value_set->values = (db_value_t*)calloc(1, sizeof(32_value_t));
+            value_set->values = (db_value_t*)calloc(1, sizeof(db_value_t));
         }
         else if (size <= 64) {
-            value_set->values = (db_value_t*)calloc(1, sizeof(64_value_t));
+            value_set->values = (db_value_t*)calloc(1, sizeof(db_value_t));
         }
         else if (size <= 128) {
-            value_set->values = (db_value_t*)calloc(1, sizeof(128_value_t));
+            value_set->values = (db_value_t*)calloc(1, sizeof(db_value_t));
         }
         if (!value_set->values) {
             free(value_set);

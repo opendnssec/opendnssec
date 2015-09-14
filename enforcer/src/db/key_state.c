@@ -30,7 +30,6 @@
 #include "key_state.h"
 #include "db_error.h"
 
-#include "mm.h"
 
 #include <string.h>
 
@@ -172,7 +171,7 @@ static db_object_t* __key_state_new_object(const db_connection_t* connection) {
 
 /* KEY STATE */
 
-static mm_alloc_t __key_state_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(key_state_t));
+
 
 key_state_t* key_state_new(const db_connection_t* connection) {
     key_state_t* key_state =
@@ -1192,7 +1191,7 @@ int key_state_count(key_state_t* key_state, db_clause_list_t* clause_list, size_
 
 /* KEY STATE LIST */
 
-static mm_alloc_t __key_state_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(key_state_list_t));
+
 
 key_state_list_t* key_state_list_new(const db_connection_t* connection) {
     key_state_list_t* key_state_list =

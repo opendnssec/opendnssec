@@ -30,7 +30,6 @@
 #include "db_backend_mysql.h"
 #include "db_error.h"
 
-#include "mm.h"
 #include "log.h"
 
 #include <mysql/mysql.h>
@@ -58,7 +57,7 @@ typedef struct db_backend_mysql {
     unsigned int timeout;
 } db_backend_mysql_t;
 
-static mm_alloc_t __mysql_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_backend_mysql_t));
+
 
 /**
  * The MySQL database backend specific data for a statement bind.
@@ -72,7 +71,7 @@ struct db_backend_mysql_bind {
     int value_enum;
 };
 
-static mm_alloc_t __mysql_bind_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_backend_mysql_bind_t));
+
 
 /**
  * The MySQL database backend specific data for statements.
@@ -91,7 +90,7 @@ typedef struct db_backend_mysql_statement {
     int bound;
 } db_backend_mysql_statement_t;
 
-static mm_alloc_t __mysql_statement_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_backend_mysql_statement_t));
+
 
 /**
  * MySQL finish function.
@@ -2212,7 +2211,7 @@ static int db_backend_mysql_transaction_rollback(void* data) {
 db_backend_handle_t* db_backend_mysql_new_handle(void) {
     db_backend_handle_t* backend_handle = NULL;
     db_backend_mysql_t* backend_mysql =
-        (db_backend_mysql_t*)calloc(1, sizeof(mysql_t));
+        (db_backend_mysql_t*)calloc(1, sizeof(db_backend_mysql_t));
 
     if (backend_mysql && (backend_handle = db_backend_handle_new())) {
         if (db_backend_handle_set_data(backend_handle, (void*)backend_mysql)

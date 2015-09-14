@@ -30,15 +30,14 @@
 #include "db_result.h"
 #include "db_error.h"
 
-#include "mm.h"
 
 /* DB RESULT */
 
-static mm_alloc_t __result_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_result_t));
+
 
 db_result_t* db_result_new(void) {
     db_result_t* result =
-        (db_result_t*)calloc(1, sizeof(result_t));
+        (db_result_t*)calloc(1, sizeof(db_result_t));
 
     return result;
 }
@@ -168,11 +167,11 @@ int db_result_not_empty(const db_result_t* result) {
 
 /* DB RESULT LIST */
 
-static mm_alloc_t __result_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_result_list_t));
+
 
 db_result_list_t* db_result_list_new(void) {
     db_result_list_t* result_list =
-        (db_result_list_t*)calloc(1, sizeof(result_list_t));
+        (db_result_list_t*)calloc(1, sizeof(db_result_list_t));
 
     return result_list;
 }
@@ -185,7 +184,7 @@ db_result_list_t* db_result_list_new_copy(const db_result_list_t* from_result_li
         return NULL;
     }
 
-    result_list = (db_result_list_t*)calloc(1, sizeof(result_list_t));
+    result_list = (db_result_list_t*)calloc(1, sizeof(db_result_list_t));
     if (result_list) {
         if (db_result_list_copy(result_list, from_result_list)) {
             db_result_list_free(result_list);

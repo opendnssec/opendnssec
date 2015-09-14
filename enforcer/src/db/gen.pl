@@ -834,7 +834,6 @@ print SOURCE '/*
 #include "', $name, '.h"
 #include "db_error.h"
 
-#include "mm.h"
 
 #include <string.h>
 
@@ -909,7 +908,7 @@ print SOURCE '    if (db_object_set_object_field_list(object, object_field_list)
 
 /* ', uc($tname), ' */
 
-static mm_alloc_t __', $name, '_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(', $name, '_t));
+
 
 ', $name, '_t* ', $name, '_new(const db_connection_t* connection) {
     ', $name, '_t* ', $name, ' =
@@ -2273,7 +2272,7 @@ int ', $name, '_count(', $name, '_t* ', $name, ', db_clause_list_t* clause_list,
 
 /* ', uc($tname), ' LIST */
 
-static mm_alloc_t __', $name, '_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(', $name, '_list_t));
+
 
 ', $name, '_list_t* ', $name, '_list_new(const db_connection_t* connection) {
     ', $name, '_list_t* ', $name, '_list =

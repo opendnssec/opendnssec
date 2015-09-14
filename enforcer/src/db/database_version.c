@@ -30,7 +30,6 @@
 #include "database_version.h"
 #include "db_error.h"
 
-#include "mm.h"
 
 #include <string.h>
 
@@ -98,7 +97,7 @@ static db_object_t* __database_version_new_object(const db_connection_t* connect
 
 /* DATABASE VERSION */
 
-static mm_alloc_t __database_version_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(database_version_t));
+
 
 database_version_t* database_version_new(const db_connection_t* connection) {
     database_version_t* database_version =
@@ -537,7 +536,7 @@ int database_version_count(database_version_t* database_version, db_clause_list_
 
 /* DATABASE VERSION LIST */
 
-static mm_alloc_t __database_version_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(database_version_list_t));
+
 
 database_version_list_t* database_version_list_new(const db_connection_t* connection) {
     database_version_list_t* database_version_list =

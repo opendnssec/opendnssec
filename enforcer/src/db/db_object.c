@@ -30,17 +30,16 @@
 #include "db_object.h"
 #include "db_error.h"
 
-#include "mm.h"
 
 #include <stdlib.h>
 
 /* DB OBJECT FIELD */
 
-static mm_alloc_t __object_field_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_object_field_t));
+
 
 db_object_field_t* db_object_field_new(void) {
     db_object_field_t* object_field =
-        (db_object_field_t*)calloc(1, sizeof(object_field_t));
+        (db_object_field_t*)calloc(1, sizeof(db_object_field_t));
 
     if (object_field) {
         object_field->type = DB_TYPE_EMPTY;
@@ -178,11 +177,11 @@ const db_object_field_t* db_object_field_next(const db_object_field_t* object_fi
 
 /* DB OBJECT FIELD LIST */
 
-static mm_alloc_t __object_field_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_object_field_list_t));
+
 
 db_object_field_list_t* db_object_field_list_new(void) {
     db_object_field_list_t* object_field_list =
-        (db_object_field_list_t*)calloc(1, sizeof(object_field_list_t));
+        (db_object_field_list_t*)calloc(1, sizeof(db_object_field_list_t));
 
     return object_field_list;
 }
@@ -308,11 +307,11 @@ size_t db_object_field_list_size(const db_object_field_list_t* object_field_list
 
 /* DB OBJECT */
 
-static mm_alloc_t __object_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_object_t));
+
 
 db_object_t* db_object_new(void) {
     db_object_t* object =
-        (db_object_t*)calloc(1, sizeof(object_t));
+        (db_object_t*)calloc(1, sizeof(db_object_t));
 
     return object;
 }

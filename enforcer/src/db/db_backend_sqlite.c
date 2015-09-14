@@ -30,7 +30,6 @@
 #include "db_backend_sqlite.h"
 #include "db_error.h"
 
-#include "mm.h"
 #include "log.h"
 
 #include <stdlib.h>
@@ -72,7 +71,7 @@ typedef struct db_backend_sqlite {
     long usleep;
 } db_backend_sqlite_t;
 
-static mm_alloc_t __sqlite_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_backend_sqlite_t));
+
 
 /**
  * The SQLite database backend specific data for walking a result.
@@ -84,7 +83,7 @@ typedef struct db_backend_sqlite_statement {
     const db_object_t* object;
 } db_backend_sqlite_statement_t;
 
-static mm_alloc_t __sqlite_statement_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_backend_sqlite_statement_t));
+
 
 /**
  * The SQLite bust handler that is used to wait for database access.
@@ -1195,7 +1194,7 @@ static db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* o
         }
     }
 
-    statement = calloc(1, sizeof(sqlite_statement_t));
+    statement = calloc(1, sizeof(db_backend_sqlite_statement_t));
     if (!statement) {
         return NULL;
     }
@@ -1847,7 +1846,7 @@ static int db_backend_sqlite_transaction_rollback(void* data) {
 db_backend_handle_t* db_backend_sqlite_new_handle(void) {
     db_backend_handle_t* backend_handle = NULL;
     db_backend_sqlite_t* backend_sqlite =
-        (db_backend_sqlite_t*)calloc(1, sizeof(sqlite_t));
+        (db_backend_sqlite_t*)calloc(1, sizeof(db_backend_sqlite_t));
 
     if (backend_sqlite && (backend_handle = db_backend_handle_new())) {
         if (db_backend_handle_set_data(backend_handle, (void*)backend_sqlite)

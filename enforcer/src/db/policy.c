@@ -30,7 +30,6 @@
 #include "policy.h"
 #include "db_error.h"
 
-#include "mm.h"
 
 #include <string.h>
 
@@ -465,8 +464,6 @@ static db_object_t* __policy_new_object(const db_connection_t* connection) {
 }
 
 /* POLICY */
-
-static mm_alloc_t __policy_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(policy_t));
 
 policy_t* policy_new(const db_connection_t* connection) {
     policy_t* policy =
@@ -3674,7 +3671,7 @@ int policy_count(policy_t* policy, db_clause_list_t* clause_list, size_t* count)
 
 /* POLICY LIST */
 
-static mm_alloc_t __policy_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(policy_list_t));
+
 
 policy_list_t* policy_list_new(const db_connection_t* connection) {
     policy_list_t* policy_list =

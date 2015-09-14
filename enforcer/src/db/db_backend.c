@@ -38,18 +38,17 @@
 #include "database_version.h"
 #include "hsm_key.h"
 
-#include "mm.h"
 
 #include <stdlib.h>
 #include <string.h>
 
 /* DB BACKEND HANDLE */
 
-static mm_alloc_t __backend_handle_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_backend_handle_t));
+
 
 db_backend_handle_t* db_backend_handle_new(void) {
     db_backend_handle_t* backend_handle =
-        (db_backend_handle_t*)calloc(1, sizeof(backend_handle_t));
+        (db_backend_handle_t*)calloc(1, sizeof(db_backend_handle_t));
 
     return backend_handle;
 }
@@ -416,11 +415,11 @@ int db_backend_handle_not_empty(const db_backend_handle_t* backend_handle) {
 
 /* DB BACKEND */
 
-static mm_alloc_t __backend_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_backend_t));
+
 
 db_backend_t* db_backend_new(void) {
     db_backend_t* backend =
-        (db_backend_t*)calloc(1, sizeof(backend_t));
+        (db_backend_t*)calloc(1, sizeof(db_backend_t));
 
     return backend;
 }
@@ -707,11 +706,11 @@ int db_backend_factory_shutdown(void) {
 
 /* DB BACKEND META DATA */
 
-static mm_alloc_t __backend_meta_data_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_backend_meta_data_t));
+
 
 db_backend_meta_data_t* db_backend_meta_data_new(void) {
     db_backend_meta_data_t* backend_meta_data =
-        (db_backend_meta_data_t*)calloc(1, sizeof(backend_meta_data_t));
+        (db_backend_meta_data_t*)calloc(1, sizeof(db_backend_meta_data_t));
 
     return backend_meta_data;
 }
@@ -724,7 +723,7 @@ db_backend_meta_data_t* db_backend_meta_data_new_copy(const db_backend_meta_data
         return NULL;
     }
 
-    backend_meta_data = (db_backend_meta_data_t*)calloc(1, sizeof(backend_meta_data_t));
+    backend_meta_data = (db_backend_meta_data_t*)calloc(1, sizeof(db_backend_meta_data_t));
     if (backend_meta_data) {
         if (db_backend_meta_data_copy(backend_meta_data, from_backend_meta_data)) {
             db_backend_meta_data_free(backend_meta_data);
@@ -849,11 +848,11 @@ int db_backend_meta_data_not_empty(const db_backend_meta_data_t* backend_meta_da
 
 /* DB BACKEND META DATA LIST */
 
-static mm_alloc_t __backend_meta_data_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_backend_meta_data_list_t));
+
 
 db_backend_meta_data_list_t* db_backend_meta_data_list_new(void) {
     db_backend_meta_data_list_t* backend_meta_data_list =
-        (db_backend_meta_data_list_t*)calloc(1, sizeof(backend_meta_data_list_t));
+        (db_backend_meta_data_list_t*)calloc(1, sizeof(db_backend_meta_data_list_t));
 
     return backend_meta_data_list;
 }
@@ -866,7 +865,7 @@ db_backend_meta_data_list_t* db_backend_meta_data_list_new_copy(const db_backend
         return NULL;
     }
 
-    backend_meta_data_list = (db_backend_meta_data_list_t*)calloc(1, sizeof(backend_meta_data_list_t));
+    backend_meta_data_list = (db_backend_meta_data_list_t*)calloc(1, sizeof(db_backend_meta_data_list_t));
     if (backend_meta_data_list) {
         if (db_backend_meta_data_list_copy(backend_meta_data_list, from_backend_meta_data_list)) {
             db_backend_meta_data_list_free(backend_meta_data_list);

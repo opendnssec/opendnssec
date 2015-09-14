@@ -30,18 +30,17 @@
 #include "db_join.h"
 #include "db_error.h"
 
-#include "mm.h"
 
 #include <stdlib.h>
 #include <string.h>
 
 /* DB JOIN */
 
-static mm_alloc_t __join_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_join_t));
+
 
 db_join_t* db_join_new(void) {
     db_join_t* join =
-        (db_join_t*)calloc(1, sizeof(join_t));
+        (db_join_t*)calloc(1, sizeof(db_join_t));
 
     return join;
 }
@@ -197,11 +196,11 @@ const db_join_t* db_join_next(const db_join_t* join) {
 
 /* DB JOIN LIST */
 
-static mm_alloc_t __join_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_join_list_t));
+
 
 db_join_list_t* db_join_list_new(void) {
     db_join_list_t* join_list =
-        (db_join_list_t*)calloc(1, sizeof(join_list_t));
+        (db_join_list_t*)calloc(1, sizeof(db_join_list_t));
 
     return join_list;
 }

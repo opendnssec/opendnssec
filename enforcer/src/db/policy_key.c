@@ -30,7 +30,6 @@
 #include "policy_key.h"
 #include "db_error.h"
 
-#include "mm.h"
 
 #include <string.h>
 
@@ -205,7 +204,7 @@ static db_object_t* __policy_key_new_object(const db_connection_t* connection) {
 
 /* POLICY KEY */
 
-static mm_alloc_t __policy_key_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(policy_key_t));
+
 
 policy_key_t* policy_key_new(const db_connection_t* connection) {
     policy_key_t* policy_key =
@@ -1505,7 +1504,7 @@ int policy_key_count(policy_key_t* policy_key, db_clause_list_t* clause_list, si
 
 /* POLICY KEY LIST */
 
-static mm_alloc_t __policy_key_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(policy_key_list_t));
+
 
 policy_key_list_t* policy_key_list_new(const db_connection_t* connection) {
     policy_key_list_t* policy_key_list =
