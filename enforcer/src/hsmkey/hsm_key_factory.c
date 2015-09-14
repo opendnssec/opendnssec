@@ -40,6 +40,7 @@
 #include "libhsm.h"
 
 #include <math.h>
+#include <pthread.h>
 
 #include "hsmkey/hsm_key_factory.h"
 

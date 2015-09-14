@@ -27,133 +27,20 @@
  */
 
 #include "mm.h"
-
-#include <strings.h>
 #include <unistd.h>
-#include <assert.h>
-
-/* TODO: keep list of blocks, add freeing functionality */
-
-/* TODO: use page size * (something or option in struct) */
-#define __mm_alloc_size 65536
-
-mm_alloc_t mm_char_16 = MM_ALLOC_T_STATIC_NEW(16);
-mm_alloc_t mm_char_32 = MM_ALLOC_T_STATIC_NEW(32);
-mm_alloc_t mm_char_64 = MM_ALLOC_T_STATIC_NEW(64);
-mm_alloc_t mm_char_128 = MM_ALLOC_T_STATIC_NEW(128);
-mm_alloc_t mm_char_256 = MM_ALLOC_T_STATIC_NEW(256);
-mm_alloc_t mm_char_512 = MM_ALLOC_T_STATIC_NEW(512);
-mm_alloc_t mm_char_1024 = MM_ALLOC_T_STATIC_NEW(1024);
-
-size_t __pagesize = __mm_alloc_size;
-
-void mm_init(void) {
-    /* TODO: will long => size_t be a problem somewhere? */
-    /* TODO: This isn't working
-#if defined(_SC_PAGESIZE)
-    __pagesize = sysconf(_SC_PAGESIZE);
-#elif defined(_SC_PAGE_SIZE)
-    __pagesize = sysconf(_SC_PAGE_SIZE);
-#endif
-*/
-}
-
-void* mm_alloc_new(mm_alloc_t* alloc) {
-    void* ptr;
-
-    if (!alloc) {
-        return NULL;
-    }
-    if (alloc->size < 1) {
-        return NULL;
-    }
-    if (__pagesize < alloc->size) {
-        return NULL;
-    }
-    if (pthread_mutex_lock(&(alloc->lock))) {
-        return NULL;
-    }
-
-    /* if this is the first object, we will allocate a chunk of
-     * memory for it. Otherwise we use the first block available.
-     * If out of blocks we return NULL.
-     */
-    if (!alloc->next) {
-        unsigned int i;
-        void* block;
-
-        if (!(block = malloc(__pagesize))) {
-            pthread_mutex_unlock(&(alloc->lock));
-            return NULL;
-        }
-        alloc->begin = block;
-
-        /* This code partitions the memory in blocks of size. Creating
-         * a single linked list starting from next at the end of the
-         * memory chunk. Allocated blocks will be detached from the list
-         * and skipped over. We hold no reference to them. Contents of
-         * the free blocks is interpreted as a pointer to the next
-         * block. 'Free\'ed' blocks will be added to the list at next.
-         */
-
-        for (i=0; i<(__mm_alloc_size / alloc->size); i++) {
-            *(void**)block = alloc->next;
-            alloc->next = block;
-            block = ((char*)block + alloc->size);
-        }
-    }
-
-    ptr = alloc->next;
-    alloc->next = *(void**)ptr;
-    *(void**)ptr = NULL;
-
-    pthread_mutex_unlock(&(alloc->lock));
-    return ptr;
-}
 
 void mm_alloc_free(mm_alloc_t* alloc)
 {
-    assert(alloc);
-
-    /* Check if entire contents are free'ed. Otherwise assert. This is
-     * technically not necessary but we are trying to find memory
-     * issues here. */
-    if (alloc->begin) {
-        unsigned int count = 0;
-        void *ptr = alloc->next;
-        while (ptr) {
-            count++;
-            ptr = *(void**)ptr;
-        }
-        assert((__mm_alloc_size / alloc->size) == count);
-    }
-    free(alloc->begin);
-    (void) pthread_mutex_destroy(&alloc->lock);
+    free(alloc);
 }
 
-void* mm_alloc_new0(mm_alloc_t* alloc) {
-    void* ptr = mm_alloc_new(alloc);
-
-    if (ptr) {
-        bzero(ptr, alloc->size);
-    }
-
-    return ptr;
+void* mm_alloc_new0(mm_alloc_t* alloc)
+{
+    return calloc(1, alloc->size);
 }
 
-void mm_alloc_delete(mm_alloc_t* alloc, void* ptr) {
-    if (!alloc) {
-        return;
-    }
-    if (!ptr) {
-        return;
-    }
-    if (pthread_mutex_lock(&(alloc->lock))) {
-        return;
-    }
-
-    *(void**)ptr = alloc->next;
-    alloc->next = ptr;
-
-    pthread_mutex_unlock(&(alloc->lock));
+void mm_alloc_delete(mm_alloc_t* alloc, void* ptr)
+{
+    (void)alloc;
+    free(ptr);
 }
