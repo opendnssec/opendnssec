@@ -45,7 +45,7 @@ log_grep axfr stdout 'below\.zonecut\.label4\.ods\..*600.*IN.*NS.*ns\.zonecut\.l
 log_this_timeout ixfr 10 drill -p 15354 @127.0.0.1 ixfr ods &&
 syslog_waitfor 10 'ods-signerd: .*\[axfr\] axfr fallback zone ods' &&
 syslog_waitfor 10 'ods-signerd: .*\[axfr\] axfr udp overflow zone ods' &&
-log_grep ixfr stdout 'ods\..*IN.*TYPE251' &&
+log_grep ixfr stdout 'ods\..*IN.*\(TYPE251\|IXFR\)' &&
 log_grep ixfr stdout 'ods\..*3600.*IN.*SOA.*ns1\.ods\..*postmaster\.ods\..*1001.*9000.*4500.*1209600.*3600' &&
 ! (log_grep ixfr stdout 'ods\..*600.*IN.*MX.*10.*mail\.ods\.') &&
 

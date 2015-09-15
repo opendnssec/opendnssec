@@ -57,15 +57,15 @@ log_grep ods-enforcer-key-export-ds stdout 'ods.	300	IN	DS	' &&
 
 # Clean up
 echo "Cleaning up files" &&
-rm "$INSTALL_ROOT/var/opendnssec/enforcer/dssub.pl" &&
-rm "$INSTALL_ROOT/var/opendnssec/enforcer/dssub.out" &&
+rm -f "$INSTALL_ROOT/var/opendnssec/enforcer/dssub.pl" &&
+rm -f "$INSTALL_ROOT/var/opendnssec/enforcer/dssub.out" &&
 
 ods_stop_enforcer &&
 return 0
 
 # Something went wrong, make sure clean up tmp if nothing else
-rm "$INSTALL_ROOT/var/opendnssec/enforcer/dssub.pl" &&
-mv "$INSTALL_ROOT/var/opendnssec/enforcer/dssub.out" "." &&
+rm -f "$INSTALL_ROOT/var/opendnssec/enforcer/dssub.pl"
+mv "$INSTALL_ROOT/var/opendnssec/enforcer/dssub.out" "."
 
 echo
 echo "************ERROR******************"

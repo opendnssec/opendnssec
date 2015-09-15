@@ -22,7 +22,8 @@ ods_reset_env &&
 # Start enforcer (Zone already exists and we let it generate keys itself)
 ods_start_ods-control &&
 
-sleep 10 && ods_enforcer_idle &&
+# note that the first enforce is not scheduled immediately, for almost a minut from now
+sleep 60 && ods_enforcer_idle &&
 
 # Time Leap to time that  that we have ready/active ksk/zsk keys
 log_this ods-enforcer-time-leap-1 ods_enforcer_leap_to 7200 &&
