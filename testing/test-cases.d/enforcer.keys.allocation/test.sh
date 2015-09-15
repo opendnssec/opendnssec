@@ -20,7 +20,8 @@ ods_reset_env &&
 ods_start_ods-control &&
 
 # Make sure all keys are in use
-sleep 60 && ods_enforcer_idle &&
+#sleep 60 && ods_enforcer_idle &&
+log_this ods-enforcer-waitfor-keys ods_waitfor_keys &&
 
 # Check that we have 2 keys per zone
 # We don't care about the exact state it is in, as long as it is consistent.
