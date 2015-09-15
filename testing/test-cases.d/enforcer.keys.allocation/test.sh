@@ -20,7 +20,9 @@ ods_reset_env &&
 ods_start_ods-control &&
 
 # Make sure all keys are in use
-#sleep 60 && ods_enforcer_idle &&
+# note that the first enforce is not scheduled immediately, for almost a minut from now
+sleep 60 && ods_enforcer_idle &&
+
 log_this ods-enforcer-waitfor-keys ods_waitfor_keys &&
 
 # Check that we have 2 keys per zone
@@ -160,4 +162,3 @@ echo "************ERROR******************"
 echo
 ods_kill
 return 1
-
