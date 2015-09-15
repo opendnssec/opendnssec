@@ -114,7 +114,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
         if (nextFireTime > 0) {
                 strftime(strtime, sizeof(strtime), "%c (%s seconds since epoch)\n", localtime_r(&nextFireTime, &strtime_struct));
                 client_printf(sockfd, "Next task scheduled %s", strtime);
-        } else {
+        } else if (nextFireTime == 0) {
                 client_printf(sockfd, "Next task scheduled immediately\n");
         }
 	
