@@ -279,6 +279,10 @@ log_grep ods-enforcer-zone_add_list_3   stdout "ods12[[:space:]]*default" &&
 log_grep ods-enforcer-zone_add_list_3   stdout "ods13[[:space:]]*default" &&
 log_grep ods-enforcer-zone_add_list_3   stdout "ods14[[:space:]]*default" &&
 
+# There is a back-off task sometimes firing up here, which is not caught by
+# the _idle.  This back-off task is generating the right signconf /with/
+# keys once they are available.
+sleep 120 &&
 ods_enforcer_idle &&
 
 ods-enforcer zonelist export > zonelist.xml.temp3 &&
