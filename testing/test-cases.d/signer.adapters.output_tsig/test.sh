@@ -4,14 +4,6 @@
 #TEST: Start OpenDNSSEC and see if zone gets transferred and signed
 #TEST: and see if NOTIFY messages are sent.
 
-# So we can use validns 0.7 it is installed from source so need to
-# specify this path
-case "$DISTRIBUTION" in
-        redhat )
-                append_path /usr/sbin
-                ;;
-esac
-
 if [ -n "$HAVE_MYSQL" ]; then
         ods_setup_conf conf.xml conf-mysql.xml
 fi &&
