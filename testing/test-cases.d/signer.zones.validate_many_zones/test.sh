@@ -71,6 +71,11 @@ log_this_timeout ods-update-zone 20 ods-signer sign all.rr.org &&
 syslog_waitfor_count 60 `expr $num_signedzones + 1` 'ods-signerd: .*\[STATS\] all.rr.org' &&
 test -f "$INSTALL_ROOT/var/opendnssec/signed/all.rr.org" &&
 
+# Note that the test above and below this sleep need to be separated by at least 1 second, otherwise
+# the SOA serial will not have been changed (set to unixtime) and thus the signer will not notice
+# a change to the zone, and not sign it
+sleep 5 &&
+
 #OPENDNSSEC-247 - Update the SOA minimum in the policy and make sure the NSEC TTL changes.
 $GREP -q -- "<Minimum>PT5M</Minimum>" "$INSTALL_ROOT/var/opendnssec/signconf/all.rr.org" &&
 $GREP -q -- "300.*IN.*NSEC3" "$INSTALL_ROOT/var/opendnssec/signed/all.rr.org" &&
@@ -97,5 +102,3 @@ echo '*********** ERROR **********'
 ods_kill
 cp kasp.xml_orig kasp.xml
 return 1
-
-
