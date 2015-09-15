@@ -328,8 +328,10 @@ ods_setup_env ()
 	ods_start_enforcer &&
 	log_this ods-enforcer-setup ods-enforcer policy import &&
 	log_this ods-enforcer-setup ods-enforcer zonelist import &&
+	# When there are no keys yet generated for the policies, the
+	# signconf could fail
+	ods_enforcer_idle &&
 	( log_this ods-enforcer-setup ods-enforcer signconf || true ) &&
-	sleep 10 &&
 	echo "ods_setup_env: setup complete" &&
 	if [ -z "$no_enforcer_stop" ]; then
 		ods_stop_enforcer
