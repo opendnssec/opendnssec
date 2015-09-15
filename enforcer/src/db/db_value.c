@@ -737,28 +737,28 @@ db_value_set_t* db_value_set_new(size_t size) {
     value_set = (db_value_set_t*)calloc(1, sizeof(db_value_set_t));
     if (value_set) {
         if (size <= 4) {
-            value_set->values = (db_value_t*)calloc(1, sizeof(db_value_t));
+            value_set->values = (db_value_t*)calloc(4, sizeof(db_value_t));
         }
         else if (size <= 8) {
-            value_set->values = (db_value_t*)calloc(1, sizeof(db_value_t));
+            value_set->values = (db_value_t*)calloc(8, sizeof(db_value_t));
         }
         else if (size <= 12) {
-            value_set->values = (db_value_t*)calloc(1, sizeof(db_value_t));
+            value_set->values = (db_value_t*)calloc(12, sizeof(db_value_t));
         }
         else if (size <= 16) {
-            value_set->values = (db_value_t*)calloc(1, sizeof(db_value_t));
+            value_set->values = (db_value_t*)calloc(16, sizeof(db_value_t));
         }
         else if (size <= 24) {
-            value_set->values = (db_value_t*)calloc(1, sizeof(db_value_t));
+            value_set->values = (db_value_t*)calloc(24, sizeof(db_value_t));
         }
         else if (size <= 32) {
-            value_set->values = (db_value_t*)calloc(1, sizeof(db_value_t));
+            value_set->values = (db_value_t*)calloc(32, sizeof(db_value_t));
         }
         else if (size <= 64) {
-            value_set->values = (db_value_t*)calloc(1, sizeof(db_value_t));
+            value_set->values = (db_value_t*)calloc(64, sizeof(db_value_t));
         }
         else if (size <= 128) {
-            value_set->values = (db_value_t*)calloc(1, sizeof(db_value_t));
+            value_set->values = (db_value_t*)calloc(128, sizeof(db_value_t));
         }
         if (!value_set->values) {
             free(value_set);

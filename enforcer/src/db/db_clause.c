@@ -267,6 +267,7 @@ void db_clause_list_free(db_clause_list_t* clause_list) {
 
             while (this) {
                 next = this->next;
+                this->clause_list = NULL;
                 db_clause_free(this);
                 this = next;
             }
