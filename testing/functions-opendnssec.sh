@@ -328,8 +328,10 @@ ods_setup_env ()
 	ods_start_enforcer &&
 	log_this ods-enforcer-setup ods-enforcer policy import &&
 	log_this ods-enforcer-setup ods-enforcer zonelist import &&
+	# When there are no keys yet generated for the policies, the
+	# signconf could fail
+	ods_enforcer_idle &&
 	( log_this ods-enforcer-setup ods-enforcer signconf || true ) &&
-	sleep 10 &&
 	echo "ods_setup_env: setup complete" &&
 	if [ -z "$no_enforcer_stop" ]; then
 		ods_stop_enforcer
@@ -443,6 +445,9 @@ ods_enforcer_start_timeshift ()
 
 ods_enforcer_idle ()
 {
+	local status_grep1
+	local status_grep2
+	local time_now
 	local time_start=`$DATE '+%s' 2>/dev/null`
 	local timeout=$1
 	if [ -z "$timeout" ]
@@ -451,8 +456,14 @@ ods_enforcer_idle ()
 	fi
 	sleep 3 ;# unfortunately, things are synchronous and we always have to wait just a bit
 	while true; do
-		ods-enforcer queue 2>&1 | grep -q "There are 0 tasks scheduled." 2>/dev/null >/dev/null
-		if [ $? -eq 0 ] ; then
+		time_now=`$DATE '+%s' 2>/dev/null`
+		rm -f _log.$BUILD_TAG.idle.stdout
+		log_this idle ods-enforcer queue || return 1
+		grep -q "^Next task scheduled immediately" _log.$BUILD_TAG.idle.stdout 2>/dev/null > /dev/null
+		status_grep1=$?
+		grep -q "^Working with" _log.$BUILD_TAG.idle.stdout 2>/dev/null > /dev/null
+		status_grep2=$?
+		if [ $status_grep1 -ne 0 -a $status_grep2 -ne 0 ] ; then
 			return 0
 		fi
 		time_now=`$DATE '+%s' 2>/dev/null`
