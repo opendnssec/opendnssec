@@ -40,9 +40,9 @@
 #include <time.h>
 
 struct engineconfig_repository {
-	struct engineconfig_repository* next;
-	char* name;
-	int require_backup;
+    struct engineconfig_repository* next;
+    char* name;
+    int require_backup;
 };
 
 typedef enum {
@@ -57,7 +57,6 @@ typedef enum {
  */
 typedef struct engineconfig_struct engineconfig_type;
 struct engineconfig_struct {
-    allocator_type* allocator;
     const char* cfg_filename;
     const char* policy_filename;
     const char* zonelist_filename;
@@ -72,17 +71,17 @@ struct engineconfig_struct {
     const char* group;
     const char* chroot;
     const char* datastore; /* Datastore/SQLite or Datastore/MySQL/Database */
-	const char* db_host; /* Datastore/MySQL/Host */
-	const char* db_username; /* Datastore/MySQL/Username */
-	const char* db_password; /* Datastore/MySQL/Password */
+    const char* db_host; /* Datastore/MySQL/Host */
+    const char* db_username; /* Datastore/MySQL/Username */
+    const char* db_password; /* Datastore/MySQL/Password */
     int use_syslog;
     int num_worker_threads;
     int manual_keygen;
     int verbosity;
-	int db_port; /* Datastore/MySQL/Host/@Port */
-	time_t automatic_keygen_duration;
-	struct engineconfig_repository* hsm;
-	engineconfig_database_type_t db_type;
+    int db_port; /* Datastore/MySQL/Host/@Port */
+    time_t automatic_keygen_duration;
+    struct engineconfig_repository* hsm;
+    engineconfig_database_type_t db_type;
 };
 
 /**
@@ -94,7 +93,7 @@ struct engineconfig_struct {
  *
  */
 engineconfig_type* engine_config(const char* cfgfile,
-	int cmdline_verbosity, engineconfig_type* oldcfg);
+    int cmdline_verbosity, engineconfig_type* oldcfg);
 
 /**
  * Check configuration.

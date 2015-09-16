@@ -5,6 +5,8 @@
 #TEST: Will eventually add validation into this to check the output
 #TEST: For now use it to check any signing bugs with explicit tests
 
+ODS_ENFORCER_WAIT_STOP_LOG=1800
+
 # So we can use validns 0.7 it is installed from source so need to
 # specify this path
 case "$DISTRIBUTION" in
@@ -20,12 +22,12 @@ fi &&
 
 ods_reset_env  &&
 
-ods_start_enforcer && 
+ods_start_ods-control &&
+
+sleep 20 && ods-enforcer signconf &&
 
 #########################################################################
 # Basic checks of signing test zones
-
-ods_start_signer && 
 
 syslog_waitfor 300 'ods-signerd: .*\[STATS\] example.com' &&
 test -f "$INSTALL_ROOT/var/opendnssec/signed/example.com" &&
@@ -69,6 +71,11 @@ log_this_timeout ods-update-zone 20 ods-signer sign all.rr.org &&
 syslog_waitfor_count 60 `expr $num_signedzones + 1` 'ods-signerd: .*\[STATS\] all.rr.org' &&
 test -f "$INSTALL_ROOT/var/opendnssec/signed/all.rr.org" &&
 
+# Note that the test above and below this sleep need to be separated by at least 1 second, otherwise
+# the SOA serial will not have been changed (set to unixtime) and thus the signer will not notice
+# a change to the zone, and not sign it
+sleep 5 &&
+
 #OPENDNSSEC-247 - Update the SOA minimum in the policy and make sure the NSEC TTL changes.
 $GREP -q -- "<Minimum>PT5M</Minimum>" "$INSTALL_ROOT/var/opendnssec/signconf/all.rr.org" &&
 $GREP -q -- "300.*IN.*NSEC3" "$INSTALL_ROOT/var/opendnssec/signed/all.rr.org" &&
@@ -95,5 +102,3 @@ echo '*********** ERROR **********'
 ods_kill
 cp kasp.xml_orig kasp.xml
 return 1
-
-

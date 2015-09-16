@@ -62,10 +62,8 @@ handles(const char *cmd, ssize_t n)
 static void
 reschedule_enforce(task_type *task, time_t t_when, const char *z_when)
 {
-	ods_log_assert(task->allocator);
 	ods_log_assert(task->who);
-	allocator_deallocate(task->allocator,(void*)task->who);
-	task->who = allocator_strdup(task->allocator, z_when);
+	task->who = strdup(z_when);
 	task->when = t_when;
 	task->backoff = 0;
 }

@@ -36,11 +36,12 @@
 extern "C" {
 #endif
 
-#define MM_ALLOC_T_STATIC_NEW(x) { NULL, x, PTHREAD_MUTEX_INITIALIZER }
+#define MM_ALLOC_T_STATIC_NEW(x) { NULL, NULL, x, PTHREAD_MUTEX_INITIALIZER }
 
 typedef struct mm_alloc mm_alloc_t;
 struct mm_alloc
 {
+	void *begin;
 	void *next;
 	size_t size;
 	pthread_mutex_t lock;
@@ -57,6 +58,15 @@ extern mm_alloc_t mm_char_1024;
 void mm_init(void);
 void* mm_alloc_new(mm_alloc_t*);
 void* mm_alloc_new0(mm_alloc_t*);
+
+/**
+ * Completely free allocator. Lock will be destroyed. *ALL* contents
+ * MUST be free'd individually.
+ *
+ * @param alloc: Allocator to free, must not me NULL;
+ */
+void mm_alloc_free(mm_alloc_t* alloc);
+
 void mm_alloc_delete(mm_alloc_t*, void*);
 
 #ifdef __cplusplus

@@ -31,7 +31,6 @@
 
 #include "config.h"
 #include "scheduler/task.h"
-#include "allocator.h"
 #include "duration.h"
 #include "file.h"
 #include "log.h"
@@ -45,6 +44,7 @@ struct taskreg {
     const char *short_name;
 	const char *long_name;
 	how_type how;
+	how_type clean;
 };
 
 static taskreg_type taskreg[16];
@@ -80,7 +80,8 @@ static bool task_id_to_how(task_id id, how_type *phow)
     return false;
 }
 
-task_id task_register(const char *short_name, const char *long_name, how_type how)
+task_id task_register(const char *short_name, const char *long_name,
+    how_type how)
 {
     int i;
     
@@ -108,9 +109,8 @@ task_id task_register(const char *short_name, const char *long_name, how_type ho
  */
 task_type*
 task_create(task_id what_id, time_t when, const char* who, const char* what,
-    void* context)
+    void* context, how_type clean_context)
 {
-    allocator_type* allocator = NULL;
     task_type* task = NULL;
 
     if (!who || !context) {
@@ -120,29 +120,21 @@ task_create(task_id what_id, time_t when, const char* who, const char* what,
     ods_log_assert(who);
     ods_log_assert(context);
 
-    allocator = allocator_create(malloc, free);
-    if (!allocator) {
-        ods_log_error("[%s] cannot create: create allocator failed", task_str);
-        return NULL;
-    }
-    ods_log_assert(allocator);
-
-    task = (task_type*) allocator_alloc(allocator, sizeof(task_type));
+    task = (task_type*) malloc(sizeof(task_type));
     if (!task) {
-        ods_log_error("[%s] cannot create: allocator failed", task_str);
-        allocator_cleanup(allocator);
+        ods_log_error("[%s] cannot create: malloc failed", task_str);
         return NULL;
     }
-    task->allocator = allocator;
     task->what = what_id;
     task->interrupt = TASK_NONE;
     task->halted = TASK_NONE;
     task->when = when;
     task->backoff = 0;
-    task->who = allocator_strdup(allocator, who);
+    task->who = strdup(who);
     task->dname = ldns_dname_new_frm_str(what);
     task->flush = 0;
     task->context = context;
+    task->clean_context = clean_context;
     if (!task_id_to_how(what_id, &task->how))
         task->how = NULL; /* Standard task */
     return task;
@@ -155,20 +147,19 @@ task_create(task_id what_id, time_t when, const char* who, const char* what,
 void
 task_cleanup(task_type* task)
 {
-    allocator_type* allocator;
-
     if (!task) {
         return;
     }
-    allocator = task->allocator;
     if (task->dname) {
         ldns_rdf_deep_free(task->dname);
         task->dname = NULL;
     }
-    allocator_deallocate(allocator, (void*) task->who);
-    allocator_deallocate(allocator, (void*) task);
-    allocator_cleanup(allocator);
-    return;
+    if (task->clean_context && task->context) {
+        (void)task->clean_context(task);
+        task->context = NULL;
+    }
+    free(task->who);
+    free(task);
 }
 
 

@@ -75,6 +75,8 @@ db_object_field_t* db_object_field_new_copy(const db_object_field_t* from_object
  */
 void db_object_field_free(db_object_field_t* object_field);
 
+void db_object_field_alloc_nuke();
+
 /**
  * Copy the content of a database object field.
  * \param[in] object_field a db_object_field_t pointer.
@@ -172,6 +174,8 @@ db_object_field_list_t* db_object_field_list_new_copy(const db_object_field_list
  */
 void db_object_field_list_free(db_object_field_list_t* object_field_list);
 
+void db_object_field_list_alloc_nuke();
+
 /**
  * Copy the content of a database object field list.
  * \param[in] object_field_list a db_object_field_list_t pointer.
@@ -226,6 +230,8 @@ db_object_t* db_object_new(void);
  * \param[in] object a db_object_t pointer.
  */
 void db_object_free(db_object_t* object);
+
+void db_object_alloc_nuke();
 
 /**
  * Get the database connection of a database object.

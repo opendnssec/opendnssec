@@ -96,6 +96,8 @@ key_state_t* key_state_new_copy(const key_state_t* key_state);
  */
 void key_state_free(key_state_t* key_state);
 
+void key_state_alloc_nuke();
+
 /**
  * Reset the content of a key state object making it as if its new. This does not change anything in the database.
  * \param[in] key_state a key_state_t pointer.
@@ -446,6 +448,8 @@ int key_state_list_associated_fetch(key_state_list_t* key_state_list);
  * \param[in] key_state_list a key_state_list_t pointer.
  */
 void key_state_list_free(key_state_list_t* key_state_list);
+
+void key_state_list_alloc_nuke();
 
 /**
  * Copy the content of another key state object list.

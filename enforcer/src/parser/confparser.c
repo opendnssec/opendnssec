@@ -30,7 +30,6 @@
  */
 
 #include "parser/confparser.h"
-#include "allocator.h"
 #include "log.h"
 #include "status.h"
 #include "duration.h"
@@ -277,7 +276,7 @@ parse_conf_repositories(const char* cfgfile)
 }
 
 const char*
-parse_conf_policy_filename(allocator_type* allocator, const char* cfgfile)
+parse_conf_policy_filename(const char* cfgfile)
 {
     const char* dup = NULL;
     const char* str = parse_conf_string(
@@ -286,14 +285,14 @@ parse_conf_policy_filename(allocator_type* allocator, const char* cfgfile)
 		1);
     
     if (str) {
-        dup = allocator_strdup(allocator, str);
+        dup = strdup(str);
         free((void*)str);
     }
     return dup;
 }
 
 const char*
-parse_conf_zonelist_filename(allocator_type* allocator, const char* cfgfile)
+parse_conf_zonelist_filename(const char* cfgfile)
 {
     const char* dup = NULL;
     const char* str = parse_conf_string(
@@ -302,7 +301,7 @@ parse_conf_zonelist_filename(allocator_type* allocator, const char* cfgfile)
         1);
 
     if (str) {
-        dup = allocator_strdup(allocator, str);
+        dup = strdup(str);
         free((void*)str);
     }
     return dup;
@@ -310,7 +309,7 @@ parse_conf_zonelist_filename(allocator_type* allocator, const char* cfgfile)
 
 
 const char*
-parse_conf_zonefetch_filename(allocator_type* allocator, const char* cfgfile)
+parse_conf_zonefetch_filename(const char* cfgfile)
 {
     const char* dup = NULL;
     const char* str = parse_conf_string(
@@ -319,7 +318,7 @@ parse_conf_zonefetch_filename(allocator_type* allocator, const char* cfgfile)
         0);
 
     if (str) {
-        dup = allocator_strdup(allocator, str);
+        dup = strdup(str);
         free((void*)str);
     }
     return dup;
@@ -327,7 +326,7 @@ parse_conf_zonefetch_filename(allocator_type* allocator, const char* cfgfile)
 
 
 const char*
-parse_conf_log_filename(allocator_type* allocator, const char* cfgfile)
+parse_conf_log_filename(const char* cfgfile)
 {
     const char* dup = NULL;
     const char* str = parse_conf_string(cfgfile,
@@ -339,7 +338,7 @@ parse_conf_log_filename(allocator_type* allocator, const char* cfgfile)
             0);
     }
     if (str) {
-        dup = allocator_strdup(allocator, str);
+        dup = strdup(str);
         free((void*)str);
     }
     return dup; /* NULL, Facility or Filename */
@@ -347,7 +346,7 @@ parse_conf_log_filename(allocator_type* allocator, const char* cfgfile)
 
 
 const char*
-parse_conf_pid_filename(allocator_type* allocator, const char* cfgfile)
+parse_conf_pid_filename(const char* cfgfile)
 {
     const char* dup = NULL;
     const char* str = parse_conf_string(
@@ -356,18 +355,17 @@ parse_conf_pid_filename(allocator_type* allocator, const char* cfgfile)
         0);
 
     if (str) {
-        dup = allocator_strdup(allocator, str);
+        dup = strdup(str);
         free((void*)str);
     } else {
-        dup = allocator_strdup(allocator, OPENDNSSEC_ENFORCER_PIDFILE);
+        dup = strdup(OPENDNSSEC_ENFORCER_PIDFILE);
     }
     return dup;
 }
 
 
 const char*
-parse_conf_delegation_signer_submit_command(allocator_type* allocator,
-                                            const char* cfgfile)
+parse_conf_delegation_signer_submit_command(const char* cfgfile)
 {
     const char* dup = NULL;
     const char* str = parse_conf_string(
@@ -376,15 +374,14 @@ parse_conf_delegation_signer_submit_command(allocator_type* allocator,
         0);
 
     if (str) {
-        dup = allocator_strdup(allocator, str);
+        dup = strdup(str);
         free((void*)str);
     }
     return dup;
 }
 
 const char*
-parse_conf_delegation_signer_retract_command(allocator_type* allocator,
-                                             const char* cfgfile)
+parse_conf_delegation_signer_retract_command(const char* cfgfile)
 {
     const char* dup = NULL;
     const char* str = parse_conf_string(
@@ -393,14 +390,14 @@ parse_conf_delegation_signer_retract_command(allocator_type* allocator,
         0);
     
     if (str) {
-        dup = allocator_strdup(allocator, str);
+        dup = strdup(str);
         free((void*)str);
     }
     return dup;
 }
 
 const char*
-parse_conf_clisock_filename(allocator_type* allocator, const char* cfgfile)
+parse_conf_clisock_filename(const char* cfgfile)
 {
     const char* dup = NULL;
     const char* str = parse_conf_string(
@@ -409,17 +406,17 @@ parse_conf_clisock_filename(allocator_type* allocator, const char* cfgfile)
         0);
 
     if (str) {
-        dup = allocator_strdup(allocator, str);
+        dup = strdup(str);
         free((void*)str);
     } else {
-        dup = allocator_strdup(allocator, OPENDNSSEC_ENFORCER_SOCKETFILE);
+        dup = strdup(OPENDNSSEC_ENFORCER_SOCKETFILE);
     }
     return dup;
 }
 
 
 const char*
-parse_conf_working_dir(allocator_type* allocator, const char* cfgfile)
+parse_conf_working_dir(const char* cfgfile)
 {
     const char* dup = NULL;
     const char* str = parse_conf_string(
@@ -428,17 +425,17 @@ parse_conf_working_dir(allocator_type* allocator, const char* cfgfile)
         0);
 
     if (str) {
-        dup = allocator_strdup(allocator, str);
+        dup = strdup(str);
         free((void*)str);
     } else {
-        dup = allocator_strdup(allocator, OPENDNSSEC_ENFORCER_WORKINGDIR);
+        dup = strdup(OPENDNSSEC_ENFORCER_WORKINGDIR);
     }
     return dup;
 }
 
 
 const char*
-parse_conf_username(allocator_type* allocator, const char* cfgfile)
+parse_conf_username(const char* cfgfile)
 {
     const char* dup = NULL;
     const char* str = parse_conf_string(
@@ -447,7 +444,7 @@ parse_conf_username(allocator_type* allocator, const char* cfgfile)
         0);
 
     if (str) {
-        dup = allocator_strdup(allocator, str);
+        dup = strdup(str);
         free((void*)str);
     }
     return dup;
@@ -455,7 +452,7 @@ parse_conf_username(allocator_type* allocator, const char* cfgfile)
 
 
 const char*
-parse_conf_group(allocator_type* allocator, const char* cfgfile)
+parse_conf_group(const char* cfgfile)
 {
     const char* dup = NULL;
     const char* str = parse_conf_string(
@@ -464,7 +461,7 @@ parse_conf_group(allocator_type* allocator, const char* cfgfile)
         0);
 
     if (str) {
-        dup = allocator_strdup(allocator, str);
+        dup = strdup(str);
         free((void*)str);
     }
     return dup;
@@ -472,7 +469,7 @@ parse_conf_group(allocator_type* allocator, const char* cfgfile)
 
 
 const char*
-parse_conf_chroot(allocator_type* allocator, const char* cfgfile)
+parse_conf_chroot(const char* cfgfile)
 {
     const char* dup = NULL;
     const char* str = parse_conf_string(
@@ -481,14 +478,14 @@ parse_conf_chroot(allocator_type* allocator, const char* cfgfile)
         0);
 
     if (str) {
-        dup = allocator_strdup(allocator, str);
+        dup = strdup(str);
         free((void*)str);
     }
     return dup;
 }
 
 const char*
-parse_conf_datastore(allocator_type* allocator, const char* cfgfile)
+parse_conf_datastore(const char* cfgfile)
 {
     const char* dup = NULL;
     const char* str = parse_conf_string(
@@ -502,18 +499,18 @@ parse_conf_datastore(allocator_type* allocator, const char* cfgfile)
 			0);
 	}
     if (str) {
-        dup = allocator_strdup(allocator, str);
+        dup = strdup(str);
         free((void*)str);
     } else {
 		 /* use "KASP" as default for datastore */
-		dup = allocator_strdup(allocator, "KASP");
+		dup = strdup("KASP");
 	}
     return dup;
 	
 }
 
 const char*
-parse_conf_db_host(allocator_type* allocator, const char* cfgfile)
+parse_conf_db_host(const char* cfgfile)
 {
     const char* dup = NULL;
     const char* str = parse_conf_string(
@@ -522,14 +519,14 @@ parse_conf_db_host(allocator_type* allocator, const char* cfgfile)
 		0);
     
     if (str) {
-        dup = allocator_strdup(allocator, str);
+        dup = strdup(str);
         free((void*)str);
     }
     return dup;
 }
 
 const char*
-parse_conf_db_username(allocator_type* allocator, const char* cfgfile)
+parse_conf_db_username(const char* cfgfile)
 {
     const char* dup = NULL;
     const char* str = parse_conf_string(
@@ -538,14 +535,14 @@ parse_conf_db_username(allocator_type* allocator, const char* cfgfile)
 		0);
     
     if (str) {
-        dup = allocator_strdup(allocator, str);
+        dup = strdup(str);
         free((void*)str);
     }
     return dup;
 }
 
 const char*
-parse_conf_db_password(allocator_type* allocator, const char* cfgfile)
+parse_conf_db_password(const char* cfgfile)
 {
     const char* dup = NULL;
     const char* str = parse_conf_string(
@@ -554,7 +551,7 @@ parse_conf_db_password(allocator_type* allocator, const char* cfgfile)
 		0);
     
     if (str) {
-        dup = allocator_strdup(allocator, str);
+        dup = strdup(str);
         free((void*)str);
     }
     return dup;

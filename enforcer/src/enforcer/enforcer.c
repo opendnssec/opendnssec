@@ -1944,8 +1944,10 @@ updateZone(db_connection_t *dbconn, policy_t* policy, zone_t* zone,
                 {
                     ods_log_error("[%s] %s: key state transition failed", module_str, scmd);
                     process = 0;
+		    key_state_free(key_state);
                     break;
                 }
+		key_state_free(key_state);
 
                 if (!zone_signconf_needs_writing(zone)) {
                     if (zone_set_signconf_needs_writing(zone, 1)) {
@@ -2752,7 +2754,8 @@ removeDeadKeys(db_connection_t *dbconn, key_data_t** keylist,
 	deplist2_size = key_dependency_list_size(deplist);
 	deplist2 = (key_dependency_t**)calloc(deplist2_size, sizeof(key_dependency_t*));
 	/* deplist might be NULL but is always freeable */
-	deplist2[0] = key_dependency_list_get_begin(deplist);
+	if (deplist2_size > 0)
+	    deplist2[0] = key_dependency_list_get_begin(deplist);
 	for (i = 1; i < deplist2_size; i++)
 		deplist2[i] = key_dependency_list_get_next(deplist);
 	
@@ -2812,9 +2815,11 @@ removeDeadKeys(db_connection_t *dbconn, key_data_t** keylist,
                     ods_log_error("[%s] %s: key_dependency_delete() failed", module_str, scmd);
                     break;
                 }
-                deplist2[j] = NULL;
             }
         }
+    }
+    for (i = 0; i < deplist2_size; i++){
+	key_dependency_free(deplist2[i]);
     }
 	free(deplist2);
 	return first_purge;

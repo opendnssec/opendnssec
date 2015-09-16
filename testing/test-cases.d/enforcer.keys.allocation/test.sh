@@ -5,6 +5,10 @@
 ODS_ENFORCER_WAIT_STOP_LOG=1800	# Seconds we wait for enforcer to run
 ODS_ENFORCER_WAIT_STOP_LOG=3600	# Seconds we wait for enforcer to run
 
+nonshare1=0
+nonshare2=0
+nonshare3=0
+
 if [ -n "$HAVE_MYSQL" ]; then
         ods_setup_conf conf.xml conf-mysql.xml
 fi &&
@@ -13,57 +17,78 @@ ods_reset_env &&
 
 ##################  SETUP ###########################
 # Start enforcer (Zones already exist and we let it generate keys itself)
-ods_start_enforcer &&
+ods_start_ods-control &&
 
 # Make sure all keys are in use
-sleep 300 &&
+# note that the first enforce is not scheduled immediately, for almost a minut from now
+sleep 60 && ods_enforcer_idle &&
+
+log_this ods-enforcer-waitfor-keys ods_waitfor_keys &&
 
 # Check that we have 2 keys per zone
 # We don't care about the exact state it is in, as long as it is consistent.
 log_this ods-enforcer-key-list0 ods-enforcer key list &&
-( ( log_grep ods-enforcer-key-list0 stdout 'non-share1                      KSK      ready' &&
-    log_grep ods-enforcer-key-list0 stdout 'non-share1                      ZSK      active' ) ||
+{ ( log_grep ods-enforcer-key-list0 stdout 'non-share1                      KSK      ready' &&
+    log_grep ods-enforcer-key-list0 stdout 'non-share1                      ZSK      active' ) &&
+  nonshare1=1 ||
   ( log_grep ods-enforcer-key-list0 stdout 'non-share1                      KSK      generate' &&
     log_grep ods-enforcer-key-list0 stdout 'non-share1                      ZSK      publish' ) ||
   ( log_grep ods-enforcer-key-list0 stdout 'non-share1                      KSK      publish' &&
-    log_grep ods-enforcer-key-list0 stdout 'non-share1                      ZSK      ready' ) ) &&
-( ( log_grep ods-enforcer-key-list0 stdout 'non-share2                      KSK      ready' &&
-    log_grep ods-enforcer-key-list0 stdout 'non-share2                      ZSK      active' ) ||
+    log_grep ods-enforcer-key-list0 stdout 'non-share1                      ZSK      ready' ) } &&
+{ ( log_grep ods-enforcer-key-list0 stdout 'non-share2                      KSK      ready' &&
+    log_grep ods-enforcer-key-list0 stdout 'non-share2                      ZSK      active' ) &&
+  nonshare2=1 ||
   ( log_grep ods-enforcer-key-list0 stdout 'non-share2                      KSK      generate' &&
     log_grep ods-enforcer-key-list0 stdout 'non-share2                      ZSK      publish' ) ||
   ( log_grep ods-enforcer-key-list0 stdout 'non-share2                      KSK      publish' &&
-    log_grep ods-enforcer-key-list0 stdout 'non-share2                      ZSK      ready' ) ) &&
-( ( log_grep ods-enforcer-key-list0 stdout 'non-share3                      KSK      ready' &&
-    log_grep ods-enforcer-key-list0 stdout 'non-share3                      ZSK      active' ) ||
+    log_grep ods-enforcer-key-list0 stdout 'non-share2                      ZSK      ready' ) } &&
+{ ( log_grep ods-enforcer-key-list0 stdout 'non-share3                      KSK      ready' &&
+    log_grep ods-enforcer-key-list0 stdout 'non-share3                      ZSK      active' ) &&
+  nonshare3=1 ||
   ( log_grep ods-enforcer-key-list0 stdout 'non-share3                      KSK      generate' &&
     log_grep ods-enforcer-key-list0 stdout 'non-share3                      ZSK      publish' ) ||
   ( log_grep ods-enforcer-key-list0 stdout 'non-share3                      KSK      publish' &&
-    log_grep ods-enforcer-key-list0 stdout 'non-share3                      ZSK      ready' ) ) &&
-( ( log_grep ods-enforcer-key-list0 stdout 'share1                          KSK      ready' &&
+    log_grep ods-enforcer-key-list0 stdout 'non-share3                      ZSK      ready' ) } &&
+{ ( log_grep ods-enforcer-key-list0 stdout 'share1                          KSK      ready' &&
     log_grep ods-enforcer-key-list0 stdout 'share1                          ZSK      active' ) ||
   ( log_grep ods-enforcer-key-list0 stdout 'share1                          KSK      generate' &&
     log_grep ods-enforcer-key-list0 stdout 'share1                          ZSK      publish' ) ||
   ( log_grep ods-enforcer-key-list0 stdout 'share1                          KSK      publish' &&
-    log_grep ods-enforcer-key-list0 stdout 'share1                          ZSK      ready' ) ) &&
-( ( log_grep ods-enforcer-key-list0 stdout 'share2                          KSK      ready' &&
+    log_grep ods-enforcer-key-list0 stdout 'share1                          ZSK      ready' ) } &&
+{ ( log_grep ods-enforcer-key-list0 stdout 'share2                          KSK      ready' &&
     log_grep ods-enforcer-key-list0 stdout 'share2                          ZSK      active' ) ||
   ( log_grep ods-enforcer-key-list0 stdout 'share2                          KSK      generate' &&
     log_grep ods-enforcer-key-list0 stdout 'share2                          ZSK      publish' ) ||
   ( log_grep ods-enforcer-key-list0 stdout 'share2                          KSK      publish' &&
-    log_grep ods-enforcer-key-list0 stdout 'share2                          ZSK      ready' ) ) &&
-( ( log_grep ods-enforcer-key-list0 stdout 'share3                          KSK      ready' &&
+    log_grep ods-enforcer-key-list0 stdout 'share2                          ZSK      ready' ) } &&
+{ ( log_grep ods-enforcer-key-list0 stdout 'share3                          KSK      ready' &&
     log_grep ods-enforcer-key-list0 stdout 'share3                          ZSK      active' ) ||
   ( log_grep ods-enforcer-key-list0 stdout 'share3                          KSK      generate' &&
     log_grep ods-enforcer-key-list0 stdout 'share3                          ZSK      publish' ) ||
   ( log_grep ods-enforcer-key-list0 stdout 'share3                          KSK      publish' &&
-    log_grep ods-enforcer-key-list0 stdout 'share3                          ZSK      ready' ) ) &&
+    log_grep ods-enforcer-key-list0 stdout 'share3                          ZSK      ready' ) } &&
 
 
 # Grab the CKA_IDs of all the keys
 log_this ods-enforcer-cka_id1 ods-enforcer key list --verbose &&
-KSK_CKA_ID_NON_1=`log_grep -o ods-enforcer-cka_id1 stdout "non-share1                      KSK      " | awk '{print $8}'` &&
-KSK_CKA_ID_NON_2=`log_grep -o ods-enforcer-cka_id1 stdout "non-share2                      KSK      " | awk '{print $8}'` &&
-KSK_CKA_ID_NON_3=`log_grep -o ods-enforcer-cka_id1 stdout "non-share3                      KSK      " | awk '{print $8}'` &&
+
+if [ $nonshare1 -eq 0 ]; then
+	KSK_CKA_ID_NON_1=`log_grep -o ods-enforcer-cka_id1 stdout "non-share1                      KSK      " | awk '{print $8}'`
+else
+	KSK_CKA_ID_NON_1=`log_grep -o ods-enforcer-cka_id1 stdout "non-share1                      KSK      " | awk '{print $9}'`
+fi &&
+
+if [ $nonshare2 -eq 0 ]; then
+	KSK_CKA_ID_NON_2=`log_grep -o ods-enforcer-cka_id1 stdout "non-share2                      KSK      " | awk '{print $8}'` 
+else
+	KSK_CKA_ID_NON_2=`log_grep -o ods-enforcer-cka_id1 stdout "non-share2                      KSK      " | awk '{print $9}'`
+fi &&
+
+if [ $nonshare3 -eq 0 ]; then
+	KSK_CKA_ID_NON_3=`log_grep -o ods-enforcer-cka_id1 stdout "non-share3                      KSK      " | awk '{print $8}'`
+else
+	KSK_CKA_ID_NON_3=`log_grep -o ods-enforcer-cka_id1 stdout "non-share3                      KSK      " | awk '{print $9}'`
+fi 
 
 ZSK_CKA_ID_NON_1=`log_grep -o ods-enforcer-cka_id1 stdout "non-share1                      ZSK      " | awk '{print $8}'` &&
 ZSK_CKA_ID_NON_2=`log_grep -o ods-enforcer-cka_id1 stdout "non-share2                      ZSK      " | awk '{print $8}'` &&
@@ -128,7 +153,7 @@ test `ods-hsmutil list | grep ^SoftHSM | wc -l` -eq 16 &&
 # test `ods-hsmutil list | grep ^SoftHSM | grep RSA/1024 | wc -l` -lt \
 #      `ods-hsmutil list | grep ^SoftHSM | grep RSA/2048 | wc -l` &&
 
-ods_stop_enforcer &&
+ods_stop_ods-control &&
 
 return 0
 
@@ -137,4 +162,3 @@ echo "************ERROR******************"
 echo
 ods_kill
 return 1
-

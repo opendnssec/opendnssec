@@ -61,6 +61,12 @@ db_connection_t* db_connection_new(void);
 void db_connection_free(db_connection_t* connection);
 
 /**
+ * free global allocator. 
+ * db_connection_free MUST be called for all its contents.
+ */
+void db_connection_alloc_nuke();
+
+/**
  * Set the database configuration list for a database connection.
  * \param[in] connection a db_connection_t pointer.
  * \param[in] configuration_list a db_configuration_list_t pointer.

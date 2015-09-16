@@ -7,7 +7,6 @@ if [ -n "$HAVE_MYSQL" ]; then
 fi &&
 
 ods_reset_env &&
-sleep 120 &&
 
 # Run the enforcer so that keys are created
 ods_start_enforcer &&
@@ -15,7 +14,7 @@ ods_start_enforcer &&
 # Add our test zone. We already have the standard one and a "spare" one on a different policy
 log_this_timeout ods-enforcer-zone-add 30 ods-enforcer zone add -z test.delete --policy non-default &&
 # and wait for all the keys to have been generated
-sleep 30 &&
+sleep 10 && ods_enforcer_idle &&
 
 # Check the presence of all signconfs
 test -f "$INSTALL_ROOT/var/opendnssec/signconf/ods.xml" &&

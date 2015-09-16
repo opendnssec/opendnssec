@@ -52,6 +52,11 @@ void db_connection_free(db_connection_t* connection) {
     }
 }
 
+void db_connection_alloc_nuke()
+{
+    mm_alloc_free(&__connection_alloc);
+}
+
 int db_connection_set_configuration_list(db_connection_t* connection, const db_configuration_list_t* configuration_list) {
     if (!connection) {
         return DB_ERROR_UNKNOWN;

@@ -1344,6 +1344,7 @@ static int db_backend_mysql_create(void* data, const db_object_t* object, const 
 
     left = sizeof(sql);
     sqlp = sql;
+    memset(sql, 0, left);
 
     if (!db_object_field_list_begin(object_field_list) && !revision_field) {
         /*
@@ -1529,6 +1530,7 @@ static db_result_list_t* db_backend_mysql_read(void* data, const db_object_t* ob
 
     left = sizeof(sql);
     sqlp = sql;
+    memset(sql, 0, left);
 
     if ((ret = snprintf(sqlp, left, "SELECT")) >= left) {
         return NULL;
@@ -1730,6 +1732,7 @@ static int db_backend_mysql_update(void* data, const db_object_t* object, const 
 
     left = sizeof(sql);
     sqlp = sql;
+    memset(sql, 0, left);
 
     if ((ret = snprintf(sqlp, left, "UPDATE %s SET", db_object_table(object))) >= left) {
         return DB_ERROR_UNKNOWN;
@@ -1925,6 +1928,7 @@ static int db_backend_mysql_delete(void* data, const db_object_t* object, const 
 
     left = sizeof(sql);
     sqlp = sql;
+    memset(sql, 0, left);
 
     if ((ret = snprintf(sqlp, left, "DELETE FROM %s", db_object_table(object))) >= left) {
         return DB_ERROR_UNKNOWN;
@@ -2007,6 +2011,7 @@ static int db_backend_mysql_count(void* data, const db_object_t* object, const d
 
     left = sizeof(sql);
     sqlp = sql;
+    memset(sql, 0, left);
 
     if ((ret = snprintf(sqlp, left, "SELECT COUNT(*)")) >= left) {
         return DB_ERROR_UNKNOWN;

@@ -89,6 +89,8 @@ key_dependency_t* key_dependency_new_copy(const key_dependency_t* key_dependency
  */
 void key_dependency_free(key_dependency_t* key_dependency);
 
+void key_dependency_alloc_nuke();
+
 /**
  * Reset the content of a key dependency object making it as if its new. This does not change anything in the database.
  * \param[in] key_dependency a key_dependency_t pointer.
@@ -418,6 +420,8 @@ int key_dependency_list_associated_fetch(key_dependency_list_t* key_dependency_l
  * \param[in] key_dependency_list a key_dependency_list_t pointer.
  */
 void key_dependency_list_free(key_dependency_list_t* key_dependency_list);
+
+void key_dependency_list_alloc_nuke();
 
 /**
  * Copy the content of another key dependency object list.

@@ -49,6 +49,7 @@
 #include "db/db_configuration.h"
 #include "db/db_connection.h"
 #include "db/database_version.h"
+#include "hsmkey/hsm_key_factory.h"
 #include "libhsm.h"
 
 #include <errno.h>
@@ -101,6 +102,8 @@ engine_dealloc(engine_type* engine)
     if (engine->dbcfg_list) {
         db_configuration_list_free(engine->dbcfg_list);
     }
+    /* db_alloc_nuke(); */
+    hsm_key_factory_deinit();
     free(engine);
 }
 
@@ -567,8 +570,10 @@ engine_teardown(engine_type* engine)
         free(engine->workers);
         engine->workers = NULL;
     }
-    cmdhandler_cleanup(engine->cmdhandler);
-    engine->cmdhandler = NULL;
+    if (engine->cmdhandler) {
+        cmdhandler_cleanup(engine->cmdhandler);
+        engine->cmdhandler = NULL;
+    }
     desetup_database(engine);
 }
 
