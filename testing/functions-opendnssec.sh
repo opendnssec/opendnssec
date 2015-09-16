@@ -328,13 +328,11 @@ ods_setup_env ()
 	ods_start_enforcer &&
 	log_this ods-enforcer-setup ods-enforcer policy import &&
 	log_this ods-enforcer-setup ods-enforcer zonelist import &&
+	# OPENDNSSEC-692
 	# When there are no keys yet generated for the policies, the
 	# signconf could fail.
-	ods_enforcer_idle &&
+	ods_waitfor_keys &&
 	( log_this ods-enforcer-setup ods-enforcer signconf || true ) &&
-	# the zonelist import may back off for 60 seconds until all
-	# keys are there.
-	sleep 60 &&
 	echo "ods_setup_env: setup complete" &&
 	if [ -z "$no_enforcer_stop" ]; then
 		ods_stop_enforcer
