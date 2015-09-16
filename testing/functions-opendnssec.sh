@@ -329,7 +329,7 @@ ods_setup_env ()
 	log_this ods-enforcer-setup ods-enforcer policy import &&
 	log_this ods-enforcer-setup ods-enforcer zonelist import &&
 	# When there are no keys yet generated for the policies, the
-	# signconf could fail
+	# signconf could fail.
 	ods_enforcer_idle &&
 	( log_this ods-enforcer-setup ods-enforcer signconf || true ) &&
 	# the zonelist import may back off for 60 seconds until all
