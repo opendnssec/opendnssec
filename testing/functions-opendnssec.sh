@@ -331,6 +331,7 @@ ods_setup_env ()
 	# OPENDNSSEC-692
 	# When there are no keys yet generated for the policies, the
 	# signconf could fail.
+	ods_enforcer_idle &&
 	ods_waitfor_keys &&
 	( log_this ods-enforcer-setup ods-enforcer signconf || true ) &&
 	echo "ods_setup_env: setup complete" &&
