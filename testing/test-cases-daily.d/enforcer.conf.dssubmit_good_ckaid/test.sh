@@ -14,12 +14,12 @@ if [ -n "$HAVE_MYSQL" ]; then
 fi &&
 
 ods_reset_env &&
-sleep 60 &&
 
 ##################  SETUP ###########################
 # Start enforcer (Zone already exists and we let it generate keys itself)
 #export ENFORCER_TIMESHIFT='01-01-2010 12:00' &&
 ods_start_enforcer &&
+ods_waitfor_keys &&
 
 # Make sure TIMESHIFT worked:
 #syslog_grep "ods-enforcerd: .*Timeshift mode detected, running once only!" &&
