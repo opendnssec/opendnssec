@@ -2085,18 +2085,14 @@ existsPolicyForKey(policy_key_list_t *policykeylist, const key_data_t *key)
 	return 0;
 }
 
-static const key_data_t*
-youngestKeyForConfig(key_data_list_t *key_list, const policy_key_t *pkey)
+static int
+last_inception_policy(key_data_list_t *key_list, const policy_key_t *pkey)
 {
-	const key_data_t *key = NULL, *youngest = NULL;
+	const key_data_t *key = NULL;
 	hsm_key_t *hsmkey = NULL;
+	int max_inception = -1;
 
-	if (!key_list) {
-		return NULL;
-	}
-	if (!pkey) {
-		return NULL;
-	}
+	if (!key_list || !pkey) return -1;
 	
 	/*
 	 * Must match: role, bits, algorithm and repository.
@@ -2118,10 +2114,12 @@ youngestKeyForConfig(key_data_list_t *key_list, const policy_key_t *pkey)
 		hsm_key_free(hsmkey);
 		hsmkey = NULL;
 		/** This key matches, is it newer? */
-		if (!youngest || key_data_inception(youngest) > key_data_inception(key))
-			youngest = key;
+		if (max_inception == -1 || max_inception < key_data_inception(key))
+		{
+			max_inception = key_data_inception(key);
+		}
 	}
-	return youngest;
+	return max_inception;
 }
 
 /**
@@ -2454,16 +2452,18 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 			}
 		}
 		if (!force_roll) {
+			int inception = -1;
 			/*
 			 * We do not need to roll but we should check if the youngest key
 			 * needs to be replaced. If not we reschedule for later based on the
 			 * youngest key.
 			 * TODO: Describe better why the youngest?!?
 			 */
-			if ((youngest = youngestKeyForConfig(keylist, pkey)) &&
-				key_data_inception(youngest) + policy_key_lifetime(pkey) > now)
+			inception = last_inception_policy(keylist, pkey);
+			if (inception != -1 &&
+				inception + policy_key_lifetime(pkey) > now)
 			{
-				t_ret = addtime(key_data_inception(youngest), policy_key_lifetime(pkey));
+				t_ret = addtime(inception, policy_key_lifetime(pkey));
 				minTime(t_ret, &return_at);
 				if (setnextroll(zone, pkey, t_ret)) {
 					/* TODO: log error */
