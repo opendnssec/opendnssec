@@ -13,11 +13,11 @@ if [ -n "$HAVE_MYSQL" ]; then
 fi &&
 
 ods_reset_env &&
-sleep 60 &&
 
 ##################  SETUP ###########################
 # Start enforcer (Zone already exists and we let it generate keys itself)
 ods_start_enforcer &&
+ods_waitfor_keys &&
 
 
 # Check that we are trying to use the correct (non-exec) command:
