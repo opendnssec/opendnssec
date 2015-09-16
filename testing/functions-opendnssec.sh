@@ -332,7 +332,9 @@ ods_setup_env ()
 	# signconf could fail
 	ods_enforcer_idle &&
 	( log_this ods-enforcer-setup ods-enforcer signconf || true ) &&
-	sleep 10 &&
+	# the zonelist import may back off for 60 seconds until all
+	# keys are there.
+	sleep 60 &&
 	echo "ods_setup_env: setup complete" &&
 	if [ -z "$no_enforcer_stop" ]; then
 		ods_stop_enforcer
