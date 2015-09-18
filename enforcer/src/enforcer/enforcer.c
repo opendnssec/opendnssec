@@ -2007,8 +2007,8 @@ getLastReusableKey(key_data_list_t *key_list, const policy_key_t *pkey)
 	/* TODO: We still need to filter on role and not-in-use by zone */
 	
 	hsmkeylist = hsm_key_list_new_get_by_policy_key(pkey);
-	for (hkey = hsm_key_list_begin(hsmkeylist); hkey;
-		hkey = hsm_key_list_next(hsmkeylist))
+	for (hkey = hsm_key_list_get_begin(hsmkeylist); hkey;
+		hkey = hsm_key_list_get_next(hsmkeylist))
 	{
 		/** only match if the hkey has at least the role(s) of pkey */
 		if ((~hsm_key_role(hkey) & policy_key_role(pkey)) != 0)
@@ -2197,7 +2197,7 @@ setnextroll(zone_t *zone, const policy_key_t *pkey, time_t t)
  * return: keytag
  * */
 static uint16_t 
-keytag(const char *loc, int alg, int ksk, bool *success)
+keytag(const char *loc, int alg, int ksk, int *success)
 {
 	uint16_t tag;
 	hsm_ctx_t *hsm_ctx;
@@ -2212,7 +2212,7 @@ keytag(const char *loc, int alg, int ksk, bool *success)
 		return 0;
 	}
 
-	*success = false;
+	*success = 0;
 
 	if (!(hsm_ctx = hsm_create_context())) {
 		return 0;
@@ -2251,7 +2251,7 @@ keytag(const char *loc, int alg, int ksk, bool *success)
 	libhsm_key_free(hsmkey);
 	hsm_sign_params_free(sign_params);
 	hsm_destroy_context(hsm_ctx);
-	*success = true;
+	*success = 1;
 	return tag;
 }
 
@@ -2327,7 +2327,7 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 	const key_data_t *youngest;
 	time_t t_ret;
 	key_data_role_t key_role;
-	bool success;
+	int success;
 	uint16_t tag;
 	int ret;
 
@@ -2429,6 +2429,7 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 	}
 
 	for (; pkey; pkey = policy_key_list_next(policykeylist)) {
+		newhsmkey = NULL;
 		/*
 		 * Check if we should roll, first get the roll state from the zone then
 		 * check if the policy key is set to manual rollover and last check the
@@ -2537,7 +2538,7 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 		 */
 		if (policy_keys_shared(policy)) {
 			hsmkey = getLastReusableKey(keylist, pkey);
-			if (!newhsmkey) {
+			if (!hsmkey) {
 				newhsmkey = hsm_key_factory_get_key(engine, dbconn, pkey, HSM_KEY_STATE_SHARED);
 				hsmkey = newhsmkey;
 			}
