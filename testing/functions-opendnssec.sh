@@ -485,14 +485,14 @@ ods_waitfor_keys ()
         do
                 if [[ $line =~ "/var/opendnssec/signconf" ]]
                 then
-                        zones[i]=`echo $line | awk '{print $1}'`
+                        # zones[i]=`echo $line | awk '{print $1}'`
                         i=$((i+1))
                 fi
         done < _log.$BUILD_TAG.zones.stdout
 
         for zone in "${zones[@]}"
         do
-                echo $zone
+                # echo $zone
                 timeout=900
                 while [ $timeout -gt 0 ]; do
                         log_this ods-key-list ods-enforcer key list --verbose
@@ -503,7 +503,7 @@ ods_waitfor_keys ()
                         then
                                 sleep 3
                                 timeout=$((timeout-3))
-                                echo $timeout
+                                # echo $timeout
                                 if [ $timeout -le 0 ]
                                 then
                                         echo "Generating keys for $zone needs more than 15 minutes!!!!"
