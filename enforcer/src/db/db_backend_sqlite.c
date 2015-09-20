@@ -341,6 +341,10 @@ static int db_backend_sqlite_connect(void* data, const db_configuration_list_t* 
         backend_sqlite->db = NULL;
         return DB_ERROR_UNKNOWN;
     }
+    /*
+     * Enable This line to log complete queries to stdout.
+     * sqlite3_trace(backend_sqlite->db, printf, "SQL: %s\n");
+     * */
 
     return DB_OK;
 }
