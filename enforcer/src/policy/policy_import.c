@@ -212,6 +212,7 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
     struct __policy_import_policy_key* policy_key_db;
     struct __policy_import_policy_key* policy_keys_xml = NULL;
     struct __policy_import_policy_key* policy_key_xml;
+    struct __policy_import_policy_key* first_policy_key_xml;
     policy_key_list_t* policy_key_list;
     int keys_updated;
     int database_error = 0;
@@ -632,8 +633,14 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
                                 continue;
                             }
 
-                            policy_key_xml->next = policy_keys_xml;
-                            policy_keys_xml = policy_key_xml;
+                            if (! policy_keys_xml){
+			        policy_keys_xml = policy_key_xml;
+				first_policy_key_xml = policy_key_xml;
+			    }
+			    else {
+			        policy_keys_xml->next = policy_key_xml;
+                                policy_keys_xml = policy_key_xml;
+			    }
                         }
                     }
 
@@ -652,7 +659,7 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
                      * other from the XML. If the policy key objects match then
                      * mark them processed in both lists.
                      */
-                    policy_key_xml = policy_keys_xml;
+                    policy_key_xml = first_policy_key_xml;
                     while (policy_key_xml) {
                         if (policy_key_xml->processed) {
                             policy_key_xml = policy_key_xml->next;
@@ -685,7 +692,7 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
                      * create it in the database
                      */
                     successful = 1;
-                    policy_key_xml = policy_keys_xml;
+                    policy_key_xml = first_policy_key_xml;
                     while (policy_key_xml) {
                         if (policy_key_xml->processed) {
                             policy_key_xml = policy_key_xml->next;
