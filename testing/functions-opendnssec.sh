@@ -485,7 +485,7 @@ ods_waitfor_keys ()
         do
                 if [[ $line =~ "/var/opendnssec/signconf" ]]
                 then
-                        # zones[i]=`echo $line | awk '{print $1}'`
+                        zones[i]=`echo $line | awk '{print $1}'`
                         i=$((i+1))
                 fi
         done < _log.$BUILD_TAG.zones.stdout
