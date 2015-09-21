@@ -305,6 +305,8 @@ change_keys_from_to(db_connection_t *dbconn, int sockfd,
 			key_data_list_free(key_list);
 			db_clause_list_free(clause_list);
 			zone_free(zone);
+			client_printf_err(sockfd, "Could not find ksk for zone %s, "
+				"does zone exist?\n", zonename);
 			ods_log_error("[%s] Error fetching from database", module_str);
 			return 10;
 		}

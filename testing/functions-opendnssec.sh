@@ -328,9 +328,11 @@ ods_setup_env ()
 	ods_start_enforcer &&
 	log_this ods-enforcer-setup ods-enforcer policy import &&
 	log_this ods-enforcer-setup ods-enforcer zonelist import &&
+	# OPENDNSSEC-692
 	# When there are no keys yet generated for the policies, the
-	# signconf could fail
+	# signconf could fail.
 	ods_enforcer_idle &&
+	ods_waitfor_keys &&
 	( log_this ods-enforcer-setup ods-enforcer signconf || true ) &&
 	echo "ods_setup_env: setup complete" &&
 	if [ -z "$no_enforcer_stop" ]; then
@@ -490,8 +492,8 @@ ods_waitfor_keys ()
 
         for zone in "${zones[@]}"
         do
-                echo $zone
                 timeout=900
+                # echo $zone
                 while [ $timeout -gt 0 ]; do
                         log_this ods-key-list ods-enforcer key list --verbose
                         ksk=`log_grep -o ods-key-list stdout "^$zone[[:space:]]*KSK"`
@@ -501,7 +503,7 @@ ods_waitfor_keys ()
                         then
                                 sleep 3
                                 timeout=$((timeout-3))
-                                echo $timeout
+                                # echo $timeout
                                 if [ $timeout -le 0 ]
                                 then
                                         echo "Generating keys for $zone needs more than 15 minutes!!!!"

@@ -173,12 +173,12 @@ void hsm_key_factory_generate(engine_type* engine, const db_connection_t* connec
      * zone.
      */
     duration = (duration ? duration : engine->config->automatic_keygen_duration);
-    generate_keys = (size_t)ceil(duration / (double)policy_key_lifetime(policy_key));
+    generate_keys = num_zones * (size_t)ceil(duration / (double)policy_key_lifetime(policy_key));
     if (num_zones == 0 || num_keys >= generate_keys) {
         pthread_mutex_unlock(__hsm_key_factory_lock);
         return;
     }
-    ods_log_info("[hsm_key_factory_generate] %lu keys needed for %lu zones govering %lu seconds, generating %lu keys", generate_keys, num_zones, duration, (unsigned long)generate_keys-num_keys);
+    ods_log_info("[hsm_key_factory_generate] %lu keys needed for %lu zones govering %lu seconds, generating %lu keys for policy %lu", generate_keys, num_zones, duration, (unsigned long)generate_keys-num_keys, policy_key_policy_id(policy_key));
     generate_keys -= num_keys;
 
     /*
