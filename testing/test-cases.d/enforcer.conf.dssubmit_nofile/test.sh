@@ -14,7 +14,6 @@ if [ -n "$HAVE_MYSQL" ]; then
 fi &&
 
 ods_reset_env &&
-sleep 60 &&
 
 # Now we can remove it
 rm "$INSTALL_ROOT/var/opendnssec/enforcer/wrong_dssub.pl" &&
@@ -22,7 +21,7 @@ rm "$INSTALL_ROOT/var/opendnssec/enforcer/wrong_dssub.pl" &&
 ##################  SETUP ###########################
 # Start enforcer (Zone already exists and we let it generate keys itself)
 ods_start_enforcer &&
-
+ods_waitfor_keys &&
 
 # Check that we are trying to use the correct (wrong) command:
 #syslog_grep " ods-enforcerd: .*Using command: $INSTALL_ROOT/var/opendnssec/enforcer/wrong_dssub.pl to submit DS records" &&

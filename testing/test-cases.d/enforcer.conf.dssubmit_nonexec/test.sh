@@ -1,31 +1,27 @@
 #!/usr/bin/env bash
 #
-#TEST: Test to see that a missing DSSUB command is dealt with as expected
+#TEST: Test to see that a  non executable DSSUB command is dealt with as expected
 #TEST: We use TIMESHIFT to get to the point where the KSK moves to the ready state
 
 ENFORCER_WAIT=90	# Seconds we wait for enforcer to run
 ENFORCER_COUNT=2	# How many log lines we expect to see
 
-# We need the file in place while we setup or kaspcheck fails
-touch "$INSTALL_ROOT/var/opendnssec/enforcer/wrong_dssub.pl" &&
+cp dssub.pl "$INSTALL_ROOT/var/opendnssec/enforcer/" &&
 
 if [ -n "$HAVE_MYSQL" ]; then
         ods_setup_conf conf.xml conf-mysql.xml
 fi &&
 
 ods_reset_env &&
-sleep 60 &&
-
-# Now we can remove it
-rm "$INSTALL_ROOT/var/opendnssec/enforcer/wrong_dssub.pl" &&
+sleep 120 &&
 
 ##################  SETUP ###########################
 # Start enforcer (Zone already exists and we let it generate keys itself)
 ods_start_enforcer &&
 
 
-# Check that we are trying to use the correct (wrong) command:
-#syslog_grep " ods-enforcerd: .*Using command: $INSTALL_ROOT/var/opendnssec/enforcer/wrong_dssub.pl to submit DS records" &&
+# Check that we are trying to use the correct (non-exec) command:
+#syslog_grep " ods-enforcerd: .*Using command: $INSTALL_ROOT/var/opendnssec/enforcer/dssub.pl to submit DS records" &&
 
 # Check that we have 2 keys
 log_this ods-enforcer-key-list1 ods-enforcer key list &&
@@ -45,11 +41,16 @@ ods_enforcer_leap_to 7200 &&
 syslog_grep "ods-enforcerd: .*please submit DS with keytag $KSK_KEYTAG for zone ods" &&
 
 # Check syslog for the command failing
-syslog_grep "ods-enforcerd: .*Cannot stat file $INSTALL_ROOT/var/opendnssec/enforcer/wrong_dssub.pl: No such file or directory" &&
+syslog_grep "ods-enforcerd: .*File $INSTALL_ROOT/var/opendnssec/enforcer/dssub.pl is not executable" &&
 
 # Check that no dssub.out file exists
 echo "Testing dssub.out doesn't exist" &&
 ! test -f "$INSTALL_ROOT/var/opendnssec/enforcer/dssub.out" &&
+
+# Clean up
+echo "Cleaning up files" &&
+rm "$INSTALL_ROOT/var/opendnssec/enforcer/dssub.pl" &&
+
 
 ods_stop_enforcer &&
 return 0
