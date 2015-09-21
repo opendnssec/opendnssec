@@ -492,8 +492,8 @@ ods_waitfor_keys ()
 
         for zone in "${zones[@]}"
         do
-                # echo $zone
                 timeout=900
+                # echo $zone
                 while [ $timeout -gt 0 ]; do
                         log_this ods-key-list ods-enforcer key list --verbose
                         ksk=`log_grep -o ods-key-list stdout "^$zone[[:space:]]*KSK"`
