@@ -466,9 +466,9 @@ ods_enforcer_idle ()
 	then
 		timeout=600
 	fi
+	local time_stop=$(( time_start + timeout))
 	sleep 3 ;# unfortunately, things are synchronous and we always have to wait just a bit
 	while true; do
-		time_now=`$DATE '+%s' 2>/dev/null`
 		rm -f _log.$BUILD_TAG.idle.stdout
 		log_this idle ods-enforcer queue || return 1
 		grep -q "^Next task scheduled immediately" _log.$BUILD_TAG.idle.stdout 2>/dev/null > /dev/null
