@@ -167,7 +167,7 @@ static inline int __db_backend_mysql_prepare(db_backend_mysql_t* backend_mysql, 
      * Prepare the statement.
      */
     ods_log_debug("%s", sql);
-    if (!(*statement = calloc(1, sizeof(mysql_statement_t)))
+    if (!(*statement = calloc(1, sizeof(db_backend_mysql_statement_t)))
         || !((*statement)->statement = mysql_stmt_init(backend_mysql->db))
         || mysql_stmt_prepare((*statement)->statement, sql, size))
     {
@@ -194,7 +194,7 @@ static inline int __db_backend_mysql_prepare(db_backend_mysql_t* backend_mysql, 
         }
 
         for (i = 0; i < params; i++) {
-            if (!(bind = calloc(1, sizeof(mysql_bind_t)))) {
+            if (!(bind = calloc(1, sizeof(db_backend_mysql_bind_t)))) {
                 __db_backend_mysql_finish(*statement);
                 *statement = NULL;
                 return DB_ERROR_UNKNOWN;
@@ -233,7 +233,7 @@ static inline int __db_backend_mysql_prepare(db_backend_mysql_t* backend_mysql, 
         for (i = 0; i < params; i++) {
             if (!field
                 || !object_field
-                || !(bind = calloc(1, sizeof(mysql_bind_t))))
+                || !(bind = calloc(1, sizeof(db_backend_mysql_bind_t))))
             {
                 mysql_free_result(result_metadata);
                 __db_backend_mysql_finish(*statement);
