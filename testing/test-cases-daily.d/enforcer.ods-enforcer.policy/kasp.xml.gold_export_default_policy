@@ -1,22 +1,21 @@
-<?xml version="1.0"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <KASP>
     <Policy name="default">
         <Description>default fast test policy</Description>
         <Signatures>
-            <Resign>PT180S</Resign>
-            <Refresh>PT900S</Refresh>
-            <Jitter>PT60S</Jitter>
-            <InceptionOffset>PT60S</InceptionOffset>
-            <MaxZoneTTL>PT86400S</MaxZoneTTL>
+            <Resign>PT3M</Resign>
+            <Refresh>PT15M</Refresh>
             <Validity>
-                <Default>PT3600S</Default>
-                <Denial>PT3600S</Denial>
+                <Default>PT1H</Default>
+                <Denial>PT1H</Denial>
             </Validity>
+            <Jitter>PT1M</Jitter>
+            <InceptionOffset>PT1M</InceptionOffset>
         </Signatures>
         <Denial>
             <NSEC3>
                 <OptOut/>
-                <Resalt>PT864000S</Resalt>
+                <Resalt>P10D</Resalt>
                 <Hash>
                     <Algorithm>1</Algorithm>
                     <Iterations>5</Iterations>
@@ -25,43 +24,44 @@
             </NSEC3>
         </Denial>
         <Keys>
-            <TTL>PT600S</TTL>
-            <RetireSafety>PT600S</RetireSafety>
-            <PublishSafety>PT600S</PublishSafety>
+            <TTL>PT10M</TTL>
+            <RetireSafety>PT10M</RetireSafety>
+            <PublishSafety>PT10M</PublishSafety>
             <ShareKeys/>
-            <Purge>PT86400S</Purge>
+            <Purge>P1D</Purge>
             <KSK>
                 <Algorithm length="2048">7</Algorithm>
-                <Lifetime>PT345600S</Lifetime>
+                <Lifetime>P4D</Lifetime>
                 <Repository>SoftHSM</Repository>
                 <Standby>0</Standby>
 				<KskRollType>KskDoubleSignature</KskRollType>
             </KSK>
             <ZSK>
                 <Algorithm length="1024">7</Algorithm>
-                <Lifetime>PT90000S</Lifetime>
+                <Lifetime>P1DT1H</Lifetime>
                 <Repository>SoftHSM</Repository>
                 <Standby>0</Standby>
 				<ZskRollType>ZskPrePublication</ZskRollType>
             </ZSK>
         </Keys>
         <Zone>
-            <PropagationDelay>PT1800S</PropagationDelay>
+            <PropagationDelay>PT30M</PropagationDelay>
             <SOA>
-                <TTL>PT600S</TTL>
-                <Minimum>PT300S</Minimum>
+                <TTL>PT10M</TTL>
+                <Minimum>PT5M</Minimum>
                 <Serial>unixtime</Serial>
             </SOA>
         </Zone>
         <Parent>
-            <PropagationDelay>PT1200S</PropagationDelay>
+            <PropagationDelay>PT20M</PropagationDelay>
             <DS>
-                <TTL>PT600S</TTL>
+                <TTL>PT10M</TTL>
             </DS>
             <SOA>
-                <TTL>PT18000S</TTL>
-                <Minimum>PT7200S</Minimum>
+                <TTL>PT5H</TTL>
+                <Minimum>PT2H</Minimum>
             </SOA>
         </Parent>
     </Policy>
 </KASP>
+

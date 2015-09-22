@@ -4,15 +4,15 @@
 
 # Cater for the fact that solaris needs gdiff and openbsd needs gdiff installed!
 # Really need to get gdiff installed and then use a fins_diff function....
-local diff_ignore_whitespace="diff -I ^[[:space:]]*$   -w -B "
-case "$DISTRIBUTION" in
-	sunos  )
-		diff_ignore_whitespace="gdiff -I ^[[:space:]]*$  -w -B"
-		;;
-	openbsd )
-		return 0
-		;;
-esac
+#local diff_ignore_whitespace="diff -I ^[[:space:]]*$   -w -B "
+#case "$DISTRIBUTION" in
+#	sunos  )
+#		diff_ignore_whitespace="gdiff -I ^[[:space:]]*$  -w -B"
+#		;;
+#	openbsd )
+#		return 0
+#		;;
+#esac
 
 ##############
 #   There is a bug in the export where the salt value is exported along with the length
@@ -22,6 +22,11 @@ esac
 #  Also, the ordering in the gold files has been changed and this needs to be reviewed still...
 ##############
 
+comparexml () {
+	xsltproc diff.xsl "$1" | xmllint --c14n - | xmllint --format - > "$1.temp"
+	xsltproc diff.xsl "$2" | xmllint --c14n - | xmllint --format - > "$2.temp"
+	diff -rw "$1.temp" "$2.temp"
+}
 
 if [ -n "$HAVE_MYSQL" ]; then
 	ods_setup_conf conf.xml conf-mysql.xml
@@ -41,15 +46,15 @@ echo "************list OK******************" &&
 # Export the policy default and check some of its values
 ods-enforcer policy export -p default > kasp.xml.temp &&
 sed  -e 's#>.*</Salt>#/>#g' kasp.xml.temp > kasp.xml.temp2 &&
-$diff_ignore_whitespace  kasp.xml.temp2 kasp.xml.gold_export_default_policy &&
-rm kasp.xml.temp* &&
+comparexml  kasp.xml.temp2 kasp.xml.gold_export_default_policy &&
+rm kasp.xml*.temp* &&
 echo "************export -p default OK******************" &&
 
 # Export both the policies
 ods-enforcer policy export --all > kasp.xml.temp &&
 sed  -e 's#>.*</Salt>#/>#g' kasp.xml.temp > kasp.xml.temp2 &&
-$diff_ignore_whitespace  kasp.xml.temp2 kasp.xml.gold_export_2_policies &&
-rm kasp.xml.temp* &&
+comparexml  kasp.xml.temp2 kasp.xml.gold_export_2_policies &&
+rm kasp.xml*.temp* &&
 echo "************export --all OK******************" &&
 
 ############# Now add/update policyies  #############
@@ -68,8 +73,8 @@ sleep 1 &&
 # Export again and check against the imported kasp
 ods-enforcer policy export --all > kasp.xml.temp &&
 sed  -e 's#>.*</Salt>#/>#g' kasp.xml.temp > kasp.xml.temp2 &&
-$diff_ignore_whitespace  kasp.xml.temp2 kasp.xml.gold_export_3_policies &&
-rm kasp.xml.temp* &&
+comparexml  kasp.xml.temp2 kasp.xml.gold_export_3_policies &&
+rm kasp.xml*.temp* &&
 
 echo "************export OK******************" &&
 echo &&
@@ -89,31 +94,31 @@ echo "************list OK******************" &&
 ### TO FIX: Shouldn't need this sleep, but need to wait for resalt until export bug is fixed!!
 sleep 1 &&
 # check the kasp hasn't been updated
-$diff_ignore_whitespace "$INSTALL_ROOT/etc/opendnssec/kasp.xml" "kasp.xml.gold_export_2_policies" &&
+comparexml "$INSTALL_ROOT/etc/opendnssec/kasp.xml" "kasp.xml.gold_export_2_policies" &&
 echo "************kasp OK******************" &&
 
 # Now use purge to clean up policy 3 and it will also remove policy 2
-echo "y" | log_this ods-enforcer-policy-purge_1 "ods-enforcer policy purge" &&
+log_this ods-enforcer-policy-purge_1 "ods-enforcer policy purge" &&
 # check the kasp has been updated
-sed  -e 's#>.*</Salt>#/>#g' "$INSTALL_ROOT/etc/opendnssec/kasp.xml" > "$INSTALL_ROOT/etc/opendnssec/kasp.xml2" &&
-$diff_ignore_whitespace -I "^<?xml" "$INSTALL_ROOT/etc/opendnssec/kasp.xml2"  kasp.xml.gold_export_default_policy &&
-echo "************export OK******************" &&
+#sed  -e 's#>.*</Salt>#/>#g' "$INSTALL_ROOT/etc/opendnssec/kasp.xml" > "$INSTALL_ROOT/etc/opendnssec/kasp.xml2" &&
+#$diff_ignore_whitespace -I "^<?xml" "$INSTALL_ROOT/etc/opendnssec/kasp.xml2"  kasp.xml.gold_export_default_policy &&
+#echo "************export OK******************" &&
 
 # Export the remaining policy
 ods-enforcer policy export --all > kasp.xml.temp &&
 sed  -e 's#>.*</Salt>#/>#g' kasp.xml.temp > kasp.xml.temp2 &&
-$diff_ignore_whitespace  kasp.xml.temp2 kasp.xml.gold_export_default_policy &&
-rm kasp.xml.temp* &&
+comparexml  kasp.xml.temp2 kasp.xml.gold_export_default_policy &&
+rm kasp.xml*.temp* &&
 
 echo "************export OK******************" &&
 echo &&
 
 # Now check we export an empty policy 
-echo "y" | log_this ods-enforcer-remove-zone ods-enforcer zone delete --all &&
+log_this ods-enforcer-remove-zone ods-enforcer zone delete --all &&
 # Now use purge to remomve the remainin policy
-echo "y" | log_this ods-enforcer-policy-purge_2 "ods-enforcer policy purge" &&
+log_this ods-enforcer-policy-purge_2 "ods-enforcer policy purge" &&
 # check the kasp has been updated
-$diff_ignore_whitespace  "$INSTALL_ROOT/etc/opendnssec/kasp.xml"  kasp.xml.gold_export_empty &&
+#$diff_ignore_whitespace  "$INSTALL_ROOT/etc/opendnssec/kasp.xml"  kasp.xml.gold_export_empty &&
 echo "************empty kasp OK******************" &&
 echo &&
 
@@ -122,17 +127,17 @@ echo &&
 # check the invalid XML won't import, and we should get the expected errors
 log_this ods-enforcer-import-invalidXML cp -- "kasp_invalid.xml" "$INSTALL_ROOT/etc/opendnssec/kasp.xml" &&
 ### TO FIX: this command should fail
-log_this ods-enforcer-import-invalidXML ods-enforcer policy import &&
+! log_this ods-enforcer-import-invalidXML ods-enforcer policy import &&
 ### TO FIX: this text should be found
 #log_grep ods-enforcer-import-invalidXML stderr 'ods-kaspcheck returned an error, please check your policy' &&
-log_grep ods-enforcer-import-invalidXML stdout "error: reading and processing kasp.xml file failed" &&
+log_grep ods-enforcer-import-invalidXML stderr "Unable to validate the KASP XML, please run ods-kaspcheck for more details!" &&
 echo "****************check the invalid XML OK*********************" &&
 echo &&
 
 # check the file won't import if a repo does not exist, and we should get the expected errors
 log_this ods-enforcer-import-invalidXML_1 cp -- "kasp_missing_repo.xml" "$INSTALL_ROOT/etc/opendnssec/kasp.xml" &&
 ### TO FIX: this command should fail
-log_this ods-enforcer-import-invalidXML_1 ods-enforcer policy import &&
+! log_this ods-enforcer-import-invalidXML_1 ods-enforcer policy import &&
 ### TO FIX: this text should be found
 #log_grep ods-enforcer-import-invalidXML_1 stdout "ERROR: Unknown repository (bob) defined for KSK in default policy in " &&
 echo "****************check the invalid XML OK*********************" &&
@@ -140,11 +145,11 @@ echo &&
 
 # Test incomplete command line for export
 ### TO FIX: this command should fail
-log_this ods-enforcer-export-incomplete-parameters ods-enforcer policy export &&
-log_grep ods-enforcer-export-incomplete-parameters stdout 'expected --policy <policy> | --all  option' &&
+! log_this ods-enforcer-export-incomplete-parameters ods-enforcer policy export &&
+log_grep ods-enforcer-export-incomplete-parameters stderr 'Either --all or --policy needs to be given' &&
 ### TO FIX: this command should fail
-log_this ods-enforcer-export-incomplete-parameters ods-enforcer policy &&
-log_grep ods-enforcer-export-incomplete-parameters stdout 'Unknown command policy' &&
+! log_this ods-enforcer-export-incomplete-parameters ods-enforcer policy &&
+log_grep ods-enforcer-export-incomplete-parameters stderr 'Unknown command policy' &&
 echo "************incomplete parameter validation OK******************" &&
 echo &&
 
