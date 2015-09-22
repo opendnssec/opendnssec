@@ -2007,8 +2007,8 @@ getLastReusableKey(key_data_list_t *key_list, const policy_key_t *pkey)
 	/* TODO: We still need to filter on role and not-in-use by zone */
 	
 	hsmkeylist = hsm_key_list_new_get_by_policy_key(pkey);
-	for (hkey = hsm_key_list_begin(hsmkeylist); hkey;
-		hkey = hsm_key_list_next(hsmkeylist))
+	for (hkey = hsm_key_list_get_begin(hsmkeylist); hkey;
+		hkey = hsm_key_list_get_next(hsmkeylist))
 	{
 		/** only match if the hkey has at least the role(s) of pkey */
 		if ((~hsm_key_role(hkey) & policy_key_role(pkey)) != 0)
@@ -2085,18 +2085,14 @@ existsPolicyForKey(policy_key_list_t *policykeylist, const key_data_t *key)
 	return 0;
 }
 
-static const key_data_t*
-youngestKeyForConfig(key_data_list_t *key_list, const policy_key_t *pkey)
+static int
+last_inception_policy(key_data_list_t *key_list, const policy_key_t *pkey)
 {
-	const key_data_t *key = NULL, *youngest = NULL;
+	const key_data_t *key = NULL;
 	hsm_key_t *hsmkey = NULL;
+	int max_inception = -1;
 
-	if (!key_list) {
-		return NULL;
-	}
-	if (!pkey) {
-		return NULL;
-	}
+	if (!key_list || !pkey) return -1;
 	
 	/*
 	 * Must match: role, bits, algorithm and repository.
@@ -2118,10 +2114,12 @@ youngestKeyForConfig(key_data_list_t *key_list, const policy_key_t *pkey)
 		hsm_key_free(hsmkey);
 		hsmkey = NULL;
 		/** This key matches, is it newer? */
-		if (!youngest || key_data_inception(youngest) > key_data_inception(key))
-			youngest = key;
+		if (max_inception == -1 || max_inception < key_data_inception(key))
+		{
+			max_inception = key_data_inception(key);
+		}
 	}
-	return youngest;
+	return max_inception;
 }
 
 /**
@@ -2199,7 +2197,7 @@ setnextroll(zone_t *zone, const policy_key_t *pkey, time_t t)
  * return: keytag
  * */
 static uint16_t 
-keytag(const char *loc, int alg, int ksk, bool *success)
+keytag(const char *loc, int alg, int ksk, int *success)
 {
 	uint16_t tag;
 	hsm_ctx_t *hsm_ctx;
@@ -2214,7 +2212,7 @@ keytag(const char *loc, int alg, int ksk, bool *success)
 		return 0;
 	}
 
-	*success = false;
+	*success = 0;
 
 	if (!(hsm_ctx = hsm_create_context())) {
 		return 0;
@@ -2253,7 +2251,7 @@ keytag(const char *loc, int alg, int ksk, bool *success)
 	libhsm_key_free(hsmkey);
 	hsm_sign_params_free(sign_params);
 	hsm_destroy_context(hsm_ctx);
-	*success = true;
+	*success = 1;
 	return tag;
 }
 
@@ -2329,7 +2327,7 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 	const key_data_t *youngest;
 	time_t t_ret;
 	key_data_role_t key_role;
-	bool success;
+	int success;
 	uint16_t tag;
 	int ret;
 
@@ -2431,6 +2429,7 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 	}
 
 	for (; pkey; pkey = policy_key_list_next(policykeylist)) {
+		newhsmkey = NULL;
 		/*
 		 * Check if we should roll, first get the roll state from the zone then
 		 * check if the policy key is set to manual rollover and last check the
@@ -2454,16 +2453,18 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 			}
 		}
 		if (!force_roll) {
+			int inception = -1;
 			/*
 			 * We do not need to roll but we should check if the youngest key
 			 * needs to be replaced. If not we reschedule for later based on the
 			 * youngest key.
 			 * TODO: Describe better why the youngest?!?
 			 */
-			if ((youngest = youngestKeyForConfig(keylist, pkey)) &&
-				key_data_inception(youngest) + policy_key_lifetime(pkey) > now)
+			inception = last_inception_policy(keylist, pkey);
+			if (inception != -1 &&
+				inception + policy_key_lifetime(pkey) > now)
 			{
-				t_ret = addtime(key_data_inception(youngest), policy_key_lifetime(pkey));
+				t_ret = addtime(inception, policy_key_lifetime(pkey));
 				minTime(t_ret, &return_at);
 				if (setnextroll(zone, pkey, t_ret)) {
 					/* TODO: log error */
@@ -2537,7 +2538,7 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 		 */
 		if (policy_keys_shared(policy)) {
 			hsmkey = getLastReusableKey(keylist, pkey);
-			if (!newhsmkey) {
+			if (!hsmkey) {
 				newhsmkey = hsm_key_factory_get_key(engine, dbconn, pkey, HSM_KEY_STATE_SHARED);
 				hsmkey = newhsmkey;
 			}

@@ -76,7 +76,7 @@ hsm_key_list_t* hsm_key_list_new_get_by_policy_key(const policy_key_t *pkey)
     if (!(clause = db_clause_new())
         || db_clause_set_field(clause, "policyId")
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_copy(db_clause_get_value(clause), policy_key_id(pkey))
+        || db_value_copy(db_clause_get_value(clause), policy_key_policy_id(pkey))
         || db_clause_list_add(clause_list, clause)
 
         || !(clause = db_clause_new())
