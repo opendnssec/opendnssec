@@ -55,7 +55,7 @@ engine_config(const char* cfgfile,
     const char* rngfile = ODS_SE_RNGDIR "/conf.rng";
     FILE* cfgfd = NULL;
 
-    if (!cfgfile) {
+    if (!cfgfile || cfgfile[0] == 0) {
         ods_log_error("[%s] failed to read: no filename given", conf_str);
         return NULL;
     }
