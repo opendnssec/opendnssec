@@ -70,12 +70,6 @@ database_version_t* database_version_new_copy(const database_version_t* database
 void database_version_free(database_version_t* database_version);
 
 /**
- * free global allocator. 
- * database_version_free MUST be called for all its contents.
- */
-void database_version_alloc_nuke();
-
-/**
  * Reset the content of a database version object making it as if its new. This does not change anything in the database.
  * \param[in] database_version a database_version_t pointer.
  */
@@ -247,10 +241,6 @@ void database_version_list_free(database_version_list_t* database_version_list);
  * free global allocator. 
  * database_version_list_free MUST be called for all its contents.
  */
-void database_version_list_alloc_nuke();
-
-void database_version_list_alloc_nuke();
-
 /**
  * Copy the content of another database version object list.
  * \param[in] database_version_list a database_version_list_t pointer.

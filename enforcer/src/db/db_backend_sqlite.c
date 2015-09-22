@@ -30,7 +30,6 @@
 #include "db_backend_sqlite.h"
 #include "db_error.h"
 
-#include "mm.h"
 #include "log.h"
 
 #include <stdlib.h>
@@ -72,7 +71,7 @@ typedef struct db_backend_sqlite {
     long usleep;
 } db_backend_sqlite_t;
 
-static mm_alloc_t __sqlite_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_backend_sqlite_t));
+
 
 /**
  * The SQLite database backend specific data for walking a result.
@@ -84,7 +83,7 @@ typedef struct db_backend_sqlite_statement {
     const db_object_t* object;
 } db_backend_sqlite_statement_t;
 
-static mm_alloc_t __sqlite_statement_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_backend_sqlite_statement_t));
+
 
 /**
  * The SQLite bust handler that is used to wait for database access.
@@ -681,7 +680,7 @@ static db_result_t* db_backend_sqlite_next(void* data, int finish) {
 
     if (finish) {
         __db_backend_sqlite_finalize(statement->statement);
-        mm_alloc_delete(&__sqlite_statement_alloc, statement);
+        free(statement);
         return NULL;
     }
 
@@ -1199,7 +1198,7 @@ static db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* o
         }
     }
 
-    statement = mm_alloc_new0(&__sqlite_statement_alloc);
+    statement = calloc(1, sizeof(db_backend_sqlite_statement_t));
     if (!statement) {
         return NULL;
     }
@@ -1209,7 +1208,7 @@ static db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* o
     statement->statement = NULL;
 
     if (__db_backend_sqlite_prepare(backend_sqlite, &(statement->statement), sql, sizeof(sql))) {
-        mm_alloc_delete(&__sqlite_statement_alloc, statement);
+        free(statement);
         return NULL;
     }
 
@@ -1217,7 +1216,7 @@ static db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* o
         bind = 1;
         if (__db_backend_sqlite_bind_clause(statement->statement, clause_list, &bind)) {
             __db_backend_sqlite_finalize(statement->statement);
-            mm_alloc_delete(&__sqlite_statement_alloc, statement);
+            free(statement);
             return NULL;
         }
     }
@@ -1227,7 +1226,7 @@ static db_result_list_t* db_backend_sqlite_read(void* data, const db_object_t* o
     {
         db_result_list_free(result_list);
         __db_backend_sqlite_finalize(statement->statement);
-        mm_alloc_delete(&__sqlite_statement_alloc, statement);
+        free(statement);
         return NULL;
     }
     return result_list;
@@ -1757,7 +1756,7 @@ static void db_backend_sqlite_free(void* data) {
         if (backend_sqlite->db) {
             (void)db_backend_sqlite_disconnect(backend_sqlite);
         }
-        mm_alloc_delete(&__sqlite_alloc, backend_sqlite);
+        free(backend_sqlite);
     }
 }
 
@@ -1851,7 +1850,7 @@ static int db_backend_sqlite_transaction_rollback(void* data) {
 db_backend_handle_t* db_backend_sqlite_new_handle(void) {
     db_backend_handle_t* backend_handle = NULL;
     db_backend_sqlite_t* backend_sqlite =
-        (db_backend_sqlite_t*)mm_alloc_new0(&__sqlite_alloc);
+        (db_backend_sqlite_t*)calloc(1, sizeof(db_backend_sqlite_t));
 
     if (backend_sqlite && (backend_handle = db_backend_handle_new())) {
         if (db_backend_handle_set_data(backend_handle, (void*)backend_sqlite)
@@ -1870,7 +1869,7 @@ db_backend_handle_t* db_backend_sqlite_new_handle(void) {
             || db_backend_handle_set_transaction_rollback(backend_handle, db_backend_sqlite_transaction_rollback))
         {
             db_backend_handle_free(backend_handle);
-            mm_alloc_delete(&__sqlite_alloc, backend_sqlite);
+            free(backend_sqlite);
             return NULL;
         }
     }

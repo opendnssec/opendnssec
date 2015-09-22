@@ -834,7 +834,6 @@ print SOURCE '/*
 #include "', $name, '.h"
 #include "db_error.h"
 
-#include "mm.h"
 
 #include <string.h>
 
@@ -909,15 +908,15 @@ print SOURCE '    if (db_object_set_object_field_list(object, object_field_list)
 
 /* ', uc($tname), ' */
 
-static mm_alloc_t __', $name, '_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(', $name, '_t));
+
 
 ', $name, '_t* ', $name, '_new(const db_connection_t* connection) {
     ', $name, '_t* ', $name, ' =
-        (', $name, '_t*)mm_alloc_new0(&__', $name, '_alloc);
+        (', $name, '_t*)calloc(1, sizeof(', $name, '_t));
 
     if (', $name, ') {
         if (!(', $name, '->dbo = __', $name, '_new_object(connection))) {
-            mm_alloc_delete(&__', $name, '_alloc, ', $name, ');
+            free(');
             return NULL;
         }
 ';
@@ -1006,7 +1005,7 @@ print SOURCE '        if (', $name, '->', $associated->{foreign}, '_list) {
         }
 ';
 }
-print SOURCE '        mm_alloc_delete(&__', $name, '_alloc, ', $name, ');
+print SOURCE '        free(');
     }
 }
 
@@ -2273,15 +2272,15 @@ int ', $name, '_count(', $name, '_t* ', $name, ', db_clause_list_t* clause_list,
 
 /* ', uc($tname), ' LIST */
 
-static mm_alloc_t __', $name, '_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(', $name, '_list_t));
+
 
 ', $name, '_list_t* ', $name, '_list_new(const db_connection_t* connection) {
     ', $name, '_list_t* ', $name, '_list =
-        (', $name, '_list_t*)mm_alloc_new0(&__', $name, '_list_alloc);
+        (', $name, '_list_t*)calloc(1, sizeof(', $name, '_list_t));
 
     if (', $name, '_list) {
         if (!(', $name, '_list->dbo = __', $name, '_new_object(connection))) {
-            mm_alloc_delete(&__', $name, '_list_alloc, ', $name, '_list);
+            free('_list);
             return NULL;
         }
     }
@@ -2359,7 +2358,7 @@ print SOURCE '        if (', $name, '_list->', $field->{name}, '_list) {
 ';
     }
 }
-print SOURCE '        mm_alloc_delete(&__', $name, '_list_alloc, ', $name, '_list);
+print SOURCE '        free('_list);
     }
 }
 

@@ -281,8 +281,6 @@ AC_CONFIG_FILES([
 	tools/opendnssec.7
 	tools/ods-control.8
 	tools/ods-kasp2html
-	mm/Makefile
-	mm/src/Makefile
 ])
 
 AC_OUTPUT

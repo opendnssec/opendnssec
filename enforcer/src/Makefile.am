@@ -8,7 +8,6 @@ EXTRA_DIST =
 
 CLEANFILES = $(BUILT_SOURCES)
 
-LIBMM = ${top_builddir}/mm/src/libmm.a
 LIBHSM = ${top_builddir}/libhsm/src/lib/libhsm.a
 
 SUBDIRS = utils db/test
@@ -16,8 +15,6 @@ SUBDIRS = utils db/test
 AM_CFLAGS = \
 	-I$(top_srcdir)/common \
 	-I$(top_builddir)/common \
-	-I$(top_srcdir)/mm/src \
-	-I$(top_builddir)/mm/src \
 	-I$(srcdir)/../../libhsm/src/lib \
 	-I$(builddir)/../../libhsm/src/lib \
 	@XML2_INCLUDES@ \
@@ -127,7 +124,6 @@ ods_enforcerd_SOURCES = \
 	$(BACKEND_SOURCES_CUSTOM)
 
 ods_enforcerd_LDADD = \
-	$(LIBMM) \
 	$(LIBHSM) \
 	$(LIBCOMPAT) \
 	@LDNS_LIBS@ \

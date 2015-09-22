@@ -30,7 +30,6 @@
 #include "database_version.h"
 #include "db_error.h"
 
-#include "mm.h"
 
 #include <string.h>
 
@@ -98,15 +97,15 @@ static db_object_t* __database_version_new_object(const db_connection_t* connect
 
 /* DATABASE VERSION */
 
-static mm_alloc_t __database_version_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(database_version_t));
+
 
 database_version_t* database_version_new(const db_connection_t* connection) {
     database_version_t* database_version =
-        (database_version_t*)mm_alloc_new0(&__database_version_alloc);
+        (database_version_t*)calloc(1, sizeof(database_version_t));
 
     if (database_version) {
         if (!(database_version->dbo = __database_version_new_object(connection))) {
-            mm_alloc_delete(&__database_version_alloc, database_version);
+            free(database_version);
             return NULL;
         }
         db_value_reset(&(database_version->id));
@@ -142,13 +141,8 @@ void database_version_free(database_version_t* database_version) {
         }
         db_value_reset(&(database_version->id));
         db_value_reset(&(database_version->rev));
-        mm_alloc_delete(&__database_version_alloc, database_version);
+        free(database_version);
     }
-}
-
-void database_version_alloc_nuke()
-{
-    mm_alloc_free(&__database_version_alloc);
 }
 
 void database_version_reset(database_version_t* database_version) {
@@ -542,15 +536,15 @@ int database_version_count(database_version_t* database_version, db_clause_list_
 
 /* DATABASE VERSION LIST */
 
-static mm_alloc_t __database_version_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(database_version_list_t));
+
 
 database_version_list_t* database_version_list_new(const db_connection_t* connection) {
     database_version_list_t* database_version_list =
-        (database_version_list_t*)mm_alloc_new0(&__database_version_list_alloc);
+        (database_version_list_t*)calloc(1, sizeof(database_version_list_t));
 
     if (database_version_list) {
         if (!(database_version_list->dbo = __database_version_new_object(connection))) {
-            mm_alloc_delete(&__database_version_list_alloc, database_version_list);
+            free(database_version_list);
             return NULL;
         }
     }
@@ -619,13 +613,8 @@ void database_version_list_free(database_version_list_t* database_version_list) 
         if (database_version_list->object_list) {
             free(database_version_list->object_list);
         }
-        mm_alloc_delete(&__database_version_list_alloc, database_version_list);
+        free(database_version_list);
     }
-}
-
-void database_version_list_alloc_nuke()
-{
-    mm_alloc_free(&__database_version_list_alloc);
 }
 
 int database_version_list_copy(database_version_list_t* database_version_list, const database_version_list_t* from_database_version_list) {

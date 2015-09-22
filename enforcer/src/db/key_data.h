@@ -108,8 +108,6 @@ key_data_t* key_data_new_copy(const key_data_t* key_data);
  */
 void key_data_free(key_data_t* key_data);
 
-void key_data_alloc_nuke();
-
 /**
  * Reset the content of a key data object making it as if its new. This does not change anything in the database.
  * \param[in] key_data a key_data_t pointer.
@@ -707,8 +705,6 @@ int key_data_list_associated_fetch(key_data_list_t* key_data_list);
  * \param[in] key_data_list a key_data_list_t pointer.
  */
 void key_data_list_free(key_data_list_t* key_data_list);
-
-void key_data_list_alloc_nuke();
 
 /**
  * Copy the content of another key data object list.

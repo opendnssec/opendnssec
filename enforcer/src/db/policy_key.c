@@ -30,7 +30,6 @@
 #include "policy_key.h"
 #include "db_error.h"
 
-#include "mm.h"
 
 #include <string.h>
 
@@ -205,15 +204,15 @@ static db_object_t* __policy_key_new_object(const db_connection_t* connection) {
 
 /* POLICY KEY */
 
-static mm_alloc_t __policy_key_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(policy_key_t));
+
 
 policy_key_t* policy_key_new(const db_connection_t* connection) {
     policy_key_t* policy_key =
-        (policy_key_t*)mm_alloc_new0(&__policy_key_alloc);
+        (policy_key_t*)calloc(1, sizeof(policy_key_t));
 
     if (policy_key) {
         if (!(policy_key->dbo = __policy_key_new_object(connection))) {
-            mm_alloc_delete(&__policy_key_alloc, policy_key);
+            free(policy_key);
             return NULL;
         }
         db_value_reset(&(policy_key->id));
@@ -258,13 +257,8 @@ void policy_key_free(policy_key_t* policy_key) {
         if (policy_key->repository) {
             free(policy_key->repository);
         }
-        mm_alloc_delete(&__policy_key_alloc, policy_key);
+        free(policy_key);
     }
-}
-
-void policy_key_alloc_nuke()
-{
-    mm_alloc_free(&__policy_key_alloc);
 }
 
 void policy_key_reset(policy_key_t* policy_key) {
@@ -1510,15 +1504,15 @@ int policy_key_count(policy_key_t* policy_key, db_clause_list_t* clause_list, si
 
 /* POLICY KEY LIST */
 
-static mm_alloc_t __policy_key_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(policy_key_list_t));
+
 
 policy_key_list_t* policy_key_list_new(const db_connection_t* connection) {
     policy_key_list_t* policy_key_list =
-        (policy_key_list_t*)mm_alloc_new0(&__policy_key_list_alloc);
+        (policy_key_list_t*)calloc(1, sizeof(policy_key_list_t));
 
     if (policy_key_list) {
         if (!(policy_key_list->dbo = __policy_key_new_object(connection))) {
-            mm_alloc_delete(&__policy_key_list_alloc, policy_key_list);
+            free(policy_key_list);
             return NULL;
         }
     }
@@ -1590,13 +1584,8 @@ void policy_key_list_free(policy_key_list_t* policy_key_list) {
         if (policy_key_list->policy_id_list) {
             policy_list_free(policy_key_list->policy_id_list);
         }
-        mm_alloc_delete(&__policy_key_list_alloc, policy_key_list);
+        free(policy_key_list);
     }
-}
-
-void policy_key_list_alloc_nuke()
-{
-    mm_alloc_free(&__policy_key_list_alloc);
 }
 
 int policy_key_list_copy(policy_key_list_t* policy_key_list, const policy_key_list_t* from_policy_key_list) {
