@@ -17,7 +17,6 @@ ods_reset_env &&
 ##################  SETUP ###########################
 # Start enforcer (Zone already exists and we let it generate keys itself)
 ods_start_enforcer &&
-ods_waitfor_keys &&
 
 
 # Check that we are trying to use the correct (non-exec) command:
@@ -34,7 +33,7 @@ KSK_KEYTAG=`log_grep -o ods-enforcer-keytag stdout "ods[[:space:]]*KSK[[:space:]
 
 ## Jump forward a couple of hours so the KSK will be ready
 ##################  STEP 1: Time = 2hrs ###########################
-ods_enforcer_leap_to 7200 &&
+ods_enforcer_leap_over 7200 &&
 
 
 # We should be ready for a ds-submit and ds-seen on ods
