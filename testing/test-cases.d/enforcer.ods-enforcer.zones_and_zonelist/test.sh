@@ -11,9 +11,9 @@
 #PATH="`dirname $0`":$PATH
 #export PATH
 comparexml () {
-	xsltproc diff.xsl "$1" | xmllint --c14n - | xmllint --format - > "$1.temp"
-	xsltproc diff.xsl "$2" | xmllint --c14n - | xmllint --format - > "$2.temp"
-	diff -rwq "$1.temp" "$2.temp" > /dev/null 2> /dev/null
+	xsltproc diff.xsl "$1" | xmllint --c14n - | xmllint --format - > "$1~"
+	xsltproc diff.xsl "$2" | xmllint --c14n - | xmllint --format - > "$2~"
+	diff -rwq "$1~" "$2~" > /dev/null 2> /dev/null
 }
 
 
@@ -341,7 +341,7 @@ rm -f zonelist.xml.test_local  &&
 rm -f zonelist.xml.gold_export_local  &&
 rm -f zonelist.xml.gold_export2_local  &&
 rm -f zonelist.xml.temp*  &&
-rm -f *.temp &&
+rm -f *~ &&
 
 echo && 
 echo "************OK******************" &&
