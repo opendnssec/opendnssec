@@ -22,7 +22,6 @@ if [ -n "$HAVE_MYSQL" ]; then
 fi &&
 
 ods_reset_env &&
-ods_waitfor_keys &&
 
 ## Start master name server
 cp $BIND9_NAMED_RUNDIR/ods.bak $BIND9_NAMED_RUNDIR/ods
