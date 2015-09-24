@@ -15,6 +15,7 @@ ods_reset_env &&
 ##################  SETUP ###########################
 # Start enforcer (Zone already exists and we let it generate keys itself)
 ods_start_enforcer &&
+ods_waitfor_keys &&
 
 ods_enforcer_leap_over 2400 &&
 
