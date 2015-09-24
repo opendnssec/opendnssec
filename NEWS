@@ -12,7 +12,8 @@ Bugfixes:
 * Include revoke bit in keytag calculation.
 * SUPPORT-147: Signer Engine: Fix a bug where zone updating via XFR got stuck
   because of incorrect storing SOA to disk (thanks Håvard Eidnes!).
-
+* Increased stacksize on some systems (thanks Patrik Lundin!).
+* Stop ods-signerd on SIGINT.
 
 OpenDNSSEC 1.4.7 - 2014-12-04
 
