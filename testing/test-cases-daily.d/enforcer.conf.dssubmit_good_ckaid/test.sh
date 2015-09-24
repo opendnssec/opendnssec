@@ -39,7 +39,7 @@ KSK_KEYTAG=`log_grep -o ods-enforcer-cka_keytag stdout "ods[[:space:]]*KSK[[:spa
 
 ## Jump forward a couple of hours so the KSK will be ready
 ##################  STEP 1: Time = 2hrs ###########################
-ods_enforcer_leap_over 7200 &&
+ods_enforcer_leap_to 7200 &&
 
 # We should be ready for a ds-seen on ods
 syslog_grep "ods-enforcerd: .*\[enforce_task\] please submit DS with keytag $KSK_KEYTAG for zone ods" &&

@@ -585,13 +585,13 @@ ods_enforcer_leap_to ()
 	then
 		maxleaps=-1
 	fi
-	log_this ods-enforcer-time-leap ods-enforcer time leap || return 1
-	sleep 30
+#	log_this ods-enforcer-time-leap ods-enforcer time leap || return 1
+	sleep 5
 	log_this ods-enforcer-time-leap ods-enforcer queue || return 1
-	if [ $maxleaps -gt 0 ]
-	then
-		maxleaps=`expr $maxleaps - 1`
-	fi
+#	if [ $maxleaps -gt 0 ]
+#	then
+#		maxleaps=`expr $maxleaps - 1`
+#	fi
 	starttime=`sed < _log.$BUILD_TAG.ods-enforcer-time-leap.stdout -e 's/^It is now.*(\([0-9][0-9]*\)[^)]*).*$/\1/p' -e d | tail -1`
 	nexttime=`sed < _log.$BUILD_TAG.ods-enforcer-time-leap.stdout -e 's/^Next task scheduled.*(\([0-9][0-9]*\)[^)]*).*$/\1/p' -e d | tail -1`
 	if [ -z "$nexttime" ]
@@ -606,7 +606,7 @@ ods_enforcer_leap_to ()
 	while [ \( $timediff -lt $period \) -a \( $maxleaps -ne 0 \) ]
 	do
 		log_this ods-enforcer-time-leap ods-enforcer time leap || return 1
-		sleep 30
+		sleep 5
 		log_this ods-enforcer-time-leap ods-enforcer queue || return 1
 		if [ $maxleaps -gt 0 ]
 		then
