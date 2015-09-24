@@ -173,7 +173,7 @@ void hsm_key_factory_generate(engine_type* engine, const db_connection_t* connec
      * zone.
      */
     duration = (duration ? duration : engine->config->automatic_keygen_duration);
-    generate_keys = num_zones * (size_t)ceil(duration / (double)policy_key_lifetime(policy_key));
+    generate_keys = (size_t)ceil(duration / (double)policy_key_lifetime(policy_key));
     if (num_zones == 0 || num_keys >= generate_keys) {
         pthread_mutex_unlock(__hsm_key_factory_lock);
         return;
