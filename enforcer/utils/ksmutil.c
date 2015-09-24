@@ -393,7 +393,7 @@ usage_key ()
     usage_keypurge ();
     usage_keygen ();
     usage_keykskretire ();
-    usage_keykskrevoke ();
+    /* usage_keykskrevoke (); Users shouldn't use this */
     usage_keydsseen ();
     usage_keydelete ();
 }
@@ -467,7 +467,7 @@ usage ()
     usage_keydelete ();
     usage_keygen ();
     usage_keykskretire ();
-    usage_keykskrevoke ();
+    /* usage_keykskrevoke (); Users shouldn't use this */
     usage_keydsseen ();
     usage_backup ();
     usage_rollover ();
