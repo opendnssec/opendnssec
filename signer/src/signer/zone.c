@@ -1048,6 +1048,8 @@ zone_backup2(zone_type* zone)
     tmpfile = ods_build_path(zone->name, ".backup2.tmp", 0, 1);
     filename = ods_build_path(zone->name, ".backup2", 0, 1);
     if (!tmpfile || !filename) {
+        free(tmpfile);
+        free(filename);
         return ODS_STATUS_MALLOC_ERR;
     }
     fd = ods_fopen(tmpfile, NULL, "w");

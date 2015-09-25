@@ -128,7 +128,7 @@ ods_build_path(const char* file, const char* suffix, int dir, int no_slash)
     size_t len_suffix = 0;
     size_t len_total = 0;
     char* openf = NULL;
-    char* f = "root";
+    const char* f = "root";
 
     if (file) {
         if (ods_strcmp(file, ".")) {
@@ -230,11 +230,11 @@ ods_fopen(const char* file, const char* dir, const char* mode)
             fd = fopen(openf, mode);
             if (!fd) {
                 ods_log_debug("[%s] unable to open file %s for %s: %s",
-                    file_str, openf?openf:"(null)",
+                    file_str, openf,
                     ods_file_mode2str(mode), strerror(errno));
             } else {
                 file_count++;
-                ods_log_debug("[%s] openfile %s count %u", file_str, openf?openf:"(null)", file_count);
+                ods_log_debug("[%s] openfile %s count %u", file_str, openf, file_count);
             }
         }
         free((void*) openf);
@@ -451,6 +451,8 @@ ods_file_copy(const char* file1, const char* file2, long startpos, int append)
     }
     ods_log_debug("[%s] lseek file %s pos %ld", file_str, file1, startpos);
     if (lseek(fin, startpos, SEEK_SET) < 0) {
+        close(fin);
+        close(fout);
         return ODS_STATUS_FSEEK_ERR;
     }
     while (1) {

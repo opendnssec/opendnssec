@@ -202,7 +202,7 @@ cmd_generate (int argc, char *argv[])
     }
 
 
-    algorithm = strdup(argv[1]);
+    algorithm = argv[1];
     keysize = atoi(argv[2]);
 
     if (!strcasecmp(algorithm, "rsa")) {

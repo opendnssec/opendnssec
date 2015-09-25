@@ -1,3 +1,20 @@
+OpenDNSSEC 1.4.8 - 2015-09-24
+
+* Support for RFC5011 style KSK rollovers. KSK section in the KASP now 
+  accepts <RFC5011/> element.
+* Enforcer: New repository option <AllowExtraction/> allows to generate keys
+  with CKA_EXTRACTABLE attribute set to TRUE so keys can be wrapped
+  and extracted from HSM.
+
+Bugfixes:
+* SUPPORT-145: EOF handling an ARM architecture caused signer to hang.
+* Fixed signer hitting assertion on short reply XFR handler.
+* Include revoke bit in keytag calculation.
+* SUPPORT-147: Signer Engine: Fix a bug where zone updating via XFR got stuck
+  because of incorrect storing SOA to disk (thanks Håvard Eidnes!).
+* Increased stacksize on some systems (thanks Patrik Lundin!).
+* Stop ods-signerd on SIGINT.
+
 OpenDNSSEC 1.4.7 - 2014-12-04
 
 Bugfixes:

@@ -888,157 +888,117 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 
 int DtXMLIntervalSeconds(const char* text, int* interval)
 {
-    int     length = 0;         /* Length of the string */
-    short   is_time = 0;    /* Do we have a Time section or not */
-    short   is_neg = 0;    /* Do we have a negative number */
-    short   warning = 0;    /* Do we need a warning code for duration approximation? */
+    int     length = 0;      /* Length of the string */
+    short   is_time = 0;     /* Do we have a Time section or not */
+    short   is_neg = 0;      /* Do we have a negative number */
+    short   warning = 0;     /* Do we need a warning code for duration approximation? */
     short   got_temp = 0;    /* Have we seen a number? */
-    long long    temp = 0;       /* Number from this section */
-    const char  *ptr = text;    /* allow us to read through */
+    long    temp = 0;        /* Number from this section */
+    const char  *ptr = text; /* allow us to read through */
+    const char *end;
+    long temp_interval = 0;
 
-    int status = 0;
+    if (!text || !interval || !*text) return 4;
+    length = strlen(text);
+    if (length <= 2) return 2;
 
-    long long temp_interval = 0;
-
-    if (text && interval && *text) {
-        length = strlen(text);
-    } else {
-        return(4);
+    if (*ptr == '-') {
+        is_neg = 1;
+        ptr++;
     }
+    if (*ptr != 'P') return 2;
+    ptr++;
+    
+    end = text + length;
+    while (ptr < end) {
+        switch (*ptr) {
+            case 'S':
+                if (!got_temp || !is_time) return 2;
+                temp_interval += temp;
+                temp = 0;
+                got_temp = 0;
+                break;
 
-    if (ptr && length && interval) {
-        const char *end = text + length;
-        if (*ptr == '-') {
-            is_neg = 1;
-            ptr++;
+            case 'M':
+                if (!got_temp) return 2;
+                if (is_time) {
+                    temp_interval += 60 * temp;
+                } else {
+                    temp_interval += 31 * 24 * 60 * 60 * temp;
+                    warning -= 1; /* month is an ambiguous period */
+                }
+                temp = 0;
+                got_temp = 0;
+                break;
+
+            case 'H':
+                if (!got_temp || !is_time) return 2;
+                temp_interval += 60 * 60 * temp;
+                temp = 0;
+                got_temp = 0;
+                break;
+
+            case 'D':
+                if (!got_temp || is_time) return 2;
+                temp_interval += 24 * 60 * 60 * temp;
+                temp = 0;
+                got_temp = 0;
+                break;
+
+            case 'W':
+                if (!got_temp || is_time) return 2;
+                temp_interval += 7 * 24 * 60 * 60 * temp;
+                temp = 0;
+                got_temp = 0;
+                break;
+
+            case 'Y':
+                if (!got_temp || is_time) return 2;
+                temp_interval += 365 * 24 * 60 * 60 * temp;
+                temp = 0;
+                warning -= 2; /* year is an ambiguous period */
+                got_temp = 0;
+                break;
+
+            case 'T':
+                is_time = 1;
+                break;
+
+            case '0':
+            case '1':
+            case '2':
+            case '3':
+            case '4':
+            case '5':
+            case '6':
+            case '7':
+            case '8':
+            case '9':
+                if (!temp) {
+                    char *endptr;
+                    temp = strtol(ptr, &endptr, 10);
+                    if (temp == LONG_MIN || temp == LONG_MAX) 
+                        return 3;
+                    got_temp = 1;
+                    ptr = endptr-1;
+                }
+                break;
+
+            default:
+                /* encountered unparsable char */
+                if (ptr != end) return 2;
         }
-        if (*ptr == 'P') {
-            ptr++;
-        }
-        do {
-            switch (*ptr) {
-                case 'S':
-                    if (got_temp) {
-                        temp_interval += temp;
-                        temp = 0;
-                        got_temp = 0;
-                    } else {
-                        return(2);
-                    }
-                    break;
-
-                case 'M':
-                    if (got_temp) {
-                        if (is_time) {
-                            temp_interval += 60 * temp;
-                        } else {
-                            temp_interval += 31 * 24 * 60 * 60 * temp;
-                            warning -= 1;
-                        }
-                        temp = 0;
-                        got_temp = 0;
-                    } else {
-                        return(2);
-                    }
-                    break;
-
-                case 'H':
-                    if (got_temp) {
-                        temp_interval += 60 * 60 * temp;
-                        temp = 0;
-                        got_temp = 0;
-                    } else {
-                        return(2);
-                    }
-                    break;
-
-                case 'D':
-                    if (got_temp) {
-                        temp_interval += 24 * 60 * 60 * temp;
-                        temp = 0;
-                        got_temp = 0;
-                    } else {
-                        return(2);
-                    }
-                    break;
-
-                case 'W':
-                    if (got_temp) {
-                        temp_interval += 7 * 24 * 60 * 60 * temp;
-                        temp = 0;
-                        got_temp = 0;
-                    } else {
-                        return(2);
-                    }
-                    break;
-
-                case 'Y':
-                    if (got_temp) {
-                        temp_interval += 365 * 24 * 60 * 60 * temp;
-                        temp = 0;
-                        warning -= 2;
-                        got_temp = 0;
-                    } else {
-                        return(2);
-                    }
-                    break;
-
-                case 'T':
-                    is_time = 1;
-                    break;
-
-                case '0':
-                case '1':
-                case '2':
-                case '3':
-                case '4':
-                case '5':
-                case '6':
-                case '7':
-                case '8':
-                case '9':
-                    if (!temp) {
-                        temp = atoll(ptr);
-                        got_temp = 1;
-                        if ((temp_interval <= INT_MIN) || (temp_interval >= INT_MAX)) {
-                            return(3);
-                        }
-                    }
-                    break;
-
-                default:
-                    if (ptr != end) {
-                        return(2);
-                    }
-            }
-        } while (ptr++ < end);
-    }
-    else {
-        status = 2;     /* Can't translate string/overflow */
+        ptr++;
     }
 
-    /* If we had no trailing letter then it is an implicit "S" */
-    if (temp) {
-        temp_interval += temp;
-        temp = 0;
-    }
-
-    if (is_neg == 1) {
-        temp_interval = 0 - temp_interval;
-    }
-
-    if (warning < 0) {
-        status = warning;
-    }
-
-    if ((temp_interval >= INT_MIN) && (temp_interval <= INT_MAX)) {
-        *interval = (int) temp_interval;
-    }
-    else {
-        status = 3;     /* Integer overflow */
-    }
-
-    return status;
+    /* If we had no trailing letter then it is an implicit "S"
+     * But only if is_time is not set.*/
+    if (temp && !is_time) return 2;
+    temp_interval += temp;
+    
+    if (is_neg) temp_interval *= -1;
+    *interval = (int) temp_interval;
+    return warning;
 }
 
 /*+
