@@ -2172,15 +2172,15 @@ setnextroll(zone_t *zone, const policy_key_t *pkey, time_t t)
 
 	switch(policy_key_role(pkey)) {
 		case POLICY_KEY_ROLE_KSK:
-			if (zone_next_ksk_roll(zone) > t)
+			if (zone_next_ksk_roll(zone) < t)
 				return zone_set_next_ksk_roll(zone, (unsigned int)t) == DB_OK ? 0 : 1;
 			return 0;
 		case POLICY_KEY_ROLE_ZSK:
-			if (zone_next_zsk_roll(zone) > t)
+			if (zone_next_zsk_roll(zone) < t)
 				return zone_set_next_zsk_roll(zone, (unsigned int)t) == DB_OK ? 0 : 1;
 			return 0 ;
 		case POLICY_KEY_ROLE_CSK:
-			if (zone_next_csk_roll(zone) > t)
+			if (zone_next_csk_roll(zone) < t)
 				return zone_set_next_csk_roll(zone, (unsigned int)t) == DB_OK ? 0 : 1;
 			return 0;
 		default:
