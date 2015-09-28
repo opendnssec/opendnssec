@@ -26,7 +26,7 @@ ods_start_ods-control &&
 sleep 60 && ods_enforcer_idle &&
 
 # Time Leap to time that  that we have ready/active ksk/zsk keys
-log_this ods-enforcer-time-leap-1 ods_enforcer_leap_to 7200 &&
+log_this ods-enforcer-time-leap-1 ods_enforcer_leap_to 14400 &&
 
 # Check that we have 2 keys per zone
 log_this ods-enforcer-key-list1 ods-enforcer key list &&
