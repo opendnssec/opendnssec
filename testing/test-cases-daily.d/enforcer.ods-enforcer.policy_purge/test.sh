@@ -35,7 +35,7 @@ log_this ods-enforcer-zone-list_1 "ods-enforcer zone list" &&
 log_grep ods-enforcer-zone-list_1 stdout 'ods[[:space:]].*default' &&
 
 #policy purge
-echo "y" | log_this ods-enforcer-policy-purge_1 "ods-enforcer policy purge" &&
+log_this ods-enforcer-policy-purge_1 "ods-enforcer policy purge" &&
 log_grep ods-enforcer-policy-purge_1 stdout "No zones on policy default2; purging..." &&
 log_grep ods-enforcer-policy-purge_1 stdout "No zones on policy default3; purging..." &&
 # Check that the policies are all in the kasp file
@@ -62,7 +62,7 @@ log_grep ods-enforcer-policy-list_3 stdout 'default3[[:space:]]*default[[:space:
 
 #add zone
 log_this ods-enforcer-add-zone "ods-enforcer zone add -z ods1 -p default2" &&
-#log_grep ods-enforcer-add-zone stdout 'Imported zone: ods1' &&
+ods_waitfor_keys &&
 log_grep ods-enforcer-add-zone stdout 'Zone ods1 added successfully' &&
 
 #list zone
@@ -71,7 +71,7 @@ log_grep ods-enforcer-zone-list_2 stdout 'ods[[:space:]].*default' &&
 log_grep ods-enforcer-zone-list_2 stdout 'ods1[[:space:]].*default2' &&
 
 #policy purge
-echo "y" | log_this ods-enforcer-policy-purge_2 "ods-enforcer policy purge" &&
+log_this ods-enforcer-policy-purge_2 "ods-enforcer policy purge" &&
 log_grep ods-enforcer-policy-purge_2 stdout "No zones on policy default3; purging..." &&
 
 #list policy
@@ -81,11 +81,11 @@ log_grep ods-enforcer-policy-list_4 stdout 'default2[[:space:]]*default[[:space:
 ! log_grep ods-enforcer-policy-list_4 stdout 'default3[[:space:]]*default[[:space:]]fast[[:space:]]test[[:space:]]policy' &&
 
 #delete zone ods1
-echo "y" | log_this ods-enforcer-zone-delete "ods-enforcer zone delete -z ods1" &&
+log_this_timeout ods-enforcer-zone-delete 30 "ods-enforcer zone delete -z ods1" &&
 log_grep ods-enforcer-zone-delete stdout "Deleted zone ods1 successfully" &&
 
 #policy purge
-echo "y " | log_this ods-enforcer-policy-purge_3 "ods-enforcer policy purge" &&
+log_this ods-enforcer-policy-purge_3 "ods-enforcer policy purge" &&
 log_grep ods-enforcer-policy-purge_3 stdout "No zones on policy default2; purging..." &&
 `$GREP -q -- "default" $KASP_FILE` &&
 `$GREP -q -- "default2" $KASP_FILE` &&
