@@ -30,7 +30,7 @@
  */
 
 #include "config.h"
-#include "shared/log.h"
+#include "log.h"
 #include "signer/backup.h"
 #include "signer/denial.h"
 #include "signer/domain.h"

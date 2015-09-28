@@ -328,11 +328,17 @@ ods_setup_env ()
 	ods_start_enforcer &&
 	log_this ods-enforcer-setup ods-enforcer policy import &&
 	log_this ods-enforcer-setup ods-enforcer zonelist import &&
+	# OPENDNSSEC-692
+	# When there are no keys yet generated for the policies, the
+	# signconf could fail.
+	ods_enforcer_idle &&
+	ods_waitfor_keys &&
+	( log_this ods-enforcer-setup ods-enforcer signconf || true ) &&
 	echo "ods_setup_env: setup complete" &&
 	if [ -z "$no_enforcer_stop" ]; then
 		ods_stop_enforcer
 	fi &&
-	echo "ods_setup_env: setup env suceeded!" &&
+	echo "ods_setup_env: setup env succeeded!" &&
 	return 0
 
 	echo "ods_setup_env: setup failed!" >&2
@@ -437,6 +443,263 @@ ods_enforcer_start_timeshift ()
 		kill -KILL "$pid"
 	fi
 	return 1
+}
+
+ods_enforcer_idle ()
+{
+	local status_grep1
+	local status_grep2
+	local time_now
+	local time_start=`$DATE '+%s' 2>/dev/null`
+	local timeout=$1
+	if [ -z "$timeout" ]
+	then
+		timeout=600
+	fi
+	sleep 3 ;# unfortunately, things are synchronous and we always have to wait just a bit
+	while true; do
+		time_now=`$DATE '+%s' 2>/dev/null`
+		rm -f _log.$BUILD_TAG.idle.stdout
+		log_this idle ods-enforcer queue || return 1
+		grep -q "^Next task scheduled immediately" _log.$BUILD_TAG.idle.stdout 2>/dev/null > /dev/null
+		status_grep1=$?
+		grep -q "^Working with" _log.$BUILD_TAG.idle.stdout 2>/dev/null > /dev/null
+		status_grep2=$?
+		if [ $status_grep1 -ne 0 -a $status_grep2 -ne 0 ] ; then
+			return 0
+		fi
+		time_now=`$DATE '+%s' 2>/dev/null`
+		if [ "$time_now" -ge "$time_stop" ] 2>/dev/null; then
+			break
+		fi
+		sleep 3
+	done
+	return 1
+}
+
+ods_waitfor_keys ()
+{
+        log_this zones ods-enforcer zone list
+        i=0
+        while read -r line
+        do
+                if [[ $line =~ "/var/opendnssec/signconf" ]]
+                then
+                        zones[i]=`echo $line | awk '{print $1}'`
+                        i=$((i+1))
+                fi
+        done < _log.$BUILD_TAG.zones.stdout
+
+        for zone in "${zones[@]}"
+        do
+                timeout=900
+                # echo $zone
+                while [ $timeout -gt 0 ]; do
+                        log_this ods-key-list ods-enforcer key list --verbose >/dev/null 2>/dev/null
+                        ksk=`log_grep -o ods-key-list stdout "^$zone[[:space:]]*KSK"`
+                        zsk=`log_grep -o ods-key-list stdout "^$zone[[:space:]]*ZSK"`
+
+                        if [[ -z $ksk ]] || [[ -z $zsk ]]
+                        then
+                                sleep 3
+                                timeout=$((timeout-3))
+                                # echo $timeout
+                                if [ $timeout -le 0 ]
+                                then
+                                        echo "Generating keys for $zone needs more than 15 minutes!!!!"
+                                        return 1
+                                fi
+                        else
+                                break
+                        fi
+                done
+        done
+        return 0
+}
+
+ods_enforcer_leap_over ()
+{
+	if [ -z "$1" ]
+	then
+		echo "usage: ods_enforcer_leap_over <minimum leap time> [ <maximum number of leaps> ]" >&2
+		exit 1
+	fi
+	local period=$1
+	local maxleaps=$2
+	local starttime
+	local currenttime
+	local timediff
+	if [ -z "$maxleaps" ]
+	then
+		maxleaps=-1
+	fi
+	log_this ods-enforcer-time-leap ods-enforcer time leap || return 1
+	sleep 5
+	if [ $maxleaps -gt 0 ]
+	then
+		maxleaps=`expr $maxleaps - 1`
+	fi
+	starttime=`sed < _log.$BUILD_TAG.ods-enforcer-time-leap.stdout -e 's/^It is now.*(\([0-9][0-9]*\)[^)]*).*$/\1/p' -e d | tail -1`
+	currenttime=`sed < _log.$BUILD_TAG.ods-enforcer-time-leap.stdout -e 's/^Leaping to time.*(\([0-9][0-9]*\)[^)]*).*$/\1/p' -e d | tail -1`
+	if [ -z "$currenttime" ]
+	then
+		currenttime=$starttime
+	fi
+	if [ $currenttime -lt $starttime ]
+	then
+		currenttime=$starttime
+	fi
+	timediff=`expr $currenttime - $starttime`
+	while [ \( $timediff -lt $period \) -a \( $maxleaps -ne 0 \) ]
+	do
+		log_this ods-enforcer-time-leap ods-enforcer time leap || return 1
+		sleep 5
+		if [ $maxleaps -gt 0 ]
+		then
+			maxleaps=`expr $maxleaps - 1`
+		fi
+		currenttime=`sed < _log.$BUILD_TAG.ods-enforcer-time-leap.stdout -e 's/^Leaping to time.*(\([0-9][0-9]*\)[^)]*).*$/\1/p' -e d | tail -1`
+		timediff=`expr $currenttime - $starttime`
+	done
+	if [ $timediff -lt $period ]
+	then
+		echo "time leap max'ed out"
+		return 1
+	fi
+	return 0
+}
+
+ods_enforcer_leap_to ()
+{
+	if [ -z "$1" ]
+	then
+		echo "usage: ods_enforcer_leap_to <maximum leap time> [ <maximum number of leaps> ]" >&2
+		exit 1
+	fi
+	local period=$1
+	local maxleaps=$2
+	local starttime
+	local nexttime
+	local timediff
+	if [ -z "$maxleaps" ]
+	then
+		maxleaps=-1
+	fi
+	log_this ods-enforcer-time-leap ods-enforcer time leap || return 1
+	sleep 30
+	log_this ods-enforcer-time-leap ods-enforcer queue || return 1
+	if [ $maxleaps -gt 0 ]
+	then
+		maxleaps=`expr $maxleaps - 1`
+	fi
+	starttime=`sed < _log.$BUILD_TAG.ods-enforcer-time-leap.stdout -e 's/^It is now.*(\([0-9][0-9]*\)[^)]*).*$/\1/p' -e d | tail -1`
+	nexttime=`sed < _log.$BUILD_TAG.ods-enforcer-time-leap.stdout -e 's/^Next task scheduled.*(\([0-9][0-9]*\)[^)]*).*$/\1/p' -e d | tail -1`
+	if [ -z "$nexttime" ]
+	then
+		nexttime=$starttime
+	fi
+	if [ $nexttime -lt $starttime ]
+	then
+		nexttime=$starttime
+	fi
+	timediff=`expr $nexttime - $starttime`
+	while [ \( $timediff -lt $period \) -a \( $maxleaps -ne 0 \) ]
+	do
+		log_this ods-enforcer-time-leap ods-enforcer time leap || return 1
+		sleep 30
+		log_this ods-enforcer-time-leap ods-enforcer queue || return 1
+		if [ $maxleaps -gt 0 ]
+		then
+			maxleaps=`expr $maxleaps - 1`
+		fi
+		nexttime=`sed < _log.$BUILD_TAG.ods-enforcer-time-leap.stdout -e 's/^Next task scheduled.*(\([0-9][0-9]*\)[^)]*).*$/\1/p' -e d | tail -1`
+		timediff=`expr $nexttime - $starttime`
+	done
+	if [ $timediff -lt $period ]
+	then
+		echo "time leap max'ed out"
+		return 1
+	fi
+	return 0
+}
+
+ods_timeleap_search_key ()
+{
+        local zone="$1"
+        local key="$2"
+        local state="$3"
+	local tagcka="$4"
+	local maxleaps="$5"
+	local ans=""
+	
+	if [ -z "$4" ]; then
+		tagcka=".*"
+	fi
+
+	if [ -z "$5" ];then
+		maxleaps=20
+	fi
+
+        while true; do
+                log_this ods-key-list ods-enforcer key list --verbose 
+		ans=`log_grep -o ods-key-list stdout "$zone[[:space:]]*$key[[:space:]]*$state.*$tagcka"`
+
+                if [ -n "$ans" ]; then
+			rm -f  _log.$BUILD_TAG.ods-key-list.stdout
+		        rm -f _log.$BUILD_TAG.ods-key-list.stderr
+                        return 0
+                fi
+
+		if [ "$maxleaps" -eq 0 ]; then
+			echo "Key not found !!!!"
+			return 1
+		fi
+
+                ods-enforcer time leap
+		maxleaps=`expr $maxleaps - 1`
+                sleep 10
+        done
+
+}
+
+ods_timeleap_search_nokey ()
+{
+        local zone="$1"
+        local key="$2"
+        local state="$3"
+	local tagcka="$4"
+	local maxleap="$5"
+	local ans=""
+
+	if [ -z "$4" ]; then
+		tagcka=".*"
+	fi
+
+	if [ -z "$5" ]; then
+		maxleaps=20
+	fi
+
+        while true; do
+                log_this ods-nokey-list ods-enforcer key list --verbose
+		ans=`log_grep -o ods-nokey-list stdout "$zone[[:space:]]*$key[[:space:]]*$state.*$tagcka"`
+
+                if [ -z "$ans" ]; then
+			rm -f _log.$BUILD_TAG.ods-nokey-list.stdout
+		        rm -f _log.$BUILD_TAG.ods-nokey-list.stderr
+                        return 0
+                fi
+
+		if [ "$maxleaps" -eq 0 ]; then
+			echo "Key still exists !!! "
+			return 1
+		fi
+
+                ods-enforcer time leap
+		maxleaps=`expr $maxleaps - 1`
+                sleep 10
+		rm -f _log.$BUILD_TAG.ods-nokey-list.stdout
+        done
+
 }
 
 ods_ods-control_signer_start ()

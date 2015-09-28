@@ -32,10 +32,10 @@
 #include "config.h"
 #include "daemon/cfg.h"
 #include "parser/confparser.h"
-#include "shared/allocator.h"
-#include "shared/file.h"
-#include "shared/log.h"
-#include "shared/status.h"
+#include "allocator.h"
+#include "file.h"
+#include "log.h"
+#include "status.h"
 
 #include <errno.h>
 #include <stdio.h>

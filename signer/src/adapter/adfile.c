@@ -34,11 +34,11 @@
 #include "adapter/adapter.h"
 #include "adapter/adfile.h"
 #include "adapter/adutil.h"
-#include "shared/duration.h"
-#include "shared/file.h"
-#include "shared/log.h"
-#include "shared/status.h"
-#include "shared/util.h"
+#include "duration.h"
+#include "file.h"
+#include "log.h"
+#include "status.h"
+#include "util.h"
 #include "signer/zone.h"
 
 #include <ldns/ldns.h>

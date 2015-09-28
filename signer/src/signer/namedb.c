@@ -30,10 +30,10 @@
  */
 
 #include "config.h"
-#include "shared/allocator.h"
-#include "shared/file.h"
-#include "shared/log.h"
-#include "shared/util.h"
+#include "allocator.h"
+#include "file.h"
+#include "log.h"
+#include "util.h"
 #include "signer/backup.h"
 #include "signer/namedb.h"
 #include "signer/zone.h"
@@ -527,7 +527,7 @@ namedb_add_nsec3_trigger(namedb_type* db, domain_type* domain,
         dstatus = domain_is_delegpt(domain);
         /* If Opt-Out is being used, owner names of unsigned delegations
            MAY be excluded. */
-        if (dstatus == LDNS_RR_TYPE_NS || domain_ent2unsignedns(domain)) {
+        if (dstatus == LDNS_RR_TYPE_NS) {
             return;
         }
     }
@@ -619,7 +619,7 @@ namedb_del_nsec3_trigger(namedb_type* db, domain_type* domain,
         dstatus = domain_is_delegpt(domain);
         /* If Opt-Out is being used, owner names of unsigned delegations
            MAY be excluded. */
-        if (dstatus == LDNS_RR_TYPE_NS || domain_ent2unsignedns(domain)) {
+        if (dstatus == LDNS_RR_TYPE_NS) {
             denial_diff((denial_type*) domain->denial);
             denial = namedb_del_denial(db, domain->denial);
             denial_cleanup(denial);
@@ -785,8 +785,8 @@ namedb_del_denial(namedb_type* db, denial_type* denial)
         return NULL;
     }
     if (denial->rrset && denial->rrset->rr_count) {
-        ods_log_error("[%s] unable to delete denial: denial in use [#%u]",
-            db_str, denial->rrset->rr_count);
+        ods_log_error("[%s] unable to delete denial: denial in use [#%lu]",
+            db_str, (unsigned long)denial->rrset->rr_count);
         log_dname(denial->dname, "ERR -DENIAL", LOG_ERR);
         return NULL;
     }
@@ -918,6 +918,7 @@ namedb_examine(namedb_type* db)
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     domain_type* domain = NULL;
     rrset_type* rrset = NULL;
+    int soa_seen = 0;
 /*
     ldns_rr_type dstatus = LDNS_RR_TYPE_FIRST;
     ldns_rr_type delegpt = LDNS_RR_TYPE_FIRST;
@@ -954,6 +955,21 @@ namedb_examine(namedb_type* db)
             if (rrset_count_rr_is_added(rrset) > 1) {
                 log_rrset(domain->dname, rrset->rrtype,
                     "multiple DNAMEs at the same name", LOG_ERR);
+                return ODS_STATUS_CONFLICT_ERR;
+            }
+        }
+        if (!soa_seen && domain->is_apex) {
+            rrset = domain_lookup_rrset(domain, LDNS_RR_TYPE_SOA);
+            if (rrset) {
+                /* Thou shall have one and only one SOA */
+                if (rrset_count_rr_is_added(rrset) != 1) {
+                    log_rrset(domain->dname, rrset->rrtype,
+                        "Wrong number of SOA records, should be 1", LOG_ERR);
+                    return ODS_STATUS_CONFLICT_ERR;
+                }
+            } else {
+                log_rrset(domain->dname, LDNS_RR_TYPE_SOA, "missing SOA RRset",
+                    LOG_ERR);
                 return ODS_STATUS_CONFLICT_ERR;
             }
         }

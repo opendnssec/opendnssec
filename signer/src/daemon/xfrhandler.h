@@ -33,8 +33,8 @@
 #define DAEMON_XFRHANDLER_H
 
 #include "config.h"
-#include "shared/allocator.h"
-#include "shared/locks.h"
+#include "allocator.h"
+#include "locks.h"
 #include "wire/buffer.h"
 #include "wire/netio.h"
 #include "wire/notify.h"

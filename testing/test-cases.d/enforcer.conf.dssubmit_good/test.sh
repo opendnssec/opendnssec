@@ -17,35 +17,28 @@ ods_reset_env &&
 
 ##################  SETUP ###########################
 # Start enforcer (Zone already exists and we let it generate keys itself)
-export ENFORCER_TIMESHIFT='01-01-2010 12:00' &&
-ods_start_enforcer_timeshift &&
 
-# Make sure TIMESHIFT worked:
-syslog_grep "ods-enforcerd: .*Timeshift mode detected, running once only!" &&
-syslog_grep "ods-enforcerd: .*DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 01-01-2010 12:00" &&
-
-# Check that we are trying to use the correct command:
-syslog_grep " ods-enforcerd: .*Using command: $INSTALL_ROOT/var/opendnssec/enforcer/dssub.pl to submit DS records" &&
+ods_start_enforcer &&
+sleep 60 &&
 
 # Check that we have 2 keys
-log_this ods-ksmutil-key-list1 ods-ksmutil key list &&
-log_grep ods-ksmutil-key-list1 stdout 'ods                             KSK           publish' &&
-log_grep ods-ksmutil-key-list1 stdout 'ods                             ZSK           active' &&
+log_this ods-enforcer-key-list1 ods-enforcer key list &&
+log_grep ods-enforcer-key-list1 stdout 'ods[[:space:]]*KSK[[:space:]]*generate' &&
+log_grep ods-enforcer-key-list1 stdout 'ods[[:space:]]*ZSK[[:space:]]*publish' &&
 
-# Grab the CKA_ID of the KSK
-log_this ods-ksmutil-cka_id ods-ksmutil key list --all --verbose &&
-KSK_CKA_ID=`log_grep -o ods-ksmutil-cka_id stdout "ods                             KSK           publish" | awk '{print $9}'` &&
+# Grab the KEYTAG of the KSK
+log_this ods-enforcer-keytag ods-enforcer key list --verbose &&
+KSK_KEYTAG=`log_grep -o ods-enforcer-keytag stdout "ods[[:space:]]*KSK[[:space:]]*generate" | awk '{print $10}'` &&
 
-## Jump forward a couple of hours so the KSK will be ready
-##################  STEP 1: Time = 2hrs ###########################
-export ENFORCER_TIMESHIFT='01-01-2010 14:00' &&
+## Jump forward one hour so the KSK will be ready, obviosuly depends on Propagation Time and TTL 
+##################  STEP 1: Time = 1 hr ###########################
 
-# Run the enforcer
-ods_start_enforcer_timeshift &&
-syslog_grep "ods-enforcerd: .*DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 01-01-2010 14:00" &&
+log_this ods-enforcer-time-leap ods_enforcer_leap_to 3600 &&
+
 
 # We should be ready for a ds-seen on ods
-syslog_grep "ods-enforcerd: .*Once the new DS records are seen in DNS please issue the ds-seen command for zone ods with the following cka_ids, $KSK_CKA_ID" &&
+syslog_grep "\[enforce_task\] please submit DS with keytag $KSK_KEYTAG for zone ods" &&
+
 
 # Check that dssub.out file exists
 echo "Testing dssub command ran" &&
@@ -56,26 +49,29 @@ grep "ods. 600 IN DNSKEY 257 3 7 AwEAA.*" "$INSTALL_ROOT/var/opendnssec/enforcer
 ! grep "; {cka_id = .*}" "$INSTALL_ROOT/var/opendnssec/enforcer/dssub.out" &&
 
 # Also export the key to double check the TTL 
-log_this ods-ksmutil-key-export 'ods-ksmutil key export' &&
-log_grep ods-ksmutil-key-export stdout 'ods.	600	IN	DNSKEY	257 3 7 AwEAA' &&
+log_this ods-enforcer-key-export 'ods-enforcer key export -z ods' &&
+log_grep ods-enforcer-key-export stdout 'ods.	600	IN	DNSKEY	257 3 7 AwEAA' &&
 
-log_this ods-ksmutil-key-export-ds 'ods-ksmutil key export --ds' &&
-log_grep ods-ksmutil-key-export-ds stdout 'ods.	300	IN	DS	' &&
+log_this ods-enforcer-key-export-ds 'ods-enforcer key export -z ods --ds ' &&
+log_grep ods-enforcer-key-export-ds stdout 'ods.	300	IN	DS	' &&
 
 # Clean up
 echo "Cleaning up files" &&
-rm "$INSTALL_ROOT/var/opendnssec/enforcer/dssub.pl" &&
-rm "$INSTALL_ROOT/var/opendnssec/enforcer/dssub.out" &&
+rm -f "$INSTALL_ROOT/var/opendnssec/enforcer/dssub.pl" &&
+rm -f "$INSTALL_ROOT/var/opendnssec/enforcer/dssub.out" &&
 
+ods_stop_enforcer &&
 return 0
 
 # Something went wrong, make sure clean up tmp if nothing else
-rm "$INSTALL_ROOT/var/opendnssec/enforcer/dssub.pl" &&
-mv "$INSTALL_ROOT/var/opendnssec/enforcer/dssub.out" "." &&
+rm -f "$INSTALL_ROOT/var/opendnssec/enforcer/dssub.pl"
+mv "$INSTALL_ROOT/var/opendnssec/enforcer/dssub.out" "."
 
 echo
 echo "************ERROR******************"
 echo
 ods_kill
 return 1
+
+
 

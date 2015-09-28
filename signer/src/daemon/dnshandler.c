@@ -32,7 +32,7 @@
 #include "config.h"
 #include "daemon/dnshandler.h"
 #include "daemon/engine.h"
-#include "shared/status.h"
+#include "status.h"
 #include "wire/buffer.h"
 
 #include <errno.h>
@@ -255,7 +255,7 @@ dnshandler_fwd_notify(dnshandler_type* dnshandler, uint8_t* pkt, size_t len)
         ods_log_error("[%s] unable to forward notify: send() failed (%s)",
             dnsh_str, strerror(errno));
     } else {
-        ods_log_debug("[%s] forwarded notify: %u bytes sent", dnsh_str, nb);
+        ods_log_debug("[%s] forwarded notify: %ld bytes sent", dnsh_str, (long)nb);
     }
     return;
 }
@@ -277,10 +277,11 @@ dnshandler_handle_xfr(netio_type* ATTR_UNUSED(netio),
     }
     dnshandler = (dnshandler_type*) handler->user_data;
     ods_log_assert(event_types & NETIO_EVENT_READ);
-    ods_log_debug("[%s] read forwarded xfr packet", dnsh_str);
     received = read(dnshandler->xfrhandler.fd, &buf, MAX_PACKET_SIZE);
+    ods_log_debug("[%s] read forwarded xfr packet: %d bytes received",
+        dnsh_str, (int) received);
     if (received == -1) {
-        ods_log_debug("[%s] unable to forward xfr packet: %s", dnsh_str,
+        ods_log_error("[%s] unable to forward xfr packet: %s", dnsh_str,
             strerror(errno));
     }
     return;

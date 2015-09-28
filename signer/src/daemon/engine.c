@@ -33,15 +33,16 @@
 #include "daemon/cfg.h"
 #include "daemon/engine.h"
 #include "daemon/signal.h"
-#include "shared/allocator.h"
-#include "shared/duration.h"
-#include "shared/file.h"
-#include "shared/hsm.h"
-#include "shared/locks.h"
-#include "shared/log.h"
-#include "shared/privdrop.h"
-#include "shared/status.h"
-#include "shared/util.h"
+#include "allocator.h"
+#include "duration.h"
+#include "file.h"
+#include "str.h"
+#include "hsm.h"
+#include "locks.h"
+#include "log.h"
+#include "privdrop.h"
+#include "status.h"
+#include "util.h"
 #include "signer/zonelist.h"
 #include "wire/tsig.h"
 #include "libhsm.h"
@@ -404,20 +405,20 @@ engine_start_drudgers(engine_type* engine)
 static void
 engine_stop_workers(engine_type* engine)
 {
-    size_t i = 0;
+    int i = 0;
     ods_log_assert(engine);
     ods_log_assert(engine->config);
     ods_log_debug("[%s] stop workers", engine_str);
     /* tell them to exit and wake up sleepyheads */
-    for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
+    for (i=0; i < engine->config->num_worker_threads; i++) {
         engine->workers[i]->need_to_exit = 1;
         worker_wakeup(engine->workers[i]);
     }
     ods_log_debug("[%s] notify workers", engine_str);
     worker_notify_all(&engine->signq->q_lock, &engine->signq->q_nonfull);
     /* head count */
-    for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
-        ods_log_debug("[%s] join worker %i", engine_str, i+1);
+    for (i=0; i < engine->config->num_worker_threads; i++) {
+        ods_log_debug("[%s] join worker %d", engine_str, i+1);
         ods_thread_join(engine->workers[i]->thread_id);
         engine->workers[i]->engine = NULL;
     }
@@ -426,19 +427,19 @@ engine_stop_workers(engine_type* engine)
 void
 engine_stop_drudgers(engine_type* engine)
 {
-    size_t i = 0;
+    int i = 0;
     ods_log_assert(engine);
     ods_log_assert(engine->config);
     ods_log_debug("[%s] stop drudgers", engine_str);
     /* tell them to exit and wake up sleepyheads */
-    for (i=0; i < (size_t) engine->config->num_signer_threads; i++) {
+    for (i=0; i < engine->config->num_signer_threads; i++) {
         engine->drudgers[i]->need_to_exit = 1;
     }
     ods_log_debug("[%s] notify drudgers", engine_str);
     worker_notify_all(&engine->signq->q_lock, &engine->signq->q_threshold);
     /* head count */
-    for (i=0; i < (size_t) engine->config->num_signer_threads; i++) {
-        ods_log_debug("[%s] join drudger %i", engine_str, i+1);
+    for (i=0; i < engine->config->num_signer_threads; i++) {
+        ods_log_debug("[%s] join drudger %d", engine_str, i+1);
         ods_thread_join(engine->drudgers[i]->thread_id);
         engine->drudgers[i]->engine = NULL;
     }
@@ -653,7 +654,7 @@ engine_run(engine_type* engine, int single_run)
                 break;
             default:
                 ods_log_warning("[%s] invalid signal %d captured, "
-                    "keep running", engine_str, signal);
+                    "keep running", engine_str, engine->signal);
                 engine->signal = SIGNAL_RUN;
                 break;
         }
@@ -703,7 +704,7 @@ set_notify_ns(zone_type* zone, const char* cmd)
         str2 = ods_replace(cmd, "%zone", zone->name);
     }
     if (str2) {
-        ods_str_trim((char*) str2);
+        ods_str_trim((char*) str2, 1);
         str = str2;
         if (*str) {
             token = NULL;
@@ -758,7 +759,7 @@ dnsconfig_zone(engine_type* engine, zone_type* zone)
     } else if (zone->xfrd) {
         netio_remove_handler(engine->xfrhandler->netio,
             &zone->xfrd->handler);
-        xfrd_cleanup(zone->xfrd);
+        xfrd_cleanup(zone->xfrd, 0);
         zone->xfrd = NULL;
     }
     if (zone->adoutbound->type == ADAPTER_DNS) {
@@ -867,6 +868,9 @@ engine_update_zones(engine_type* engine, ods_status zl_changed)
             lock_basic_lock(&zone->zone_lock);
             zone->task = task;
             lock_basic_unlock(&zone->zone_lock);
+            /* TODO: task is reachable from other threads by means of
+             * zone->task. To fix this we need to nest the locks. But
+             * first investigate any possible deadlocks. */
             lock_basic_lock(&engine->taskq->schedule_lock);
             status = schedule_task(engine->taskq, task, 0);
             lock_basic_unlock(&engine->taskq->schedule_lock);
@@ -887,6 +891,7 @@ engine_update_zones(engine_type* engine, ods_status zl_changed)
     }
     lock_basic_unlock(&engine->zonelist->zl_lock);
     if (engine->dnshandler) {
+        ods_log_debug("[%s] forward notify for all zones", engine_str);
         dnshandler_fwd_notify(engine->dnshandler,
             (uint8_t*) ODS_SE_NOTIFY_CMD, strlen(ODS_SE_NOTIFY_CMD));
     } else if (warnings) {
@@ -990,7 +995,7 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
     int ret = 1;
 
     ods_log_assert(cfgfile);
-    ods_log_init(NULL, use_syslog, cmdline_verbosity);
+    ods_log_init("ods-signerd", use_syslog, NULL, cmdline_verbosity);
     ods_log_verbose("[%s] starting signer", engine_str);
 
     /* initialize */
@@ -1021,8 +1026,7 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
         exit(1);
     }
     /* open log */
-    ods_log_init(engine->config->log_filename, engine->config->use_syslog,
-       engine->config->verbosity);
+    ods_log_init("ods-signerd", engine->config->use_syslog, engine->config->log_filename, engine->config->verbosity);
     /* setup */
     tzset(); /* for portability */
     status = engine_setup(engine);

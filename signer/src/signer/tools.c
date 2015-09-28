@@ -32,7 +32,7 @@
 #include "config.h"
 #include "daemon/dnshandler.h"
 #include "adapter/adapter.h"
-#include "shared/log.h"
+#include "log.h"
 #include "signer/tools.h"
 #include "signer/zone.h"
 
@@ -135,8 +135,13 @@ tools_input(zone_type* zone)
     start = time(NULL);
     status = adapter_read((void*)zone);
     if (status != ODS_STATUS_OK && status != ODS_STATUS_UNCHANGED) {
-        ods_log_error("[%s] unable to read zone %s: adapter failed (%s)",
-            tools_str, zone->name, ods_status2str(status));
+        if (status == ODS_STATUS_XFRINCOMPLETE) {
+            ods_log_info("[%s] read zone %s: xfr in progress",
+                tools_str, zone->name);
+        } else {
+            ods_log_error("[%s] unable to read zone %s: adapter failed (%s)",
+                tools_str, zone->name, ods_status2str(status));
+        }
         zone_rollback_dnskeys(zone);
         zone_rollback_nsec3param(zone);
         namedb_rollback(zone->db, 0);
@@ -245,10 +250,10 @@ tools_output(zone_type* zone, engine_type* engine)
                     }
                 }
                 if (wpid == -1) {
-                    ods_log_error("[%s] notify nameserver failed: waitpid() ",
+                    ods_log_error("[%s] notify nameserver failed: waitpid() "
                         "failed (%s)", tools_str, strerror(errno));
                 } else if (!WIFEXITED(status)) {
-                    ods_log_error("[%s] notify nameserver failed: notify ",
+                    ods_log_error("[%s] notify nameserver failed: notify "
                         "command did not terminate normally", tools_str);
                 } else {
                     ods_log_verbose("[%s] notify nameserver ok", tools_str);
@@ -268,6 +273,7 @@ tools_output(zone_type* zone, engine_type* engine)
         lock_basic_unlock(&zone->stats->stats_lock);
     }
     if (engine->dnshandler) {
+        ods_log_debug("[%s] forward a notify", tools_str);
         dnshandler_fwd_notify(engine->dnshandler, (uint8_t*) ODS_SE_NOTIFY_CMD,
             strlen(ODS_SE_NOTIFY_CMD));
     }

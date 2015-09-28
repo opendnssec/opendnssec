@@ -12,7 +12,7 @@ ods_reset_env &&
 ods_start_enforcer &&
 
 # Add our new zone.
-log_this_timeout ods-enforcer-zone-add 5 ods-enforcer zone add -z ods2 &&
+log_this_timeout ods-enforcer-zone-add 60 ods-enforcer zone add -z ods2 &&
 
 # This zone should not have been picked up by the enforcer yet, so it should be in the list...
 log_this ods-enforcer-zone-list1 ods-enforcer zone list &&
@@ -46,11 +46,8 @@ log_grep ods-enforcer-zone-list1 stdout 'ods2[[:space:]].*default' &&
 #log_this ods-enforcer-zone-list2 ods-enforcer zone list &&
 #log_grep ods-enforcer-zone-list2 stdout 'ods2[[:space:]].*default' &&
 
-sleep 1 &&
-log_this ods-enforcer-time-leap ods-enforcer time leap &&
-sleep 1 &&
-log_this ods-enforcer-time-leap ods-enforcer time leap &&
-sleep 1 &&
+# leap for nearly a month (2505600 is 25 days in second)
+ods_enforcer_leap_over 2505600 &&
 
 # Check that we have 2 keys per zone
 log_this ods-enforcer-key-list2 ods-enforcer key list &&

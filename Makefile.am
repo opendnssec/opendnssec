@@ -9,14 +9,14 @@ MAINTAINERCLEANFILES = \
 	$(srcdir)/depcomp $(srcdir)/aclocal.m4 $(srcdir)/compile \
 	$(srcdir)/config.guess $(srcdir)/config.sub
 
-SUBDIRS = common libhsm mm conf tools
+SUBDIRS = common libhsm conf tools
 
 if ENABLE_SIGNER
 SUBDIRS += signer
 endif
 
-if ENABLE_ENFORCERNG
-SUBDIRS += enforcer-ng
+if ENABLE_ENFORCER
+SUBDIRS += enforcer
 endif
 
 EXTRA_DIST =	$(srcdir)/LICENSE \
@@ -40,8 +40,8 @@ install-data-hook:
 
 docs:
 	(cd libhsm; $(MAKE) doxygen)
-if ENABLE_ENFORCERNG
-	(cd enforcer-ng; $(MAKE) doxygen)
+if ENABLE_ENFORCER
+	(cd enforcer; $(MAKE) doxygen)
 endif
 if ENABLE_SIGNER
 	(cd signer; $(MAKE) doxygen)

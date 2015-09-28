@@ -33,7 +33,7 @@
 #define SIGNER_RRSET_H
 
 #include "config.h"
-#include "shared/status.h"
+#include "status.h"
 #include "signer/stats.h"
 #include "libhsm.h"
 

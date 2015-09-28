@@ -33,11 +33,11 @@
 
 #include "config.h"
 #include "compat.h"
-#include "shared/duration.h"
-#include "shared/file.h"
-#include "shared/log.h"
-#include "shared/status.h"
-#include "shared/util.h"
+#include "duration.h"
+#include "file.h"
+#include "log.h"
+#include "status.h"
+#include "util.h"
 #include "wire/buffer.h"
 #include "wire/tsig.h"
 #include "wire/tsig-openssl.h"
@@ -141,9 +141,10 @@ tsig_handler_init(allocator_type* allocator)
 #ifdef HAVE_SSL
     ods_log_debug("[%s] init openssl", tsig_str);
     return tsig_handler_openssl_init(allocator);
-#endif
+#else
     ods_log_debug("[%s] openssl disabled", tsig_str);
     return ODS_STATUS_OK;
+#endif
 }
 
 
@@ -398,7 +399,7 @@ tsig_rr_parse(tsig_rr_type* trr, buffer_type* buffer)
     klass = (ldns_rr_class) buffer_read_u16(buffer);
     if (type != LDNS_RR_TYPE_TSIG || klass != LDNS_RR_CLASS_ANY) {
         /* not present */
-        ods_log_debug("[%s] parse: not TSIG or not ANY", tsig_str,
+        ods_log_debug("[%s] parse: not TSIG or not ANY but %d:%d", tsig_str,
             klass, type);
         buffer_set_position(buffer, trr->position);
         return 1;

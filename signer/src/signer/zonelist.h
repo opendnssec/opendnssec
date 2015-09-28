@@ -32,8 +32,8 @@
 #ifndef SIGNER_ZONELIST_H
 #define SIGNER_ZONELIST_H
 
-#include "shared/allocator.h"
-#include "shared/locks.h"
+#include "allocator.h"
+#include "locks.h"
 #include "signer/zone.h"
 
 #include <ldns/ldns.h>

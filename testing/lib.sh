@@ -390,6 +390,7 @@ find_tail ()
 	local tail_follow
 	local program
 	local programs="tail"
+	local stdbuf
 
 	case "$DISTRIBUTION" in
 		sunos )
@@ -431,6 +432,16 @@ find_tail ()
 
 	if [ -z "$tail_follow" ]; then
 		return 1
+	fi
+
+	stdbuf=`which stdbuf 2>/dev/null`
+	if [ -n "$stdbuf" ]; then
+		tail_follow="$stdbuf -oL $tail_follow"
+	else
+		stdbuf=`which unbuffer 2>/dev/null`
+		if [ -n "$stdbuf" ]; then
+			tail_follow="$stdbuf $tail_follow"
+		fi
 	fi
 
 	export TAIL="$tail"
@@ -1757,7 +1768,7 @@ syslog_trace ()
 		exit 1
 	fi
 
-	$TAIL_FOLLOW "$syslog_file" >"_syslog.$BUILD_TAG" 2>/dev/null &
+	$TAIL_FOLLOW "$syslog_file" >"_syslog.$BUILD_TAG" &
 	_SYSLOG_TRACE_PID="$!"
 
 	if [ -z "$_SYSLOG_TRACE_PID" -o ! "$_SYSLOG_TRACE_PID" -gt 0 ] 2>/dev/null; then
@@ -1771,7 +1782,7 @@ syslog_trace ()
 		exit 1
 	fi
 
-	echo "syslog_trace: trace started (pid $_SYSLOG_TRACE_PID)"
+	echo "syslog_trace: trace started (pid $_SYSLOG_TRACE_PID) using $TAIL_FOLLOW $syslog_file"
 }
 
 syslog_stop ()

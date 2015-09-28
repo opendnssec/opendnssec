@@ -30,7 +30,7 @@
  */
 
 #include "config.h"
-#include "shared/log.h"
+#include "log.h"
 #include "wire/listener.h"
 
 static const char* listener_str = "listener";
@@ -101,7 +101,7 @@ listener_push(listener_type* listener, char* address, int family, char* port)
         if (inet_pton(listener->interfaces[listener->count -1].family,
             listener->interfaces[listener->count -1].address,
             &listener->interfaces[listener->count -1].addr.addr6) != 1) {
-            ods_log_error("[%s] bad ip address '%s'",
+            ods_log_error("[%s] bad ip address '%s'", listener_str,
                 listener->interfaces[listener->count -1].address);
             return NULL;
         }
@@ -110,7 +110,7 @@ listener_push(listener_type* listener, char* address, int family, char* port)
         if (inet_pton(listener->interfaces[listener->count -1].family,
             listener->interfaces[listener->count -1].address,
             &listener->interfaces[listener->count -1].addr.addr) != 1) {
-            ods_log_error("[%s] bad ip address '%s'",
+            ods_log_error("[%s] bad ip address '%s'", listener_str,
                 listener->interfaces[listener->count -1].address);
             return NULL;
         }

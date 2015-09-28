@@ -33,15 +33,16 @@
 #define WIRE_BUFFER_H
 
 #include "config.h"
-#include "shared/allocator.h"
-#include "shared/log.h"
-#include "shared/status.h"
+#include "allocator.h"
+#include "log.h"
+#include "status.h"
 
 #include <ldns/ldns.h>
 #include <stdint.h>
 
 #define BUFFER_PKT_HEADER_SIZE 12
 #define MAXDOMAINLEN 255
+#define MAXLABELLEN 63
 #define MAX_RDLENGTH    65535
 #define MAX_RR_SIZE \
         (MAXDOMAINLEN + sizeof(uint32_t) + 4*sizeof(uint16_t) + MAX_RDLENGTH)

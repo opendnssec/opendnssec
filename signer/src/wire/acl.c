@@ -30,9 +30,9 @@
  */
 
 #include "config.h"
-#include "shared/log.h"
-#include "shared/file.h"
-#include "shared/status.h"
+#include "log.h"
+#include "file.h"
+#include "status.h"
 #include "wire/acl.h"
 
 static const char* acl_str = "acl";

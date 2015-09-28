@@ -33,8 +33,8 @@
 #define SIGNER_SIGNCONF_H
 
 #include "scheduler/task.h"
-#include "shared/allocator.h"
-#include "shared/duration.h"
+#include "allocator.h"
+#include "duration.h"
 #include "signer/keys.h"
 #include "signer/nsec3params.h"
 

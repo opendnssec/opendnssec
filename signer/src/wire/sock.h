@@ -33,8 +33,8 @@
 #define WIRE_SOCK_H
 
 #include "config.h"
-#include "shared/allocator.h"
-#include "shared/status.h"
+#include "allocator.h"
+#include "status.h"
 #include "wire/listener.h"
 #include "wire/netio.h"
 #include "wire/query.h"

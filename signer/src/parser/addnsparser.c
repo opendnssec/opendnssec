@@ -30,7 +30,7 @@
  */
 
 #include "parser/addnsparser.h"
-#include "shared/log.h"
+#include "log.h"
 
 #include <libxml/xpath.h>
 #include <libxml/xmlreader.h>

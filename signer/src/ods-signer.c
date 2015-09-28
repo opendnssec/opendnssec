@@ -30,9 +30,10 @@
  */
 
 #include "config.h"
-#include "shared/allocator.h"
-#include "shared/file.h"
-#include "shared/log.h"
+#include "allocator.h"
+#include "file.h"
+#include "log.h"
+#include "str.h"
 
 #include <errno.h>
 #include <fcntl.h> /* fcntl() */
@@ -57,9 +58,9 @@ static const char* cli_str = "client";
  *
  */
 static void
-usage(FILE* out)
+usage(char* argv0, FILE* out)
 {
-    fprintf(out, "Usage: %s [<cmd>]\n", "ods-signer");
+    fprintf(out, "Usage: %s [<cmd>]\n", argv0);
     fprintf(out, "Simple command line interface to control the signer "
                  "engine daemon.\nIf no cmd is given, the tool is going "
                  "into interactive mode.\n");
@@ -251,7 +252,7 @@ interface_run(FILE* fp, int sockfd, char* cmd)
                 strncmp(buf, "quit", 4) == 0) {
                 return 0;
             }
-            ods_str_trim(buf);
+            ods_str_trim(buf, 1);
             n = strlen(buf);
             ods_writen(sockfd, buf, n);
         }
@@ -271,7 +272,7 @@ interface_start(char* cmd)
     struct sockaddr_un servaddr;
     const char* servsock_filename = ODS_SE_SOCKFILE;
 
-    ods_log_init(NULL, 0, 0);
+    ods_log_init("ods-signerd", 0, NULL, 0);
 
     /* new socket */
     sockfd = socket(AF_UNIX, SOCK_STREAM, 0);
@@ -348,6 +349,7 @@ main(int argc, char* argv[])
     int c;
     int options_size = 0;
     const char* options[5];
+    char* argv0;
     char* cmd = NULL;
     int ret = 0;
     allocator_type* clialloc = allocator_create(malloc, free);
@@ -355,6 +357,12 @@ main(int argc, char* argv[])
         fprintf(stderr,"error, malloc failed for client\n");
         exit(1);
     }
+
+    /* Get the name of the program */
+    if((argv0 = strrchr(argv[0],'/')) == NULL)
+        argv0 = argv[0];
+    else
+        ++argv0;
 
     if (argc > 5) {
         fprintf(stderr,"error, too many arguments (%d)\n", argc);
@@ -384,10 +392,10 @@ main(int argc, char* argv[])
 
     /* main stuff */
     if (cmd && ods_strcmp(cmd, "-h\n") == 0) {
-        usage(stdout);
+        usage(argv0, stdout);
         ret = 1;
     } else if (cmd && ods_strcmp(cmd, "--help\n") == 0) {
-        usage(stdout);
+        usage(argv0, stdout);
         ret = 1;
     } else {
         ret = interface_start(cmd);

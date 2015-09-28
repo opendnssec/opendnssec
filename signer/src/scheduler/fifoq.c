@@ -31,7 +31,7 @@
 
 #include "config.h"
 #include "scheduler/fifoq.h"
-#include "shared/log.h"
+#include "log.h"
 
 #include <ldns/ldns.h>
 
@@ -139,8 +139,8 @@ fifoq_push(fifoq_type* q, void* item, worker_type* worker, int* tries)
     q->owner[q->count] = worker;
     q->count += 1;
     if (q->count == 1) {
-        ods_log_deeebug("[%s] threshold %u reached, notify drudgers",
-            fifoq_str, q->count);
+        ods_log_deeebug("[%s] threshold %lu reached, notify drudgers",
+            fifoq_str, (unsigned long) q->count);
         /* If no drudgers are waiting, this call has no effect. */
         lock_basic_broadcast(&q->q_threshold);
     }

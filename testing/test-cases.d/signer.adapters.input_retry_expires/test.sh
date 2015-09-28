@@ -23,7 +23,7 @@ ods_ldns_testns 15353 ods.datafile &&
 ods_start_ods-control && 
 
 ## Wait for signed zone file
-syslog_waitfor 60 'ods-signerd: .*\[STATS\] ods' &&
+syslog_waitfor 300 'ods-signerd: .*\[STATS\] ods' &&
 
 ## Check signed zone file [when we decide on auditor tool]
 
@@ -36,10 +36,10 @@ log_this_timeout drill 10 drill -p 15354 @127.0.0.1 axfr ods &&
 log_grep drill stdout 'ods\..*3600.*IN.*SOA.*ns1\.ods\..*postmaster\.ods\..*1001.*30.*5.*31.*3600' &&
 
 ## See if SOA RETRY is being done
-syslog_waitfor 35 'ods-signerd: .*\[xfrd\] zone ods make request round 0 master' &&
-syslog_waitfor 35 'ods-signerd: .*\[xfrd\] zone ods make request round 1 master' &&
-syslog_waitfor 35 'ods-signerd: .*\[xfrd\] zone ods make request round 2 master' &&
-syslog_waitfor 5 'ods-signerd: .*\[xfrd\] zone ods sets timer timeout retry 5' &&
+syslog_waitfor 35 'ods-signerd: .*\[xfrd\] zone ods make request .*round 0 master.*' &&
+syslog_waitfor 35 'ods-signerd: .*\[xfrd\] zone ods make request .*round 1 master.*' &&
+syslog_waitfor 35 'ods-signerd: .*\[xfrd\] zone ods make request .*round 2 master.*' &&
+syslog_waitfor 35 'ods-signerd: .*\[xfrd\] zone ods sets timer timeout retry 5' &&
 
 ## See if it stops serving zone transfer after the SOA EXPIRE interval
 sleep 35 &&

@@ -33,8 +33,8 @@
 #define SIGNER_DENIAL_H
 
 #include "config.h"
-#include "shared/allocator.h"
-#include "shared/status.h"
+#include "allocator.h"
+#include "status.h"
 #include "signer/nsec3params.h"
 #include "signer/rrset.h"
 

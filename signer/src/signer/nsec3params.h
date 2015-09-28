@@ -33,7 +33,7 @@
 #define SIGNER_NSEC3PARAMS_H
 
 #include "config.h"
-#include "shared/status.h"
+#include "status.h"
 
 #include <ctype.h>
 #include <stdint.h>

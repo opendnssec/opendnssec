@@ -30,13 +30,13 @@
  */
 
 #include "adapter/adapter.h"
-#include "shared/allocator.h"
-#include "shared/file.h"
-#include "shared/hsm.h"
-#include "shared/locks.h"
-#include "shared/log.h"
-#include "shared/status.h"
-#include "shared/util.h"
+#include "allocator.h"
+#include "file.h"
+#include "hsm.h"
+#include "locks.h"
+#include "log.h"
+#include "status.h"
+#include "util.h"
 #include "signer/backup.h"
 #include "signer/zone.h"
 #include "wire/netio.h"
@@ -67,7 +67,7 @@ zone_create(char* name, ldns_rr_class klass)
     }
     zone = (zone_type*) allocator_alloc(allocator, sizeof(zone_type));
     if (!zone) {
-        ods_log_error("[%s] unable to create zone %s: allocator_alloc()",
+        ods_log_error("[%s] unable to create zone %s: allocator_alloc()"
             "failed", zone_str, name);
         allocator_cleanup(allocator);
         return NULL;
@@ -164,6 +164,9 @@ zone_load_signconf(zone_type* zone, signconf_type** new_signconf)
         free((void*)datestamp);
         *new_signconf = signconf;
     } else if (status == ODS_STATUS_UNCHANGED) {
+        /* OPENDNSSEC-686: changes happening within one second will not be
+         * seen
+         */
         (void)time_datestamp(zone->signconf->last_modified,
             "%Y-%m-%d %T", &datestamp);
         ods_log_verbose("[%s] zone %s signconf file %s is unchanged since "
@@ -490,6 +493,11 @@ zone_update_serial(zone_type* zone)
         return ODS_STATUS_OK;
     }
     rrset = zone_lookup_rrset(zone, zone->apex, LDNS_RR_TYPE_SOA);
+    if (!rrset || !rrset->rrs || !rrset->rrs[0].rr) {
+        ods_log_error("[%s] unable to update zone %s soa serial: failed to "
+            "find soa rrset", zone_str, zone->name);
+        return ODS_STATUS_ERR;
+    }
     ods_log_assert(rrset);
     ods_log_assert(rrset->rrs);
     ods_log_assert(rrset->rrs[0].rr);
@@ -754,7 +762,7 @@ zone_cleanup(zone_type* zone)
     adapter_cleanup(zone->adoutbound);
     namedb_cleanup(zone->db);
     ixfr_cleanup(zone->ixfr);
-    xfrd_cleanup(zone->xfrd);
+    xfrd_cleanup(zone->xfrd, 1);
     notify_cleanup(zone->notify);
     signconf_cleanup(zone->signconf);
     stats_cleanup(zone->stats);
@@ -998,6 +1006,7 @@ zone_recover2(zone_type* zone)
         }
         return ODS_STATUS_OK;
     }
+    free(filename);
     return ODS_STATUS_UNCHANGED;
 
 recover_error2:
@@ -1046,6 +1055,8 @@ zone_backup2(zone_type* zone)
     tmpfile = ods_build_path(zone->name, ".backup2.tmp", 0, 1);
     filename = ods_build_path(zone->name, ".backup2", 0, 1);
     if (!tmpfile || !filename) {
+        free(tmpfile);
+        free(filename);
         return ODS_STATUS_MALLOC_ERR;
     }
     fd = ods_fopen(tmpfile, NULL, "w");

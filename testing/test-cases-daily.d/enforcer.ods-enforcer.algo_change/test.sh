@@ -81,6 +81,7 @@ log_grep ods-enforcer-export4 stdout '<Repository>SoftHSM</Repository>' &&
 log_grep ods-enforcer-export4 stdout '<Standby>0</Standby>' &&
 log_grep ods-enforcer-export4 stdout '</KSK>' &&
 
+ods_stop_enforcer &&
 return 0
 
 ods_kill

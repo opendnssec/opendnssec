@@ -32,8 +32,8 @@
 #include "config.h"
 #include "daemon/engine.h"
 #include "daemon/xfrhandler.h"
-#include "shared/duration.h"
-#include "shared/status.h"
+#include "duration.h"
+#include "status.h"
 
 #include <errno.h>
 #include <string.h>
@@ -196,8 +196,9 @@ xfrhandler_handle_dns(netio_type* ATTR_UNUSED(netio),
     }
     xfrhandler = (xfrhandler_type*) handler->user_data;
     ods_log_assert(event_types & NETIO_EVENT_READ);
-    ods_log_debug("[%s] read forwarded dns packet", xfrh_str);
     received = read(xfrhandler->dnshandler.fd, &buf, MAX_PACKET_SIZE);
+    ods_log_debug("[%s] read forwarded dns packet: %d bytes received",
+        xfrh_str, (int) received);
     if (received == -1) {
         ods_log_error("[%s] unable to forward dns packet: %s", xfrh_str,
             strerror(errno));

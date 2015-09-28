@@ -31,12 +31,13 @@
 
 #include "daemon/cmdhandler.h"
 #include "daemon/engine.h"
-#include "shared/allocator.h"
-#include "shared/file.h"
-#include "shared/locks.h"
-#include "shared/log.h"
-#include "shared/status.h"
-#include "shared/util.h"
+#include "allocator.h"
+#include "file.h"
+#include "str.h"
+#include "locks.h"
+#include "log.h"
+#include "status.h"
+#include "util.h"
 
 #include <errno.h>
 #include <fcntl.h>
@@ -102,6 +103,7 @@ cmdhandler_handle_cmd_help(int sockfd)
                                     "configurations.\n"
         "update [--all]              Update zone list and all signer "
                                     "configurations.\n"
+        "retransfer <zone>           Retransfer the zone from the master.\n"
         "start                       Start the engine.\n"
         "running                     Check if the engine is running.\n"
         "reload                      Reload the engine.\n"
@@ -245,6 +247,56 @@ cmdhandler_handle_cmd_update(int sockfd, cmdhandler_type* cmdc,
             engine_wakeup_workers(engine);
         }
     }
+    return;
+}
+
+
+/**
+ * Handle the 'retransfer' command.
+ *
+ */
+static void
+cmdhandler_handle_cmd_retransfer(int sockfd, cmdhandler_type* cmdc, char* tbd)
+{
+    engine_type* engine = NULL;
+    char buf[ODS_SE_MAXLINE];
+    zone_type* zone = NULL;
+    ods_log_assert(tbd);
+    ods_log_assert(cmdc);
+    ods_log_assert(cmdc->engine);
+    engine = (engine_type*) cmdc->engine;
+    ods_log_assert(engine->taskq);
+    /* look up zone */
+    lock_basic_lock(&engine->zonelist->zl_lock);
+    zone = zonelist_lookup_zone_by_name(engine->zonelist, tbd,
+        LDNS_RR_CLASS_IN);
+    /* If this zone is just added, don't retransfer (it might not have a
+     * task yet) */
+    if (zone && zone->zl_status == ZONE_ZL_ADDED) {
+        zone = NULL;
+    }
+    lock_basic_unlock(&engine->zonelist->zl_lock);
+
+    if (!zone) {
+        (void)snprintf(buf, ODS_SE_MAXLINE, "Error: Zone %s not found.\n",
+            tbd);
+        ods_writen(sockfd, buf, strlen(buf));
+        return;
+    } else if (zone->adinbound->type != ADAPTER_DNS) {
+        (void)snprintf(buf, ODS_SE_MAXLINE,
+            "Error: Zone %s not configured to use DNS input adapter.\n",
+            tbd);
+        ods_writen(sockfd, buf, strlen(buf));
+        return;
+    }
+    zone->xfrd->serial_retransfer = 1;
+    xfrd_set_timer_now(zone->xfrd);
+    ods_log_debug("[%s] forward a notify", cmdh_str);
+    dnshandler_fwd_notify(engine->dnshandler,
+        (uint8_t*) ODS_SE_NOTIFY_CMD, strlen(ODS_SE_NOTIFY_CMD));
+    (void)snprintf(buf, ODS_SE_MAXLINE, "Zone %s being retransferred.\n", tbd);
+    ods_writen(sockfd, buf, strlen(buf));
+    ods_log_verbose("[%s] zone %s being retransferred", cmdh_str, tbd);
     return;
 }
 
@@ -628,8 +680,7 @@ cmdhandler_handle_cmd_verbosity(int sockfd, cmdhandler_type* cmdc, int val)
     ods_log_assert(cmdc->engine);
     engine = (engine_type*) cmdc->engine;
     ods_log_assert(engine->config);
-    ods_log_init(engine->config->log_filename, engine->config->use_syslog,
-        val);
+    ods_log_init("ods-signerd", engine->config->use_syslog, engine->config->log_filename, val);
     (void)snprintf(buf, ODS_SE_MAXLINE, "Verbosity level set to %i.\n", val);
     ods_writen(sockfd, buf, strlen(buf));
     return;
@@ -698,8 +749,8 @@ again:
         /* what if this number is smaller than the number of bytes requested? */
         buf[n-1] = '\0';
         n--;
-        ods_log_verbose("[%s] received command %s[%i]", cmdh_str, buf, n);
-        ods_str_trim(buf);
+        ods_log_verbose("[%s] received command %s[%ld]", cmdh_str, buf, (long)n);
+        ods_str_trim(buf,1);
         n = strlen(buf);
 
         if (n == 4 && strncmp(buf, "help", n) == 0) {
@@ -710,7 +761,7 @@ again:
             cmdhandler_handle_cmd_zones(sockfd, cmdc);
         } else if (n >= 4 && strncmp(buf, "sign", 4) == 0) {
             ods_log_debug("[%s] sign zone command", cmdh_str);
-            if (buf[4] == '\0') {
+            if (n == 4 || buf[4] == '\0') {
                 /* NOTE: wouldn't it be nice that we default to --all? */
                 cmdhandler_handle_cmd_error(sockfd, "sign command needs "
                     "an argument (either '--all' or a zone name)");
@@ -721,7 +772,7 @@ again:
             }
         } else if (n >= 5 && strncmp(buf, "clear", 5) == 0) {
             ods_log_debug("[%s] clear zone command", cmdh_str);
-            if (buf[5] == '\0') {
+            if (n == 5 || buf[5] == '\0') {
                 cmdhandler_handle_cmd_error(sockfd, "clear command needs "
                     "a zone name");
             } else if (buf[5] != ' ') {
@@ -737,7 +788,7 @@ again:
             cmdhandler_handle_cmd_flush(sockfd, cmdc);
         } else if (n >= 6 && strncmp(buf, "update", 6) == 0) {
             ods_log_debug("[%s] update command", cmdh_str);
-            if (buf[6] == '\0') {
+            if (n == 6 || buf[6] == '\0') {
                 cmdhandler_handle_cmd_update(sockfd, cmdc, "--all");
             } else if (buf[6] != ' ') {
                 cmdhandler_handle_cmd_unknown(sockfd, buf);
@@ -759,7 +810,7 @@ again:
             cmdhandler_handle_cmd_running(sockfd);
         } else if (n >= 9 && strncmp(buf, "verbosity", 9) == 0) {
             ods_log_debug("[%s] verbosity command", cmdh_str);
-            if (buf[9] == '\0') {
+            if (n == 9 || buf[9] == '\0') {
                 cmdhandler_handle_cmd_error(sockfd, "verbosity command "
                     "an argument (verbosity level)");
             } else if (buf[9] != ' ') {
@@ -767,11 +818,21 @@ again:
             } else {
                 cmdhandler_handle_cmd_verbosity(sockfd, cmdc, atoi(&buf[10]));
             }
+        } else if (n >= 10 && strncmp(buf, "retransfer", 10) == 0) {
+            ods_log_debug("[%s] retransfer zone command", cmdh_str);
+            if (n == 10 || buf[10] == '\0') {
+                cmdhandler_handle_cmd_error(sockfd, "retransfer command needs "
+                    "an argument (a zone name)");
+            } else if (buf[10] != ' ') {
+                cmdhandler_handle_cmd_unknown(sockfd, buf);
+            } else {
+                cmdhandler_handle_cmd_retransfer(sockfd, cmdc, &buf[11]);
+            }
         } else if (n > 0) {
             ods_log_debug("[%s] unknown command", cmdh_str);
             cmdhandler_handle_cmd_unknown(sockfd, buf);
         }
-        ods_log_debug("[%s] done handling command %s[%i]", cmdh_str, buf, n);
+        ods_log_debug("[%s] done handling command %s[%ld]", cmdh_str, buf, (long)n);
         (void)snprintf(buf, SE_CMDH_CMDLEN, "\ncmd> ");
         ods_writen(sockfd, buf, strlen(buf));
     }

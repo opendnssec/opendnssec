@@ -33,7 +33,7 @@
 #define WIRE_NOTIFY_H
 
 #include "config.h"
-#include "shared/allocator.h"
+#include "allocator.h"
 #include "wire/acl.h"
 #include "wire/buffer.h"
 #include "wire/netio.h"

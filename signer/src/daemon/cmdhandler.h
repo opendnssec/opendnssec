@@ -33,8 +33,8 @@
 #define DAEMON_CMDHANDLER_H
 
 #include "config.h"
-#include "shared/allocator.h"
-#include "shared/locks.h"
+#include "allocator.h"
+#include "locks.h"
 
 #include <sys/un.h>
 
