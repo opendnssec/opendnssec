@@ -2114,7 +2114,7 @@ last_inception_policy(key_data_list_t *key_list, const policy_key_t *pkey)
 		hsm_key_free(hsmkey);
 		hsmkey = NULL;
 		/** This key matches, is it newer? */
-		if (max_inception == -1 || max_inception < key_data_inception(key))
+		if (max_inception == -1 || max_inception < (signed int)key_data_inception(key))
 		{
 			max_inception = key_data_inception(key);
 		}
@@ -2324,7 +2324,6 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 	hsm_key_t *newhsmkey = NULL;
 	static const char *scmd = "updatePolicy";
 	int force_roll;
-	const key_data_t *youngest;
 	time_t t_ret;
 	key_data_role_t key_role;
 	int success;

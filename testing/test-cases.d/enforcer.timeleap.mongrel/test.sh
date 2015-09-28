@@ -6,7 +6,7 @@ KEEP_LOG_ON_SUCCESS=0
 WRITE_GOLD=0
 RANGE=`seq 1 200`
 
-ods_reset_env &&
+ods_reset_env -i &&
 rm -rf base && mkdir base &&
 
 ods_start_enforcer &&
@@ -25,7 +25,7 @@ for n in $RANGE
 do
 	ods-enforcer key list -v -p | cut -d ";" -f 1-6,8|sed -r "s/[0-9-]{10} [0-9:]{8}/date time/" | sort > base/$n.verbose &&
 	ods-enforcer key list -d -p | cut -d ";" -f 1-8 | sort > base/$n.debug &&
-	log_this 02_timeleap 'ods-enforcer time leap --attach' 
+	log_this 02_timeleap 'ods-enforcer time leap --attach'
 done &&
 
 if [ $WRITE_GOLD -eq 1 ]

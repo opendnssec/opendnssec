@@ -32,8 +32,8 @@ log_this ods-enforcer-keytag ods-enforcer key list --verbose &&
 KSK_KEYTAG=`log_grep -o ods-enforcer-keytag stdout "ods[[:space:]]*KSK[[:space:]]*generate" | awk '{print $10}'` &&
 
 ## Jump forward a couple of hours so the KSK will be ready
-##################  STEP 1: Time = 2hrs ###########################
-ods_enforcer_leap_over 7200 &&
+##################  STEP 1: Time = 4hrs ###########################
+ods_enforcer_leap_to 14400 &&
 
 
 # We should be ready for a ds-submit and ds-seen on ods
