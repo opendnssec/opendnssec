@@ -55,7 +55,7 @@ static int signconf_export(int sockfd, const policy_t* policy, zone_t* zone, int
 
 int signconf_export_all(int sockfd, const db_connection_t* connection, int force) {
     zone_list_t* zone_list;
-    const zone_t* zone;
+    zone_t* zone;
     int ret;
     const policy_t* policy = NULL;
     int cmp;
@@ -117,7 +117,7 @@ int signconf_export_all(int sockfd, const db_connection_t* connection, int force
 
 int signconf_export_policy(int sockfd, const db_connection_t* connection, const policy_t* policy, int force) {
     zone_list_t* zone_list;
-    const zone_t* zone;
+    zone_t* zone;
     int ret;
     int change = 0;
 
@@ -138,8 +138,9 @@ int signconf_export_policy(int sockfd, const db_connection_t* connection, const 
         return SIGNCONF_EXPORT_ERR_MEMORY;
     }
 
-    for (zone = zone_list_next(zone_list); zone; zone = zone_list_next(zone_list)) {
+    while ((zone = zone_list_get_next(zone_list))) {
         ret = signconf_export(sockfd, policy, zone, force);
+        zone_free(zone);
         if (ret == SIGNCONF_EXPORT_OK) {
             change = 1;
         }

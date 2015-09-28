@@ -261,11 +261,15 @@ ods_setup_zone ()
 ods_reset_env ()
 {
 	local no_enforcer_stop=""
+	local no_enforcer_idle=""
 	OPTIND=1
-	while getopts ":n" opt; do
+	while getopts ":ni" opt; do
 		case "$opt" in
 			n)
-				no_enforcer_stop=1
+				no_enforcer_stop="-n"
+				;;
+			i)
+				no_enforcer_idle="-i"
 				;;
 			\?)
 				echo "ods_reset_env: Invalid option: -$OPTARG" >&2
@@ -278,12 +282,12 @@ ods_reset_env ()
 	echo "ods_reset_env: resetting opendnssec environment (no_enforcer_stop=$no_enforcer_stop)"
 
 	if [ -z "$1" ]; then
-                ods_softhsm_init_token 0 
-        else
-                ods_softhsm_init_token $1 $2 $3 $4 
-        fi &&
+		ods_softhsm_init_token 0 
+	else
+		ods_softhsm_init_token $1 $2 $3 $4 
+	fi &&
 
-	ods_setup_env $no_enforcer_stop &&
+	ods_setup_env $no_enforcer_stop $no_enforcer_idle &&
 	return 0
 
 	return 1
@@ -309,11 +313,15 @@ ods_reset_env_noenforcer ()
 ods_setup_env ()
 {
 	local no_enforcer_stop=""
+	local no_enforcer_idle=""
 	OPTIND=1
-	while getopts ":n" opt; do
+	while getopts ":ni" opt; do
 		case "$opt" in
 			n)
 				no_enforcer_stop=1
+				;;
+			i)
+				no_enforcer_idle=1
 				;;
 			\?)
 				echo "ods_setup_env: Invalid option: -$OPTARG" >&2
@@ -330,8 +338,10 @@ ods_setup_env ()
 	log_this ods-enforcer-setup ods-enforcer zonelist import &&
 	# OPENDNSSEC-692
 	# When there are no keys yet generated for the policies, the
-	# signconf could fail.
-	ods_enforcer_idle &&
+	# signconf could fail
+	if [ -z "$no_enforcer_idle" ]; then
+		ods_enforcer_idle
+	fi &&
 	ods_waitfor_keys &&
 	( log_this ods-enforcer-setup ods-enforcer signconf || true ) &&
 	echo "ods_setup_env: setup complete" &&
@@ -456,9 +466,9 @@ ods_enforcer_idle ()
 	then
 		timeout=600
 	fi
+	local time_stop=$(( time_start + timeout))
 	sleep 3 ;# unfortunately, things are synchronous and we always have to wait just a bit
 	while true; do
-		time_now=`$DATE '+%s' 2>/dev/null`
 		rm -f _log.$BUILD_TAG.idle.stdout
 		log_this idle ods-enforcer queue || return 1
 		grep -q "^Next task scheduled immediately" _log.$BUILD_TAG.idle.stdout 2>/dev/null > /dev/null
