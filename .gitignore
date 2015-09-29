@@ -85,3 +85,4 @@ libtool
 **/*~
 /build/
 testing/junit.xml
+testing/test-cases.d/enforcer.timeleap.mongrel/base
