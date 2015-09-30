@@ -15,7 +15,7 @@ ods_reset_env &&
 ods_setup_conf conf.xml conf.xml &&
 
 ! ods_start_enforcer &&
-syslog_waitfor 10 "ods-enforcerd: .*: db_backend_mysql: connect failed .*: Can't connect to MySQL server on '127.0.0.1'" &&
+syslog_waitfor 10 "ods-enforcerd: db_backend_mysql: connect failed .*: Can't connect to MySQL server on '127.0.0.1'" &&
 ! pgrep -u `id -u` 'ods-enforcerd' >/dev/null 2>/dev/null &&
 return 0
 
