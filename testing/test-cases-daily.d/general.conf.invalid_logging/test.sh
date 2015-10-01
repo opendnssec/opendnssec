@@ -35,7 +35,7 @@ fi &&
 # if it does, the signer does not output any sign the configuration is now
 # wrong, nor does the return status of the CLI has an error exit status
 # So the following test succeeds for no reason
-ods-signer reload
+ods-signer reload &&
 
 # The enforcer indicates a problem, there are a number of small errors:
 # - The command line utility when run non-interactive does give a
@@ -44,7 +44,7 @@ ods-signer reload
 #   did not accept, but no descriptive message.
 # - The error message output to syslog, is in fact different from the
 #   message when running the enforcerd in non-daemon modus.
-! ods-enforcer update conf
+! ods-enforcer update conf &&
 sleep 60 &&
 syslog_waitfor 10 'ERROR: .*conf.xml fails to validate' &&
 
