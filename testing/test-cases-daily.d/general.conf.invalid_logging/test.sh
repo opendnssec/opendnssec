@@ -12,12 +12,9 @@ fi &&
 ! log_this confcheck-signerd ods-signerd --no-daemon &&
 log_grep confcheck-kaspcheck stdout 'ERROR: .*conf.xml fails to validate' &&
 log_grep confcheck-kaspcheck stderr 'element Logging: Relax-NG validity error.*: Element Common failed to validate content' &&
-log_grep confcheck-enforcerd stderr 'syslog facility local99 not supported, logging to log_daemon' &&
+# log_grep confcheck-enforcerd stderr 'syslog facility local99 not supported, logging to log_daemon' &&
 log_grep confcheck-signerd stderr 'Relax-NG validity error.*' &&
 log_grep confcheck-signerd stderr 'element Logging: Relax-NG validity error.*: Element Common failed to validate content' &&
-
-# It is pretty disputable whether the enforcer should run when it cannot log errors, but it will
-( ods_ods-control_enforcer_stop || true ) &&
 
 if [ -n "$HAVE_MYSQL" ]; then
 	ods_setup_conf conf.xml conf-correct-mysql.xml
