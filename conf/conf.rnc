@@ -115,7 +115,7 @@ start = element Configuration {
 
 		# Number of Worker Threads
 		# DEFAULT: 4
-		& element WorkerThreads { xsd:positiveInteger }?
+		& element WorkerThreads { xsd:nonNegativeInteger }?
 	} &
 
 	# Configuration parameters for the Signer
