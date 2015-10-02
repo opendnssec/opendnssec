@@ -1,3 +1,8 @@
+OpenDNSSEC 2.0
+
+* The enforcer can no longer be run on a single policy at a time
+  anymore.  An enforce run will always process all zones.
+
 OpenDNSSEC 2.0.0a4 (EnforcerNG branch) 
 
 * SUPPORT-72: Improve logging when failed to increment serial in case 
