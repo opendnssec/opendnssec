@@ -54,10 +54,8 @@ log_grep ods-enforcer-temp stdout "ods1[[:space:]]*KSK[[:space:]]*generate" &&
 log_grep ods-enforcer-temp stdout "ods1[[:space:]]*ZSK[[:space:]]*publish" &&
 
 KSK1_CKA=`log_grep -o ods-enforcer-temp stdout "ods1[[:space:]]*KSK[[:space:]]*generate" | awk '{print $8}'` &&
-echo $KSK1_CKA &&
 
 ZSK1_CKA=`log_grep -o ods-enforcer-temp stdout "ods1[[:space:]]*ZSK[[:space:]]*publish" | awk '{print $8}'` &&
-echo $ZSK1_CKA &&
 
 rm -f _log.$BUILD_TAG.ods-enforcer-temp.stdout &&
 #### TIME 1: Keys are Published/Ready
@@ -171,8 +169,10 @@ log_this ods-enforcer-output ods-enforcer key list --debug &&
 log_this ods-enforcer-output ods-enforcer rollover list &&
 
 log_this ods-enforcer-temp ods-enforcer key list  --verbose &&
+log_this ods-enforcer-temp ods-enforcer key list --debug &&
 log_grep ods-enforcer-temp stdout "ods1[[:space:]]*KSK[[:space:]]*active.*$KSK1_CKA" &&
 log_grep ods-enforcer-temp stdout "ods1[[:space:]]*ZSK[[:space:]]*retire.*$ZSK1_CKA" &&
+log_grep ods-enforcer-temp stdout "ods1[[:space:]]*ZSK.*unretentive.*hidden.*$ZSK1_CKA" &&
 log_grep ods-enforcer-temp stdout "ods1[[:space:]]*ZSK[[:space:]]*active.*$ZSK2_CKA" &&
 rm _log.$BUILD_TAG.ods-enforcer-temp.stdout &&
 
@@ -186,8 +186,10 @@ log_this ods-enforcer-output ods-enforcer key list --debug &&
 log_this ods-enforcer-output ods-enforcer rollover list &&
 
 log_this ods-enforcer-temp ods-enforcer key list  --verbose &&
+log_this ods-enforcer-temp ods-enforcer key list --debug &&
 log_grep ods-enforcer-temp stdout "ods1[[:space:]]*KSK[[:space:]]*active.*$KSK1_CKA" &&
 log_grep ods-enforcer-temp stdout "ods1[[:space:]]*ZSK[[:space:]]*retire.*$ZSK1_CKA" &&
+log_grep ods-enforcer-temp stdout "ods1[[:space:]]*ZSK.*hidden.*hidden.*$ZSK1_CKA" &&
 log_grep ods-enforcer-temp stdout "ods1[[:space:]]*ZSK[[:space:]]*active.*$ZSK2_CKA" &&
 rm _log.$BUILD_TAG.ods-enforcer-temp.stdout &&
 
@@ -373,5 +375,4 @@ return 0
 
 echo  "**** FAILED"
 ods_kill
-rm _log.$BUILD_TAG.ods-enforcer-temp.stdout &&
 return 1
