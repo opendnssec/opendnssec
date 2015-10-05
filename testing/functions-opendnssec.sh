@@ -1655,3 +1655,26 @@ ods_compare_gold_vs_base_signconf ()
 	rm -rf base_temp
 	return 0
 }
+
+ods_comparexml () {
+	cat <<-END > diff.xsl~
+		<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0">
+		  <xsl:output method="xml"/>
+		  <xsl:template match="Keys">
+		    <xsl:copy>
+		      <xsl:apply-templates>
+		        <xsl:sort/>
+		      </xsl:apply-templates>
+		    </xsl:copy>
+		  </xsl:template>
+		  <xsl:template match="*">
+		    <xsl:copy>
+		      <xsl:apply-templates/>
+		    </xsl:copy>
+		  </xsl:template>
+		</xsl:stylesheet>
+	END
+	xsltproc $WORKSPACE/diff.xsl~ "$1" | xmllint --c14n - | xmllint --format - > "$1~"
+	xsltproc $WORKSPACE/diff.xsl~ "$2" | xmllint --c14n - | xmllint --format - > "$2~"
+	diff -rwq "$1~" "$2~" > /dev/null 2> /dev/null
+}
