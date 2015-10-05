@@ -4,7 +4,7 @@ OpenDNSSEC to another.
 *** Migrating from 1.4.X to 1.4.8 ***
 
 As of 1.4.8 the database has changes slightly. To migrate between databases
-run
+run the SQL statements given in:
 
     enforcer/utils/migrate_1_4_8.sqlite3
   or
