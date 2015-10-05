@@ -41,4 +41,5 @@ EXTRA_DIST = $(srcdir)/migrate_*.pl
 EXTRA_DIST += $(srcdir)/migrate_adapters_1.*
 EXTRA_DIST += $(srcdir)/convert_database.pl
 EXTRA_DIST += $(srcdir)/migrate_zone_delete.mysql
+EXTRA_DIST += $(srcdir)/migrate_1_4_8.*
 
