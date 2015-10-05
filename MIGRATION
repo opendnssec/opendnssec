@@ -1,6 +1,17 @@
 This file gives you instructions on how to migrate from one version of
 OpenDNSSEC to another.
 
+*** Migrating from 1.4.X to 1.4.8 ***
+
+As of 1.4.8 the database has changes slightly. To migrate between databases
+run
+
+    enforcer/utils/migrate_1_4_8.sqlite3
+  or
+    enforcer/utils/migrate_1_4_8.mysql
+
+  against your existing database.
+
 *** Fix for MySQL zone delete issue ***
 
   As reported in:

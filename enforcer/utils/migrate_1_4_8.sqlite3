@@ -1,0 +1,22 @@
+-- Migrate existing database to 1.4.8
+
+alter table dnsseckeys add column rfc5011 tinyint default 0;
+alter table dnsseckeys add column revoked tinyint default 0;
+
+drop view if exists KEYDATA_VIEW;
+create view KEYDATA_VIEW as
+select k.id as id, d.state as state, k.generate as generate, d.publish as publish,
+    d.ready as ready, d.active as active, d.retire as retire, d.dead as dead,
+    d.keytype as keytype, k.algorithm as algorithm, k.HSMkey_id as location,
+    d.zone_id as zone_id, k.policy_id as policy_id,
+    k.securitymodule_id as securitymodule_id, k.size as size,
+    k.compromisedflag as compromisedflag,
+    k.fixedDate as fixedDate,
+    d.rfc5011 as rfc5011, d.revoked as revoked
+from  keypairs k left outer join dnsseckeys d
+on k.id = d.keypair_id;
+
+insert into parameters (name, description, category_id) select "rfc5011", "are we doing rfc5011?", id from categories where name="ksk";
+insert into parameters (name, description, category_id) select "revoked", "key is revoked?", id from categories where name="ksk";
+
+update dbadmin set version = 4;

@@ -40,7 +40,7 @@ extern "C" {
 
 #include <stdlib.h>
 
-#define KSM_DB_VERSION 3    /* This needs to match that given in the dbadmin table */
+#define KSM_DB_VERSION 4    /* This needs to match that given in the dbadmin table */
 
 #define MYSQL_DB 1
 #define SQLITE_DB 2
