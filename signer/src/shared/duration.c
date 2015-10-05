@@ -430,6 +430,7 @@ ods_rand(time_t mod)
 #endif
 }
 
+#ifdef ENFORCER_TIMESHIFT
 
 /* Number of days per month (except for February in leap years). */
 static const int mdays[] = {
@@ -453,7 +454,6 @@ leap_days(int y1, int y2)
 }
 
 
-#ifdef ENFORCER_TIMESHIFT
 /*
  * Code taken from NSD 3.2.5, which is
  * code adapted from Python 2.4.1 sources (Lib/calendar.py).
