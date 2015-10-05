@@ -29,15 +29,15 @@
 		<!-- Parameters for KSK only -->
 		<KSK>
 			<Algorithm length="2048">5</Algorithm>
-			<Lifetime>PT2M</Lifetime>
+			<Lifetime>P5M</Lifetime>
 			<!-- @TODO@ Repository should be configured -->
 			<Repository>SoftHSM</Repository>
 			<Standby>1</Standby>
 		</KSK>
 		<!-- Parameters for ZSK only -->
 		<ZSK>
-			<Algorithm length="2048">5</Algorithm>
-			<Lifetime>PT3M</Lifetime>
+			<Algorithm length="1024">5</Algorithm>
+			<Lifetime>P3M</Lifetime>
 			<!-- @TODO@ Repository should be configured -->
 			<Repository>SoftHSM</Repository>
 			<Standby>1</Standby>
