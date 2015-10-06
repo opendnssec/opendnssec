@@ -2,25 +2,25 @@
 <ZoneList>
   <Zone name="ods0">
     <Policy>default</Policy>
-    <SignerConfiguration>/home/berry/workspace/root/OpenDNSSEC/var/opendnssec/signconf/ods0.xml</SignerConfiguration>
+    <SignerConfiguration>/var/opendnssec/signconf/ods0.xml</SignerConfiguration>
     <Adapters>
       <Input>
-        <Adapter type="File">/home/berry/workspace/root/OpenDNSSEC/var/opendnssec/unsigned/ods0</Adapter>
+        <Adapter type="File">/var/opendnssec/unsigned/ods0</Adapter>
       </Input>
       <Output>
-        <Adapter type="File">/home/berry/workspace/root/OpenDNSSEC/var/opendnssec/signed/ods0</Adapter>
+        <Adapter type="File">/var/opendnssec/signed/ods0</Adapter>
       </Output>
     </Adapters>
   </Zone>
   <Zone name="ods3">
     <Policy>default</Policy>
-    <SignerConfiguration>/home/berry/workspace/root/OpenDNSSEC/var/opendnssec/signconf/ods3.xml</SignerConfiguration>
+    <SignerConfiguration>/var/opendnssec/signconf/ods3.xml</SignerConfiguration>
     <Adapters>
       <Input>
-        <Adapter type="File">/home/berry/workspace/root/OpenDNSSEC/var/opendnssec/unsigned/ods3</Adapter>
+        <Adapter type="File">/var/opendnssec/unsigned/ods3</Adapter>
       </Input>
       <Output>
-        <Adapter type="File">/home/berry/workspace/root/OpenDNSSEC/var/opendnssec/signed/ods3</Adapter>
+        <Adapter type="File">/var/opendnssec/signed/ods3</Adapter>
       </Output>
     </Adapters>
   </Zone>
