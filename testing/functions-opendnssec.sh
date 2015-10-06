@@ -454,7 +454,6 @@ ods_enforcer_start_timeshift ()
 	fi
 	return 1
 }
-
 ods_enforcer_idle ()
 {
 	local status_grep1
@@ -1657,6 +1656,8 @@ ods_compare_gold_vs_base_signconf ()
 }
 
 ods_comparexml () {
+	local rootpath
+	rootpath=`echo $INSTALL_ROOT | sed -e 's/\//\\\\\//g'`
 	cat <<-END > diff.xsl~
 		<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0">
 		  <xsl:output method="xml"/>
@@ -1674,8 +1675,8 @@ ods_comparexml () {
 		  </xsl:template>
 		</xsl:stylesheet>
 	END
-	xsltproc diff.xsl~ "$1" | xmllint --c14n - | xmllint --format - > "$1~"
-	xsltproc diff.xsl~ "$2" | xmllint --c14n - | xmllint --format - > "$2~"
-	rm diff.xsl~
+	xsltproc diff.xsl~ "$1" | sed -e "s/$rootpath//g" | xmllint --c14n - | xmllint --format - > "$1~"
+	xsltproc diff.xsl~ "$2" | sed -e "s/$rootpath//g" | xmllint --c14n - | xmllint --format - > "$2~"
 	diff -rwq "$1~" "$2~" > /dev/null 2> /dev/null
+	rm diff.xsl~ "$1~" "$2~"
 }
