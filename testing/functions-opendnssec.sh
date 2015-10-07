@@ -1677,6 +1677,5 @@ ods_comparexml () {
 	END
 	xsltproc diff.xsl~ "$1" | sed -e "s/$rootpath//g" | xmllint --c14n - | xmllint --format - > "$1~"
 	xsltproc diff.xsl~ "$2" | sed -e "s/$rootpath//g" | xmllint --c14n - | xmllint --format - > "$2~"
-	diff -rwq "$1~" "$2~" > /dev/null 2> /dev/null
-	rm diff.xsl~ "$1~" "$2~"
+	diff -rw "$1~" "$2~"
 }
