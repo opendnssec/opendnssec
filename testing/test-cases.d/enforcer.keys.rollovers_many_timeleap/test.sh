@@ -126,6 +126,7 @@ log_this ods-enforcer-output echo "--------------- TIME LEAP 3 ----------------"
 sleep 5 && log_this ods-enforcer-output 'ods-enforcer time leap' && sleep 1 &&
 log_this ods-enforcer-output echo "--------------------------------------------" &&
 
+ods_timeleap_search_key "ods1" "ZSK" "publish" &&
 log_this ods-enforcer-output echo "----- Expect active/active/publish" &&
 log_this ods-enforcer-output ods-enforcer key list  --verbose &&
 log_this ods-enforcer-output ods-enforcer key list --debug &&
@@ -212,6 +213,7 @@ rm _log.$BUILD_TAG.ods-enforcer-temp.stdout &&
 log_this ods-enforcer-output echo "--------------- TIME LEAP 8 ----------------" &&
 sleep 5 && log_this ods-enforcer-output 'ods-enforcer time leap' && sleep 1 &&
 log_this ods-enforcer-output echo "--------------------------------------------" &&
+ods_timeleap_search_key "ods1" "ZSK" "publish" &&
 log_this ods-enforcer-output echo "----- Expect active/active/publish " &&
 log_this ods-enforcer-output ods-enforcer key list  --verbose &&
 log_this ods-enforcer-output ods-enforcer key list --debug &&
