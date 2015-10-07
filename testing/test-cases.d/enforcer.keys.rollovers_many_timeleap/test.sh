@@ -97,7 +97,7 @@ rm -f _log.$BUILD_TAG.ods-enforcer-temp.stdout &&
 
 
 log_this ods-enforcer-output echo "----- Do ds-seen" &&
-log_this ods-enforcer-output ods-enforcer key ds-seen --zone ods1 --cka_id $KSK1_CKA && sleep 1 &&
+sleep 5 && log_this ods-enforcer-output ods-enforcer key ds-seen --zone ods1 --cka_id $KSK1_CKA && sleep 1 &&
 log_this ods-enforcer-output ods-enforcer key list  --verbose &&
 log_this ods-enforcer-output ods-enforcer key list --debug &&
 log_this ods-enforcer-output ods-enforcer rollover list &&
@@ -292,7 +292,7 @@ rm _log.$BUILD_TAG.ods-enforcer-temp.stdout &&
 
 
 log_this ods-enforcer-output_manual echo "----- Do ds-seen" &&
-log_this ods-enforcer-output_manual ods-enforcer key ds-seen --zone ods1 --cka_id $KSK2_CKA && sleep 1 &&
+sleep 5 && log_this ods-enforcer-output_manual ods-enforcer key ds-seen --zone ods1 --cka_id $KSK2_CKA && sleep 1 &&
 log_this ods-enforcer-output_manual ods-enforcer key list  --verbose &&
 log_this ods-enforcer-output_manual ods-enforcer key list --debug &&
 log_this ods-enforcer-output_manual ods-enforcer rollover list &&
