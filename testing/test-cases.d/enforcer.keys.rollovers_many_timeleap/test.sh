@@ -132,7 +132,10 @@ log_this ods-enforcer-output ods-enforcer key list --debug &&
 log_this ods-enforcer-output ods-enforcer rollover list &&
 
 log_this ods-enforcer-temp ods-enforcer key list  --verbose &&
+ods-enforcer queue &&
 cat _log.$BUILD_TAG.ods-enforcer-temp.stdout && 
+sleep 60 &&
+ods-enforcer queue &&
 log_grep ods-enforcer-temp stdout "ods1[[:space:]]*KSK[[:space:]]*active.*$KSK1_CKA" &&
 log_grep ods-enforcer-temp stdout "ods1[[:space:]]*ZSK[[:space:]]*active.*$ZSK1_CKA" &&
 log_grep ods-enforcer-temp stdout "ods1[[:space:]]*ZSK[[:space:]]*publish" &&
