@@ -2,6 +2,11 @@ OpenDNSSEC 2.0
 
 * The enforcer can no longer be run on a single policy at a time
   anymore.  An enforce run will always process all zones.
+* The zonelist.xml in etc/opendnssec is no longer updated automatically,
+  and by default works as if the --no-xml flag was specified.  Use
+  --xml to the zone add command to update the zonelist.xml.  If updating
+  the zonelist fails, the zone will still be added and not updated in
+  the xml with future zone adds.
 
 OpenDNSSEC 2.0.0a4 (EnforcerNG branch) 
 
