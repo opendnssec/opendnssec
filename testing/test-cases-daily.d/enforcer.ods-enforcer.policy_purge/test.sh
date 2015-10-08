@@ -82,6 +82,7 @@ log_grep ods-enforcer-policy-list_4 stdout 'default2[[:space:]]*default[[:space:
 
 #delete zone ods1
 ods-enforcer queue &&
+ods_enforcer_idle &&
 log_this_timeout ods-enforcer-zone-delete 30 "ods-enforcer zone delete -z ods1" &&
 cat _log.$BUILD_TAG.ods-enforcer-zone-delete.stdout &&
 cat _log.$BUILD_TAG.ods-enforcer-zone-delete.stderr &&
