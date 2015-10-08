@@ -222,7 +222,7 @@ rm _log.$BUILD_TAG.ods-enforcer-temp.stdout &&
 
 #### TIME 8: Next ZSK rollover starts
 log_this ods-enforcer-output echo "--------------- TIME LEAP 8 ----------------" &&
-sleep 20 &&
+#sleep 20 &&
 ods_enforcer_idle &&
 sleep 1 && log_this ods-enforcer-output 'ods-enforcer time leap' && sleep 1 &&
 log_this ods-enforcer-output echo "--------------------------------------------" &&
@@ -276,7 +276,9 @@ log_this ods-enforcer-output_manual ods-enforcer key list --debug &&
 log_this ods-enforcer-output_manual ods-enforcer rollover list &&
 
 log_this ods-enforcer-output_manual echo "----- Do manual key rollover for KSK" &&
+ods_enforcer_idle &&
 log_this ods-enforcer-output_manual ods-enforcer key rollover  --zone ods1 --keytype KSK && sleep 1 &&
+ods_enforcer_idle &&
 log_this ods-enforcer-output_manual echo "----- Expect a new KSK to be published" &&
 log_this ods-enforcer-output_manual ods-enforcer key list  --verbose &&
 log_this ods-enforcer-output_manual ods-enforcer key list --debug &&
