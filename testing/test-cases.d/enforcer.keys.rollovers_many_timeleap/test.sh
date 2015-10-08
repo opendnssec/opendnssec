@@ -123,7 +123,7 @@ rm _log.$BUILD_TAG.ods-enforcer-temp.stdout &&
 #### TIME 3: Keys are finally both active
 log_this ods-enforcer-output echo "----- Next event is ZSK auto rollover " &&
 log_this ods-enforcer-output echo "--------------- TIME LEAP 3 ----------------" &&
-sleep 5 && log_this ods-enforcer-output 'ods-enforcer time leap' && sleep 1 &&
+sleep 60 && log_this ods-enforcer-output 'ods-enforcer time leap' && sleep 1 &&
 log_this ods-enforcer-output echo "--------------------------------------------" &&
 
 log_this ods-enforcer-output echo "----- Expect active/active/publish" &&
@@ -132,10 +132,6 @@ log_this ods-enforcer-output ods-enforcer key list --debug &&
 log_this ods-enforcer-output ods-enforcer rollover list &&
 
 log_this ods-enforcer-temp ods-enforcer key list  --verbose &&
-ods-enforcer queue &&
-cat _log.$BUILD_TAG.ods-enforcer-temp.stdout && 
-sleep 60 &&
-ods-enforcer queue &&
 log_grep ods-enforcer-temp stdout "ods1[[:space:]]*KSK[[:space:]]*active.*$KSK1_CKA" &&
 log_grep ods-enforcer-temp stdout "ods1[[:space:]]*ZSK[[:space:]]*active.*$ZSK1_CKA" &&
 log_grep ods-enforcer-temp stdout "ods1[[:space:]]*ZSK[[:space:]]*publish" &&
@@ -214,14 +210,13 @@ rm _log.$BUILD_TAG.ods-enforcer-temp.stdout &&
 
 #### TIME 8: Next ZSK rollover starts
 log_this ods-enforcer-output echo "--------------- TIME LEAP 8 ----------------" &&
-sleep 5 && log_this ods-enforcer-output 'ods-enforcer time leap' && sleep 1 &&
+sleep 60 && log_this ods-enforcer-output 'ods-enforcer time leap' && sleep 1 &&
 log_this ods-enforcer-output echo "--------------------------------------------" &&
 log_this ods-enforcer-output echo "----- Expect active/active/publish " &&
 log_this ods-enforcer-output ods-enforcer key list  --verbose &&
 log_this ods-enforcer-output ods-enforcer key list --debug &&
 
 log_this ods-enforcer-temp ods-enforcer key list  --verbose &&
-cat _log.$BUILD_TAG.ods-enforcer-temp.stdout &&
 log_grep ods-enforcer-temp stdout "ods1[[:space:]]*KSK[[:space:]]*active.*$KSK1_CKA" &&
 log_grep ods-enforcer-temp stdout "ods1[[:space:]]*ZSK[[:space:]]*active.*$ZSK2_CKA" &&
 log_grep ods-enforcer-temp stdout "ods1[[:space:]]*ZSK[[:space:]]*publish" &&
