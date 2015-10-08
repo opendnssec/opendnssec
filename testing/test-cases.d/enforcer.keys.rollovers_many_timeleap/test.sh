@@ -128,7 +128,7 @@ log_this ods-enforcer-idle ods_enforcer_idle &&
 ods-enforcer queue &&
 sleep 20 && 
 ods-enforcer queue &&
-echo "before time leap" &&
+echo "before time leap ..." &&
 ods-enforcer key list -v &&
 sleep 1 && log_this ods-enforcer-output 'ods-enforcer time leap' && sleep 1 &&
 log_this ods-enforcer-output echo "--------------------------------------------" &&
