@@ -222,9 +222,11 @@ rm _log.$BUILD_TAG.ods-enforcer-temp.stdout &&
 
 #### TIME 8: Next ZSK rollover starts
 log_this ods-enforcer-output echo "--------------- TIME LEAP 8 ----------------" &&
-sleep 60 &&
+sleep 20 &&
+ods_enforcer_idle &&
 sleep 1 && log_this ods-enforcer-output 'ods-enforcer time leap' && sleep 1 &&
 log_this ods-enforcer-output echo "--------------------------------------------" &&
+ods_enforcer_idle &&
 log_this ods-enforcer-output echo "----- Expect active/active/publish " &&
 log_this ods-enforcer-output ods-enforcer key list  --verbose &&
 log_this ods-enforcer-output ods-enforcer key list --debug &&
