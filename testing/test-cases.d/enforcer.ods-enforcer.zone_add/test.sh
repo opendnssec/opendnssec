@@ -116,12 +116,12 @@ log_this ods-enforcer-zone_add_bad   ods-enforcer zone add --zone ods13 --input 
 
 # Check the zonelist.xml
 echo "Checking zonelist contents" && 
-diff $ignore  $INSTALL_ROOT/etc/opendnssec/zonelist.xml zonelist.xml.gold_local &&
+ods_compare_zonelist  $INSTALL_ROOT/etc/opendnssec/zonelist.xml zonelist.xml.gold_local &&
 echo "Zonelist contents OK" && 
 
 # Check the export gives the same thing  (note - we use a different gold file here as the the exported file has comments)
 log_this ods-enforcer-zonelist-export1 ods-enforcer zonelist export &&
-diff $ignore  $INSTALL_ROOT/etc/opendnssec/zonelist.xml zonelist.xml.gold_export_local &&
+ods_compare_zonelist  $INSTALL_ROOT/etc/opendnssec/zonelist.xml zonelist.xml.gold_export_local &&
 echo "Zonelist export contents OK" && 
 
 # Now add without updating the zonelist. 
@@ -131,12 +131,12 @@ log_this ods-enforcer-zone_add_list_1   ods-enforcer zone list &&
 log_grep ods-enforcer-zone_add_list_1   stdout "ods14[[:space:]]*default" &&
 
 echo "Checking zonelist contents again after silent add" && 
-diff $ignore $INSTALL_ROOT/etc/opendnssec/zonelist.xml zonelist.xml.gold_export_local &&
+ods_compare_zonelist $INSTALL_ROOT/etc/opendnssec/zonelist.xml zonelist.xml.gold_export_local &&
 echo "Zonelist contents OK again" &&
 
 # Exported zonelist should be different 
 log_this ods-enforcer-zonelist-export2 ods-enforcer zonelist export &&
-! diff $ignore $INSTALL_ROOT/etc/opendnssec/zonelist.xml  zonelist.xml.gold_export_local >/dev/null 2>/dev/null &&
+! ods_compare_zonelist $INSTALL_ROOT/etc/opendnssec/zonelist.xml  zonelist.xml.gold_export_local >/dev/null 2>/dev/null &&
 echo "Zonelist export contents OK" &&
 
 ##################  TEST:  Zone deletion  ###########################
@@ -149,7 +149,7 @@ log_this ods-enforcer-zone_del_list_1   ods-enforcer zone list &&
 ! log_grep ods-enforcer-zone_del_list_1   stdout "ods1[[:space:]]*Policy1" &&
 
 echo "Checking zonelist contents again after silent delete" && 
-diff $ignore  $INSTALL_ROOT/etc/opendnssec/zonelist.xml zonelist.xml.gold_export_local &&
+ods_compare_zonelist  $INSTALL_ROOT/etc/opendnssec/zonelist.xml zonelist.xml.gold_export_local &&
 echo "Zonelist contents OK again" &&
 
 log_this ods-enforcer-zone_del_2  ods-enforcer zone delete --zone ods2 --xml  &&
@@ -198,7 +198,7 @@ log_grep ods-enforcer-zone_add_list_2   stdout "ods13[[:space:]]*default" &&
 
 # Check the export gives the same thing  
 log_this ods-enforcer-zonelist-export3 ods-enforcer zonelist export &&
-diff $ignore  $INSTALL_ROOT/etc/opendnssec/zonelist.xml zonelist.xml.gold_export_local &&
+ods_compare_zonelist  $INSTALL_ROOT/etc/opendnssec/zonelist.xml zonelist.xml.gold_export_local &&
 echo "Zonelist export contents OK" &&
 
 ods_stop_enforcer &&

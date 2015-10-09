@@ -1563,6 +1563,32 @@ ods_bind9_dynupdate ()
 	return 0
 }
 
+ods_compare_zonelist () {
+	cat <<-END > diff.xsl~
+		<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0">
+		  <xsl:output method="xml"/>
+		  <xsl:template match="ZoneList">
+		    <xsl:copy>
+		      <xsl:apply-templates select="Zone|@*">
+	        	<xsl:sort select="@name"/>
+		      </xsl:apply-templates>
+		    </xsl:copy>
+		  </xsl:template>
+		  <xsl:template match="node()|@*">
+		    <xsl:copy>
+		      <xsl:apply-templates select="node()|@*"/>
+		    </xsl:copy>
+		  </xsl:template>
+		</xsl:stylesheet>
+	END
+	xsltproc diff.xsl~ "$1" | xmllint --c14n - | xmllint --format - > "$1~"
+	xsltproc diff.xsl~ "$2" | xmllint --c14n - | xmllint --format - > "$2~"
+	diff -rbw "$1~" "$2~"
+	
+	return $?
+	
+}
+
 # Method to compare a 'gold' directory containing signconfs with a 'base' directory
 # generated during a test run. Assumes the directories are called 'gold' and 'base'
 # and the script is called from the directory which holds both of them.
@@ -1655,3 +1681,5 @@ ods_compare_gold_vs_base_signconf ()
 	rm -rf base_temp
 	return 0
 }
+
+
