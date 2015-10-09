@@ -27,29 +27,21 @@ ods_start_enforcer &&
 
 for n in $RANGE
 do
-	ods-enforcer key list -v -p | cut -d ";" -f 1-6,8|sed -r "s/[0-9-]{10} [0-9:]{8}/date time/" | sort > base/$n.verbose &&
-	ods-enforcer key list -d -p | cut -d ";" -f 1-8 | sort > base/$n.debug &&
-	log_this 02_timeleap 'ods-enforcer time leap --attach'
+	ods-enforcer key list -v -p 2>/dev/null | cut -d ";" -f 1-6,8|sed -r "s/[0-9-]{10} [0-9:]{8}/date time/" | sort > base/$n.verbose &&
+	ods-enforcer key list -d -p 2>/dev/null | cut -d ";" -f 1-8 | sort > base/$n.debug &&
+	log_this 02_timeleap 'ods-enforcer time leap --attach' &&
+	if [ ! $WRITE_GOLD -eq 1 ]
+	then
+		diff -u base/$n.verbose gold/$n.verbose || break &&
+		diff -u base/$n.debug gold/$n.debug || break
+	fi
 done &&
 
 if [ $WRITE_GOLD -eq 1 ]
 then
-	rm -rf gold
+	rm -rf gold &&
 	cp -r base gold
 fi &&
-
-echo "Checking output..." &&
-
-for n in $RANGE
-do
-	echo -n "Checking $n verbose... " &&
-	diff -u base/$n.verbose gold/$n.verbose &&
-	{ echo "ok" || { echo "FAILED!"; false; }; } &&
-
-	echo -n "Checking $n debug... " &&
-	diff -u base/$n.debug gold/$n.debug &&
-	{ echo "ok" || { echo "FAILED!"; false; }; }
-done &&
 
 ods_stop_enforcer &&
 echo "**** OK" &&
