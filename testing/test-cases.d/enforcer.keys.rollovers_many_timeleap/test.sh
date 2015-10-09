@@ -123,22 +123,11 @@ rm _log.$BUILD_TAG.ods-enforcer-temp.stdout &&
 #### TIME 3: Keys are finally both active
 log_this ods-enforcer-output echo "----- Next event is ZSK auto rollover " &&
 log_this ods-enforcer-output echo "--------------- TIME LEAP 3 ----------------" &&
-ods-enforcer queue &&
-log_this ods-enforcer-idle ods_enforcer_idle && 
-ods-enforcer queue &&
-sleep 20 && 
-ods-enforcer queue &&
-echo "before time leap ..." &&
-ods-enforcer key list -v &&
+ods_enforcer_idle && 
 sleep 1 && log_this ods-enforcer-output 'ods-enforcer time leap' && sleep 1 &&
-log_this ods-enforcer-output echo "--------------------------------------------" &&
-echo "after time leap" &&
-log_this ods-enforcer-output echo "----- Expect active/active/publish" &&
-ods-enforcer key list -v &&
-ods-enforcer queue &&
 ods_enforcer_idle &&
-ods-enforcer queue &&
-ods-enforcer key list -v &&
+log_this ods-enforcer-output echo "--------------------------------------------" &&
+log_this ods-enforcer-output echo "----- Expect active/active/publish" &&
 log_this ods-enforcer-output ods-enforcer key list  --verbose &&
 log_this ods-enforcer-output ods-enforcer key list --debug &&
 log_this ods-enforcer-output ods-enforcer rollover list &&
