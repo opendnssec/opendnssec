@@ -167,6 +167,7 @@ log_grep ods-enforcer-zone_del_2 stderr  "Unable to delete zone, zone ods1 not f
 
 # Delete all remaining zones 
 log_this ods-enforcer-zone_del_3  ods-enforcer zone delete --all --xml &&
+ods_enforcer_idle &&
 
 log_this ods-enforcer-zone_del_list_3  ods-enforcer zone list  &&
 log_grep ods-enforcer-zone_del_list_3   stdout "No zones in database." &&
