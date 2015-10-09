@@ -182,7 +182,7 @@ log_this ods-enforcer-zone_del_3  ods-enforcer zone delete --all --xml &&
 ods-enforcer queue &&
 ods_enforcer_idle &&
 sleep 5 &&
-ods_enforcer queue &&
+ods-enforcer queue &&
 
 log_this ods-enforcer-zone_del_list_3  ods-enforcer zone list  &&
 ods-enforcer zone list &&
