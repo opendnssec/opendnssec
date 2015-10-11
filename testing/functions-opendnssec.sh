@@ -1657,8 +1657,33 @@ ods_compare_gold_vs_base_signconf ()
 
 ods_comparexml () {
 	local rootpath
+	local formatzoneconf=0
+	local formatinstallpath=0
+	local formatplain=0
+	local formatdefault=1
 	rootpath=`echo $INSTALL_ROOT | sed -e 's/\//\\\\\//g'`
-	cat <<-END > diff.xsl~
+        while :; do
+          case $1 in
+          --format-plain)
+            formatdefault=0
+            formatplain=1
+            ;;
+          --format-zoneconf)
+            formatdefault=0
+            formatzoneconf=1
+            ;;
+          --format-installpath)
+            formatdefault=0
+            formatinstallpath=1
+            ;;
+          *)
+            break
+            ;;
+          esac
+          shift
+        done
+	if [ $formatzoneconf -eq 1 -o $formatdefault -eq 1 ]; then
+	  cat <<-END > diff.xsl~
 		<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0">
 		  <xsl:output method="xml"/>
 		  <xsl:template match="Keys">
@@ -1674,8 +1699,20 @@ ods_comparexml () {
 		    </xsl:copy>
 		  </xsl:template>
 		</xsl:stylesheet>
-	END
-	xsltproc diff.xsl~ "$1" | sed -e "s/$rootpath//g" | xmllint --c14n - | xmllint --format - > "$1~"
-	xsltproc diff.xsl~ "$2" | sed -e "s/$rootpath//g" | xmllint --c14n - | xmllint --format - > "$2~"
+END
+	fi
+	if [ $formatzoneconf -eq 1 ]; then
+	  xsltproc diff.xsl~ "$1" | sed -e "s/$rootpath//g" | xmllint --c14n - | xmllint --format - > "$1~"
+	  xsltproc diff.xsl~ "$2" | sed -e "s/$rootpath//g" | xmllint --c14n - | xmllint --format - > "$2~"
+	elif [ $formatinstallpath -eq 1 ]; then
+	  sed < "$1" -e "s/$rootpath//g" | xmllint --c14n - | xmllint --format - > "$1~"
+	  sed < "$2" -e "s/$rootpath//g" | xmllint --c14n - | xmllint --format - > "$2~"
+	elif [ $formatplain -eq 1 ]; then
+	  xmllint --c14n "$1" | xmllint --format - > "$1~"
+	  xmllint --c14n "$2" | xmllint --format - > "$2~"
+	else
+	  xsltproc diff.xsl~ "$1" | xmllint --c14n - | xmllint --format - > "$1~"
+	  xsltproc diff.xsl~ "$2" | xmllint --c14n - | xmllint --format - > "$2~"
+	fi
 	diff -rw "$1~" "$2~"
 }

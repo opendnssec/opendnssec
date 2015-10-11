@@ -39,7 +39,7 @@ log_this ods-enforcer-zone_ods3   ods-enforcer zone add --zone ods3 --xml &&
 log_grep ods-enforcer-zone_ods3   stdout "Zone ods3 added successfully" &&
 
 # compare the zonelist
-ods_comparexml zonelist-gold.xml $INSTALL_ROOT/etc/opendnssec/zonelist.xml &&
+ods_comparexml --format-installpath zonelist-gold.xml $INSTALL_ROOT/etc/opendnssec/zonelist.xml &&
 
 ods_ods-control_enforcer_stop &&
 
