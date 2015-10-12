@@ -1658,6 +1658,7 @@ ods_compare_gold_vs_base_signconf ()
 ods_comparexml () {
 	local rootpath
 	local formatzoneconf=0
+	local formatzonelist=0
 	local formatinstallpath=0
 	local formatplain=0
 	local formatdefault=1
@@ -1672,6 +1673,10 @@ ods_comparexml () {
             formatdefault=0
             formatzoneconf=1
             ;;
+          --format-zonelist)
+            formatdefault=0
+            formatzonelist=1
+            ;;
           --format-installpath)
             formatdefault=0
             formatinstallpath=1
@@ -1682,26 +1687,47 @@ ods_comparexml () {
           esac
           shift
         done
-	if [ $formatzoneconf -eq 1 -o $formatdefault -eq 1 ]; then
+	if [ $formatzonelist -eq 1 ]; then
 	  cat <<-END > diff.xsl~
-		<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0">
-		  <xsl:output method="xml"/>
-		  <xsl:template match="Keys">
-		    <xsl:copy>
-		      <xsl:apply-templates>
-		        <xsl:sort/>
-		      </xsl:apply-templates>
-		    </xsl:copy>
-		  </xsl:template>
-		  <xsl:template match="*">
-		    <xsl:copy>
-		      <xsl:apply-templates/>
-		    </xsl:copy>
-		  </xsl:template>
-		</xsl:stylesheet>
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0">
+  <xsl:output method="xml"/>
+  <xsl:template match="Zonelist">
+    <xsl:copy>
+      <xsl:apply-templates>
+        <xsl:sort select="@name"/>
+      </xsl:apply-templates>
+    </xsl:copy>
+  </xsl:template>
+  <xsl:template match="@* | node()">
+    <xsl:copy>
+      <xsl:apply-templates select="@* | node()"/>
+    </xsl:copy>
+  </xsl:template>
+</xsl:stylesheet>
+END
+	elif [ $formatzoneconf -eq 1 -o $formatdefault -eq 1 ]; then
+	  cat <<-END > diff.xsl~
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0">
+  <xsl:output method="xml"/>
+  <xsl:template match="Keys">
+    <xsl:copy>
+      <xsl:apply-templates>
+        <xsl:sort/>
+      </xsl:apply-templates>
+    </xsl:copy>
+  </xsl:template>
+  <xsl:template match="*">
+    <xsl:copy>
+      <xsl:apply-templates/>
+    </xsl:copy>
+  </xsl:template>
+</xsl:stylesheet>
 END
 	fi
 	if [ $formatzoneconf -eq 1 ]; then
+	  xsltproc diff.xsl~ "$1" | sed -e "s/$rootpath//g" | xmllint --c14n - | xmllint --format - > "$1~"
+	  xsltproc diff.xsl~ "$2" | sed -e "s/$rootpath//g" | xmllint --c14n - | xmllint --format - > "$2~"
+	elif [ $formatzonelist -eq 1 ]; then
 	  xsltproc diff.xsl~ "$1" | sed -e "s/$rootpath//g" | xmllint --c14n - | xmllint --format - > "$1~"
 	  xsltproc diff.xsl~ "$2" | sed -e "s/$rootpath//g" | xmllint --c14n - | xmllint --format - > "$2~"
 	elif [ $formatinstallpath -eq 1 ]; then
