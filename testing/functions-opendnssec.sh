@@ -543,8 +543,12 @@ ods_enforcer_leap_over ()
 	then
 		maxleaps=-1
 	fi
+	
+	ods_enforcer_idle
 	log_this ods-enforcer-time-leap ods-enforcer time leap || return 1
-	sleep 5
+	sleep 1
+	ods_enforcer_idle
+
 	if [ $maxleaps -gt 0 ]
 	then
 		maxleaps=`expr $maxleaps - 1`
@@ -562,8 +566,10 @@ ods_enforcer_leap_over ()
 	timediff=`expr $currenttime - $starttime`
 	while [ \( $timediff -lt $period \) -a \( $maxleaps -ne 0 \) ]
 	do
+		ods_enforcer_idle
 		log_this ods-enforcer-time-leap ods-enforcer time leap || return 1
-		sleep 5
+		sleep 1
+		ods_enforcer_idle
 		if [ $maxleaps -gt 0 ]
 		then
 			maxleaps=`expr $maxleaps - 1`
@@ -596,7 +602,8 @@ ods_enforcer_leap_to ()
 		maxleaps=-1
 	fi
 #	log_this ods-enforcer-time-leap ods-enforcer time leap || return 1
-	sleep 5
+	sleep 1
+	ods_enforcer_idle
 	log_this ods-enforcer-time-leap ods-enforcer queue || return 1
 #	if [ $maxleaps -gt 0 ]
 #	then
@@ -615,8 +622,10 @@ ods_enforcer_leap_to ()
 	timediff=`expr $nexttime - $starttime`
 	while [ \( $timediff -lt $period \) -a \( $maxleaps -ne 0 \) ]
 	do
+		ods_enforcer_idle
 		log_this ods-enforcer-time-leap ods-enforcer time leap || return 1
-		sleep 5
+		sleep 1
+		ods_enforcer_idle
 		log_this ods-enforcer-time-leap ods-enforcer queue || return 1
 		if [ $maxleaps -gt 0 ]
 		then
@@ -664,10 +673,11 @@ ods_timeleap_search_key ()
 			echo "Key not found !!!!"
 			return 1
 		fi
-
+		ods_enforcer_idle
                 ods-enforcer time leap
 		maxleaps=`expr $maxleaps - 1`
-                sleep 10
+		sleep 1
+                ods_enforcer_idle
         done
 
 }
@@ -703,10 +713,12 @@ ods_timeleap_search_nokey ()
 			echo "Key still exists !!! "
 			return 1
 		fi
-
+		
+		ods_enforcer_idle
                 ods-enforcer time leap
 		maxleaps=`expr $maxleaps - 1`
-                sleep 10
+                sleep 1
+		ods_enforcer_idle
 		rm -f _log.$BUILD_TAG.ods-nokey-list.stdout
         done
 
