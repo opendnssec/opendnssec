@@ -133,7 +133,7 @@ perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 	{
 		if (!bForceUpdate && (zone_next_change(zone) == -1)) {
 			continue;
-		} else if (zone_next_change(zone) > t_now) {
+		} else if (zone_next_change(zone) > t_now && !bForceUpdate) {
 			/* This zone needs no update, however it might be the first
 			 * for future updates */
 			if (zone_next_change(zone) < t_reschedule || !firstzone)
