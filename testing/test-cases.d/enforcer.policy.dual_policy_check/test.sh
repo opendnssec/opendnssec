@@ -10,7 +10,6 @@ fi &&
 ods_reset_env &&
 
 ods_start_enforcer &&
-sleep 60 &&
 
 test -f "$INSTALL_ROOT/var/opendnssec/signconf/ods.xml" &&
 $GREP -q -- "<Resign>PT2H</Resign>" "$INSTALL_ROOT/var/opendnssec/signconf/ods.xml" &&

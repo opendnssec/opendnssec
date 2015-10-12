@@ -23,10 +23,12 @@ ods_reset_env &&
 ods_start_ods-control &&
 
 # note that the first enforce is not scheduled immediately, for almost a minut from now
-sleep 60 && ods_enforcer_idle &&
+#sleep 60 && ods_enforcer_idle &&
 
 # Time Leap to time that  that we have ready/active ksk/zsk keys
+sleep 1 && ods_enforcer_idle &&
 log_this ods-enforcer-time-leap-1 ods_enforcer_leap_to 14400 &&
+sleep 1 && ods_enforcer_idle &&
 
 # Check that we have 2 keys per zone
 log_this ods-enforcer-key-list1 ods-enforcer key list &&
@@ -46,9 +48,10 @@ log_grep ods-enforcer-key-rollover_bad1 stdout 'expected --zone <zone> option' &
 log_grep ods-enforcer-key-rollover_bad2 stdout "zone bob not found" &&
 
 # ******************* Roll the ZSK first ************************ 
+sleep 1 && ods_enforcer_idle &&
 log_this ods-enforcer-key-rollover1 ods-enforcer key rollover --zone ods --keytype ZSK &&
+sleep 1 && ods_enforcer_idle &&
 syslog_waitfor 5 "ods-enforcerd: .*Manual rollover initiated for ZSK on Zone: ods" &&
-sleep 10 &&
 # *************************************************************** 
 
 # Check for a published ZSK for our zone
@@ -80,7 +83,9 @@ log_grep ods-enforcer-key-list3 stdout "ods[[:space:]]*ZSK[[:space:]]*retire.*$Z
 log_grep ods-enforcer-key-list3 stdout "ods[[:space:]]*ZSK[[:space:]]*active.*$ZSK_CKA_ID2" &&
 
 # Run the ds-seen on the KSK and check the output (enforcer won't HUP as it isn't running)
+ods_enforcer_idle &&
 log_this ods-enforcer-dsseen_ods1   ods-enforcer key ds-seen --zone ods --cka_id $KSK_CKA_ID1 &&
+sleep 1 && ods_enforcer_idle &&
 log_grep ods-enforcer-dsseen_ods1 stdout "1 KSK matches found" &&
 log_grep ods-enforcer-dsseen_ods1 stdout "1 KSKs changed." &&
 
@@ -107,9 +112,10 @@ ZSK_CKA_ID3=`log_grep -o ods-enforcer-key-list5 stdout "ods[[:space:]]*ZSK[[:spa
 
 
 # ******************* Roll the KSK now ************************ 
+ods_enforcer_idle &&
 log_this ods-enforcer-key-rollover2 ods-enforcer key rollover --zone ods --keytype KSK &&
+sleep 1 && ods_enforcer_idle &&
 syslog_waitfor 5 "ods-enforcerd: .*Manual rollover initiated for KSK on Zone: ods" &&
-sleep 10 &&
 # *************************************************************
 
 # Look for a published KSK
@@ -136,7 +142,9 @@ log_grep ods-enforcer-key-list7 stdout "ods[[:space:]]*ZSK[[:space:]]*ready.*$ZS
 syslog_grep "ods-enforcerd: .*please submit DS with keytag $KSK_KEYTAG2 for zone ods" &&
 
 # Run a ds-seen on this new key and check the output
+ods_enforcer_idle &&
 log_this ods-enforcer-dsseen_ods2   ods-enforcer key ds-seen --zone ods --cka_id $KSK_CKA_ID2 &&
+sleep 1 && ods_enforcer_idle &&
 log_grep ods-enforcer-dsseen_ods2 stdout "1 KSK matches found." &&
 log_grep ods-enforcer-dsseen_ods2 stdout "1 KSKs changed." &&
 
@@ -156,8 +164,9 @@ log_grep ods-enforcer-key-list8 stdout "ods[[:space:]]*ZSK[[:space:]]*retire.*$Z
 log_grep ods-enforcer-key-list8 stdout "ods[[:space:]]*ZSK[[:space:]]*active.*$ZSK_CKA_ID3" &&
 
 # ##################  STEP 5: Time Leap: one and only one ksk which is active for ods ###########################
+ods_enforcer_idle &&
 log_this ods-enforcer-ds-gone_ods1 ods-enforcer key ds-gone --zone ods --cka_id $KSK_CKA_ID1 &&
-sleep 10 &&
+sleep 1 && ods_enforcer_idle &&
 
 log_this ods-enforcer-time-leap-7 ods_timeleap_search_nokey "ods" "KSK" "retire" "$KSK_CKA_ID1" &&
 
@@ -171,10 +180,11 @@ log_grep ods-enforcer-key-list9 stdout "ods[[:space:]]*ZSK[[:space:]]*active.*$Z
 ! log_grep ods-enforcer-key-list9 stdout "ods[[:space:]]*ZSK[[:space:]]*publish" &&
 
 # ********Lets roll for all key types now ************** 
+ods_enforcer_idle &&
 log_this ods-enforcer-key-rollover_all ods-enforcer key rollover --zone ods &&
+sleep 1 && ods_enforcer_idle &&
 #echo "y" | log_this ods-enforcer-key-rollover_all ods-enforcer key rollover --policy default --all &&
 syslog_waitfor 5 "ods-enforcerd: .*Manual rollover initiated for all keys on Zone: ods" &&
-sleep 10 &&
 # ******************************************************************* 
 
 # Check both keys have started rolling

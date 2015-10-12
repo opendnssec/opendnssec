@@ -14,7 +14,7 @@ ods_start_enforcer &&
 # Add our test zone. We already have the standard one and a "spare" one on a different policy
 log_this_timeout ods-enforcer-zone-add 30 ods-enforcer zone add -z test.delete --policy non-default &&
 # and wait for all the keys to have been generated
-sleep 10 && ods_enforcer_idle &&
+ods_waitfor_keys &&
 
 # Check the presence of all signconfs
 test -f "$INSTALL_ROOT/var/opendnssec/signconf/ods.xml" &&
@@ -87,8 +87,12 @@ log_grep ods-enforcer-zone-list4 stdout 'No zones in database' &&
 # keys still in the generate state.
 log_this_timeout ods-enforcer-zone-add 30 ods-enforcer zone add -z test.delete --policy non-default &&
 # sleep required due to issue OPENDNSSEC-687, so this is in fact a bug
-sleep 30 &&
+#sleep 30 &&
+ods_waitfor_keys &&
+
+ods_enforcer_idle &&
 log_this_timeout ods-enforcer-zone-del 30 ods-enforcer zone delete -z test.delete &&
+ods_enforcer_idle &&
 
 ods_stop_enforcer &&
 return 0
