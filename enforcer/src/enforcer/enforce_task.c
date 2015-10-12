@@ -49,13 +49,6 @@
 
 static const char *module_str = "enforce_task";
 
-/* hack for perform_enforce. The task is somewhat persistent, it is
- * rescheduled but not recreated, thus needs some additional state.
- * this SHOULD be in task context. Ideally a struct wrapping this 
- * bool and engine. But the task does not have a context destructor 
- * atm. This hack prevents a leak. */
-bool enforce_all = 1;
-
 static void 
 enf_schedule_task(int sockfd, engine_type* engine, task_type *task, const char *what)
 {
@@ -293,12 +286,25 @@ time_t perform_enforce_lock(int sockfd, engine_type *engine,
 	return returntime;
 }
 
+struct enf_task_ctx {
+	engine_type *engine;
+	int enforce_all;
+};
+
+static task_type*
+enforce_task_clean_ctx(task_type *task)
+{
+	free(task->context);
+	return NULL;
+}
+
 static task_type *
 enforce_task_perform(task_type *task)
 {
-	int return_time = perform_enforce_lock(-1, (engine_type *)task->context, 
-		enforce_all, task, task->dbconn);
-	enforce_all = 0; /* global */
+	engine_type *engine = ((struct enf_task_ctx *)task->context)->engine;
+	int enforce_all = ((struct enf_task_ctx *)task->context)->enforce_all;
+	int return_time = perform_enforce_lock(-1, engine, enforce_all,
+		task, task->dbconn);
 	if (return_time != -1) return task;
 	task_cleanup(task);
 	return NULL;
@@ -310,9 +316,16 @@ enforce_task(engine_type *engine, bool all)
 	task_id what_id;
 	const char *what = "enforce";
 	const char *who = "next zone";
-	enforce_all = all;
+	struct enf_task_ctx *ctx = malloc(sizeof(struct enf_task_ctx));
+	if (!ctx) {
+		ods_log_error("Malloc failure, enforce task not scheduled");
+		return NULL;
+	}
+	ctx->engine = engine;
+	ctx->enforce_all = all;
 	what_id = task_register(what, module_str, enforce_task_perform);
-	return task_create(what_id, time_now(), who, what, (void*)engine, NULL);
+	return task_create(what_id, time_now(), who, what, ctx,
+		enforce_task_clean_ctx);
 }
 
 int
