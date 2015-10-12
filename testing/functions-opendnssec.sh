@@ -1690,19 +1690,20 @@ ods_comparexml () {
 	if [ $formatzonelist -eq 1 ]; then
 	  cat <<-END > diff.xsl~
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0">
-  <xsl:output method="xml"/>
-  <xsl:template match="Zonelist">
+  <xsl:output method="xml" omit-xml-declaration="yes" indent="yes"/>
+  <xsl:template match="ZoneList">
     <xsl:copy>
-      <xsl:apply-templates>
-        <xsl:sort select="@name"/>
-      </xsl:apply-templates>
+    <xsl:apply-templates>
+      <xsl:sort select="@name"/>
+    </xsl:apply-templates>
     </xsl:copy>
   </xsl:template>
-  <xsl:template match="@* | node()">
+  <xsl:template match="node()|@*|processing-instruction()">
     <xsl:copy>
-      <xsl:apply-templates select="@* | node()"/>
+      <xsl:apply-templates select="node()|@*|processing-instruction()"/>
     </xsl:copy>
   </xsl:template>
+  <xsl:template match="comment()"/>
 </xsl:stylesheet>
 END
 	elif [ $formatzoneconf -eq 1 -o $formatdefault -eq 1 ]; then
