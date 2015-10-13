@@ -11,6 +11,7 @@ ods_reset_env &&
 # Run the enforcer so that keys are created
 ods_start_enforcer &&
 
+ods-enforcer queue &&
 # Add our test zone. We already have the standard one and a "spare" one on a different policy
 log_this_timeout ods-enforcer-zone-add 30 ods-enforcer zone add -z test.delete --policy non-default &&
 # and wait for all the keys to have been generated
