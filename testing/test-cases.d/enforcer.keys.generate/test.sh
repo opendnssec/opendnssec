@@ -249,6 +249,8 @@ syslog_waitfor 120 "ods-enforcerd: .*1 zone(s) found on policy \"Policy6\""  &&
 log_this enforcer-keylist_8   ods-hsmutil list &&
 log_grep enforcer-keylist_8   stdout "8 keys found." &&
 
+ods_stop_enforcer &&
+
 echo && 
 echo "************OK******************" &&
 echo &&
