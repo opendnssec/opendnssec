@@ -93,13 +93,13 @@ perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 	int bRetractFromParent = 0;
 	int zone_updated;
 
-		if (!(zonelist = zone_list_new(dbconn))
-			/*|| zone_list_associated_fetch(zonelist)*/
-			|| zone_list_get(zonelist))
-		{
-			zone_list_free(zonelist);
-			zonelist = NULL;
-		}
+	if (!(zonelist = zone_list_new(dbconn))
+		/*|| zone_list_associated_fetch(zonelist)*/
+		|| zone_list_get(zonelist))
+	{
+		zone_list_free(zonelist);
+		zonelist = NULL;
+	}
 	if (!zonelist) {
 		/* TODO: log error */
 		ods_log_error("[%s] zonelist NULL", module_str);
@@ -107,23 +107,11 @@ perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 		return t_reschedule;
 	}
 
-	zone = zone_list_get_next(zonelist);
-	if (!zone) {
-		/* No zones scheduled for update at this time. We must be
-		 * called out of schedule. Make sure we reset the original
-		 * scheduled time */
-		if (bForceUpdate) {
-			/* we where forced to update so no zone means there are
-			 * no zones at all */
-			t_reschedule = -1;
-		} else {
-			t_reschedule = task->when;
-		}
-	}
-
-	for (; zone && !engine->need_to_reload && !engine->need_to_exit;
+	for (zone = zone_list_get_next(zonelist); zone;
 		zone_free(zone), zone = zone_list_get_next(zonelist))
 	{
+		if (engine->need_to_reload || engine->need_to_exit) break;
+
 		if (!bForceUpdate && (zone_next_change(zone) == -1)) {
 			continue;
 		} else if (zone_next_change(zone) > t_now && !bForceUpdate) {
