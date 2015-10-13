@@ -333,7 +333,7 @@ flush_enforce_task(engine_type *engine, bool enforce_all)
 {
 	int status;
 	task_id what_id;
-	(void) enforce_all;
+
 	printf("flushing\n"); /* TODO output to stdout */
 	/* flush (force to run) the enforcer task when it is waiting in the 
 	 task list. */
@@ -342,7 +342,7 @@ flush_enforce_task(engine_type *engine, bool enforce_all)
 		return 1;
 	}
 	if (!schedule_flush_type(engine->taskq, what_id)) {
-		status = schedule_task(engine->taskq, enforce_task(engine, 1));
+		status = schedule_task(engine->taskq, enforce_task(engine, enforce_all));
 		if (status != ODS_STATUS_OK) {
 			ods_fatal_exit("[%s] failed to create enforce task", module_str);
 			return 0;
