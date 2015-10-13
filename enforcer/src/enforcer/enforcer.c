@@ -2558,7 +2558,7 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 				ods_log_error("[%s] %s: error setnextroll 4", module_str, scmd);
 				key_data_list_free(keylist);
 				policy_key_list_free(policykeylist);
-				return now + 60;
+				return now + NOKEY_TIMEOUT;
 			}
 			*zone_updated = 1;
 			continue;

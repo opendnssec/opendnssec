@@ -35,6 +35,8 @@
 #include "log.h"
 #include "scheduler/schedule.h"
 #include "scheduler/task.h"
+#include "enforcer/enforce_task.h"
+#include "daemon/engine.h"
 #include "duration.h"
 #include "libhsm.h"
 
@@ -404,6 +406,7 @@ static task_type* hsm_key_factory_generate_task(task_type *task) {
     ods_log_debug("[hsm_key_factory_generate_task] generate for policy key done");
     policy_key_free(task2->policy_key);
     task2->policy_key = NULL;
+    flush_enforce_task(task2->engine, 1);
     task_cleanup(task);
     return NULL;
 }
