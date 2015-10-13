@@ -81,7 +81,9 @@ log_grep ods-enforcer-policy-list_4 stdout 'default2[[:space:]]*default[[:space:
 ! log_grep ods-enforcer-policy-list_4 stdout 'default3[[:space:]]*default[[:space:]]fast[[:space:]]test[[:space:]]policy' &&
 
 #delete zone ods1
+ods_enforcer_idle &&
 log_this_timeout ods-enforcer-zone-delete 30 "ods-enforcer zone delete -z ods1" &&
+ods_enforcer_idle &&
 log_grep ods-enforcer-zone-delete stdout "Deleted zone ods1 successfully" &&
 
 #policy purge

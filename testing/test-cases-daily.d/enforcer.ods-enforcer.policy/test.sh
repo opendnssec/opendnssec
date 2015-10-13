@@ -2,18 +2,6 @@
 
 #TEST: Test to check that policy import/export/list works correctly
 
-# Cater for the fact that solaris needs gdiff and openbsd needs gdiff installed!
-# Really need to get gdiff installed and then use a fins_diff function....
-#local diff_ignore_whitespace="diff -I ^[[:space:]]*$   -w -B "
-#case "$DISTRIBUTION" in
-#	sunos  )
-#		diff_ignore_whitespace="gdiff -I ^[[:space:]]*$  -w -B"
-#		;;
-#	openbsd )
-#		return 0
-#		;;
-#esac
-
 ##############
 #   There is a bug in the export where the salt value is exported along with the length
 #   To get around this until it is fixed, the exported files have the salt value stripped out
@@ -21,12 +9,6 @@
 #
 #  Also, the ordering in the gold files has been changed and this needs to be reviewed still...
 ##############
-
-comparexml () {
-	xsltproc diff.xsl "$1" | xmllint --c14n - | xmllint --format - > "$1.temp"
-	xsltproc diff.xsl "$2" | xmllint --c14n - | xmllint --format - > "$2.temp"
-	diff -rw "$1.temp" "$2.temp"
-}
 
 if [ -n "$HAVE_MYSQL" ]; then
 	ods_setup_conf conf.xml conf-mysql.xml
@@ -46,14 +28,14 @@ echo "************list OK******************" &&
 # Export the policy default and check some of its values
 ods-enforcer policy export -p default > kasp.xml.temp &&
 sed  -e 's#>.*</Salt>#/>#g' kasp.xml.temp > kasp.xml.temp2 &&
-comparexml  kasp.xml.temp2 kasp.xml.gold_export_default_policy &&
+ods_comparexml  kasp.xml.temp2 kasp.xml.gold_export_default_policy &&
 rm kasp.xml*.temp* &&
 echo "************export -p default OK******************" &&
 
 # Export both the policies
 ods-enforcer policy export --all > kasp.xml.temp &&
 sed  -e 's#>.*</Salt>#/>#g' kasp.xml.temp > kasp.xml.temp2 &&
-comparexml  kasp.xml.temp2 kasp.xml.gold_export_2_policies &&
+ods_comparexml  kasp.xml.temp2 kasp.xml.gold_export_2_policies &&
 rm kasp.xml*.temp* &&
 echo "************export --all OK******************" &&
 
@@ -73,7 +55,7 @@ sleep 1 &&
 # Export again and check against the imported kasp
 ods-enforcer policy export --all > kasp.xml.temp &&
 sed  -e 's#>.*</Salt>#/>#g' kasp.xml.temp > kasp.xml.temp2 &&
-comparexml  kasp.xml.temp2 kasp.xml.gold_export_3_policies &&
+ods_comparexml  kasp.xml.temp2 kasp.xml.gold_export_3_policies &&
 rm kasp.xml*.temp* &&
 
 echo "************export OK******************" &&
@@ -94,7 +76,7 @@ echo "************list OK******************" &&
 ### TO FIX: Shouldn't need this sleep, but need to wait for resalt until export bug is fixed!!
 sleep 1 &&
 # check the kasp hasn't been updated
-comparexml "$INSTALL_ROOT/etc/opendnssec/kasp.xml" "kasp.xml.gold_export_2_policies" &&
+ods_comparexml "$INSTALL_ROOT/etc/opendnssec/kasp.xml" "kasp.xml.gold_export_2_policies" &&
 echo "************kasp OK******************" &&
 
 # Now use purge to clean up policy 3 and it will also remove policy 2
@@ -107,7 +89,7 @@ log_this ods-enforcer-policy-purge_1 "ods-enforcer policy purge" &&
 # Export the remaining policy
 ods-enforcer policy export --all > kasp.xml.temp &&
 sed  -e 's#>.*</Salt>#/>#g' kasp.xml.temp > kasp.xml.temp2 &&
-comparexml  kasp.xml.temp2 kasp.xml.gold_export_default_policy &&
+ods_comparexml  kasp.xml.temp2 kasp.xml.gold_export_default_policy &&
 rm kasp.xml*.temp* &&
 
 echo "************export OK******************" &&
