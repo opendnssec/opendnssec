@@ -11,15 +11,11 @@ ods_reset_env &&
 # Run the enforcer so that keys are created
 ods_start_enforcer &&
 
-ods-enforcer queue &&
 # Add our test zone. We already have the standard one and a "spare" one on a different policy
 log_this_timeout ods-enforcer-zone-add 30 ods-enforcer zone add -z test.delete --policy non-default &&
-# and wait for all the keys to have been generated
+# and wait for all the keys and signconf files to have been generated
 ods_waitfor_keys &&
-ods-enforcer queue &&
 ods_enforcer_idle &&
-sleep 1 &&
-ods-enforcer queue &&
 
 # Check the presence of all signconfs
 test -f "$INSTALL_ROOT/var/opendnssec/signconf/ods.xml" &&
