@@ -6,6 +6,7 @@
 #TEST: of the right kind of key. Tries to test algorithm and length mixtures
 #TEST: shared keys and standby
 
+
 ODS_ENFORCER_WAIT_STOP_LOG=600
 
 if [ -n "$HAVE_MYSQL" ]; then
