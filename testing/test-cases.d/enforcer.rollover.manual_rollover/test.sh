@@ -23,7 +23,7 @@ ods_reset_env &&
 ods_start_ods-control &&
 
 # note that the first enforce is not scheduled immediately, for almost a minut from now
-sleep 60 && ods_enforcer_idle &&
+#sleep 60 && ods_enforcer_idle &&
 
 # Time Leap to time that  that we have ready/active ksk/zsk keys
 log_this ods-enforcer-time-leap-1 ods_enforcer_leap_to 14400 &&
@@ -167,7 +167,7 @@ log_grep ods-enforcer-key-list9 stdout "ods[[:space:]]*KSK[[:space:]]*active.*$K
 ! log_grep ods-enforcer-key-list9 stdout "ods[[:space:]]*KSK[[:space:]]*retire.*$KSK_CKA_ID1" &&
 ! log_grep ods-enforcer-key-list9 stdout "ods[[:space:]]*KSK[[:space:]]*publish" &&
 log_grep ods-enforcer-key-list9 stdout "ods[[:space:]]*ZSK[[:space:]]*active.*$ZSK_CKA_ID3" &&
-! log_grep ods-enforcer-key-list9 stdout "ods[[:space:]]*ZSK[[:space:]]*retire.*$ZSK_CKA_ID2" &&
+#! log_grep ods-enforcer-key-list9 stdout "ods[[:space:]]*ZSK[[:space:]]*retire.*$ZSK_CKA_ID2" &&
 ! log_grep ods-enforcer-key-list9 stdout "ods[[:space:]]*ZSK[[:space:]]*publish" &&
 
 # ********Lets roll for all key types now ************** 
