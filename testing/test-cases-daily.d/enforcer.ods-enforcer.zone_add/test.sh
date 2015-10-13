@@ -145,7 +145,7 @@ echo "Zonelist export contents OK" &&
 cp zonelist.xml.gold_export_local "$INSTALL_ROOT/etc/opendnssec/zonelist.xml" &&
 
 # Delete zone successfully without updating xml
-ods_enofrcer_idle &&
+ods_enforcer_idle &&
 log_this ods-enforcer-zone_del_1  ods-enforcer zone delete -z ods1 &&
 ods_enforcer_idle &&
 log_grep ods-enforcer-zone_del_1  stdout "Deleted zone ods1 successfully" &&
