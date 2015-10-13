@@ -113,18 +113,13 @@ ods_start_enforcer &&
 # Generate keys where the algorithms/lengths are different - use algorithm 7/2048 and 8/2048 
 # Firstly for an empty queue
 ods-enforcer zone list &&
-echo "A" &&
 log_this ods-zone-add-1 ods-enforcer zone add --zone ods1 --policy Policy3 &&
 ods_enforcer_idle &&
-echo "B" &&
 log_this ods-zone-add-2 ods-enforcer zone add --zone ods2 --policy Policy3 &&
 ods_enforcer_idle &&
-echo "C" &&
 log_this ods-zone-add-3 ods-enforcer zone add --zone ods3 --policy Policy3 &&
 ods_enforcer_idle &&
-echo "D" &&
 ods_enforcer_leap_over 60 &&
-echo "E" &&
 
 syslog_grep "ods-enforcerd: .*3 zone(s) found on policy \"Policy3\""  &&
 log_this enforcer-keylist_3   ods-hsmutil list &&
