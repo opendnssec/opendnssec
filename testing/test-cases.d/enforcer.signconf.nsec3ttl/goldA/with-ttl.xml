@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<SignerConfiguration>
+  <Zone name="with-ttl">
+    <Signatures>
+      <Resign>P2M</Resign>
+      <Refresh>P3M</Refresh>
+      <Validity>
+        <Default>P7M</Default>
+        <Denial>P7M</Denial>
+      </Validity>
+      <Jitter>PT12H</Jitter>
+      <InceptionOffset>PT5M</InceptionOffset>
+    </Signatures>
+    <Denial>
+      <NSEC3>
+        <TTL>PT1H</TTL>
+        <OptOut/>
+        <Hash>
+          <Algorithm>1</Algorithm>
+          <Iterations>5</Iterations>
+          <Salt>7ad8152435216e70</Salt>
+        </Hash>
+      </NSEC3>
+    </Denial>
+    <Keys>
+      <TTL>P2M</TTL>
+      <Key>
+        <Flags>257</Flags>
+        <Algorithm>7</Algorithm>
+        <Locator>c22e664d8dd67068a709ba570cf13e50</Locator>
+      </Key>
+      <Key>
+        <Flags>256</Flags>
+        <Algorithm>7</Algorithm>
+        <Locator>98197224060d184d9f3489ea028051d0</Locator>
+        <ZSK/>
+      </Key>
+    </Keys>
+    <SOA>
+      <TTL>P3M</TTL>
+      <Minimum>P14D</Minimum>
+      <Serial>unixtime</Serial>
+    </SOA>
+  </Zone>
+</SignerConfiguration>
