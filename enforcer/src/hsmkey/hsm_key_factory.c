@@ -183,7 +183,7 @@ void hsm_key_factory_generate(engine_type* engine, const db_connection_t* connec
     policy = policy_key_get_policy(policy_key);
     ods_log_info("[hsm_key_factory_generate] %ld keys needed for %lu zones govering %lu seconds, generating %ld keys", generate_keys, num_zones, duration, (long)(generate_keys-num_keys));
     generate_keys -= num_keys;
-    ods_log_info("%d zone(s) found on policy \"%s\"", num_zones, (policy != null ? policy_name(policy) : "<unknown"));
+    ods_log_info("%d zone(s) found on policy \"%s\"", num_zones, (policy != NULL ? policy_name(policy) : "<unknown"));
     ods_log_info("%ld new %s(s) (%d bits) need to be created.", (long) generate_keys, policy_key_role_text(policy_key), policy_key_bits(policy_key));
     policy_free(policy);
 
