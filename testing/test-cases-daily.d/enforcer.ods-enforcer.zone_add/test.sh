@@ -145,9 +145,9 @@ echo "Zonelist export contents OK" &&
 cp zonelist.xml.gold_export_local "$INSTALL_ROOT/etc/opendnssec/zonelist.xml" &&
 
 # Delete zone successfully without updating xml
-ods_enforcer_idle &&
+sleep 1 && ods_enforcer_idle &&
 log_this ods-enforcer-zone_del_1  ods-enforcer zone delete -z ods1 &&
-ods_enforcer_idle &&
+sleep 1 && ods_enforcer_idle &&
 log_grep ods-enforcer-zone_del_1  stdout "Deleted zone ods1 successfully" &&
 log_this ods-enforcer-zone_del_list_1   ods-enforcer zone list &&
 ! log_grep ods-enforcer-zone_del_list_1   stdout "ods1[[:space:]]*Policy1" &&
@@ -156,9 +156,9 @@ echo "Checking zonelist contents again after silent delete" &&
 ods_compare_zonelist  $INSTALL_ROOT/etc/opendnssec/zonelist.xml zonelist.xml.gold_export_local &&
 echo "Zonelist contents OK again" &&
 
-ods_enforcer_idle &&
+sleep 1 && ods_enforcer_idle &&
 log_this ods-enforcer-zone_del_2  ods-enforcer zone delete --zone ods2 --xml  &&
-ods_enforcer_idle &&
+sleep 1 && ods_enforcer_idle &&
 log_grep ods-enforcer-zone_del_2  stdout "Deleted zone ods2 successfully" &&
 log_grep ods-enforcer-zone_del_2 stdout "Zonelist .*/etc/opendnssec/zonelist.xml updated successfully" &&
 log_this ods-enforcer-zone_del_list_2   ods-enforcer zone list &&
@@ -172,9 +172,9 @@ log_this ods-enforcer-zone_del_list_2   ods-enforcer zone list &&
 log_grep ods-enforcer-zone_del_2 stderr  "Unable to delete zone, zone ods1 not found!" && 
 
 # Delete all remaining zones 
-ods_enforcer_idle &&
+sleep 1 && ods_enforcer_idle &&
 log_this ods-enforcer-zone_del_3  ods-enforcer zone delete --all --xml &&
-ods_enforcer_idle &&
+sleep 1 && ods_enforcer_idle &&
 
 log_this ods-enforcer-zone_del_list_3  ods-enforcer zone list  &&
 log_grep ods-enforcer-zone_del_list_3   stdout "No zones in database." &&
