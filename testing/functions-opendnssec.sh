@@ -332,6 +332,7 @@ ods_setup_env ()
 	shift $((OPTIND-1))
 
 	echo 'y' | log_this ods-enforcer-setup ods-enforcer-db-setup &&
+	rm -f "$INSTALL_ROOT/var/opendnssec/enforcer/zones.xml" &&
 	echo "ods_setup_env: setting up opendnssec environment" &&
 	ods_start_enforcer &&
 	log_this ods-enforcer-setup ods-enforcer policy import &&
