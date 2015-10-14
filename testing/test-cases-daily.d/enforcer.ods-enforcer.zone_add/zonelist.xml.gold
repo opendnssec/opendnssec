@@ -68,7 +68,7 @@
 				<Adapter type="File">install_dir/var/opendnssec/unsigned/ods5</Adapter>
 			</Input>
 			<Output>
-				<Adapter type="DNS">install_dir/etc/opendnssec/addns.xml</Adapter>
+				<Adapter type="DNS">install_dir/var/opendnssec/signed/ods5</Adapter>
 			</Output>
 		</Adapters>
 	</Zone>
@@ -89,10 +89,10 @@
 		<SignerConfiguration>install_dir/var/opendnssec/signconf/ods7.xml</SignerConfiguration>
 		<Adapters>
 			<Input>
-				<Adapter type="DNS">install_dir/etc/opendnssec/addns.xml</Adapter>
+				<Adapter type="DNS">install_dir/var/opendnssec/unsigned/ods7</Adapter>
 			</Input>
 			<Output>
-				<Adapter type="DNS">install_dir/etc/opendnssec/addns.xml</Adapter>
+				<Adapter type="DNS">install_dir/var/opendnssec/signed/ods7</Adapter>
 			</Output>
 		</Adapters>
 	</Zone>
@@ -113,7 +113,7 @@
 		<SignerConfiguration>install_dir/var/opendnssec/signconf/ods9.xml</SignerConfiguration>
 		<Adapters>
 			<Input>
-				<Adapter type="DNS">install_dir/etc/opendnssec/addns.xml</Adapter>
+				<Adapter type="DNS">install_dir/var/opendnssec/unsigned/ods9</Adapter>
 			</Input>
 			<Output>
 				<Adapter type="File">install_dir/var/opendnssec/signed/ods9</Adapter>

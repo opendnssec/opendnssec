@@ -1,10 +1,4 @@
 #!/usr/bin/env bash
-#
-#TEST: Test the ods-ksmutil zone add. when xml_flag == 1 check the permission of the zonelist.xml.backup or the path. 
-
-myPath="$INSTALL_ROOT/etc/opendnssec" 
-myFile="$INSTALL_ROOT/etc/opendnssec/zonelist.xml.backup" 
-bak_File="$INSTALL_ROOT/etc/opendnssec/zonelist.xml.backup_bak" 
 
 if [ -n "$HAVE_MYSQL" ]; then
         ods_setup_conf conf.xml conf-mysql.xml
@@ -14,51 +8,40 @@ fi &&
 
 ods_reset_env &&
 
-if [ -f $myFile ]; then
-	chmod 664 "$myFile" 
-else	
-	cp "$INSTALL_ROOT/etc/opendnssec/zonelist.xml" "$INSTALL_ROOT/etc/opendnssec/zonelist.xml.backup"
-fi &&
+cp $INSTALL_ROOT/etc/opendnssec/zonelist.xml $INSTALL_ROOT/etc/opendnssec/zonelist.xml.update &&
 
-chmod 755 $myPath &&
+chmod 755 $INSTALL_ROOT/etc/opendnssec &&
 
-echo "************Test begin******************" &&
-log_this ods-ksmutil-zone_none   ods-ksmutil zone list &&
-log_grep ods-ksmutil-zone_none   stdout "No zones in DB or zonelist." &&
+ods_start_enforcer &&
 
-log_this ods-ksmutil-zone_none_ods0   ods-ksmutil zone add --zone ods0 &&
-log_grep ods-ksmutil-zone_none_ods0   stdout "Imported zone: ods0" &&
+log_this ods-enforcer-zone_none   ods-enforcer zone list &&
+log_grep ods-enforcer-zone_none   stdout "No zones in database." &&
 
-######### When the zonelist.xml.backup exist, check the permission of the file ##############
-if [ -f $myFile ]; then 
-	chmod 0 $myFile
-fi &&
+log_this ods-enforcer-zone_ods0   ods-enforcer zone add --zone ods0 --xml &&
+log_grep ods-enforcer-zone_ods0   stdout "Zone ods0 added successfully" &&
 
-! log_this ods-ksmutil-zone_none_ods1   ods-ksmutil zone add --zone ods1 &&
-log_grep ods-ksmutil-zone_none_ods1   stdout "ERROR: The backup file $myFile can not be written." &&
+touch $INSTALL_ROOT/etc/opendnssec/zonelist.xml.update &&
+chmod 0 $INSTALL_ROOT/etc/opendnssec/zonelist.xml.update &&
+chmod 555 $INSTALL_ROOT/etc/opendnssec &&
 
-chmod 664 $myFile &&
-log_this ods-ksmutil-zone_none_ods1   ods-ksmutil zone add --zone ods1 &&
-log_grep ods-ksmutil-zone_none_ods1   stdout "Imported zone: ods1" &&
+! log_this ods-enforcer-zone_ods1 ods-enforcer zone add --zone ods1 --xml &&
+log_grep ods-enforcer-zone_ods1   stderr "Zonelist .*zonelist.xml update failed" &&
+log_grep ods-enforcer-zone_ods1   stdout "Zone ods1 added successfully" &&
 
-########### When the zonelist.xml.backup does not exist, check the permission of the path #########
-mv $myFile $bak_File &&
-chmod 555 $myPath &&
-! log_this ods-ksmutil-zone_none_ods2   ods-ksmutil zone add --zone ods2 &&
-log_grep ods-ksmutil-zone_none_ods2   stdout "ERROR: The backup file $myFile can not be written." &&
+log_this ods-enforcer-zone_ods2   ods-enforcer zone add --zone ods2 &&
+! log_grep ods-enforcer-zone_zone_ods2 stderr "Zonelist .*zonelist.xml update failed" &&
+log_grep ods-enforcer-zone_ods2   stdout "Zone ods2 added successfully" &&
 
+chmod 775 $INSTALL_ROOT/etc/opendnssec &&
 
-chmod 755 $myPath &&
-log_this ods-ksmutil-zone_none_ods2   ods-ksmutil zone add --zone ods2 &&
-log_grep ods-ksmutil-zone_none_ods2   stdout "Imported zone: ods2" &&
+log_this ods-enforcer-zone_ods3   ods-enforcer zone add --zone ods3 --xml &&
+! log_grep ods-enforcer-zone_zone_ods3 stderr "Zonelist .*zonelist.xml update failed" &&
+log_grep ods-enforcer-zone_ods3   stdout "Zone ods3 added successfully" &&
 
-mv $bak_File $myFile &&
+# compare the zonelist
+ods_comparexml --format-installpath zonelist-gold.xml $INSTALL_ROOT/etc/opendnssec/zonelist.xml &&
 
-########### The check should only be run when xml_flag == 1 ####################################
-chmod 0 $myFile &&
-log_this ods-ksmutil-zone_none_ods3   ods-ksmutil zone add --zone ods3 --no-xml &&
-log_grep ods-ksmutil-zone_none_ods3   stdout "Imported zone: ods3 into database only" &&
-chmod 664 $myFile &&
+ods_stop_enforcer &&
 
 echo && 
 echo "************OK******************" &&

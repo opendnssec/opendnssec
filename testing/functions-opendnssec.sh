@@ -454,7 +454,6 @@ ods_enforcer_start_timeshift ()
 	fi
 	return 1
 }
-
 ods_enforcer_idle ()
 {
 	local status_grep1
@@ -1575,6 +1574,32 @@ ods_bind9_dynupdate ()
 	return 0
 }
 
+ods_compare_zonelist () {
+	cat <<-END > diff.xsl~
+		<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0">
+		  <xsl:output method="xml"/>
+		  <xsl:template match="ZoneList">
+		    <xsl:copy>
+		      <xsl:apply-templates select="Zone|@*">
+	        	<xsl:sort select="@name"/>
+		      </xsl:apply-templates>
+		    </xsl:copy>
+		  </xsl:template>
+		  <xsl:template match="node()|@*">
+		    <xsl:copy>
+		      <xsl:apply-templates select="node()|@*"/>
+		    </xsl:copy>
+		  </xsl:template>
+		</xsl:stylesheet>
+	END
+	xsltproc diff.xsl~ "$1" | xmllint --c14n - | xmllint --format - > "$1~"
+	xsltproc diff.xsl~ "$2" | xmllint --c14n - | xmllint --format - > "$2~"
+	diff -rbw "$1~" "$2~"
+	
+	return $?
+	
+}
+
 # Method to compare a 'gold' directory containing signconfs with a 'base' directory
 # generated during a test run. Assumes the directories are called 'gold' and 'base'
 # and the script is called from the directory which holds both of them.
@@ -1666,4 +1691,94 @@ ods_compare_gold_vs_base_signconf ()
 	rm -rf gold_temp
 	rm -rf base_temp
 	return 0
+}
+
+
+ods_comparexml () {
+	local rootpath
+	local formatzoneconf=0
+	local formatzonelist=0
+	local formatinstallpath=0
+	local formatplain=0
+	local formatdefault=1
+	rootpath=`echo $INSTALL_ROOT | sed -e 's/\//\\\\\//g'`
+        while :; do
+          case $1 in
+          --format-plain)
+            formatdefault=0
+            formatplain=1
+            ;;
+          --format-zoneconf)
+            formatdefault=0
+            formatzoneconf=1
+            ;;
+          --format-zonelist)
+            formatdefault=0
+            formatzonelist=1
+            ;;
+          --format-installpath)
+            formatdefault=0
+            formatinstallpath=1
+            ;;
+          *)
+            break
+            ;;
+          esac
+          shift
+        done
+	if [ $formatzonelist -eq 1 ]; then
+	  cat <<-END > diff.xsl~
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0">
+  <xsl:output method="xml" omit-xml-declaration="yes" indent="yes"/>
+  <xsl:template match="ZoneList">
+    <xsl:copy>
+    <xsl:apply-templates>
+      <xsl:sort select="@name"/>
+    </xsl:apply-templates>
+    </xsl:copy>
+  </xsl:template>
+  <xsl:template match="node()|@*|processing-instruction()">
+    <xsl:copy>
+      <xsl:apply-templates select="node()|@*|processing-instruction()"/>
+    </xsl:copy>
+  </xsl:template>
+  <xsl:template match="comment()"/>
+</xsl:stylesheet>
+END
+	elif [ $formatzoneconf -eq 1 -o $formatdefault -eq 1 ]; then
+	  cat <<-END > diff.xsl~
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0">
+  <xsl:output method="xml"/>
+  <xsl:template match="Keys">
+    <xsl:copy>
+      <xsl:apply-templates>
+        <xsl:sort/>
+      </xsl:apply-templates>
+    </xsl:copy>
+  </xsl:template>
+  <xsl:template match="*">
+    <xsl:copy>
+      <xsl:apply-templates/>
+    </xsl:copy>
+  </xsl:template>
+</xsl:stylesheet>
+END
+	fi
+	if [ $formatzoneconf -eq 1 ]; then
+	  xsltproc diff.xsl~ "$1" | sed -e "s/$rootpath//g" | xmllint --c14n - | xmllint --format - > "$1~"
+	  xsltproc diff.xsl~ "$2" | sed -e "s/$rootpath//g" | xmllint --c14n - | xmllint --format - > "$2~"
+	elif [ $formatzonelist -eq 1 ]; then
+	  xsltproc diff.xsl~ "$1" | sed -e "s/$rootpath//g" | xmllint --c14n - | xmllint --format - > "$1~"
+	  xsltproc diff.xsl~ "$2" | sed -e "s/$rootpath//g" | xmllint --c14n - | xmllint --format - > "$2~"
+	elif [ $formatinstallpath -eq 1 ]; then
+	  sed < "$1" -e "s/$rootpath//g" | xmllint --c14n - | xmllint --format - > "$1~"
+	  sed < "$2" -e "s/$rootpath//g" | xmllint --c14n - | xmllint --format - > "$2~"
+	elif [ $formatplain -eq 1 ]; then
+	  xmllint --c14n "$1" | xmllint --format - > "$1~"
+	  xmllint --c14n "$2" | xmllint --format - > "$2~"
+	else
+	  xsltproc diff.xsl~ "$1" | xmllint --c14n - | xmllint --format - > "$1~"
+	  xsltproc diff.xsl~ "$2" | xmllint --c14n - | xmllint --format - > "$2~"
+	fi
+	diff -rw "$1~" "$2~"
 }
