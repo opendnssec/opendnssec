@@ -87,6 +87,7 @@ syslog_waitfor_count 60 2 'ods-signerd: .*\[STATS\] with-0-ttl' &&
 `$GREP -q -- "with-ttl.[[:space:]]0[[:space:]]IN[[:space:]]NSEC3PARAM" "$INSTALL_ROOT/var/opendnssec/signed/with-ttl"` &&
 
 ods_stop_signer && 
+ods_stop_enforcer &&
 
 rm -rf base &&
 rm -rf gold &&
