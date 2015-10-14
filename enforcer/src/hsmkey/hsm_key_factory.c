@@ -87,12 +87,13 @@ void hsm_key_factory_generate(engine_type* engine, const db_connection_t* connec
     size_t num_keys;
     zone_t* zone = NULL;
     size_t num_zones;
-    size_t generate_keys;
+    ssize_t generate_keys;
     libhsm_key_t *key = NULL;
     hsm_ctx_t *hsm_ctx;
     char* key_id;
     struct engineconfig_repository* hsm;
     char* hsm_err;
+    policy_t* policy;
 
     if (!engine) {
         return;
@@ -173,13 +174,18 @@ void hsm_key_factory_generate(engine_type* engine, const db_connection_t* connec
      * zone.
      */
     duration = (duration ? duration : engine->config->automatic_keygen_duration);
-    generate_keys = num_zones * (size_t)ceil(duration / (double)policy_key_lifetime(policy_key));
+    generate_keys = (ssize_t)ceil(duration / (double)policy_key_lifetime(policy_key));
     if (num_zones == 0 || num_keys >= generate_keys) {
         pthread_mutex_unlock(__hsm_key_factory_lock);
         return;
     }
-    ods_log_info("[hsm_key_factory_generate] %lu keys needed for %lu zones govering %lu seconds, generating %lu keys for policy %lu", generate_keys, num_zones, duration, (unsigned long)generate_keys-num_keys, policy_key_policy_id(policy_key));
+
+    policy = policy_key_get_policy(policy_key);
+    ods_log_info("[hsm_key_factory_generate] %ld keys needed for %lu zones govering %lu seconds, generating %ld keys", generate_keys, num_zones, duration, (long)(generate_keys-num_keys));
     generate_keys -= num_keys;
+    ods_log_info("%d zone(s) found on policy \"%s\"", num_zones, (policy != null ? policy_name(policy) : "<unknown"));
+    ods_log_info("%ld new %s(s) (%d bits) need to be created.", (long) generate_keys, policy_key_role_text(policy_key), policy_key_bits(policy_key));
+    policy_free(policy);
 
     /*
      * Create a HSM context and check that the repository exists
