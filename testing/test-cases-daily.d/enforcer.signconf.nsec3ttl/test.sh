@@ -33,13 +33,15 @@ rm base/* &&
 # Now export and check the TTL values are there
 # Note the exported kasp has all times in seconds to can't be compared to the input kasp.xml
 echo "Exporting policy" &&
-ods-enforcer policy export --all > kasp.xml.temp && 
-sed -e 's#>.*</Salt># />#g' kasp.xml.temp > kasp.xml.temp2 
-diff  -w  kasp.xml.temp2 kasp.xml.gold_exported && 
+ods-enforcer policy export --all > kasp.xml.temp~ && 
+sed -e 's#>.*</Salt># />#g' kasp.xml.temp~ > kasp.xml.temp2~ &&
+diff  -w  kasp.xml.temp2~ kasp.xml.gold_exported && 
 echo "Exported policy OK" &&
 
 # Lets fire up the signer and check what ends up in the zones
-ods_start_signer && 
+! ods_start_signer && 
+cat _log.$BUILD_TAG.ods_ods-control_signer_start.stderr &&
+cat _log.$BUILD_TAG.ods_ods-control_signer_start.stdout &&
 syslog_waitfor 60 'ods-signerd: .*\[STATS\] no-ttl' &&
 syslog_waitfor 60 'ods-signerd: .*\[STATS\] with-ttl' &&
 syslog_waitfor 60 'ods-signerd: .*\[STATS\] with-0-ttl' &&
@@ -74,9 +76,9 @@ rm gold/* &&
 rm base/* &&
 
 # Lets export the policies again and double check
-ods-enforcer policy export --all > kasp.xml.temp3 && 
-sed -e 's#>.*</Salt># />#g' kasp.xml.temp3 > kasp.xml.temp4
-diff  -w  kasp.xml.temp4 kasp.xml.gold_exported2 && 
+ods-enforcer policy export --all > kasp.xml.temp3~ && 
+sed -e 's#>.*</Salt># />#g' kasp.xml.temp3~ > kasp.xml.temp4~ &&
+diff  -w  kasp.xml.temp4~ kasp.xml.gold_exported2 && 
 echo "Exported changed policy OK" &&
 
 syslog_waitfor_count 60 2 'ods-signerd: .*\[STATS\] no-ttl' &&
@@ -91,10 +93,7 @@ ods_stop_enforcer &&
 
 rm -rf base &&
 rm -rf gold &&
-rm kasp.xml.temp &&
-rm kasp.xml.temp2 &&
-rm kasp.xml.temp3 &&
-rm kasp.xml.temp4 &&
+rm kasp.xml.temp* &&
 
 
 echo &&
