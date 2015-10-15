@@ -51,6 +51,7 @@ struct __hsm_key_factory_task {
     policy_key_t* policy_key;
     policy_t* policy;
     time_t duration;
+    int reschedule_enforce_task;
 };
 
 static pthread_once_t __hsm_key_factory_once = PTHREAD_ONCE_INIT;
@@ -413,7 +414,8 @@ static task_type* hsm_key_factory_generate_task(task_type *task) {
     ods_log_debug("[hsm_key_factory_generate_task] generate for policy key done");
     policy_key_free(task2->policy_key);
     task2->policy_key = NULL;
-    flush_enforce_task(task2->engine, 1);
+    if (task2->reschedule_enforce_task)
+        flush_enforce_task(task2->engine, 1);
     task_cleanup(task);
     return NULL;
 }
@@ -475,8 +477,19 @@ static task_type* hsm_key_factory_clean_context(task_type *task)
     return task;
 }
 
-int hsm_key_factory_schedule_generate(engine_type* engine,
-    const policy_key_t* policy_key_orig, time_t duration)
+/**
+ * Schedule a task to generate keys for a specific policy key.
+ * \param[in] engine an engine_type.
+ * \prama[in] policy_key_orig a policy_key_t pointer to the policy key we will
+ * generate keys for.
+ * \param[in] duration a time_t specifying the duration to generate keys from,
+ * if its zero then the duration from conf.xml is taken.
+ * \return non-zero on error.
+ */
+static int
+hsm_key_factory_schedule_generate(engine_type* engine,
+    const policy_key_t* policy_key_orig, time_t duration,
+    int reschedule_enforce_task)
 {
     task_id what_id;
     policy_key_t* policy_key;
@@ -494,6 +507,7 @@ int hsm_key_factory_schedule_generate(engine_type* engine,
     task2->engine = engine;
     task2->policy_key = policy_key;
     task2->duration = duration;
+    task2->reschedule_enforce_task = reschedule_enforce_task;
 
     what_id = task_register("hsmkeygen", "hsm_key_factory_schedule_generation",
         hsm_key_factory_generate_task);
@@ -624,7 +638,7 @@ hsm_key_t* hsm_key_factory_get_key(engine_type* engine,
      */
     if (!(hsm_key = hsm_key_list_get_next(hsm_key_list))) {
         ods_log_warning("[hsm_key_factory_get_key] no keys available");
-        hsm_key_factory_schedule_generate(engine, policy_key, 0);
+        hsm_key_factory_schedule_generate(engine, policy_key, 0, 1);
         hsm_key_list_free(hsm_key_list);
         return NULL;
     }
@@ -645,7 +659,7 @@ hsm_key_t* hsm_key_factory_get_key(engine_type* engine,
      * Schedule generation because we used up a key and return the HSM key
      */
     ods_log_debug("[hsm_key_factory_get_key] key allocated");
-    hsm_key_factory_schedule_generate(engine, policy_key, 0);
+    hsm_key_factory_schedule_generate(engine, policy_key, 0, 0);
     return hsm_key;
 }
 
