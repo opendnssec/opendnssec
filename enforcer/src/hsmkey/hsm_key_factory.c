@@ -95,6 +95,7 @@ void hsm_key_factory_generate(engine_type* engine, const db_connection_t* connec
     char* key_id;
     struct engineconfig_repository* hsm;
     char* hsm_err;
+    uint64_t id = 0;
 
     if (!engine) {
         return;
@@ -180,7 +181,13 @@ void hsm_key_factory_generate(engine_type* engine, const db_connection_t* connec
         pthread_mutex_unlock(__hsm_key_factory_lock);
         return;
     }
-    ods_log_info("[hsm_key_factory_generate] %lu keys needed for %lu zones govering %lu seconds, generating %lu keys for policy %lu", generate_keys, num_zones, duration, (unsigned long)generate_keys-num_keys, policy_key_policy_id(policy_key));
+    
+    (void) db_value_to_uint64(policy_key_policy_id(policy_key), &id);
+    ods_log_info("[hsm_key_factory_generate] %lu keys needed for %lu "
+        "zones govering %lu seconds, generating %lu keys for policy %lu",
+        generate_keys, num_zones, duration,
+        (unsigned long)(generate_keys-num_keys), /* This is safe because we checked num_keys < generate_keys */
+        id);
     generate_keys -= num_keys;
 
     /*
