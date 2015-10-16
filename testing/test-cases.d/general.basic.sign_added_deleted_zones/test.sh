@@ -60,7 +60,7 @@ log_this ods-signer-sign-all ods-signer update --all &&
 log_this ods-signer-sign-all ods-signer sign --all &&
 
 #syslog_waitfor_count 5 1 "update zone: ods0" &&
-syslog_waitfor_count 25 1 'ods-signerd: .*\[STATS\] ods0' &&
+syslog_waitfor_count 60 1 'ods-signerd: .*\[STATS\] ods0' &&
 #syslog_grep_count 1 "update zone: ods1" &&
 syslog_grep_count 1 'ods-signerd: .*\[STATS\] ods1' &&
 
