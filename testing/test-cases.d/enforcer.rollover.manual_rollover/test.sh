@@ -46,6 +46,7 @@ log_grep ods-enforcer-key-rollover_bad1 stdout 'expected --zone <zone> option' &
 log_grep ods-enforcer-key-rollover_bad2 stdout "zone bob not found" &&
 
 # ******************* Roll the ZSK first ************************ 
+sleep 3 && ## it seems that this collides with enforce task, wait a bit... :(
 log_this ods-enforcer-key-rollover1 ods-enforcer key rollover --zone ods --keytype ZSK &&
 syslog_waitfor 5 "ods-enforcerd: .*Manual rollover initiated for ZSK on Zone: ods" &&
 sleep 10 &&
