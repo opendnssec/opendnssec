@@ -39,11 +39,7 @@ diff  -w  kasp.xml.temp2~ kasp.xml.gold_exported &&
 echo "Exported policy OK" &&
 
 # Lets fire up the signer and check what ends up in the zones
-if [ -n "$HAVE_MYSQL" ]; then
-        ! ods_start_signer
-else
-	ods_start_signer
-fi &&
+ods_start_signer 360 &&
 cat _log.$BUILD_TAG.ods_ods-control_signer_start.stderr &&
 cat _log.$BUILD_TAG.ods_ods-control_signer_start.stdout &&
 syslog_waitfor 60 'ods-signerd: .*\[STATS\] no-ttl' &&
