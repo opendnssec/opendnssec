@@ -93,7 +93,7 @@ void hsm_key_factory_generate(engine_type* engine, const db_connection_t* connec
     char* key_id;
     struct engineconfig_repository* hsm;
     char* hsm_err;
-    policy_t* policy;
+    const policy_t* policy;
 
     if (!engine) {
         return;
@@ -180,7 +180,7 @@ void hsm_key_factory_generate(engine_type* engine, const db_connection_t* connec
         return;
     }
 
-    policy = policy_key_get_policy(policy_key);
+    policy = policy_key_policy(policy_key);
     ods_log_info("[hsm_key_factory_generate] %ld keys needed for %lu zones govering %lu seconds, generating %ld keys", generate_keys, num_zones, duration, (long)(generate_keys-num_keys));
     generate_keys -= num_keys;
     ods_log_info("%d zone(s) found on policy \"%s\"", num_zones, (policy != NULL ? policy_name(policy) : "<unknown"));
