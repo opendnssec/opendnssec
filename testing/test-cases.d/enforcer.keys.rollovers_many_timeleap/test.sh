@@ -356,13 +356,6 @@ log_this ods-enforcer-output_manual ods-enforcer key list --debug &&
 log_this ods-enforcer-output_manual ods-enforcer rollover list &&
 
 
-
-#### TIME 12
-log_this ods-enforcer-output_manual echo "----- Wait for DS TTL to pass  " &&
-log_this ods-enforcer-output_manual echo "--------------- TIME LEAP 12 -----------------" &&
-log_this ods-enforcer-output_manual 'ods-enforcer time leap' && sleep 1 &&
-log_this ods-enforcer-output_manual echo "--------------------------------------------" &&
-
 log_this ods-enforcer-output_manual echo "----- Expect hidden DS for old KSK " &&
 log_this ods-enforcer-output_manual ods-enforcer key list  --verbose &&
 log_this ods-enforcer-output_manual ods-enforcer key list --debug &&
@@ -373,10 +366,12 @@ log_grep ods-enforcer-temp stdout "ods1[[:space:]]*KSK[[:space:]]*hidden[[:space
 log_grep ods-enforcer-temp stdout "ods1[[:space:]]*KSK[[:space:]]*omnipresent[[:space:]]*omnipresent[[:space:]]*omnipresent.*$KSK2_CKA" &&
 rm _log.$BUILD_TAG.ods-enforcer-temp.stdout &&
 
-#### TIME 13: hidden DNSKEY and RRSIGDNSKEY
-log_this ods-enforcer-output_manual echo "--------------- TIME LEAP 13 -----------------" &&
+
+#### TIME 12
+log_this ods-enforcer-output_manual echo "--------------- TIME LEAP 12 -----------------" &&
 log_this ods-enforcer-output_manual 'ods-enforcer time leap' && sleep 1 &&
 log_this ods-enforcer-output_manual echo "--------------------------------------------" &&
+
 
 log_this ods-enforcer-output_manual echo "----- Expect hidden DNSKEY and RRSIGDNSKEY" &&
 log_this ods-enforcer-output_manual ods-enforcer key list  --verbose &&
@@ -389,7 +384,21 @@ log_grep ods-enforcer-temp stdout "ods1[[:space:]]*KSK[[:space:]]*omnipresent[[:
 rm _log.$BUILD_TAG.ods-enforcer-temp.stdout &&
 
 
-#### TIME 14: old KSK has been removed
+#### TIME 13
+log_this ods-enforcer-output_manual echo "--------------- TIME LEAP 13 -----------------" &&
+log_this ods-enforcer-output_manual 'ods-enforcer time leap' && sleep 1 &&
+log_this ods-enforcer-output_manual echo "--------------------------------------------" &&
+
+log_this ods-enforcer-output_manual echo "----- Expect old ZSK has been removed from the list " &&
+log_this ods-enforcer-output_manual ods-enforcer key list  --verbose &&
+log_this ods-enforcer-output_manual ods-enforcer key list --debug &&
+log_this ods-enforcer-output_manual ods-enforcer rollover list &&
+
+log_this ods-enforcer-temp ods-enforcer key list  --verbose &&
+! log_grep ods-enforcer-temp stdout "ods1[[:space:]]*ZSK[[:space:]]*retire" &&
+rm _log.$BUILD_TAG.ods-enforcer-temp.stdout &&
+
+#### TIME 14
 log_this ods-enforcer-output_manual echo "--------------- TIME LEAP 14 -----------------" &&
 log_this ods-enforcer-output_manual 'ods-enforcer time leap' && sleep 1 &&
 log_this ods-enforcer-output_manual echo "--------------------------------------------" &&
@@ -403,7 +412,6 @@ log_this ods-enforcer-temp ods-enforcer key list  --debug &&
 ! log_grep ods-enforcer-temp stdout "ods1[[:space:]]*KSK.*$KSK1_CKA" &&
 log_grep ods-enforcer-temp stdout "ods1[[:space:]]*KSK[[:space:]]*omnipresent[[:space:]]*omnipresent[[:space:]]*omnipresent.*$KSK2_CKA" &&
 rm _log.$BUILD_TAG.ods-enforcer-temp.stdout &&
-
 
 
 ods_stop_enforcer &&
