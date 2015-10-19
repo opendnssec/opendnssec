@@ -273,7 +273,6 @@ interface_start(const char* cmd, const char* servsock_filename)
             userbuf[n] = 0;
             ods_str_trim(userbuf,0);
 #endif
-            if (strlen(userbuf) == 0) continue;
             /* These commands don't go through the pipe */
             if (strcmp(userbuf, "exit") == 0 || strcmp(userbuf, "quit") == 0)
                 break;
@@ -327,7 +326,9 @@ interface_start(const char* cmd, const char* servsock_filename)
                 } else if (r == 1) {
                     if (cmd) 
                         error = exitcode;
-                    else /* we are interactive so print response */
+                    else if (strlen(userbuf) != 0)
+                        /* we are interactive so print response.
+                         * But also suppress when no command is given. */
                         fprintf(stderr, "Daemon exit code: %d\n", exitcode);
                     break;
                 }

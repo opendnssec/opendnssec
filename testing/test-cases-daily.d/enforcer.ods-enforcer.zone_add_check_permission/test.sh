@@ -12,7 +12,7 @@ cp $INSTALL_ROOT/etc/opendnssec/zonelist.xml $INSTALL_ROOT/etc/opendnssec/zoneli
 
 chmod 755 $INSTALL_ROOT/etc/opendnssec &&
 
-ods_ods-control_enforcer_start &&
+ods_start_enforcer &&
 
 log_this ods-enforcer-zone_none   ods-enforcer zone list &&
 log_grep ods-enforcer-zone_none   stdout "No zones in database." &&
@@ -41,7 +41,7 @@ log_grep ods-enforcer-zone_ods3   stdout "Zone ods3 added successfully" &&
 # compare the zonelist
 ods_comparexml --format-installpath zonelist-gold.xml $INSTALL_ROOT/etc/opendnssec/zonelist.xml &&
 
-ods_ods-control_enforcer_stop &&
+ods_stop_enforcer &&
 
 echo && 
 echo "************OK******************" &&
