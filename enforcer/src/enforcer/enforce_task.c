@@ -279,10 +279,12 @@ struct enf_task_ctx {
 	int enforce_all;
 };
 
+static struct enf_task_ctx enforcer_context;
+
 static task_type*
 enforce_task_clean_ctx(task_type *task)
 {
-	free(task->context);
+	task->context = NULL;
 	return NULL;
 }
 
@@ -293,6 +295,7 @@ enforce_task_perform(task_type *task)
 	int enforce_all = ((struct enf_task_ctx *)task->context)->enforce_all;
 	int return_time = perform_enforce_lock(-1, engine, enforce_all,
 		task, task->dbconn);
+	enforcer_context.enforce_all = 0;
 	if (return_time != -1) return task;
 	task_cleanup(task);
 	return NULL;
@@ -304,7 +307,7 @@ enforce_task(engine_type *engine, bool all)
 	task_id what_id;
 	const char *what = "enforce";
 	const char *who = "next zone";
-	struct enf_task_ctx *ctx = malloc(sizeof(struct enf_task_ctx));
+	struct enf_task_ctx *ctx = &enforcer_context;
 	if (!ctx) {
 		ods_log_error("Malloc failure, enforce task not scheduled");
 		return NULL;
@@ -329,6 +332,9 @@ flush_enforce_task(engine_type *engine, bool enforce_all)
 		/* no such task */
 		return 1;
 	}
+
+	enforcer_context.enforce_all = 1;
+
 	if (!schedule_flush_type(engine->taskq, what_id)) {
 		status = schedule_task(engine->taskq, enforce_task(engine, enforce_all));
 		if (status != ODS_STATUS_OK) {
