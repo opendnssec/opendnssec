@@ -49,13 +49,6 @@
 
 static const char *module_str = "enforce_task";
 
-/* hack for perform_enforce. The task is somewhat persistent, it is
- * rescheduled but not recreated, thus needs some additional state.
- * this SHOULD be in task context. Ideally a struct wrapping this 
- * bool and engine. But the task does not have a context destructor 
- * atm. This hack prevents a leak. */
-bool enforce_all = 1;
-
 static void 
 enf_schedule_task(int sockfd, engine_type* engine, task_type *task, const char *what)
 {
@@ -100,13 +93,13 @@ perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 	int bRetractFromParent = 0;
 	int zone_updated;
 
-		if (!(zonelist = zone_list_new(dbconn))
-			/*|| zone_list_associated_fetch(zonelist)*/
-			|| zone_list_get(zonelist))
-		{
-			zone_list_free(zonelist);
-			zonelist = NULL;
-		}
+	if (!(zonelist = zone_list_new(dbconn))
+		/*|| zone_list_associated_fetch(zonelist)*/
+		|| zone_list_get(zonelist))
+	{
+		zone_list_free(zonelist);
+		zonelist = NULL;
+	}
 	if (!zonelist) {
 		/* TODO: log error */
 		ods_log_error("[%s] zonelist NULL", module_str);
@@ -114,26 +107,14 @@ perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 		return t_reschedule;
 	}
 
-	zone = zone_list_get_next(zonelist);
-	if (!zone) {
-		/* No zones scheduled for update at this time. We must be
-		 * called out of schedule. Make sure we reset the original
-		 * scheduled time */
-		if (bForceUpdate) {
-			/* we where forced to update so no zone means there are
-			 * no zones at all */
-			t_reschedule = -1;
-		} else {
-			t_reschedule = task->when;
-		}
-	}
-
-	for (; zone && !engine->need_to_reload && !engine->need_to_exit;
+	for (zone = zone_list_get_next(zonelist); zone;
 		zone_free(zone), zone = zone_list_get_next(zonelist))
 	{
+		if (engine->need_to_reload || engine->need_to_exit) break;
+
 		if (!bForceUpdate && (zone_next_change(zone) == -1)) {
 			continue;
-		} else if (zone_next_change(zone) > t_now) {
+		} else if (zone_next_change(zone) > t_now && !bForceUpdate) {
 			/* This zone needs no update, however it might be the first
 			 * for future updates */
 			if (zone_next_change(zone) < t_reschedule || !firstzone)
@@ -293,12 +274,25 @@ time_t perform_enforce_lock(int sockfd, engine_type *engine,
 	return returntime;
 }
 
+struct enf_task_ctx {
+	engine_type *engine;
+	int enforce_all;
+};
+
+static task_type*
+enforce_task_clean_ctx(task_type *task)
+{
+	free(task->context);
+	return NULL;
+}
+
 static task_type *
 enforce_task_perform(task_type *task)
 {
-	int return_time = perform_enforce_lock(-1, (engine_type *)task->context, 
-		enforce_all, task, task->dbconn);
-	enforce_all = 0; /* global */
+	engine_type *engine = ((struct enf_task_ctx *)task->context)->engine;
+	int enforce_all = ((struct enf_task_ctx *)task->context)->enforce_all;
+	int return_time = perform_enforce_lock(-1, engine, enforce_all,
+		task, task->dbconn);
 	if (return_time != -1) return task;
 	task_cleanup(task);
 	return NULL;
@@ -310,9 +304,16 @@ enforce_task(engine_type *engine, bool all)
 	task_id what_id;
 	const char *what = "enforce";
 	const char *who = "next zone";
-	enforce_all = all;
+	struct enf_task_ctx *ctx = malloc(sizeof(struct enf_task_ctx));
+	if (!ctx) {
+		ods_log_error("Malloc failure, enforce task not scheduled");
+		return NULL;
+	}
+	ctx->engine = engine;
+	ctx->enforce_all = all;
 	what_id = task_register(what, module_str, enforce_task_perform);
-	return task_create(what_id, time_now(), who, what, (void*)engine, NULL);
+	return task_create(what_id, time_now(), who, what, ctx,
+		enforce_task_clean_ctx);
 }
 
 int
@@ -320,7 +321,7 @@ flush_enforce_task(engine_type *engine, bool enforce_all)
 {
 	int status;
 	task_id what_id;
-	(void) enforce_all;
+
 	printf("flushing\n"); /* TODO output to stdout */
 	/* flush (force to run) the enforcer task when it is waiting in the 
 	 task list. */
@@ -329,7 +330,7 @@ flush_enforce_task(engine_type *engine, bool enforce_all)
 		return 1;
 	}
 	if (!schedule_flush_type(engine->taskq, what_id)) {
-		status = schedule_task(engine->taskq, enforce_task(engine, 1));
+		status = schedule_task(engine->taskq, enforce_task(engine, enforce_all));
 		if (status != ODS_STATUS_OK) {
 			ods_fatal_exit("[%s] failed to create enforce task", module_str);
 			return 0;
