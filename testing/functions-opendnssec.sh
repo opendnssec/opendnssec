@@ -261,11 +261,15 @@ ods_setup_zone ()
 ods_reset_env ()
 {
 	local no_enforcer_stop=""
+	local no_enforcer_idle=""
 	OPTIND=1
-	while getopts ":n" opt; do
+	while getopts ":ni" opt; do
 		case "$opt" in
 			n)
-				no_enforcer_stop=1
+				no_enforcer_stop="-n"
+				;;
+			i)
+				no_enforcer_idle="-i"
 				;;
 			\?)
 				echo "ods_reset_env: Invalid option: -$OPTARG" >&2
@@ -278,12 +282,12 @@ ods_reset_env ()
 	echo "ods_reset_env: resetting opendnssec environment (no_enforcer_stop=$no_enforcer_stop)"
 
 	if [ -z "$1" ]; then
-                ods_softhsm_init_token 0 
-        else
-                ods_softhsm_init_token $1 $2 $3 $4 
-        fi &&
+		ods_softhsm_init_token 0 
+	else
+		ods_softhsm_init_token $1 $2 $3 $4 
+	fi &&
 
-	ods_setup_env $no_enforcer_stop &&
+	ods_setup_env $no_enforcer_stop $no_enforcer_idle &&
 	return 0
 
 	return 1
@@ -309,11 +313,15 @@ ods_reset_env_noenforcer ()
 ods_setup_env ()
 {
 	local no_enforcer_stop=""
+	local no_enforcer_idle=""
 	OPTIND=1
-	while getopts ":n" opt; do
+	while getopts ":ni" opt; do
 		case "$opt" in
 			n)
 				no_enforcer_stop=1
+				;;
+			i)
+				no_enforcer_idle=1
 				;;
 			\?)
 				echo "ods_setup_env: Invalid option: -$OPTARG" >&2
@@ -330,8 +338,10 @@ ods_setup_env ()
 	log_this ods-enforcer-setup ods-enforcer zonelist import &&
 	# OPENDNSSEC-692
 	# When there are no keys yet generated for the policies, the
-	# signconf could fail.
-	ods_enforcer_idle &&
+	# signconf could fail
+	if [ -z "$no_enforcer_idle" ]; then
+		ods_enforcer_idle
+	fi &&
 	ods_waitfor_keys &&
 	( log_this ods-enforcer-setup ods-enforcer signconf || true ) &&
 	echo "ods_setup_env: setup complete" &&
@@ -444,7 +454,6 @@ ods_enforcer_start_timeshift ()
 	fi
 	return 1
 }
-
 ods_enforcer_idle ()
 {
 	local status_grep1
@@ -456,9 +465,9 @@ ods_enforcer_idle ()
 	then
 		timeout=600
 	fi
+	local time_stop=$(( time_start + timeout))
 	sleep 3 ;# unfortunately, things are synchronous and we always have to wait just a bit
 	while true; do
-		time_now=`$DATE '+%s' 2>/dev/null`
 		rm -f _log.$BUILD_TAG.idle.stdout
 		log_this idle ods-enforcer queue || return 1
 		grep -q "^Next task scheduled immediately" _log.$BUILD_TAG.idle.stdout 2>/dev/null > /dev/null
@@ -585,13 +594,13 @@ ods_enforcer_leap_to ()
 	then
 		maxleaps=-1
 	fi
-	log_this ods-enforcer-time-leap ods-enforcer time leap || return 1
-	sleep 30
+#	log_this ods-enforcer-time-leap ods-enforcer time leap || return 1
+	sleep 5
 	log_this ods-enforcer-time-leap ods-enforcer queue || return 1
-	if [ $maxleaps -gt 0 ]
-	then
-		maxleaps=`expr $maxleaps - 1`
-	fi
+#	if [ $maxleaps -gt 0 ]
+#	then
+#		maxleaps=`expr $maxleaps - 1`
+#	fi
 	starttime=`sed < _log.$BUILD_TAG.ods-enforcer-time-leap.stdout -e 's/^It is now.*(\([0-9][0-9]*\)[^)]*).*$/\1/p' -e d | tail -1`
 	nexttime=`sed < _log.$BUILD_TAG.ods-enforcer-time-leap.stdout -e 's/^Next task scheduled.*(\([0-9][0-9]*\)[^)]*).*$/\1/p' -e d | tail -1`
 	if [ -z "$nexttime" ]
@@ -606,7 +615,7 @@ ods_enforcer_leap_to ()
 	while [ \( $timediff -lt $period \) -a \( $maxleaps -ne 0 \) ]
 	do
 		log_this ods-enforcer-time-leap ods-enforcer time leap || return 1
-		sleep 30
+		sleep 5
 		log_this ods-enforcer-time-leap ods-enforcer queue || return 1
 		if [ $maxleaps -gt 0 ]
 		then
@@ -1553,6 +1562,32 @@ ods_bind9_dynupdate ()
 	return 0
 }
 
+ods_compare_zonelist () {
+	cat <<-END > diff.xsl~
+		<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0">
+		  <xsl:output method="xml"/>
+		  <xsl:template match="ZoneList">
+		    <xsl:copy>
+		      <xsl:apply-templates select="Zone|@*">
+	        	<xsl:sort select="@name"/>
+		      </xsl:apply-templates>
+		    </xsl:copy>
+		  </xsl:template>
+		  <xsl:template match="node()|@*">
+		    <xsl:copy>
+		      <xsl:apply-templates select="node()|@*"/>
+		    </xsl:copy>
+		  </xsl:template>
+		</xsl:stylesheet>
+	END
+	xsltproc diff.xsl~ "$1" | xmllint --c14n - | xmllint --format - > "$1~"
+	xsltproc diff.xsl~ "$2" | xmllint --c14n - | xmllint --format - > "$2~"
+	diff -rbw "$1~" "$2~"
+	
+	return $?
+	
+}
+
 # Method to compare a 'gold' directory containing signconfs with a 'base' directory
 # generated during a test run. Assumes the directories are called 'gold' and 'base'
 # and the script is called from the directory which holds both of them.
@@ -1644,4 +1679,94 @@ ods_compare_gold_vs_base_signconf ()
 	rm -rf gold_temp
 	rm -rf base_temp
 	return 0
+}
+
+
+ods_comparexml () {
+	local rootpath
+	local formatzoneconf=0
+	local formatzonelist=0
+	local formatinstallpath=0
+	local formatplain=0
+	local formatdefault=1
+	rootpath=`echo $INSTALL_ROOT | sed -e 's/\//\\\\\//g'`
+        while :; do
+          case $1 in
+          --format-plain)
+            formatdefault=0
+            formatplain=1
+            ;;
+          --format-zoneconf)
+            formatdefault=0
+            formatzoneconf=1
+            ;;
+          --format-zonelist)
+            formatdefault=0
+            formatzonelist=1
+            ;;
+          --format-installpath)
+            formatdefault=0
+            formatinstallpath=1
+            ;;
+          *)
+            break
+            ;;
+          esac
+          shift
+        done
+	if [ $formatzonelist -eq 1 ]; then
+	  cat <<-END > diff.xsl~
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0">
+  <xsl:output method="xml" omit-xml-declaration="yes" indent="yes"/>
+  <xsl:template match="ZoneList">
+    <xsl:copy>
+    <xsl:apply-templates>
+      <xsl:sort select="@name"/>
+    </xsl:apply-templates>
+    </xsl:copy>
+  </xsl:template>
+  <xsl:template match="node()|@*|processing-instruction()">
+    <xsl:copy>
+      <xsl:apply-templates select="node()|@*|processing-instruction()"/>
+    </xsl:copy>
+  </xsl:template>
+  <xsl:template match="comment()"/>
+</xsl:stylesheet>
+END
+	elif [ $formatzoneconf -eq 1 -o $formatdefault -eq 1 ]; then
+	  cat <<-END > diff.xsl~
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0">
+  <xsl:output method="xml"/>
+  <xsl:template match="Keys">
+    <xsl:copy>
+      <xsl:apply-templates>
+        <xsl:sort/>
+      </xsl:apply-templates>
+    </xsl:copy>
+  </xsl:template>
+  <xsl:template match="*">
+    <xsl:copy>
+      <xsl:apply-templates/>
+    </xsl:copy>
+  </xsl:template>
+</xsl:stylesheet>
+END
+	fi
+	if [ $formatzoneconf -eq 1 ]; then
+	  xsltproc diff.xsl~ "$1" | sed -e "s/$rootpath//g" | xmllint --c14n - | xmllint --format - > "$1~"
+	  xsltproc diff.xsl~ "$2" | sed -e "s/$rootpath//g" | xmllint --c14n - | xmllint --format - > "$2~"
+	elif [ $formatzonelist -eq 1 ]; then
+	  xsltproc diff.xsl~ "$1" | sed -e "s/$rootpath//g" | xmllint --c14n - | xmllint --format - > "$1~"
+	  xsltproc diff.xsl~ "$2" | sed -e "s/$rootpath//g" | xmllint --c14n - | xmllint --format - > "$2~"
+	elif [ $formatinstallpath -eq 1 ]; then
+	  sed < "$1" -e "s/$rootpath//g" | xmllint --c14n - | xmllint --format - > "$1~"
+	  sed < "$2" -e "s/$rootpath//g" | xmllint --c14n - | xmllint --format - > "$2~"
+	elif [ $formatplain -eq 1 ]; then
+	  xmllint --c14n "$1" | xmllint --format - > "$1~"
+	  xmllint --c14n "$2" | xmllint --format - > "$2~"
+	else
+	  xsltproc diff.xsl~ "$1" | xmllint --c14n - | xmllint --format - > "$1~"
+	  xsltproc diff.xsl~ "$2" | xmllint --c14n - | xmllint --format - > "$2~"
+	fi
+	diff -rw "$1~" "$2~"
 }

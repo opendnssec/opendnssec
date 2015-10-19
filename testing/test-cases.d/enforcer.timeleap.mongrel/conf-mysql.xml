@@ -10,6 +10,7 @@
 	</RepositoryList>
 	<Common>
 		<Logging>
+			<Verbosity>4</Verbosity>
 			<Syslog><Facility>local0</Facility></Syslog>
 		</Logging>
 		<PolicyFile>@INSTALL_ROOT@/etc/opendnssec/kasp.xml</PolicyFile>
@@ -19,6 +20,7 @@
 		<Datastore><MySQL><Host>localhost</Host><Database>test</Database><Username>test</Username><Password>test</Password></MySQL></Datastore>
 		<Interval>PT3600S</Interval>
 		<AutomaticKeyGenerationPeriod>PT360000S</AutomaticKeyGenerationPeriod>
+		<WorkerThreads>0</WorkerThreads>
 	</Enforcer>
 	<Signer>
 		<WorkingDirectory>@INSTALL_ROOT@/var/opendnssec/signer</WorkingDirectory>

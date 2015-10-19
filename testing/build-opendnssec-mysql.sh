@@ -38,6 +38,7 @@ case "$DISTRIBUTION" in
 	debian | \
 	openbsd | \
 	opensuse | \
+	slackware | \
 	suse )
 		(
 			sh autogen.sh &&

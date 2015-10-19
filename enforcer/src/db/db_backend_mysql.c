@@ -1830,7 +1830,6 @@ static int db_backend_mysql_update(void* data, const db_object_t* object, const 
             __db_backend_mysql_finish(statement);
             return DB_ERROR_UNKNOWN;
         }
-        db_value_reset(&revision);
 
         if (bind) {
             bind = bind->next;

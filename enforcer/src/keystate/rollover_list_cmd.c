@@ -79,15 +79,15 @@ map_keytime(const zone_t *zone, const key_data_t *key)
 	return strdup(ct);
 }
 
-static void print_zone(int sockfd, const char* fmt, const zone_t* zone) {
+static void
+print_zone(int sockfd, const char* fmt, const zone_t* zone)
+{
 	key_data_list_t *keylist;
 	const key_data_t *key;
 
 	keylist = zone_get_keys(zone);
-	for (key = key_data_list_next(keylist); key;
-		key = key_data_list_next(keylist))
-	{
-		char* tchange = map_keytime(zone, key);
+	while ((key = key_data_list_next(keylist))) {
+		char *tchange = map_keytime(zone, key);
 		client_printf(sockfd, fmt, zone_name(zone),
 			key_data_role_text(key), tchange);
 		free(tchange);
@@ -113,25 +113,14 @@ perform_rollover_list(int sockfd, const char *listed_zone,
 	const char* fmt = "%-31s %-8s %-30s\n";
 
 	if (listed_zone) {
-		if ((zone = zone_new(dbconn))
-			&& zone_get_by_name(zone, listed_zone))
-		{
-			zone_free(zone);
-			zone = NULL;
-		}
-	}
-	else {
-		if ((zonelist = zone_list_new(dbconn))
-			&& zone_list_get(zonelist))
-		{
-			zone_list_free(zonelist);
-			zonelist = NULL;
-		}
+		zone = zone_new_get_by_name(dbconn, listed_zone);
+	} else {
+		zonelist = zone_list_new_get(dbconn);
 	}
 
 	if (listed_zone && !zone) {
-		ods_log_error("[%s] zone:%s not found", module_str, listed_zone);
-		client_printf(sockfd, "zone:%s not found\n", listed_zone);
+		ods_log_error("[%s] zone '%s' not found", module_str, listed_zone);
+		client_printf(sockfd, "zone '%s' not found\n", listed_zone);
 		return 1;
 	}
 
@@ -143,18 +132,17 @@ perform_rollover_list(int sockfd, const char *listed_zone,
 
 	client_printf(sockfd, "Keys:\n");
 	client_printf(sockfd, fmt, "Zone:", "Keytype:", "Rollover expected:");
+
 	if (zone) {
 		print_zone(sockfd, fmt, zone);
 		zone_free(zone);
+		return 0;
 	}
-	else {
-		for (zone_walk = zone_list_next(zonelist); zone_walk;
-			zone_walk = zone_list_next(zonelist))
-		{
-			print_zone(sockfd, fmt, zone_walk);
-		}
-		zone_list_free(zonelist);
+
+	while ((zone_walk = zone_list_next(zonelist))) {
+		print_zone(sockfd, fmt, zone_walk);
 	}
+	zone_list_free(zonelist);
 	return 0;
 }
 

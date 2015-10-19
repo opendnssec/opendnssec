@@ -15,9 +15,8 @@ ods_reset_env &&
 ##################  SETUP ###########################
 # Start enforcer (Zone already exists and we let it generate keys itself)
 ods_start_enforcer &&
-ods_waitfor_keys &&
 
-ods_enforcer_leap_over 2400 &&
+ods_timeleap_search_key "ods" "KSK" "publish" &&
 
 
 # Check that we have 2 keys
@@ -41,8 +40,8 @@ log_grep ods-enforcer-key-list0_2 stdout 'ods[[:space:]]*ZSK[[:space:]]*ready' &
 ! log_grep ods-enforcer-key-list0_2 stdout 'ods[[:space:]]*KSK[[:space:]]*active' &&
 
 ## Jump forward a couple of hours so the KSK will be ready
-##################  STEP 1: Time = 2hrs ###########################
-ods_enforcer_leap_over 4800 &&
+##################  STEP 1: Time = 4hrs ###########################
+ods_enforcer_leap_to 14400 &&
 
 
 # We should be ready for a ds-submit and ds-seen on ods
