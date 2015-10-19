@@ -39,9 +39,7 @@ diff  -w  kasp.xml.temp2~ kasp.xml.gold_exported &&
 echo "Exported policy OK" &&
 
 # Lets fire up the signer and check what ends up in the zones
-! ods_start_signer && 
-cat _log.$BUILD_TAG.ods_ods-control_signer_start.stderr &&
-cat _log.$BUILD_TAG.ods_ods-control_signer_start.stdout &&
+ods_start_signer 360 && 
 syslog_waitfor 60 'ods-signerd: .*\[STATS\] no-ttl' &&
 syslog_waitfor 60 'ods-signerd: .*\[STATS\] with-ttl' &&
 syslog_waitfor 60 'ods-signerd: .*\[STATS\] with-0-ttl' &&
