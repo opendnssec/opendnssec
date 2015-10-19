@@ -95,7 +95,9 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 				return 1;
 			}
 		} else {
-			client_printf(sockfd, "Command %s unknown\n", cmd);
+			client_printf(sockfd, "Help: command '%s' unknown. Type "
+				"'help' without arguments to get a list of supported "
+				"commands.\n", cmd+5);
 			return 2;
 		}
 	}
