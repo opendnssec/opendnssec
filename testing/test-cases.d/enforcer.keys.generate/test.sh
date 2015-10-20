@@ -23,6 +23,7 @@ ods_start_enforcer &&
 log_this ods-zone-add-1 ods-enforcer zone add --zone ods1 --policy Policy1 &&
 ods_enforcer_idle &&
 
+syslog_waitfor 60 "ods-enforcerd: .*1 zone(s) found on policy \"Policy1\""  &&
 syslog_waitfor 60 'ods-enforcerd: .*1 new KSK(s) (2048 bits) need to be created.'  &&
 syslog_waitfor 60 'ods-enforcerd: .*5 new ZSK(s) (2048 bits) need to be created.' &&
 log_this enforcer-keylist   ods-hsmutil list &&
@@ -48,6 +49,7 @@ log_this ods-zone-add-4 ods-enforcer zone add --zone ods4 --policy Policy2 &&
 ods_enforcer_idle &&
 ods_enforcer_leap_over 60 &&
 
+syslog_waitfor 60 "ods-enforcerd: 3 zone(s) found on policy \"Policy2\""  &&
 log_this enforcer-keylist_1   ods-hsmutil list &&
 log_grep enforcer-keylist_1   stdout "12 keys found." && 
 
@@ -67,6 +69,7 @@ sleep 10 &&
 ods_enforcer_idle &&
 ods_enforcer_leap_over 60 &&
 
+syslog_waitfor 60 "ods-enforcerd: 9 zone(s) found on policy \"Policy2\""  &&
 log_this enforcer-keylist_1a   ods-hsmutil list &&
 log_grep enforcer-keylist_1a   stdout "24 keys found." &&
 
@@ -96,6 +99,7 @@ syslog_waitfor 120 'update zone: ods16' &&
 syslog_waitfor 120 'update zone: ods17' &&
 ods_enforcer_leap_over 60 &&
 ods_enforcer_idle &&
+syslog_waitfor 120 'ods-enforcerd: 16 zone(s) found on policy \"Policy2\"' &&
 # 6 more ZSKs have been made active so we need more keys than when we run the test from ods-enforcer
 log_this enforcer-keylist_2   ods-hsmutil list &&
 log_grep enforcer-keylist_2   stdout "39 keys found." &&
@@ -118,6 +122,7 @@ log_this ods-zone-add-3 ods-enforcer zone add --zone ods3 --policy Policy3 &&
 ods_enforcer_idle &&
 ods_enforcer_leap_over 60 &&
 
+syslog_grep "ods-enforcerd: .*3 zone(s) found on policy \"Policy3\""  &&
 log_this enforcer-keylist_3   ods-hsmutil list &&
 log_grep enforcer-keylist_3   stdout "12 keys found." &&
 
@@ -143,6 +148,7 @@ log_this ods-zone-add-12 ods-enforcer zone add --zone ods12 --policy Policy3 &&
 ods_enforcer_idle &&
 ods_enforcer_leap_over 60 &&
 
+syslog_grep "ods-enforcerd: .*12 zone(s) found on policy \"Policy3\""  &&
 log_this enforcer-keylist_4   ods-hsmutil list &&
 log_grep enforcer-keylist_4   stdout "30 keys found." &&
  
@@ -163,6 +169,7 @@ log_this ods-zone-add-3 ods-enforcer zone add --zone ods3 --policy Policy4 &&
 ods_enforcer_idle &&
 ods_enforcer_leap_over 60 &&
 
+syslog_grep "ods-enforcerd: .*3 zone(s) found on policy \"Policy4\""  &&
 log_this enforcer-keylist_5   ods-hsmutil list &&
 log_grep enforcer-keylist_5   stdout "10 keys found." &&
 
@@ -237,6 +244,8 @@ log_this ods-zone-add-30 ods-enforcer zone add --zone ods30 --policy Policy6 &&
 ods_enforcer_idle &&
 ods_enforcer_leap_over 60 &&
 
+syslog_waitfor 120 "ods-enforcerd: .*1 zone(s) found on policy \"Policy5\""  &&
+syslog_waitfor 120 "ods-enforcerd: .*1 zone(s) found on policy \"Policy6\""  &&
 log_this enforcer-keylist_8   ods-hsmutil list &&
 log_grep enforcer-keylist_8   stdout "8 keys found." &&
 

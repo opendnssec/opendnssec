@@ -84,7 +84,7 @@ void hsm_key_factory_deinit(void)
     }
 }
 
-void hsm_key_factory_generate(engine_type* engine, const db_connection_t* connection, const policy_key_t* policy_key, time_t duration) {
+void hsm_key_factory_generate(engine_type* engine, const db_connection_t* connection, const policy_t* policy, const policy_key_t* policy_key, time_t duration) {
     db_clause_list_t* clause_list;
     hsm_key_t* hsm_key = NULL;
     size_t num_keys;
@@ -96,8 +96,6 @@ void hsm_key_factory_generate(engine_type* engine, const db_connection_t* connec
     char* key_id;
     struct engineconfig_repository* hsm;
     char* hsm_err;
-    const policy_t* policy;
-    uint64_t id = 0;
 
     if (!engine) {
         return;
@@ -184,22 +182,18 @@ void hsm_key_factory_generate(engine_type* engine, const db_connection_t* connec
         return;
     }
 
-    policy = policy_key_policy(policy_key);
-    (void) db_value_to_uint64(policy_key_policy_id(policy_key), &id);
+    if (policy != NULL) {
+        ods_log_info("%lu zone(s) found on policy \"%s\"", num_zones, policy_name(policy));
+    } else {
+        ods_log_info("%lu zone(s) found on policy <unknown>", num_zones);
+    }
     ods_log_info("[hsm_key_factory_generate] %lu keys needed for %lu "
-        "zones govering %lu seconds, generating %lu keys for policy %lu",
+        "zones govering %lu seconds, generating %lu keys for policy %s",
         generate_keys, num_zones, duration,
         (unsigned long)(generate_keys-num_keys), /* This is safe because we checked num_keys < generate_keys */
-        id);
-
+        policy_name(policy));
     generate_keys -= num_keys;
-    if (policy != NULL) {
-        ods_log_info("%d zone(s) found on policy \"%s\"", num_zones, policy_name(policy));
-    } else {
-        ods_log_info("%d zone(s) found on policy <unknown>", num_zones);
-    }
     ods_log_info("%ld new %s(s) (%d bits) need to be created.", (long) generate_keys, policy_key_role_text(policy_key), policy_key_bits(policy_key));
-    policy_free(policy);
 
     /*
      * Create a HSM context and check that the repository exists
@@ -346,7 +340,7 @@ void hsm_key_factory_generate_policy(engine_type* engine, const db_connection_t*
     }
 
     while ((policy_key = policy_key_list_next(policy_key_list))) {
-        hsm_key_factory_generate(engine, connection, policy_key, duration);
+        hsm_key_factory_generate(engine, connection, policy, policy_key, duration);
     }
     policy_key_list_free(policy_key_list);
     pthread_mutex_unlock(__hsm_key_factory_lock);
@@ -393,7 +387,7 @@ void hsm_key_factory_generate_all(engine_type* engine, const db_connection_t* co
         }
 
         while ((policy_key = policy_key_list_next(policy_key_list))) {
-            hsm_key_factory_generate(engine, connection, policy_key, duration);
+            hsm_key_factory_generate(engine, connection, policy, policy_key, duration);
         }
         policy_key_list_free(policy_key_list);
     }
@@ -403,6 +397,7 @@ void hsm_key_factory_generate_all(engine_type* engine, const db_connection_t* co
 
 static task_type* hsm_key_factory_generate_task(task_type *task) {
     struct __hsm_key_factory_task* task2;
+    policy_t* policy;
 
     if (!task) {
         return NULL;
@@ -418,12 +413,22 @@ static task_type* hsm_key_factory_generate_task(task_type *task) {
         }
         return NULL;
     }
+    if ((policy = policy_new(task->dbconn)) != NULL) {
+        if (policy_get_by_id(policy, policy_key_policy_id(task2->policy_key))) {
+            policy_free(policy);
+            policy = NULL;
+        }
+    }
 
     ods_log_debug("[hsm_key_factory_generate_task] generate for policy key [duration: %lu]", (unsigned long)task2->duration);
-    hsm_key_factory_generate(task2->engine, task->dbconn, task2->policy_key, task2->duration);
+    hsm_key_factory_generate(task2->engine, task->dbconn, policy, task2->policy_key, task2->duration);
     ods_log_debug("[hsm_key_factory_generate_task] generate for policy key done");
     policy_key_free(task2->policy_key);
     task2->policy_key = NULL;
+    if(policy != NULL) {
+        policy_free(policy);
+        policy = NULL;
+    }
     if (task2->reschedule_enforce_task)
         flush_enforce_task(task2->engine, 1);
     task_cleanup(task);
