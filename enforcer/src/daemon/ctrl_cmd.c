@@ -39,8 +39,6 @@
 
 #include "daemon/ctrl_cmd.h"
 
-/* static const char *module_str = "ctrl_cmd"; */
-
 static void
 usage(int sockfd)
 {
@@ -48,7 +46,6 @@ usage(int sockfd)
 		"running                Returns acknowledgment that the engine is running.\n"
 		"reload                 Reload the engine.\n"
 		"stop                   Stop the engine and terminate the process.\n"
-		/*"start                  Start the engine.\n"*/
 	);
 }
 
