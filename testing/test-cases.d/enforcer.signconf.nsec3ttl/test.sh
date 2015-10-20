@@ -38,6 +38,9 @@ sed -e 's#>.*</Salt># />#g' kasp.xml.temp~ > kasp.xml.temp2~ &&
 diff  -w  kasp.xml.temp2~ kasp.xml.gold_exported && 
 echo "Exported policy OK" &&
 
+ods-enforcer enforce &&
+sleep 120 && ods_enforcer_idle && sleep 1 &&
+
 # Lets fire up the signer and check what ends up in the zones
 ods_start_signer 360 &&
 cat _log.$BUILD_TAG.ods_ods-control_signer_start.stderr &&
