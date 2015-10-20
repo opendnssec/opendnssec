@@ -49,7 +49,7 @@ static void
 usage(int sockfd)
 {
 	client_printf(sockfd,
-		"update all             Perform update kasp, zonelist and repositorylist.\n"
+		"update all             Perform policy import, update zonelist, and update repositorylist.\n"
 	);
 }
 

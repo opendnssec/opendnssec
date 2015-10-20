@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Surfnet 
+ * Copyright (c) 2011 Surfnet
  * Copyright (c) 2011 .SE (The Internet Infrastructure Foundation).
  * Copyright (c) 2011 OpenDNSSEC AB (svb)
  * All rights reserved.
@@ -49,7 +49,7 @@
 
 static const char *module_str = "enforce_task";
 
-static void 
+static void
 enf_schedule_task(int sockfd, engine_type* engine, task_type *task, const char *what)
 {
 	/* schedule task */
@@ -129,7 +129,7 @@ perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 			continue;
 		}
 		if (!(policy = zone_get_policy(zone))) {
-			client_printf(sockfd, 
+			client_printf(sockfd,
 				"Next update for zone %s NOT scheduled "
 				"because policy is missing !\n", zone_name(zone));
 			if (zone_next_change(zone) != -1
@@ -170,7 +170,7 @@ perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 			}
 		}
 		key_data_list_free(keylist);
-		
+
 		if (t_next == -1) {
 			client_printf(sockfd,
 				"Next update for zone %s NOT scheduled "
@@ -226,7 +226,7 @@ perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 		zone_free(firstzone);
 	}
 
-	/* Launch signer configuration writer task when one of the 
+	/* Launch signer configuration writer task when one of the
 	 * zones indicated that it needs to be written.
 	 * TODO: unschedule it first!
 	 */
@@ -245,7 +245,7 @@ perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 			keystate_ds_submit_task(engine);
 		enf_schedule_task(sockfd, engine, submit, "ds-submit");
 	}
-	
+
 
 	/* Launch ds-retract task when one of the updated key states has the
 	 * DS_RETRACT flag set. */
@@ -254,7 +254,7 @@ perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 			keystate_ds_retract_task(engine);
 		enf_schedule_task(sockfd, engine, retract, "ds-retract");
 	}
-	
+
 
 	return t_reschedule;
 }
@@ -279,10 +279,12 @@ struct enf_task_ctx {
 	int enforce_all;
 };
 
+static struct enf_task_ctx enforcer_context;
+
 static task_type*
 enforce_task_clean_ctx(task_type *task)
 {
-	free(task->context);
+	task->context = NULL;
 	return NULL;
 }
 
@@ -293,6 +295,7 @@ enforce_task_perform(task_type *task)
 	int enforce_all = ((struct enf_task_ctx *)task->context)->enforce_all;
 	int return_time = perform_enforce_lock(-1, engine, enforce_all,
 		task, task->dbconn);
+	enforcer_context.enforce_all = 0;
 	if (return_time != -1) return task;
 	task_cleanup(task);
 	return NULL;
@@ -304,7 +307,7 @@ enforce_task(engine_type *engine, bool all)
 	task_id what_id;
 	const char *what = "enforce";
 	const char *who = "next zone";
-	struct enf_task_ctx *ctx = malloc(sizeof(struct enf_task_ctx));
+	struct enf_task_ctx *ctx = &enforcer_context;
 	if (!ctx) {
 		ods_log_error("Malloc failure, enforce task not scheduled");
 		return NULL;
@@ -323,12 +326,15 @@ flush_enforce_task(engine_type *engine, bool enforce_all)
 	task_id what_id;
 
 	printf("flushing\n"); /* TODO output to stdout */
-	/* flush (force to run) the enforcer task when it is waiting in the 
+	/* flush (force to run) the enforcer task when it is waiting in the
 	 task list. */
 	if (!task_id_from_long_name(module_str, &what_id)) {
 		/* no such task */
 		return 1;
 	}
+
+	enforcer_context.enforce_all = 1;
+
 	if (!schedule_flush_type(engine->taskq, what_id)) {
 		status = schedule_task(engine->taskq, enforce_task(engine, enforce_all));
 		if (status != ODS_STATUS_OK) {

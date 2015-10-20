@@ -64,7 +64,6 @@ ods_enforcerd_SOURCES = \
 	policy/policy_export.c policy/policy_export.h \
 	policy/policy_import.c policy/policy_import.h \
 	policy/policy_import_cmd.c policy/policy_import_cmd.h \
-	policy/update_kasp_cmd.c policy/update_kasp_cmd.h \
 	policy/policy_list_cmd.c policy/policy_list_cmd.h \
 	policy/policy_resalt_cmd.c policy/policy_resalt_cmd.h \
 	policy/policy_resalt_task.c policy/policy_resalt_task.h \
