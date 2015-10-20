@@ -80,7 +80,7 @@ $GREP -q -- "300.*IN.*NSEC3" "$INSTALL_ROOT/var/opendnssec/signed/all.rr.org" &&
 cp kasp.xml kasp.xml_orig &&
 cp test/kasp.xml kasp.xml &&
 log_this ods-update-policy ods_setup_conf kasp.xml &&
-log_this_timeout ods-update-policy 10 ods-enforcer update kasp &&
+log_this_timeout ods-update-policy 10 ods-enforcer policy import &&
 #syslog_waitfor 300 'ods-enforcerd: .*Called signer engine:.*ods-signer update all.rr.org' &&
 syslog_waitfor 300 'ods-enforcerd: .*\[enforcer\] updateZone: processing all.rr.org with policyName default' &&
 syslog_waitfor 300 'ods-signerd: \[cmdhandler\] zone all.rr.org scheduled for immediate re-sign' &&

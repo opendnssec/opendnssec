@@ -31,6 +31,7 @@
 #define _ENFORCER_ENFORCE_TASK_H_
 
 #include "daemon/cfg.h"
+#include "daemon/engine.h"
 #include "scheduler/task.h"
 
 time_t perform_enforce_lock(int sockfd, engine_type *engine, int bForce,
