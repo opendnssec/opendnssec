@@ -34,8 +34,10 @@ log_grep ods-enforcer-policy-list_1 stdout 'default3[[:space:]]*default[[:space:
 log_this ods-enforcer-zone-list_1 "ods-enforcer zone list" &&
 log_grep ods-enforcer-zone-list_1 stdout 'ods[[:space:]].*default' &&
 
+sleep 1 && ods_enforcer_idle && sleep 1 &&
 #policy purge
 log_this ods-enforcer-policy-purge_1 "ods-enforcer policy purge" &&
+sleep 1 && ods_enforcer_idle && sleep 1 &&
 log_grep ods-enforcer-policy-purge_1 stdout "No zones on policy default2; purging..." &&
 log_grep ods-enforcer-policy-purge_1 stdout "No zones on policy default3; purging..." &&
 # Check that the policies are all in the kasp file
