@@ -306,30 +306,6 @@ schedule_pop_task(schedule_type* schedule)
 
 
 /**
- * Print schedule.
- *
- */
-void
-schedule_print(FILE* out, schedule_type* schedule)
-{
-    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
-    task_type* task = NULL;
-
-    if (!out || !schedule || !schedule->tasks) {
-        return;
-    }
-    node = ldns_rbtree_first(schedule->tasks);
-    while (node && node != LDNS_RBTREE_NULL) {
-        task = (task_type*) node->data;
-        task_print(out, task);
-        node = ldns_rbtree_next(node);
-    }
-    fprintf(out, "\n");
-    return;
-}
-
-
-/**
  * Internal task cleanup function.
  *
  */

@@ -149,7 +149,7 @@ print_ds_from_id(int sockfd, key_data_t *key, const char *zone,
 	return 0;
 }
 
-int 
+static int
 perform_keystate_export(int sockfd, db_connection_t *dbconn,
 	const char *zonename, int bind_style)
 {
