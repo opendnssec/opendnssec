@@ -713,12 +713,18 @@ ods_timeleap_search_nokey ()
 
 ods_ods-control_signer_start ()
 {
+	if [ "$1" ]; then
+		timeout=$1
+	else
+		timeout=$ODS_SIGNER_WAIT_START
+	fi
+
 	if [ "$ODS_SIGNER_WAIT_START" -lt 1 ] 2>/dev/null; then
 		echo "ods_ods-control_signer_start: ODS_SIGNER_WAIT_START not set" >&2
 		exit 1
 	fi
 
-	if ! log_this_timeout ods_ods-control_signer_start "$ODS_SIGNER_WAIT_START" ods-control signer start ; then
+	if ! log_this_timeout ods_ods-control_signer_start "$timeout" ods-control signer start ; then
 		echo "ods_ods-control_signer_start: Could not start ods-signerd" >&2
 		return 1
 	fi
@@ -1066,7 +1072,7 @@ ods_start_signer ()
 	echo "ods_start_signer: Starting ods-signer now..."
 
  	ods_signer_count_starts &&
-	ods_ods-control_signer_start &&
+	ods_ods-control_signer_start "$timeout" &&
 	ods_signer_waitfor_starts "$(( ODS_SIGNER_START_COUNT + 1 ))" "$timeout" &&
 
 	echo "ods_start_signer: ods-signer started OK" &&
