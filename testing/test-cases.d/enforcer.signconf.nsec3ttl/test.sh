@@ -42,7 +42,7 @@ sleep 120 && ods_enforcer_idle && sleep 1 &&
 
 # Lets fire up the signer and check what ends up in the zones
 (ods_start_signer || true ) &&
-tail --line=20  _syslog. &&
+tail --line=20  _syslog.$BUILD_TAG &&
 syslog_waitfor 60 'ods-signerd: .*\[STATS\] no-ttl' &&
 syslog_waitfor 60 'ods-signerd: .*\[STATS\] with-ttl' &&
 syslog_waitfor 60 'ods-signerd: .*\[STATS\] with-0-ttl' &&
