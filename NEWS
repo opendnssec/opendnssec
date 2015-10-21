@@ -6,7 +6,7 @@ OpenDNSSEC 2.0
   the --all option at key list.
 * The key export method will not allow you to export keys for all zones
   at once (--all flag) or for a particular type of key (--keystate).
-  It will not export ZSK keys
+  It will not export ZSK keys.
 * The zonelist.xml in etc/opendnssec is no longer updated automatically,
   and by default works as if the --no-xml flag was specified.  Use
   --xml to the zone add command to update the zonelist.xml.  If updating
