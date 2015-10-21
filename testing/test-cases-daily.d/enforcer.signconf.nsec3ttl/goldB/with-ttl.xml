@@ -1,65 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <SignerConfiguration>
-	<Zone name="with-ttl">
-		<Signatures>
-			<Resign>PT5356800S</Resign>
-			<Refresh>PT8035200S</Refresh>
-			<Validity>
-				<Default>PT18748800S</Default>
-				<Denial>PT18748800S</Denial>
-			</Validity>
-			<Jitter>PT43200S</Jitter>
-			<InceptionOffset>PT300S</InceptionOffset>
-		</Signatures>
-
-		<Denial>
-			<NSEC3>
-				<OptOut />
-				<Hash>
-					<Algorithm>1</Algorithm>
-					<Iterations>5</Iterations>
-					<Salt>e5e60a9d7a3adc36</Salt>
-				</Hash>
-			</NSEC3>
-		</Denial>
-
-		<Keys>
-			<TTL>PT8035200S</TTL>
-			<Key>
-				<Flags>257</Flags>
-				<Algorithm>7</Algorithm>
-				<Locator>82ca4f2f57be41b79658572f56f54aa8</Locator>
-				<KSK />
-				<Publish />
-			</Key>
-
-			<Key>
-				<Flags>256</Flags>
-				<Algorithm>7</Algorithm>
-				<Locator>036f1c8370c52c773324055865161527</Locator>
-				<ZSK />
-				<Publish />
-			</Key>
-
-			<Key>
-				<Flags>256</Flags>
-				<Algorithm>7</Algorithm>
-				<Locator>398cfdc1a4bf84e4d738056e8d6c9f97</Locator>
-				<Publish />
-			</Key>
-
-			<Key>
-				<Flags>256</Flags>
-				<Algorithm>7</Algorithm>
-				<Locator>c4d3544f0ed57f6ad1576800c67f687a</Locator>
-				<Publish />
-			</Key>
-
-		</Keys>
-
-		<SOA>
-			<TTL>PT8035200S</TTL>
-			<Minimum>PT1209600S</Minimum>
-			<Serial>unixtime</Serial>
-		</SOA>
-	</Zone>
+  <Zone name="with-ttl">
+    <Signatures>
+      <Resign>P2M</Resign>
+      <Refresh>P3M</Refresh>
+      <Validity>
+        <Default>P7M</Default>
+        <Denial>P7M</Denial>
+      </Validity>
+      <Jitter>PT12H</Jitter>
+      <InceptionOffset>PT5M</InceptionOffset>
+    </Signatures>
+    <Denial>
+      <NSEC3>
+        <OptOut/>
+        <Hash>
+          <Algorithm>1</Algorithm>
+          <Iterations>5</Iterations>
+          <Salt>e5e60a9d7a3adc36</Salt>
+        </Hash>
+      </NSEC3>
+    </Denial>
+    <Keys>
+      <TTL>P2M</TTL>
+      <Key>
+        <Flags>257</Flags>
+        <Algorithm>7</Algorithm>
+        <Locator>82ca4f2f57be41b79658572f56f54aa8</Locator>
+      </Key>
+      <Key>
+        <Flags>256</Flags>
+        <Algorithm>7</Algorithm>
+        <Locator>036f1c8370c52c773324055865161527</Locator>
+        <ZSK/>
+      </Key>
+    </Keys>
+    <SOA>
+      <TTL>P3M</TTL>
+      <Minimum>P14D</Minimum>
+      <Serial>unixtime</Serial>
+    </SOA>
+  </Zone>
 </SignerConfiguration>

@@ -16,7 +16,7 @@ mkdir  gold &&
 
 ##################  First run with 3 different TTLs ###########################
 # Start enforcer (Zones already exist and we let it generate keys itself)
-ods_start_enforcer_timeshift &&
+ods_start_enforcer &&
 
 for zone in with-ttl no-ttl with-0-ttl; do
 	# Used only to create a gold while setting up the test
@@ -33,8 +33,9 @@ rm base/* &&
 # Now export and check the TTL values are there
 # Note the exported kasp has all times in seconds to can't be compared to the input kasp.xml
 echo "Exporting policy" &&
-ods-ksmutil policy export --all > kasp.xml.temp && 
-diff  -w  kasp.xml.temp kasp.xml.gold_exported && 
+ods-enforcer policy export --all > kasp.xml.temp~ &&
+sed -e 's#>.*</Salt># />#g' kasp.xml.temp~ > kasp.xml.temp2~ && 
+diff -w  kasp.xml.temp2~ kasp.xml.gold_exported && 
 echo "Exported policy OK" &&
 
 # Lets fire up the signer and check what ends up in the zones
@@ -57,9 +58,8 @@ test -f "$INSTALL_ROOT/var/opendnssec/signed/with-0-ttl" &&
 # with-0-ttl  -> change <TTL>PT0S</TTL> to <TTL>PT3600S</TTL>  
 echo "Importing changed policies" &&
 cp kasp.reversed.xml "$INSTALL_ROOT/etc/opendnssec/kasp.xml" &&
-log_this ods-import-reversed ods-ksmutil policy import && 
+log_this ods-import-reversed ods-enforcer policy import && 
 
-ods_start_enforcer_timeshift &&
 
 for zone in with-ttl no-ttl with-0-ttl; do
 	# Used only to create a gold while setting up the test
@@ -74,8 +74,9 @@ rm gold/* &&
 rm base/* &&
 
 # Lets export the policies again and double check
-ods-ksmutil policy export --all > kasp.xml.temp2 && 
-diff  -w  kasp.xml.temp2 kasp.xml.gold_exported2 && 
+ods-enforcer policy export --all > kasp.xml.temp3~ && 
+sed -e 's#>.*</Salt># />#g' kasp.xml.temp3~ > kasp.xml.temp4~ &&
+diff  -w  kasp.xml.temp4~ kasp.xml.gold_exported2 && 
 echo "Exported changed policy OK" &&
 
 syslog_waitfor_count 60 2 'ods-signerd: .*\[STATS\] no-ttl' &&
@@ -86,11 +87,11 @@ syslog_waitfor_count 60 2 'ods-signerd: .*\[STATS\] with-0-ttl' &&
 `$GREP -q -- "with-ttl.[[:space:]]0[[:space:]]IN[[:space:]]NSEC3PARAM" "$INSTALL_ROOT/var/opendnssec/signed/with-ttl"` &&
 
 ods_stop_signer && 
+ods_stop_enforcer &&
 
 rm -rf base &&
 rm -rf gold &&
-rm kasp.xml.temp &&
-rm kasp.xml.temp2 &&
+rm kasp.xml.temp* &&
 
 
 echo &&

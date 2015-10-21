@@ -1,58 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <SignerConfiguration>
-	<Zone name="with-0-ttl">
-		<Signatures>
-			<Resign>PT5356800S</Resign>
-			<Refresh>PT8035200S</Refresh>
-			<Validity>
-				<Default>PT18748800S</Default>
-				<Denial>PT18748800S</Denial>
-			</Validity>
-			<Jitter>PT43200S</Jitter>
-			<InceptionOffset>PT300S</InceptionOffset>
-		</Signatures>
-
-		<Denial>
-			<NSEC3>
-				<OptOut />
-				<Hash>
-					<Algorithm>1</Algorithm>
-					<Iterations>5</Iterations>
-					<Salt>7ad8152435216e70</Salt>
-				</Hash>
-			</NSEC3>
-		</Denial>
-
-		<Keys>
-			<TTL>PT8035200S</TTL>
-			<Key>
-				<Flags>257</Flags>
-				<Algorithm>7</Algorithm>
-				<Locator>e3f01981e8ca56f6eacca14f926d7ac9</Locator>
-				<KSK />
-				<Publish />
-			</Key>
-
-			<Key>
-				<Flags>256</Flags>
-				<Algorithm>7</Algorithm>
-				<Locator>f50b5bf88410d0c907502beba87c8286</Locator>
-				<ZSK />
-				<Publish />
-			</Key>
-
-			<Key>
-				<Flags>256</Flags>
-				<Algorithm>7</Algorithm>
-				<Locator>8508651e2ad1186e2ae022c73c512487</Locator>
-				<Publish />
-			</Key>
-
-		</Keys>
-
-		<SOA>
-			<TTL>PT8035200S</TTL>
-			<Minimum>PT1209600S</Minimum>
-			<Serial>unixtime</Serial>
-		</SOA>
-	</Zone>
+  <Zone name="with-0-ttl">
+    <Signatures>
+      <Resign>P2M</Resign>
+      <Refresh>P3M</Refresh>
+      <Validity>
+        <Default>P7M</Default>
+        <Denial>P7M</Denial>
+      </Validity>
+      <Jitter>PT12H</Jitter>
+      <InceptionOffset>PT5M</InceptionOffset>
+    </Signatures>
+    <Denial>
+      <NSEC3>
+        <OptOut/>
+        <Hash>
+          <Algorithm>1</Algorithm>
+          <Iterations>5</Iterations>
+          <Salt>7ad8152435216e70</Salt>
+        </Hash>
+      </NSEC3>
+    </Denial>
+    <Keys>
+      <TTL>P2M</TTL>
+      <Key>
+        <Flags>257</Flags>
+        <Algorithm>7</Algorithm>
+        <Locator>e3f01981e8ca56f6eacca14f926d7ac9</Locator>
+      </Key>
+      <Key>
+        <Flags>256</Flags>
+        <Algorithm>7</Algorithm>
+        <Locator>f50b5bf88410d0c907502beba87c8286</Locator>
+        <ZSK/>
+      </Key>
+    </Keys>
+    <SOA>
+      <TTL>P3M</TTL>
+      <Minimum>P14D</Minimum>
+      <Serial>unixtime</Serial>
+    </SOA>
+  </Zone>
 </SignerConfiguration>

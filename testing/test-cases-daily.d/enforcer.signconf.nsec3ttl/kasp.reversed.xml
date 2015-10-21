@@ -30,7 +30,7 @@
 
 		<Keys>
 			<!-- Parameters for both KSK and ZSK -->
-			<TTL>P3M</TTL>
+			<TTL>P2M</TTL>
 			<RetireSafety>PT3600S</RetireSafety>
 			<PublishSafety>PT3600S</PublishSafety>
 			<!-- <ShareKeys/> -->
@@ -105,7 +105,7 @@
 
 		<Keys>
 			<!-- Parameters for both KSK and ZSK -->
-			<TTL>P3M</TTL>
+			<TTL>P2M</TTL>
 			<RetireSafety>PT3600S</RetireSafety>
 			<PublishSafety>PT3600S</PublishSafety>
 			<!-- <ShareKeys/> -->
@@ -179,7 +179,7 @@
 
 		<Keys>
 			<!-- Parameters for both KSK and ZSK -->
-			<TTL>P3M</TTL>
+			<TTL>P2M</TTL>
 			<RetireSafety>PT3600S</RetireSafety>
 			<PublishSafety>PT3600S</PublishSafety>
 			<!-- <ShareKeys/> -->
@@ -252,7 +252,7 @@
 
 		<Keys>
 			<!-- Parameters for both KSK and ZSK -->
-			<TTL>P3M</TTL>
+			<TTL>P2M</TTL>
 			<RetireSafety>PT3600S</RetireSafety>
 			<PublishSafety>PT3600S</PublishSafety>
 			<!-- <ShareKeys/> -->
