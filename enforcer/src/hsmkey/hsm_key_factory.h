@@ -40,7 +40,7 @@ void hsm_key_factory_deinit(void);
  * TODO
  */
 void hsm_key_factory_generate(engine_type* engine,
-    const db_connection_t* connection, const policy_key_t* policy_key,
+    const db_connection_t* connection, const policy_t* policy, const policy_key_t* policy_key,
     time_t duration);
 
 /**

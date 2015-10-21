@@ -514,55 +514,6 @@ int policy_key_cache_policy(policy_key_t* policy_key) {
     return DB_OK;
 }
 
-const policy_t* policy_key_policy(const policy_key_t* policy_key) {
-    if (!policy_key) {
-        return NULL;
-    }
-
-    if (policy_key->private_policy_id) {
-        return policy_key->private_policy_id;
-    }
-    return policy_key->associated_policy_id;
-}
-
-policy_t* policy_key_get_policy(const policy_key_t* policy_key) {
-    policy_t* policy_id = NULL;
-
-    if (!policy_key) {
-        return NULL;
-    }
-    if (!policy_key->dbo) {
-        return NULL;
-    }
-    if (db_value_not_empty(&(policy_key->policy_id))) {
-        return NULL;
-    }
-
-    if (!(policy_id = policy_new(db_object_connection(policy_key->dbo)))) {
-        return NULL;
-    }
-    if (policy_key->private_policy_id) {
-        if (policy_copy(policy_id, policy_key->private_policy_id)) {
-            policy_free(policy_id);
-            return NULL;
-        }
-    }
-    else if (policy_key->associated_policy_id) {
-        if (policy_copy(policy_id, policy_key->associated_policy_id)) {
-            policy_free(policy_id);
-            return NULL;
-        }
-    }
-    else {
-        if (policy_get_by_id(policy_id, &(policy_key->policy_id))) {
-            policy_free(policy_id);
-            return NULL;
-        }
-    }
-
-    return policy_id;
-}
-
 policy_key_role_t policy_key_role(const policy_key_t* policy_key) {
     if (!policy_key) {
         return POLICY_KEY_ROLE_INVALID;
