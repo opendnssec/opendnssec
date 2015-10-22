@@ -752,6 +752,8 @@ key_data_list_t* key_data_list_new_get_by_clauses(const db_connection_t* connect
  */
 int key_data_list_get_by_zone_id(key_data_list_t* key_data_list, const db_value_t* zone_id);
 
+int key_data_list_get_by_role(key_data_list_t* key_data_list, const int role);
+
 /**
  * Get a new list of key data objects from the database by a zone_id specified in `zone_id`.
  * \param[in] connection a db_connection_t pointer.
@@ -760,6 +762,7 @@ int key_data_list_get_by_zone_id(key_data_list_t* key_data_list, const db_value_
  */
 key_data_list_t* key_data_list_new_get_by_zone_id(const db_connection_t* connection, const db_value_t* zone_id);
 
+key_data_list_t* key_data_list_new_get_by_role(const db_connection_t* connection, const int role);
 /**
  * Get key data objects from the database by a hsm_key_id specified in `hsm_key_id`.
  * \param[in] key_data_list a key_data_list_t pointer.
