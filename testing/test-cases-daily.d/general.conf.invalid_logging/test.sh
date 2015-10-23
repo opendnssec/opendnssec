@@ -45,8 +45,7 @@ ods-signer reload &&
 # - The error message output to syslog, is in fact different from the
 #   message when running the enforcerd in non-daemon modus.
 ! ods-enforcer update conf &&
-sleep 60 &&
-syslog_waitfor 10 'ERROR: .*conf.xml fails to validate' &&
+syslog_waitfor 60 'ERROR: .*conf.xml fails to validate' &&
 
 ods_ods-control_stop &&
 return 0

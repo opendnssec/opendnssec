@@ -45,9 +45,10 @@ log_grep ods-enforcer-key-list2 stdout "ods[[:space:]]*ZSK[[:space:]]*active" &&
 ZSK_KEYTAG2=`log_grep -o ods-enforcer-key-list2 stdout "ods[[:space:]]*ZSK[[:space:]]*active" | awk '{print $10}'` &&
 
 # ***************************** run ds-seen command to have active KSK  ********************************** 
-
+ods_enforcer_idle &&
 log_this ods-enforcer-ds-seen ods-enforcer key ds-seen -z ods --keytag $KSK_KEYTAG1 &&
-sleep 10 &&
+sleep 1 && ods_enforcer_idle &&
+
 log_this ods-enforcer-key-list3 ods-enforcer key list -v &&
 
 log_grep ods-enforcer-key-list3 stdout "ods[[:space:]]*KSK[[:space:]]*active.*$KSK_KEYTAG1" &&
