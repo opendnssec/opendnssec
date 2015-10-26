@@ -41,6 +41,8 @@
 
 #include "keystate/keystate_ds_seen_cmd.h"
 
+static const char *module_str = "key_ds_seen_cmd";
+
 static void
 usage(int sockfd)
 {
@@ -62,6 +64,60 @@ static int
 run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	db_connection_t *dbconn)
 {
+	char* buf;
+	const char* argv[6];
+	int argc;
+	zone_t* zone;
+	const char* zone_name = NULL;
+	const char* keytag = NULL;
+	const char* ckaid = NULL;
+
+	cmd = ods_check_command(cmd, n, key_ds_seen_funcblock()->cmdname);
+
+	if (!(buf = strdup(cmd))) {
+        	client_printf_err(sockfd, "memory error\n");
+	        return -1;
+    	}
+
+	argc = ods_str_explode(buf, 6, argv);
+	if (argc > 6) {
+		client_printf_err(sockfd, "too many arguments\n");
+		free(buf);
+		return -1;
+	}
+
+	ods_find_arg_and_param(&argc, argv, "zone", "z", &zone_name);
+	ods_find_arg_and_param(&argc, argv, "keytag", "x", &keytag);
+	ods_find_arg_and_param(&argc, argv, "cka_id", "k", &ckaid);
+
+	if (argc) {
+        	client_printf_err(sockfd, "unknown arguments\n");
+	        free(buf);
+	        return -1;
+	}
+
+	if (zone_name && (!(zone = zone_new(dbconn)) || zone_get_by_name(zone, zone_name))) {
+		ods_log_warning ("[%s] Error: Unable to find a zone named \"%s\" in database\n", module_str, zone_name);
+	        client_printf(sockfd, "Error: Unable to find a zone named \"%s\" in database\n", zone_name);
+		zone_free(zone);
+		zone = NULL;
+        	return -1;
+	}
+
+        if (!zone_name && (keytag || ckaid)) {
+                ods_log_warning ("[%s] Error: expected --zone <zone>", module_str);
+                client_printf_err(sockfd, "Error: expected --zone <zone>\n");
+                free(buf);
+                return -1;
+        }
+
+	if (zone_name && !keytag && !ckaid) {
+		ods_log_warning ("[%s] Error: expected --keytag OR --cka_id", module_str);
+	        client_printf_err(sockfd, "Error: expected --keytag <keytag> OR --cka_id <CKA_ID>\n");
+        	free(buf);
+	        return -1;
+	}
+
 	int error;
 	error = run_ds_cmd(sockfd, cmd, n, dbconn,
 		KEY_DATA_DS_AT_PARENT_SUBMITTED,
