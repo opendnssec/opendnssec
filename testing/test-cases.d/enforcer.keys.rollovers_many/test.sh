@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 #
 #TEST: Tracks, in real time a KSK and a ZSK rollover
+#runtime: about 5.5 minutes
 
 visual_sleep()
 {
@@ -21,7 +22,7 @@ fi &&
 
 ods_reset_env -n &&
 
-echo -n "LINE: ${LINENO} " && echo "################## ZONE ADD ###########################" &&
+echo "################## ZONE ADD ###########################" &&
 echo -n "LINE: ${LINENO} " && log_this 00_zone_add ods-enforcer zone add --zone \
 	ods --input $install_root/var/opendnssec/unsigned/ods.xml --policy Policy1 --signerconf \
 	$install_root/var/opendnssec/signconf/ods.xml &&
@@ -75,6 +76,7 @@ echo -n "LINE: ${LINENO} " && ods-enforcer key list -v | grep $KSK1_ID | grep ds
 echo -n "LINE: ${LINENO} " && ods-enforcer key list -v | grep $KSK2_ID | grep ds-seen &&
 
 echo -n "LINE: ${LINENO} " && ods-enforcer key ds-seen -z ods -k $KSK2_ID &&
+## ds-gone fails on busy DB if ds-seen still running
 echo -n "LINE: ${LINENO} " && visual_sleep 2 &&
 echo -n "LINE: ${LINENO} " && ods-enforcer key ds-gone -z ods -k $KSK1_ID &&
 
