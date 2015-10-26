@@ -334,83 +334,87 @@ printdebugparsablekey(int sockfd, zone_t* zone, key_data_t* key, char* tchange, 
 }
 
 static char **
-tokenizeparam(char *argument) {
+tokenizeparam(char *argument)
+{
     char** tokenized;
+    char** newtokenized;
     int argCount, i;
     char* argString;
     char* argSavePtr;
+    int argSize = 8;
 
-    argCount = 0;
     if ((argString = strtok_r(argument, ",", &argSavePtr)) != NULL) {
+        if ((tokenized = malloc(sizeof (char*)*argSize)) == NULL) {
+            return NULL;
+        }
+        argCount = 0;
         do {
             if (strcmp(argString, "")) {
+                tokenized[argCount] = argString;
                 ++argCount;
+                if (argCount == argSize) {
+                    argSize *= 2;
+                    if ((newtokenized = realloc(tokenized, sizeof (char*)*argSize)) == NULL) {
+                        free(tokenized);
+                        return NULL;
+                    }
+                    tokenized = newtokenized;
+                }
             }
         } while (strtok_r(NULL, ",", &argSavePtr) != NULL);
-    }
-    if ((tokenized = malloc(sizeof (char *) * (argCount + 1)))) {
-        for (i = 0; i < argCount; i++) {
-            argString = strtok_r((i == 0 ? argument : NULL), ",", &argSavePtr);
-            if (strcmp(argString, "")) {
-                tokenized[i] = argString;
-            }
-        }
         tokenized[argCount] = NULL;
-        return tokenized;
     } else {
-        return NULL;
+        if ((tokenized = malloc(sizeof (char*)*argSize)) == NULL) {
+            return NULL;
+        }
+        tokenized[0] = argument;
+        tokenized[1] = NULL;
     }
+    return tokenized;
 }
 
 static int
 run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
-	db_connection_t *dbconn)
-{
-	char buf[ODS_SE_MAXLINE];
-	#define NARGV 8
-	const char *argv[NARGV];
-        int success, argIndex;
-	int argc, bVerbose, bDebug, bParsable, bAll;
-        char* keytypeParam;
-        char* keystateParam;
-        const char* filterZone; /* NULL if no filtering on zone, otherwise zone to match */
-        char** filterKeytype; /* NULL if no filtering on key type, NULL terminated list of key types to filter */
-        char** filterKeystate; /* NULL if no filtering on key state, NULL terminated list of key states to filter */
-	(void)engine;
+	db_connection_t *dbconn) {
+    char buf[ODS_SE_MAXLINE];
+#define NARGV 12
+    const char *argv[NARGV];
+    int success, argIndex;
+    int argc, bVerbose, bDebug, bParsable, bAll;
+    char* keytypeParam;
+    char* keystateParam;
+    const char* filterZone; /* NULL if no filtering on zone, otherwise zone to match */
+    char** filterKeytype; /* NULL if no filtering on key type, NULL terminated list of key types to filter */
+    char** filterKeystate; /* NULL if no filtering on key state, NULL terminated list of key states to filter */
+    (void) engine;
 
-	ods_log_debug("[%s] %s command", module_str, key_list_funcblock()->cmdname);
+    ods_log_debug("[%s] %s command", module_str, key_list_funcblock()->cmdname);
 
-	cmd = ods_check_command(cmd, n, key_list_funcblock()->cmdname);
-	/* Use buf as an intermediate buffer for the command. */
-	strncpy(buf, cmd, sizeof(buf));
-	buf[sizeof(buf)-1] = '\0';
+    cmd = ods_check_command(cmd, n, key_list_funcblock()->cmdname);
+    /* Use buf as an intermediate buffer for the command. */
+    strncpy(buf, cmd, sizeof (buf));
+    buf[sizeof (buf) - 1] = '\0';
 
-	/* separate the arguments */
-	argc = ods_str_explode(buf, NARGV, argv);
-	if (argc > NARGV) {
-		ods_log_warning("[%s] too many arguments for %s command",
-						module_str,key_list_funcblock()->cmdname);
-		client_printf(sockfd,"too many arguments\n");
-		return -1;
-	}
+    /* separate the arguments */
+    argc = ods_str_explode(buf, NARGV, argv);
+    if (argc > NARGV) {
+        ods_log_warning("[%s] too many arguments for %s command",
+                module_str, key_list_funcblock()->cmdname);
+        client_printf(sockfd, "too many arguments\n");
+        return -1;
+    }
 
-	bVerbose = ods_find_arg(&argc,argv,"verbose","v") != -1;
-	bDebug = ods_find_arg(&argc,argv,"debug","d") != -1;
-	bParsable = ods_find_arg(&argc,argv,"parsable","p") != -1;
-	if ((argIndex = ods_find_arg(&argc,argv,"zone","z")) != -1) {
-            filterZone = argv[argIndex];
-        } else {
-            filterZone = NULL;
-        }
-        if ((argIndex = ods_find_arg(&argc,argv,"keytype","k")) != -1) {
-            keytypeParam = (char*) argv[argIndex];
-        } else {
-            keytypeParam = NULL;
-        }
-        if ((argIndex = ods_find_arg(&argc,argv,"keystate","e")) != -1) {
-            keystateParam = (char*) argv[argIndex];
-        } else {
-            keystateParam = NULL;
+    bVerbose = ods_find_arg(&argc, argv, "verbose", "v") != -1;
+    bDebug = ods_find_arg(&argc, argv, "debug", "d") != -1;
+    bParsable = ods_find_arg(&argc, argv, "parsable", "p") != -1;
+    if ((argIndex = ods_find_arg_and_param(&argc, argv, "zone", "z", &filterZone)) == -1) {
+        filterZone = NULL;
+    }
+    if ((argIndex = ods_find_arg_and_param(&argc, argv, "keytype", "k", &keytypeParam)) == -1) {
+        keytypeParam = NULL;
+    }
+    if ((argIndex = ods_find_arg_and_param(&argc, argv, "keystate", "e", &keystateParam)) == -1) {
+        keystateParam = NULL;
     }
 
     bAll = ods_find_arg(&argc, argv, "all", "a") != -1;
@@ -420,18 +424,24 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
         client_printf(sockfd, "unknown arguments\n");
         return -1;
     }
+
     if (keytypeParam)
         filterKeytype = tokenizeparam(keytypeParam);
+    else
+        filterKeytype = NULL;
     if (keystateParam)
         filterKeystate = tokenizeparam(keystateParam);
-    if(bAll) {
-        if(filterKeystate != NULL) {
+    else
+        filterKeystate = NULL;
+    if (bAll) {
+        if (filterKeystate != NULL) {
             /* TODO emit warning/error that -e parameter is ignored */
             free(filterKeystate);
         }
         filterKeystate = NULL;
     } else {
-        if((filterKeystate = malloc(sizeof(char*) * 5))) {
+        if ((filterKeystate = malloc(sizeof (char*) * 6))) {
+            ods_log_error("BERRY#2 %p",filterKeystate);
             filterKeystate[0] = "publish";
             filterKeystate[1] = "ready";
             filterKeystate[2] = "active";
@@ -440,7 +450,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
             filterKeystate[5] = NULL;
         } /* else emit error */
     }
-        
+
     if (bDebug) {
         if (bParsable) {
             success = perform_keystate_list(sockfd, dbconn, filterZone, filterKeytype, filterKeystate, NULL, &printdebugparsablekey);
