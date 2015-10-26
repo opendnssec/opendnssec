@@ -27,7 +27,7 @@ echo -n "LINE: ${LINENO} " && log_this 00_zone_add ods-enforcer zone add --zone 
 	$install_root/var/opendnssec/signconf/ods.xml &&
 
 echo "################## PROPAGATE ###########################" &&
-echo -n "LINE: ${LINENO} " && visual_sleep 2 &&
+echo -n "LINE: ${LINENO} " && visual_sleep 4 &&
 echo -n "LINE: ${LINENO} " && KSK1_ID=`ods-enforcer key list -d -p | grep KSK |cut -d ";" -f 9` &&
 echo -n "LINE: ${LINENO} " && ZSK1_ID=`ods-enforcer key list -d -p | grep ZSK |cut -d ";" -f 9` &&
 echo -n "LINE: ${LINENO} " && test -n $KSK1_ID &&
@@ -75,6 +75,7 @@ echo -n "LINE: ${LINENO} " && ods-enforcer key list -v | grep $KSK1_ID | grep ds
 echo -n "LINE: ${LINENO} " && ods-enforcer key list -v | grep $KSK2_ID | grep ds-seen &&
 
 echo -n "LINE: ${LINENO} " && ods-enforcer key ds-seen -z ods -k $KSK2_ID &&
+echo -n "LINE: ${LINENO} " && visual_sleep 2 &&
 echo -n "LINE: ${LINENO} " && ods-enforcer key ds-gone -z ods -k $KSK1_ID &&
 
 echo "################## FINAL CHECK ###########################" &&
