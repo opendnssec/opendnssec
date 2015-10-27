@@ -16,7 +16,7 @@ visual_sleep()
 	echo
 }
 
-if [ -n "$have_mysql" ]; then
+if [ -n "$HAVE_MYSQL" ]; then
         ods_setup_conf conf.xml conf-mysql.xml
 fi &&
 
