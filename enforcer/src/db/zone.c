@@ -3321,7 +3321,7 @@ const zone_t* zone_list_begin(zone_list_t* zone_list) {
             if (!db_result_list_size(zone_list->result_list)) {
                 return NULL;
             }
-            if (!(zone_list->object_list = (zone_t**)calloc(db_result_list_size(zone_list->result_list), sizeof(zone_t**)))) {
+            if (!(zone_list->object_list = (zone_t**)calloc(db_result_list_size(zone_list->result_list), sizeof(zone_t*)))) {
                 return NULL;
             }
             zone_list->object_list_size = db_result_list_size(zone_list->result_list);
@@ -3413,7 +3413,7 @@ const zone_t* zone_list_next(zone_list_t* zone_list) {
             if (!db_result_list_size(zone_list->result_list)) {
                 return NULL;
             }
-            if (!(zone_list->object_list = (zone_t**)calloc(db_result_list_size(zone_list->result_list), sizeof(zone_t**)))) {
+            if (!(zone_list->object_list = (zone_t**)calloc(db_result_list_size(zone_list->result_list), sizeof(zone_t*)))) {
                 return NULL;
             }
             zone_list->object_list_size = db_result_list_size(zone_list->result_list);

@@ -2005,7 +2005,7 @@ const key_dependency_t* key_dependency_list_begin(key_dependency_list_t* key_dep
             if (!db_result_list_size(key_dependency_list->result_list)) {
                 return NULL;
             }
-            if (!(key_dependency_list->object_list = (key_dependency_t**)calloc(db_result_list_size(key_dependency_list->result_list), sizeof(key_dependency_t**)))) {
+            if (!(key_dependency_list->object_list = (key_dependency_t**)calloc(db_result_list_size(key_dependency_list->result_list), sizeof(key_dependency_t*)))) {
                 return NULL;
             }
             key_dependency_list->object_list_size = db_result_list_size(key_dependency_list->result_list);
@@ -2097,7 +2097,7 @@ const key_dependency_t* key_dependency_list_next(key_dependency_list_t* key_depe
             if (!db_result_list_size(key_dependency_list->result_list)) {
                 return NULL;
             }
-            if (!(key_dependency_list->object_list = (key_dependency_t**)calloc(db_result_list_size(key_dependency_list->result_list), sizeof(key_dependency_t**)))) {
+            if (!(key_dependency_list->object_list = (key_dependency_t**)calloc(db_result_list_size(key_dependency_list->result_list), sizeof(key_dependency_t*)))) {
                 return NULL;
             }
             key_dependency_list->object_list_size = db_result_list_size(key_dependency_list->result_list);

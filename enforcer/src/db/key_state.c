@@ -1654,7 +1654,7 @@ const key_state_t* key_state_list_begin(key_state_list_t* key_state_list) {
             if (!db_result_list_size(key_state_list->result_list)) {
                 return NULL;
             }
-            if (!(key_state_list->object_list = (key_state_t**)calloc(db_result_list_size(key_state_list->result_list), sizeof(key_state_t**)))) {
+            if (!(key_state_list->object_list = (key_state_t**)calloc(db_result_list_size(key_state_list->result_list), sizeof(key_state_t*)))) {
                 return NULL;
             }
             key_state_list->object_list_size = db_result_list_size(key_state_list->result_list);
@@ -1746,7 +1746,7 @@ const key_state_t* key_state_list_next(key_state_list_t* key_state_list) {
             if (!db_result_list_size(key_state_list->result_list)) {
                 return NULL;
             }
-            if (!(key_state_list->object_list = (key_state_t**)calloc(db_result_list_size(key_state_list->result_list), sizeof(key_state_t**)))) {
+            if (!(key_state_list->object_list = (key_state_t**)calloc(db_result_list_size(key_state_list->result_list), sizeof(key_state_t*)))) {
                 return NULL;
             }
             key_state_list->object_list_size = db_result_list_size(key_state_list->result_list);
