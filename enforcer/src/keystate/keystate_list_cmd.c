@@ -441,7 +441,6 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
         filterKeystate = NULL;
     } else {
         if ((filterKeystate = malloc(sizeof (char*) * 6))) {
-            ods_log_error("BERRY#2 %p",filterKeystate);
             filterKeystate[0] = "publish";
             filterKeystate[1] = "ready";
             filterKeystate[2] = "active";
