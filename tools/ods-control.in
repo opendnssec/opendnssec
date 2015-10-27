@@ -1,7 +1,5 @@
 #!/bin/sh
 #
-# $Id$
-#
 # Copyright (c) 2009 .SE (The Internet Infrastructure Foundation)
 # All rights reserved.
 #
@@ -31,7 +29,7 @@ progname="ods-control"
 bindir="@OPENDNSSEC_BIN_DIR@"
 sbindir="@OPENDNSSEC_SBIN_DIR@"
 enforcer_pid_file="@OPENDNSSEC_ENFORCER_PIDFILE@"
-enforcer_socket_file="@OPENDNSSEC_ENFORCER_SOCKET@"
+enforcer_socket_file="@OPENDNSSEC_ENFORCER_SOCKETFILE@"
 signer_pid_file="@OPENDNSSEC_SIGNER_PIDFILE@"
 signer_socket_file="@OPENDNSSEC_SIGNER_SOCKET@"
 
@@ -125,6 +123,8 @@ case "$1" in
 		
 		exit $RETVAL
 		;;
+
+
 	*)
 		shift
 		"$sbindir/ods-enforcer" "$@"
@@ -135,8 +135,14 @@ case "$1" in
 
 'start')
 	"$0" enforcer start
-
+	RETVAL=$?
+	if [ $RETVAL != 0 ]
+	then
+		exit $RETVAL
+	fi
 	"$0" signer start
+	RETVAL=$?
+	exit $RETVAL
 	;;
 
 'stop')
@@ -147,7 +153,7 @@ case "$1" in
 	;;
 
 *)
-	echo "usage: $progname ksm|hsm|signer|enforcer|start|stop ..."
+	echo "usage: $progname hsm|signer|enforcer|start|stop ..."
 	;;
 
 esac

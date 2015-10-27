@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- $Id$ -->
-
 <SignerConfiguration>
 	<Zone name="opendnssec.org">
 
@@ -18,6 +16,7 @@
 
 		<Denial>
 			<NSEC3>
+				<!-- <TTL>PT0S</TTL> -->
 				<OptOut/>
 				<Hash>
 					<Algorithm>1</Algorithm>

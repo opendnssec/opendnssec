@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Copyright (c) 2009 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,9 +33,10 @@
 #define DAEMON_CONFIG_H
 
 #include "config.h"
-#include "shared/allocator.h"
-#include "shared/locks.h"
-#include "shared/status.h"
+#include "allocator.h"
+#include "hsm.h"
+#include "locks.h"
+#include "status.h"
 #include "wire/listener.h"
 
 #include <stdio.h>
@@ -50,6 +49,7 @@ typedef struct engineconfig_struct engineconfig_type;
 struct engineconfig_struct {
     allocator_type* allocator;
     listener_type* interfaces;
+    hsm_repository_t* repositories;
     const char* cfg_filename;
     const char* zonelist_filename;
     const char* log_filename;

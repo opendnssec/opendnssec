@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Copyright (c) 2009 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,8 +35,8 @@
 #include "config.h"
 #include "adapter/addns.h"
 #include "adapter/adfile.h"
-#include "shared/allocator.h"
-#include "shared/status.h"
+#include "allocator.h"
+#include "status.h"
 
 #include <stdio.h>
 
@@ -62,6 +60,7 @@ struct adapter_struct {
     const char* configstr;
     void* config;
     unsigned inbound : 1;
+    unsigned error : 1;
 };
 
 /**

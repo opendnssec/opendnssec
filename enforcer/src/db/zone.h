@@ -1,0 +1,876 @@
+/*
+ * Copyright (c) 2014 Jerry Lundström <lundstrom.jerry@gmail.com>
+ * Copyright (c) 2014 .SE (The Internet Infrastructure Foundation).
+ * Copyright (c) 2014 OpenDNSSEC AB (svb)
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+ * GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+ * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+ * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ */
+
+#ifndef __zone_h
+#define __zone_h
+
+#include "db_object.h"
+
+struct zone;
+struct zone_list;
+typedef struct zone zone_t;
+typedef struct zone_list zone_list_t;
+
+#include "zone_ext.h"
+#include "policy.h"
+
+/**
+ * A zone object.
+ */
+struct zone {
+    db_object_t* dbo;
+    db_value_t id;
+    db_value_t rev;
+    db_value_t policy_id;
+    const policy_t* associated_policy_id;
+    policy_t* private_policy_id;
+    char* name;
+    unsigned int signconf_needs_writing;
+    char* signconf_path;
+    int next_change;
+    unsigned int ttl_end_ds;
+    unsigned int ttl_end_dk;
+    unsigned int ttl_end_rs;
+    unsigned int roll_ksk_now;
+    unsigned int roll_zsk_now;
+    unsigned int roll_csk_now;
+    char* input_adapter_type;
+    char* input_adapter_uri;
+    char* output_adapter_type;
+    char* output_adapter_uri;
+    unsigned int next_ksk_roll;
+    unsigned int next_zsk_roll;
+    unsigned int next_csk_roll;
+    key_data_list_t* key_data_list;
+    key_dependency_list_t* key_dependency_list;
+};
+
+/**
+ * Create a new zone object.
+ * \param[in] connection a db_connection_t pointer.
+ * \return a zone_t pointer or NULL on error.
+ */
+zone_t* zone_new(const db_connection_t* connection);
+
+/**
+ * Create a new zone object that is a copy of another zone object.
+ * \param[in] zone a zone_t pointer.
+ * \return a zone_t pointer or NULL on error.
+ */
+zone_t* zone_new_copy(const zone_t* zone);
+
+/**
+ * Delete a zone object, this does not delete it from the database.
+ * \param[in] zone a zone_t pointer.
+ */
+void zone_free(zone_t* zone);
+
+/**
+ * Reset the content of a zone object making it as if its new. This does not change anything in the database.
+ * \param[in] zone a zone_t pointer.
+ */
+void zone_reset(zone_t* zone);
+
+/**
+ * Copy the content of a zone object.
+ * \param[in] zone a zone_t pointer.
+ * \param[in] zone_copy a zone_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_copy(zone_t* zone, const zone_t* zone_copy);
+
+/**
+ * Compare two zone objects and return less than, equal to,
+ * or greater than zero if A is found, respectively, to be less than, to match,
+ * or be greater than B.
+ * \param[in] zone_a a zone_t pointer.
+ * \param[in] zone_b a zone_t pointer.
+ * \return less than, equal to, or greater than zero if A is found, respectively,
+ * to be less than, to match, or be greater than B.
+ */
+int zone_cmp(const zone_t* zone_a, const zone_t* zone_b);
+
+/**
+ * Set the content of a zone object based on a database result.
+ * \param[in] zone a zone_t pointer.
+ * \param[in] result a db_result_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_from_result(zone_t* zone, const db_result_t* result);
+
+/**
+ * Get the id of a zone object.
+ * \param[in] zone a zone_t pointer.
+ * \return a db_value_t pointer or NULL on error.
+ */
+const db_value_t* zone_id(const zone_t* zone);
+
+/**
+ * Get the policy_id of a zone object.
+ * \param[in] zone a zone_t pointer.
+ * \return a db_value_t pointer or NULL on error.
+ */
+const db_value_t* zone_policy_id(const zone_t* zone);
+
+/**
+ * Cache the policy_id object related to a zone object.
+ * \param[in] zone a zone_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_cache_policy(zone_t* zone);
+
+/**
+ * Get the policy_id object related to a zone object.
+ * \param[in] zone a zone_t pointer.
+ * \return a policy_t pointer or NULL on error or if no object could be found.
+ */
+const policy_t* zone_policy(const zone_t* zone);
+
+/**
+ * Get the policy_id object related to a zone object.
+ * The caller will be given ownership of this object and is responsible for freeing it.
+ * \param[in] zone a zone_t pointer.
+ * \return a policy_t pointer or NULL on error or if no object could be found.
+ */
+policy_t* zone_get_policy(const zone_t* zone);
+
+/**
+ * Get the name of a zone object.
+ * \param[in] zone a zone_t pointer.
+ * \return a character pointer or NULL on error or if no name has been set.
+ */
+const char* zone_name(const zone_t* zone);
+
+/**
+ * Get the signconf_needs_writing of a zone object. Undefined behavior if `zone` is NULL.
+ * \param[in] zone a zone_t pointer.
+ * \return an unsigned integer.
+ */
+unsigned int zone_signconf_needs_writing(const zone_t* zone);
+
+/**
+ * Get the signconf_path of a zone object.
+ * \param[in] zone a zone_t pointer.
+ * \return a character pointer or NULL on error or if no signconf_path has been set.
+ */
+const char* zone_signconf_path(const zone_t* zone);
+
+/**
+ * Get the next_change of a zone object. Undefined behavior if `zone` is NULL.
+ * \param[in] zone a zone_t pointer.
+ * \return an integer.
+ */
+int zone_next_change(const zone_t* zone);
+
+/**
+ * Get the ttl_end_ds of a zone object. Undefined behavior if `zone` is NULL.
+ * \param[in] zone a zone_t pointer.
+ * \return an unsigned integer.
+ */
+unsigned int zone_ttl_end_ds(const zone_t* zone);
+
+/**
+ * Get the ttl_end_dk of a zone object. Undefined behavior if `zone` is NULL.
+ * \param[in] zone a zone_t pointer.
+ * \return an unsigned integer.
+ */
+unsigned int zone_ttl_end_dk(const zone_t* zone);
+
+/**
+ * Get the ttl_end_rs of a zone object. Undefined behavior if `zone` is NULL.
+ * \param[in] zone a zone_t pointer.
+ * \return an unsigned integer.
+ */
+unsigned int zone_ttl_end_rs(const zone_t* zone);
+
+/**
+ * Get the roll_ksk_now of a zone object. Undefined behavior if `zone` is NULL.
+ * \param[in] zone a zone_t pointer.
+ * \return an unsigned integer.
+ */
+unsigned int zone_roll_ksk_now(const zone_t* zone);
+
+/**
+ * Get the roll_zsk_now of a zone object. Undefined behavior if `zone` is NULL.
+ * \param[in] zone a zone_t pointer.
+ * \return an unsigned integer.
+ */
+unsigned int zone_roll_zsk_now(const zone_t* zone);
+
+/**
+ * Get the roll_csk_now of a zone object. Undefined behavior if `zone` is NULL.
+ * \param[in] zone a zone_t pointer.
+ * \return an unsigned integer.
+ */
+unsigned int zone_roll_csk_now(const zone_t* zone);
+
+/**
+ * Get the input_adapter_type of a zone object.
+ * \param[in] zone a zone_t pointer.
+ * \return a character pointer or NULL on error or if no input_adapter_type has been set.
+ */
+const char* zone_input_adapter_type(const zone_t* zone);
+
+/**
+ * Get the input_adapter_uri of a zone object.
+ * \param[in] zone a zone_t pointer.
+ * \return a character pointer or NULL on error or if no input_adapter_uri has been set.
+ */
+const char* zone_input_adapter_uri(const zone_t* zone);
+
+/**
+ * Get the output_adapter_type of a zone object.
+ * \param[in] zone a zone_t pointer.
+ * \return a character pointer or NULL on error or if no output_adapter_type has been set.
+ */
+const char* zone_output_adapter_type(const zone_t* zone);
+
+/**
+ * Get the output_adapter_uri of a zone object.
+ * \param[in] zone a zone_t pointer.
+ * \return a character pointer or NULL on error or if no output_adapter_uri has been set.
+ */
+const char* zone_output_adapter_uri(const zone_t* zone);
+
+/**
+ * Get the next_ksk_roll of a zone object. Undefined behavior if `zone` is NULL.
+ * \param[in] zone a zone_t pointer.
+ * \return an unsigned integer.
+ */
+unsigned int zone_next_ksk_roll(const zone_t* zone);
+
+/**
+ * Get the next_zsk_roll of a zone object. Undefined behavior if `zone` is NULL.
+ * \param[in] zone a zone_t pointer.
+ * \return an unsigned integer.
+ */
+unsigned int zone_next_zsk_roll(const zone_t* zone);
+
+/**
+ * Get the next_csk_roll of a zone object. Undefined behavior if `zone` is NULL.
+ * \param[in] zone a zone_t pointer.
+ * \return an unsigned integer.
+ */
+unsigned int zone_next_csk_roll(const zone_t* zone);
+
+/**
+ * Get the key_data objects related to a zone object.
+ * \param[in] zone a zone_t pointer.
+ * \return a key_data_list_t pointer or NULL on error.
+ */
+key_data_list_t* zone_key_data_list(zone_t* zone);
+
+/**
+ * Retrieve key_data objects related to a zone object.
+ * Use zone_key_data_list() to get the list afterwards.
+ * This will refetch objects if already retrieved.
+ * \param[in] zone a zone_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_retrieve_key_data_list(zone_t* zone);
+
+/**
+ * Get the key_dependency objects related to a zone object.
+ * \param[in] zone a zone_t pointer.
+ * \return a key_dependency_list_t pointer or NULL on error.
+ */
+key_dependency_list_t* zone_key_dependency_list(zone_t* zone);
+
+/**
+ * Retrieve key_dependency objects related to a zone object.
+ * Use zone_key_dependency_list() to get the list afterwards.
+ * This will refetch objects if already retrieved.
+ * \param[in] zone a zone_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_retrieve_key_dependency_list(zone_t* zone);
+
+/**
+ * Set the policy_id of a zone object. If this fails the original value may have been lost.
+ * \param[in] zone a zone_t pointer.
+ * \param[in] policy_id a db_value_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_set_policy_id(zone_t* zone, const db_value_t* policy_id);
+
+/**
+ * Set the name of a zone object.
+ * \param[in] zone a zone_t pointer.
+ * \param[in] name_text a character pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_set_name(zone_t* zone, const char* name_text);
+
+/**
+ * Set the signconf_needs_writing of a zone object.
+ * \param[in] zone a zone_t pointer.
+ * \param[in] signconf_needs_writing an unsigned integer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_set_signconf_needs_writing(zone_t* zone, unsigned int signconf_needs_writing);
+
+/**
+ * Set the signconf_path of a zone object.
+ * \param[in] zone a zone_t pointer.
+ * \param[in] signconf_path_text a character pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_set_signconf_path(zone_t* zone, const char* signconf_path_text);
+
+/**
+ * Set the next_change of a zone object.
+ * \param[in] zone a zone_t pointer.
+ * \param[in] next_change an integer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_set_next_change(zone_t* zone, int next_change);
+
+/**
+ * Set the ttl_end_ds of a zone object.
+ * \param[in] zone a zone_t pointer.
+ * \param[in] ttl_end_ds an unsigned integer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_set_ttl_end_ds(zone_t* zone, unsigned int ttl_end_ds);
+
+/**
+ * Set the ttl_end_dk of a zone object.
+ * \param[in] zone a zone_t pointer.
+ * \param[in] ttl_end_dk an unsigned integer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_set_ttl_end_dk(zone_t* zone, unsigned int ttl_end_dk);
+
+/**
+ * Set the ttl_end_rs of a zone object.
+ * \param[in] zone a zone_t pointer.
+ * \param[in] ttl_end_rs an unsigned integer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_set_ttl_end_rs(zone_t* zone, unsigned int ttl_end_rs);
+
+/**
+ * Set the roll_ksk_now of a zone object.
+ * \param[in] zone a zone_t pointer.
+ * \param[in] roll_ksk_now an unsigned integer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_set_roll_ksk_now(zone_t* zone, unsigned int roll_ksk_now);
+
+/**
+ * Set the roll_zsk_now of a zone object.
+ * \param[in] zone a zone_t pointer.
+ * \param[in] roll_zsk_now an unsigned integer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_set_roll_zsk_now(zone_t* zone, unsigned int roll_zsk_now);
+
+/**
+ * Set the roll_csk_now of a zone object.
+ * \param[in] zone a zone_t pointer.
+ * \param[in] roll_csk_now an unsigned integer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_set_roll_csk_now(zone_t* zone, unsigned int roll_csk_now);
+
+/**
+ * Set the input_adapter_type of a zone object.
+ * \param[in] zone a zone_t pointer.
+ * \param[in] input_adapter_type_text a character pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_set_input_adapter_type(zone_t* zone, const char* input_adapter_type_text);
+
+/**
+ * Set the input_adapter_uri of a zone object.
+ * \param[in] zone a zone_t pointer.
+ * \param[in] input_adapter_uri_text a character pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_set_input_adapter_uri(zone_t* zone, const char* input_adapter_uri_text);
+
+/**
+ * Set the output_adapter_type of a zone object.
+ * \param[in] zone a zone_t pointer.
+ * \param[in] output_adapter_type_text a character pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_set_output_adapter_type(zone_t* zone, const char* output_adapter_type_text);
+
+/**
+ * Set the output_adapter_uri of a zone object.
+ * \param[in] zone a zone_t pointer.
+ * \param[in] output_adapter_uri_text a character pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_set_output_adapter_uri(zone_t* zone, const char* output_adapter_uri_text);
+
+/**
+ * Set the next_ksk_roll of a zone object.
+ * \param[in] zone a zone_t pointer.
+ * \param[in] next_ksk_roll an unsigned integer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_set_next_ksk_roll(zone_t* zone, unsigned int next_ksk_roll);
+
+/**
+ * Set the next_zsk_roll of a zone object.
+ * \param[in] zone a zone_t pointer.
+ * \param[in] next_zsk_roll an unsigned integer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_set_next_zsk_roll(zone_t* zone, unsigned int next_zsk_roll);
+
+/**
+ * Set the next_csk_roll of a zone object.
+ * \param[in] zone a zone_t pointer.
+ * \param[in] next_csk_roll an unsigned integer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_set_next_csk_roll(zone_t* zone, unsigned int next_csk_roll);
+
+/**
+ * Create a clause for policy_id of a zone object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] policy_id a db_value_t pointer.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* zone_policy_id_clause(db_clause_list_t* clause_list, const db_value_t* policy_id);
+
+/**
+ * Create a clause for name of a zone object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] name_text a character pointer.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* zone_name_clause(db_clause_list_t* clause_list, const char* name_text);
+
+/**
+ * Create a clause for signconf_needs_writing of a zone object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] signconf_needs_writing an unsigned integer.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* zone_signconf_needs_writing_clause(db_clause_list_t* clause_list, unsigned int signconf_needs_writing);
+
+/**
+ * Create a clause for signconf_path of a zone object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] signconf_path_text a character pointer.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* zone_signconf_path_clause(db_clause_list_t* clause_list, const char* signconf_path_text);
+
+/**
+ * Create a clause for next_change of a zone object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] next_change an integer.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* zone_next_change_clause(db_clause_list_t* clause_list, int next_change);
+
+/**
+ * Create a clause for ttl_end_ds of a zone object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] ttl_end_ds an unsigned integer.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* zone_ttl_end_ds_clause(db_clause_list_t* clause_list, unsigned int ttl_end_ds);
+
+/**
+ * Create a clause for ttl_end_dk of a zone object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] ttl_end_dk an unsigned integer.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* zone_ttl_end_dk_clause(db_clause_list_t* clause_list, unsigned int ttl_end_dk);
+
+/**
+ * Create a clause for ttl_end_rs of a zone object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] ttl_end_rs an unsigned integer.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* zone_ttl_end_rs_clause(db_clause_list_t* clause_list, unsigned int ttl_end_rs);
+
+/**
+ * Create a clause for roll_ksk_now of a zone object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] roll_ksk_now an unsigned integer.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* zone_roll_ksk_now_clause(db_clause_list_t* clause_list, unsigned int roll_ksk_now);
+
+/**
+ * Create a clause for roll_zsk_now of a zone object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] roll_zsk_now an unsigned integer.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* zone_roll_zsk_now_clause(db_clause_list_t* clause_list, unsigned int roll_zsk_now);
+
+/**
+ * Create a clause for roll_csk_now of a zone object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] roll_csk_now an unsigned integer.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* zone_roll_csk_now_clause(db_clause_list_t* clause_list, unsigned int roll_csk_now);
+
+/**
+ * Create a clause for input_adapter_type of a zone object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] input_adapter_type_text a character pointer.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* zone_input_adapter_type_clause(db_clause_list_t* clause_list, const char* input_adapter_type_text);
+
+/**
+ * Create a clause for input_adapter_uri of a zone object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] input_adapter_uri_text a character pointer.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* zone_input_adapter_uri_clause(db_clause_list_t* clause_list, const char* input_adapter_uri_text);
+
+/**
+ * Create a clause for output_adapter_type of a zone object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] output_adapter_type_text a character pointer.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* zone_output_adapter_type_clause(db_clause_list_t* clause_list, const char* output_adapter_type_text);
+
+/**
+ * Create a clause for output_adapter_uri of a zone object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] output_adapter_uri_text a character pointer.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* zone_output_adapter_uri_clause(db_clause_list_t* clause_list, const char* output_adapter_uri_text);
+
+/**
+ * Create a clause for next_ksk_roll of a zone object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] next_ksk_roll an unsigned integer.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* zone_next_ksk_roll_clause(db_clause_list_t* clause_list, unsigned int next_ksk_roll);
+
+/**
+ * Create a clause for next_zsk_roll of a zone object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] next_zsk_roll an unsigned integer.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* zone_next_zsk_roll_clause(db_clause_list_t* clause_list, unsigned int next_zsk_roll);
+
+/**
+ * Create a clause for next_csk_roll of a zone object and add it to a database clause list.
+ * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
+ * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
+ * returned db_clause_t pointer.
+ * \param[in] clause_list db_clause_list_t pointer.
+ * \param[in] next_csk_roll an unsigned integer.
+ * \return a db_clause_t pointer to the added clause or NULL on error.
+ */
+db_clause_t* zone_next_csk_roll_clause(db_clause_list_t* clause_list, unsigned int next_csk_roll);
+
+/**
+ * Create a zone object in the database.
+ * \param[in] zone a zone_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_create(zone_t* zone);
+
+/**
+ * Get a zone object from the database by a id specified in `id`.
+ * \param[in] zone a zone_t pointer.
+ * \param[in] id a db_value_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_get_by_id(zone_t* zone, const db_value_t* id);
+
+/**
+ * Get a new zone object from the database by a id specified in `id`.
+ * \param[in] connection a db_connection_t pointer.
+ * \param[in] id a db_value_t pointer.
+ * \return a zone_t pointer or NULL on error or if it does not exist.
+ */
+zone_t* zone_new_get_by_id(const db_connection_t* connection, const db_value_t* id);
+
+/**
+ * Get a zone object from the database by a name specified in `name`.
+ * \param[in] zone a zone_t pointer.
+ * \param[in] name a character pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_get_by_name(zone_t* zone, const char* name);
+
+/**
+ * Get a new zone object from the database by a name specified in `name`.
+ * \param[in] connection a db_connection_t pointer.
+ * \param[in] name a character pointer.
+ * \return a zone_t pointer or NULL on error or if it does not exist.
+ */
+zone_t* zone_new_get_by_name(const db_connection_t* connection, const char* name);
+
+/**
+ * Update a zone object in the database.
+ * \param[in] zone a zone_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_update(zone_t* zone);
+
+/**
+ * Delete a zone object from the database.
+ * \param[in] zone a zone_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_delete(zone_t* zone);
+
+/**
+ * Count the number of zone objects in the database, if a selection of
+ * objects should be counted then it can be limited by a database clause list
+ * otherwise all objects are counted.
+ * \param[in] zone a zone_t pointer.
+ * \param[in] clause_list a db_clause_list_t pointer or NULL if all objects.
+ * \param[out] count a size_t pointer to where the count should be stored.
+ * should be counted.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_count(zone_t* zone, db_clause_list_t* clause_list, size_t* count);
+
+/**
+ * A list of zone objects.
+ */
+struct zone_list {
+    db_object_t* dbo;
+    db_result_list_t* result_list;
+    const db_result_t* result;
+    zone_t* zone;
+    int object_store;
+    zone_t** object_list;
+    size_t object_list_size;
+    size_t object_list_position;
+    int object_list_first;
+    int associated_fetch;
+    policy_list_t* policy_id_list;
+};
+
+/**
+ * Create a new zone object list.
+ * \param[in] connection a db_connection_t pointer.
+ * \return a zone_list_t pointer or NULL on error.
+ */
+zone_list_t* zone_list_new(const db_connection_t* connection);
+
+/**
+ * Create a new zone object list that is a copy of another.
+ * \param[in] zone_list a zone_list_t pointer.
+ * \return a zone_list_t pointer or NULL on error.
+ */
+zone_list_t* zone_list_new_copy(const zone_list_t* zone_copy);
+
+/**
+ * Specify that objects should be stored within the list as they are fetch,
+ * this is optimal if the list is to be iterated over more then once.
+ * \param[in] zone_list a zone_list_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_list_object_store(zone_list_t* zone_list);
+
+/**
+ * Specify that the list should also fetch associated objects in a more optimal
+ * way then fetching them for each individual object later on. This also forces
+ * the list to store all objects (see zone_list_object_store()).
+ * \param[in] zone_list a zone_list_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_list_associated_fetch(zone_list_t* zone_list);
+
+/**
+ * Delete a zone object list.
+ * \param[in] zone_list a zone_list_t pointer.
+ */
+void zone_list_free(zone_list_t* zone_list);
+
+/**
+ * Copy the content of another zone object list.
+ * \param[in] zone_list a zone_list_t pointer.
+ * \param[in] from_zone_list a zone_list_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_list_copy(zone_list_t* zone_list, const zone_list_t* from_zone_list);
+
+/**
+ * Get all zone objects.
+ * \param[in] zone_list a zone_list_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_list_get(zone_list_t* zone_list);
+
+/**
+ * Get a new list with all zone objects.
+ * \param[in] connection a db_connection_t pointer.
+ * \return a zone_list_t pointer or NULL on error.
+ */
+zone_list_t* zone_list_new_get(const db_connection_t* connection);
+
+/**
+ * Get zone objects from the database by a clause list.
+ * \param[in] zone_list a zone_list_t pointer.
+ * \param[in] clause_list a db_clause_list_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_list_get_by_clauses(zone_list_t* zone_list, const db_clause_list_t* clause_list);
+
+/**
+ * Get a new list of zone objects from the database by a clause list.
+ * \param[in] connection a db_connection_t pointer.
+ * \param[in] clause_list a db_clause_list_t pointer.
+ * \return a zone_list_t pointer or NULL on error.
+ */
+zone_list_t* zone_list_new_get_by_clauses(const db_connection_t* connection, const db_clause_list_t* clause_list);
+
+/**
+ * Get zone objects from the database by a policy_id specified in `policy_id`.
+ * \param[in] zone_list a zone_list_t pointer.
+ * \param[in] policy_id a db_value_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_list_get_by_policy_id(zone_list_t* zone_list, const db_value_t* policy_id);
+
+/**
+ * Get a new list of zone objects from the database by a policy_id specified in `policy_id`.
+ * \param[in] connection a db_connection_t pointer.
+ * \param[in] policy_id a db_value_t pointer.
+ * \return a zone_list_t pointer or NULL on error.
+ */
+zone_list_t* zone_list_new_get_by_policy_id(const db_connection_t* connection, const db_value_t* policy_id);
+
+/**
+ * Get the first zone object in a zone object list and reset the
+ * position of the list.
+ * \param[in] zone_list a zone_list_t pointer.
+ * \return a zone_t pointer or NULL on error or if there are no
+ * zone objects in the zone object list.
+ */
+const zone_t* zone_list_begin(zone_list_t* zone_list);
+
+/**
+ * Get the first zone object in a zone object list and reset the
+ * position of the list. The caller will be given ownership of this object and
+ * is responsible for freeing it.
+ * \param[in] zone_list a zone_list_t pointer.
+ * \return a zone_t pointer or NULL on error or if there are no
+ * zone objects in the zone object list.
+ */
+zone_t* zone_list_get_begin(zone_list_t* zone_list);
+
+/**
+ * Get the next zone object in a zone object list.
+ * Ownership of this object is retained within the list and the object is only
+ * valid until the next call to this function.
+ * \param[in] zone_list a zone_list_t pointer.
+ * \return a zone_t pointer or NULL on error or if there are no more
+ * zone objects in the zone object list.
+ */
+const zone_t* zone_list_next(zone_list_t* zone_list);
+
+/**
+ * Get the next zone object in a zone object list.
+ * The caller will be given ownership of this object and is responsible for
+ * freeing it.
+ * \param[in] zone_list a zone_list_t pointer.
+ * \return a zone_t pointer or NULL on error or if there are no more
+ * zone objects in the zone object list.
+ */
+zone_t* zone_list_get_next(zone_list_t* zone_list);
+
+/**
+ * Get the size of a zone object list.
+ * \param[in] zone_list a zone_list_t pointer.
+ * \return a size_t with the size of the list or zero on error, if the list is
+ * empty or if the backend does not support returning the size.
+ */
+size_t zone_list_size(zone_list_t* zone_list);
+
+#endif

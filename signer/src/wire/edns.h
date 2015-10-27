@@ -1,6 +1,4 @@
 /*
- * $Id: edns.h 4958 2011-04-18 07:11:09Z matthijs $
- *
  * Copyright (c) 2011 NLNet Labs. All rights reserved.
  *
  * Taken from NSD3 and adjusted for OpenDNSSEC, NLnet Labs.
@@ -37,7 +35,7 @@
 #define WIRE_EDNS_H
 
 #include "config.h"
-#include "shared/allocator.h"
+#include "allocator.h"
 #include "wire/buffer.h"
 
 #include <ldns/ldns.h>

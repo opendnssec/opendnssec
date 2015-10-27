@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Copyright (c) 2009 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,9 +31,8 @@
 
 #include "parser/confparser.h"
 #include "parser/signconfparser.h"
-#include "shared/duration.h"
-#include "shared/log.h"
-#include "signer/signconf.h"
+#include "duration.h"
+#include "log.h"
 
 #include <libxml/parser.h>
 #include <libxml/xpath.h>
@@ -135,7 +132,7 @@ parse_sc_keys(void* sc, const char* cfgfile)
                     ods_log_warning("[%s] unable to push duplicate key %s "
                         "to keylist, skipping", parser_str, locator);
                 } else {
-                    new_key = keylist_push(kl, locator,
+                    (void) keylist_push(kl, locator,
                         (uint8_t) atoi(algorithm), (uint32_t) atoi(flags),
                         publish, ksk, zsk);
                 }
@@ -275,6 +272,22 @@ parse_sc_dnskey_ttl(const char* cfgfile)
 
 
 duration_type*
+parse_sc_nsec3param_ttl(const char* cfgfile)
+{
+    duration_type* duration = NULL;
+    const char* str = parse_conf_string(cfgfile,
+        "//SignerConfiguration/Zone/Denial/NSEC3/TTL",
+        0);
+    if (!str) {
+        return NULL;
+    }
+    duration = duration_create_from_string(str);
+    free((void*)str);
+    return duration;
+}
+
+
+duration_type*
 parse_sc_soa_ttl(const char* cfgfile)
 {
     duration_type* duration = NULL;
@@ -399,6 +412,19 @@ parse_sc_nsec3_optout(const char* cfgfile)
     return ret;
 }
 
+int
+parse_sc_passthrough(const char* cfgfile)
+{
+    int ret = 0;
+    const char* str = parse_conf_string(cfgfile,
+        "//SignerConfiguration/Zone/Passthrough",
+        0);
+    if (str) {
+        ret = 1;
+        free((void*)str);
+    }
+    return ret;
+}
 
 /**
  * Parse elements from the configuration file.

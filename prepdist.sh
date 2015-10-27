@@ -1,7 +1,5 @@
 #!/bin/sh
 #
-# $Id: prepdist.sh 5999 2012-01-04 14:45:36Z jakob $
-
 PREFIX=/tmp/opendnssec-release
 
 if [ ! -f autogen.sh -a ! -f configure ]; then
@@ -18,4 +16,4 @@ cd build &&
 	--with-database-backend=sqlite3 \
 	--with-dbname=opendnssec-release-test \
 	--with-pkcs11-softhsm=/usr/local/lib/softhsm/libsofthsm.so \
-	--enable-eppclient $@
+	$@

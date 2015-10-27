@@ -1,6 +1,4 @@
 /*
- * $Id: ixfr.h 5260 2011-06-28 14:13:14Z matthijs $
- *
  * Copyright (c) 2009 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,6 +33,7 @@
 #define SIGNER_IXFR_H
 
 #include "config.h"
+#include "locks.h"
 
 #include <ldns/ldns.h>
 
@@ -60,6 +59,7 @@ typedef struct ixfr_struct ixfr_type;
 struct ixfr_struct {
     void* zone;
     part_type* part[IXFR_MAX_PARTS];
+    lock_basic_type ixfr_lock;
 };
 
 /**

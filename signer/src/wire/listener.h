@@ -1,6 +1,4 @@
 /*
- * $Id: listener.h 4958 2011-04-18 07:11:09Z matthijs $
- *
  * Copyright (c) 2011 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,7 +33,7 @@
 #define WIRE_LISTENER_H
 
 #include "config.h"
-#include "shared/allocator.h"
+#include "allocator.h"
 
 #include <arpa/inet.h>
 #include <netdb.h>

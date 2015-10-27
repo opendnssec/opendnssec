@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Copyright (c) 2009-2011 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,7 +33,7 @@
 #define ADAPTER_ADAPI_H
 
 #include "config.h"
-#include "shared/status.h"
+#include "status.h"
 #include "signer/zone.h"
 
 #include <ldns/ldns.h>
@@ -83,16 +81,18 @@ uint32_t adapi_get_ttl(zone_type* zone);
 /*
  * Do full zone transaction.
  * \param[in] zone zone
+ * \param[in] more_coming more transactions are possible
  *
  */
-void adapi_trans_full(zone_type* zone);
+void adapi_trans_full(zone_type* zone, unsigned more_coming);
 
 /*
  * Do incremental zone transaction.
  * \param[in] zone zone
+ * \param[in] more_coming more transactions are possible
  *
  */
-void adapi_trans_diff(zone_type* zone);
+void adapi_trans_diff(zone_type* zone, unsigned more_coming);
 
 /**
  * Add RR.

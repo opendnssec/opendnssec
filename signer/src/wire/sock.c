@@ -1,6 +1,4 @@
 /*
- * $Id: sock.h 4958 2011-04-18 07:11:09Z matthijs $
- *
  * Copyright (c) 2011 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,8 +31,7 @@
 
 #include "config.h"
 #include "daemon/engine.h"
-#include "shared/log.h"
-#include "shared/util.h"
+#include "log.h"
 #include "signer/zone.h"
 #include "wire/axfr.h"
 #include "wire/netio.h"
@@ -69,7 +66,7 @@ sock_fcntl_and_bind(sock_type* sock, const char* node, const char* port,
             node?node:"localhost", port, strerror(errno));
         return ODS_STATUS_SOCK_FCNTL_NONBLOCK;
     }
-    ods_log_debug("[%s] bind %s/%s socket '%s:%s'", sock_str, stype, fam,
+    ods_log_debug("[%s] bind %s/%s socket '%s:%s': %s", sock_str, stype, fam,
         node?node:"localhost", port, strerror(errno));
     if (bind(sock->s, (struct sockaddr *) sock->addr->ai_addr,
         sock->addr->ai_addrlen) != 0) {
@@ -167,7 +164,7 @@ sock_server_udp(sock_type* sock, const char* node, const char* port,
 #endif
     *ip6_support = 1;
     /* socket */
-    ods_log_debug("[%s] create udp socket '%s:%s'", sock_str,
+    ods_log_debug("[%s] create udp socket '%s:%s': %s", sock_str,
         node?node:"localhost", port, strerror(errno));
     if ((sock->s = socket(sock->addr->ai_family, SOCK_DGRAM, 0))== -1) {
         ods_log_error("[%s] unable to create udp/ipv4 socket '%s:%s': "
@@ -211,7 +208,7 @@ sock_server_tcp(sock_type* sock, const char* node, const char* port,
 #endif
     *ip6_support = 1;
     /* socket */
-    ods_log_debug("[%s] create tcp socket '%s:%s'", sock_str,
+    ods_log_debug("[%s] create tcp socket '%s:%s': %s", sock_str,
         node?node:"localhost", port, strerror(errno));
     if ((sock->s = socket(sock->addr->ai_family, SOCK_STREAM, 0))== -1) {
         ods_log_error("[%s] unable to create tcp/ipv4 socket '%s:%s': "
@@ -375,7 +372,7 @@ send_udp(struct udp_data* data, query_type* q)
     if (nb == -1) {
         ods_log_error("[%s] unable to send data over udp: sendto() failed "
             "(%s)", sock_str, strerror(errno));
-        ods_log_debug("[%s] len=%u", sock_str, buffer_remaining(q->buffer));
+        ods_log_debug("[%s] len=%lu", sock_str, (unsigned long)buffer_remaining(q->buffer));
     } else if ((size_t) nb != buffer_remaining(q->buffer)) {
         ods_log_error("[%s] unable to send data over udp: only sent %d of %d "
             "octets", sock_str, (int)nb,
@@ -518,7 +515,7 @@ sock_handle_tcp_accept(netio_type* netio, netio_handler_type* handler,
     tcp_data->query->addrlen = addrlen;
     tcp_handler = (netio_handler_type*) allocator_alloc(allocator,
         sizeof(netio_handler_type));
-    if (!tcp_data) {
+    if (!tcp_handler) {
         ods_log_error("[%s] unable to handle incoming tcp connection: "
             "allocator_alloc() handler failed", sock_str);
         query_cleanup(tcp_data->query);
@@ -593,13 +590,13 @@ sock_handle_tcp_read(netio_type* netio, netio_handler_type* handler,
              return;
          }
          data->bytes_transmitted += received;
-         ods_log_debug("[%s] TCP_READ: bytes transmitted %u (received %u)",
-                sock_str, data->bytes_transmitted, received);
+         ods_log_debug("[%s] TCP_READ: bytes transmitted %lu (received %lu)",
+                sock_str, (unsigned long)data->bytes_transmitted, (unsigned long)received);
          if (data->bytes_transmitted < sizeof(uint16_t)) {
              /* not done with the tcplen yet, wait for more. */
-             ods_log_debug("[%s] TCP_READ: bytes transmitted %u, while ",
-                "sizeof uint16_t %u", sock_str, data->bytes_transmitted,
-                sizeof(uint16_t));
+             ods_log_debug("[%s] TCP_READ: bytes transmitted %lu, while "
+                "sizeof uint16_t %lu", sock_str, (unsigned long)data->bytes_transmitted,
+                (unsigned long)sizeof(uint16_t));
              return;
          }
          ods_log_assert(data->bytes_transmitted == sizeof(uint16_t));
@@ -639,14 +636,14 @@ sock_handle_tcp_read(netio_type* netio, netio_handler_type* handler,
         return;
     }
     data->bytes_transmitted += received;
-    ods_log_debug("[%s] TCP_READ: bytes transmitted %u (received %u)",
-        sock_str, data->bytes_transmitted, received);
+    ods_log_debug("[%s] TCP_READ: bytes transmitted %lu (received %lu)",
+        sock_str, (unsigned long)data->bytes_transmitted, (unsigned long)received);
 
     buffer_skip(data->query->buffer, received);
     if (buffer_remaining(data->query->buffer) > 0) {
         /* not done with message yet, wait for more. */
-        ods_log_debug("[%s] TCP_READ: remaining %u", sock_str,
-            buffer_remaining(data->query->buffer));
+        ods_log_debug("[%s] TCP_READ: remaining %lu", sock_str,
+            (unsigned long)buffer_remaining(data->query->buffer));
         return;
     }
     ods_log_assert(buffer_position(data->query->buffer) ==
@@ -715,13 +712,13 @@ sock_handle_tcp_write(netio_type* netio, netio_handler_type* handler,
              return;
          }
          data->bytes_transmitted += sent;
-         ods_log_debug("[%s] TCP_WRITE: bytes transmitted %u (sent %u)",
-                sock_str, data->bytes_transmitted, sent);
+         ods_log_debug("[%s] TCP_WRITE: bytes transmitted %lu (sent %ld)",
+                sock_str, (unsigned long)data->bytes_transmitted, (long)sent);
          if (data->bytes_transmitted < sizeof(q->tcplen)) {
              /* writing not complete, wait until socket becomes writable. */
-             ods_log_debug("[%s] TCP_WRITE: bytes transmitted %u, while ",
-                "sizeof tcplen %u", sock_str, data->bytes_transmitted,
-                sizeof(q->tcplen));
+             ods_log_debug("[%s] TCP_WRITE: bytes transmitted %lu, while "
+                "sizeof tcplen %lu", sock_str, (unsigned long)data->bytes_transmitted,
+                (unsigned long)sizeof(q->tcplen));
              return;
          }
          ods_log_assert(data->bytes_transmitted == sizeof(q->tcplen));
@@ -749,17 +746,17 @@ sock_handle_tcp_write(netio_type* netio, netio_handler_type* handler,
     data->bytes_transmitted += sent;
     if (data->bytes_transmitted < q->tcplen + sizeof(q->tcplen)) {
         /* still more data to write when socket becomes writable. */
-        ods_log_debug("[%s] TCP_WRITE: bytes transmitted %u, while tcplen "
-           "%u and sizeof tcplen %u", sock_str, data->bytes_transmitted,
-           q->tcplen, sizeof(q->tcplen));
+        ods_log_debug("[%s] TCP_WRITE: bytes transmitted %lu, while tcplen "
+           "%u and sizeof tcplen %lu", sock_str, (unsigned long) data->bytes_transmitted,
+           q->tcplen, (unsigned long)sizeof(q->tcplen));
         return;
     }
 
-    ods_log_debug("[%s] TCP_WRITE: bytes transmitted %u",
-        sock_str, data->bytes_transmitted);
+    ods_log_debug("[%s] TCP_WRITE: bytes transmitted %lu",
+        sock_str, (unsigned long)data->bytes_transmitted);
     ods_log_debug("[%s] TCP_WRITE: tcplen %u", sock_str, q->tcplen);
-    ods_log_debug("[%s] TCP_WRITE: sizeof tcplen %u", sock_str,
-        sizeof(q->tcplen));
+    ods_log_debug("[%s] TCP_WRITE: sizeof tcplen %lu", sock_str,
+        (unsigned long)sizeof(q->tcplen));
     ods_log_assert(data->bytes_transmitted == q->tcplen + sizeof(q->tcplen));
     if (data->qstate == QUERY_AXFR || data->qstate == QUERY_IXFR) {
         /* continue processing AXFR and writing back results.  */
@@ -767,7 +764,7 @@ sock_handle_tcp_write(netio_type* netio, netio_handler_type* handler,
         if (data->qstate == QUERY_IXFR) {
             data->qstate = ixfr(q, data->engine);
         } else {
-            data->qstate = axfr(q, data->engine);
+            data->qstate = axfr(q, data->engine, 0);
         }
         if (data->qstate != QUERY_PROCESSED) {
             /* edns, tsig */

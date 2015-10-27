@@ -1,6 +1,4 @@
 /*
- * $Id: listener.c 4958 2011-04-18 07:11:09Z matthijs $
- *
  * Copyright (c) 2011 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,7 +30,7 @@
  */
 
 #include "config.h"
-#include "shared/log.h"
+#include "log.h"
 #include "wire/listener.h"
 
 static const char* listener_str = "listener";
@@ -77,9 +75,8 @@ listener_push(listener_type* listener, char* address, int family, char* port)
     listener->interfaces = (interface_type*) allocator_alloc(
         listener->allocator, (listener->count + 1) * sizeof(interface_type));
     if (!listener->interfaces) {
-        ods_log_error("[%s] unable to add interface: allocator_alloc() failed",
+        ods_fatal_exit("[%s] fatal unable to add interface: allocator_alloc() failed",
             listener_str);
-        exit(1);
     }
     if (ifs_old) {
         memcpy(listener->interfaces, ifs_old,
@@ -104,7 +101,7 @@ listener_push(listener_type* listener, char* address, int family, char* port)
         if (inet_pton(listener->interfaces[listener->count -1].family,
             listener->interfaces[listener->count -1].address,
             &listener->interfaces[listener->count -1].addr.addr6) != 1) {
-            ods_log_error("[%s] bad ip address '%s'",
+            ods_log_error("[%s] bad ip address '%s'", listener_str,
                 listener->interfaces[listener->count -1].address);
             return NULL;
         }
@@ -113,7 +110,7 @@ listener_push(listener_type* listener, char* address, int family, char* port)
         if (inet_pton(listener->interfaces[listener->count -1].family,
             listener->interfaces[listener->count -1].address,
             &listener->interfaces[listener->count -1].addr.addr) != 1) {
-            ods_log_error("[%s] bad ip address '%s'",
+            ods_log_error("[%s] bad ip address '%s'", listener_str,
                 listener->interfaces[listener->count -1].address);
             return NULL;
         }

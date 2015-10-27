@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Copyright (c) 2009 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,8 +33,8 @@
 #define PARSER_ZONELISTPARSER_H
 
 #include "adapter/adapter.h"
-#include "shared/allocator.h"
-#include "shared/status.h"
+#include "allocator.h"
+#include "status.h"
 
 #include <libxml/xpath.h>
 #include <libxml/xmlreader.h>

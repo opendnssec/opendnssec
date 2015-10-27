@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Copyright (c) 2009 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,11 +32,11 @@
 #include "config.h"
 #include "parser/confparser.h"
 #include "parser/zonelistparser.h"
-#include "shared/allocator.h"
-#include "shared/duration.h"
-#include "shared/file.h"
-#include "shared/log.h"
-#include "shared/status.h"
+#include "allocator.h"
+#include "duration.h"
+#include "file.h"
+#include "log.h"
+#include "status.h"
 #include "signer/zone.h"
 #include "signer/zonelist.h"
 
@@ -362,6 +360,9 @@ zonelist_update(zonelist_type* zl, const char* zlfile)
         return ODS_STATUS_ASSERT_ERR;
     }
     /* is the file updated? */
+    /* OPENDNSSEC-686: changes happening within one second will not be
+     * seen
+     */
     st_mtime = ods_file_lastmodified(zlfile);
     if (st_mtime <= zl->last_modified) {
         (void)time_datestamp(zl->last_modified, "%Y-%m-%d %T", &datestamp);

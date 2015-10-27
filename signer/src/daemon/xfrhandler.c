@@ -1,6 +1,4 @@
 /*
- * $Id: xfrhandler.c 4518 2011-02-24 15:39:09Z matthijs $
- *
  * Copyright (c) 2009 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,8 +32,8 @@
 #include "config.h"
 #include "daemon/engine.h"
 #include "daemon/xfrhandler.h"
-#include "shared/duration.h"
-#include "shared/status.h"
+#include "duration.h"
+#include "status.h"
 
 #include <errno.h>
 #include <string.h>
@@ -130,10 +128,10 @@ xfrhandler_start(xfrhandler_type* xfrhandler)
     while (xfrhandler->need_to_exit == 0) {
         /* dispatch may block for a longer period, so current is gone */
         xfrhandler->got_time = 0;
-        ods_log_debug("[%s] netio dispatch", xfrh_str);
+        ods_log_deeebug("[%s] netio dispatch", xfrh_str);
         if (netio_dispatch(xfrhandler->netio, NULL, NULL) == -1) {
             if (errno != EINTR) {
-                ods_log_error("[%s] netio_dispatch failed: %s", xfrh_str,
+                ods_log_error("[%s] unable to dispatch netio: %s", xfrh_str,
                     strerror(errno));
             }
         }
@@ -198,8 +196,9 @@ xfrhandler_handle_dns(netio_type* ATTR_UNUSED(netio),
     }
     xfrhandler = (xfrhandler_type*) handler->user_data;
     ods_log_assert(event_types & NETIO_EVENT_READ);
-    ods_log_debug("[%s] read forwarded dns packet", xfrh_str);
     received = read(xfrhandler->dnshandler.fd, &buf, MAX_PACKET_SIZE);
+    ods_log_debug("[%s] read forwarded dns packet: %d bytes received",
+        xfrh_str, (int) received);
     if (received == -1) {
         ods_log_error("[%s] unable to forward dns packet: %s", xfrh_str,
             strerror(errno));

@@ -1,6 +1,4 @@
 /*
- * $Id: xfrhandler.h 4518 2011-02-24 15:39:09Z matthijs $
- *
  * Copyright (c) 2009 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,8 +33,8 @@
 #define DAEMON_XFRHANDLER_H
 
 #include "config.h"
-#include "shared/allocator.h"
-#include "shared/locks.h"
+#include "allocator.h"
+#include "locks.h"
 #include "wire/buffer.h"
 #include "wire/netio.h"
 #include "wire/notify.h"

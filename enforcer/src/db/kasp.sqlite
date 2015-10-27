@@ -1,0 +1,242 @@
+CREATE TABLE Adapter (
+    adapter VARCHAR(255),
+    type VARCHAR(255) DEFAULT 'File',
+    file VARCHAR(255),
+    id INTEGER PRIMARY KEY AUTOINCREMENT
+);
+
+CREATE TABLE Adapters (
+    input INTEGER NOT NULL,
+    output INTEGER NOT NULL,
+    id INTEGER PRIMARY KEY AUTOINCREMENT
+);
+
+CREATE TABLE Audit (
+    partial TINYINT UNSIGNED,
+    id INTEGER PRIMARY KEY AUTOINCREMENT
+);
+
+CREATE TABLE Csk (
+    algorithm INT UNSIGNED NOT NULL,
+    bits INT UNSIGNED,
+    lifetime INT NOT NULL,
+    repository VARCHAR(255) NOT NULL,
+    standby INT UNSIGNED,
+    manual_rollover TINYINT UNSIGNED,
+    rfc5011 TINYINT UNSIGNED,
+    rollover_type VARCHAR(18) DEFAULT 'CskPrePublication',
+    id INTEGER PRIMARY KEY AUTOINCREMENT
+);
+
+CREATE TABLE Denial (
+    nsec INTEGER,
+    nsec3 INTEGER,
+    id INTEGER PRIMARY KEY AUTOINCREMENT
+);
+
+CREATE TABLE EnforcerZone (
+    name VARCHAR(255) NOT NULL,
+    policy VARCHAR(255) NOT NULL,
+    signconf_needs_writing TINYINT UNSIGNED NOT NULL,
+    signconf_path VARCHAR(255) NOT NULL,
+    next_change INT UNSIGNED,
+    ttl_end_ds INT UNSIGNED,
+    ttl_end_dk INT UNSIGNED,
+    ttl_end_rs INT UNSIGNED,
+    roll_ksk_now TINYINT UNSIGNED DEFAULT 0,
+    roll_zsk_now TINYINT UNSIGNED DEFAULT 0,
+    roll_csk_now TINYINT UNSIGNED DEFAULT 0,
+    adapters INTEGER,
+    next_ksk_roll INT UNSIGNED DEFAULT 0,
+    next_zsk_roll INT UNSIGNED DEFAULT 0,
+    next_csk_roll INT UNSIGNED DEFAULT 0,
+    id INTEGER PRIMARY KEY AUTOINCREMENT
+);
+
+CREATE TABLE EnforcerZone_dependencies (
+    parent_id INTEGER,
+    child_id INTEGER,
+    PRIMARY KEY(parent_id,
+    child_id)
+);
+
+CREATE TABLE EnforcerZone_keys (
+    parent_id INTEGER,
+    child_id INTEGER,
+    PRIMARY KEY(parent_id,
+    child_id)
+);
+
+CREATE TABLE HsmKey (
+    locator VARCHAR(255) NOT NULL,
+    candidate_for_sharing TINYINT UNSIGNED DEFAULT 0,
+    bits INT UNSIGNED DEFAULT 2048,
+    policy VARCHAR(255) DEFAULT 'default',
+    algorithm INT UNSIGNED DEFAULT 1,
+    role VARCHAR(3) DEFAULT 'ZSK',
+    inception INT UNSIGNED,
+    isrevoked TINYINT UNSIGNED DEFAULT 0,
+    key_type VARCHAR(255),
+    repository VARCHAR(255),
+    backmeup TINYINT UNSIGNED DEFAULT 0,
+    backedup TINYINT UNSIGNED DEFAULT 0,
+    requirebackup TINYINT UNSIGNED DEFAULT 0,
+    id INTEGER PRIMARY KEY AUTOINCREMENT
+);
+
+CREATE TABLE HsmKey_used_by_zones (
+    value VARCHAR(255),
+    parent_id INTEGER,
+    id INTEGER PRIMARY KEY AUTOINCREMENT
+);
+
+CREATE TABLE KeyData (
+    locator VARCHAR(255) NOT NULL,
+    algorithm INT UNSIGNED NOT NULL,
+    inception INT UNSIGNED NOT NULL,
+    ds INTEGER NOT NULL,
+    rrsig INTEGER NOT NULL,
+    dnskey INTEGER NOT NULL,
+    role VARCHAR(3) NOT NULL,
+    introducing TINYINT UNSIGNED DEFAULT 1,
+    shouldrevoke TINYINT UNSIGNED DEFAULT 0,
+    standby TINYINT UNSIGNED DEFAULT 0,
+    active_zsk TINYINT UNSIGNED DEFAULT 0,
+    publish TINYINT UNSIGNED DEFAULT 0,
+    rrsigdnskey INTEGER NOT NULL,
+    active_ksk TINYINT UNSIGNED DEFAULT 0,
+    ds_at_parent VARCHAR(11) DEFAULT 'unsubmitted',
+    keytag INT UNSIGNED,
+    id INTEGER PRIMARY KEY AUTOINCREMENT
+);
+
+CREATE TABLE KeyDependency (
+    from_key VARCHAR(255) NOT NULL,
+    to_key VARCHAR(255) NOT NULL,
+    rrtype INT UNSIGNED NOT NULL,
+    id INTEGER PRIMARY KEY AUTOINCREMENT
+);
+
+CREATE TABLE KeyList (
+    ttl INT NOT NULL,
+    retiresafety INT NOT NULL,
+    publishsafety INT NOT NULL,
+    zones_share_keys TINYINT UNSIGNED,
+    purgeafter INT,
+    id INTEGER PRIMARY KEY AUTOINCREMENT
+);
+
+CREATE TABLE KeyList_csk (
+    parent_id INTEGER,
+    child_id INTEGER,
+    PRIMARY KEY(parent_id,
+    child_id)
+);
+
+CREATE TABLE KeyList_ksk (
+    parent_id INTEGER,
+    child_id INTEGER,
+    PRIMARY KEY(parent_id,
+    child_id)
+);
+
+CREATE TABLE KeyList_zsk (
+    parent_id INTEGER,
+    child_id INTEGER,
+    PRIMARY KEY(parent_id,
+    child_id)
+);
+
+CREATE TABLE KeyState (
+    state VARCHAR(11) DEFAULT 'hidden',
+    last_change INT UNSIGNED,
+    minimize TINYINT UNSIGNED DEFAULT 0,
+    ttl INT UNSIGNED,
+    id INTEGER PRIMARY KEY AUTOINCREMENT
+);
+
+CREATE TABLE Ksk (
+    algorithm INT UNSIGNED NOT NULL,
+    bits INT UNSIGNED,
+    lifetime INT NOT NULL,
+    repository VARCHAR(255) NOT NULL,
+    standby INT UNSIGNED,
+    manual_rollover TINYINT UNSIGNED,
+    rfc5011 TINYINT UNSIGNED,
+    rollover_type VARCHAR(18) DEFAULT 'KskDoubleSignature',
+    id INTEGER PRIMARY KEY AUTOINCREMENT
+);
+
+CREATE TABLE NSEC (
+    id INTEGER PRIMARY KEY AUTOINCREMENT
+);
+
+CREATE TABLE NSEC3 (
+    optout TINYINT UNSIGNED,
+    ttl INT UNSIGNED,
+    resalt INT UNSIGNED NOT NULL,
+    algorithm INT UNSIGNED NOT NULL,
+    iterations INT UNSIGNED NOT NULL,
+    saltlength INT UNSIGNED NOT NULL,
+    salt VARCHAR(255),
+    salt_last_change INT UNSIGNED,
+    id INTEGER PRIMARY KEY AUTOINCREMENT
+);
+
+CREATE TABLE Parent (
+    ttlds INT,
+    registrationdelay INT,
+    propagationdelay INT,
+    ttl INT,
+    min INT,
+    id INTEGER PRIMARY KEY AUTOINCREMENT
+);
+
+CREATE TABLE Policy (
+    name VARCHAR(255) NOT NULL,
+    description VARCHAR(255) NOT NULL,
+    signatures INTEGER NOT NULL,
+    denial INTEGER NOT NULL,
+    keylist INTEGER NOT NULL,
+    zone INTEGER NOT NULL,
+    parent INTEGER NOT NULL,
+    id INTEGER PRIMARY KEY AUTOINCREMENT
+);
+
+CREATE TABLE Policy_audit (
+    parent_id INTEGER,
+    child_id INTEGER,
+    PRIMARY KEY(parent_id,
+    child_id)
+);
+
+CREATE TABLE Signatures (
+    resign INT,
+    refresh INT,
+    jitter INT,
+    inceptionOffset INT,
+    valdefault INT,
+    valdenial INT,
+    max_zone_ttl INT DEFAULT 86400,
+    id INTEGER PRIMARY KEY AUTOINCREMENT
+);
+
+CREATE TABLE Zone (
+    propagationdelay INT NOT NULL,
+    ttl INT,
+    min INT,
+    serial VARCHAR(11),
+    id INTEGER PRIMARY KEY AUTOINCREMENT
+);
+
+CREATE TABLE Zsk (
+    algorithm INT UNSIGNED NOT NULL,
+    bits INT UNSIGNED,
+    lifetime INT NOT NULL,
+    repository VARCHAR(255) NOT NULL,
+    standby INT UNSIGNED,
+    manual_rollover TINYINT UNSIGNED,
+    rollover_type VARCHAR(18) DEFAULT 'ZskPrePublication',
+    id INTEGER PRIMARY KEY AUTOINCREMENT
+);
+

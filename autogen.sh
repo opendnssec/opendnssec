@@ -1,7 +1,5 @@
 #!/bin/sh
 #
-# $Id$
-
 VERSION=version.m4
 
 if [ `dirname $0` = ".." ]; then

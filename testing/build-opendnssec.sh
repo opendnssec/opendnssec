@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 source `dirname "$0"`/lib.sh && init || exit 1
 
-require ldns
 require softhsm
 
 check_if_built opendnssec && exit 0
@@ -13,14 +12,24 @@ case "$DISTRIBUTION" in
 		export AUTOCONF_VERSION="2.68"
 		export AUTOMAKE_VERSION="1.11"
 		;;
-	sunos | \
 	netbsd | \
 	freebsd )
-		append_cflags "-std=c99"
 		;;
 	opensuse )
 		append_ldflags "-lncurses -lpthread"
 		;;
+	debian )
+		append_ldflags "-lpthread"
+		;;
+	sunos )	
+		if uname -m 2>/dev/null | $GREP -q -i sun4v 2>/dev/null; then
+			append_cflags "-std=gnu99"
+			append_cflags  "-m64"
+			append_ldflags "-m64"
+		else
+			append_cflags "-std=c99"
+		fi
+	    ;;		
 esac
 case "$DISTRIBUTION" in
 	centos | \
@@ -32,17 +41,19 @@ case "$DISTRIBUTION" in
 	openbsd | \
 	sunos | \
 	opensuse | \
+	slackware | \
 	suse )
 		(
 			sh autogen.sh &&
 			mkdir -p build &&
 			cd build &&
 			../configure --prefix="$INSTALL_ROOT" \
-				--with-database-backend=sqlite3 \
-				--with-dbname=opendnssec-build-test \
+				--with-enforcer-database=sqlite3 \
+				--with-enforcer-database-test-database=opendnssec-build-test \
 				--enable-timeshift &&
 			$MAKE &&
 			$MAKE check &&
+			sed_inplace 's% -ge 5 % -ge 30 %g' tools/ods-control &&
 			$MAKE install &&
 			cp "conf/addns.xml" "$INSTALL_ROOT/etc/opendnssec/addns.xml.build" &&
 			cp "conf/conf.xml" "$INSTALL_ROOT/etc/opendnssec/conf.xml.build" &&
@@ -58,12 +69,13 @@ case "$DISTRIBUTION" in
 			cd build &&
 			../configure --prefix="$INSTALL_ROOT" \
 				--with-cunit=/usr/pkg \
-				--with-database-backend=sqlite3 \
-				--with-dbname=opendnssec-build-test \
+				--with-enforcer-database=sqlite3 \
+				--with-enforcer-database-test-database=opendnssec-build-test \
 				--enable-timeshift \
 				--with-sqlite3=/usr/pkg &&
 			$MAKE &&
 			$MAKE check &&
+			sed_inplace 's% -ge 5 % -ge 30 %g' tools/ods-control &&
 			$MAKE install &&
 			cp "conf/addns.xml" "$INSTALL_ROOT/etc/opendnssec/addns.xml.build" &&
 			cp "conf/conf.xml" "$INSTALL_ROOT/etc/opendnssec/conf.xml.build" &&
@@ -78,12 +90,12 @@ case "$DISTRIBUTION" in
 			mkdir -p build &&
 			cd build &&
 			../configure --prefix="$INSTALL_ROOT" \
-				--with-database-backend=sqlite3 \
-				--with-dbname=opendnssec-build-test \
+				--with-enforcer-database=sqlite3 \
+				--with-enforcer-database-test-database=opendnssec-build-test \
 				--enable-timeshift &&
 			$MAKE &&
-			#$MAKE check && # segfaults #0  0x00000008019363dc in _pthread_mutex_init_calloc_cb () from /lib/libc.so.7
-			(cd enforcer-ng && $MAKE check) &&
+			$MAKE check &&
+			sed_inplace 's% -ge 5 % -ge 30 %g' tools/ods-control &&
 			$MAKE install &&
 			cp "conf/addns.xml" "$INSTALL_ROOT/etc/opendnssec/addns.xml.build" &&
 			cp "conf/conf.xml" "$INSTALL_ROOT/etc/opendnssec/conf.xml.build" &&
@@ -93,6 +105,8 @@ case "$DISTRIBUTION" in
 		build_ok=1
 		;;
 esac
+
+finish
 
 if [ "$build_ok" -eq 1 ]; then
 	set_build_ok opendnssec || exit 1

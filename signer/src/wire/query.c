@@ -1,6 +1,4 @@
 /*
- * $Id: query.c 4958 2011-04-18 07:11:09Z matthijs $
- *
  * Copyright (c) 2011 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,7 +32,8 @@
 #include "config.h"
 #include "daemon/dnshandler.h"
 #include "daemon/engine.h"
-#include "shared/util.h"
+#include "file.h"
+#include "util.h"
 #include "wire/axfr.h"
 #include "wire/query.h"
 
@@ -62,6 +61,7 @@ query_create(void)
     q->allocator = allocator;
     q->buffer = NULL;
     q->tsig_rr = NULL;
+    q->axfr_fd = NULL;
     q->buffer = buffer_create(allocator, PACKET_BUFFER_SIZE);
     if (!q->buffer) {
         query_cleanup(q);
@@ -106,7 +106,10 @@ query_reset(query_type* q, size_t maxlen, int is_tcp)
     q->zone = NULL;
     /* domain, opcode, cname count, delegation, compression, temp */
     q->axfr_is_done = 0;
-    q->axfr_fd = NULL;
+    if (q->axfr_fd) {
+        ods_fclose(q->axfr_fd);
+        q->axfr_fd = NULL;
+    }
     q->serial = 0;
     q->startpos = 0;
     return;
@@ -206,6 +209,21 @@ query_refused(query_type* q)
 
 
 /**
+ * NOTAUTH.
+ *
+ */
+static query_state
+query_notauth(query_type* q)
+{
+    if (!q) {
+        return QUERY_DISCARDED;
+    }
+    ods_log_debug("[%s] notauth", query_str);
+    return query_error(q, LDNS_RCODE_NOTAUTH);
+}
+
+
+/**
  * Parse SOA RR in packet.
  * (kind of similar to xfrd_parse_soa)
  *
@@ -267,7 +285,7 @@ query_process_notify(query_type* q, ldns_rr_type qtype, void* engine)
     }
     ods_log_assert(e->dnshandler);
     ods_log_assert(q->zone->name);
-    ods_log_debug("[%s] incoming notify for zone %s", query_str,
+    ods_log_verbose("[%s] incoming notify for zone %s", query_str,
         q->zone->name);
     if (buffer_pkt_rcode(q->buffer) != LDNS_RCODE_NOERROR ||
         buffer_pkt_qr(q->buffer) ||
@@ -285,19 +303,19 @@ query_process_notify(query_type* q, ldns_rr_type qtype, void* engine)
     if (!q->zone->adinbound || q->zone->adinbound->type != ADAPTER_DNS) {
         ods_log_error("[%s] zone %s is not configured to have input dns "
             "adapter", query_str, q->zone->name);
-        return query_refused(q);
+        return query_notauth(q);
     }
     ods_log_assert(q->zone->adinbound->config);
     dnsin = (dnsin_type*) q->zone->adinbound->config;
     if (!acl_find(dnsin->allow_notify, &q->addr, q->tsig_rr)) {
         if (addr2ip(q->addr, address, sizeof(address))) {
-            ods_log_info("[%s] notify for zone %s from client %s refused: no "
-                "acl matches", query_str, q->zone->name, address);
+            ods_log_info("[%s] unauthorized notify for zone %s from %s: "
+                "no acl matches", query_str, q->zone->name, address);
         } else {
-            ods_log_info("[%s] notify for zone %s from unknown client "
-                "refused: no acl matches", query_str, q->zone->name);
+            ods_log_info("[%s] unauthorized notify for zone %s from unknown "
+                "source: no acl matches", query_str, q->zone->name);
         }
-        return query_refused(q);
+        return query_notauth(q);
     }
     ods_log_assert(q->zone->xfrd);
     /* skip header and question section */
@@ -305,8 +323,15 @@ query_process_notify(query_type* q, ldns_rr_type qtype, void* engine)
     count = buffer_pkt_qdcount(q->buffer);
     for (rrcount = 0; rrcount < count; rrcount++) {
         if (!buffer_skip_rr(q->buffer, 1)) {
-            ods_log_error("[%s] dropped packet: zone %s received bad notify "
-                "(bad question section)", query_str, q->zone->name);
+            if (addr2ip(q->addr, address, sizeof(address))) {
+                ods_log_info("[%s] dropped packet: zone %s received bad "
+                    "notify from %s (bad question section)", query_str,
+                    q->zone->name, address);
+            } else {
+                ods_log_info("[%s] dropped packet: zone %s received bad "
+                    "notify from unknown source (bad question section)",
+                    query_str, q->zone->name);
+            }
             return QUERY_DISCARDED;
         }
     }
@@ -317,29 +342,61 @@ query_process_notify(query_type* q, ldns_rr_type qtype, void* engine)
     if (count) {
         if (!buffer_skip_dname(q->buffer) ||
             !query_parse_soa(q->buffer, &serial)) {
-            ods_log_error("[%s] dropped packet: zone %s received bad notify "
-                "(bad soa in answer section)", query_str, q->zone->name);
+            if (addr2ip(q->addr, address, sizeof(address))) {
+                ods_log_info("[%s] dropped packet: zone %s received bad "
+                    "notify from %s (bad soa in answer section)", query_str,
+                    q->zone->name, address);
+            } else {
+                ods_log_info("[%s] dropped packet: zone %s received bad "
+                    "notify from unknown source (bad soa in answer section)",
+                    query_str, q->zone->name);
+            }
             return QUERY_DISCARDED;
         }
         lock_basic_lock(&q->zone->xfrd->serial_lock);
-        q->zone->xfrd->serial_notify = serial;
-        q->zone->xfrd->serial_notify_acquired = time_now();
-        if (!util_serial_gt(q->zone->xfrd->serial_notify,
-            q->zone->xfrd->serial_disk)) {
-            ods_log_debug("[%s] ignore notify: already got zone %s serial "
-                "%u on disk", query_str, q->zone->name,
-                q->zone->xfrd->serial_notify);
+        if (q->zone->xfrd->serial_notify_acquired) {
+            if (!util_serial_gt(q->zone->xfrd->serial_notify,
+                q->zone->xfrd->serial_disk)) {
+
+                if (addr2ip(q->addr, address, sizeof(address))) {
+                    ods_log_info("[%s] ignore notify from %s: already got "
+                        "zone %s serial %u on disk", query_str, address,
+                        q->zone->name, q->zone->xfrd->serial_notify);
+                } else {
+                    ods_log_info("[%s] ignore notify: already got zone %s "
+                        "serial %u on disk", query_str, q->zone->name,
+                    q->zone->xfrd->serial_notify);
+                }
+                q->zone->xfrd->serial_notify_acquired = 0;
+            } else {
+                if (addr2ip(q->addr, address, sizeof(address))) {
+                    ods_log_info("[%s] ignore notify from %s: zone %s "
+                        "transfer in progress", query_str, address,
+                        q->zone->name);
+                } else {
+                    ods_log_info("[%s] ignore notify: zone %s transfer in "
+                        "progress", query_str, q->zone->name);
+                }
+                /* update values */
+                q->zone->xfrd->serial_notify = serial;
+                q->zone->xfrd->serial_notify_acquired = time_now();
+            }
             lock_basic_unlock(&q->zone->xfrd->serial_lock);
             goto send_notify_ok;
         }
-        lock_basic_unlock(&q->zone->xfrd->serial_lock);
-    } else {
-        lock_basic_lock(&q->zone->xfrd->serial_lock);
-        q->zone->xfrd->serial_notify = 0;
-        q->zone->xfrd->serial_notify_acquired = 0;
+        q->zone->xfrd->serial_notify = serial;
+        q->zone->xfrd->serial_notify_acquired = time_now();
         lock_basic_unlock(&q->zone->xfrd->serial_lock);
     }
+
     /* forward notify to xfrd */
+    if (addr2ip(q->addr, address, sizeof(address))) {
+        ods_log_verbose("[%s] forward notify for zone %s from client %s",
+            query_str, q->zone->name, address);
+    } else {
+        ods_log_verbose("[%s] forward notify for zone %s", query_str,
+            q->zone->name);
+    }
     xfrd_set_timer_now(q->zone->xfrd);
     dnshandler_fwd_notify(e->dnshandler, buffer_begin(q->buffer),
         buffer_remaining(q->buffer));
@@ -449,8 +506,7 @@ response_encode_rr(query_type* q, ldns_rr* rr, ldns_pkt_section section)
  *
  */
 static uint16_t
-response_encode_rrset(query_type* q, rrset_type* rrset,
-    ldns_pkt_section section)
+response_encode_rrset(query_type* q, rrset_type* rrset, ldns_pkt_section section)
 {
     uint16_t i = 0;
     uint16_t added = 0;
@@ -461,8 +517,10 @@ response_encode_rrset(query_type* q, rrset_type* rrset,
     for (i = 0; i < rrset->rr_count; i++) {
         added += response_encode_rr(q, rrset->rrs[i].rr, section);
     }
-    for (i = 0; i < rrset->rrsig_count; i++) {
-        added += response_encode_rr(q, rrset->rrsigs[i].rr, section);
+    if (q->edns_rr && q->edns_rr->dnssec_ok) {
+        for (i = 0; i < rrset->rrsig_count; i++) {
+            added += response_encode_rr(q, rrset->rrsigs[i].rr, section);
+        }
     }
     /* truncation? */
     return added;
@@ -607,30 +665,34 @@ query_process_query(query_type* q, ldns_rr_type qtype, engine_type* engine)
     dnsout = (dnsout_type*) q->zone->adoutbound->config;
     /* acl also in use for soa and other queries */
     if (!acl_find(dnsout->provide_xfr, &q->addr, q->tsig_rr)) {
+        ods_log_debug("[%s] zone %s acl query refused", query_str,
+            q->zone->name);
         return query_refused(q);
     }
+
+    query_prepare(q);
     /* ixfr? */
     if (qtype == LDNS_RR_TYPE_IXFR) {
-        if (query_process_ixfr(q) != QUERY_PROCESSED) {
-            buffer_pkt_set_flags(q->buffer, 0);
-            return query_formerr(q);
-        }
-        query_prepare(q);
         ods_log_assert(q->zone->name);
         ods_log_debug("[%s] incoming ixfr request serial=%u for zone %s",
             query_str, q->serial, q->zone->name);
         return ixfr(q, engine);
     }
-
-    query_prepare(q);
     /* axfr? */
     if (qtype == LDNS_RR_TYPE_AXFR) {
         ods_log_assert(q->zone->name);
         ods_log_debug("[%s] incoming axfr request for zone %s",
             query_str, q->zone->name);
-        return axfr(q, engine);
+        return axfr(q, engine, 0);
     }
     /* (soa) query */
+    if (qtype == LDNS_RR_TYPE_SOA) {
+        ods_log_assert(q->zone->name);
+        ods_log_debug("[%s] incoming soa request for zone %s",
+            query_str, q->zone->name);
+        return soa_request(q, engine);
+    }
+    /* other qtypes */
     return query_response(q, qtype);
 }
 
@@ -674,7 +736,7 @@ query_process_tsig(query_type* q)
         tsig_rr_update(q->tsig_rr, q->buffer, buffer_limit(q->buffer));
         if (!tsig_rr_verify(q->tsig_rr)) {
             ods_log_debug("[%s] bad tsig signature", query_str);
-            return LDNS_RCODE_REFUSED;
+            return LDNS_RCODE_NOTAUTH;
         }
     }
     return LDNS_RCODE_NOERROR;
@@ -820,6 +882,7 @@ query_process(query_type* q, void* engine)
         ldns_rr_get_class(rr));
     /* don't answer for zones that are just added */
     if (q->zone && q->zone->zl_status == ZONE_ZL_ADDED) {
+        ods_log_assert(q->zone->name);
         ods_log_warning("[%s] zone %s just added, don't answer for now",
             query_str, q->zone->name);
         q->zone = NULL;
@@ -834,7 +897,19 @@ query_process(query_type* q, void* engine)
         return query_formerr(q);
     }
     /* else: valid tsig, or no tsig present */
-    ods_log_debug("[%s] tsig %s", query_str, tsig_strerror(q->tsig_rr->status));
+    ods_log_debug("[%s] tsig %s", query_str, tsig_status2str(q->tsig_rr->status));
+    /* get opcode, qtype, ixfr=serial */
+    opcode = ldns_pkt_get_opcode(pkt);
+    qtype = ldns_rr_get_type(rr);
+    if (qtype == LDNS_RR_TYPE_IXFR) {
+        ods_log_assert(q->zone->name);
+        ods_log_debug("[%s] incoming ixfr request for zone %s",
+            query_str, q->zone->name);
+        if (query_process_ixfr(q) != QUERY_PROCESSED) {
+            return query_formerr(q);
+        }
+    }
+    /* process tsig */
     rcode = query_process_tsig(q);
     if (rcode != LDNS_RCODE_NOERROR) {
         return query_error(q, rcode);
@@ -848,12 +923,9 @@ query_process(query_type* q, void* engine)
          * Thus RCODE = NOERROR = NSD_RC_OK. */
         return query_error(q, LDNS_RCODE_NOERROR);
     }
-
     /* handle incoming request */
-    opcode = ldns_pkt_get_opcode(pkt);
-    qtype = ldns_rr_get_type(rr);
     ldns_pkt_free(pkt);
-    switch(opcode) {
+    switch (opcode) {
         case LDNS_PACKET_NOTIFY:
             return query_process_notify(q, qtype, engine);
         case LDNS_PACKET_QUERY:
@@ -861,7 +933,7 @@ query_process(query_type* q, void* engine)
         case LDNS_PACKET_UPDATE:
             return query_process_update(q);
         default:
-            return query_notimpl(q);
+            break;
     }
     return query_notimpl(q);
 }
@@ -1030,6 +1102,10 @@ query_cleanup(query_type* q)
         return;
     }
     allocator = q->allocator;
+    if (q->axfr_fd) {
+        ods_fclose(q->axfr_fd);
+        q->axfr_fd = NULL;
+    }
     buffer_cleanup(q->buffer, allocator);
     tsig_rr_cleanup(q->tsig_rr);
     allocator_deallocate(allocator, (void*)q);

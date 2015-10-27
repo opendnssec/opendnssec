@@ -1,6 +1,4 @@
 /*
- * $Id: xfrd.h 4958 2011-04-18 07:11:09Z matthijs $
- *
  * Copyright (c) 2011 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,9 +33,9 @@
 #define WIRE_XFRD_H
 
 #include "config.h"
-#include "shared/allocator.h"
-#include "shared/locks.h"
-#include "shared/status.h"
+#include "allocator.h"
+#include "locks.h"
+#include "status.h"
 #include "wire/acl.h"
 #include "wire/buffer.h"
 #include "wire/netio.h"
@@ -112,6 +110,7 @@ struct xfrd_struct
     time_t serial_xfr_acquired;
     time_t serial_notify_acquired;
     time_t serial_disk_acquired;
+    uint8_t serial_retransfer;
     soa_type soa;
 
     /* timeout and event handling */
@@ -125,6 +124,7 @@ struct xfrd_struct
     uint32_t msg_new_serial;
     size_t msg_rr_count;
     uint8_t msg_is_ixfr;
+    uint8_t msg_do_retransfer;
     tsig_rr_type* tsig_rr;
 
     xfrd_type* tcp_waiting_next;
@@ -177,8 +177,9 @@ socklen_t xfrd_acl_sockaddr_to(acl_type* acl,
 /**
  * Cleanup zone transfer structure.
  * \param[in] xfrd zone transfer structure.
+ * \param[in] backup backup transfer variables.
  *
  */
-void xfrd_cleanup(xfrd_type* xfrd);
+void xfrd_cleanup(xfrd_type* xfrd, int backup);
 
 #endif /* WIRE_XFRD_H */

@@ -1,6 +1,4 @@
 /*
- * $Id: dnshandler.h 4518 2011-02-24 15:39:09Z matthijs $
- *
  * Copyright (c) 2009 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,8 +33,9 @@
 #define DAEMON_DNSHANDLER_H
 
 #include "config.h"
-#include "shared/allocator.h"
-#include "shared/locks.h"
+#include "allocator.h"
+#include "locks.h"
+#include "status.h"
 #include "wire/listener.h"
 #include "wire/netio.h"
 #include "wire/query.h"
@@ -69,6 +68,14 @@ struct dnshandler_struct {
  */
 dnshandler_type* dnshandler_create(allocator_type* allocator,
     listener_type* interfaces);
+
+/**
+ * Start dns handler listener.
+ * \param[in] dnshandler_type* dns handler
+ * \return ods_status status
+ *
+ */
+ods_status dnshandler_listen(dnshandler_type* dnshandler);
 
 /**
  * Start dns handler.

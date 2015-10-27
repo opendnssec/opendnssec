@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Copyright (c) 2009 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,8 +32,8 @@
 #include "config.h"
 #include "daemon/engine.h"
 #include "daemon/signal.h"
-#include "shared/locks.h"
-#include "shared/log.h"
+#include "locks.h"
+#include "log.h"
 
 #include <signal.h>
 

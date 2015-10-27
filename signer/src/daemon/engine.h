@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Copyright (c) 2009 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,8 +40,8 @@
 #include "daemon/worker.h"
 #include "scheduler/fifoq.h"
 #include "scheduler/schedule.h"
-#include "shared/allocator.h"
-#include "shared/locks.h"
+#include "allocator.h"
+#include "locks.h"
 #include "signer/zonelist.h"
 #include "wire/edns.h"
 
@@ -69,7 +67,6 @@ struct engine_struct {
     int cmdhandler_done;
 
     pid_t pid;
-    pid_t zfpid;
     uid_t uid;
     gid_t gid;
 
@@ -89,9 +86,10 @@ struct engine_struct {
  * \param[in] daemonize to run as daemon or not
  * \param[in] info print info and exit
  * \param[in] single_run run once
+ * \return 0 if successful, 1 on error
  *
  */
-void engine_start(const char* cfgfile, int cmdline_verbosity,
+int engine_start(const char* cfgfile, int cmdline_verbosity,
     int daemonize, int info, int single_run);
 
 /**
@@ -118,9 +116,10 @@ void engine_wakeup_workers(engine_type* engine);
 /**
  * Update zones.
  * \param[in] engine engine
+ * \param[in] zl_changed whether the zonelist has changed or not
  *
  */
-void engine_update_zones(engine_type* engine);
+void engine_update_zones(engine_type* engine, ods_status zl_changed);
 
 /**
  * Clean up engine.

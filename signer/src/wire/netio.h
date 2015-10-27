@@ -1,6 +1,4 @@
 /*
- * $Id: netio.h 4958 2011-04-18 07:11:09Z matthijs $
- *
  * Copyright (c) 2001-2011, NLnet Labs. All rights reserved.
  *
  * See LICENSE for the license.
@@ -54,7 +52,7 @@
 #include <signal.h>
 
 #include "config.h"
-#include "shared/allocator.h"
+#include "allocator.h"
 
 #ifndef PF_INET
 #define PF_INET AF_INET

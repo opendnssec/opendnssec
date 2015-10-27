@@ -1,6 +1,4 @@
 /*
- * $Id: tsig.c 4958 2011-04-18 07:11:09Z matthijs $
- *
  * Copyright (c) 2011 NLNet Labs. All rights reserved.
  *
  * Taken from NSD3 and adjusted for OpenDNSSEC, NLnet Labs.
@@ -35,11 +33,11 @@
 
 #include "config.h"
 #include "compat.h"
-#include "shared/duration.h"
-#include "shared/file.h"
-#include "shared/log.h"
-#include "shared/status.h"
-#include "shared/util.h"
+#include "duration.h"
+#include "file.h"
+#include "log.h"
+#include "status.h"
+#include "util.h"
 #include "wire/buffer.h"
 #include "wire/tsig.h"
 #include "wire/tsig-openssl.h"
@@ -143,9 +141,10 @@ tsig_handler_init(allocator_type* allocator)
 #ifdef HAVE_SSL
     ods_log_debug("[%s] init openssl", tsig_str);
     return tsig_handler_openssl_init(allocator);
-#endif
+#else
     ods_log_debug("[%s] openssl disabled", tsig_str);
     return ODS_STATUS_OK;
+#endif
 }
 
 
@@ -156,9 +155,30 @@ tsig_handler_init(allocator_type* allocator)
 void
 tsig_handler_cleanup(void)
 {
+    tsig_algo_table_type* aentry = NULL, *anext = NULL;
+    tsig_key_table_type* kentry = NULL, *knext = NULL;
 #ifdef HAVE_SSL
     tsig_handler_openssl_finalize();
 #endif
+
+    aentry = tsig_algo_table;
+    while (aentry) {
+        anext = aentry->next;
+        ldns_rdf_deep_free(aentry->algorithm->wf_name);
+        allocator_deallocate(tsig_allocator, (void*)aentry->algorithm);
+        allocator_deallocate(tsig_allocator, (void*)aentry);
+        aentry = anext;
+    }
+
+    kentry = tsig_key_table;
+    while (kentry) {
+        knext = kentry->next;
+        ldns_rdf_deep_free(kentry->key->dname);
+        allocator_deallocate(tsig_allocator, (void*)kentry->key->data);
+        allocator_deallocate(tsig_allocator, (void*)kentry->key);
+        allocator_deallocate(tsig_allocator, (void*)kentry);
+        kentry = knext;
+    }
     return;
 }
 
@@ -379,7 +399,7 @@ tsig_rr_parse(tsig_rr_type* trr, buffer_type* buffer)
     klass = (ldns_rr_class) buffer_read_u16(buffer);
     if (type != LDNS_RR_TYPE_TSIG || klass != LDNS_RR_CLASS_ANY) {
         /* not present */
-        ods_log_debug("[%s] parse: not TSIG or not ANY", tsig_str,
+        ods_log_debug("[%s] parse: not TSIG or not ANY but %d:%d", tsig_str,
             klass, type);
         buffer_set_position(buffer, trr->position);
         return 1;
@@ -446,7 +466,6 @@ tsig_rr_parse(tsig_rr_type* trr, buffer_type* buffer)
         trr->other_size, (const void*) buffer_current(buffer));
     buffer_skip(buffer, trr->other_size);
     trr->status = TSIG_OK;
-    trr->error_code = LDNS_RCODE_NOERROR;
     return 1;
 }
 
@@ -784,23 +803,54 @@ tsig_rr_error(tsig_rr_type* trr)
 
 
 /**
+ * Print TSIG status.
+ *
+ */
+const char*
+tsig_status2str(tsig_status status)
+{
+    switch (status) {
+        case TSIG_NOT_PRESENT:
+            return "NOT PRESENT";
+        case TSIG_OK:
+            return "OK";
+        case TSIG_ERROR:
+            return "ERROR";
+    }
+    return "UNKNOWN";
+}
+
+
+/**
  * Get human readable TSIG error code.
  *
  */
 const char*
-tsig_strerror(tsig_status status)
+tsig_strerror(uint16_t error)
 {
-    switch (status) {
-        case TSIG_NOT_PRESENT:
-            return "not present";
-        case TSIG_OK:
-            return "ok";
-        case TSIG_ERROR:
-            return "error";
+    static char message[1000];
+    switch (error) {
+        case 0:
+            return "No Error";
+            break;
+        case TSIG_ERROR_BADSIG:
+            return "Bad Signature";
+            break;
+        case TSIG_ERROR_BADKEY:
+            return "Bad Key";
+            break;
+        case TSIG_ERROR_BADTIME:
+            return "Bad Time";
+            break;
         default:
-            return "unknown";
+            if (error < 16) {
+                /* DNS rcodes */
+                return (const char*) ldns_pkt_rcode2str(error);
+            }
+            snprintf(message, sizeof(message), "Unknown Error %d", error);
+            break;
     }
-    return "unknown";
+    return message;
 }
 
 
@@ -845,22 +895,6 @@ tsig_rr_cleanup(tsig_rr_type* trr)
 
 
 /**
- * Clean up TSIG key.
- *
- */
-static void
-tsig_key_cleanup(tsig_key_type* key, allocator_type* allocator)
-{
-    if (!key || !allocator) {
-        return;
-    }
-    ldns_rdf_deep_free(key->dname);
-    allocator_deallocate(allocator, (void*) key->data);
-    return;
-}
-
-
-/**
  * Clean up TSIG.
  *
  */
@@ -871,7 +905,6 @@ tsig_cleanup(tsig_type* tsig, allocator_type* allocator)
         return;
     }
     tsig_cleanup(tsig->next, allocator);
-    tsig_key_cleanup(tsig->key, allocator);
     allocator_deallocate(allocator, (void*) tsig->name);
     allocator_deallocate(allocator, (void*) tsig->algorithm);
     allocator_deallocate(allocator, (void*) tsig->secret);

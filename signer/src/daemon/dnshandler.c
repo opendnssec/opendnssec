@@ -1,6 +1,4 @@
 /*
- * $Id: dnshandler.c 4518 2011-02-24 15:39:09Z matthijs $
- *
  * Copyright (c) 2009 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,7 +32,7 @@
 #include "config.h"
 #include "daemon/dnshandler.h"
 #include "daemon/engine.h"
-#include "shared/status.h"
+#include "status.h"
 #include "wire/buffer.h"
 
 #include <errno.h>
@@ -103,6 +101,25 @@ dnshandler_create(allocator_type* allocator, listener_type* interfaces)
 
 
 /**
+ * Start dns handler listener.
+ *
+ */
+ods_status
+dnshandler_listen(dnshandler_type* dnshandler)
+{
+    ods_status status = ODS_STATUS_OK;
+    ods_log_assert(dnshandler);
+    status = sock_listen(dnshandler->socklist, dnshandler->interfaces);
+    if (status != ODS_STATUS_OK) {
+        ods_log_error("[%s] unable to start: sock_listen() "
+            "failed (%s)", dnsh_str, ods_status2str(status));
+        dnshandler->thread_id = 0;
+    }
+    return status;
+}
+
+
+/**
  * Start dns handler.
  *
  */
@@ -112,21 +129,12 @@ dnshandler_start(dnshandler_type* dnshandler)
     size_t i = 0;
     engine_type* engine = NULL;
     netio_handler_type* tcp_accept_handlers = NULL;
-    ods_status status = ODS_STATUS_OK;
 
     ods_log_assert(dnshandler);
     ods_log_assert(dnshandler->engine);
     ods_log_debug("[%s] start", dnsh_str);
-    /* setup */
-    engine = (engine_type*) dnshandler->engine;
-    status = sock_listen(dnshandler->socklist, dnshandler->interfaces);
-    if (status != ODS_STATUS_OK) {
-        ods_log_error("[%s] unable to start: sock_listen() "
-            "failed (%s)", dnsh_str, ods_status2str(status));
-        dnshandler->thread_id = 0;
-        engine->need_to_exit = 1;
-        return;
-    }
+
+    engine = (engine_type*)dnshandler->engine;
     /* udp */
     for (i=0; i < dnshandler->interfaces->count; i++) {
         struct udp_data* data = NULL;
@@ -194,9 +202,8 @@ dnshandler_start(dnshandler_type* dnshandler)
     }
     /* service */
     while (dnshandler->need_to_exit == 0) {
-        ods_log_debug("[%s] netio dispatch", dnsh_str);
+        ods_log_deeebug("[%s] netio dispatch", dnsh_str);
         if (netio_dispatch(dnshandler->netio, NULL, NULL) == -1) {
-            ods_log_debug("[%s] netio dispatch failed", dnsh_str);
             if (errno != EINTR) {
                 ods_log_error("[%s] unable to dispatch netio: %s", dnsh_str,
                     strerror(errno));
@@ -216,7 +223,6 @@ dnshandler_start(dnshandler_type* dnshandler)
             freeaddrinfo((void*)dnshandler->socklist->tcp[i].addr);
         }
     }
-    return;
 }
 
 
@@ -249,7 +255,7 @@ dnshandler_fwd_notify(dnshandler_type* dnshandler, uint8_t* pkt, size_t len)
         ods_log_error("[%s] unable to forward notify: send() failed (%s)",
             dnsh_str, strerror(errno));
     } else {
-        ods_log_debug("[%s] forwarded notify: %u bytes sent", dnsh_str, nb);
+        ods_log_debug("[%s] forwarded notify: %ld bytes sent", dnsh_str, (long)nb);
     }
     return;
 }
@@ -271,10 +277,11 @@ dnshandler_handle_xfr(netio_type* ATTR_UNUSED(netio),
     }
     dnshandler = (dnshandler_type*) handler->user_data;
     ods_log_assert(event_types & NETIO_EVENT_READ);
-    ods_log_debug("[%s] read forwarded xfr packet", dnsh_str);
     received = read(dnshandler->xfrhandler.fd, &buf, MAX_PACKET_SIZE);
+    ods_log_debug("[%s] read forwarded xfr packet: %d bytes received",
+        dnsh_str, (int) received);
     if (received == -1) {
-        ods_log_debug("[%s] unable to forward xfr packet: %s", dnsh_str,
+        ods_log_error("[%s] unable to forward xfr packet: %s", dnsh_str,
             strerror(errno));
     }
     return;

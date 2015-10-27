@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Copyright (c) 2009 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,8 +34,9 @@
 
 #include "config.h"
 #include "wire/listener.h"
-#include "shared/allocator.h"
-#include "shared/status.h"
+#include "allocator.h"
+#include "hsm.h"
+#include "status.h"
 
 #define ADMAX 6 /* Maximum number of adapters that can be initialized */
 
@@ -62,6 +61,14 @@ const char* parse_conf_string(const char* cfgfile, const char* expr,
     int required);
 
 /**
+ * Parse the repository list.
+ * \param[in] cfgfile the configuration file name
+ * \return hsm_repository_t* repositories
+ *
+ */
+hsm_repository_t* parse_conf_repositories(const char* cfgfile);
+
+/**
  * Parse the listener interfaces.
  * \param[in] allocator the allocator
  * \param[in] cfgfile the configuration file name
@@ -81,8 +88,6 @@ listener_type* parse_conf_listener(allocator_type* allocator,
 
 /** Common */
 const char* parse_conf_zonelist_filename(allocator_type* allocator,
-    const char* cfgfile);
-const char* parse_conf_zonefetch_filename(allocator_type* allocator,
     const char* cfgfile);
 const char* parse_conf_log_filename(allocator_type* allocator,
     const char* cfgfile);

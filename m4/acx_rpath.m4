@@ -1,5 +1,3 @@
-# $Id$
-
 dnl Add option to disable the evil rpath. Check whether to use rpath or not.
 dnl Adds the --disable-rpath option. Uses trick to edit the ./libtool.
 AC_DEFUN([ACX_ARG_RPATH],

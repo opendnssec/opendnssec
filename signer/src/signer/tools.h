@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Copyright (c) 2009 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,7 +34,7 @@
 
 #include "config.h"
 #include "daemon/engine.h"
-#include "shared/status.h"
+#include "status.h"
 #include "signer/zone.h"
 
 /**

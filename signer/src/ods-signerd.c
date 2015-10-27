@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Copyright (c) 2009 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -83,8 +81,6 @@ version(FILE* out)
 }
 
 
-
-
 /**
  * Main. start engine and run it.
  *
@@ -162,8 +158,5 @@ main(int argc, char* argv[])
 
     /* main stuff */
     fprintf(stdout, "OpenDNSSEC signer engine version %s\n", PACKAGE_VERSION);
-    engine_start(cfgfile, cmdline_verbosity, daemonize, info, single_run);
-
-    /* done */
-    return 0;
+    return engine_start(cfgfile, cmdline_verbosity, daemonize, info, single_run);
 }

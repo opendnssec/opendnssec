@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Copyright (c) 2009 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,11 +34,11 @@
 #include "adapter/adapter.h"
 #include "adapter/adfile.h"
 #include "adapter/adutil.h"
-#include "shared/duration.h"
-#include "shared/file.h"
-#include "shared/log.h"
-#include "shared/status.h"
-#include "shared/util.h"
+#include "duration.h"
+#include "file.h"
+#include "log.h"
+#include "status.h"
+#include "util.h"
 #include "signer/zone.h"
 
 #include <ldns/ldns.h>
@@ -303,6 +301,8 @@ adfile_read(void* zone)
     zone_type* adzone = (zone_type*) zone;
     ods_status status = ODS_STATUS_OK;
     if (!adzone || !adzone->adinbound || !adzone->adinbound->configstr) {
+        ods_log_error("[%s] unable to read file: no input adapter",
+            adapter_str);
         return ODS_STATUS_ASSERT_ERR;
     }
     fd = ods_fopen(adzone->adinbound->configstr, NULL, "r");
@@ -312,7 +312,7 @@ adfile_read(void* zone)
     status = adfile_read_file(fd, adzone);
     ods_fclose(fd);
     if (status == ODS_STATUS_OK) {
-        adapi_trans_full(zone);
+        adapi_trans_full(zone, 0);
     }
     return status;
 }
@@ -331,27 +331,41 @@ adfile_write(void* zone, const char* filename)
     ods_status status = ODS_STATUS_OK;
 
     /* [start] sanity parameter checking */
-    if (!adzone) {
-        ods_log_error("[%s] unable to write file: no zone (or no "
-            "name given)", adapter_str);
+    if (!adzone || !adzone->adoutbound) {
+        ods_log_error("[%s] unable to write file: no output adapter",
+            adapter_str);
         return ODS_STATUS_ASSERT_ERR;
     }
     if (!filename) {
         ods_log_error("[%s] unable to write file: no filename given",
             adapter_str);
-        return ODS_STATUS_ERR;
+        return ODS_STATUS_ASSERT_ERR;
     }
     /* [end] sanity parameter checking */
 
     /* [start] write zone */
     tmpname = ods_build_path(filename, ".tmp", 0, 0);
+    if (!tmpname) {
+        return ODS_STATUS_MALLOC_ERR;
+    }
     fd = ods_fopen(tmpname, NULL, "w");
     if (fd) {
         status = adapi_printzone(fd, adzone);
         ods_fclose(fd);
+        if (status == ODS_STATUS_OK) {
+            if (adzone->adoutbound->error) {
+                ods_log_error("[%s] unable to write zone %s file %s: one or "
+                    "more RR print failed", adapter_str, adzone->name,
+                    filename);
+                /* clear error */
+                adzone->adoutbound->error = 0;
+                status = ODS_STATUS_FWRITE_ERR;
+            }
+        }
     } else {
         status = ODS_STATUS_FOPEN_ERR;
     }
+
     if (status == ODS_STATUS_OK) {
         if (rename((const char*) tmpname, filename) != 0) {
             ods_log_error("[%s] unable to write file: failed to rename %s "

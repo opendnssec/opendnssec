@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Copyright (c) 2009 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,10 +30,10 @@
  */
 
 #include "config.h"
-#include "shared/file.h"
-#include "shared/hsm.h"
-#include "shared/log.h"
-#include "shared/util.h"
+#include "file.h"
+#include "hsm.h"
+#include "log.h"
+#include "util.h"
 #include "signer/rrset.h"
 #include "signer/zone.h"
 
@@ -57,6 +55,8 @@ log_rr(ldns_rr* rr, const char* pre, int level)
     }
     str = ldns_rr2str(rr);
     if (!str) {
+        ods_log_error("[%s] %s: Error converting RR to string", rrset_str,
+            pre?pre:"");
         return;
     }
     str[(strlen(str))-1] = '\0';
@@ -159,14 +159,21 @@ log_rrset(ldns_rdf* dname, ldns_rr_type type, const char* pre, int level)
 const char*
 rrset_type2str(ldns_rr_type type)
 {
-    const ldns_rr_descriptor* descriptor;
-    descriptor = ldns_rr_descript(type);
-    if (descriptor && descriptor->_name) {
-        return descriptor->_name;
+    if (type == LDNS_RR_TYPE_IXFR) {
+        return "IXFR";
     } else if (type == LDNS_RR_TYPE_AXFR) {
         return "AXFR";
-    } else if (type == LDNS_RR_TYPE_IXFR) {
-        return "IXFR";
+    } else if (type == LDNS_RR_TYPE_MAILB) {
+        return "MAILB";
+    } else if (type == LDNS_RR_TYPE_MAILA) {
+        return "MAILA";
+    } else if (type == LDNS_RR_TYPE_ANY) {
+        return "ANY";
+    } else {
+        const ldns_rr_descriptor* descriptor = ldns_rr_descript(type);
+        if (descriptor && descriptor->_name) {
+            return descriptor->_name;
+        }
     }
     return "TYPE???";
 }
@@ -273,9 +280,8 @@ rrset_add_rr(rrset_type* rrset, ldns_rr* rr)
     rrset->rrs = (rr_type*) allocator_alloc(zone->allocator,
         (rrset->rr_count + 1) * sizeof(rr_type));
     if (!rrset->rrs) {
-        ods_log_error("[%s] unable to add RR: allocator_alloc() failed",
+        ods_fatal_exit("[%s] fatal unable to add RR: allocator_alloc() failed",
             rrset_str);
-        exit(1);
     }
     if (rrs_old) {
         memcpy(rrset->rrs, rrs_old, (rrset->rr_count) * sizeof(rr_type));
@@ -288,7 +294,7 @@ rrset_add_rr(rrset_type* rrset, ldns_rr* rr)
     rrset->rrs[rrset->rr_count - 1].is_added = 1;
     rrset->rrs[rrset->rr_count - 1].is_removed = 0;
     rrset->needs_signing = 1;
-    log_rr(rr, "+RR", LOG_DEBUG);
+    log_rr(rr, "+RR", LOG_DEEEBUG);
     return &rrset->rrs[rrset->rr_count -1];
 }
 
@@ -307,7 +313,7 @@ rrset_del_rr(rrset_type* rrset, uint16_t rrnum)
     ods_log_assert(rrnum < rrset->rr_count);
 
     zone = (zone_type*) rrset->zone;
-    log_rr(rrset->rrs[rrnum].rr, "-RR", LOG_DEBUG);
+    log_rr(rrset->rrs[rrnum].rr, "-RR", LOG_DEEEBUG);
     rrset->rrs[rrnum].owner = NULL;
     rrset->rrs[rrnum].rr = NULL;
     while (rrnum < rrset->rr_count-1) {
@@ -319,13 +325,10 @@ rrset_del_rr(rrset_type* rrset, uint16_t rrnum)
     rrset->rrs = (rr_type*) allocator_alloc(zone->allocator,
         (rrset->rr_count - 1) * sizeof(rr_type));
     if(!rrset->rrs) {
-        ods_log_error("[%s] unable to delete RR: allocator_alloc() failed",
+        ods_fatal_exit("[%s] fatal unable to delete RR: allocator_alloc() failed",
             rrset_str);
-        exit(1);
     }
-    if (rrs_orig) {
-        memcpy(rrset->rrs, rrs_orig, (rrset->rr_count -1) * sizeof(rr_type));
-    }
+    memcpy(rrset->rrs, rrs_orig, (rrset->rr_count -1) * sizeof(rr_type));
     allocator_deallocate(zone->allocator, (void*) rrs_orig);
     rrset->rr_count--;
     rrset->needs_signing = 1;
@@ -338,7 +341,7 @@ rrset_del_rr(rrset_type* rrset, uint16_t rrnum)
  *
  */
 void
-rrset_diff(rrset_type* rrset, unsigned is_ixfr)
+rrset_diff(rrset_type* rrset, unsigned is_ixfr, unsigned more_coming)
 {
     zone_type* zone = NULL;
     uint16_t i = 0;
@@ -351,15 +354,23 @@ rrset_diff(rrset_type* rrset, unsigned is_ixfr)
         if (rrset->rrs[i].is_added) {
             if (!rrset->rrs[i].exists) {
                 /* ixfr +RR */
+                lock_basic_lock(&zone->ixfr->ixfr_lock);
                 ixfr_add_rr(zone->ixfr, rrset->rrs[i].rr);
+                lock_basic_unlock(&zone->ixfr->ixfr_lock);
                 del_sigs = 1;
             }
             rrset->rrs[i].exists = 1;
+            if ((rrset->rrtype == LDNS_RR_TYPE_DNSKEY ||
+                 rrset->rrtype == LDNS_RR_TYPE_NSEC3PARAMS) && more_coming) {
+                continue;
+            }
             rrset->rrs[i].is_added = 0;
         } else if (!is_ixfr || rrset->rrs[i].is_removed) {
             if (rrset->rrs[i].exists) {
                 /* ixfr -RR */
+                lock_basic_lock(&zone->ixfr->ixfr_lock);
                 ixfr_del_rr(zone->ixfr, rrset->rrs[i].rr);
+                lock_basic_unlock(&zone->ixfr->ixfr_lock);
             }
             rrset->rrs[i].exists = 0;
             rrset_del_rr(rrset, i);
@@ -370,7 +381,9 @@ rrset_diff(rrset_type* rrset, unsigned is_ixfr)
     if (del_sigs) {
        for (i=0; i < rrset->rrsig_count; i++) {
             /* ixfr -RRSIG */
+            lock_basic_lock(&zone->ixfr->ixfr_lock);
             ixfr_del_rr(zone->ixfr, rrset->rrsigs[i].rr);
+            lock_basic_unlock(&zone->ixfr->ixfr_lock);
             rrset_del_rrsig(rrset, i);
             i--;
         }
@@ -397,9 +410,8 @@ rrset_add_rrsig(rrset_type* rrset, ldns_rr* rr,
     rrset->rrsigs = (rrsig_type*) allocator_alloc(zone->allocator,
         (rrset->rrsig_count + 1) * sizeof(rrsig_type));
     if (!rrset->rrsigs) {
-        ods_log_error("[%s] unable to add RRSIG: allocator_alloc() failed",
+        ods_fatal_exit("[%s] fatal unable to add RRSIG: allocator_alloc() failed",
             rrset_str);
-        exit(1);
     }
     if (rrsigs_old) {
         memcpy(rrset->rrsigs, rrsigs_old,
@@ -411,7 +423,7 @@ rrset_add_rrsig(rrset_type* rrset, ldns_rr* rr,
     rrset->rrsigs[rrset->rrsig_count - 1].rr = rr;
     rrset->rrsigs[rrset->rrsig_count - 1].key_locator = locator;
     rrset->rrsigs[rrset->rrsig_count - 1].key_flags = flags;
-    log_rr(rr, "+RRSIG", LOG_DEBUG);
+    log_rr(rr, "+RRSIG", LOG_DEEEBUG);
     return &rrset->rrsigs[rrset->rrsig_count -1];
 }
 
@@ -428,9 +440,12 @@ rrset_del_rrsig(rrset_type* rrset, uint16_t rrnum)
     ods_log_assert(rrset);
     ods_log_assert(rrnum < rrset->rrsig_count);
     zone = (zone_type*) rrset->zone;
-    log_rr(rrset->rrsigs[rrnum].rr, "-RRSIG", LOG_DEBUG);
+    log_rr(rrset->rrsigs[rrnum].rr, "-RRSIG", LOG_DEEEBUG);
     rrset->rrsigs[rrnum].owner = NULL;
     rrset->rrsigs[rrnum].rr = NULL;
+    allocator_deallocate(zone->allocator,
+        (void*)rrset->rrsigs[rrnum].key_locator);
+    rrset->rrsigs[rrnum].key_locator = NULL;
     while (rrnum < rrset->rrsig_count-1) {
         rrset->rrsigs[rrnum] = rrset->rrsigs[rrnum+1];
         rrnum++;
@@ -440,14 +455,11 @@ rrset_del_rrsig(rrset_type* rrset, uint16_t rrnum)
     rrset->rrsigs = (rrsig_type*) allocator_alloc(zone->allocator,
         (rrset->rrsig_count - 1) * sizeof(rrsig_type));
     if(!rrset->rrsigs) {
-        ods_log_error("[%s] unable to delete RRSIG: allocator_alloc() failed",
+        ods_fatal_exit("[%s] fatal unable to delete RRSIG: allocator_alloc() failed",
             rrset_str);
-        exit(1);
     }
-    if (rrsigs_orig) {
-        memcpy(rrset->rrsigs, rrsigs_orig,
-            (rrset->rrsig_count -1) * sizeof(rrsig_type));
-    }
+    memcpy(rrset->rrsigs, rrsigs_orig,
+        (rrset->rrsig_count -1) * sizeof(rrsig_type));
     allocator_deallocate(zone->allocator, (void*) rrsigs_orig);
     rrset->rrsig_count--;
     return;
@@ -484,7 +496,7 @@ rrset_recycle(rrset_type* rrset, time_t signtime, ldns_rr_type dstatus,
     for (i=0; i < rrset->rrsig_count; i++) {
         drop_sig = 0;
         /* 0. Skip delegation, glue and occluded RRsets */
-        if (dstatus != LDNS_RR_TYPE_SOA && (delegpt != LDNS_RR_TYPE_SOA &&
+        if (dstatus != LDNS_RR_TYPE_SOA || (delegpt != LDNS_RR_TYPE_SOA &&
             rrset->rrtype != LDNS_RR_TYPE_DS)) {
             drop_sig = 1;
             goto recycle_drop_sig;
@@ -522,7 +534,9 @@ recycle_drop_sig:
         if (drop_sig) {
             /* A rule mismatched, refresh signature */
             /* ixfr -RRSIG */
+            lock_basic_lock(&zone->ixfr->ixfr_lock);
             ixfr_del_rr(zone->ixfr, rrset->rrsigs[i].rr);
+            lock_basic_unlock(&zone->ixfr->ixfr_lock);
             rrset_del_rrsig(rrset, i);
             i--;
         } else {
@@ -582,6 +596,45 @@ rrset_sigok(rrset_type* rrset, key_type* key)
         return 1;
     }
     /* We need a new RRSIG. */
+    return 0;
+}
+
+/**
+ * Is the RRset signed with this algorithm?
+ *
+ */
+static int
+rrset_sigalgo(rrset_type* rrset, uint8_t algorithm)
+{
+    size_t i = 0;
+    if (!rrset) {
+        return 0;
+    }
+    for (i=0; i < rrset->rrsig_count; i++) {
+        if (algorithm == ldns_rdf2native_int8(
+                ldns_rr_rrsig_algorithm(rrset->rrsigs[i].rr))) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+/**
+ * Is the RRset signed with this locator?
+ *
+ */
+static int
+rrset_siglocator(rrset_type* rrset, const char* locator)
+{
+    size_t i = 0;
+    if (!rrset) {
+        return 0;
+    }
+    for (i=0; i < rrset->rrsig_count; i++) {
+        if (!ods_strcmp(locator, rrset->rrsigs[i].key_locator)) {
+            return 1;
+        }
+    }
     return 0;
 }
 
@@ -689,17 +742,24 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
     }
     reusedsigs = rrset_recycle(rrset, signtime, dstatus, delegpt);
     rrset->needs_signing = 0;
+
+    ods_log_assert(rrset->rrs);
+    ods_log_assert(rrset->rrs[0].rr);
+
     /* Skip delegation, glue and occluded RRsets */
     if (dstatus != LDNS_RR_TYPE_SOA) {
-        ods_log_deeebug("[%s] skip signing RRset[%i]: occluded RRset",
-            rrset_str, rrset->rrtype);
+        log_rrset(ldns_rr_owner(rrset->rrs[0].rr), rrset->rrtype,
+            "skip signing occluded RRset", LOG_DEEEBUG);
         return ODS_STATUS_OK;
     }
     if (delegpt != LDNS_RR_TYPE_SOA && rrset->rrtype != LDNS_RR_TYPE_DS) {
-        ods_log_deeebug("[%s] skip signing RRset[%i]: delegation RRset",
-            rrset_str, rrset->rrtype);
+        log_rrset(ldns_rr_owner(rrset->rrs[0].rr), rrset->rrtype,
+            "skip signing delegation RRset", LOG_DEEEBUG);
         return ODS_STATUS_OK;
     }
+
+    log_rrset(ldns_rr_owner(rrset->rrs[0].rr), rrset->rrtype,
+        "sign RRset", LOG_DEEEBUG);
     ods_log_assert(dstatus == LDNS_RR_TYPE_SOA ||
         (delegpt == LDNS_RR_TYPE_SOA || rrset->rrtype == LDNS_RR_TYPE_DS));
     /* Transmogrify rrset */
@@ -719,20 +779,34 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
          &inception, &expiration);
     /* Walk keys */
     for (i=0; i < zone->signconf->keys->count; i++) {
-        /* ZSKs don't sign DNSKEY RRset */
+        /* If not ZSK don't sign other RRsets */
         if (!zone->signconf->keys->keys[i].zsk &&
             rrset->rrtype != LDNS_RR_TYPE_DNSKEY) {
             continue;
         }
-        /* KSKs only sign DNSKEY RRset */
+        /* If not KSK don't sign DNSKEY RRset */
         if (!zone->signconf->keys->keys[i].ksk &&
             rrset->rrtype == LDNS_RR_TYPE_DNSKEY) {
             continue;
         }
         /* Additional rules for signatures */
-        if (rrset_sigok(rrset, &zone->signconf->keys->keys[i])) {
+        if (rrset_siglocator(rrset, zone->signconf->keys->keys[i].locator)) {
             continue;
         }
+        if (rrset->rrtype != LDNS_RR_TYPE_DNSKEY &&
+	    rrset_sigalgo(rrset, zone->signconf->keys->keys[i].algorithm)) {
+            continue;
+        }
+
+        /**
+         * currently, there is no rule that the number of signatures
+         * over this RRset equals the number of active keys.
+         */
+        if (rrset_sigok(rrset, &zone->signconf->keys->keys[i])) {
+            ods_log_debug("[%s] RRset[%i] with key %s returns sigok",
+               rrset_str, rrset->rrtype, zone->signconf->keys->keys[i].locator);
+        }
+
         /* Sign the RRset with this key */
         ods_log_deeebug("[%s] signing RRset[%i] with key %s", rrset_str,
             rrset->rrtype, zone->signconf->keys->keys[i].locator);
@@ -752,7 +826,9 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
         newsigs++;
         /* ixfr +RRSIG */
         ods_log_assert(signature->rr);
+        lock_basic_lock(&zone->ixfr->ixfr_lock);
         ixfr_add_rr(zone->ixfr, signature->rr);
+        lock_basic_unlock(&zone->ixfr->ixfr_lock);
     }
     /* RRset signing completed */
     ldns_rr_list_free(rr_list);
@@ -779,6 +855,8 @@ rrset_print(FILE* fd, rrset_type* rrset, int skip_rrsigs,
     ods_status result = ODS_STATUS_OK;
 
     if (!rrset || !fd) {
+        ods_log_crit("[%s] unable to print RRset: rrset or fd missing",
+            rrset_str);
         if (status) {
             *status = ODS_STATUS_ASSERT_ERR;
         }
@@ -793,6 +871,10 @@ rrset_print(FILE* fd, rrset_type* rrset, int skip_rrsigs,
                 break;
             }
             if (result != ODS_STATUS_OK) {
+                zone_type* zone = (zone_type*) rrset->zone;
+                log_rrset(ldns_rr_owner(rrset->rrs[i].rr), rrset->rrtype,
+                    "error printing RRset", LOG_CRIT);
+                zone->adoutbound->error = 1;
                 break;
             }
         }
@@ -801,6 +883,10 @@ rrset_print(FILE* fd, rrset_type* rrset, int skip_rrsigs,
         for (i=0; i < rrset->rrsig_count; i++) {
             result = util_rr_print(fd, rrset->rrsigs[i].rr);
             if (result != ODS_STATUS_OK) {
+                zone_type* zone = (zone_type*) rrset->zone;
+                log_rrset(ldns_rr_owner(rrset->rrs[i].rr), rrset->rrtype,
+                    "error printing RRset", LOG_CRIT);
+                zone->adoutbound->error = 1;
                 break;
             }
         }

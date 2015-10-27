@@ -1,5 +1,3 @@
-# $Id$
-
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
 LIBHSM = ${top_builddir}/libhsm/src/lib/libhsm.a
@@ -38,16 +36,8 @@ ods_signerd_SOURCES=		ods-signerd.c \
 				scheduler/fifoq.c scheduler/fifoq.h \
 				scheduler/schedule.c scheduler/schedule.h \
 				scheduler/task.c scheduler/task.h \
-				shared/allocator.c shared/allocator.h \
-				shared/duration.c shared/duration.h \
-				shared/file.c shared/file.h \
-				shared/hsm.c shared/hsm.h \
-				shared/locks.c shared/locks.h \
-				shared/log.c shared/log.h \
-				shared/privdrop.c shared/privdrop.h \
-				shared/status.c shared/status.h \
-				shared/util.c shared/util.h \
 				signer/backup.c signer/backup.h \
+				hsm.c hsm.h \
 				signer/denial.c signer/denial.h \
 				signer/domain.c signer/domain.h \
 				signer/ixfr.c signer/ixfr.h \
@@ -78,12 +68,8 @@ ods_signerd_LDADD=		$(LIBHSM)
 ods_signerd_LDADD+=		$(LIBCOMPAT)
 ods_signerd_LDADD+=		@LDNS_LIBS@ @XML2_LIBS@ @PTHREAD_LIBS@ @RT_LIBS@ @SSL_LIBS@ @C_LIBS@
 
-ods_signer_SOURCES=		ods-signer.c \
-				shared/allocator.c shared/allocator.h \
-				shared/duration.c shared/duration.h \
-				shared/file.c shared/file.h \
-				shared/log.c shared/log.h \
-				shared/util.c shared/util.h
+ods_signer_SOURCES=		ods-signer.c
 
 ods_signer_LDADD=		$(LIBHSM)
+ods_signer_LDADD+=		$(LIBCOMPAT)
 ods_signer_LDADD+=		@LDNS_LIBS@ @XML2_LIBS@

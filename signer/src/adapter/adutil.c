@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Copyright (c) 2009-2011 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,8 +31,8 @@
 
 #include "config.h"
 #include "adapter/adutil.h"
-#include "shared/file.h"
-#include "shared/log.h"
+#include "file.h"
+#include "log.h"
 
 #include <ldns/ldns.h>
 
@@ -89,14 +87,14 @@ adutil_readline_frm_file(FILE* fd, char* line, unsigned int* l,
     int in_string = 0;
     int depth = 0;
     int comments = 0;
-    char c = 0;
-    char lc = 0;
+    int c = 0;
+    int lc = 0;
 
     for (i = 0; i < SE_ADFILE_MAXLINE; i++) {
-        c = (char) ods_fgetc(fd, l);
+        c = ods_fgetc(fd, l);
         if (comments) {
-            while (c != EOF && c != '\n') {
-                c = (char) ods_fgetc(fd, l);
+            while (c != EOF && (char)c != '\n') {
+                c = ods_fgetc(fd, l);
             }
         }
 
@@ -111,27 +109,27 @@ adutil_readline_frm_file(FILE* fd, char* line, unsigned int* l,
             } else {
                 return -1;
             }
-        } else if (c == '"' && lc != '\\') {
+        } else if ((char)c == '"' && (char)lc != '\\') {
             in_string = 1 - in_string; /* swap status */
-            line[li] = c;
+            line[li] = (char)c;
             li++;
-        } else if (c == '(') {
+        } else if ((char)c == '(') {
             if (in_string) {
-                line[li] = c;
+                line[li] = (char)c;
                 li++;
-            } else if (lc != '\\') {
+            } else if ((char)lc != '\\') {
                 depth++;
                 line[li] = ' ';
                 li++;
             } else {
-                line[li] = c;
+                line[li] = (char)c;
                 li++;
             }
-        } else if (c == ')') {
+        } else if ((char)c == ')') {
             if (in_string) {
-                line[li] = c;
+                line[li] = (char)c;
                 li++;
-            } else if (lc != '\\') {
+            } else if ((char)lc != '\\') {
                 if (depth < 1) {
                     ods_log_error("[%s] read line: bracket mismatch "
                         "discovered at line %i, missing '('", adapter_str,
@@ -143,20 +141,20 @@ adutil_readline_frm_file(FILE* fd, char* line, unsigned int* l,
                 line[li] = ' ';
                 li++;
             } else {
-                line[li] = c;
+                line[li] = (char)c;
                 li++;
             }
-        } else if (c == ';') {
+        } else if ((char)c == ';') {
             if (in_string) {
-                line[li] = c;
+                line[li] = (char)c;
                 li++;
-            } else if (lc != '\\' && !keep_comments) {
+            } else if ((char)lc != '\\' && !keep_comments) {
                 comments = 1;
             } else {
-                line[li] = c;
+                line[li] = (char)c;
                 li++;
             }
-        } else if (c == '\n' && lc != '\\') {
+        } else if ((char)c == '\n' && (char)lc != '\\') {
             comments = 0;
             /* if no depth issue, we are done */
             if (depth == 0) {
@@ -164,11 +162,8 @@ adutil_readline_frm_file(FILE* fd, char* line, unsigned int* l,
             }
             line[li] = ' ';
             li++;
-        } else if (c == '\t' && lc != '\\') {
-            line[li] = ' ';
-            li++;
         } else {
-            line[li] = c;
+            line[li] = (char)c;
             li++;
         }
         /* continue with line */

@@ -1,5 +1,3 @@
-# $Id$
-
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
 AM_CPPFLAGS = \
@@ -12,6 +10,6 @@ AM_CFLAGS =	-std=c99
 
 noinst_LIBRARIES = libhsm.a
 
-libhsm_a_SOURCES = libhsm.c libhsm.h libhsmdns.h \
+libhsm_a_SOURCES = libhsm.c libhsm.h libhsmdns.h pin.c \
 	cryptoki_compat/pkcs11.h
 

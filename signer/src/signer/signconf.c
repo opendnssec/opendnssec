@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Copyright (c) 2009 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,11 +30,10 @@
  */
 
 #include "parser/signconfparser.h"
-#include "shared/duration.h"
-#include "shared/file.h"
-#include "shared/log.h"
-#include "signer/backup.h"
-#include "shared/status.h"
+#include "duration.h"
+#include "file.h"
+#include "log.h"
+#include "status.h"
 #include "signer/signconf.h"
 
 static const char* sc_str = "signconf";
@@ -65,6 +62,7 @@ signconf_create(void)
     }
     sc->allocator = allocator;
     sc->filename = NULL;
+    sc->passthrough = 0;
     /* Signatures */
     sc->sig_resign_interval = NULL;
     sc->sig_refresh_interval = NULL;
@@ -73,6 +71,7 @@ signconf_create(void)
     sc->sig_jitter = NULL;
     sc->sig_inception_offset = NULL;
     /* Denial of existence */
+    sc->nsec3param_ttl = NULL;
     sc->nsec_type = 0;
     sc->nsec3_optout = 0;
     sc->nsec3_algo = 0;
@@ -117,6 +116,7 @@ signconf_read(signconf_type* signconf, const char* scfile)
     fd = ods_fopen(scfile, NULL, "r");
     if (fd) {
         signconf->filename = allocator_strdup(signconf->allocator, scfile);
+        signconf->passthrough = parse_sc_passthrough(scfile);
         signconf->sig_resign_interval = parse_sc_sig_resign_interval(scfile);
         signconf->sig_refresh_interval = parse_sc_sig_refresh_interval(scfile);
         signconf->sig_validity_default = parse_sc_sig_validity_default(scfile);
@@ -125,6 +125,7 @@ signconf_read(signconf_type* signconf, const char* scfile)
         signconf->sig_inception_offset = parse_sc_sig_inception_offset(scfile);
         signconf->nsec_type = parse_sc_nsec_type(scfile);
         if (signconf->nsec_type == LDNS_RR_TYPE_NSEC3) {
+            signconf->nsec3param_ttl = parse_sc_nsec3param_ttl(scfile);
             signconf->nsec3_optout = parse_sc_nsec3_optout(scfile);
             signconf->nsec3_algo = parse_sc_nsec3_algorithm(scfile);
             signconf->nsec3_iterations = parse_sc_nsec3_iterations(scfile);
@@ -136,6 +137,7 @@ signconf_read(signconf_type* signconf, const char* scfile)
             if (!signconf->nsec3params) {
                 ods_log_error("[%s] unable to read signconf %s: "
                     "nsec3params_create() failed", sc_str, scfile);
+                ods_fclose(fd);
                 return ODS_STATUS_MALLOC_ERR;
             }
         }
@@ -187,7 +189,7 @@ signconf_update(signconf_type** signconf, const char* scfile,
         new_sc->last_modified = st_mtime;
         if (signconf_check(new_sc) != ODS_STATUS_OK) {
             ods_log_error("[%s] unable to update signconf: signconf %s has "
-                "errors (%s)", sc_str, scfile, ods_status2str(status));
+                "errors", sc_str, scfile);
             signconf_cleanup(new_sc);
             return ODS_STATUS_CFG_ERR;
         }
@@ -210,7 +212,7 @@ signconf_backup_duration(FILE* fd, const char* opt, duration_type* duration)
 {
     char* str = duration2string(duration);
     fprintf(fd, "%s %s ", opt, str);
-    free((void*) str);
+    free((void*) str?str:"(null)");
     return;
 }
 
@@ -244,8 +246,9 @@ signconf_backup(FILE* fd, signconf_type* sc, const char* version)
     signconf_backup_duration(fd, "soamin", sc->soa_min);
     fprintf(fd, "serial %s ", sc->soa_serial?sc->soa_serial:"(null)");
     if (strcmp(version, ODS_SE_FILE_MAGIC_V2) == 0) {
-        fprintf(fd, "audit 0\n");
+        fprintf(fd, "audit 0");
     }
+    fprintf(fd, "\n");
     return;
 }
 
@@ -315,8 +318,8 @@ signconf_check(signconf_type* sc)
         status = ODS_STATUS_CFG_ERR;
     }
     if (sc->nsec_type == LDNS_RR_TYPE_NSEC3) {
-        if (sc->nsec3_algo == 0) {
-            ods_log_error("[%s] check failed: no nsec3 algorithm found",
+        if (sc->nsec3_algo != LDNS_SHA1) {
+            ods_log_error("[%s] check failed: invalid nsec3 algorithm",
                 sc_str);
             status = ODS_STATUS_CFG_ERR;
         }
@@ -328,7 +331,7 @@ signconf_check(signconf_type* sc)
             sc->nsec_type);
         status = ODS_STATUS_CFG_ERR;
     }
-    if (!sc->keys || sc->keys->count == 0) {
+    if ((!sc->keys || sc->keys->count == 0) && !sc->passthrough) {
         ods_log_error("[%s] check failed: no keys found", sc_str);
         status = ODS_STATUS_CFG_ERR;
     }
@@ -370,7 +373,9 @@ signconf_compare_denial(signconf_type* a, signconf_type* b)
     ods_log_assert(a);
     ods_log_assert(b);
 
-   if (a->nsec_type != b->nsec_type) {
+   if (duration_compare(a->soa_min, b->soa_min)) {
+       new_task = TASK_NSECIFY;
+   } else if (a->nsec_type != b->nsec_type) {
        new_task = TASK_NSECIFY;
    } else if (a->nsec_type == LDNS_RR_TYPE_NSEC3) {
        if ((ods_strcmp(a->nsec3_salt, b->nsec3_salt) != 0) ||
@@ -378,12 +383,12 @@ signconf_compare_denial(signconf_type* a, signconf_type* b)
            (a->nsec3_iterations != b->nsec3_iterations) ||
            (a->nsec3_optout != b->nsec3_optout)) {
 
-           new_task = TASK_NSECIFY;
-       }
-   } else if (duration_compare(a->soa_min, b->soa_min)) {
-       new_task = TASK_NSECIFY;
-   }
-   return new_task;
+            new_task = TASK_NSECIFY;
+        } else if (duration_compare(a->nsec3param_ttl, b->nsec3param_ttl)) {
+           new_task = TASK_READ;
+        }
+    }
+    return new_task;
 }
 
 
@@ -431,6 +436,11 @@ signconf_print(FILE* out, signconf_type* sc, const char* name)
             fprintf(out, "\t\t\t<NSEC />\n");
         } else if (sc->nsec_type == LDNS_RR_TYPE_NSEC3) {
             fprintf(out, "\t\t\t<NSEC3>\n");
+            if (sc->nsec3param_ttl) {
+                s = duration2string(sc->nsec3param_ttl);
+                fprintf(out, "\t\t\t\t<TTL>%s</TTL>\n", s?s:"(null)");
+                free((void*)s);
+            }
             if (sc->nsec3_optout) {
                 fprintf(out, "\t\t\t\t<OptOut />\n");
             }
@@ -490,6 +500,7 @@ signconf_log(signconf_type* sc, const char* name)
     char* dnskeyttl = NULL;
     char* soattl = NULL;
     char* soamin = NULL;
+    char* paramttl = NULL;
 
     if (sc) {
         resign = duration2string(sc->sig_resign_interval);
@@ -499,20 +510,37 @@ signconf_log(signconf_type* sc, const char* name)
         jitter = duration2string(sc->sig_jitter);
         offset = duration2string(sc->sig_inception_offset);
         dnskeyttl = duration2string(sc->dnskey_ttl);
+        paramttl = duration2string(sc->nsec3param_ttl);
         soattl = duration2string(sc->soa_ttl);
         soamin = duration2string(sc->soa_min);
         /* signconf */
         ods_log_info("[%s] zone %s signconf: RESIGN[%s] REFRESH[%s] "
-            "VALIDITY[%s] DENIAL[%s] JITTER[%s] OFFSET[%s] NSEC[%i] "
+            "%sVALIDITY[%s] DENIAL[%s] JITTER[%s] OFFSET[%s] NSEC[%i] "
             "DNSKEYTTL[%s] SOATTL[%s] MINIMUM[%s] SERIAL[%s]",
-            sc_str, name?name:"(null)", resign, refresh, validity, denial,
-            jitter, offset, (int) sc->nsec_type, dnskeyttl, soattl,
-            soamin, sc->soa_serial?sc->soa_serial:"(null)");
+            sc_str,
+            name?name:"(null)",
+            resign?resign:"(null)",
+            refresh?refresh:"(null)",
+            sc->passthrough?"PASSTHROUGH ":"",
+            validity?validity:"(null)",
+            denial?denial:"(null)",
+            jitter?jitter:"(null)",
+            offset?offset:"(null)",
+            (int) sc->nsec_type,
+            dnskeyttl?dnskeyttl:"(null)",
+            soattl?soattl:"(null)",
+            soamin?soamin:"(null)",
+            sc->soa_serial?sc->soa_serial:"(null)");
         /* nsec3 parameters */
         if (sc->nsec_type == LDNS_RR_TYPE_NSEC3) {
-            ods_log_debug("[%s] zone %s nsec3: OPTOUT[%i] ALGORITHM[%u] "
-                "ITERATIONS[%u] SALT[%s]", sc_str, name, sc->nsec3_optout,
-                sc->nsec3_algo, sc->nsec3_iterations,
+            ods_log_debug("[%s] zone %s nsec3: PARAMTTL[%s] OPTOUT[%i] "
+                "ALGORITHM[%u] ITERATIONS[%u] SALT[%s]",
+                sc_str,
+                name?name:"(null)",
+                paramttl?paramttl:"PT0S",
+                sc->nsec3_optout,
+                sc->nsec3_algo,
+                sc->nsec3_iterations,
                 sc->nsec3_salt?sc->nsec3_salt:"(null)");
         }
         /* keys */
@@ -525,6 +553,7 @@ signconf_log(signconf_type* sc, const char* name)
         free((void*)jitter);
         free((void*)offset);
         free((void*)dnskeyttl);
+        free((void*)paramttl);
         free((void*)soattl);
         free((void*)soamin);
     }

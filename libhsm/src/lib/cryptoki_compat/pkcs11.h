@@ -435,6 +435,7 @@ typedef unsigned long ck_attribute_type_t;
 #define CKA_ALWAYS_AUTHENTICATE		(0x202)
 #define CKA_WRAP_WITH_TRUSTED		(0x210)
 #define CKA_GOSTR3410PARAMS		(0x250)		/* From PKCS#11 v2.30 - draft 7 */
+#define CKA_GOSTR3411PARAMS		(0x251)		/* From PKCS#11 v2.30 - draft 7 */
 #define CKA_HW_FEATURE_TYPE		(0x300)
 #define CKA_RESET_ON_INIT		(0x301)
 #define CKA_HAS_RESET			(0x302)
@@ -1196,8 +1197,16 @@ struct ck_c_initialize_args
 #undef CK_DEFINE_FUNCTION
 #define CK_DEFINE_FUNCTION(retval, name) retval CK_SPEC name
 
+#if defined(__cplusplus)
+}
+#endif
+
 /* For NULL.  */
 #include <stddef.h>
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 typedef unsigned char CK_BYTE;
 typedef unsigned char CK_CHAR;

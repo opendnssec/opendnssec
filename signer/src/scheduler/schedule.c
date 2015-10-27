@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Copyright (c) 2009 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,8 +32,8 @@
 #include "config.h"
 #include "scheduler/schedule.h"
 #include "scheduler/task.h"
-#include "shared/duration.h"
-#include "shared/log.h"
+#include "duration.h"
+#include "log.h"
 
 #include <ldns/ldns.h>
 
@@ -111,8 +109,10 @@ static ldns_rbnode_t*
 task2node(task_type* task)
 {
     ldns_rbnode_t* node = (ldns_rbnode_t*) malloc(sizeof(ldns_rbnode_t));
-    node->key = task;
-    node->data = task;
+    if (node) {
+        node->key = task;
+        node->data = task;
+    }
     return node;
 }
 
@@ -159,6 +159,12 @@ schedule_task(schedule_type* schedule, task_type* task, int log)
         return ODS_STATUS_ERR;
     }
     new_node = task2node(task);
+    if (!new_node) {
+        ods_log_error("[%s] unable to schedule task %s for zone %s: "
+            " task2node() failed", schedule_str, task_what2str(task->what),
+            task_who2str(task));
+        return ODS_STATUS_MALLOC_ERR;
+    }
     ins_node = ldns_rbtree_insert(schedule->tasks, new_node);
     if (!ins_node) {
         ods_log_error("[%s] unable to schedule task %s for zone %s: "

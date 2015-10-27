@@ -1,6 +1,4 @@
 /*
- * $Id: notify.c 4958 2011-04-18 07:11:09Z matthijs $
- *
  * Copyright (c) 2011 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,6 +32,7 @@
 #include "config.h"
 #include "adapter/addns.h"
 #include "daemon/xfrhandler.h"
+#include "signer/domain.h"
 #include "signer/zone.h"
 #include "wire/notify.h"
 #include "wire/xfrd.h"
@@ -76,8 +75,16 @@ notify_set_timer(notify_type* notify, time_t t)
     if(t > notify_time(notify) + 10) {
         time_t extra = t - notify_time(notify);
         time_t base = extra*9/10;
+#ifdef HAVE_ARC4RANDOM_UNIFORM
+        t = notify_time(notify) + base +
+            arc4random_uniform(extra-base);
+#elif HAVE_ARC4RANDOM
+        t = notify_time(notify) + base +
+            arc4random()%(extra-base);
+#else
         t = notify_time(notify) + base +
             random()%(extra-base);
+#endif
     }
     notify->handler.timeout = &notify->timeout;
     notify->timeout.tv_sec = t;
@@ -275,21 +282,24 @@ notify_handle_reply(notify_type* notify)
     ods_log_assert(xfrhandler);
     ods_log_assert(zone);
     ods_log_assert(zone->name);
-    if ((buffer_pkt_opcode(xfrhandler->packet) != LDNS_PACKET_NOTIFY) ||
+    if (xfrhandler->packet->limit < 3 ||
+        (buffer_pkt_opcode(xfrhandler->packet) != LDNS_PACKET_NOTIFY) ||
         (buffer_pkt_qr(xfrhandler->packet) == 0)) {
-        ods_log_error("[%s] zone %s received bad notify reply opcode/qr",
-            notify_str, zone->name);
+        ods_log_error("[%s] zone %s received bad notify reply opcode/qr from %s",
+            notify_str, zone->name, notify->secondary->address);
         return 0;
     }
     if (buffer_pkt_id(xfrhandler->packet) != notify->query_id) {
-        ods_log_error("[%s] zone %s received bad notify reply id",
-            notify_str, zone->name);
+        ods_log_error("[%s] zone %s received bad notify reply id from %s",
+            notify_str, zone->name, notify->secondary->address);
         return 0;
     }
     /* could check tsig */
     if (buffer_pkt_rcode(xfrhandler->packet) != LDNS_RCODE_NOERROR) {
-        ods_log_error("[%s] zone %s received bad notify rcode %d",
-            notify_str, zone->name, buffer_pkt_rcode(xfrhandler->packet));
+        const char* str = buffer_rcode2str(buffer_pkt_rcode(xfrhandler->packet));
+        ods_log_error("[%s] zone %s received bad notify rcode %s from %s",
+            notify_str, zone->name, str?str:"UNKNOWN",
+            notify->secondary->address);
         if (buffer_pkt_rcode(xfrhandler->packet) != LDNS_RCODE_NOTIMPL) {
             return 1;
         }
@@ -334,8 +344,8 @@ notify_send_udp(notify_type* notify, buffer_type* buffer)
     /* bind it? */
 
     /* send it (udp) */
-    ods_log_deeebug("[%s] send %d bytes over udp to %s", notify_str,
-        buffer_remaining(buffer), notify->secondary->address);
+    ods_log_deeebug("[%s] send %ld bytes over udp to %s", notify_str,
+        (unsigned long)buffer_remaining(buffer), notify->secondary->address);
     nb = sendto(fd, buffer_current(buffer), buffer_remaining(buffer), 0,
         (struct sockaddr*)&to, to_len);
     if (nb == -1) {
@@ -374,9 +384,10 @@ notify_tsig_sign(notify_type* notify, buffer_type* buffer)
     notify->tsig_rr->algo_name =
         ldns_rdf_clone(notify->tsig_rr->algo->wf_name);
     notify->tsig_rr->key_name = ldns_rdf_clone(notify->tsig_rr->key->dname);
-    ods_log_debug("[%s] tsig sign notify with %s %s", notify_str,
-        ldns_rdf2str(notify->tsig_rr->key_name),
-        ldns_rdf2str(notify->tsig_rr->algo_name));
+    log_dname(notify->tsig_rr->key_name, "tsig sign notify with key",
+        LOG_DEBUG);
+    log_dname(notify->tsig_rr->algo_name, "tsig sign notify with algorithm",
+        LOG_DEBUG);
     tsig_rr_prepare(notify->tsig_rr);
     tsig_rr_update(notify->tsig_rr, buffer, buffer_position(buffer));
     tsig_rr_sign(notify->tsig_rr);
@@ -431,7 +442,7 @@ notify_send(notify_type* notify)
             zone->name, notify->secondary->address);
         return;
     }
-    ods_log_debug("[%s] notify retry %u for zone %s sent to %s", notify_str,
+    ods_log_verbose("[%s] notify retry %u for zone %s sent to %s", notify_str,
         notify->retry, zone->name, notify->secondary->address);
     return;
 }
@@ -485,7 +496,7 @@ notify_handle_zone(netio_type* ATTR_UNUSED(netio),
         ods_log_assert(notify->secondary->address);
         notify->retry++;
         if (notify->retry > NOTIFY_MAX_RETRY) {
-            ods_log_debug("[%s] notify max retry for zone %s, %s unreachable",
+            ods_log_verbose("[%s] notify max retry for zone %s, %s unreachable",
                 notify_str, zone->name, notify->secondary->address);
             notify_next(notify);
         } else {

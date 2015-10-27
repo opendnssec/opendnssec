@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Copyright (c) 2009 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,9 +29,9 @@
  *
  */
 
-#include "shared/file.h"
-#include "shared/log.h"
-#include "shared/util.h"
+#include "file.h"
+#include "log.h"
+#include "util.h"
 #include "signer/backup.h"
 #include "signer/keys.h"
 #include "signer/signconf.h"
@@ -248,7 +246,7 @@ key_delfunc(key_type* key)
         return;
     }
     /* ldns_rr_free(key->dnskey); */
-    hsm_key_free(key->hsmkey);
+    libhsm_key_free(key->hsmkey);
     hsm_sign_params_free(key->params);
     free((void*) key->locator);
     return;

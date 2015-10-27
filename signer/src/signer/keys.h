@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Copyright (c) 2009 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,8 +32,9 @@
 #ifndef SIGNER_KEYS_H
 #define SIGNER_KEYS_H
 
-#include "shared/allocator.h"
-#include "shared/status.h"
+#include "allocator.h"
+#include "status.h"
+#include "libhsm.h"
 
 #ifdef HAVE_SYS_TYPES_H
 # include <sys/types.h>
@@ -44,7 +43,6 @@
 # include <unistd.h>
 #endif
 #include <ldns/ldns.h>
-#include <libhsm.h>
 #include <libhsmdns.h>
 
 
@@ -55,7 +53,7 @@
 typedef struct key_struct key_type;
 struct key_struct {
     ldns_rr* dnskey;
-    hsm_key_t* hsmkey;
+    libhsm_key_t* hsmkey;
     hsm_sign_params_t* params;
     const char* locator;
     uint8_t algorithm;

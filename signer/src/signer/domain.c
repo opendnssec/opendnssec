@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Copyright (c) 2009 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,7 +30,7 @@
  */
 
 #include "config.h"
-#include "shared/log.h"
+#include "log.h"
 #include "signer/backup.h"
 #include "signer/denial.h"
 #include "signer/domain.h"
@@ -204,7 +202,7 @@ domain_add_rrset(domain_type* domain, rrset_type* rrset)
         *p = rrset;
         rrset->next = NULL;
     }
-    log_rrset(domain->dname, rrset->rrtype, "+RRSET", LOG_DEBUG);
+    log_rrset(domain->dname, rrset->rrtype, "+RRSET", LOG_DEEEBUG);
     rrset->domain = (void*) domain;
     if (domain->denial) {
         denial = (denial_type*) domain->denial;
@@ -236,7 +234,7 @@ domain_del_rrset(domain_type* domain, ldns_rr_type rrtype)
         domain->rrsets = cur->next;
         cur->domain = NULL;
         cur->next = NULL;
-        log_rrset(domain->dname, rrtype, "-RRSET", LOG_DEBUG);
+        log_rrset(domain->dname, rrtype, "-RRSET", LOG_DEEEBUG);
         if (domain->denial) {
             denial = (denial_type*) domain->denial;
             denial->bitmap_changed = 1;
@@ -259,7 +257,7 @@ domain_del_rrset(domain_type* domain, ldns_rr_type rrtype)
             cur = cur->next;
             cur->domain = NULL;
             cur->next = NULL;
-            log_rrset(domain->dname, rrtype, "-RRSET", LOG_DEBUG);
+            log_rrset(domain->dname, rrtype, "-RRSET", LOG_DEEEBUG);
             if (domain->denial) {
                 denial = (denial_type*) domain->denial;
                 denial->bitmap_changed = 1;
@@ -278,7 +276,7 @@ domain_del_rrset(domain_type* domain, ldns_rr_type rrtype)
  *
  */
 void
-domain_diff(domain_type* domain, unsigned is_ixfr)
+domain_diff(domain_type* domain, unsigned is_ixfr, unsigned more_coming)
 {
     denial_type* denial = NULL;
     rrset_type* rrset = NULL;
@@ -292,9 +290,9 @@ domain_diff(domain_type* domain, unsigned is_ixfr)
         if (rrset->rrtype == LDNS_RR_TYPE_NSEC3PARAMS ||
             rrset->rrtype == LDNS_RR_TYPE_DNSKEY) {
             /* always do full diff on NSEC3PARAMS | DNSKEY RRset */
-            rrset_diff(rrset, 0);
+            rrset_diff(rrset, 0, more_coming);
         } else {
-            rrset_diff(rrset, is_ixfr);
+            rrset_diff(rrset, is_ixfr, more_coming);
         }
         if (rrset->rr_count <= 0) {
             /* delete entire rrset */
@@ -304,7 +302,7 @@ domain_diff(domain_type* domain, unsigned is_ixfr)
                 prev_rrset->next = rrset->next;
             }
             rrset->next = NULL;
-            log_rrset(domain->dname, rrset->rrtype, "-RRSET", LOG_DEBUG);
+            log_rrset(domain->dname, rrset->rrtype, "-RRSET", LOG_DEEEBUG);
             rrset_cleanup(rrset);
             if (!prev_rrset) {
                 rrset = domain->rrsets;
@@ -330,7 +328,7 @@ domain_diff(domain_type* domain, unsigned is_ixfr)
  *
  */
 void
-domain_rollback(domain_type* domain)
+domain_rollback(domain_type* domain, int keepsc)
 {
     denial_type* denial = NULL;
     rrset_type* rrset = NULL;
@@ -343,6 +341,15 @@ domain_rollback(domain_type* domain)
     }
     rrset = domain->rrsets;
     while (rrset) {
+        if (keepsc) {
+            /* skip rollback for NSEC3PARAM and DNSKEY RRset */
+            if (rrset->rrtype == LDNS_RR_TYPE_NSEC3PARAMS ||
+                rrset->rrtype == LDNS_RR_TYPE_DNSKEY) {
+                prev_rrset = rrset;
+                rrset = rrset->next;
+                continue;
+            }
+        }
         /* walk rrs */
         for (i=0; i < rrset->rr_count; i++) {
             rrset->rrs[i].is_added = 0;
@@ -368,7 +375,7 @@ domain_rollback(domain_type* domain)
                 prev_rrset->next = rrset->next;
             }
             rrset->next = NULL;
-            log_rrset(domain->dname, rrset->rrtype, "-RRSET", LOG_DEBUG);
+            log_rrset(domain->dname, rrset->rrtype, "-RRSET", LOG_DEEEBUG);
             rrset_cleanup(rrset);
             if (!prev_rrset) {
                 rrset = domain->rrsets;
@@ -411,20 +418,16 @@ domain_ent2unsignedns(domain_type* domain)
             break;
         }
         if (d->rrsets) {
-            if (domain_is_delegpt(d) == LDNS_RR_TYPE_NS) {
-                /* domain has unsigned delegation */
-                return 1;
-            } else {
-                /* domain has authoritative data or signed delegation */
+            if (domain_is_delegpt(d) != LDNS_RR_TYPE_NS &&
+                domain_is_occluded(d) == LDNS_RR_TYPE_SOA) {
+                /* domain has signed delegation/auth */
                 return 0;
             }
         }
         /* maybe there is data at the next domain */
         n = ldns_rbtree_next(n);
     }
-    ods_log_warning("[%s] encountered empty terminal that is treated as "
-        "non-terminal", dname_str);
-    return 0;
+    return 1;
 }
 
 
@@ -489,13 +492,14 @@ domain_is_occluded(domain_type* domain)
 void
 domain_print(FILE* fd, domain_type* domain, ods_status* status)
 {
-    ldns_rr_type dstatus = LDNS_RR_TYPE_FIRST;
     char* str = NULL;
     rrset_type* rrset = NULL;
     rrset_type* soa_rrset = NULL;
     rrset_type* cname_rrset = NULL;
     if (!domain || !fd) {
         if (status) {
+            ods_log_crit("[%s] unable to print domain: domain or fd missing",
+                dname_str);
             *status = ODS_STATUS_ASSERT_ERR;
         }
         return;
@@ -506,7 +510,9 @@ domain_print(FILE* fd, domain_type* domain, ods_status* status)
         fprintf(fd, ";;Empty non-terminal %s\n", str);
         free((void*)str);
         /* Denial of Existence */
-        denial_print(fd, (denial_type*) domain->denial, status);
+        if (domain->denial) {
+            denial_print(fd, (denial_type*) domain->denial, status);
+        }
         return;
     }
     /* no other data may accompany a CNAME */
@@ -529,35 +535,20 @@ domain_print(FILE* fd, domain_type* domain, ods_status* status)
         while (rrset) {
             /* skip SOA RRset */
             if (rrset->rrtype != LDNS_RR_TYPE_SOA) {
-                dstatus = domain_is_occluded(domain);
-                if (dstatus == LDNS_RR_TYPE_A) {
-                    /* Glue */
-                    if (rrset->rrtype == LDNS_RR_TYPE_A ||
-                        rrset->rrtype == LDNS_RR_TYPE_AAAA) {
-                        rrset_print(fd, rrset, 0, status);
-                    }
-                } else if (dstatus == LDNS_RR_TYPE_SOA) {
-                    /* Authoritative or delegation */
-                    dstatus = domain_is_delegpt(domain);
-                    if (dstatus == LDNS_RR_TYPE_SOA ||
-                        rrset->rrtype == LDNS_RR_TYPE_A ||
-                        rrset->rrtype == LDNS_RR_TYPE_AAAA ||
-                        rrset->rrtype == LDNS_RR_TYPE_NS ||
-                        rrset->rrtype == LDNS_RR_TYPE_DS) {
-                        rrset_print(fd, rrset, 0, status);
-                    }
-                }
-                /* Occluded */
+                rrset_print(fd, rrset, 0, status);
             }
             if (status && *status != ODS_STATUS_OK) {
+                ods_log_crit("[%s] failed to print one or more RRsets: %s",
+                    dname_str, ods_status2str(*status));
                 return;
             }
-
             rrset = rrset->next;
         }
     }
     /* Denial of Existence */
-    denial_print(fd, (denial_type*) domain->denial, status);
+    if (domain->denial) {
+        denial_print(fd, (denial_type*) domain->denial, status);
+    }
     return;
 }
 

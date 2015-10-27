@@ -1,3 +1,4 @@
+
 Contents:
 	0 ENFORCER-NG INTRODUCTION
 	1 HIGH-LEVEL DESIGN GOALS 
@@ -9,7 +10,7 @@ Contents:
 	7 ENFORCER INTERNALS
 	8 NEVER ASKED QUESTIONS
 
-0 ENFORCER-NG INTRODUCTION
+0 ENFORCER NEXT GENERATION INTRODUCTION
 
 One of the explicit design goals is to manage a large number of 
 zones simultaneously. Together with the progressing requirements it 

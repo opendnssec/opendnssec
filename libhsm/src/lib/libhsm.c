@@ -1,5 +1,3 @@
-/* $Id$ */
-
 /*
  * Copyright (c) 2009 .SE (The Internet Infrastructure Foundation).
  * Copyright (c) 2009 NLNet Labs.
@@ -52,7 +50,7 @@
 #define HSM_TOKEN_LABEL_LENGTH 32
 
 /*! Global (initial) context */
-static hsm_ctx_t *_hsm_ctx;
+hsm_ctx_t *_hsm_ctx;
 
 /*! General PKCS11 helper functions */
 static char *
@@ -208,7 +206,7 @@ the given strings.
 \param action   action for which the error occured
 \param message  error message format string
 */
-static void
+void
 hsm_ctx_set_error(hsm_ctx_t *ctx, int error, const char *action,
                  const char *message, ...)
 {
@@ -254,12 +252,11 @@ hsm_pkcs11_check_error(hsm_ctx_t *ctx, CK_RV rv, const char *action)
 static void
 hsm_pkcs11_unload_functions(void *handle)
 {
-    int result;
     if (handle) {
 #if defined(HAVE_LOADLIBRARY)
         /* no idea */
 #elif defined(HAVE_DLOPEN)
-        result = dlclose(handle);
+        (void) dlclose(handle);
 #endif
     }
 }
@@ -318,7 +315,7 @@ hsm_pkcs11_load_functions(hsm_module_t *module)
     }
 
     /* Retrieve the function list */
-    (pGetFunctionList)((CK_FUNCTION_LIST_PTR)(&module->sym));
+    (pGetFunctionList)((CK_FUNCTION_LIST_PTR_PTR)(&module->sym));
     return CKR_OK;
 }
 
@@ -374,6 +371,49 @@ hsm_pkcs11_check_token_name(hsm_ctx_t *ctx,
     return result;
 }
 
+hsm_repository_t *
+hsm_repository_new(char* name, char* module, char* tokenlabel, char* pin,
+    uint8_t use_pubkey)
+{
+    hsm_repository_t* r;
+
+    if (!name || !module || !tokenlabel) return NULL;
+
+    r = malloc(sizeof(hsm_repository_t));
+    if (!r) return NULL;
+
+    r->next = NULL;
+    r->pin = NULL;
+    r->name = strdup(name);
+    r->module = strdup(module);
+    r->tokenlabel = strdup(tokenlabel);
+    if (!r->name || !r->module || !r->tokenlabel) {
+        hsm_repository_free(r);
+        return NULL;
+    }
+    if (pin) {
+        r->pin = strdup(pin);
+        if (!r->pin) {
+            hsm_repository_free(r);
+            return NULL;
+        }
+    }
+    r->use_pubkey = use_pubkey;
+    return r;
+}
+
+void
+hsm_repository_free(hsm_repository_t *r)
+{
+    if (r) {
+        if (r->next) hsm_repository_free(r->next);
+        if (r->name) free(r->name);
+        if (r->module) free(r->module);
+        if (r->tokenlabel) free(r->tokenlabel);
+        if (r->pin) free(r->pin);
+    }
+    free(r);
+}
 
 int
 hsm_get_slot_id(hsm_ctx_t *ctx,
@@ -397,9 +437,19 @@ hsm_get_slot_id(hsm_ctx_t *ctx,
         hsm_ctx_set_error(ctx, HSM_ERROR, "hsm_get_slot_id()",
                           "No slots found in HSM");
         return HSM_ERROR;
+    } else if (slotCount > (SIZE_MAX / sizeof(CK_SLOT_ID))) {
+        hsm_ctx_set_error(ctx, HSM_ERROR, "hsm_get_slot_id()",
+                          "Too many slots found in HSM");
+        return HSM_ERROR;
     }
 
     slotIds = malloc(sizeof(CK_SLOT_ID) * slotCount);
+    if(slotIds == NULL) {
+        hsm_ctx_set_error(ctx, HSM_ERROR, "hsm_get_slot_id()",
+                          "Could not allocate slot ID table");
+        return HSM_ERROR;
+    }
+
     rv = pkcs11_functions->C_GetSlotList(CK_TRUE, slotIds, &slotCount);
     if (hsm_pkcs11_check_error(ctx, rv, "get slot list")) {
         return HSM_ERROR;
@@ -517,6 +567,8 @@ hsm_session_init(hsm_ctx_t *ctx, hsm_session_t **session,
     CK_C_INITIALIZE_ARGS InitArgs = {NULL, NULL, NULL, NULL,
                                      CKF_OS_LOCKING_OK, NULL };
 
+    if (pin == NULL) return HSM_ERROR;
+
     module = hsm_module_new(repository, token_label, module_path, config);
     if (!module) return HSM_ERROR;
     rv = hsm_pkcs11_load_functions(module);
@@ -628,9 +680,11 @@ hsm_ctx_new()
 {
     hsm_ctx_t *ctx;
     ctx = malloc(sizeof(hsm_ctx_t));
-    memset(ctx->session, 0, HSM_MAX_SESSIONS);
-    ctx->session_count = 0;
-    ctx->error = 0;
+    if (ctx) {
+        memset(ctx->session, 0, HSM_MAX_SESSIONS);
+        ctx->session_count = 0;
+        ctx->error = 0;
+    }
     return ctx;
 }
 
@@ -754,11 +808,11 @@ hsm_ctx_clone(hsm_ctx_t *ctx)
     return new_ctx;
 }
 
-static hsm_key_t *
-hsm_key_new()
+static libhsm_key_t *
+libhsm_key_new()
 {
-    hsm_key_t *key;
-    key = malloc(sizeof(hsm_key_t));
+    libhsm_key_t *key;
+    key = malloc(sizeof(libhsm_key_t));
     key->module = NULL;
     key->private_key = 0;
     key->public_key = 0;
@@ -768,7 +822,7 @@ hsm_key_new()
 /* find the session belonging to a key, by iterating over the modules
  * in the context */
 static hsm_session_t *
-hsm_find_key_session(hsm_ctx_t *ctx, const hsm_key_t *key)
+hsm_find_key_session(hsm_ctx_t *ctx, const libhsm_key_t *key)
 {
     unsigned int i;
     if (!key || !key->module) return NULL;
@@ -784,7 +838,7 @@ hsm_find_key_session(hsm_ctx_t *ctx, const hsm_key_t *key)
 /* Returns the key type (algorithm) of the given key */
 static CK_KEY_TYPE
 hsm_get_key_algorithm(hsm_ctx_t *ctx, const hsm_session_t *session,
-                      const hsm_key_t *key)
+                      const libhsm_key_t *key)
 {
     CK_RV rv;
     CK_KEY_TYPE key_type;
@@ -824,7 +878,7 @@ hsm_get_key_algorithm(hsm_ctx_t *ctx, const hsm_session_t *session,
  */
 static CK_ULONG
 hsm_get_key_size_rsa(hsm_ctx_t *ctx, const hsm_session_t *session,
-                     const hsm_key_t *key)
+                     const libhsm_key_t *key)
 {
     CK_RV rv;
     CK_ULONG modulus_bits;
@@ -841,7 +895,7 @@ hsm_get_key_size_rsa(hsm_ctx_t *ctx, const hsm_session_t *session,
         {CKA_MODULUS, NULL, 0}
     };
 
-    if (session->module->config->use_pubkey) {
+    if (key->public_key) {
         rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_GetAttributeValue(
                                           session->session,
                                           key->public_key,
@@ -851,7 +905,7 @@ hsm_get_key_size_rsa(hsm_ctx_t *ctx, const hsm_session_t *session,
                                    "Get attr value algorithm type")) {
             return 0;
         }
-    
+
         if ((CK_ULONG)template[0].ulValueLen < 1) {
             return 0;
         }
@@ -908,7 +962,7 @@ hsm_get_key_size_rsa(hsm_ctx_t *ctx, const hsm_session_t *session,
  */
 static CK_ULONG
 hsm_get_key_size_dsa(hsm_ctx_t *ctx, const hsm_session_t *session,
-                     const hsm_key_t *key)
+                     const libhsm_key_t *key)
 {
     CK_RV rv;
 
@@ -930,12 +984,154 @@ hsm_get_key_size_dsa(hsm_ctx_t *ctx, const hsm_session_t *session,
     return template2[0].ulValueLen * 8;
 }
 
+/* Returns the DER decoded value of Q for ECDSA key
+ * Byte string with uncompressed form of a curve point, "x | y"
+ */
+static unsigned char *
+hsm_get_key_ecdsa_value(hsm_ctx_t *ctx, const hsm_session_t *session,
+                     const libhsm_key_t *key, CK_ULONG *data_len)
+{
+    CK_RV rv;
+    CK_BYTE_PTR value = NULL;
+    CK_BYTE_PTR data = NULL;
+    CK_ULONG value_len = 0;
+    CK_ULONG header_len = 0;
+
+    CK_ATTRIBUTE template[] = {
+        {CKA_EC_POINT, NULL, 0},
+    };
+
+    if (!session || !session->module || !key || !data_len) {
+        return NULL;
+    }
+
+    rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_GetAttributeValue(
+                                      session->session,
+                                      key->public_key,
+                                      template,
+                                      1);
+    if (hsm_pkcs11_check_error(ctx, rv, "C_GetAttributeValue")) {
+        return NULL;
+    }
+    value_len = template[0].ulValueLen;
+
+    value = template[0].pValue = malloc(value_len);
+    if (!value) {
+        hsm_ctx_set_error(ctx, -1, "hsm_get_key_ecdsa_value()",
+            "Error allocating memory for value");
+        return NULL;
+    }
+    memset(value, 0, value_len);
+
+    rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_GetAttributeValue(
+                                      session->session,
+                                      key->public_key,
+                                      template,
+                                      1);
+    if (hsm_pkcs11_check_error(ctx, rv, "get attribute value")) {
+        free(value);
+        return NULL;
+    }
+
+    if(value_len != template[0].ulValueLen) {
+        hsm_ctx_set_error(ctx, -1, "hsm_get_key_ecdsa_value()",
+           "HSM returned two different length for a same CKA_EC_POINT. " \
+            "Abnormal behaviour detected.");
+        free(value);
+        return NULL;
+    }
+
+    /* Check that we have the first two octets */
+    if (value_len < 2) {
+        hsm_ctx_set_error(ctx, -1, "hsm_get_key_ecdsa_value()",
+            "The DER value is too short");
+        free(value);
+        return NULL;
+    }
+
+    /* Check the identifier octet, PKCS#11 requires octet string */
+    if (value[0] != 0x04) {
+        hsm_ctx_set_error(ctx, -1, "hsm_get_key_ecdsa_value()",
+            "Invalid identifier octet in the DER value");
+        free(value);
+        return NULL;
+    }
+    header_len++;
+
+    /* Check the length octets, but we do not validate the length */
+    if (value[1] <= 0x7F) {
+        header_len++;
+    } else if (value[1] == 0x80) {
+        hsm_ctx_set_error(ctx, -1, "hsm_get_key_ecdsa_value()",
+            "Indefinite length is not supported in DER values");
+        free(value);
+        return NULL;
+    } else {
+        header_len++;
+        header_len += value[1] & 0x80;
+    }
+
+    /* Check that we have more data than the header */
+    if (value_len - header_len < 2) {
+        hsm_ctx_set_error(ctx, -1, "hsm_get_key_ecdsa_value()",
+            "The value is too short");
+        free(value);
+        return NULL;
+    }
+
+    /* Check that we have uncompressed data */
+    /* TODO: Not supporting compressed data */
+    if (value[header_len] != 0x04) {
+        hsm_ctx_set_error(ctx, -1, "hsm_get_key_ecdsa_value()",
+            "The value is not uncompressed");
+        free(value);
+        return NULL;
+    }
+    header_len++;
+
+    *data_len = value_len - header_len;
+    data = malloc(*data_len);
+    if (data == NULL) {
+        hsm_ctx_set_error(ctx, -1, "hsm_get_key_ecdsa_value()",
+            "Error allocating memory for data");
+        free(value);
+        return NULL;
+    }
+
+    memcpy(data, value + header_len, *data_len);
+    free(value);
+
+    return data;
+}
+
+/* returns a CK_ULONG with the key size of the given ECDSA key. The
+ * key is not checked for type. For ECDSA, the number of bits in the
+ * value X is the key size
+ */
+static CK_ULONG
+hsm_get_key_size_ecdsa(hsm_ctx_t *ctx, const hsm_session_t *session,
+                     const libhsm_key_t *key)
+{
+    CK_ULONG value_len;
+    unsigned char* value = hsm_get_key_ecdsa_value(ctx, session, key, &value_len);
+    CK_ULONG bits = 0;
+
+    if (value == NULL) return 0;
+
+    if( ((CK_ULONG) - 1) / (8/2) < value_len) return 0;
+
+    /* value = x | y */
+    bits = value_len * 8 / 2;
+    free(value);
+
+    return bits;
+}
+
 /* Wrapper for specific key size functions */
 static CK_ULONG
 hsm_get_key_size(hsm_ctx_t *ctx, const hsm_session_t *session,
-                 const hsm_key_t *key, const unsigned long algorithm)
+                 const libhsm_key_t *key, const unsigned long algorithm)
 {
-    /* TODO: Add ECDSA */
     switch (algorithm) {
         case CKK_RSA:
             return hsm_get_key_size_rsa(ctx, session, key);
@@ -946,7 +1142,8 @@ hsm_get_key_size(hsm_ctx_t *ctx, const hsm_session_t *session,
         case CKK_GOSTR3410:
             /* GOST public keys always have a size of 512 bits */
             return 512;
-            break;
+        case CKK_EC:
+            return hsm_get_key_size_ecdsa(ctx, session, key);
         default:
             return 0;
     }
@@ -979,6 +1176,8 @@ hsm_find_object_handle_for_id(hsm_ctx_t *ctx,
                                          1,
                                          &objectCount);
     if (hsm_pkcs11_check_error(ctx, rv, "Find object")) {
+        rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_FindObjectsFinal(session->session);
+        hsm_pkcs11_check_error(ctx, rv, "Find objects cleanup");
         return 0;
     }
 
@@ -1091,16 +1290,16 @@ hsm_get_id_for_object(hsm_ctx_t *ctx,
     return template[0].pValue;
 }
 
-/* returns an hsm_key_t object for the given *private key* object handle
+/* returns an libhsm_key_t object for the given *private key* object handle
  * the module, private key, and public key handle are set
  * The session needs to be free to perform a search for the public key
  */
-static hsm_key_t *
-hsm_key_new_privkey_object_handle(hsm_ctx_t *ctx,
+static libhsm_key_t *
+libhsm_key_new_privkey_object_handle(hsm_ctx_t *ctx,
                                   const hsm_session_t *session,
                                   CK_OBJECT_HANDLE object)
 {
-    hsm_key_t *key;
+    libhsm_key_t *key;
     CK_BYTE *id;
     size_t len;
 
@@ -1108,20 +1307,16 @@ hsm_key_new_privkey_object_handle(hsm_ctx_t *ctx,
 
     if (!id) return NULL;
 
-    key = hsm_key_new();
+    key = libhsm_key_new();
     key->module = session->module;
     key->private_key = object;
-    
-    if (session->module->config->use_pubkey) {
-        key->public_key = hsm_find_object_handle_for_id(
-                              ctx,
-                              session,
-                              CKO_PUBLIC_KEY,
-                              id,
-                              len);
-    } else {
-        key->public_key = 0;
-    }
+
+    key->public_key = hsm_find_object_handle_for_id(
+                          ctx,
+                          session,
+                          CKO_PUBLIC_KEY,
+                          id,
+                          len);
 
     free(id);
     return key;
@@ -1133,14 +1328,14 @@ hsm_key_new_privkey_object_handle(hsm_ctx_t *ctx,
  * Otherwise, a newly allocated key array will be returned
  * (on error, the count will also be zero and NULL returned)
  */
-static hsm_key_t **
+static libhsm_key_t **
 hsm_list_keys_session_internal(hsm_ctx_t *ctx,
                                const hsm_session_t *session,
                                size_t *count,
                                int store)
 {
-    hsm_key_t **keys = NULL;
-    hsm_key_t *key;
+    libhsm_key_t **keys = NULL;
+    libhsm_key_t *key;
     CK_RV rv;
     CK_OBJECT_CLASS key_class = CKO_PRIVATE_KEY;
     CK_ATTRIBUTE template[] = {
@@ -1152,14 +1347,15 @@ hsm_list_keys_session_internal(hsm_ctx_t *ctx,
     CK_ULONG max_object_count = 100;
     CK_ULONG i, j;
     CK_OBJECT_HANDLE object[max_object_count];
-    CK_OBJECT_HANDLE *key_handles = NULL;
+    CK_OBJECT_HANDLE *key_handles = NULL, *new_key_handles = NULL;
+  
 
     rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_FindObjectsInit(session->session,
                                                  template, 1);
     if (hsm_pkcs11_check_error(ctx, rv, "Find objects init")) {
-        *count = 0;
-        return NULL;
+        goto err;
     }
+
     j = 0;
     while (objectCount > 0) {
         rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_FindObjects(session->session,
@@ -1167,14 +1363,28 @@ hsm_list_keys_session_internal(hsm_ctx_t *ctx,
                                                  max_object_count,
                                                  &objectCount);
         if (hsm_pkcs11_check_error(ctx, rv, "Find first object")) {
-            free(key_handles);
-            *count = 0;
-            return NULL;
+            rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_FindObjectsFinal(session->session);
+            hsm_pkcs11_check_error(ctx, rv, "Find objects cleanup");
+            goto err;
         }
 
         total_count += objectCount;
         if (objectCount > 0 && store) {
-            key_handles = realloc(key_handles, total_count * sizeof(CK_OBJECT_HANDLE));
+            if (SIZE_MAX / sizeof(CK_OBJECT_HANDLE) < total_count) {
+                hsm_ctx_set_error(ctx, -1, "hsm_list_keys_session_internal",
+                    "Too much object handle returned by HSM to allocate key_handles");
+                goto err;
+            }
+
+            new_key_handles = realloc(key_handles, total_count * sizeof(CK_OBJECT_HANDLE));
+            if (new_key_handles != NULL) {
+                key_handles = new_key_handles;
+            } else {
+                hsm_ctx_set_error(ctx, -1, "hsm_list_keys_session_internal",
+                    "Error allocating memory for object handle (OOM)");
+                goto err;
+            }
+
             for (i = 0; i < objectCount; i++) {
                 key_handles[j] = object[i];
                 j++;
@@ -1184,17 +1394,28 @@ hsm_list_keys_session_internal(hsm_ctx_t *ctx,
 
     rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_FindObjectsFinal(session->session);
     if (hsm_pkcs11_check_error(ctx, rv, "Find objects final")) {
-        free(key_handles);
-        *count = 0;
-        return NULL;
+        goto err;
     }
 
     if (store) {
-        keys = realloc(keys, total_count * sizeof(hsm_key_t *));
+        if(SIZE_MAX / sizeof(libhsm_key_t *) < total_count) {
+                hsm_ctx_set_error(ctx, -1, "hsm_list_keys_session_internal",
+                    "Too much object handle returned by HSM to allocate keys");
+                goto err;
+        } 
+
+        keys = malloc(total_count * sizeof(libhsm_key_t *));
+        if(keys == NULL) {
+                hsm_ctx_set_error(ctx, -1, "hsm_list_keys_session_internal",
+                    "Error allocating memory for keys table (OOM)");
+                goto err;
+        }
+
         for (i = 0; i < total_count; i++) {
-            key = hsm_key_new_privkey_object_handle(ctx, session,
+            key = libhsm_key_new_privkey_object_handle(ctx, session,
                                                     key_handles[i]);
-            /* todo, if we get NULL, free all and return error? */
+            if(key == NULL) goto errkeys;
+
             keys[i] = key;
         }
     }
@@ -1202,6 +1423,14 @@ hsm_list_keys_session_internal(hsm_ctx_t *ctx,
 
     *count = total_count;
     return keys;
+
+errkeys:
+    libhsm_key_list_free(keys, i-1);
+
+err:
+    free(key_handles);
+    *count = 0;
+    return NULL;
 }
 
 
@@ -1212,7 +1441,7 @@ hsm_list_keys_session_internal(hsm_ctx_t *ctx,
  *
  * \return the list of keys
  */
-hsm_key_t **
+libhsm_key_t **
 hsm_list_keys_session(hsm_ctx_t *ctx, const hsm_session_t *session,
                       size_t *count)
 {
@@ -1237,11 +1466,11 @@ hsm_count_keys_session(hsm_ctx_t *ctx, const hsm_session_t *session)
  * for the given CKA_ID available in the session. Returns NULL if not
  * found
  */
-static hsm_key_t *
+static libhsm_key_t *
 hsm_find_key_by_id_session(hsm_ctx_t *ctx, const hsm_session_t *session,
                            const unsigned char *id, size_t len)
 {
-    hsm_key_t *key;
+    libhsm_key_t *key;
     CK_OBJECT_HANDLE private_key_handle;
 
     private_key_handle = hsm_find_object_handle_for_id(
@@ -1251,7 +1480,7 @@ hsm_find_key_by_id_session(hsm_ctx_t *ctx, const hsm_session_t *session,
                              (CK_BYTE *) id,
                              (CK_ULONG) len);
     if (private_key_handle != 0) {
-        key = hsm_key_new_privkey_object_handle(ctx, session,
+        key = libhsm_key_new_privkey_object_handle(ctx, session,
                                                 private_key_handle);
         return key;
     } else {
@@ -1261,19 +1490,19 @@ hsm_find_key_by_id_session(hsm_ctx_t *ctx, const hsm_session_t *session,
 
 /* Find a key pair by CKA_ID (as byte array)
 
-The returned key structure can be freed with hsm_key_free()
+The returned key structure can be freed with libhsm_key_free()
 
 \param context HSM context
 \param id CKA_ID of key to find (array of bytes)
 \param len number of bytes in the id
 \return key identifier or NULL if not found
 */
-static hsm_key_t *
+static libhsm_key_t *
 hsm_find_key_by_id_bin(hsm_ctx_t *ctx,
                        const unsigned char *id,
                        size_t len)
 {
-    hsm_key_t *key;
+    libhsm_key_t *key;
     unsigned int i;
 
     if (!ctx) ctx = _hsm_ctx;
@@ -1321,7 +1550,7 @@ hsm_find_repository_session(hsm_ctx_t *ctx, const char *repository)
 
 static ldns_rdf *
 hsm_get_key_rdata_rsa(hsm_ctx_t *ctx, hsm_session_t *session,
-                  const hsm_key_t *key)
+                  const libhsm_key_t *key)
 {
     CK_RV rv;
     CK_BYTE_PTR public_exponent = NULL;
@@ -1342,7 +1571,7 @@ hsm_get_key_rdata_rsa(hsm_ctx_t *ctx, hsm_session_t *session,
         return NULL;
     }
 
-    if (session->module->config->use_pubkey) {
+    if (key->public_key) {
         hKey = key->public_key;
     } else {
         hKey = key->private_key;
@@ -1390,7 +1619,7 @@ hsm_get_key_rdata_rsa(hsm_ctx_t *ctx, hsm_session_t *session,
     hsm_remove_leading_zeroes(modulus, &modulus_len);
 
     data_size = public_exponent_len + modulus_len + 1;
-    if (public_exponent_len <= 256) {
+    if (public_exponent_len <= 255) {
         data = malloc(data_size);
         if (!data) {
             hsm_ctx_set_error(ctx, -1, "hsm_get_key_rdata_rsa()",
@@ -1432,7 +1661,7 @@ hsm_get_key_rdata_rsa(hsm_ctx_t *ctx, hsm_session_t *session,
 
 static ldns_rdf *
 hsm_get_key_rdata_dsa(hsm_ctx_t *ctx, hsm_session_t *session,
-                  const hsm_key_t *key)
+                  const libhsm_key_t *key)
 {
     CK_RV rv;
     CK_BYTE_PTR prime = NULL;
@@ -1547,7 +1776,7 @@ hsm_get_key_rdata_dsa(hsm_ctx_t *ctx, hsm_session_t *session,
 
 static ldns_rdf *
 hsm_get_key_rdata_gost(hsm_ctx_t *ctx, hsm_session_t *session,
-                  const hsm_key_t *key)
+                  const libhsm_key_t *key)
 {
     CK_RV rv;
     CK_BYTE_PTR value = NULL;
@@ -1575,7 +1804,7 @@ hsm_get_key_rdata_gost(hsm_ctx_t *ctx, hsm_session_t *session,
 
     value = template[0].pValue = malloc(value_len);
     if (!value) {
-        hsm_ctx_set_error(ctx, -1, "hsm_get_key_rdata_dsa()",
+        hsm_ctx_set_error(ctx, -1, "hsm_get_key_rdata_gost()",
             "Error allocating memory for value");
         return NULL;
     }
@@ -1595,10 +1824,23 @@ hsm_get_key_rdata_gost(hsm_ctx_t *ctx, hsm_session_t *session,
 }
 
 static ldns_rdf *
-hsm_get_key_rdata(hsm_ctx_t *ctx, hsm_session_t *session,
-                  const hsm_key_t *key)
+hsm_get_key_rdata_ecdsa(hsm_ctx_t *ctx, hsm_session_t *session,
+                  const libhsm_key_t *key)
 {
-    /* TODO: Add ECDSA */
+    CK_ULONG value_len;
+    unsigned char* value = hsm_get_key_ecdsa_value(ctx, session, key, &value_len);
+
+    if (value == NULL) return NULL;
+
+    ldns_rdf *rdf = ldns_rdf_new(LDNS_RDF_TYPE_B64, value_len, value);
+
+    return rdf;
+}
+
+static ldns_rdf *
+hsm_get_key_rdata(hsm_ctx_t *ctx, hsm_session_t *session,
+                  const libhsm_key_t *key)
+{
     switch (hsm_get_key_algorithm(ctx, session, key)) {
         case CKK_RSA:
             return hsm_get_key_rdata_rsa(ctx, session, key);
@@ -1609,6 +1851,8 @@ hsm_get_key_rdata(hsm_ctx_t *ctx, hsm_session_t *session,
         case CKK_GOSTR3410:
             return hsm_get_key_rdata_gost(ctx, session, key);
             break;
+        case CKK_EC:
+            return hsm_get_key_rdata_ecdsa(ctx, session, key);
         default:
             return 0;
     }
@@ -1654,7 +1898,8 @@ hsm_create_prefix(CK_ULONG digest_len,
         case LDNS_SIGN_DSA:
         case LDNS_SIGN_DSA_NSEC3:
         case LDNS_SIGN_ECC_GOST:
-#if LDNS_BUILD_CONFIG_USE_ECDSA
+/* TODO: We can remove the directive if we require LDNS >= 1.6.13 */
+#if !defined LDNS_BUILD_CONFIG_USE_ECDSA || LDNS_BUILD_CONFIG_USE_ECDSA
         case LDNS_SIGN_ECDSAP256SHA256:
         case LDNS_SIGN_ECDSAP384SHA384:
 #endif
@@ -1704,7 +1949,7 @@ hsm_digest_through_hsm(hsm_ctx_t *ctx,
 static ldns_rdf *
 hsm_sign_buffer(hsm_ctx_t *ctx,
                 ldns_buffer *sign_buf,
-                const hsm_key_t *key,
+                const libhsm_key_t *key,
                 ldns_algorithm algorithm)
 {
     CK_RV rv;
@@ -1746,7 +1991,8 @@ hsm_sign_buffer(hsm_ctx_t *ctx,
             break;
 
         case LDNS_SIGN_RSASHA256:
-#if LDNS_BUILD_CONFIG_USE_ECDSA
+/* TODO: We can remove the directive if we require LDNS >= 1.6.13 */
+#if !defined LDNS_BUILD_CONFIG_USE_ECDSA || LDNS_BUILD_CONFIG_USE_ECDSA
         case LDNS_SIGN_ECDSAP256SHA256:
 #endif
             digest_len = LDNS_SHA256_DIGEST_LENGTH;
@@ -1755,7 +2001,8 @@ hsm_sign_buffer(hsm_ctx_t *ctx,
                                  ldns_buffer_position(sign_buf),
                                  digest);
             break;
-#if LDNS_BUILD_CONFIG_USE_ECDSA
+/* TODO: We can remove the directive if we require LDNS >= 1.6.13 */
+#if !defined LDNS_BUILD_CONFIG_USE_ECDSA || LDNS_BUILD_CONFIG_USE_ECDSA
         case LDNS_SIGN_ECDSAP384SHA384:
             digest_len = LDNS_SHA384_DIGEST_LENGTH;
             digest = malloc(digest_len);
@@ -1772,7 +2019,7 @@ hsm_sign_buffer(hsm_ctx_t *ctx,
                                  digest);
             break;
         case LDNS_SIGN_ECC_GOST:
-            digest_len = 16;
+            digest_len = 32;
             digest = hsm_digest_through_hsm(ctx, session,
                                             CKM_GOSTR3411, digest_len,
                                             sign_buf);
@@ -1810,10 +2057,12 @@ hsm_sign_buffer(hsm_ctx_t *ctx,
         case LDNS_SIGN_ECC_GOST:
             sign_mechanism.mechanism = CKM_GOSTR3410;
             break;
-#if LDNS_BUILD_CONFIG_USE_ECDSA
-        /* TODO: Add ECDSA */
+/* TODO: We can remove the directive if we require LDNS >= 1.6.13 */
+#if !defined LDNS_BUILD_CONFIG_USE_ECDSA || LDNS_BUILD_CONFIG_USE_ECDSA
         case LDNS_SIGN_ECDSAP256SHA256:
         case LDNS_SIGN_ECDSAP384SHA384:
+            sign_mechanism.mechanism = CKM_ECDSA;
+            break;
 #endif
         default:
             /* log error? or should we not even get here for
@@ -1963,8 +2212,7 @@ hsm_create_empty_rrsig(const ldns_rr_list *rrset,
 
 int
 hsm_open(const char *config,
-         char *(pin_callback)(const char *repository, void *),
-         void *data)
+         char *(pin_callback)(unsigned int, const char *, unsigned int))
 {
     xmlDocPtr doc;
     xmlXPathContextPtr xpath_ctx;
@@ -2027,7 +2275,7 @@ hsm_open(const char *config,
             module_path = NULL;
             module_pin = NULL;
             hsm_config_default(&module_config);
-                 
+
             curNode = xpath_obj->nodesetval->nodeTab[i]->xmlChildrenNode;
             repository = (char *) xmlGetProp(xpath_obj->nodesetval->nodeTab[i],
                                              (const xmlChar *)"name");
@@ -2040,7 +2288,7 @@ hsm_open(const char *config,
                 if (xmlStrEqual(curNode->name, (const xmlChar *)"PIN"))
                     module_pin = (char *) xmlNodeGetContent(curNode);
                 if (xmlStrEqual(curNode->name, (const xmlChar *)"SkipPublicKey"))
-                    module_config.use_pubkey = 0;                
+                    module_config.use_pubkey = 0;
                 curNode = curNode->next;
             }
 
@@ -2058,20 +2306,36 @@ hsm_open(const char *config,
                         tries = 0;
                         while (result == HSM_PIN_INCORRECT &&
                                tries < 3) {
-                            module_pin = pin_callback(repository,
-                                                      data);
+                            if (tries == 0) {
+                                module_pin = pin_callback(_hsm_ctx->session_count,
+                                                          repository,
+                                                          HSM_PIN_FIRST);
+                            } else {
+                                module_pin = pin_callback(_hsm_ctx->session_count,
+                                                          repository,
+                                                          HSM_PIN_RETRY);
+                            }
+
+                            if (module_pin == NULL) break;
+
                             result = hsm_attach(repository,
                                                 token_label,
                                                 module_path,
                                                 module_pin,
                                                 &module_config);
+                            if (result == HSM_OK) {
+                                pin_callback(_hsm_ctx->session_count - 1,
+                                             repository,
+                                             HSM_PIN_SAVE);
+                            }
                             memset(module_pin, 0, strlen(module_pin));
                             tries++;
                         }
                     } else {
-                        /* no pin, no callback, ignore
-                         * module and token */
-                        result = HSM_OK;
+                        /* no pin, no callback */
+                        hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_open()",
+                            "No pin or callback function");
+                        result = HSM_ERROR;
                     }
                 }
                 free(repository);
@@ -2079,8 +2343,8 @@ hsm_open(const char *config,
                 free(module_path);
 
                 if (result != HSM_OK) {
-					break;
-				}
+                    break;
+                }
 
                 repositories++;
             }
@@ -2100,21 +2364,64 @@ hsm_open(const char *config,
     return result;
 }
 
-char *
-hsm_prompt_pin(const char *repository, void *data)
+int
+hsm_open2(hsm_repository_t* rlist,
+         char *(pin_callback)(unsigned int, const char *, unsigned int))
 {
-    char *prompt;
-    char *r;
-    (void) data;
-    prompt = malloc(64);
-    snprintf(prompt, 64, "Enter PIN for token %s:", repository);
-#ifdef HAVE_GETPASSPHRASE
-    r = getpassphrase("Enter PIN:");
-#else
-    r = getpass("Enter PIN:");
-#endif
-    free(prompt);
-    return r;
+    hsm_config_t module_config;
+    hsm_repository_t* repo = NULL;
+    char* module_pin = NULL;
+    int result = HSM_OK;
+    int tries;
+    int repositories = 0;
+
+    /* create an internal context with an attached session for each
+     * configured HSM. */
+    _hsm_ctx = hsm_ctx_new();
+
+    repo = rlist;
+    while (repo) {
+        if (repo->name && repo->module && repo->tokenlabel) {
+            if (repo->pin) {
+                result = hsm_attach(repo->name, repo->tokenlabel,
+                    repo->module, repo->pin, &module_config);
+            } else {
+                if (pin_callback) {
+                    result = HSM_PIN_INCORRECT;
+                    tries = 0;
+                    while (result == HSM_PIN_INCORRECT && tries < 3) {
+                        module_pin = pin_callback(_hsm_ctx->session_count,
+                            repo->name, tries?HSM_PIN_RETRY:HSM_PIN_FIRST);
+                        if (module_pin == NULL) break;
+                        result = hsm_attach(repo->name, repo->tokenlabel,
+                            repo->module, module_pin, &module_config);
+                        if (result == HSM_OK) {
+                            pin_callback(_hsm_ctx->session_count - 1,
+                                repo->name, HSM_PIN_SAVE);
+                        }
+                        memset(module_pin, 0, strlen(module_pin));
+                        tries++;
+                    }
+                } else {
+                    /* no pin, no callback */
+                    hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_open()",
+                        "No pin or callback function");
+                    result = HSM_ERROR;
+                }
+            }
+            if (result != HSM_OK) {
+                break;
+            }
+            repositories++;
+        }
+        repo = repo->next;
+    }
+    if (result == HSM_OK && repositories == 0) {
+        hsm_ctx_set_error(_hsm_ctx, HSM_NO_REPOSITORIES, "hsm_open()",
+            "No repositories found");
+        return HSM_NO_REPOSITORIES;
+    }
+    return result;
 }
 
 int
@@ -2194,6 +2501,9 @@ hsm_sign_params_new()
 {
     hsm_sign_params_t *params;
     params = malloc(sizeof(hsm_sign_params_t));
+    if (!params) {
+        return NULL;
+    }
     params->algorithm = LDNS_SIGN_RSASHA256;
     params->flags = LDNS_KEY_ZONE_KEY;
     params->inception = 0;
@@ -2212,13 +2522,13 @@ hsm_sign_params_free(hsm_sign_params_t *params)
     }
 }
 
-hsm_key_t **
+libhsm_key_t **
 hsm_list_keys(hsm_ctx_t *ctx, size_t *count)
 {
-    hsm_key_t **keys = NULL;
+    libhsm_key_t **keys = NULL;
     size_t key_count = 0;
     size_t cur_key_count;
-    hsm_key_t **session_keys;
+    libhsm_key_t **session_keys;
     unsigned int i, j;
 
     if (!ctx) {
@@ -2229,7 +2539,7 @@ hsm_list_keys(hsm_ctx_t *ctx, size_t *count)
         session_keys = hsm_list_keys_session(ctx, ctx->session[i],
                                              &cur_key_count);
         keys = realloc(keys,
-                       (key_count + cur_key_count) * sizeof(hsm_key_t *));
+                       (key_count + cur_key_count) * sizeof(libhsm_key_t *));
         for (j = 0; j < cur_key_count; j++) {
             keys[key_count + j] = session_keys[j];
         }
@@ -2242,7 +2552,7 @@ hsm_list_keys(hsm_ctx_t *ctx, size_t *count)
     return keys;
 }
 
-hsm_key_t **
+libhsm_key_t **
 hsm_list_keys_repository(hsm_ctx_t *ctx,
                          size_t *count,
                          const char *repository)
@@ -2289,12 +2599,12 @@ hsm_count_keys_repository(hsm_ctx_t *ctx,
     return hsm_count_keys_session(ctx, session);
 }
 
-hsm_key_t *
+libhsm_key_t *
 hsm_find_key_by_id(hsm_ctx_t *ctx, const char *id)
 {
     unsigned char *id_bytes;
     size_t len;
-    hsm_key_t *key;
+    libhsm_key_t *key;
 
     id_bytes = hsm_hex_parse(id, &len);
 
@@ -2305,12 +2615,12 @@ hsm_find_key_by_id(hsm_ctx_t *ctx, const char *id)
     return key;
 }
 
-hsm_key_t *
+libhsm_key_t *
 hsm_generate_rsa_key(hsm_ctx_t *ctx,
                      const char *repository,
                      unsigned long keysize)
 {
-    hsm_key_t *new_key;
+    libhsm_key_t *new_key;
     hsm_session_t *session;
     /* ids we create are 16 bytes of data */
     unsigned char id[16];
@@ -2378,26 +2688,29 @@ hsm_generate_rsa_key(hsm_ctx_t *ctx,
         return NULL;
     }
 
-    new_key = hsm_key_new();
+    new_key = libhsm_key_new();
     new_key->module = session->module;
 
     if (session->module->config->use_pubkey) {
-        new_key->public_key = publicKey;        
+        new_key->public_key = publicKey;
     } else {
-        new_key->public_key = 0;        
+        /* Destroy the object directly in order to optimize storage in HSM */
+        /* Ignore return value, it is just a session object and will be destroyed later */
+        rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_DestroyObject(session->session, publicKey);
+        new_key->public_key = 0;
     }
 
     new_key->private_key = privateKey;
     return new_key;
 }
 
-hsm_key_t *
+libhsm_key_t *
 hsm_generate_dsa_key(hsm_ctx_t *ctx,
                      const char *repository,
                      unsigned long keysize)
 {
     CK_RV rv;
-    hsm_key_t *new_key;
+    libhsm_key_t *new_key;
     hsm_session_t *session;
     CK_OBJECT_HANDLE domainPar, publicKey, privateKey;
     CK_BBOOL ctrue = CK_TRUE;
@@ -2407,6 +2720,19 @@ hsm_generate_dsa_key(hsm_ctx_t *ctx,
     unsigned char id[16];
     /* that's 33 bytes in string (16*2 + 1 for \0) */
     char id_str[33];
+
+    if (!ctx) ctx = _hsm_ctx;
+    session = hsm_find_repository_session(ctx, repository);
+    if (!session) return NULL;
+
+    /* check whether this key doesn't happen to exist already */
+
+    do {
+        hsm_random_buffer(ctx, id, 16);
+    } while (hsm_find_key_by_id_bin(ctx, id, 16));
+    /* the CKA_LABEL will contain a hexadecimal string representation
+     * of the id */
+    hsm_hex_unparse(id_str, id, 16);
 
     CK_KEY_TYPE keyType = CKK_DSA;
     CK_MECHANISM mechanism1 = {
@@ -2451,19 +2777,6 @@ hsm_generate_dsa_key(hsm_ctx_t *ctx,
         { CKA_EXTRACTABLE,         &cfalse,  sizeof(cfalse)  }
     };
 
-    if (!ctx) ctx = _hsm_ctx;
-    session = hsm_find_repository_session(ctx, repository);
-    if (!session) return NULL;
-
-    /* check whether this key doesn't happen to exist already */
-
-    do {
-        hsm_random_buffer(ctx, id, 16);
-    } while (hsm_find_key_by_id_bin(ctx, id, 16));
-    /* the CKA_LABEL will contain a hexadecimal string representation
-     * of the id */
-    hsm_hex_unparse(id_str, id, 16);
-
     /* Generate the domain parameters */
 
     rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_GenerateKey(session->session,
@@ -2497,20 +2810,20 @@ hsm_generate_dsa_key(hsm_ctx_t *ctx,
         return NULL;
     }
 
-    new_key = hsm_key_new();
+    new_key = libhsm_key_new();
     new_key->module = session->module;
-    new_key->public_key = publicKey;        
+    new_key->public_key = publicKey;
     new_key->private_key = privateKey;
 
     return new_key;
 }
 
-hsm_key_t *
+libhsm_key_t *
 hsm_generate_gost_key(hsm_ctx_t *ctx,
                      const char *repository)
 {
     CK_RV rv;
-    hsm_key_t *new_key;
+    libhsm_key_t *new_key;
     hsm_session_t *session;
     CK_OBJECT_HANDLE publicKey, privateKey;
     CK_BBOOL ctrue = CK_TRUE;
@@ -2521,15 +2834,30 @@ hsm_generate_gost_key(hsm_ctx_t *ctx,
     /* that's 33 bytes in string (16*2 + 1 for \0) */
     char id_str[33];
 
+    if (!ctx) ctx = _hsm_ctx;
+    session = hsm_find_repository_session(ctx, repository);
+    if (!session) return NULL;
+
+    /* check whether this key doesn't happen to exist already */
+
+    do {
+        hsm_random_buffer(ctx, id, 16);
+    } while (hsm_find_key_by_id_bin(ctx, id, 16));
+    /* the CKA_LABEL will contain a hexadecimal string representation
+     * of the id */
+    hsm_hex_unparse(id_str, id, 16);
+
     CK_KEY_TYPE keyType = CKK_GOSTR3410;
     CK_MECHANISM mechanism = {
         CKM_GOSTR3410_KEY_PAIR_GEN, NULL_PTR, 0
     };
 
-    CK_BYTE oid[] = { 0x06, 0x07, 0x2A, 0x85, 0x03, 0x02, 0x02, 0x23, 0x01 };
+    CK_BYTE oid1[] = { 0x06, 0x07, 0x2A, 0x85, 0x03, 0x02, 0x02, 0x23, 0x01 };
+    CK_BYTE oid2[] = { 0x06, 0x07, 0x2A, 0x85, 0x03, 0x02, 0x02, 0x1E, 0x01 };
 
     CK_ATTRIBUTE publicKeyTemplate[] = {
-        { CKA_GOSTR3410PARAMS,     oid,      sizeof(oid)     },
+        { CKA_GOSTR3410PARAMS,     oid1,     sizeof(oid1)    },
+        { CKA_GOSTR3411PARAMS,     oid2,     sizeof(oid2)    },
         { CKA_LABEL,(CK_UTF8CHAR*) id_str,   strlen(id_str)  },
         { CKA_ID,                  id,       16              },
         { CKA_KEY_TYPE,            &keyType, sizeof(keyType) },
@@ -2552,6 +2880,43 @@ hsm_generate_gost_key(hsm_ctx_t *ctx,
         { CKA_EXTRACTABLE,         &cfalse,  sizeof(cfalse)  }
     };
 
+    /* Generate key pair */
+
+    rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_GenerateKeyPair(session->session,
+                                                 &mechanism,
+                                                 publicKeyTemplate, 9,
+                                                 privateKeyTemplate, 10,
+                                                 &publicKey,
+                                                 &privateKey);
+    if (hsm_pkcs11_check_error(ctx, rv, "generate key pair")) {
+        return NULL;
+    }
+
+    new_key = libhsm_key_new();
+    new_key->module = session->module;
+    new_key->public_key = publicKey;
+    new_key->private_key = privateKey;
+
+    return new_key;
+}
+
+libhsm_key_t *
+hsm_generate_ecdsa_key(hsm_ctx_t *ctx,
+                       const char *repository,
+                       const char *curve)
+{
+    CK_RV rv;
+    libhsm_key_t *new_key;
+    hsm_session_t *session;
+    CK_OBJECT_HANDLE publicKey, privateKey;
+    CK_BBOOL ctrue = CK_TRUE;
+    CK_BBOOL cfalse = CK_FALSE;
+
+    /* ids we create are 16 bytes of data */
+    unsigned char id[16];
+    /* that's 33 bytes in string (16*2 + 1 for \0) */
+    char id_str[33];
+
     if (!ctx) ctx = _hsm_ctx;
     session = hsm_find_repository_session(ctx, repository);
     if (!session) return NULL;
@@ -2565,11 +2930,59 @@ hsm_generate_gost_key(hsm_ctx_t *ctx,
      * of the id */
     hsm_hex_unparse(id_str, id, 16);
 
+    CK_KEY_TYPE keyType = CKK_EC;
+    CK_MECHANISM mechanism = {
+        CKM_EC_KEY_PAIR_GEN, NULL_PTR, 0
+    };
+
+    CK_BYTE oidP256[] = { 0x06, 0x08, 0x2A, 0x86, 0x48, 0xCE, 0x3D, 0x03, 0x01, 0x07 };
+    CK_BYTE oidP384[] = { 0x06, 0x05, 0x2B, 0x81, 0x04, 0x00, 0x22 };
+
+    CK_ATTRIBUTE publicKeyTemplate[] = {
+        { CKA_EC_PARAMS,           NULL,     0               },
+        { CKA_LABEL,(CK_UTF8CHAR*) id_str,   strlen(id_str)  },
+        { CKA_ID,                  id,       16              },
+        { CKA_KEY_TYPE,            &keyType, sizeof(keyType) },
+        { CKA_VERIFY,              &ctrue,   sizeof(ctrue)   },
+        { CKA_ENCRYPT,             &cfalse,  sizeof(cfalse)  },
+        { CKA_WRAP,                &cfalse,  sizeof(cfalse)  },
+        { CKA_TOKEN,               &ctrue,   sizeof(ctrue)   }
+    };
+
+    CK_ATTRIBUTE privateKeyTemplate[] = {
+        { CKA_LABEL,(CK_UTF8CHAR*) id_str,   strlen (id_str) },
+        { CKA_ID,                  id,       16              },
+        { CKA_KEY_TYPE,            &keyType, sizeof(keyType) },
+        { CKA_SIGN,                &ctrue,   sizeof(ctrue)   },
+        { CKA_DECRYPT,             &cfalse,  sizeof(cfalse)  },
+        { CKA_UNWRAP,              &cfalse,  sizeof(cfalse)  },
+        { CKA_SENSITIVE,           &ctrue,   sizeof(ctrue)   },
+        { CKA_TOKEN,               &ctrue,   sizeof(ctrue)   },
+        { CKA_PRIVATE,             &ctrue,   sizeof(ctrue)   },
+        { CKA_EXTRACTABLE,         &cfalse,  sizeof(cfalse)  }
+    };
+
+    /* Select the curve */
+    if (strcmp(curve, "P-256") == 0)
+    {
+        publicKeyTemplate[0].pValue = oidP256;
+        publicKeyTemplate[0].ulValueLen = sizeof(oidP256);
+    }
+    else if (strcmp(curve, "P-384") == 0)
+    {
+        publicKeyTemplate[0].pValue = oidP384;
+        publicKeyTemplate[0].ulValueLen = sizeof(oidP384);
+    }
+    else
+    {
+        return NULL;
+    }
+
     /* Generate key pair */
 
     rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_GenerateKeyPair(session->session,
                                                  &mechanism,
-                                                 publicKeyTemplate, 10,
+                                                 publicKeyTemplate, 8,
                                                  privateKeyTemplate, 10,
                                                  &publicKey,
                                                  &privateKey);
@@ -2577,16 +2990,16 @@ hsm_generate_gost_key(hsm_ctx_t *ctx,
         return NULL;
     }
 
-    new_key = hsm_key_new();
+    new_key = libhsm_key_new();
     new_key->module = session->module;
-    new_key->public_key = publicKey;        
+    new_key->public_key = publicKey;
     new_key->private_key = privateKey;
 
     return new_key;
 }
 
 int
-hsm_remove_key(hsm_ctx_t *ctx, hsm_key_t *key)
+hsm_remove_key(hsm_ctx_t *ctx, libhsm_key_t *key)
 {
     CK_RV rv;
     hsm_session_t *session;
@@ -2603,7 +3016,7 @@ hsm_remove_key(hsm_ctx_t *ctx, hsm_key_t *key)
     }
     key->private_key = 0;
 
-    if (session->module->config->use_pubkey) {
+    if (key->public_key) {
         rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_DestroyObject(session->session,
                                                    key->public_key);
         if (hsm_pkcs11_check_error(ctx, rv, "Destroy public key")) {
@@ -2616,7 +3029,7 @@ hsm_remove_key(hsm_ctx_t *ctx, hsm_key_t *key)
 }
 
 void
-hsm_key_free(hsm_key_t *key)
+libhsm_key_free(libhsm_key_t *key)
 {
     if (key) {
         free(key);
@@ -2624,17 +3037,17 @@ hsm_key_free(hsm_key_t *key)
 }
 
 void
-hsm_key_list_free(hsm_key_t **key_list, size_t count)
+libhsm_key_list_free(libhsm_key_t **key_list, size_t count)
 {
     size_t i;
     for (i = 0; i < count; i++) {
-        hsm_key_free(key_list[i]);
+        libhsm_key_free(key_list[i]);
     }
     free(key_list);
 }
 
 char *
-hsm_get_key_id(hsm_ctx_t *ctx, const hsm_key_t *key)
+hsm_get_key_id(hsm_ctx_t *ctx, const libhsm_key_t *key)
 {
     unsigned char *id;
     char *id_str;
@@ -2652,7 +3065,10 @@ hsm_get_key_id(hsm_ctx_t *ctx, const hsm_key_t *key)
 
     /* this is plain binary data, we need to convert it to hex */
     id_str = malloc(len * 2 + 1);
-    if (!id_str) return NULL;
+    if (!id_str) {
+        free(id);
+        return NULL;
+    }
 
     hsm_hex_unparse(id_str, id, len);
 
@@ -2661,18 +3077,18 @@ hsm_get_key_id(hsm_ctx_t *ctx, const hsm_key_t *key)
     return id_str;
 }
 
-hsm_key_info_t *
+libhsm_key_info_t *
 hsm_get_key_info(hsm_ctx_t *ctx,
-                 const hsm_key_t *key)
+                 const libhsm_key_t *key)
 {
-    hsm_key_info_t *key_info;
+    libhsm_key_info_t *key_info;
     hsm_session_t *session;
 
     if (!ctx) ctx = _hsm_ctx;
     session = hsm_find_key_session(ctx, key);
     if (!session) return NULL;
 
-    key_info = malloc(sizeof(hsm_key_info_t));
+    key_info = malloc(sizeof(libhsm_key_info_t));
 
     key_info->id = hsm_get_key_id(ctx, key);
     if (key_info->id == NULL) {
@@ -2687,7 +3103,6 @@ hsm_get_key_info(hsm_ctx_t *ctx,
                                                          key,
                                                          key_info->algorithm);
 
-    /* TODO: Add ECDSA */
     switch(key_info->algorithm) {
         case CKK_RSA:
             key_info->algorithm_name = strdup("RSA");
@@ -2697,6 +3112,9 @@ hsm_get_key_info(hsm_ctx_t *ctx,
             break;
         case CKK_GOSTR3410:
             key_info->algorithm_name = strdup("GOST");
+            break;
+        case CKK_EC:
+            key_info->algorithm_name = strdup("ECDSA");
             break;
         default:
             key_info->algorithm_name = malloc(HSM_MAX_ALGONAME);
@@ -2709,7 +3127,7 @@ hsm_get_key_info(hsm_ctx_t *ctx,
 }
 
 void
-hsm_key_info_free(hsm_key_info_t *key_info)
+libhsm_key_info_free(libhsm_key_info_t *key_info)
 {
     if (key_info) {
         if (key_info->id) {
@@ -2725,17 +3143,17 @@ hsm_key_info_free(hsm_key_info_t *key_info)
 ldns_rr*
 hsm_sign_rrset(hsm_ctx_t *ctx,
                const ldns_rr_list* rrset,
-               const hsm_key_t *key,
+               const libhsm_key_t *key,
                const hsm_sign_params_t *sign_params)
 {
     ldns_rr *signature;
     ldns_buffer *sign_buf;
     ldns_rdf *b64_rdf;
     size_t i;
-    (void) ctx;
 
     if (!key) return NULL;
     if (!sign_params) return NULL;
+    if (!ctx) ctx = _hsm_ctx;
 
     signature = hsm_create_empty_rrsig((ldns_rr_list *)rrset,
                                        sign_params);
@@ -2749,6 +3167,7 @@ hsm_sign_rrset(hsm_ctx_t *ctx,
         != LDNS_STATUS_OK) {
         ldns_buffer_free(sign_buf);
         /* ERROR */
+        ldns_rr_free(signature);
         return NULL;
     }
 
@@ -2761,6 +3180,7 @@ hsm_sign_rrset(hsm_ctx_t *ctx,
     if (ldns_rr_list2buffer_wire(sign_buf, rrset)
         != LDNS_STATUS_OK) {
         ldns_buffer_free(sign_buf);
+        ldns_rr_free(signature);
         return NULL;
     }
 
@@ -2769,6 +3189,7 @@ hsm_sign_rrset(hsm_ctx_t *ctx,
     ldns_buffer_free(sign_buf);
     if (!b64_rdf) {
         /* signing went wrong */
+        ldns_rr_free(signature);
         return NULL;
     }
 
@@ -2942,7 +3363,7 @@ hsm_nsec3_hash_name(hsm_ctx_t *ctx,
 
 ldns_rr *
 hsm_get_dnskey(hsm_ctx_t *ctx,
-               const hsm_key_t *key,
+               const libhsm_key_t *key,
                const hsm_sign_params_t *sign_params)
 {
     /* CK_RV rv; */
@@ -2979,6 +3400,7 @@ hsm_get_dnskey(hsm_ctx_t *ctx,
 
     rdata = hsm_get_key_rdata(ctx, session, key);
     if (rdata == NULL) {
+        ldns_rr_free(dnskey);
         return NULL;
     }
     ldns_rr_push_rdf(dnskey, rdata);
@@ -3126,12 +3548,12 @@ hsm_supported_algorithm(ldns_algorithm algorithm)
         case LDNS_SIGN_DSA:
         case LDNS_SIGN_DSA_NSEC3:
         case LDNS_SIGN_ECC_GOST:
-            return 0;
-            break;
-#if LDNS_BUILD_CONFIG_USE_ECDSA
+/* TODO: We can remove the directive if we require LDNS >= 1.6.13 */
+#if !defined LDNS_BUILD_CONFIG_USE_ECDSA || LDNS_BUILD_CONFIG_USE_ECDSA
         case LDNS_SIGN_ECDSAP256SHA256:
         case LDNS_SIGN_ECDSAP384SHA384:
 #endif
+            return 0;
         default:
             return -1;
     }
@@ -3196,15 +3618,15 @@ hsm_print_ctx(hsm_ctx_t *gctx) {
 }
 
 void
-hsm_print_key(hsm_key_t *key) {
-    hsm_key_info_t *key_info;
+hsm_print_key(libhsm_key_t *key) {
+    libhsm_key_info_t *key_info;
     if (key) {
         key_info = hsm_get_key_info(NULL, key);
         if (key_info) {
             printf("key:\n");
             printf("\tmodule: %p\n", (void *) key->module);
             printf("\tprivkey handle: %u\n", (unsigned int) key->private_key);
-            if (key->module->config->use_pubkey) {
+            if (key->public_key) {
                 printf("\tpubkey handle: %u\n", (unsigned int) key->public_key);
             } else {
                 printf("\tpubkey handle: %s\n", "NULL");
@@ -3213,7 +3635,7 @@ hsm_print_key(hsm_key_t *key) {
             printf("\talgorithm: %s\n", key_info->algorithm_name);
             printf("\tsize: %lu\n", key_info->keysize);
             printf("\tid: %s\n", key_info->id);
-            hsm_key_info_free(key_info);
+            libhsm_key_info_free(key_info);
         } else {
             printf("key: hsm_get_key_info() returned NULL\n");
         }

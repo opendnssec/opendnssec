@@ -1,6 +1,4 @@
 /*
- * $Id: axfr.h 4958 2011-04-18 07:11:09Z matthijs $
- *
  * Copyright (c) 2011 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -45,13 +43,23 @@
 #define AXFR_MAX_MESSAGE_LEN MAX_COMPRESSION_OFFSET
 
 /**
- * Do AXFR.
- * \param[in] q axfr request
+ * Handle SOA request.
+ * \param[in] q soa request
  * \param[in] engine signer engine
  * \return query_state state of the query
  *
  */
-query_state axfr(query_type* q, engine_type* engine);
+query_state soa_request(query_type* q, engine_type* engine);
+
+/**
+ * Do AXFR.
+ * \param[in] q axfr request
+ * \param[in] engine signer engine
+ * \param[in] fallback fallback from ixfr?
+ * \return query_state state of the query
+ *
+ */
+query_state axfr(query_type* q, engine_type* engine, int fallback);
 
 /**
  * Do IXFR.

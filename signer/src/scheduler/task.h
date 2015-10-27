@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Copyright (c) 2009 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,7 +33,7 @@
 #define SCHEDULER_TASK_H
 
 #include "config.h"
-#include "shared/allocator.h"
+#include "allocator.h"
 
 #include <ldns/ldns.h>
 

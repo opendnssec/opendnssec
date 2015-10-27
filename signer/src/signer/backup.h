@@ -1,6 +1,4 @@
 /*
- * $Id: tools.c 3817 2010-08-27 08:43:00Z matthijs $
- *
  * Copyright (c) 2006-2010 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,9 +33,9 @@
 #define SIGNER_BACKUP_H
 
 #include "config.h"
-#include "shared/duration.h"
-#include "shared/file.h"
-#include "shared/status.h"
+#include "duration.h"
+#include "file.h"
+#include "status.h"
 
 #include <ldns/ldns.h>
 

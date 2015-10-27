@@ -1,5 +1,3 @@
-# $Id$
-
 AC_DEFUN([ACX_ENFORCER_DATABASE],[
 
 	AC_ARG_WITH(enforcer-database,
@@ -54,6 +52,8 @@ AC_DEFUN([ACX_ENFORCER_DATABASE],[
 		ENFORCER_DB_LIBS=$SQLITE3_LIBS
 
 		AC_DEFINE_UNQUOTED(ENFORCER_DATABASE_SQLITE3, 1, [Using SQLite3 for database backend])
+		AM_CONDITIONAL(USE_SQLITE, true)
+		AM_CONDITIONAL(USE_MYSQL, false)
 
 	elif test "x${database_backend}" = "xmysql"; then
 		AC_MSG_RESULT(MySQL)
@@ -68,6 +68,8 @@ AC_DEFUN([ACX_ENFORCER_DATABASE],[
 		ENFORCER_DB_LIBS=$MYSQL_LDFLAGS
 
 		AC_DEFINE_UNQUOTED(ENFORCER_DATABASE_MYSQL, 1, [Using MySQL for database backend])
+		AM_CONDITIONAL(USE_SQLITE, false)
+		AM_CONDITIONAL(USE_MYSQL, true)
 
 	else
 		AC_MSG_RESULT(Unknown)
@@ -76,9 +78,23 @@ AC_DEFUN([ACX_ENFORCER_DATABASE],[
 
 	AC_SUBST(ENFORCER_DB_INCLUDES) 
 	AC_SUBST(ENFORCER_DB_LIBS)
+
+    ENFORCER_DB_HOST="$database_host"
+    ENFORCER_DB_PORT=$database_port
+    ENFORCER_DB_PORT_TEXT="$database_port"
+    ENFORCER_DB_DATABASE="$database_database"
+    ENFORCER_DB_USERNAME="$database_username"
+    ENFORCER_DB_PASSWORD="$database_password"
+    AC_SUBST(ENFORCER_DB_HOST)
+    AC_SUBST(ENFORCER_DB_PORT)
+    AC_SUBST(ENFORCER_DB_PORT_TEXT)
+    AC_SUBST(ENFORCER_DB_DATABASE)
+    AC_SUBST(ENFORCER_DB_USERNAME)
+    AC_SUBST(ENFORCER_DB_PASSWORD)
 	
 	AC_DEFINE_UNQUOTED(ENFORCER_DB_HOST, ["$database_host"], [Host to use when testing the Enforcer database backend])
 	AC_DEFINE_UNQUOTED(ENFORCER_DB_PORT, [$database_port], [Port to use when testing the Enforcer database backend])
+    AC_DEFINE_UNQUOTED(ENFORCER_DB_PORT_TEXT, ["$database_port"], [Port to use when testing the Enforcer database backend])
 	AC_DEFINE_UNQUOTED(ENFORCER_DB_DATABASE, ["$database_database"], [Database to use when testing the Enforcer database backend])
 	AC_DEFINE_UNQUOTED(ENFORCER_DB_USERNAME, ["$database_username"], [Username to use when testing the Enforcer database backend])
 	AC_DEFINE_UNQUOTED(ENFORCER_DB_PASSWORD, ["$database_password"], [Password to use when testing the Enforcer database backend])

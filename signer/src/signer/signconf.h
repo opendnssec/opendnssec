@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Copyright (c) 2009 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,8 +33,8 @@
 #define SIGNER_SIGNCONF_H
 
 #include "scheduler/task.h"
-#include "shared/allocator.h"
-#include "shared/duration.h"
+#include "allocator.h"
+#include "duration.h"
 #include "signer/keys.h"
 #include "signer/nsec3params.h"
 
@@ -53,6 +51,7 @@ struct signconf_struct {
     /* Zone */
     const char* name;
     allocator_type* allocator;
+    int passthrough;
     /* Signatures */
     duration_type* sig_resign_interval;
     duration_type* sig_refresh_interval;
@@ -61,6 +60,7 @@ struct signconf_struct {
     duration_type* sig_jitter;
     duration_type* sig_inception_offset;
     /* Denial of existence */
+    duration_type* nsec3param_ttl;
     ldns_rr_type nsec_type;
     int nsec3_optout;
     uint32_t nsec3_algo;

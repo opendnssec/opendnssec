@@ -1,6 +1,4 @@
 /*
- * $Id: buffer.h 4958 2011-04-18 07:11:09Z matthijs $
- *
  * Copyright (c) 2011 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,14 +33,16 @@
 #define WIRE_BUFFER_H
 
 #include "config.h"
-#include "shared/allocator.h"
-#include "shared/log.h"
+#include "allocator.h"
+#include "log.h"
+#include "status.h"
 
 #include <ldns/ldns.h>
 #include <stdint.h>
 
 #define BUFFER_PKT_HEADER_SIZE 12
 #define MAXDOMAINLEN 255
+#define MAXLABELLEN 63
 #define MAX_RDLENGTH    65535
 #define MAX_RR_SIZE \
         (MAXDOMAINLEN + sizeof(uint32_t) + 4*sizeof(uint16_t) + MAX_RDLENGTH)
@@ -102,6 +102,8 @@
 #define RCODE(packet)   (*buffer_at((packet), 3) & RCODE_MASK)
 #define RCODE_SET(packet, rcode) \
         (*buffer_at((packet), 3) = (*buffer_at((packet), 3) & ~RCODE_MASK) | (rcode))
+
+extern ods_lookup_table ods_rcode_str[];
 
 /**
  * Buffer.
@@ -532,6 +534,14 @@ ldns_pkt_rcode buffer_pkt_rcode(buffer_type* buffer);
  *
  */
 void buffer_pkt_set_rcode(buffer_type* buffer, ldns_pkt_rcode rcode);
+
+/**
+ * Look up a descriptive text by each rcode.
+ * \param[in] rcode rcode
+ * \return const char* descriptive text
+ *
+ */
+const char* buffer_rcode2str(ldns_pkt_rcode rcode);
 
 /**
  * Get QDCOUNT from buffer.

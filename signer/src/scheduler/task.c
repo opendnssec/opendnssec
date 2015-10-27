@@ -1,6 +1,4 @@
 /*
- * $Id$
- *
  * Copyright (c) 2009 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,11 +31,10 @@
 
 #include "config.h"
 #include "scheduler/task.h"
-#include "shared/allocator.h"
-#include "shared/duration.h"
-#include "shared/file.h"
-#include "shared/log.h"
-#include "signer/backup.h"
+#include "allocator.h"
+#include "duration.h"
+#include "file.h"
+#include "log.h"
 #include "signer/zone.h"
 
 static const char* task_str = "task";
@@ -165,7 +162,6 @@ task_what2str(task_id what)
             return "[write]";
             break;
         default:
-            return "[???]";
             break;
     }
     return "[???]";
@@ -212,10 +208,15 @@ task2str(task_type* task, char* buftask)
             return buftask;
         } else {
             strtask = (char*) calloc(ODS_SE_MAXLINE, sizeof(char));
-            snprintf(strtask, ODS_SE_MAXLINE, "%s %s I will %s zone %s\n",
-                task->flush?"Flush":"On", strtime?strtime:"(null)",
-                task_what2str(task->what), task_who2str(task));
-            return strtask;
+            if (strtask) {
+                snprintf(strtask, ODS_SE_MAXLINE, "%s %s I will %s zone %s\n",
+                    task->flush?"Flush":"On", strtime?strtime:"(null)",
+                    task_what2str(task->what), task_who2str(task));
+                return strtask;
+            } else {
+                ods_log_error("[%s] unable to convert task to string: malloc "
+                    "error", task_str);
+            }
         }
     }
     return NULL;

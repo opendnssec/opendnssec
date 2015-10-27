@@ -1,6 +1,4 @@
 /*
- * $Id: tsig-openssl.h 4958 2011-04-18 07:11:09Z matthijs $
- *
  * Copyright (c) 2011 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,8 +34,8 @@
 
 #ifdef HAVE_SSL
 
-#include "shared/allocator.h"
-#include "shared/status.h"
+#include "allocator.h"
+#include "status.h"
 #include <openssl/hmac.h>
 #include <openssl/sha.h>
 

@@ -1,5 +1,3 @@
-# $Id$
-#
 # Copyright (c) 2009 .SE (The Internet Infrastructure Foundation).
 # All rights reserved.
 #
@@ -32,6 +30,9 @@ start = element KASP {
 	element Policy {
 		# (short) symbolic name for Policy
 		attribute name { xsd:string },
+
+		# Do not touch contents of zonefile.
+		element Passthrough { empty }?,
 
 		# description of policy (free text)
 		element Description { xsd:string },
@@ -89,7 +90,7 @@ start = element KASP {
 			element KSK {
 				# generic key definition, see below
 				anykey,
-				# Controlling minimize flags Enforcer-ng
+				# Controlling minimize flags Enforcer
 				element KskRollType { "KskDoubleRRset" | "KskDoubleDS" | "KskDoubleSignature" }?,
 
 				# use RFC 5011 for key rollover?
@@ -101,15 +102,15 @@ start = element KASP {
 			element ZSK {
 				# generic key definition, see below
 				anykey,
-				# Controlling minimize flags Enforcer-ng
-				element KskRollType { "ZskDoubleSignature" | "ZskPrePublication" | "ZskDoubleRRsig" }?
+				# Controlling minimize flags Enforcer
+				element ZskRollType { "ZskDoubleSignature" | "ZskPrePublication" | "ZskDoubleRRsig" }?
 			}*,
 
 			# Combined Signing Keys (CSK) parameters
 			element CSK {
 				# generic key definition, see below
 				anykey,
-				# Controlling minimize flags Enforcer-ng
+				# Controlling minimize flags Enforcer
 				element CskRollType { "CskDoubleRRset" | "CskSingleSignature" | "CskDoubleDS" | "CskDoubleSignature" | "CskPrePublication" }?,
 				
 				# use RFC 5011 for key rollover?
@@ -141,7 +142,10 @@ start = element KASP {
 			element DS { ttl },
 
 			# Expected parent SOA parameters
-			element SOA { anysoa }
+			element SOA { anysoa },
+
+            # Expected time between submit and first publish
+			registrationdelay?
 		}
 	}*
 }
@@ -163,6 +167,9 @@ serial = element Serial {
 nsec = element NSEC { empty }
 
 nsec3 = element NSEC3 {
+	# what value for NSEC3PARAM TTL to use? Default 0.
+	ttl?,
+
 	# use global NSEC3 opt-out?
 	element OptOut { empty }?,
 
@@ -212,5 +219,7 @@ ttl = element TTL { xsd:duration }
 maxzonettl = element MaxZoneTTL { xsd:duration }
 
 propagationdelay = element PropagationDelay { xsd:duration }
+
+registrationdelay = element RegistrationDelay { xsd:duration }
 
 partial = element Partial { empty }
