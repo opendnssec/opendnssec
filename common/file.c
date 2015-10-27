@@ -297,7 +297,7 @@ ods_printf(int fd, const char * format, ...)
 	va_end(ap);
 	if (!ok) {
 		ods_log_error("[%s] vsnprintf buffer too small",file_str);
-		ods_writen(fd, ods_printf_error, sizeof(ods_printf_error));
+		ods_writen(fd, ods_printf_error, strlen(ods_printf_error));
 	}
 	ods_writen(fd, buf, strlen(buf));
 }
