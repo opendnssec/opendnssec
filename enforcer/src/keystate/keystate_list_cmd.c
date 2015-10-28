@@ -154,7 +154,7 @@ map_keytime(const zone_t *zone, const key_data_t *key)
 }
 
 static int
-perform_keystate_list_compat(int sockfd, db_connection_t *dbconn)
+perform_keystate_list_compat(int sockfd, db_connection_t *dbconn, const char *zonename, const char *type)
 {
 	const char* fmt = "%-31s %-8s %-9s %s\n";
 	key_data_list_t* key_list;
@@ -163,7 +163,21 @@ perform_keystate_list_compat(int sockfd, db_connection_t *dbconn)
 	zone_t *zone = NULL;
 	char* tchange;
 
-	if (!(key_list = key_data_list_new_get(dbconn))) {
+	if (zonename) {
+		zone = zone_new(dbconn);
+		zone_get_by_name(zone, zonename);
+		key_list = key_data_list_new_get_by_zone_id(dbconn, &zone->id);
+	}
+	else if (type) {
+		if (!strncmp(type, "KSK", 3))
+			key_list = key_data_list_new_get_by_role(dbconn, KEY_DATA_ROLE_KSK);
+		else
+			key_list = key_data_list_new_get_by_role(dbconn, KEY_DATA_ROLE_ZSK);
+	}
+	else
+		key_list = key_data_list_new_get(dbconn);
+
+	if (!key_list) {
 		client_printf_err(sockfd, "Unable to get list of keys, memory "
 			"allocation or database error!\n");
 		return 1;
@@ -174,17 +188,16 @@ perform_keystate_list_compat(int sockfd, db_connection_t *dbconn)
 		"Date of next transition:");
 
 	while ((key = key_data_list_get_next(key_list))) {
-	    if (zone
+		if (!zonename && zone
 	        && (db_value_cmp(zone_id(zone), key_data_zone_id(key), &cmp)
-	            || cmp))
-        {
-            zone_free(zone);
-            zone = NULL;
-        }
-	    if (!zone) {
-	        zone = key_data_get_zone(key);
-	    }
-        key_data_cache_key_states(key);
+	            || cmp)) {
+			zone_free(zone);
+			zone = NULL;
+		}
+		if (!zonename && !zone) {
+	        	zone = key_data_get_zone(key);
+	    	}
+		key_data_cache_key_states(key);
 		tchange = map_keytime(zone, key); /* allocs */
 		client_printf(sockfd,
 			fmt,
@@ -202,19 +215,33 @@ perform_keystate_list_compat(int sockfd, db_connection_t *dbconn)
 
 static int
 perform_keystate_list_verbose(int sockfd, db_connection_t *dbconn,
-	bool parsable)
+	bool parsable, const char *zonename, const char *type)
 {
 	const char* fmthdr = "%-31s %-8s %-9s %-24s %-5s %-10s %-32s %-11s %s\n";
 	const char* fmt    = "%-31s %-8s %-9s %-24s %-5d %-10d %-32s %-11s %d\n";
 	const char* pfmt   = "%s;%s;%s;%s;%d;%d;%s;%s;%d\n";
 	key_data_list_t* key_list;
 	key_data_t* key;
-    zone_t *zone = NULL;
-    char* tchange;
-    hsm_key_t *hsmkey;
-    int cmp;
+	zone_t *zone = NULL;
+	char* tchange;
+	hsm_key_t *hsmkey;
+	int cmp;
 
-	if (!(key_list = key_data_list_new_get(dbconn))) {
+	if (zonename) {
+		zone = zone_new(dbconn);
+		zone_get_by_name(zone, zonename);
+		key_list = key_data_list_new_get_by_zone_id(dbconn, &zone->id);	
+	}
+	else if (type) {
+		if (!strncmp (type, "KSK", 3))
+			key_list = key_data_list_new_get_by_role (dbconn, KEY_DATA_ROLE_KSK);
+		else
+			key_list = key_data_list_new_get_by_role (dbconn, KEY_DATA_ROLE_ZSK);		
+	}
+	else
+		key_list = key_data_list_new_get(dbconn);
+
+	if (!key_list) {
 		client_printf_err(sockfd, "Unable to get list of keys, memory "
 			"allocation or database error!\n");
 		return 1;
@@ -228,18 +255,18 @@ perform_keystate_list_verbose(int sockfd, db_connection_t *dbconn,
 	}
 
 	while ((key = key_data_list_get_next(key_list))) {
-        if (zone
-            && (db_value_cmp(zone_id(zone), key_data_zone_id(key), &cmp)
-                || cmp))
-        {
-            zone_free(zone);
-            zone = NULL;
-        }
-        if (!zone) {
-            zone = key_data_get_zone(key);
-        }
-        hsmkey = key_data_get_hsm_key(key);
-        key_data_cache_key_states(key);
+	        if (!zonename && zone
+        	    && (db_value_cmp(zone_id(zone), key_data_zone_id(key), &cmp)
+                	|| cmp))
+        	{
+	            zone_free(zone);
+        	    zone = NULL;
+        	}
+	        if (!zonename && !zone) {
+        	    zone = key_data_get_zone(key);
+        	}
+	        hsmkey = key_data_get_hsm_key(key);
+        	key_data_cache_key_states(key);
 		tchange = map_keytime(zone, key); /* allocs */
 		client_printf(sockfd,
 			parsable?pfmt:fmt,
@@ -256,24 +283,38 @@ perform_keystate_list_verbose(int sockfd, db_connection_t *dbconn,
 		hsm_key_free(hsmkey);
 		key_data_free(key);
 	}
-    zone_free(zone);
+	zone_free(zone);
 	key_data_list_free(key_list);
 	return 0;
 }
 
 static int
 perform_keystate_list_debug(int sockfd, db_connection_t *dbconn,
-	bool parsable)
+	bool parsable, const char *zonename, const char *type)
 {
 	const char *fmt  = "%-31s %-13s %-12s %-12s %-12s %-12s %d %4d    %s\n";
 	const char *pfmt = "%s;%s;%s;%s;%s;%s;%d;%d;%s\n";
 	key_data_list_t* key_list;
 	key_data_t* key;
-    zone_t *zone = NULL;
-    hsm_key_t *hsmkey;
-    int cmp;
+	zone_t *zone = NULL;
+	hsm_key_t *hsmkey;
+	int cmp;
 
-	if (!(key_list = key_data_list_new_get(dbconn))) {
+	if (zonename) {
+                zone = zone_new(dbconn);
+                zone_get_by_name (zone, zonename);
+                key_list = key_data_list_new_get_by_zone_id (dbconn, &zone->id);
+	}
+	else if (type) {
+		if (!strncmp (type, "KSK", 3))
+			key_list = key_data_list_new_get_by_role (dbconn, KEY_DATA_ROLE_KSK);
+		else
+			key_list = key_data_list_new_get_by_role (dbconn, KEY_DATA_ROLE_ZSK);
+	}
+	else
+		key_list = key_data_list_new_get(dbconn);
+
+	if (!key_list) {
 		client_printf_err(sockfd, "Unable to get list of keys, memory "
 			"allocation or database error!\n");
 		return 1;
@@ -287,18 +328,18 @@ perform_keystate_list_debug(int sockfd, db_connection_t *dbconn,
 	}
 
 	while ((key = key_data_list_get_next(key_list))) {
-        if (zone
-            && (db_value_cmp(zone_id(zone), key_data_zone_id(key), &cmp)
+        	if (!zonename && zone
+            	&& (db_value_cmp(zone_id(zone), key_data_zone_id(key), &cmp)
                 || cmp))
-        {
-            zone_free(zone);
-            zone = NULL;
-        }
-        if (!zone) {
-            zone = key_data_get_zone(key);
-        }
-	    key_data_cache_key_states(key);
-        hsmkey = key_data_get_hsm_key(key);
+        	{
+            		zone_free(zone);
+			zone = NULL;
+        	}
+	        if (!zonename && !zone) {
+        	    zone = key_data_get_zone(key);
+        	}
+	    	key_data_cache_key_states(key);
+	        hsmkey = key_data_get_hsm_key(key);
 		client_printf(sockfd,
 			parsable?pfmt:fmt,
 			zone_name(zone),
@@ -310,7 +351,7 @@ perform_keystate_list_debug(int sockfd, db_connection_t *dbconn,
 			key_data_publish(key),
 			key_data_active_ksk(key) | key_data_active_zsk(key),
 			hsm_key_locator(hsmkey));
-        hsm_key_free(hsmkey);
+        	hsm_key_free(hsmkey);
 		key_data_free(key);
 	}
 	key_data_list_free(key_list);
@@ -325,6 +366,8 @@ usage(int sockfd)
 		"      [--verbose]                (aka -v)  also show additional key parameters.\n"
 		"      [--debug]                  (aka -d)  print information about the keystate.\n"
 		"      [--parsable]               (aka -p)  output machine parsable list\n"
+		"      [--zone <zone>]            (aka -z) print key list for that zone\n"
+		"      [--keytype <type>]         (aka -t) print those keys which have that key type\n"
 	);
 }
 
@@ -342,6 +385,8 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	#define NARGV 8
 	const char *argv[NARGV];
 	int argc, bVerbose, bDebug, bParsable;
+        const char *zonename = NULL, *type = NULL;
+	zone_t *zone = NULL;
 	(void)engine;
 
 	ods_log_debug("[%s] %s command", module_str, key_list_funcblock()->cmdname);
@@ -363,6 +408,29 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	bVerbose = ods_find_arg(&argc,argv,"verbose","v") != -1;
 	bDebug = ods_find_arg(&argc,argv,"debug","d") != -1;
 	bParsable = ods_find_arg(&argc,argv,"parsable","p") != -1;
+	(void)ods_find_arg_and_param(&argc, argv, "zone", "z", &zonename);
+	(void)ods_find_arg_and_param(&argc, argv, "keytype", "t", &type);
+
+	if (type)
+		(void)StrToUpper(type);
+
+	if (type && (strlen(type) != 3 || (strncmp(type, "ZSK", 3) && strncmp(type, "KSK", 3)))) {
+        	ods_log_warning ("[%s] Error: Unrecognised keytype %s; should be one of KSK or ZSK\n", module_str, type);
+                client_printf(sockfd, "Error: Unrecognised keytype %s; should be one of KSK or ZSK\n", type);
+                return -1;
+        }
+
+	if (zonename && (!(zone = zone_new(dbconn)) || zone_get_by_name(zone, zonename))) {
+		ods_log_warning ("[%s] Error: Unable to find a zone named \"%s\" in database\n", module_str, zonename);
+                client_printf(sockfd, "Error: Unable to find a zone named \"%s\" in database\n", zonename);
+		zone_free(zone);
+		zone = NULL;
+                return -1;
+
+	}
+        zone_free(zone);
+        zone = NULL;
+
 	if (argc) {
 		ods_log_warning("[%s] unknown arguments for %s command",
 						module_str,key_list_funcblock()->cmdname);
@@ -371,11 +439,11 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	}
 
 	if (bDebug)
-		return perform_keystate_list_debug(sockfd, dbconn, bParsable);
+		return perform_keystate_list_debug(sockfd, dbconn, bParsable, zonename, type);
 	else if (bVerbose)
-		return perform_keystate_list_verbose(sockfd, dbconn, bParsable);
+		return perform_keystate_list_verbose(sockfd, dbconn, bParsable, zonename, type);
 	else
-		return perform_keystate_list_compat(sockfd, dbconn);
+		return perform_keystate_list_compat(sockfd, dbconn, zonename, type);
 }
 
 static struct cmd_func_block funcblock = {

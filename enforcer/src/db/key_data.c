@@ -2618,6 +2618,67 @@ int key_data_list_get_by_zone_id(key_data_list_t* key_data_list, const db_value_
     return DB_OK;
 }
 
+int key_data_list_get_by_role(key_data_list_t* key_data_list, const int role) {
+    db_clause_list_t* clause_list;
+    db_clause_t* clause;
+    int i;
+ 
+    if (!key_data_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!key_data_list->dbo) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!role) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(clause_list = db_clause_list_new())) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "role")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_value_from_int32(db_clause_get_value(clause), role)
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        db_clause_list_free(clause_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (key_data_list->result_list) {
+        db_result_list_free(key_data_list->result_list);
+    }
+    if (key_data_list->object_list_size) {
+        for (i = 0; i < key_data_list->object_list_size; i++) {
+            if (key_data_list->object_list[i]) {
+                key_data_free(key_data_list->object_list[i]);
+            }
+        }
+        key_data_list->object_list_size = 0;
+        key_data_list->object_list_first = 0;
+    }
+    if (key_data_list->object_list) {
+        free(key_data_list->object_list);
+        key_data_list->object_list = NULL;
+    }
+
+     if (!(key_data_list->result_list = db_object_read(key_data_list->dbo, NULL, clause_list))
+        || db_result_list_fetch_all(key_data_list->result_list))
+    {
+        db_clause_list_free(clause_list);
+        return DB_ERROR_UNKNOWN;
+    }
+    db_clause_list_free(clause_list);
+    if (key_data_list->associated_fetch
+        && key_data_list_get_associated(key_data_list))
+    {
+        return DB_ERROR_UNKNOWN;
+    }
+    return DB_OK;
+}
+
 key_data_list_t* key_data_list_new_get_by_zone_id(const db_connection_t* connection, const db_value_t* zone_id) {
     key_data_list_t* key_data_list;
 
@@ -2633,6 +2694,26 @@ key_data_list_t* key_data_list_new_get_by_zone_id(const db_connection_t* connect
 
     if (!(key_data_list = key_data_list_new(connection))
         || key_data_list_get_by_zone_id(key_data_list, zone_id))
+    {
+        key_data_list_free(key_data_list);
+        return NULL;
+    }
+
+    return key_data_list;
+}
+
+key_data_list_t* key_data_list_new_get_by_role(const db_connection_t* connection, const int role) {
+    key_data_list_t* key_data_list;
+
+    if (!connection) {
+        return NULL;
+    }
+    if (!role) {
+        return NULL;
+    }
+
+    if (!(key_data_list = key_data_list_new(connection))
+        || key_data_list_get_by_role(key_data_list, role))
     {
         key_data_list_free(key_data_list);
         return NULL;
