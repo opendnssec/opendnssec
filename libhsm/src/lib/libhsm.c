@@ -1404,7 +1404,7 @@ hsm_list_keys_session_internal(hsm_ctx_t *ctx,
                 goto err;
         } 
 
-        keys = malloc(total_count * sizeof(libhsm_key_t *));
+        keys = calloc(total_count, sizeof(libhsm_key_t *));
         if(keys == NULL) {
                 hsm_ctx_set_error(ctx, -1, "hsm_list_keys_session_internal",
                     "Error allocating memory for keys table (OOM)");
@@ -1425,7 +1425,7 @@ hsm_list_keys_session_internal(hsm_ctx_t *ctx,
     return keys;
 
 errkeys:
-    libhsm_key_list_free(keys, i-1);
+    libhsm_key_list_free(keys, total_count);
 
 err:
     free(key_handles);

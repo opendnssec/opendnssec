@@ -204,7 +204,7 @@ parse_conf_string(const char* cfgfile, const char* expr, int required)
 struct engineconfig_repository*
 parse_conf_repositories(const char* cfgfile)
 {
-	int required = 0, i;
+	int i;
     xmlDocPtr doc = NULL;
     xmlXPathContextPtr xpathCtx = NULL;
     xmlXPathObjectPtr xpathObj = NULL;
@@ -233,10 +233,6 @@ parse_conf_repositories(const char* cfgfile)
     if (xpathObj == NULL || xpathObj->nodesetval == NULL ||
         xpathObj->nodesetval->nodeNr <= 0) {
         ods_log_error("[%s] unable to find element %s in cfgfile %s", parser_str, (char*) xexpr, cfgfile);
-        if (required) {
-            ods_log_error("[%s] unable to evaluate required element %s in "
-                "cfgfile %s", parser_str, (char*) xexpr, cfgfile);
-        }
         xmlXPathFreeContext(xpathCtx);
         if (xpathObj) {
             xmlXPathFreeObject(xpathObj);
