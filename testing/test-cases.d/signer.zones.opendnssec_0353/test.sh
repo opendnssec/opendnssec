@@ -55,11 +55,14 @@ sleep 10 &&
 ( grep 'IN[[:space:]]*NSEC3[^P]' $INSTALL_ROOT/var/opendnssec/signed/ods || true ) &&
 
 ## Reintroduce zone with different policy and wait for signed zone file
+ods_enforcer_idle &&
 ods-enforcer zone delete -z ods &&
 # Cautious sleep to make sure zone is gone
-sleep 30 &&
+ods_enforcer_idle &&
 sed < ./zonefile-c > "$INSTALL_ROOT/var/opendnssec/unsigned/ods" -e 's/SERIAL/2001/g' &&
+
 ods-enforcer zone add -z ods -p optin &&
+ods_waitfor_keys &&
 
 ## Wait for signed zone file
 syslog_waitfor 60 'ods-signerd: .*\[adapter\] write zone ods serial 2001*' &&

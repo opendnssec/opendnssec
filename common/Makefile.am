@@ -5,6 +5,18 @@ AM_CPPFLAGS = \
 
 noinst_LIBRARIES = libcompat.a
 
-libcompat_a_SOURCES = strlcat.c strlcpy.c b64_ntop.c b64_pton.c pselect.c compat.h \
-	clientpipe.c allocator.c backup.c clientpipe.c duration.c file.c \
-	locks.c log.c privdrop.c status.c str.c util.c
+libcompat_a_SOURCES = \
+	allocator.c allocator.h \
+	b64_ntop.c b64_pton.c \
+	backup.c backup.h \
+	clientpipe.c clientpipe.h \
+	compat.h \
+	duration.c duration.h \
+	file.c file.h \
+	locks.c locks.h \
+	log.c log.h \
+	privdrop.c privdrop.h \
+	pselect.c \
+	status.c status.h \
+	str.c str.h strlcat.c strlcpy.c \
+	util.c util.h
