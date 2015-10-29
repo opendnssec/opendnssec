@@ -130,7 +130,7 @@ perform_policy_resalt(int sockfd, engine_type* engine,
 		}
 		resalt_time = policy_denial_salt_last_change(policy) +
 			policy_denial_resalt(policy);
-		if (now > resalt_time) {
+		if (now >= resalt_time) {
 			saltlength = policy_denial_salt_length(policy);
 			if (saltlength <= 0 || saltlength > 255) {
 				ods_log_error("[%s] policy %s has an invalid salt length. "
