@@ -410,17 +410,17 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     if ((argIndex = ods_find_arg_and_param(&argc, argv, "zone", "z", &filterZone)) == -1) {
         filterZone = NULL;
     }
-    if ((argIndex = ods_find_arg_and_param(&argc, argv, "keytype", "k", &keytypeParam)) == -1) {
+    if (ods_find_arg_and_param(&argc, argv, "keytype", "k", &keytypeParam) == -1) {
         keytypeParam = NULL;
     }
-    if ((argIndex = ods_find_arg_and_param(&argc, argv, "keystate", "e", &keystateParam)) == -1) {
+    if (ods_find_arg_and_param(&argc, argv, "keystate", "e", &keystateParam) == -1) {
         keystateParam = NULL;
     }
 
-    bAll = ods_find_arg(&argc, argv, "all", "a") != -1;
+    bAll = (ods_find_arg(&argc, argv, "all", "a") != -1);
 
     if (keystateParam != NULL && bAll) {
-        client_printf(sockfd, "Error: --keystate and option cannot be given together\n");
+        client_printf(sockfd, "Error: --keystate and --all option cannot be given together\n");
         return -1;
     }
 
@@ -434,17 +434,16 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
         filterKeytype = tokenizeparam(keytypeParam);
     else
         filterKeytype = NULL;
-    if (keystateParam)
+    if (keystateParam) {
         filterKeystate = tokenizeparam(keystateParam);
-    else
+    } else
         filterKeystate = NULL;
     if (bAll) {
         if (filterKeystate != NULL) {
-            /* TODO emit warning/error that -e parameter is ignored */
             free(filterKeystate);
         }
         filterKeystate = NULL;
-    } else {
+    } else if(filterKeystate == NULL) {
         if ((filterKeystate = malloc(sizeof (char*) * 6))) {
             filterKeystate[0] = "publish";
             filterKeystate[1] = "ready";
