@@ -578,6 +578,7 @@ successor_rec(key_data_t** keylist, size_t keylist_size,
          */
         if ((from_key = key_dependency_get_from_key_data(dep))) {
             key_dependency_list_free(deplist);
+            key_data_free(from_key);
             return -1;
         }
 
