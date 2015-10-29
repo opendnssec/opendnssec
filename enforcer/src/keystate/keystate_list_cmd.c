@@ -419,6 +419,11 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 
     bAll = ods_find_arg(&argc, argv, "all", "a") != -1;
 
+    if (keystateParam != NULL && bAll) {
+        client_printf(sockfd, "Error: --keystate and option cannot be given together\n");
+        return -1;
+    }
+
     if (argc) {
         ods_log_warning("[%s] unknown arguments for %s command", module_str, key_list_funcblock()->cmdname);
         client_printf(sockfd, "unknown arguments\n");
