@@ -1991,7 +1991,7 @@ static const hsm_key_t*
 getLastReusableKey(key_data_list_t *key_list, const policy_key_t *pkey)
 {
 	const key_data_t *key;
-	const hsm_key_t *hkey, *hkey_young = NULL;
+	hsm_key_t *hkey, *hkey_young = NULL;
 	hsm_key_list_t* hsmkeylist;
 	int match;
 	int cmp;
@@ -2030,8 +2030,10 @@ getLastReusableKey(key_data_list_t *key_list, const policy_key_t *pkey)
 		if (match) continue;
 
 		/** This key matches, is it newer? */
-		if (!hkey_young || hsm_key_inception(hkey_young) < hsm_key_inception(hkey))
-			hkey_young = hkey;
+		if (!hkey_young || hsm_key_inception(hkey_young) < hsm_key_inception(hkey)) {
+            hsm_key_free(hkey_young);
+            hkey_young = hkey;
+        }
 	}
 
 	hsm_key_list_free(hsmkeylist);
