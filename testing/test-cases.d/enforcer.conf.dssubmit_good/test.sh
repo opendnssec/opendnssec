@@ -21,12 +21,12 @@ ods_reset_env &&
 ods_start_enforcer &&
 
 # Check that we have 2 keys
-log_this ods-enforcer-key-list1 ods-enforcer key list &&
+log_this ods-enforcer-key-list1 ods-enforcer key list --all &&
 log_grep ods-enforcer-key-list1 stdout 'ods[[:space:]]*KSK[[:space:]]*generate' &&
 log_grep ods-enforcer-key-list1 stdout 'ods[[:space:]]*ZSK[[:space:]]*publish' &&
 
 # Grab the KEYTAG of the KSK
-log_this ods-enforcer-keytag ods-enforcer key list --verbose &&
+log_this ods-enforcer-keytag ods-enforcer key list --verbose --all &&
 KSK_KEYTAG=`log_grep -o ods-enforcer-keytag stdout "ods[[:space:]]*KSK[[:space:]]*generate" | awk '{print $10}'` &&
 
 ## Jump forward one hour so the KSK will be ready, obviosuly depends on Propagation Time and TTL 
