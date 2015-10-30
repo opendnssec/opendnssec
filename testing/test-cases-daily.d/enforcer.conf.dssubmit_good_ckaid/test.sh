@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 #
 #TEST: Test to see that the DSSUB command with --cka_id is dealt with as expected
-#TEST: We use TIMESHIFT to get to the point where the KSK moves to the ready state
 
 ENFORCER_WAIT=90	# Seconds we wait for enforcer to run
 ENFORCER_COUNT=2	# How many log lines we expect to see
@@ -17,12 +16,7 @@ ods_reset_env &&
 
 ##################  SETUP ###########################
 # Start enforcer (Zone already exists and we let it generate keys itself)
-#export ENFORCER_TIMESHIFT='01-01-2010 12:00' &&
 ods_start_enforcer &&
-
-# Make sure TIMESHIFT worked:
-#syslog_grep "ods-enforcerd: .*Timeshift mode detected, running once only!" &&
-#syslog_grep "ods-enforcerd: .*DEBUG: Timeshift in operation; ENFORCER_TIMESHIFT set to 01-01-2010 12:00" &&
 
 # Check that we are trying to use the correct command:
 #syslog_grep " ods-enforcerd: .*Using command: $INSTALL_ROOT/var/opendnssec/enforcer/dssub.pl to submit DS records" &&
