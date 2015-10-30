@@ -74,7 +74,6 @@
 #include "enforcer/update_all_cmd.h"
 #include "enforcer/update_conf_cmd.h"
 #include "enforcer/enforce_cmd.h"
-#include "policy/update_kasp_cmd.h"
 #include "policy/policy_import_cmd.h"
 #include "policy/policy_export_cmd.h"
 #include "policy/policy_purge_cmd.h"
@@ -115,7 +114,6 @@ cmd_funcs_avail(void)
         /* Thoughts has gone into the ordering of this list, it affects 
          * the output of the help command */
         &update_conf_funcblock,
-        &update_kasp_funcblock,
         &update_repositorylist_funcblock,
         &update_all_funcblock,
         &policy_list_funcblock,

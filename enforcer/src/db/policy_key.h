@@ -89,8 +89,6 @@ policy_key_t* policy_key_new_copy(const policy_key_t* policy_key);
  */
 void policy_key_free(policy_key_t* policy_key);
 
-void policy_key_alloc_nuke();
-
 /**
  * Reset the content of a policy key object making it as if its new. This does not change anything in the database.
  * \param[in] policy_key a policy_key_t pointer.
@@ -530,8 +528,6 @@ int policy_key_list_associated_fetch(policy_key_list_t* policy_key_list);
  * \param[in] policy_key_list a policy_key_list_t pointer.
  */
 void policy_key_list_free(policy_key_list_t* policy_key_list);
-
-void policy_key_list_alloc_nuke();
 
 /**
  * Copy the content of another policy key object list.

@@ -1,3 +1,21 @@
+OpenDNSSEC 2.0.0a5
+
+Project transfer to NLnetLabs, performing code drop as-is for evaluation
+purposes only.
+
+* The enforcer can no longer be run on a single policy at a time
+  anymore.  An enforce run will always process all zones.
+* The key generate method is at this time not available, neither are
+  the --all option at key list.
+* The key export method will not allow you to export keys for all zones
+  at once (--all flag) or for a particular type of key (--keystate).
+  It will not export ZSK keys
+* The zonelist.xml in etc/opendnssec is no longer updated automatically,
+  and by default works as if the --no-xml flag was specified.  Use
+  --xml to the zone add command to update the zonelist.xml.  If updating
+  the zonelist fails, the zone will still be added and not updated in
+  the xml with future zone adds.
+
 OpenDNSSEC 2.0.0a4 (EnforcerNG branch) 
 
 * SUPPORT-72: Improve logging when failed to increment serial in case 

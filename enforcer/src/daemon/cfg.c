@@ -42,6 +42,14 @@
 
 static const char* conf_str = "config";
 
+/**
+ * duplicate string but don't ignore NULL ptrs
+ */
+static const char *
+strdup_or_null(const char *s)
+{
+    return s?strdup(s):s;
+}
 
 /**
  * Configure engine.
@@ -55,7 +63,7 @@ engine_config(const char* cfgfile,
     const char* rngfile = ODS_SE_RNGDIR "/conf.rng";
     FILE* cfgfd = NULL;
 
-    if (!cfgfile) {
+    if (!cfgfile || cfgfile[0] == 0) {
         ods_log_error("[%s] failed to read: no filename given", conf_str);
         return NULL;
     }
@@ -82,14 +90,14 @@ engine_config(const char* cfgfile,
             ecfg->cfg_filename = strdup(oldcfg->cfg_filename);
             ecfg->clisock_filename = strdup(oldcfg->clisock_filename);
             ecfg->working_dir = strdup(oldcfg->working_dir);
-            ecfg->username = strdup(oldcfg->username);
-            ecfg->group = strdup(oldcfg->group);
-            ecfg->chroot = strdup(oldcfg->chroot);
+            ecfg->username = strdup_or_null(oldcfg->username);
+            ecfg->group = strdup_or_null(oldcfg->group);
+            ecfg->chroot = strdup_or_null(oldcfg->chroot);
             ecfg->pid_filename = strdup(oldcfg->pid_filename);
             ecfg->datastore = strdup(oldcfg->datastore);
-            ecfg->db_host = strdup(oldcfg->db_host);
-            ecfg->db_username = strdup(oldcfg->db_username);
-            ecfg->db_password = strdup(oldcfg->db_password);
+            ecfg->db_host = strdup_or_null(oldcfg->db_host);
+            ecfg->db_username = strdup_or_null(oldcfg->db_username);
+            ecfg->db_password = strdup_or_null(oldcfg->db_password);
             ecfg->db_port = oldcfg->db_port;
             ecfg->db_type = oldcfg->db_type;
         } else {

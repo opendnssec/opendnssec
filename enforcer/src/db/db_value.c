@@ -30,17 +30,16 @@
 #include "db_value.h"
 #include "db_error.h"
 
-#include "mm.h"
 
 #include <string.h>
 
 /* DB VALUE */
 
-static mm_alloc_t __value_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_value_t));
+
 
 db_value_t* db_value_new() {
     db_value_t* value =
-        (db_value_t*)mm_alloc_new0(&__value_alloc);
+        (db_value_t*)calloc(1, sizeof(db_value_t));
 
     if (value) {
         value->type = DB_TYPE_EMPTY;
@@ -57,7 +56,7 @@ db_value_t* db_value_new_copy(const db_value_t* from_value) {
         return NULL;
     }
 
-    if (!(value = (db_value_t*)mm_alloc_new0(&__value_alloc))
+    if (!(value = (db_value_t*)calloc(1, sizeof(db_value_t)))
         || db_value_copy(value, from_value))
     {
         db_value_free(value);
@@ -72,13 +71,8 @@ void db_value_free(db_value_t* value) {
         if (value->text) {
             free(value->text);
         }
-        mm_alloc_delete(&__value_alloc, value);
+        free(value);
     }
-}
-
-void db_value_alloc_nuke()
-{
-    mm_alloc_free(&__value_alloc);
 }
 
 void db_value_reset(db_value_t* value) {
@@ -722,15 +716,15 @@ int db_value_set_primary_key(db_value_t* value) {
 
 /* DB VALUE SET */
 
-static mm_alloc_t __value_set_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_value_set_t));
-static mm_alloc_t __4_value_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_value_t) * 4);
-static mm_alloc_t __8_value_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_value_t) * 8);
-static mm_alloc_t __12_value_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_value_t) * 12);
-static mm_alloc_t __16_value_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_value_t) * 16);
-static mm_alloc_t __24_value_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_value_t) * 24);
-static mm_alloc_t __32_value_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_value_t) * 32);
-static mm_alloc_t __64_value_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_value_t) * 64);
-static mm_alloc_t __128_value_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(db_value_t) * 128);
+
+
+
+
+
+
+
+
+
 
 db_value_set_t* db_value_set_new(size_t size) {
     db_value_set_t* value_set;
@@ -740,34 +734,34 @@ db_value_set_t* db_value_set_new(size_t size) {
         return NULL;
     }
 
-    value_set = (db_value_set_t*)mm_alloc_new0(&__value_set_alloc);
+    value_set = (db_value_set_t*)calloc(1, sizeof(db_value_set_t));
     if (value_set) {
         if (size <= 4) {
-            value_set->values = (db_value_t*)mm_alloc_new0(&__4_value_alloc);
+            value_set->values = (db_value_t*)calloc(4, sizeof(db_value_t));
         }
         else if (size <= 8) {
-            value_set->values = (db_value_t*)mm_alloc_new0(&__8_value_alloc);
+            value_set->values = (db_value_t*)calloc(8, sizeof(db_value_t));
         }
         else if (size <= 12) {
-            value_set->values = (db_value_t*)mm_alloc_new0(&__12_value_alloc);
+            value_set->values = (db_value_t*)calloc(12, sizeof(db_value_t));
         }
         else if (size <= 16) {
-            value_set->values = (db_value_t*)mm_alloc_new0(&__16_value_alloc);
+            value_set->values = (db_value_t*)calloc(16, sizeof(db_value_t));
         }
         else if (size <= 24) {
-            value_set->values = (db_value_t*)mm_alloc_new0(&__24_value_alloc);
+            value_set->values = (db_value_t*)calloc(24, sizeof(db_value_t));
         }
         else if (size <= 32) {
-            value_set->values = (db_value_t*)mm_alloc_new0(&__32_value_alloc);
+            value_set->values = (db_value_t*)calloc(32, sizeof(db_value_t));
         }
         else if (size <= 64) {
-            value_set->values = (db_value_t*)mm_alloc_new0(&__64_value_alloc);
+            value_set->values = (db_value_t*)calloc(64, sizeof(db_value_t));
         }
         else if (size <= 128) {
-            value_set->values = (db_value_t*)mm_alloc_new0(&__128_value_alloc);
+            value_set->values = (db_value_t*)calloc(128, sizeof(db_value_t));
         }
         if (!value_set->values) {
-            mm_alloc_delete(&__value_set_alloc, value_set);
+            free(value_set);
             return NULL;
         }
         value_set->size = size;
@@ -816,45 +810,32 @@ void db_value_set_free(db_value_set_t* value_set) {
             }
 
             if (value_set->size <= 4) {
-                mm_alloc_delete(&__4_value_alloc, value_set->values);
+                free(value_set->values);
             }
             else if (value_set->size <= 8) {
-                mm_alloc_delete(&__8_value_alloc, value_set->values);
+                free(value_set->values);
             }
             else if (value_set->size <= 12) {
-                mm_alloc_delete(&__12_value_alloc, value_set->values);
+                free(value_set->values);
             }
             else if (value_set->size <= 16) {
-                mm_alloc_delete(&__16_value_alloc, value_set->values);
+                free(value_set->values);
             }
             else if (value_set->size <= 24) {
-                mm_alloc_delete(&__24_value_alloc, value_set->values);
+                free(value_set->values);
             }
             else if (value_set->size <= 32) {
-                mm_alloc_delete(&__32_value_alloc, value_set->values);
+                free(value_set->values);
             }
             else if (value_set->size <= 64) {
-                mm_alloc_delete(&__64_value_alloc, value_set->values);
+                free(value_set->values);
             }
             else if (value_set->size <= 128) {
-                mm_alloc_delete(&__128_value_alloc, value_set->values);
+                free(value_set->values);
             }
         }
-        mm_alloc_delete(&__value_set_alloc, value_set);
+        free(value_set);
     }
-}
-
-void db_value_set_alloc_nuke()
-{
-    mm_alloc_free(&__value_set_alloc);
-    mm_alloc_free(&__4_value_alloc);
-    mm_alloc_free(&__8_value_alloc);
-    mm_alloc_free(&__12_value_alloc);
-    mm_alloc_free(&__16_value_alloc);
-    mm_alloc_free(&__24_value_alloc);
-    mm_alloc_free(&__32_value_alloc);
-    mm_alloc_free(&__64_value_alloc);
-    mm_alloc_free(&__128_value_alloc);
 }
 
 size_t db_value_set_size(const db_value_set_t* value_set) {

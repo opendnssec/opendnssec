@@ -36,7 +36,6 @@
 
 #include "daemon/engine.h"
 #include "log.h"
-#include "mm.h"
 
 #include "enforcer/autostart_cmd.h"
 
@@ -56,9 +55,7 @@ usage(FILE* out)
     fprintf(out, "Start the OpenDNSSEC key and signing policy enforcer "
             "daemon.\n\n");
     fprintf(out, "Supported options:\n");
-#if HAVE_READ_CONFIG_FROM_EXTERNAL_FILE
     fprintf(out, " -c | --config <cfgfile> Read configuration from file.\n");
-#endif
     fprintf(out, " -d | --no-daemon        Do not daemonize the enforcer "
             "engine.\n");
     fprintf(out, " -1 | --single-run       Run once, then exit.\n");
@@ -133,6 +130,7 @@ main(int argc, char* argv[])
     const char* cfgfile = ODS_SE_CFGFILE;
     static struct option long_options[] = {
         {"single-run", no_argument, 0, '1'},
+        {"config", required_argument, 0, 'c'},
         {"no-daemon", no_argument, 0, 'd'},
         {"help", no_argument, 0, 'h'},
         {"info", no_argument, 0, 'i'},
@@ -142,11 +140,14 @@ main(int argc, char* argv[])
     };
 
     /* parse the commandline */
-    while ((c=getopt_long(argc, argv, "1dhivV",
+    while ((c=getopt_long(argc, argv, "1c:dhivV",
         long_options, &options_index)) != -1) {
         switch (c) {
             case '1':
                 single_run = 1;
+                break;
+            case 'c':
+                cfgfile = optarg;
                 break;
             case 'd':
                 daemonize = 0;
@@ -179,7 +180,6 @@ main(int argc, char* argv[])
     fprintf(stdout, "OpenDNSSEC key and signing policy enforcer version %s\n", 
         PACKAGE_VERSION);
     
-    mm_init(); /* initialize memory management heap */
     program_setup(cmdline_verbosity); /* setup basic logging, xml, PB */
     engine = engine_alloc(); /* Let's create an engine only once */
     if (!engine) {

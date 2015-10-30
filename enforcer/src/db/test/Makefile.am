@@ -44,7 +44,6 @@ test_LDADD = \
 	../../db_object.o \
 	../../db_result.o \
 	../../db_value.o \
-	$(top_builddir)/mm/src/mm.o \
 	../../hsm_key.o ../../hsm_key_ext.o \
 	../../key_data.o ../../key_data_ext.o \
 	../../key_state.o ../../key_state_ext.o \

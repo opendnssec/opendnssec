@@ -137,8 +137,6 @@ db_clause_t* db_clause_new(void);
  */
 void db_clause_free(db_clause_t* clause);
 
-void db_clause_alloc_nuke();
-
 /**
  * Get the table name of a database clause.
  * \param[in] a db_clause_t pointer.
@@ -265,8 +263,6 @@ db_clause_list_t* db_clause_list_new(void);
  * \param[in] clause_list a db_clause_list_t pointer.
  */
 void db_clause_list_free(db_clause_list_t* clause_list);
-
-void db_clause_list_alloc_nuke();
 
 /**
  * Add a database clause to a database clause list, this takes over the

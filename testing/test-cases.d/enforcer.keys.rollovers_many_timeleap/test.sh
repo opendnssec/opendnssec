@@ -48,6 +48,15 @@ log_this ods-enforcer-output echo "------- Expect generate/publish" &&
 log_this ods-enforcer-output ods-enforcer key list --verbose &&
 log_this ods-enforcer-output ods-enforcer rollover list &&
 
+log_this ods-enforcer-temp ods-enforcer key list --verbose &&
+log_grep ods-enforcer-temp stdout "ods1[[:space:]]*KSK[[:space:]]*generate" &&
+log_grep ods-enforcer-temp stdout "ods1[[:space:]]*ZSK[[:space:]]*publish" &&
+
+KSK1_CKA=`log_grep -o ods-enforcer-temp stdout "ods1[[:space:]]*KSK[[:space:]]*generate" | awk '{print $8}'` &&
+
+ZSK1_CKA=`log_grep -o ods-enforcer-temp stdout "ods1[[:space:]]*ZSK[[:space:]]*publish" | awk '{print $8}'` &&
+
+rm -f _log.$BUILD_TAG.ods-enforcer-temp.stdout &&
 #### TIME 1: Keys are Published/Ready
 log_this ods-enforcer-output echo "--------------- TIME LEAP 1 -----------------" &&
 log_this ods-enforcer-output 'ods-enforcer time leap' && sleep 1 &&
@@ -57,107 +66,217 @@ log_this ods-enforcer-output echo "----- Expect publish/ready" &&
 log_this ods-enforcer-output ods-enforcer key list  --verbose &&
 log_this ods-enforcer-output ods-enforcer rollover list &&
 
-#### TIME 2: Keys are Ready/Active -> do ds-submit and ds-seen
+log_this ods-enforcer-temp ods-enforcer key list  --verbose &&
+log_grep ods-enforcer-temp stdout "ods1[[:space:]]*KSK[[:space:]]*publish.*$KSK1_CKA" &&
+log_grep ods-enforcer-temp stdout "ods1[[:space:]]*ZSK[[:space:]]*ready.*$ZSK1_CKA" &&
+rm -f _log.$BUILD_TAG.ods-enforcer-temp.stdout &&
+
+#### TIME 2: Keys are Ready/Active -> do ds-seen
 log_this ods-enforcer-output echo "--------------- TIME LEAP 2 -----------------" &&
 log_this ods-enforcer-output 'ods-enforcer time leap' && sleep 1 &&
 log_this ods-enforcer-output echo "--------------------------------------------" &&
 
-log_this ods-enforcer-output echo "----- Expect ready(ds-submit)/active" &&
-log_this ods-enforcer-output ods-enforcer key list  --verbose &&
-log_this ods-enforcer-output ods-enforcer rollover list &&
+#log_this ods-enforcer-output echo "----- Expect ready(ds-submit)/active" &&
+#log_this ods-enforcer-output ods-enforcer key list  --verbose &&
+#log_this ods-enforcer-output ods-enforcer rollover list &&
 
-log_this ods-enforcer-output echo "----- Do key export and ds-submit" &&
-log_this ods-enforcer-output 'ods-enforcer key export --zone ods1' &&
-log_this ods-enforcer-output 'ods-enforcer key ds-submit --zone ods1 --force' && sleep 1 &&
+#log_this ods-enforcer-output echo "----- Do key export and ds-submit" &&
+#log_this ods-enforcer-output 'ods-enforcer key export --zone ods1' &&
+#log_this ods-enforcer-output 'ods-enforcer key ds-submit --zone ods1 --force' && sleep 1 &&
 
 log_this ods-enforcer-output echo "----- Expect ready(ds-seen)/active" &&
 log_this ods-enforcer-output ods-enforcer key list  --verbose &&
 log_this ods-enforcer-output ods-enforcer key list --debug &&
 log_this ods-enforcer-output ods-enforcer rollover list &&
 
+log_this ods-enforcer-temp ods-enforcer key list  --verbose &&
+log_grep ods-enforcer-temp stdout "ods1[[:space:]]*KSK[[:space:]]*ready.*$KSK1_CKA" &&
+log_grep ods-enforcer-temp stdout "ods1[[:space:]]*ZSK[[:space:]]*active.*$ZSK1_CKA" &&
+rm -f _log.$BUILD_TAG.ods-enforcer-temp.stdout &&
+
+
 log_this ods-enforcer-output echo "----- Do ds-seen" &&
-KSK_CKA_ID1=`log_grep -o ods-enforcer-output stdout "ods1[[:space:]].*KSK[[:space:]].*ready     waiting for ds-submit" | awk '{print $9}'` &&
-log_this ods-enforcer-output ods-enforcer key ds-seen --zone ods1 --cka_id $KSK_CKA_ID1 && sleep 1 &&
+sleep 5 && log_this ods-enforcer-output ods-enforcer key ds-seen --zone ods1 --cka_id $KSK1_CKA && sleep 1 &&
 log_this ods-enforcer-output ods-enforcer key list  --verbose &&
 log_this ods-enforcer-output ods-enforcer key list --debug &&
 log_this ods-enforcer-output ods-enforcer rollover list &&
 
-#### TIME 2.5: Keys are both active after DS TTL passed since ds-seen
+#### Keys are both active right after ds-seen command
+log_this ods-enforcer-output echo "----- Expect active/active " &&
+log_this ods-enforcer-output ods-enforcer key list  --verbose &&
+log_this ods-enforcer-output echo "----- Still expect rumoured DS  " &&
+log_this ods-enforcer-output ods-enforcer key list --debug &&
+log_this ods-enforcer-output ods-enforcer rollover list &&
+
+log_this ods-enforcer-temp ods-enforcer key list  --verbose &&
+log_grep ods-enforcer-temp stdout "ods1[[:space:]]*KSK[[:space:]]*active.*$KSK1_CKA" &&
+log_grep ods-enforcer-temp stdout "ods1[[:space:]]*ZSK[[:space:]]*active.*$ZSK1_CKA" &&
+
+log_this ods-enforcer-temp ods-enforcer key list  --debug &&
+log_grep ods-enforcer-temp stdout "ods1[[:space:]]*KSK[[:space:]]*rumoured[[:space:]]*omnipresent[[:space:]]*omnipresent[[:space:]]*.*$KSK1_CKA" &&
+
+rm _log.$BUILD_TAG.ods-enforcer-temp.stdout &&
+
+
+
 log_this ods-enforcer-output echo "----- Wait for DS TTL to pass  " &&
 log_this ods-enforcer-output echo "--------------- TIME LEAP 2.5 -----------------" &&
 log_this ods-enforcer-output 'ods-enforcer time leap' && sleep 1 &&
 log_this ods-enforcer-output echo "--------------------------------------------" &&
 
-log_this ods-enforcer-output echo "----- Expect active/active " &&
+log_this ods-enforcer-output echo "----- Expect omnipresent DS " &&
 log_this ods-enforcer-output ods-enforcer key list  --verbose &&
 log_this ods-enforcer-output ods-enforcer key list --debug &&
 log_this ods-enforcer-output ods-enforcer rollover list &&
- 
 
-#### TIME 3: Keys are finally both active
+log_this ods-enforcer-temp ods-enforcer key list  --debug &&
+log_grep ods-enforcer-temp stdout "ods1[[:space:]]*KSK[[:space:]]*omnipresent[[:space:]]*omnipresent[[:space:]]*omnipresent[[:space:]]*.*$KSK1_CKA" &&
+rm _log.$BUILD_TAG.ods-enforcer-temp.stdout &&
+
+
+#### TIME 3: ZSK rollover
 log_this ods-enforcer-output echo "----- Next event is ZSK auto rollover " &&
 log_this ods-enforcer-output echo "--------------- TIME LEAP 3 ----------------" &&
-log_this ods-enforcer-output 'ods-enforcer time leap' && sleep 1 &&
+ods_enforcer_idle && 
+sleep 1 && log_this ods-enforcer-output 'ods-enforcer time leap' && sleep 1 &&
+ods_enforcer_idle &&
 log_this ods-enforcer-output echo "--------------------------------------------" &&
-
 log_this ods-enforcer-output echo "----- Expect active/active/publish" &&
 log_this ods-enforcer-output ods-enforcer key list  --verbose &&
 log_this ods-enforcer-output ods-enforcer key list --debug &&
 log_this ods-enforcer-output ods-enforcer rollover list &&
+
+log_this ods-enforcer-temp ods-enforcer key list  --verbose &&
+log_grep ods-enforcer-temp stdout "ods1[[:space:]]*KSK[[:space:]]*active.*$KSK1_CKA" &&
+log_grep ods-enforcer-temp stdout "ods1[[:space:]]*ZSK[[:space:]]*active.*$ZSK1_CKA" &&
+log_grep ods-enforcer-temp stdout "ods1[[:space:]]*ZSK[[:space:]]*publish" &&
+
+ZSK2_CKA=`log_grep -o ods-enforcer-temp stdout "ods1[[:space:]]*ZSK[[:space:]]*publish" | awk '{print $8}'` &&
+
+rm _log.$BUILD_TAG.ods-enforcer-temp.stdout &&
+
 
 #### TIME 4: New ZSK appears
 log_this ods-enforcer-output echo "--------------- TIME LEAP 4 -----------------" &&
 log_this ods-enforcer-output 'ods-enforcer time leap' && sleep 1 &&
 log_this ods-enforcer-output echo "--------------------------------------------" &&
 
-log_this ods-enforcer-output echo "----- Expect active/active/ready [BUG? Original ZSK should not be retired!]" &&
+log_this ods-enforcer-output echo "----- Expect active/retire/ready " &&
 log_this ods-enforcer-output ods-enforcer key list  --verbose &&
 log_this ods-enforcer-output ods-enforcer key list --debug &&
 log_this ods-enforcer-output ods-enforcer rollover list &&
+
+log_this ods-enforcer-temp ods-enforcer key list  --verbose &&
+log_grep ods-enforcer-temp stdout "ods1[[:space:]]*KSK[[:space:]]*active.*$KSK1_CKA" &&
+log_grep ods-enforcer-temp stdout "ods1[[:space:]]*ZSK[[:space:]]*retire.*$ZSK1_CKA" &&
+log_grep ods-enforcer-temp stdout "ods1[[:space:]]*ZSK[[:space:]]*ready.*$ZSK2_CKA" &&
+rm _log.$BUILD_TAG.ods-enforcer-temp.stdout &&
 
 #### TIME 5: New ZSK should be ready
 log_this ods-enforcer-output echo "--------------- TIME LEAP 5 ----------------" &&
 log_this ods-enforcer-output 'ods-enforcer time leap' && sleep 1 &&
 log_this ods-enforcer-output echo "--------------------------------------------" &&
 
-log_this ods-enforcer-output echo "----- Expect active/retire/active" &&
+log_this ods-enforcer-output echo "----- Expect active/retire /active" &&
 log_this ods-enforcer-output ods-enforcer key list  --verbose &&
 log_this ods-enforcer-output ods-enforcer key list --debug &&
 log_this ods-enforcer-output ods-enforcer rollover list &&
 
-#### TIME 6: Rollover done, back to 2 active keys?
+log_this ods-enforcer-temp ods-enforcer key list  --verbose &&
+log_grep ods-enforcer-temp stdout "ods1[[:space:]]*KSK[[:space:]]*active.*$KSK1_CKA" &&
+log_grep ods-enforcer-temp stdout "ods1[[:space:]]*ZSK[[:space:]]*retire.*$ZSK1_CKA" &&
+
+log_this ods-enforcer-output echo "----- Expect unretentive DNSKEY, hidden RRSIG" &&
+log_this ods-enforcer-temp ods-enforcer key list --debug &&
+log_grep ods-enforcer-temp stdout "ods1[[:space:]]*ZSK.*unretentive.*hidden.*$ZSK1_CKA" &&
+log_grep ods-enforcer-temp stdout "ods1[[:space:]]*ZSK[[:space:]]*active.*$ZSK2_CKA" &&
+rm _log.$BUILD_TAG.ods-enforcer-temp.stdout &&
+
+#### TIME 6: Rollover done
 log_this ods-enforcer-output echo "--------------- TIME LEAP 6 ----------------" &&
 log_this ods-enforcer-output 'ods-enforcer time leap' && sleep 1 &&
 log_this ods-enforcer-output echo "--------------------------------------------" &&
-log_this ods-enforcer-output echo "----- Expect active/active [BUG? I see dead keys!]" &&
+log_this ods-enforcer-output echo "----- Expect active/retire/active " &&
 log_this ods-enforcer-output ods-enforcer key list  --verbose &&
 log_this ods-enforcer-output ods-enforcer key list --debug &&
 log_this ods-enforcer-output ods-enforcer rollover list &&
 
-#### TIME 7: Next ZSK rollover starts
+log_this ods-enforcer-temp ods-enforcer key list  --verbose &&
+log_grep ods-enforcer-temp stdout "ods1[[:space:]]*KSK[[:space:]]*active.*$KSK1_CKA" &&
+log_grep ods-enforcer-temp stdout "ods1[[:space:]]*ZSK[[:space:]]*retire.*$ZSK1_CKA" &&
+
+
+log_this ods-enforcer-output echo "----- Expect hidden DNSKEY and hidden RRSIG" &&
+log_this ods-enforcer-temp ods-enforcer key list --debug &&
+log_grep ods-enforcer-temp stdout "ods1[[:space:]]*ZSK.*hidden.*hidden.*$ZSK1_CKA" &&
+log_grep ods-enforcer-temp stdout "ods1[[:space:]]*ZSK[[:space:]]*active.*$ZSK2_CKA" &&
+rm _log.$BUILD_TAG.ods-enforcer-temp.stdout &&
+
+
+#### TIME 7: Active Keys
 log_this ods-enforcer-output echo "--------------- TIME LEAP 7 ----------------" &&
 log_this ods-enforcer-output 'ods-enforcer time leap' && sleep 1 &&
 log_this ods-enforcer-output echo "--------------------------------------------" &&
-log_this ods-enforcer-output echo "----- Expect active/active/publish [I see dead keys!]" &&
+log_this ods-enforcer-output echo "----- Expect active/active" &&
 log_this ods-enforcer-output ods-enforcer key list  --verbose &&
 log_this ods-enforcer-output ods-enforcer key list --debug &&
 
-#### TIME 8: Next ZSK rollover continues
+log_this ods-enforcer-temp ods-enforcer key list  --verbose &&
+log_grep ods-enforcer-temp stdout "ods1[[:space:]]*KSK[[:space:]]*active.*$KSK1_CKA" &&
+! log_grep ods-enforcer-temp stdout "ods1[[:space:]]*ZSK[[:space:]]*retire.*$ZSK1_CKA" &&
+log_grep ods-enforcer-temp stdout "ods1[[:space:]]*ZSK[[:space:]]*active.*$ZSK2_CKA" &&
+rm _log.$BUILD_TAG.ods-enforcer-temp.stdout &&
+
+
+#### TIME 8: Next ZSK rollover starts
 log_this ods-enforcer-output echo "--------------- TIME LEAP 8 ----------------" &&
-log_this ods-enforcer-output 'ods-enforcer time leap' && sleep 1 &&
+#sleep 20 &&
+ods_enforcer_idle &&
+sleep 1 && log_this ods-enforcer-output 'ods-enforcer time leap' && sleep 1 &&
 log_this ods-enforcer-output echo "--------------------------------------------" &&
-log_this ods-enforcer-output echo "----- Expect active/active/ready [I see dead keys!]" &&
+ods_enforcer_idle &&
+log_this ods-enforcer-output echo "----- Expect active/active/publish " &&
 log_this ods-enforcer-output ods-enforcer key list  --verbose &&
 log_this ods-enforcer-output ods-enforcer key list --debug &&
 
-#### TIME 9: Next ZSK rollover starts
+log_this ods-enforcer-temp ods-enforcer key list  --verbose &&
+log_grep ods-enforcer-temp stdout "ods1[[:space:]]*KSK[[:space:]]*active.*$KSK1_CKA" &&
+log_grep ods-enforcer-temp stdout "ods1[[:space:]]*ZSK[[:space:]]*active.*$ZSK2_CKA" &&
+log_grep ods-enforcer-temp stdout "ods1[[:space:]]*ZSK[[:space:]]*publish" &&
+
+ZSK3_CKA=`log_grep -o ods-enforcer-temp stdout "ods1[[:space:]]*ZSK[[:space:]]*publish" | awk '{print $8}'` &&
+rm _log.$BUILD_TAG.ods-enforcer-temp.stdout &&
+
+
+#### TIME 9: Next ZSK rollover continues
 log_this ods-enforcer-output echo "--------------- TIME LEAP 9 ----------------" &&
 log_this ods-enforcer-output 'ods-enforcer time leap' && sleep 1 &&
 log_this ods-enforcer-output echo "--------------------------------------------" &&
-log_this ods-enforcer-output echo "----- Expect active/retire/active [I see dead keys!]" &&
+log_this ods-enforcer-output echo "----- Expect active/retire/ready " &&
+log_this ods-enforcer-output ods-enforcer key list  --verbose &&
+log_this ods-enforcer-output ods-enforcer key list --debug &&
+
+log_this ods-enforcer-temp ods-enforcer key list  --verbose &&
+log_grep ods-enforcer-temp stdout "ods1[[:space:]]*KSK[[:space:]]*active.*$KSK1_CKA" &&
+log_grep ods-enforcer-temp stdout "ods1[[:space:]]*ZSK[[:space:]]*retire.*$ZSK2_CKA" &&
+log_grep ods-enforcer-temp stdout "ods1[[:space:]]*ZSK[[:space:]]*ready.*$ZSK3_CKA" &&
+rm _log.$BUILD_TAG.ods-enforcer-temp.stdout &&
+
+
+#### TIME 10: Next ZSK rollover starts
+log_this ods-enforcer-output echo "--------------- TIME LEAP 10 ----------------" &&
+log_this ods-enforcer-output 'ods-enforcer time leap' && sleep 1 &&
+log_this ods-enforcer-output echo "--------------------------------------------" &&
+log_this ods-enforcer-output echo "----- Expect active/retire/active " &&
 log_this ods-enforcer-output ods-enforcer key list  --verbose &&
 log_this ods-enforcer-output ods-enforcer key list --debug &&
 log_this ods-enforcer-output ods-enforcer rollover list &&
+
+log_this ods-enforcer-temp ods-enforcer key list  --verbose &&
+log_grep ods-enforcer-temp stdout "ods1[[:space:]]*KSK[[:space:]]*active.*$KSK1_CKA" &&
+log_grep ods-enforcer-temp stdout "ods1[[:space:]]*ZSK[[:space:]]*retire.*$ZSK2_CKA" &&
+log_grep ods-enforcer-temp stdout "ods1[[:space:]]*ZSK[[:space:]]*active.*$ZSK3_CKA" &&
+rm _log.$BUILD_TAG.ods-enforcer-temp.stdout &&
 
 #### Lets try to roll the KSK manually now
 log_this ods-enforcer-output_manual ods-enforcer key list  --verbose &&
@@ -165,73 +284,133 @@ log_this ods-enforcer-output_manual ods-enforcer key list --debug &&
 log_this ods-enforcer-output_manual ods-enforcer rollover list &&
 
 log_this ods-enforcer-output_manual echo "----- Do manual key rollover for KSK" &&
+sleep 1 && ods_enforcer_idle &&
 log_this ods-enforcer-output_manual ods-enforcer key rollover  --zone ods1 --keytype KSK &&
-log_this ods-enforcer-output_manual echo "----- Expect a new KSK to be published? Check." &&
+sleep 1 && ods_enforcer_idle &&
+log_this ods-enforcer-output_manual echo "----- Expect a new KSK to be published" &&
 log_this ods-enforcer-output_manual ods-enforcer key list  --verbose &&
 log_this ods-enforcer-output_manual ods-enforcer key list --debug &&
-log_this ods-enforcer-output_manual echo "----- BUG? The rollover list doesn't seem to know about manual roll.....!!!" &&
+log_this ods-enforcer-output_manual echo "----- The rollover list for manual roll.....!!!" &&
 log_this ods-enforcer-output_manual ods-enforcer rollover list &&
 
-#### TIME 10: Expect KSK to be ready 
-log_this ods-enforcer-output_manual echo "--------------- TIME LEAP 10 ----------------" &&
-log_this ods-enforcer-output_manual 'ods-enforcer time leap' && sleep 1 &&
-log_this ods-enforcer-output_manual echo "--------------------------------------------" &&
-log_this ods-enforcer-output_manual echo "----- Expect a new KSK to be ready? Hmm - actually all that happened was one of the ZSKs changed state in debug..." &&
-log_this ods-enforcer-output_manual ods-enforcer key list  --verbose &&
-log_this ods-enforcer-output_manual ods-enforcer key list --debug &&
-log_this ods-enforcer-output_manual ods-enforcer rollover list &&
+log_this ods-enforcer-temp ods-enforcer key list  --verbose &&
+log_grep ods-enforcer-temp stdout "ods1[[:space:]]*KSK[[:space:]]*active.*$KSK1_CKA" &&
+log_grep ods-enforcer-temp stdout "ods1[[:space:]]*KSK[[:space:]]*publish" &&
+
+KSK2_CKA=`log_grep -o ods-enforcer-temp stdout "ods1[[:space:]]*KSK[[:space:]]*publish" | awk '{print $8}'` &&
+
+rm _log.$BUILD_TAG.ods-enforcer-temp.stdout &&
 
 #### TIME 11: Expect KSK to be ready 
 log_this ods-enforcer-output_manual echo "--------------- TIME LEAP 11 ----------------" &&
 log_this ods-enforcer-output_manual 'ods-enforcer time leap' && sleep 1 &&
 log_this ods-enforcer-output_manual echo "--------------------------------------------" &&
-log_this ods-enforcer-output_manual echo "----- Expect a new KSK to be ready/ds-submit? Check. BUG? But as before I now have no active KSK here...." &&
+log_this ods-enforcer-output_manual echo "----- Expect a new KSK to be ready ..." &&
 log_this ods-enforcer-output_manual ods-enforcer key list  --verbose &&
 log_this ods-enforcer-output_manual ods-enforcer key list --debug &&
 log_this ods-enforcer-output_manual ods-enforcer rollover list &&
 
-log_this ods-enforcer-output_manual echo "----- Do ds-submit" &&
-log_this ods-enforcer-output_manual 'ods-enforcer key ds-submit --zone ods1 --force' && sleep 1 &&
+log_this ods-enforcer-temp ods-enforcer key list  --verbose &&
+log_grep ods-enforcer-temp stdout "ods1[[:space:]]*KSK[[:space:]]*retire.*$KSK1_CKA" &&
+log_grep ods-enforcer-temp stdout "ods1[[:space:]]*KSK[[:space:]]*ready.*$KSK2_CKA" &&
+rm _log.$BUILD_TAG.ods-enforcer-temp.stdout &&
 
-log_this ods-enforcer-output_manual echo "----- Expect KSKs to be active/ready(ds-seen)" &&
-log_this ods-enforcer-output_manual ods-enforcer key list  --verbose &&
-log_this ods-enforcer-output_manual ods-enforcer key list --debug &&
-log_this ods-enforcer-output_manual ods-enforcer rollover list &&
 
 log_this ods-enforcer-output_manual echo "----- Do ds-seen" &&
-KSK_CKA_ID2=`log_grep -o ods-enforcer-output_manual stdout "ods1[[:space:]].*KSK[[:space:]].*ready     waiting for ds-submit" | awk '{print $9}'` &&
-log_this ods-enforcer-output_manual ods-enforcer key ds-seen --zone ods1 --cka_id $KSK_CKA_ID2 && sleep 1 &&
+sleep 5 && log_this ods-enforcer-output_manual ods-enforcer key ds-seen --zone ods1 --cka_id $KSK2_CKA && sleep 1 &&
 log_this ods-enforcer-output_manual ods-enforcer key list  --verbose &&
 log_this ods-enforcer-output_manual ods-enforcer key list --debug &&
 log_this ods-enforcer-output_manual ods-enforcer rollover list &&
 
-#### TIME 12: Expect KSK to be active 
+#### Keys are both active right after ds-seen command
+log_this ods-enforcer-output echo "----- Expect active/active " &&
+log_this ods-enforcer-output ods-enforcer key list  --verbose &&
+log_this ods-enforcer-output ods-enforcer key list --debug &&
+log_this ods-enforcer-output ods-enforcer rollover list &&
+
+log_this ods-enforcer-temp ods-enforcer key list  --verbose &&
+log_grep ods-enforcer-temp stdout "ods1[[:space:]]*KSK[[:space:]]*retire.*$KSK1_CKA" &&
+log_grep ods-enforcer-temp stdout "ods1[[:space:]]*KSK[[:space:]]*active.*$KSK2_CKA" &&
+rm _log.$BUILD_TAG.ods-enforcer-temp.stdout &&
+
+
+#### TIME 11.5: Expect DS becomes omnipresent
 log_this ods-enforcer-output_manual echo "----- Wait for DS TTL to pass  " &&
-log_this ods-enforcer-output_manual echo "--------------- TIME LEAP 12 ----------------" &&
+log_this ods-enforcer-output_manual echo "--------------- TIME LEAP 11.5 ----------------" &&
 log_this ods-enforcer-output_manual 'ods-enforcer time leap' && sleep 1 &&
 log_this ods-enforcer-output_manual echo "--------------------------------------------" &&
-log_this ods-enforcer-output_manual echo "----- Expect a new KSK to be active since DS TTL has passed?" &&
+log_this ods-enforcer-output_manual echo "----- Expect DS becomes omnipresent since DS TTL has passed" &&
 log_this ods-enforcer-output_manual ods-enforcer key list  --verbose &&
 log_this ods-enforcer-output_manual ods-enforcer key list --debug &&
 log_this ods-enforcer-output_manual ods-enforcer rollover list &&
+
+log_this ods-enforcer-temp ods-enforcer key list  --debug &&
+log_grep ods-enforcer-temp stdout "ods1[[:space:]]*KSK[[:space:]]*omnipresent[[:space:]]*omnipresent[[:space:]]*omnipresent[[:space:]]*.*$KSK2_CKA" &&
+rm _log.$BUILD_TAG.ods-enforcer-temp.stdout &&
 
 log_this ods-enforcer-output_manual echo "----- Do ds-retract" &&
-log_this ods-enforcer-output_manual 'ods-enforcer key ds-retract --zone ods1 --force' && sleep 1 &&
-
-log_this ods-enforcer-output_manual echo "----- Expect old KSK to be ??? BUG? State doesn't seem to have changed?" &&
+log_this ods-enforcer-output_manual ods-enforcer key ds-gone --zone ods1 --cka_id $KSK1_CKA && sleep 1 &&
 log_this ods-enforcer-output_manual ods-enforcer key list  --verbose &&
 log_this ods-enforcer-output_manual ods-enforcer key list --debug &&
 log_this ods-enforcer-output_manual ods-enforcer rollover list &&
 
-#### TIME 12.5: ???
-log_this ods-enforcer-output_manual echo "--------------- TIME LEAP 12.5 -----------------" &&
+
+log_this ods-enforcer-output_manual echo "----- Expect hidden DS for old KSK " &&
+log_this ods-enforcer-output_manual ods-enforcer key list  --verbose &&
+log_this ods-enforcer-output_manual ods-enforcer key list --debug &&
+log_this ods-enforcer-output_manual ods-enforcer rollover list &&
+
+log_this ods-enforcer-temp ods-enforcer key list  --debug &&
+log_grep ods-enforcer-temp stdout "ods1[[:space:]]*KSK[[:space:]]*hidden[[:space:]]*unretentive[[:space:]]*unretentive.*$KSK1_CKA" &&
+log_grep ods-enforcer-temp stdout "ods1[[:space:]]*KSK[[:space:]]*omnipresent[[:space:]]*omnipresent[[:space:]]*omnipresent.*$KSK2_CKA" &&
+rm _log.$BUILD_TAG.ods-enforcer-temp.stdout &&
+
+
+#### TIME 12
+log_this ods-enforcer-output_manual echo "--------------- TIME LEAP 12 -----------------" &&
 log_this ods-enforcer-output_manual 'ods-enforcer time leap' && sleep 1 &&
 log_this ods-enforcer-output_manual echo "--------------------------------------------" &&
 
-log_this ods-enforcer-output_manual echo "----- Expect active KSK " &&
+
+log_this ods-enforcer-output_manual echo "----- Expect hidden DNSKEY and RRSIGDNSKEY" &&
 log_this ods-enforcer-output_manual ods-enforcer key list  --verbose &&
 log_this ods-enforcer-output_manual ods-enforcer key list --debug &&
 log_this ods-enforcer-output_manual ods-enforcer rollover list &&
+
+log_this ods-enforcer-temp ods-enforcer key list  --debug &&
+log_grep ods-enforcer-temp stdout "ods1[[:space:]]*KSK[[:space:]]*hidden[[:space:]]*hidden[[:space:]]*hidden.*$KSK1_CKA" &&
+log_grep ods-enforcer-temp stdout "ods1[[:space:]]*KSK[[:space:]]*omnipresent[[:space:]]*omnipresent[[:space:]]*omnipresent.*$KSK2_CKA" &&
+rm _log.$BUILD_TAG.ods-enforcer-temp.stdout &&
+
+
+#### TIME 13
+log_this ods-enforcer-output_manual echo "--------------- TIME LEAP 13 -----------------" &&
+log_this ods-enforcer-output_manual 'ods-enforcer time leap' && sleep 1 &&
+log_this ods-enforcer-output_manual echo "--------------------------------------------" &&
+
+log_this ods-enforcer-output_manual echo "----- Expect old ZSK has been removed from the list " &&
+log_this ods-enforcer-output_manual ods-enforcer key list  --verbose &&
+log_this ods-enforcer-output_manual ods-enforcer key list --debug &&
+log_this ods-enforcer-output_manual ods-enforcer rollover list &&
+
+log_this ods-enforcer-temp ods-enforcer key list  --verbose &&
+! log_grep ods-enforcer-temp stdout "ods1[[:space:]]*ZSK[[:space:]]*retire" &&
+rm _log.$BUILD_TAG.ods-enforcer-temp.stdout &&
+
+#### TIME 14
+log_this ods-enforcer-output_manual echo "--------------- TIME LEAP 14 -----------------" &&
+log_this ods-enforcer-output_manual 'ods-enforcer time leap' && sleep 1 &&
+log_this ods-enforcer-output_manual echo "--------------------------------------------" &&
+
+log_this ods-enforcer-output_manual echo "----- Expect old KSK has been removed from the list " &&
+log_this ods-enforcer-output_manual ods-enforcer key list  --verbose &&
+log_this ods-enforcer-output_manual ods-enforcer key list --debug &&
+log_this ods-enforcer-output_manual ods-enforcer rollover list &&
+
+log_this ods-enforcer-temp ods-enforcer key list  --debug &&
+! log_grep ods-enforcer-temp stdout "ods1[[:space:]]*KSK.*$KSK1_CKA" &&
+log_grep ods-enforcer-temp stdout "ods1[[:space:]]*KSK[[:space:]]*omnipresent[[:space:]]*omnipresent[[:space:]]*omnipresent.*$KSK2_CKA" &&
+rm _log.$BUILD_TAG.ods-enforcer-temp.stdout &&
 
 
 ods_stop_enforcer &&

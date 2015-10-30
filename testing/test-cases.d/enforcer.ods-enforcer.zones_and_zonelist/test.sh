@@ -7,20 +7,10 @@
 
 #TODO: Test that the system starts up with no zonefile and that a message reports this properly
 
-# needed to access diff.sh script in same directory
-PATH="`dirname $0`":$PATH
-export PATH
-
 ZONES_FILE=$INSTALL_ROOT/var/opendnssec/enforcer/zones.xml
 ZONELIST_FILE=$INSTALL_ROOT/etc/opendnssec/zonelist.xml
 
 local num_completed_updates
-
-# First, fix up the install root in the gold files
-sed -e "s%@INSTALL_ROOT@%$INSTALL_ROOT%" zonelist.xml.gold > zonelist.xml.gold_local &&
-sed -e "s%@INSTALL_ROOT@%$INSTALL_ROOT%" zonelist.xml.test > zonelist.xml.test_local && 
-sed -e "s%@INSTALL_ROOT@%$INSTALL_ROOT%" zonelist.xml.gold_export > zonelist.xml.gold_export_local &&
-sed -e "s%@INSTALL_ROOT@%$INSTALL_ROOT%" zonelist.xml.gold_export2 > zonelist.xml.gold_export2_local &&
 
 if [ -n "$HAVE_MYSQL" ]; then
 	ods_setup_conf conf.xml conf-mysql.xml
@@ -132,18 +122,19 @@ log_this ods-enforcer-zone_add_bad   ods-enforcer zone add --zone ods13 --input 
 ##################  TEST:  Zonelist.xml  export ###########################
 
 # Check the zones.xml internal file is written (2.0 new behaviour)
-diff.sh $ZONES_FILE zonelist.xml.gold_local &&
+ods_comparexml --format-zonelist $ZONES_FILE zonelist.xml.gold &&
+cp $ZONES_FILE zonelist.xml.import
 echo "zones.xml contents OK" &&
 
 # Check the zonelist.xml is still empty (2.0 default behaviour)
 echo "Checking zonelist contents" && 
-diff.sh $ZONELIST_FILE zonelist.xml &&
+ods_comparexml --format-zonelist $ZONELIST_FILE zonelist.xml &&
 echo "Zonelist contents OK" && 
 
 # Check the export against a gold
-ods-enforcer zonelist export > zonelist.xml.temp &&
+log_this ods-enforcer-zonelist-export ods-enforcer zonelist export &&
 cp $ZONELIST_FILE zonelist.xml.temp &&
-diff.sh zonelist.xml.temp zonelist.xml.gold_export_local &&
+ods_comparexml --format-zonelist zonelist.xml.temp zonelist.xml.gold_export &&
 echo "Zonelist export contents OK" && 
 
 # Now add _and_ update the zonelist (2.0 new behaviour)
@@ -156,20 +147,20 @@ log_grep ods-enforcer-zone_add_list_1   stdout "ods14[[:space:]]*default" &&
 
 # Exported zonelist should be different (not checked in detail)....
 echo "Checking zonelist contents again after update of zonelist.xml" && 
-ods-enforcer zonelist export > zonelist.xml.temp &&
-! diff.sh $ZONELIST_FILE zonelist.xml.gold_local &&
+log_this ods-enforcer-zonelist-export ods-enforcer zonelist export &&
+! ods_comparexml --format-zonelist $ZONELIST_FILE zonelist.xml.gold &&
 $GREP -q -- "ods14" "$ZONELIST_FILE" &&
 echo "Zonelist contents OK again" &&
 
 # And the zones.xml should be different too
-! diff.sh $ZONES_FILE zonelist.xml.gold_local &&
+! ods_comparexml --format-zonelist $ZONES_FILE zonelist.xml.gold &&
 $GREP -q -- "ods14" "$ZONES_FILE" &&
 echo "zones.xml contents OK" &&
 
 # Exported zonelist should be different (not checked in detail)....
-ods-enforcer zonelist export > zonelist.xml.temp1 &&
+log_this ods-enforcer-zonelist-export ods-enforcer zonelist export &&
 cp $ZONELIST_FILE zonelist.xml.temp1 &&
-! diff.sh zonelist.xml.temp1 zonelist.xml.gold_export_local &&
+! ods_comparexml --format-zonelist zonelist.xml.temp1 zonelist.xml.gold_export &&
 $GREP -q -- "ods14" "zonelist.xml.temp1" &&
 echo "Zonelist export contents OK" &&
 
@@ -182,7 +173,7 @@ log_this ods-enforcer-zone_del_list_1   ods-enforcer zone list &&
 ! log_grep ods-enforcer-zone_del_list_1   stdout "ods1[[:space:]]*Policy1" &&
 
 echo "Checking zonelist contents again after delete" && 
-###diff.sh $ZONELIST_FILE zonelist.xml.gold_local &&
+### ods_comparexml --format-zonelist $ZONELIST_FILE zonelist.xml.gold &&
 $GREP -q -- "ods1\"" "$ZONELIST_FILE" &&
 $GREP -q -- "ods14" "$ZONELIST_FILE" &&
 ! $GREP -q -- "ods1\"" "$ZONES_FILE" &&
@@ -218,12 +209,12 @@ log_this ods-enforcer-zone_del_list_3  ods-enforcer zone list  &&
 log_grep ods-enforcer-zone_del_list_3   stdout "No zones in database." &&
 
 echo "Checking no zones in internal zonelist" && 
-diff.sh $ZONES_FILE zonelist.xml &&
+ods_comparexml --format-zonelist $ZONES_FILE zonelist.xml &&
 echo "Internal Zone file contents empty" &&
 
 ##################  TEST:  Zonelist.xml  import ###########################
 
-cp zonelist.xml.gold_local "$ZONELIST_FILE" &&
+cp zonelist.xml.import "$ZONELIST_FILE" &&
 ods_enforcer_idle &&
 # we no longer have a good way to test this, just sleep for 2 minutes, as it should take only 20 seconds or so for now
 #num_completed_updates=`syslog_grep_count2 "Completed updating all zones that need required action"` &&
@@ -248,16 +239,17 @@ log_grep ods-enforcer-zone_add_list_2   stdout "ods13[[:space:]]*default" &&
 
 # Check the export gives the same thing  (note - we use a different gold file here as the order
 # in the exported file is not the same as that in the configuration file)
-ods-enforcer zonelist export > zonelist.xml.temp2 &&
+log_this ods-enforcer-zonelist-export ods-enforcer zonelist export &&
 cp $ZONELIST_FILE zonelist.xml.temp2 &&
-diff.sh zonelist.xml.temp2 zonelist.xml.gold_export_local &&
+ods_comparexml --format-zonelist zonelist.xml.temp2 zonelist.xml.gold_export &&
 echo "Zonelist export contents OK" &&
-diff.sh $ZONES_FILE zonelist.xml.gold_local &&
+ods_comparexml --format-zonelist $ZONES_FILE zonelist.xml.gold &&
 echo "zones.xml contents OK" &&
 
 # Now do another import with a file that has one extra zone and one zone removed
 # and some of the data changed
-cp zonelist.xml.test_local "$ZONELIST_FILE" &&
+sed -e "s%@INSTALL_ROOT@%$INSTALL_ROOT%" < zonelist.xml.test > "$ZONELIST_FILE" &&
+cp "$ZONELIST_FILE" zonelist.xml.test_local &&
 ods_enforcer_idle &&
 log_this ods-enforcer-zonelist-import ods-enforcer zonelist import --remove-missing-zones && 
 log_this ods-enforcer-zonelist-enforce ods-enforcer enforce && 
@@ -285,11 +277,11 @@ log_grep ods-enforcer-zone_add_list_3   stdout "ods14[[:space:]]*default" &&
 sleep 120 &&
 ods_enforcer_idle &&
 
-ods-enforcer zonelist export > zonelist.xml.temp3 &&
+log_this ods-enforcer-zonelist-export ods-enforcer zonelist export &&
 cp $ZONELIST_FILE zonelist.xml.temp3 &&
-diff.sh zonelist.xml.temp3 zonelist.xml.gold_export2_local &&
+ods_comparexml --format-zonelist zonelist.xml.temp3 zonelist.xml.gold_export2 &&
 echo "Zonelist export contents OK" &&
-diff.sh $ZONES_FILE zonelist.xml.test_local &&
+ods_comparexml --format-zonelist $ZONES_FILE zonelist.xml.test_local &&
 echo "zones.xml contents OK" &&
 
 # #Finally run the signer to check all is well
@@ -322,23 +314,18 @@ ods_enforcer_idle &&
 log_this ods-enforcer-zonelist-import-empty   ods-enforcer zone list &&
 log_grep ods-enforcer-zonelist-import-empty   stdout "No zones in database." &&
 
-ods-enforcer zonelist export > zonelist.xml.temp4 &&
+log_this ods-enforcer-zonelist-export ods-enforcer zonelist export &&
 cp $ZONELIST_FILE zonelist.xml.temp4 &&
-diff.sh zonelist.xml.temp4 zonelist.xml.platinum &&
+ods_comparexml --format-zonelist zonelist.xml.temp4 zonelist.xml.platinum &&
 echo "Zonelist export contents OK" &&
 
 ods_stop_enforcer && 
 
 # Clean up
-rm -f zonelist.xml.gold_local  &&
-rm -f zonelist.xml.test_local  &&
-rm -f zonelist.xml.gold_export_local  &&
-rm -f zonelist.xml.gold_export2_local  &&
-rm -f zonelist.xml.temp  &&
-rm -f zonelist.xml.temp1  &&
-rm -f zonelist.xml.temp2  &&
-rm -f zonelist.xml.temp3  &&
-rm -f zonelist.xml.temp4  &&
+rm -f zonelist.xml.test_local &&
+rm -f zonelist.xml.gold_import &&
+rm -f zonelist.xml.temp* &&
+rm -f *~ &&
 
 echo && 
 echo "************OK******************" &&

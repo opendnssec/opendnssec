@@ -18,7 +18,6 @@ ods_reset_env &&
 # Start enforcer (Zone already exists and we let it generate keys itself)
 
 ods_start_enforcer &&
-sleep 60 &&
 
 # Check that we have 2 keys
 log_this ods-enforcer-key-list1 ods-enforcer key list &&
@@ -30,9 +29,10 @@ log_this ods-enforcer-keytag ods-enforcer key list --verbose &&
 KSK_KEYTAG=`log_grep -o ods-enforcer-keytag stdout "ods[[:space:]]*KSK[[:space:]]*generate" | awk '{print $10}'` &&
 
 ## Jump forward one hour so the KSK will be ready, obviosuly depends on Propagation Time and TTL 
-##################  STEP 1: Time = 1 hr ###########################
+##################  STEP 1: Time = 4 hr ###########################
 
-log_this ods-enforcer-time-leap ods_enforcer_leap_to 3600 &&
+log_this ods-enforcer-time-leap ods_enforcer_leap_to 14400 &&
+
 
 
 # We should be ready for a ds-seen on ods

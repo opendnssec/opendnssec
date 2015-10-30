@@ -18,7 +18,8 @@
 	</Common>
 	<Enforcer>
 		<Datastore><MySQL><Host>localhost</Host><Database>test</Database><Username>test</Username><Password>test</Password></MySQL></Datastore>
-		<Interval>PT1M</Interval>
+		<Interval>PT10M</Interval>
+		<AutomaticKeyGenerationPeriod>PT1M</AutomaticKeyGenerationPeriod>
 	</Enforcer>
 	<Signer>
 		<WorkingDirectory>@INSTALL_ROOT@/var/opendnssec/signer</WorkingDirectory>

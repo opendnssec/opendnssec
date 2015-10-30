@@ -2114,7 +2114,7 @@ last_inception_policy(key_data_list_t *key_list, const policy_key_t *pkey)
 		hsm_key_free(hsmkey);
 		hsmkey = NULL;
 		/** This key matches, is it newer? */
-		if (max_inception == -1 || max_inception < key_data_inception(key))
+		if (max_inception == -1 || max_inception < (signed int)key_data_inception(key))
 		{
 			max_inception = key_data_inception(key);
 		}
@@ -2160,31 +2160,24 @@ key_for_conf(key_data_list_t *key_list, const policy_key_t *pkey)
  * \return Zero on success, a positive value on database error and a negative
  * value on generic errors.
  */
-static int 
+static void 
 setnextroll(zone_t *zone, const policy_key_t *pkey, time_t t)
 {
-	if (!zone) {
-		return -1;
-	}
-	if (!pkey) {
-		return -1;
-	}
+	assert(zone);
+	assert(pkey);
 
 	switch(policy_key_role(pkey)) {
 		case POLICY_KEY_ROLE_KSK:
-			if (zone_next_ksk_roll(zone) > t)
-				return zone_set_next_ksk_roll(zone, (unsigned int)t) == DB_OK ? 0 : 1;
-			return 0;
+			zone->next_ksk_roll = (unsigned int)t;
+			break;
 		case POLICY_KEY_ROLE_ZSK:
-			if (zone_next_zsk_roll(zone) > t)
-				return zone_set_next_zsk_roll(zone, (unsigned int)t) == DB_OK ? 0 : 1;
-			return 0 ;
+			zone->next_zsk_roll = (unsigned int)t;
+			break;
 		case POLICY_KEY_ROLE_CSK:
-			if (zone_next_csk_roll(zone) > t)
-				return zone_set_next_csk_roll(zone, (unsigned int)t) == DB_OK ? 0 : 1;
-			return 0;
+			zone->next_csk_roll = (unsigned int)t;
+			break;
 		default:
-			return 1;
+			assert(0);
 	}
 }
 
@@ -2324,7 +2317,6 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 	hsm_key_t *newhsmkey = NULL;
 	static const char *scmd = "updatePolicy";
 	int force_roll;
-	const key_data_t *youngest;
 	time_t t_ret;
 	key_data_role_t key_role;
 	int success;
@@ -2466,13 +2458,7 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 			{
 				t_ret = addtime(inception, policy_key_lifetime(pkey));
 				minTime(t_ret, &return_at);
-				if (setnextroll(zone, pkey, t_ret)) {
-					/* TODO: log error */
-					ods_log_error("[%s] %s: error setnextroll 1", module_str, scmd);
-					key_data_list_free(keylist);
-					policy_key_list_free(policykeylist);
-					return now + 60;
-				}
+				setnextroll(zone, pkey, t_ret);
 				*zone_updated = 1;
 				continue;
 			}
@@ -2500,13 +2486,7 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 				module_str, scmd, policy_name(policy), policy_key_role_text(pkey),
 				policy_key_lifetime(pkey), policy_parent_ds_ttl(policy),
 				policy_keys_ttl(policy));
-			if (setnextroll(zone, pkey, now)) {
-				/* TODO: better log error */
-				ods_log_error("[%s] %s: error setnextroll 2", module_str, scmd);
-				key_data_list_free(keylist);
-				policy_key_list_free(policykeylist);
-				return now + 60;
-			}
+			setnextroll(zone, pkey, now);
 			*zone_updated = 1;
 			continue;
 		}
@@ -2521,13 +2501,7 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 				module_str, scmd, policy_name(policy), policy_key_role_text(pkey),
 				policy_key_lifetime(pkey), policy_signatures_max_zone_ttl(policy),
 				policy_keys_ttl(policy));
-			if (setnextroll(zone, pkey, now)) {
-				/* TODO: better log error */
-				ods_log_error("[%s] %s: error setnextroll 3", module_str, scmd);
-				key_data_list_free(keylist);
-				policy_key_list_free(policykeylist);
-				return now + 60;
-			}
+			setnextroll(zone, pkey, now);
 			*zone_updated = 1;
 			continue;
 		}
@@ -2554,13 +2528,7 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 			ods_log_warning("[%s] %s: No keys available in HSM for policy %s, retry in %d seconds",
 				module_str, scmd, policy_name(policy), NOKEY_TIMEOUT);
 			minTime(now + NOKEY_TIMEOUT, &return_at);
-			if (setnextroll(zone, pkey, now)) {
-				/* TODO: better log error */
-				ods_log_error("[%s] %s: error setnextroll 4", module_str, scmd);
-				key_data_list_free(keylist);
-				policy_key_list_free(policykeylist);
-				return now + 60;
-			}
+			setnextroll(zone, pkey, now);
 			*zone_updated = 1;
 			continue;
 		}
@@ -2653,18 +2621,7 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 		}
 		t_ret = addtime(now, policy_key_lifetime(pkey));
 		minTime(t_ret, &return_at);
-		if (setnextroll(zone, pkey, t_ret)) {
-			/* TODO: better log error */
-			ods_log_error("[%s] %s: error setnextroll 5", module_str, scmd);
-            /*
-             * TODO: What should happen with the key and hsmkey here?
-             */
-			key_data_free(mutkey);
-			hsm_key_free(newhsmkey);
-			key_data_list_free(keylist);
-			policy_key_list_free(policykeylist);
-			return now + 60;
-		}
+		setnextroll(zone, pkey, t_ret);
 		*zone_updated = 1;
 
 		/*

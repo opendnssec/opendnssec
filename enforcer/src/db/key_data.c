@@ -30,7 +30,6 @@
 #include "key_data.h"
 #include "db_error.h"
 
-#include "mm.h"
 
 #include <string.h>
 
@@ -260,15 +259,15 @@ static db_object_t* __key_data_new_object(const db_connection_t* connection) {
 
 /* KEY DATA */
 
-static mm_alloc_t __key_data_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(key_data_t));
+
 
 key_data_t* key_data_new(const db_connection_t* connection) {
     key_data_t* key_data =
-        (key_data_t*)mm_alloc_new0(&__key_data_alloc);
+        (key_data_t*)calloc(1, sizeof(key_data_t));
 
     if (key_data) {
         if (!(key_data->dbo = __key_data_new_object(connection))) {
-            mm_alloc_delete(&__key_data_alloc, key_data);
+            free(key_data);
             return NULL;
         }
         db_value_reset(&(key_data->id));
@@ -320,13 +319,8 @@ void key_data_free(key_data_t* key_data) {
         if (key_data->key_state_list) {
             key_state_list_free(key_data->key_state_list);
         }
-        mm_alloc_delete(&__key_data_alloc, key_data);
+        free(key_data);
     }
-}
-
-void key_data_alloc_nuke()
-{
-    mm_alloc_free(&__key_data_alloc);
 }
 
 void key_data_reset(key_data_t* key_data) {
@@ -2019,15 +2013,15 @@ int key_data_count(key_data_t* key_data, db_clause_list_t* clause_list, size_t* 
 
 /* KEY DATA LIST */
 
-static mm_alloc_t __key_data_list_alloc = MM_ALLOC_T_STATIC_NEW(sizeof(key_data_list_t));
+
 
 key_data_list_t* key_data_list_new(const db_connection_t* connection) {
     key_data_list_t* key_data_list =
-        (key_data_list_t*)mm_alloc_new0(&__key_data_list_alloc);
+        (key_data_list_t*)calloc(1, sizeof(key_data_list_t));
 
     if (key_data_list) {
         if (!(key_data_list->dbo = __key_data_new_object(connection))) {
-            mm_alloc_delete(&__key_data_list_alloc, key_data_list);
+            free(key_data_list);
             return NULL;
         }
     }
@@ -2102,13 +2096,8 @@ void key_data_list_free(key_data_list_t* key_data_list) {
         if (key_data_list->hsm_key_id_list) {
             hsm_key_list_free(key_data_list->hsm_key_id_list);
         }
-        mm_alloc_delete(&__key_data_list_alloc, key_data_list);
+        free(key_data_list);
     }
-}
-
-void key_data_list_alloc_nuke()
-{
-    mm_alloc_free(&__key_data_list_alloc);
 }
 
 int key_data_list_copy(key_data_list_t* key_data_list, const key_data_list_t* from_key_data_list) {

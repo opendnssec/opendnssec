@@ -8,7 +8,6 @@ EXTRA_DIST =
 
 CLEANFILES = $(BUILT_SOURCES)
 
-LIBMM = ${top_builddir}/mm/src/libmm.a
 LIBHSM = ${top_builddir}/libhsm/src/lib/libhsm.a
 
 SUBDIRS = utils db/test
@@ -16,8 +15,6 @@ SUBDIRS = utils db/test
 AM_CFLAGS = \
 	-I$(top_srcdir)/common \
 	-I$(top_builddir)/common \
-	-I$(top_srcdir)/mm/src \
-	-I$(top_builddir)/mm/src \
 	-I$(srcdir)/../../libhsm/src/lib \
 	-I$(builddir)/../../libhsm/src/lib \
 	@XML2_INCLUDES@ \
@@ -67,7 +64,6 @@ ods_enforcerd_SOURCES = \
 	policy/policy_export.c policy/policy_export.h \
 	policy/policy_import.c policy/policy_import.h \
 	policy/policy_import_cmd.c policy/policy_import_cmd.h \
-	policy/update_kasp_cmd.c policy/update_kasp_cmd.h \
 	policy/policy_list_cmd.c policy/policy_list_cmd.h \
 	policy/policy_resalt_cmd.c policy/policy_resalt_cmd.h \
 	policy/policy_resalt_task.c policy/policy_resalt_task.h \
@@ -127,7 +123,6 @@ ods_enforcerd_SOURCES = \
 	$(BACKEND_SOURCES_CUSTOM)
 
 ods_enforcerd_LDADD = \
-	$(LIBMM) \
 	$(LIBHSM) \
 	$(LIBCOMPAT) \
 	@LDNS_LIBS@ \

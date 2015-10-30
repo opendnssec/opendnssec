@@ -122,6 +122,7 @@ echo "Testing shared ZSKs" &&
 
 echo "Make sure that there are no additional keys allocated" &&
 log_this hsmutil-list ods-hsmutil list &&
+echo "There are `ods-hsmutil list | grep ^SoftHSM | wc -l` keys and expecting 10" &&
 test `ods-hsmutil list | grep ^SoftHSM | wc -l` -eq 10 &&
 
 # YBS: The correct number is 8. In practice there are 10 because of

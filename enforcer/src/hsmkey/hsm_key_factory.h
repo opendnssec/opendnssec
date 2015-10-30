@@ -40,7 +40,7 @@ void hsm_key_factory_deinit(void);
  * TODO
  */
 void hsm_key_factory_generate(engine_type* engine,
-    const db_connection_t* connection, const policy_key_t* policy_key,
+    const db_connection_t* connection, const policy_t* policy, const policy_key_t* policy_key,
     time_t duration);
 
 /**
@@ -55,17 +55,6 @@ void hsm_key_factory_generate_policy(engine_type* engine,
 void hsm_key_factory_generate_all(engine_type* engine,
     const db_connection_t* connection, time_t duration);
 
-/**
- * Schedule a task to generate keys for a specific policy key.
- * \param[in] engine an engine_type.
- * \prama[in] policy_key_orig a policy_key_t pointer to the policy key we will
- * generate keys for.
- * \param[in] duration a time_t specifying the duration to generate keys from,
- * if its zero then the duration from conf.xml is taken.
- * \return non-zero on error.
- */
-int hsm_key_factory_schedule_generate(engine_type* engine,
-    const policy_key_t* policy_key_orig, time_t duration);
 
 /**
  * Schedule a task to generate keys for a specific policy.
