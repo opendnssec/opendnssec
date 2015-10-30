@@ -175,15 +175,6 @@ main(int argc, char* argv[])
         exit(2);
     }
 
-#ifdef ENFORCER_TIMESHIFT
-    if (getenv("ENFORCER_TIMESHIFT")) {
-        fprintf(stdout, "WARNING: timeshift %s detected, this is a"
-            " fixed point in time.\n", getenv("ENFORCER_TIMESHIFT"));
-    } else {
-        fprintf(stdout, "DEBUG: timeshift mode enabled, but not set.\n");
-    }
-#endif /* ENFORCER_TIMESHIFT */
-
     /* main stuff */
     fprintf(stdout, "OpenDNSSEC key and signing policy enforcer version %s\n", 
         PACKAGE_VERSION);

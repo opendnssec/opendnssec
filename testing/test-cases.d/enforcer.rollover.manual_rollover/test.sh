@@ -2,7 +2,6 @@
 #
 #TEST: Test to make sure a manual key rollover can be done
 #TEST: Roll the ZSK and then the KSK and use the zone option
-#TEST: We use TIMESHIFT to hurry things along
 
 #TODO: Test the no-retire on the ds-seen command
 #TODO: Test error cases/more complicated scenarios e.g.
@@ -193,9 +192,6 @@ log_grep ods-enforcer-key-list10 stdout 'ods3[[:space:]]*ZSK[[:space:]]*active' 
 #log_grep ods-enforcer-key-rollover3 stdout "This zone shares keys with others, all instances of the active key on this zone will be retired; are you sure?" &&
 #syslog_waitfor 5 "ods-enforcer: .*Manual key rollover for key type zsk on zone ods2 initiated" &&
 # ***************************************************************
-
-# Run the enforcer
-#ods_start_enforcer_timeshift &&
 
 # Check both keys have started rolling on ods2
 #log_this ods-enforcer-key-list11 ods-enforcer key list --verbose &&

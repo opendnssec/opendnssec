@@ -150,19 +150,6 @@ AC_CHECK_MEMBER([struct sockaddr_un.sun_len],
       #include <sys/un.h>
     ])
 
-# timeshift
-AC_ARG_ENABLE(timeshift,
-	AC_HELP_STRING([--enable-timeshift], [Enable timeshift debug]),
-		[enable_timeshift="${enableval}"],
-		[enable_timeshift="no"])
-AC_MSG_CHECKING(if we should enable timeshift debugging)
-if test "x${enable_timeshift}" = "xyes"; then
-	AC_MSG_RESULT(yes)
-	AC_DEFINE_UNQUOTED(ENFORCER_TIMESHIFT, 1, [timeshift debug])
-else
-	AC_MSG_RESULT(no)
-fi
-
 # common dependencies
 ACX_LIBXML2
 ACX_LDNS(1,6,12)
@@ -220,12 +207,6 @@ AH_BOTTOM([
 	#endif
 ])
 AM_CONDITIONAL([ENABLE_SIGNER], [test "${enable_signer}" = "yes"])
-
-# check for a green cucumber (but only if we can shift time)
-if test "x${enable_timeshift}" = "xyes"; then
-	AC_PATH_PROG(CUCUMBER, cucumber)
-fi
-AM_CONDITIONAL([WITH_CUCUMBER], [test -x "${CUCUMBER}"])
 
 # doxygen
 DX_PDF_FEATURE(OFF)

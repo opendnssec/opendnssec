@@ -2,7 +2,6 @@
 #
 #TEST: Test to track key rollovers in real time from the enforcer side only. 
 #TEST: Configured with short key lifetimes and 1 min enforcer interval.
-#TEST: unlike parent test this uses TIMESHIFT to hopefully keep things deterministic
 #TEST: Checks the output of ods-enforcer key list and the signconf.xml contents
 #TEST: Takes about 10 mins and follows several KSK and ZKK rollovers.
 

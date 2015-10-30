@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 #
 #TEST: Test to see that the DSSEEN command is dealt with as expected
-#TEST: We use TIMESHIFT to get to the point where the KSK moves to the ready state
 
 ENFORCER_WAIT=90	# Seconds we wait for enforcer to run
 ENFORCER_COUNT=2	# How many log lines we expect to see

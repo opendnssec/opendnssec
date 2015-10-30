@@ -149,9 +149,6 @@ cmd_funcs_avail(void)
 
 
         &queue_funcblock,
-#ifdef ENFORCER_TIMESHIFT
-        &time_leap_funcblock,
-#endif
         &flush_funcblock,
         &ctrl_funcblock,
         &verbosity_funcblock,

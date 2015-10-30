@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 #
 #TEST: Test to see that a  non executable DSSUB command is dealt with as expected
-#TEST: We use TIMESHIFT to get to the point where the KSK moves to the ready state
 
 ENFORCER_WAIT=90	# Seconds we wait for enforcer to run
 ENFORCER_COUNT=2	# How many log lines we expect to see
@@ -13,7 +12,7 @@ if [ -n "$HAVE_MYSQL" ]; then
 fi &&
 
 ods_reset_env &&
-sleep 120 &&
+ods_waitfor_keys &&
 
 ##################  SETUP ###########################
 # Start enforcer (Zone already exists and we let it generate keys itself)
