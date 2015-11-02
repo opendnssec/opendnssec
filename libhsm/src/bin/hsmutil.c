@@ -108,7 +108,7 @@ cmd_list (int argc, char *argv[])
 
 
     if (argc) {
-        repository = strdup(argv[0]);
+        repository = argv[0];
         argc--;
         argv++;
 
