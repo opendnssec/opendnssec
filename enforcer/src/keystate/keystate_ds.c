@@ -81,7 +81,7 @@ get_dnskey(const char *id, const char *zone, int alg, uint32_t ttl)
 	/* Get the DNSKEY record */
 	dnskey_rr = hsm_get_dnskey(hsm_ctx, key, sign_params);
 
-	libhsm_key_free(key);
+	free(key);
 	hsm_sign_params_free(sign_params);
 	hsm_destroy_context(hsm_ctx);
 	

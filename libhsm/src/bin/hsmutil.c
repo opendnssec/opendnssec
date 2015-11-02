@@ -250,7 +250,7 @@ cmd_generate (int argc, char *argv[])
             key_info ? key_info->id : "NULL");
         libhsm_key_info_free(key_info);
         if (verbose) hsm_print_key(key);
-        libhsm_key_free(key);
+        free(key);
     } else {
         printf("Key generation failed.\n");
         return -1;
@@ -289,7 +289,7 @@ cmd_remove (int argc, char *argv[])
         printf("Key remove failed.\n");
     }
 
-    libhsm_key_free(key);
+    free(key);
 
     return result;
 }
@@ -410,6 +410,7 @@ cmd_dnskey (int argc, char *argv[])
         printf("Please use: %i or %i\n", LDNS_KEY_ZONE_KEY, LDNS_KEY_ZONE_KEY + LDNS_KEY_SEP_KEY);
         free(name);
         free(id);
+        free(key);
         return -1;
     }
 
@@ -502,7 +503,7 @@ cmd_dnskey (int argc, char *argv[])
 
     hsm_sign_params_free(sign_params);
     ldns_rr_free(dnskey_rr);
-    libhsm_key_free(key);
+    free(key);
     free(name);
     free(id);
 

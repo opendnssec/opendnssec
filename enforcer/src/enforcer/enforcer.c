@@ -2232,7 +2232,7 @@ keytag(const char *loc, int alg, int ksk, int *success)
 
 	dnskey_rr = hsm_get_dnskey(hsm_ctx, hsmkey, sign_params);
 	if (!dnskey_rr) {
-		libhsm_key_free(hsmkey);
+		free(hsmkey);
 		hsm_sign_params_free(sign_params);
 		hsm_destroy_context(hsm_ctx);
 		return 0;
@@ -2241,7 +2241,7 @@ keytag(const char *loc, int alg, int ksk, int *success)
 	tag = ldns_calc_keytag(dnskey_rr);
 
 	ldns_rr_free(dnskey_rr);
-	libhsm_key_free(hsmkey);
+	free(hsmkey);
 	hsm_sign_params_free(sign_params);
 	hsm_destroy_context(hsm_ctx);
 	*success = 1;
