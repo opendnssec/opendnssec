@@ -287,6 +287,7 @@ perform_keystate_list_debug(int sockfd, db_connection_t *dbconn,
 	}
 
 	while ((key = key_data_list_get_next(key_list))) {
+		/* only refetches zone if different from previous */
         if (zone
             && (db_value_cmp(zone_id(zone), key_data_zone_id(key), &cmp)
                 || cmp))
@@ -313,6 +314,7 @@ perform_keystate_list_debug(int sockfd, db_connection_t *dbconn,
         hsm_key_free(hsmkey);
 		key_data_free(key);
 	}
+	zone_free(zone);
 	key_data_list_free(key_list);
 	return 0;
 }
