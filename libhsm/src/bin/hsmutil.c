@@ -272,7 +272,7 @@ cmd_remove (int argc, char *argv[])
         return -1;
     }
 
-    id = strdup(argv[0]);
+    id = argv[0];
 
     key = hsm_find_key_by_id(NULL, id);
 
