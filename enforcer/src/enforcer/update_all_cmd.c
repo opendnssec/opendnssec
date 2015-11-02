@@ -81,6 +81,7 @@ check_all(int sockfd, engine_type* engine)
 	free(zonelist);
 	if (replist) {
 		for (i = 0; i < repcount; i++) free(replist[i]);
+		free(replist);
 	}
 	if (policy_names) {
 		for (i = 0; i < policy_count; i++) free(policy_names[i]);
