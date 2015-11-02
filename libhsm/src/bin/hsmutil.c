@@ -314,7 +314,7 @@ cmd_purge (int argc, char *argv[])
         return -1;
     }
 
-    repository = strdup(argv[0]);
+    repository = argv[0];
     argc--;
     argv++;
 
