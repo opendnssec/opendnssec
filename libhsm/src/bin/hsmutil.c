@@ -181,8 +181,8 @@ cmd_list (int argc, char *argv[])
 int
 cmd_generate (int argc, char *argv[])
 {
-    char *repository = NULL;
-    char *algorithm = NULL;
+    const char *repository = NULL;
+    const char *algorithm = NULL;
     unsigned int keysize = 1024;
 
     libhsm_key_t *key = NULL;
@@ -193,7 +193,7 @@ cmd_generate (int argc, char *argv[])
         return -1;
     }
 
-    repository = strdup(argv[0]);
+    repository = argv[0];
 
     /* Check for repository before starting using it */
     if (hsm_token_attached(ctx, repository) == 0) {
@@ -201,7 +201,7 @@ cmd_generate (int argc, char *argv[])
        return 1;
     }
 
-    algorithm = strdup(argv[1]);
+    algorithm = argv[1];
     if (argc == 3) {
         keysize = atoi(argv[2]);
     }
