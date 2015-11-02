@@ -3094,6 +3094,7 @@ static int zone_list_get_associated(zone_list_t* zone_list) {
         zone_list->object_list[i]->key_dependency_list->object_list_size = count;
         zone_list->object_list[i]->key_dependency_list->object_list_first = 1;
     }
+    key_dependency_list_free(key_dependency_list);
     db_clause_list_free(clause_list);
 
     zone_list->object_list_first = 1;
