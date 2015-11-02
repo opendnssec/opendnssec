@@ -47,7 +47,7 @@ then
 fi &&
 
 test $DIFF -eq 0 &&
-ods_stop_enforcer &&
+log_this 03_stop ods_stop_enforcer &&
 echo "**** OK" &&
 return $KEEP_LOG_ON_SUCCESS
 
