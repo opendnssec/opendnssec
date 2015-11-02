@@ -335,7 +335,8 @@ cmd_purge (int argc, char *argv[])
     }
 
     if (key_count == 0) {
-       return -1;
+        libhsm_key_list_free(keys, key_count);
+        return -1;
     }
 
     printf("Are you sure you want to remove ALL keys from repository %s ? (YES/NO) ", repository);
