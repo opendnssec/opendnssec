@@ -111,8 +111,10 @@ exec_dnskey_by_id(int sockfd, key_data_t *key, const char* ds_command,
 	if (!locator) return 1;
 	/* This fetches the states from the DB, I'm only assuming they get
 	 * cleaned up when 'key' is cleaned(?) */
-	if (key_data_cache_key_states(key) != DB_OK)
+	if (key_data_cache_key_states(key) != DB_OK) {
+		zone_free(zone);
 		return 1;
+	}
 
 	ttl = key_state_ttl(key_data_cached_dnskey(key));
 
