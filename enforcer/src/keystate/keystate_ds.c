@@ -438,11 +438,12 @@ run_ds_cmd(int sockfd, const char *cmd, ssize_t n,
 		zone = NULL;
         	return -1;
 	}
+	zone_free(zone);
+	zone = NULL;
 
         if (!zonename && (keytag != -1 || cka_id)) {
                 ods_log_warning ("[%s] Error: expected --zone <zone>", module_str);
                 client_printf_err(sockfd, "Error: expected --zone <zone>\n");
-                free(buf);
                 return -1;
         }
 
