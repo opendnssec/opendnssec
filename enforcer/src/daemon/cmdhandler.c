@@ -383,7 +383,7 @@ cmdhandler_create(const char* filename)
 
     /* new socket */
     listenfd = socket(AF_UNIX, SOCK_STREAM, 0);
-    if (listenfd <= 0) {
+    if (listenfd < 0) {
         ods_log_error("[%s] unable to create, socket() failed: %s", module_str,
             strerror(errno));
         return NULL;
