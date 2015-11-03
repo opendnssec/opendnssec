@@ -2432,6 +2432,7 @@ static int key_data_list_get_associated(key_data_list_t* key_data_list) {
         key_data_list->object_list[i]->key_state_list->object_list_first = 1;
     }
     db_clause_list_free(clause_list);
+    hsm_key_list_free(key_state_list);
 
     key_data_list->object_list_first = 1;
     return DB_OK;
