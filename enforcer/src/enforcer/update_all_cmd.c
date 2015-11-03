@@ -81,10 +81,11 @@ check_all(int sockfd, engine_type* engine)
 	free(zonelist);
 	if (replist) {
 		for (i = 0; i < repcount; i++) free(replist[i]);
+		free(replist);
 	}
-    if (policy_names) {
-        for (i = 0; i < policy_count; i++) free(policy_names[i]);
-    }
+	if (policy_names) {
+		for (i = 0; i < policy_count; i++) free(policy_names[i]);
+	}
 	return error;
 }
 
@@ -109,30 +110,30 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	 * new conf.xml
 	 */
 	if (!(error = check_all(sockfd, engine))) {
-	    /*
-	     * Lock the engine and stop all workers
-	     */
-	    pthread_mutex_lock(&engine->signal_lock);
-        engine_stop_workers(engine);
+		/*
+		 * Lock the engine and stop all workers
+		 */
+		pthread_mutex_lock(&engine->signal_lock);
+		engine_stop_workers(engine);
 
-        /*
-         * Update KASP and zonelist, first update without deleting and then
-         * update with deleting. This is for when a zone has changed policy and
-         * the policy did not exist before.
-         * NOTE: Errors are ignored!
-         */
-        policy_import(sockfd, engine, dbconn, 0);
-        zonelist_import(sockfd, engine, dbconn, 0, NULL);
-        policy_import(sockfd, engine, dbconn, 1);
-        zonelist_import(sockfd, engine, dbconn, 1, NULL);
+		/*
+		 * Update KASP and zonelist, first update without deleting and then
+		 * update with deleting. This is for when a zone has changed policy and
+		 * the policy did not exist before.
+		 * NOTE: Errors are ignored!
+		 */
+		policy_import(sockfd, engine, dbconn, 0);
+		zonelist_import(sockfd, engine, dbconn, 0, NULL);
+		policy_import(sockfd, engine, dbconn, 1);
+		zonelist_import(sockfd, engine, dbconn, 1, NULL);
 
-        /*
-         * Mark the engine for reload, signal it and start it again
-         */
-        engine->need_to_reload = 1;
-        pthread_cond_signal(&engine->signal_cond);
-        engine_start_workers(engine);
-	    pthread_mutex_unlock(&engine->signal_lock);
+		/*
+		 * Mark the engine for reload, signal it and start it again
+		 */
+		engine->need_to_reload = 1;
+		pthread_cond_signal(&engine->signal_cond);
+		engine_start_workers(engine);
+		pthread_mutex_unlock(&engine->signal_lock);
 	}
 	return error;
 }

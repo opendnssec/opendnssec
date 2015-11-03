@@ -81,7 +81,7 @@ get_dnskey(const char *id, const char *zone, int alg, uint32_t ttl)
 	/* Get the DNSKEY record */
 	dnskey_rr = hsm_get_dnskey(hsm_ctx, key, sign_params);
 
-	libhsm_key_free(key);
+	free(key);
 	hsm_sign_params_free(sign_params);
 	hsm_destroy_context(hsm_ctx);
 	
@@ -111,8 +111,10 @@ exec_dnskey_by_id(int sockfd, key_data_t *key, const char* ds_command,
 	if (!locator) return 1;
 	/* This fetches the states from the DB, I'm only assuming they get
 	 * cleaned up when 'key' is cleaned(?) */
-	if (key_data_cache_key_states(key) != DB_OK)
+	if (key_data_cache_key_states(key) != DB_OK) {
+		zone_free(zone);
 		return 1;
+	}
 
 	ttl = key_state_ttl(key_data_cached_dnskey(key));
 

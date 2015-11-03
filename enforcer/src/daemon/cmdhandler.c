@@ -383,7 +383,7 @@ cmdhandler_create(const char* filename)
 
     /* new socket */
     listenfd = socket(AF_UNIX, SOCK_STREAM, 0);
-    if (listenfd <= 0) {
+    if (listenfd < 0) {
         ods_log_error("[%s] unable to create, socket() failed: %s", module_str,
             strerror(errno));
         return NULL;
@@ -546,7 +546,7 @@ self_pipe_trick()
     const char* servsock_filename = OPENDNSSEC_ENFORCER_SOCKETFILE;
 
     sockfd = socket(AF_UNIX, SOCK_STREAM, 0);
-    if (sockfd <= 0) {
+    if (sockfd < 0) {
         ods_log_error("[engine] cannot connect to command handler: "
             "socket() failed: %s\n", strerror(errno));
         return 1;

@@ -108,7 +108,7 @@ cmd_list (int argc, char *argv[])
 
 
     if (argc) {
-        repository = strdup(argv[0]);
+        repository = argv[0];
         argc--;
         argv++;
 
@@ -181,8 +181,8 @@ cmd_list (int argc, char *argv[])
 int
 cmd_generate (int argc, char *argv[])
 {
-    char *repository = NULL;
-    char *algorithm = NULL;
+    const char *repository = NULL;
+    const char *algorithm = NULL;
     unsigned int keysize = 1024;
 
     libhsm_key_t *key = NULL;
@@ -193,7 +193,7 @@ cmd_generate (int argc, char *argv[])
         return -1;
     }
 
-    repository = strdup(argv[0]);
+    repository = argv[0];
 
     /* Check for repository before starting using it */
     if (hsm_token_attached(ctx, repository) == 0) {
@@ -201,7 +201,7 @@ cmd_generate (int argc, char *argv[])
        return 1;
     }
 
-    algorithm = strdup(argv[1]);
+    algorithm = argv[1];
     if (argc == 3) {
         keysize = atoi(argv[2]);
     }
@@ -250,7 +250,7 @@ cmd_generate (int argc, char *argv[])
             key_info ? key_info->id : "NULL");
         libhsm_key_info_free(key_info);
         if (verbose) hsm_print_key(key);
-        libhsm_key_free(key);
+        free(key);
     } else {
         printf("Key generation failed.\n");
         return -1;
@@ -272,7 +272,7 @@ cmd_remove (int argc, char *argv[])
         return -1;
     }
 
-    id = strdup(argv[0]);
+    id = argv[0];
 
     key = hsm_find_key_by_id(NULL, id);
 
@@ -289,7 +289,7 @@ cmd_remove (int argc, char *argv[])
         printf("Key remove failed.\n");
     }
 
-    libhsm_key_free(key);
+    free(key);
 
     return result;
 }
@@ -314,7 +314,7 @@ cmd_purge (int argc, char *argv[])
         return -1;
     }
 
-    repository = strdup(argv[0]);
+    repository = argv[0];
     argc--;
     argv++;
 
@@ -335,7 +335,8 @@ cmd_purge (int argc, char *argv[])
     }
 
     if (key_count == 0) {
-       return -1;
+        libhsm_key_list_free(keys, key_count);
+        return -1;
     }
 
     printf("Are you sure you want to remove ALL keys from repository %s ? (YES/NO) ", repository);
@@ -409,6 +410,7 @@ cmd_dnskey (int argc, char *argv[])
         printf("Please use: %i or %i\n", LDNS_KEY_ZONE_KEY, LDNS_KEY_ZONE_KEY + LDNS_KEY_SEP_KEY);
         free(name);
         free(id);
+        free(key);
         return -1;
     }
 
@@ -501,7 +503,7 @@ cmd_dnskey (int argc, char *argv[])
 
     hsm_sign_params_free(sign_params);
     ldns_rr_free(dnskey_rr);
-    libhsm_key_free(key);
+    free(key);
     free(name);
     free(id);
 

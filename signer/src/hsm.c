@@ -93,7 +93,7 @@ lhsm_clear_key_cache(key_type* key)
         key->dnskey = NULL;
     }
     if (key->hsmkey) {
-        libhsm_key_free(key->hsmkey);
+        free(key->hsmkey);
         key->hsmkey = NULL;
     }
     if (key->params) {
