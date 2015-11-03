@@ -69,6 +69,7 @@ static void hsm_key_factory_init(void) {
             ods_log_error("[hsm_key_factory_init] mutex error");
             if (__hsm_key_factory_lock) {
                 pthread_mutex_destroy(__hsm_key_factory_lock);
+                free(__hsm_key_factory_lock);
                 __hsm_key_factory_lock = NULL;
             }
         }
