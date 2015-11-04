@@ -478,55 +478,6 @@ leap_days(int y1, int y2)
 }
 
 
-/*
- * Code taken from NSD 3.2.5, which is
- * code adapted from Python 2.4.1 sources (Lib/calendar.py).
- */
-static time_t
-mktime_from_utc(const struct tm *tm)
-{
-    int year = 1900 + tm->tm_year;
-    time_t days = 365 * ((time_t) (year - 1970)) +
-        ((time_t) leap_days(1970, year));
-    time_t hours;
-    time_t minutes;
-    time_t seconds;
-    int i;
-
-    for (i = 0; i < tm->tm_mon; ++i) {
-        days += mdays[i];
-    }
-    if (tm->tm_mon > 1 && is_leap_year(year)) {
-        ++days;
-    }
-    days += tm->tm_mday - 1;
-
-    hours = days * 24 + tm->tm_hour;
-    minutes = hours * 60 + tm->tm_min;
-    seconds = minutes * 60 + tm->tm_sec;
-
-    return seconds;
-}
-
-
-/**
- * Convert time in string format into seconds.
- *
- */
-static time_t
-timeshift2time(const char *time)
-{
-        /* convert a string in format YYMMDDHHMMSS to time_t */
-        struct tm tm;
-        time_t timeshift = 0;
-
-        /* Try to scan the time... */
-        if (strptime(time, "%Y%m%d%H%M%S", &tm)) {
-                timeshift = mktime_from_utc(&tm);
-        }
-        return timeshift;
-}
-
 static time_t time_now_set = 0;
 
 /**
@@ -549,15 +500,6 @@ time_t
 time_now(void)
 {
     time_t now;
-
-#ifdef ENFORCER_TIMESHIFT
-    const char* env = getenv("ENFORCER_TIMESHIFT");
-    if (env) {
-        return timeshift2time(env);
-    }
-#endif /* ENFORCER_TIMESHIFT */
-
-    (void) timeshift2time; /* Suppress build warnings */
     now = time(NULL);
     return now > time_now_set ? now : time_now_set;
 }

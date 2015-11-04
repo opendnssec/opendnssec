@@ -133,9 +133,6 @@ ods_thread_wait(cond_basic_type* cond, lock_basic_type* lock, time_t wait)
     struct timespec ts;
     int ret = 0;
 
-    /* If timeshift is enabled, we don't care about threads. No need
-     * to take the timeshift into account here */
-
 #ifndef HAVE_CLOCK_GETTIME
     struct timeval tv;
     if (gettimeofday(&tv, NULL) != 0) {
