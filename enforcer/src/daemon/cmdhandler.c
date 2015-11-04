@@ -71,6 +71,7 @@
 #include "daemon/verbosity_cmd.h"
 #include "daemon/ctrl_cmd.h"
 #include "enforcer/update_repositorylist_cmd.h"
+#include "enforcer/repositorylist_cmd.h"
 #include "enforcer/update_all_cmd.h"
 #include "enforcer/update_conf_cmd.h"
 #include "enforcer/enforce_cmd.h"
@@ -115,6 +116,7 @@ cmd_funcs_avail(void)
          * the output of the help command */
         &update_conf_funcblock,
         &update_repositorylist_funcblock,
+	&repositorylist_funcblock,
         &update_all_funcblock,
         &policy_list_funcblock,
         &policy_export_funcblock,
