@@ -364,7 +364,7 @@ tokenizeparam(char *argument)
         } while (strtok_r(NULL, ",", &argSavePtr) != NULL);
         tokenized[argCount] = NULL;
     } else {
-        if ((tokenized = malloc(sizeof (char*)*argSize)) == NULL) {
+        if ((tokenized = malloc(sizeof (char*)*2)) == NULL) {
             return NULL;
         }
         tokenized[0] = argument;
