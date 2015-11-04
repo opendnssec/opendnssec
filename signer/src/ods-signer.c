@@ -293,6 +293,7 @@ interface_start(char* cmd)
         sizeof(servaddr));
     if (ret != 0) {
         if (cmd && ods_strcmp(cmd, "start\n") == 0) {
+            close(sockfd);
             if (system(ODS_SE_ENGINE)) {
                 fprintf(stderr, "Failed to start signer engine\n");
                 return 1;

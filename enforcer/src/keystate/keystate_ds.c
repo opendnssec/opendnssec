@@ -81,7 +81,7 @@ get_dnskey(const char *id, const char *zone, int alg, uint32_t ttl)
 	/* Get the DNSKEY record */
 	dnskey_rr = hsm_get_dnskey(hsm_ctx, key, sign_params);
 
-	libhsm_key_free(key);
+	free(key);
 	hsm_sign_params_free(sign_params);
 	hsm_destroy_context(hsm_ctx);
 	
@@ -111,8 +111,10 @@ exec_dnskey_by_id(int sockfd, key_data_t *key, const char* ds_command,
 	if (!locator) return 1;
 	/* This fetches the states from the DB, I'm only assuming they get
 	 * cleaned up when 'key' is cleaned(?) */
-	if (key_data_cache_key_states(key) != DB_OK)
+	if (key_data_cache_key_states(key) != DB_OK) {
+		zone_free(zone);
 		return 1;
+	}
 
 	ttl = key_state_ttl(key_data_cached_dnskey(key));
 
@@ -361,11 +363,11 @@ change_keys_from_to(db_connection_t *dbconn, int sockfd,
 }
 
 static int
-get_args(const char *cmd, ssize_t n, const char **zone,
+get_args(int sockfd, const char *cmd, ssize_t n, const char **zone,
 	const char **cka_id, int *keytag, char *buf)
 {
 
-	#define NARGV 16
+	#define NARGV 6
 	const char *argv[NARGV], *tag;
 	int argc;
 	(void)n;
@@ -381,6 +383,10 @@ get_args(const char *cmd, ssize_t n, const char **zone,
 	if (argc > NARGV) {
 		ods_log_warning("[%s] too many arguments for %s command",
 			module_str, cmd);
+                client_printf_err(sockfd, "too many arguments for %s command\n",
+                        cmd);
+                client_printf_err(sockfd, "expected --zone and either --cka_id or "
+                        "--keytag option.\n");
 		return 1;
 	}
 	
@@ -388,11 +394,19 @@ get_args(const char *cmd, ssize_t n, const char **zone,
 	(void)ods_find_arg_and_param(&argc, argv, "cka_id", "k", cka_id);
 	(void)ods_find_arg_and_param(&argc, argv, "keytag", "x", &tag);
 
+	if (argc > 2) {
+		client_printf_err(sockfd, "Unknown arguments\n");
+	        return 1;
+	}
+
 	if (tag) {
 		*keytag = atoi(tag);
 		if (*keytag < 0 || *keytag >= 65536) {
 			ods_log_warning("[%s] value \"%d\" for --keytag is invalid",
 				module_str, *keytag);
+                        client_printf(sockfd, "value \"%d\" for --keytag is invalid\n",
+                                *keytag);
+
 			return 1;
 		}
 	}
@@ -404,25 +418,42 @@ run_ds_cmd(int sockfd, const char *cmd, ssize_t n,
 	db_connection_t *dbconn, key_data_ds_at_parent_t state_from,
 	key_data_ds_at_parent_t state_to, engine_type *engine)
 {
-	const char *zone, *cka_id;
+	const char *zonename, *cka_id;
 	int keytag;
 	hsm_key_t* hsmkey = NULL;
 	int ret;
 	char buf[ODS_SE_MAXLINE];
+	zone_t* zone;
 
-	if (get_args(cmd, n, &zone, &cka_id, &keytag, buf)) {
-		client_printf(sockfd, "Error parsing arguments\n", keytag);
+	if (get_args(sockfd, cmd, n, &zonename, &cka_id, &keytag, buf)) {
 		return -1;
 	}
 	
-	if (!zone && !cka_id && keytag == -1) {
+	if (!zonename && !cka_id && keytag == -1) {
 		return ds_list_keys(dbconn, sockfd, state_from);
 	}
-	if (!(zone && ((cka_id && keytag == -1) || (!cka_id && keytag != -1))))
+
+	if (zonename && (!(zone = zone_new(dbconn)) || zone_get_by_name(zone, zonename))) {
+		ods_log_warning ("[%s] Error: Unable to find a zone named \"%s\" in database\n", module_str, zonename);
+	        client_printf_err(sockfd, "Error: Unable to find a zone named \"%s\" in database\n", zonename);
+		zone_free(zone);
+		zone = NULL;
+        	return -1;
+	}
+	zone_free(zone);
+	zone = NULL;
+
+        if (!zonename && (keytag != -1 || cka_id)) {
+                ods_log_warning ("[%s] Error: expected --zone <zone>", module_str);
+                client_printf_err(sockfd, "Error: expected --zone <zone>\n");
+                return -1;
+        }
+
+	if (!(zonename && ((cka_id && keytag == -1) || (!cka_id && keytag != -1))))
 	{
 		ods_log_warning("[%s] expected --zone and either --cka_id or "
 			"--keytag option", module_str);
-		client_printf(sockfd, "expected --zone and either --cka_id or "
+		client_printf_err(sockfd, "expected --zone and either --cka_id or "
 			"--keytag option.\n");
 		return -1;
 	}
@@ -433,7 +464,7 @@ run_ds_cmd(int sockfd, const char *cmd, ssize_t n,
 		}
 	}
 
-	ret = change_keys_from_to(dbconn, sockfd, zone, hsmkey, keytag,
+	ret = change_keys_from_to(dbconn, sockfd, zonename, hsmkey, keytag,
 		state_from, state_to, engine);
 	hsm_key_free(hsmkey);
 	return ret;
