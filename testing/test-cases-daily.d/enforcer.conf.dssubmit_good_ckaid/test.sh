@@ -28,12 +28,12 @@ ods_start_enforcer &&
 #syslog_grep " ods-enforcerd: .*Using command: $INSTALL_ROOT/var/opendnssec/enforcer/dssub.pl to submit DS records" &&
 
 # Check that we have 2 keys
-log_this ods-enforcer-key-list1 ods-enforcer key list &&
+log_this ods-enforcer-key-list1 ods-enforcer key list -a &&
 log_grep ods-enforcer-key-list1 stdout 'ods[[:space:]]*KSK[[:space:]]*generate' &&
 log_grep ods-enforcer-key-list1 stdout 'ods[[:space:]]*ZSK[[:space:]]*publish' &&
 
 # Grab the CKA_ID and KEYTAG of the KSK
-log_this ods-enforcer-cka_keytag ods-enforcer key list --verbose &&
+log_this ods-enforcer-cka_keytag ods-enforcer key list --verbose --all &&
 KSK_CKA_ID=`log_grep -o ods-enforcer-cka_keytag stdout "ods[[:space:]]*KSK[[:space:]]*generate" | awk '{print $8}'` &&
 KSK_KEYTAG=`log_grep -o ods-enforcer-cka_keytag stdout "ods[[:space:]]*KSK[[:space:]]*genera" | awk '{print $10}'` &&
 

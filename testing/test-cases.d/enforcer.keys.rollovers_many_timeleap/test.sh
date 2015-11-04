@@ -46,10 +46,10 @@ ods_reset_env &&
 log_this ods-enforcer-output date &&
 ods_start_enforcer &&
 log_this ods-enforcer-output echo "------- Expect generate/publish" &&
-log_this ods-enforcer-output ods-enforcer key list --verbose &&
+log_this ods-enforcer-output ods-enforcer key list --verbose --all &&
 log_this ods-enforcer-output ods-enforcer rollover list &&
 
-log_this ods-enforcer-temp ods-enforcer key list --verbose &&
+log_this ods-enforcer-temp ods-enforcer key list --verbose --all &&
 log_grep ods-enforcer-temp stdout "ods1[[:space:]]*KSK[[:space:]]*generate" &&
 log_grep ods-enforcer-temp stdout "ods1[[:space:]]*ZSK[[:space:]]*publish" &&
 

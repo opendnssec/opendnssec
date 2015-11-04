@@ -505,7 +505,7 @@ ods_waitfor_keys ()
                 timeout=900
                 # echo $zone
                 while [ $timeout -gt 0 ]; do
-                        log_this ods-key-list ods-enforcer key list --verbose >/dev/null 2>/dev/null
+                        log_this ods-key-list ods-enforcer key list --all --verbose >/dev/null 2>/dev/null
                         ksk=`log_grep -o ods-key-list stdout "^$zone[[:space:]]*KSK"`
                         zsk=`log_grep -o ods-key-list stdout "^$zone[[:space:]]*ZSK"`
 
