@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 source `dirname "$0"`/lib.sh && init || exit 1
 
-require softhsm
+require softhsm2
 
 check_if_built opendnssec-mysql && exit 0
 start_build opendnssec-mysql
