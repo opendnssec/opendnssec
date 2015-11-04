@@ -147,6 +147,7 @@ cmd_funcs_avail(void)
 
 
         &queue_funcblock,
+        &time_leap_funcblock,
         &flush_funcblock,
         &ctrl_funcblock,
         &verbosity_funcblock,
