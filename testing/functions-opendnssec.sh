@@ -113,13 +113,18 @@ ods_nuke_env ()
 	if [ -n "$softhsm_files" ]; then
 		(
 			cd "$INSTALL_ROOT/var/softhsm/" &&
-			rm -f -- $softhsm_files 2>/dev/null
+			rm -rf -- $softhsm_files 2>/dev/null
 		)
 	fi &&
 	if [ -n "$softhsm_files2" ]; then
 		(
 			cd "$INSTALL_ROOT/var/lib/softhsm/" &&
-			rm -f -- $softhsm_files2 2>/dev/null
+			rm -rf -- $softhsm_files2 2>/dev/null
+		)
+	fi &&
+	if [ \! -d "$INSTALL_ROOT/var/lib/softhsm/tokens" ]; then
+		(
+			mkdir -p "$INSTALL_ROOT/var/lib/softhsm/tokens"
 		)
 	fi &&
 	if [ -n "$HAVE_MYSQL" ]; then
@@ -154,7 +159,7 @@ ods_setup_conf ()
 
 	if [ -n "$conf" ]; then
 		case "$conf" in
-			softhsm.conf | addns.xml | conf.xml | kasp.xml | zonelist.xml )
+			softhsm2.conf | addns.xml | conf.xml | kasp.xml | zonelist.xml )
 				;;
 			* )
 				echo "ods_setup_conf: Unknown conf file specified: $conf" >&2
@@ -169,7 +174,7 @@ ods_setup_conf ()
 	fi
 
 	# Conf files under /etc
-	for conf_file in softhsm.conf; do
+	for conf_file in softhsm2.conf; do
 		if [ -n "$conf" -a "$conf" != "$conf_file" ]; then
 			continue
 		fi
@@ -1308,7 +1313,7 @@ ods_softhsm_init_token ()
 
 	if [ "$slot" -ge 0 -a "$slot" -lt 20 ] 2>/dev/null; then
 		log_remove "softhsm-init-token-$slot" &&
-		log_this "softhsm-init-token-$slot" softhsm --init-token --slot "$slot" --label "$label" --pin "$pin" --so-pin "$so_pin" ||
+		log_this "softhsm-init-token-$slot" softhsm2-util --init-token --slot "$slot" --label "$label" --pin "$pin" --so-pin "$so_pin" ||
 		return 1
 
 		if ! log_grep "softhsm-init-token-$slot" stdout "The token has been initialized."; then
@@ -1327,11 +1332,13 @@ ods_find_softhsm_module ()
 	local path
 
 	for path in lib64/softhsm lib/softhsm lib64 lib; do
-		if [ -f "$INSTALL_ROOT/$path/libsofthsm.so" ]; then
-			export SOFTHSM_MODULE="$INSTALL_ROOT/$path/libsofthsm.so"
+		if [ -f "$INSTALL_ROOT/$path/libsofthsm2.so" ]; then
+			export SOFTHSM_MODULE="$INSTALL_ROOT/$path/libsofthsm2.so"
 			return 0
 		fi
 	done
+
+	export SOFTHSM2_CONF=$INSTALL_ROOT/etc/softhsm2.conf
 
 	return 1
 }
