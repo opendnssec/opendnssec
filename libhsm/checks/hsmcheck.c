@@ -150,7 +150,7 @@ main (int argc, char *argv[])
 
             if (id) {
                 printf("Using key ID: %s\n", id);
-                if (key) libhsm_key_free(key);
+                free(key);
                 key = hsm_find_key_by_id(ctx, id);
                 printf("ptr: 0x%p\n", (void *) key);
                 free(id);
@@ -158,7 +158,7 @@ main (int argc, char *argv[])
                 printf("Got no key ID (broken key?), skipped...\n");
             }
 
-            libhsm_key_free(keys[i]);
+            free(keys[i]);
         }
         free(keys);
 
@@ -218,7 +218,7 @@ main (int argc, char *argv[])
         printf("\n");
     }
 
-    if (key) libhsm_key_free(key);
+    free(key);
 
     /*
      * Test random{32,64} functions

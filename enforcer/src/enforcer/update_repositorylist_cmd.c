@@ -59,6 +59,7 @@ validate_configfile(const char* cfgfile)
 	free(kasp);
 	free(zonelist);
 	if (replist) for (i = 0; i < repcount; i++) free(replist[i]);
+	free(replist);
 	return cc_status;
 }
 
