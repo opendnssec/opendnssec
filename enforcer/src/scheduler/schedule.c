@@ -162,29 +162,6 @@ pop_first_task(schedule_type* schedule)
 }
 
 /**
- * Print schedule.
- *
- */
-void
-schedule_print(FILE *out, schedule_type *schedule)
-{
-    ldns_rbnode_t *node;
-    task_type* task;
-
-    if (!out || !schedule || !schedule->tasks) return;
-
-    pthread_mutex_lock(&schedule->schedule_lock);
-        node = ldns_rbtree_first(schedule->tasks);
-        while (node != LDNS_RBTREE_NULL) {
-            task = (task_type*) node->data;
-            task_print(out, task);
-            node = ldns_rbtree_next(node);
-        }
-    pthread_mutex_unlock(&schedule->schedule_lock);
-}
-
-
-/**
  * Internal task cleanup function.
  *
  */
