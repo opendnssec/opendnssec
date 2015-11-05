@@ -21,7 +21,7 @@ ods_start_ods-control &&
 
 # Check that we have 2 keys per zone
 # We don't care about the exact state it is in, as long as it is consistent.
-log_this ods-enforcer-key-list0 ods-enforcer key list -v &&
+log_this ods-enforcer-key-list0 ods-enforcer key list -v -a &&
 { ( log_grep ods-enforcer-key-list0 stdout 'non-share1                      KSK      ready' &&
     log_grep ods-enforcer-key-list0 stdout 'non-share1                      ZSK      active' ) &&
   nonshare1=1 ||
@@ -64,7 +64,7 @@ log_this ods-enforcer-key-list0 ods-enforcer key list -v &&
 
 
 # Grab the CKA_IDs of all the keys
-log_this ods-enforcer-cka_id1 ods-enforcer key list --verbose &&
+log_this ods-enforcer-cka_id1 ods-enforcer key list --verbose --all &&
 
 if [ $nonshare1 -eq 0 ]; then
 	KSK_CKA_ID_NON_1=`log_grep -o ods-enforcer-cka_id1 stdout "non-share1                      KSK      " | awk '{print $8}'`

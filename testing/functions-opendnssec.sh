@@ -24,8 +24,6 @@ ODS_ENFORCER_STOP_COUNT=0
 ODS_SIGNER_STOP_LOG_STRING='ods-signerd: .*\[engine\] signer shutdown'
 ODS_SIGNER_STOP_COUNT=0
 
-ODS_ENFORCER_TIMESHIFT_WAIT=30
-
 ods_pre_test ()
 {
 	ODS_ENFORCER_START_COUNT=0
@@ -407,59 +405,6 @@ ods_ods-control_enforcer_stop ()
 	return 0
 }
 
-ods_enforcer_start_timeshift ()
-{
-	if [ -z "$1" ]; then
-		echo "usage: ods_enforcer_start_timeshift <timeout in seconds waiting for output>" >&2
-		exit 1
-	fi
-
-	local time_start=`$DATE '+%s' 2>/dev/null`
-	local time_stop
-	local time_now
-	local timeout="$1"
-	local pid
-	local last_count=`syslog_grep_count2 ods-enforcerd`
-	local count
-
-	time_stop=$(( time_start + timeout ))
-
-	( log_this ods_enforcer_start_timeshift ods-enforcerd -1 ) &
-	pid="$!"
-
-	if [ -z "$pid" -o "$pid" -le 0 ] 2>/dev/null; then
-		echo "ods_enforcer_start_timeshift: No pid from backgrounded program?" >&2
-		return 1
-	fi
-
-	while true; do
-		time_now=`$DATE '+%s' 2>/dev/null`
-		if [ "$time_now" -ge "$time_stop" ] 2>/dev/null; then
-			break
-		fi
-		if [ -z "$time_now" -o ! "$time_now" -lt "$time_stop" ] 2>/dev/null; then
-			echo "ods_enforcer_start_timeshift: Invalid timestamp from date!" >&2
-			exit 1
-		fi
-		if ! kill -0 "$pid" 2>/dev/null; then
-			wait "$pid"
-			return "$?"
-		fi
-		sleep 5
-		count=`syslog_grep_count2 ods-enforcerd`
-		if [ "$count" -gt "$last_count" ] 2>/dev/null; then
-			time_stop=$(( time_now + timeout ))
-		fi
-		last_count="$count"
-	done
-
-	kill -TERM "$pid"
-	sleep 1
-	if kill -0 "$pid" 2>/dev/null; then
-		kill -KILL "$pid"
-	fi
-	return 1
-}
 ods_enforcer_idle ()
 {
 	local status_grep1
@@ -510,7 +455,7 @@ ods_waitfor_keys ()
                 timeout=900
                 # echo $zone
                 while [ $timeout -gt 0 ]; do
-                        log_this ods-key-list ods-enforcer key list --verbose >/dev/null 2>/dev/null
+                        log_this ods-key-list ods-enforcer key list --all --verbose >/dev/null 2>/dev/null
                         ksk=`log_grep -o ods-key-list stdout "^$zone[[:space:]]*KSK"`
                         zsk=`log_grep -o ods-key-list stdout "^$zone[[:space:]]*ZSK"`
 
@@ -1026,47 +971,6 @@ ods_stop_enforcer ()
 	return 0
 
 	echo "ods_stop_enforcer: ods-enforcer stopped FAILED" >&2
-	return 1
-}
-
-# Takes an optional parameter that will override the timeout on waiting for
-# the log to confirm the action
-ods_start_enforcer_timeshift ()
-{
-	if ods_is_enforcer_running; then
-		echo "ods_start_enforcer_timeshift: ods-enforcerd is already running" >&2
-		return 1
-	fi
-
-	local timeout="$1"
-	local running_timeout=15
-
-	echo "ods_start_enforcer_timeshift: Starting ods-enforcer now..."
- 	ods_enforcer_count_stops &&
-	ods_enforcer_start_timeshift "$ODS_ENFORCER_TIMESHIFT_WAIT" &&
-	ods_enforcer_waitfor_stops "$(( ODS_ENFORCER_STOP_COUNT + 1 ))" "$ODS_ENFORCER_TIMESHIFT_WAIT" &&
-
-	# double check the process is killed as this seems to take a little while on some platforms
-	if ods_is_enforcer_running; then
-		echo "ods_start_enforcer_timeshift: waiting for process to terminate..."
-		while true; do
-			sleep 1
-			if ! ods_is_enforcer_running; then
-				break
-			fi
-
-			if [ "$running_timeout" = "0" ]; then
-				echo "ods_start_enforcer_timeshift: ods-enforcerd process is still running" >&2
-				return 1
-			fi
-			running_timeout=$(( running_timeout - 1 ))
-		done
-	fi &&
-
-	echo "ods_start_enforcer_timeshift: ods-enforcer started OK" &&
-	return 0
-
-	echo "ods_start_enforcer_timeshift: ods-enforcer start FAILED" >&2
 	return 1
 }
 

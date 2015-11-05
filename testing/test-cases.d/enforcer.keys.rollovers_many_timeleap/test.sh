@@ -2,7 +2,6 @@
 #
 #TEST: Test to track key rollovers in real time from the enforcer side only. 
 #TEST: Configured with short key lifetimes and 1 min enforcer interval.
-#TEST: unlike parent test this uses TIMESHIFT to hopefully keep things deterministic
 #TEST: Checks the output of ods-enforcer key list and the signconf.xml contents
 #TEST: Takes about 10 mins and follows several KSK and ZKK rollovers.
 
@@ -46,10 +45,10 @@ ods_reset_env &&
 log_this ods-enforcer-output date &&
 ods_start_enforcer &&
 log_this ods-enforcer-output echo "------- Expect generate/publish" &&
-log_this ods-enforcer-output ods-enforcer key list --verbose &&
+log_this ods-enforcer-output ods-enforcer key list --verbose --all &&
 log_this ods-enforcer-output ods-enforcer rollover list &&
 
-log_this ods-enforcer-temp ods-enforcer key list --verbose &&
+log_this ods-enforcer-temp ods-enforcer key list --verbose --all &&
 log_grep ods-enforcer-temp stdout "ods1[[:space:]]*KSK[[:space:]]*generate" &&
 log_grep ods-enforcer-temp stdout "ods1[[:space:]]*ZSK[[:space:]]*publish" &&
 

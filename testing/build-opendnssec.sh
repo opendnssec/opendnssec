@@ -49,8 +49,7 @@ case "$DISTRIBUTION" in
 			cd build &&
 			../configure --prefix="$INSTALL_ROOT" \
 				--with-enforcer-database=sqlite3 \
-				--with-enforcer-database-test-database=opendnssec-build-test \
-				--enable-timeshift &&
+				--with-enforcer-database-test-database=opendnssec-build-test &&
 			$MAKE &&
 			$MAKE check &&
 			sed_inplace 's% -ge 5 % -ge 30 %g' tools/ods-control &&
@@ -71,7 +70,6 @@ case "$DISTRIBUTION" in
 				--with-cunit=/usr/pkg \
 				--with-enforcer-database=sqlite3 \
 				--with-enforcer-database-test-database=opendnssec-build-test \
-				--enable-timeshift \
 				--with-sqlite3=/usr/pkg &&
 			$MAKE &&
 			$MAKE check &&
@@ -91,8 +89,7 @@ case "$DISTRIBUTION" in
 			cd build &&
 			../configure --prefix="$INSTALL_ROOT" \
 				--with-enforcer-database=sqlite3 \
-				--with-enforcer-database-test-database=opendnssec-build-test \
-				--enable-timeshift &&
+				--with-enforcer-database-test-database=opendnssec-build-test &&
 			$MAKE &&
 			$MAKE check &&
 			sed_inplace 's% -ge 5 % -ge 30 %g' tools/ods-control &&

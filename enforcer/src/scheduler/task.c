@@ -294,32 +294,6 @@ task2str(task_type* task, char* buftask)
 
 
 /**
- * Print task.
- *
- */
-void
-task_print(FILE* out, task_type* task)
-{
-    char ctimebuf[32]; /* at least 26 according to docs */
-    time_t now = time_now();
-    char* strtime = NULL;
-
-    if (out && task) {
-        if (task->flush) {
-            strtime = ctime_r(&now,ctimebuf);
-        } else {
-            strtime = ctime_r(&task->when,ctimebuf);
-        }
-        if (strtime) {
-            strtime[strlen(strtime)-1] = '\0';
-        }
-        fprintf(out, "On %s I will [%s] %s\n", strtime?strtime:"(null)",
-            task_what2str(task->what), task_who2str(task->who));
-    }
-}
-
-
-/**
  * Log task.
  *
  */

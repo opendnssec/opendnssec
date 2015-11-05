@@ -49,8 +49,7 @@ case "$DISTRIBUTION" in
 				--with-enforcer-database-test-database=build \
 				--with-enforcer-database-test-host=localhost \
 				--with-enforcer-database-test-username=build \
-				--with-enforcer-database-test-password=build \
-				--enable-timeshift &&
+				--with-enforcer-database-test-password=build &&
 			$MAKE &&
 			$MAKE check &&
 			sed_inplace 's% -ge 5 % -ge 30 %g' tools/ods-control &&
@@ -75,8 +74,7 @@ case "$DISTRIBUTION" in
 				--with-enforcer-database-test-database=build \
 				--with-enforcer-database-test-host=localhost \
 				--with-enforcer-database-test-username=build \
-				--with-enforcer-database-test-password=build \
-				--enable-timeshift &&
+				--with-enforcer-database-test-password=build &&
 			$MAKE &&
 			$MAKE check &&
 			sed_inplace 's% -ge 5 % -ge 30 %g' tools/ods-control &&
@@ -101,8 +99,7 @@ case "$DISTRIBUTION" in
 				--with-enforcer-database-test-database=build \
 				--with-enforcer-database-test-host=localhost \
 				--with-enforcer-database-test-username=build \
-				--with-enforcer-database-test-password=build \
-				--enable-timeshift \
+				--with-enforcer-database-test-password=build &&
 				--with-sqlite3=/usr/pkg &&
 			$MAKE &&
 			$MAKE check &&
@@ -127,8 +124,7 @@ case "$DISTRIBUTION" in
 				--with-enforcer-database-test-database=build \
 				--with-enforcer-database-test-host=localhost \
 				--with-enforcer-database-test-username=build \
-				--with-enforcer-database-test-password=build \
-				--enable-timeshift &&
+				--with-enforcer-database-test-password=build &&
 			$MAKE &&
 			$MAKE check &&
 			sed_inplace 's% -ge 5 % -ge 30 %g' tools/ods-control &&

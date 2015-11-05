@@ -158,8 +158,7 @@ void set_time_now(time_t now);
 
 /**
  * Return the time since Epoch, measured in seconds.
- * If the timeshift is enabled, return the environment variable.
- * \return time_t now (or timeshift).
+ * \return time_t now
  *
  */
 time_t time_now(void);

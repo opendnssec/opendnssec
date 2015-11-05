@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 #
 #TEST: Test to see that a missing DSSUB command is dealt with as expected
-#TEST: We use TIMESHIFT to get to the point where the KSK moves to the ready state
 
 ENFORCER_WAIT=90	# Seconds we wait for enforcer to run
 ENFORCER_COUNT=2	# How many log lines we expect to see
@@ -27,12 +26,12 @@ ods_start_enforcer &&
 #syslog_grep " ods-enforcerd: .*Using command: $INSTALL_ROOT/var/opendnssec/enforcer/wrong_dssub.pl to submit DS records" &&
 
 # Check that we have 2 keys
-log_this ods-enforcer-key-list1 ods-enforcer key list &&
+log_this ods-enforcer-key-list1 ods-enforcer key list -a &&
 log_grep ods-enforcer-key-list1 stdout 'ods[[:space:]]*KSK[[:space:]]*generate' &&
 log_grep ods-enforcer-key-list1 stdout 'ods[[:space:]]*ZSK[[:space:]]*publish' &&
 
 # Grab the KEYTAG of the KSK
-log_this ods-enforcer-keytag ods-enforcer key list --verbose &&
+log_this ods-enforcer-keytag ods-enforcer key list --verbose --all &&
 KSK_KEYTAG=`log_grep -o ods-enforcer-keytag stdout "ods[[:space:]]*KSK[[:space:]]*generate" | awk '{print $10}'` &&
 
 ## Jump forward a couple of hours so the KSK will be ready
