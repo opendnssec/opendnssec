@@ -4093,6 +4093,7 @@ static int policy_list_get_associated(policy_list_t* policy_list) {
         policy_list->object_list[i]->hsm_key_list->object_list_first = 1;
     }
     db_clause_list_free(clause_list);
+    hsm_key_list_free(hsm_key_list);
 
     policy_list->object_list_first = 1;
     return DB_OK;
