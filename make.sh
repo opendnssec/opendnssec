@@ -6,10 +6,6 @@ if [ -z "$JOB_NAME" ]
 then
 	export JOB_NAME=opendnssec
 fi
-if [ -z "$WORKSPACE_ROOT" ]
-then
-	export WORKSPACE_ROOT=`cd .. ; pwd`
-fi
 
 daily=0
 case $JOB_NAME in
@@ -25,10 +21,12 @@ esac
 
 if [ $(basename $(cd .. ; pwd)) = "label" ]
 then
+    export WORKSPACE_ROOT=`cd ../../.. ; pwd`
     export INSTALL_TAG=$(cd ../.. ; basename $(pwd))
 fi
 if [ $(basename $(cd .. ; pwd)) = "workspace" ]
 then
+    export WORKSPACE_ROOT=`cd ../.. ; pwd`
     export INSTALL_TAG=$(basename $(pwd))
 fi
 
@@ -183,6 +181,5 @@ if sed --version 2>/dev/null | grep -q "^GNU sed" 2>/dev/null ; then
 	    -e '/<failure message="Failed"/{x;s/<testsuite name="\([^"]*\).*/\1/p}' \
 	    -e 'd'
 fi
-cp junit.xml ..
 cd ..
 exit 0
