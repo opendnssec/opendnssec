@@ -8,6 +8,7 @@ then
 fi
 if [ -z "$WORKSPACE_ROOT" ]
 then
+	printenv
 	export WORKSPACE_ROOT=`cd .. ; pwd`
 fi
 
@@ -140,6 +141,7 @@ cd ..
 
 mkdir -p $WORKSPACE_ROOT/root/$INSTALL_TAG
 rm -rf build
+echo "PREPARING TO RUN TESTS IN $WORKSPACE_ROOT/root/$INSTALL_TAG"
 rm -f $WORKSPACE_ROOT/root/$INSTALL_TAG/.opendnssec.*
 rm -f $WORKSPACE_ROOT/root/$INSTALL_TAG/.opendnssec-mysql.*
 rm -f $WORKSPACE_ROOT/root/$INSTALL_TAG/.daily-opendnssec.*
