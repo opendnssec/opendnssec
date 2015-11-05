@@ -41,7 +41,7 @@ tar xzf develop.tar.gz
 mv SoftHSMv2-develop SoftHSMv2
 rm develop.tar.gz
 cd SoftHSMv2
-patch -p1 -b -z orig <<EOF
+patch -b <<EOF
 diff --git a/src/lib/SoftHSM.cpp b/src/lib/SoftHSM.cpp
 index 67b0ce2..d9ea011 100644
 --- a/src/lib/SoftHSM.cpp
@@ -169,9 +169,14 @@ else
 		./test-daily-opendnssec-mysql.sh
 	fi
 fi
-echo ""
-sed < junit.xml \
-    -e '/<testsuite name="\([^"]*\)"/h' \
-    -e '/<failure message="Failed"/{x;s/<testsuite name="\([^"]*\).*/\1/p}' \
-    -e 'd'
+echo "FINISHED RUNNING TESTS"
+if sed --version | grep -q "^GNU sed" ; then
+	echo ""
+	sed < junit.xml \
+	    -e '/<testsuite name="\([^"]*\)"/h' \
+	    -e '/<failure message="Failed"/{x;s/<testsuite name="\([^"]*\).*/\1/p}' \
+	    -e 'd'
+fi
+cp junit.xml ..
 cd ..
+exit 0
