@@ -41,7 +41,7 @@ tar xzf develop.tar.gz
 mv SoftHSMv2-develop SoftHSMv2
 rm develop.tar.gz
 cd SoftHSMv2
-patch -b <<EOF
+patch -p1 <<EOF
 diff --git a/src/lib/SoftHSM.cpp b/src/lib/SoftHSM.cpp
 index 67b0ce2..d9ea011 100644
 --- a/src/lib/SoftHSM.cpp
