@@ -6,11 +6,6 @@ if [ -z "$JOB_NAME" ]
 then
 	export JOB_NAME=opendnssec
 fi
-if [ -z "$WORKSPACE_ROOT" ]
-then
-	printenv
-	export WORKSPACE_ROOT=`cd .. ; pwd`
-fi
 
 daily=0
 case $JOB_NAME in
@@ -26,10 +21,12 @@ esac
 
 if [ $(basename $(cd .. ; pwd)) = "label" ]
 then
+    export WORKSPACE_ROOT=`cd ../../.. ; pwd`
     export INSTALL_TAG=$(cd ../.. ; basename $(pwd))
 fi
 if [ $(basename $(cd .. ; pwd)) = "workspace" ]
 then
+    export WORKSPACE_ROOT=`cd ../.. ; pwd`
     export INSTALL_TAG=$(basename $(pwd))
 fi
 
