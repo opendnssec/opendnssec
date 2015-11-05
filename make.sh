@@ -36,7 +36,7 @@ export SVN_REVISION=1
 export GIT_COMMIT=`cat .revision`
 
 rm -rf SoftHSMv2 SoftHSMv2-develop develop.tar.gz
-wget https://github.com/opendnssec/SoftHSMv2/archive/develop.tar.gz
+wget -O develop.tar.gz https://github.com/opendnssec/SoftHSMv2/archive/develop.tar.gz
 tar xzf develop.tar.gz
 mv SoftHSMv2-develop SoftHSMv2
 rm develop.tar.gz
@@ -153,24 +153,30 @@ else
 fi
 cd testing
 export WORKSPACE=`pwd`
+set +e
 if [ "$HAVE_MYSQL" != "YES" ]
 then
 	if [ $daily -eq 0 ]
 	then
+		echo "RUNNING TESTS"
 		./test-opendnssec.sh
 	else
+		echo "RUNNING DAILY TESTS"
 		./test-daily-opendnssec.sh
 	fi
 else
 	if [ $daily -eq 0 ]
 	then
+		echo "RUNNING MYSQL TESTS"
 		./test-opendnssec-mysql.sh
 	else
+		echo "RUNNING DAILY MYSQL TESTS"
 		./test-daily-opendnssec-mysql.sh
 	fi
 fi
+set -e
 echo "FINISHED RUNNING TESTS"
-if sed --version | grep -q "^GNU sed" ; then
+if sed --version 2>/dev/null | grep -q "^GNU sed" 2>/dev/null ; then
 	echo ""
 	sed < junit.xml \
 	    -e '/<testsuite name="\([^"]*\)"/h' \
