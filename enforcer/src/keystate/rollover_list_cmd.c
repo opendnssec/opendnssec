@@ -50,7 +50,7 @@ static const char *module_str = "rollover_list_cmd";
 static char*
 map_keytime(const zone_t *zone, const key_data_t *key)
 {
-	time_t t;
+	time_t t = 0;
 	char ct[26];
 	struct tm srtm;
 
