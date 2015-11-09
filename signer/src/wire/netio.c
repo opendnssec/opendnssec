@@ -92,12 +92,12 @@ netio_remove_handler(netio_type* netio, netio_handler_type* handler)
             netio_handler_list_type* next = (*lptr)->next;
             if ((*lptr) == netio->dispatch_next)
                 netio->dispatch_next = next;
-                (*lptr)->handler = NULL;
-                (*lptr)->next = netio->deallocated;
-                netio->deallocated = *lptr;
-                *lptr = next;
-                break;
-           }
+            (*lptr)->handler = NULL;
+            (*lptr)->next = netio->deallocated;
+            netio->deallocated = *lptr;
+            *lptr = next;
+            break;
+       }
     }
     ods_log_debug("[%s] handler removed", netio_str);
     return;

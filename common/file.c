@@ -226,11 +226,10 @@ ods_fopen(const char* file, const char* dir, const char* mode)
             fd = fopen(openf, mode);
             if (!fd) {
                 ods_log_debug("[%s] unable to open file %s for %s: %s",
-                    file_str, openf?openf:"(null)",
-                    ods_file_mode2str(mode), strerror(errno));
+                    file_str, openf, ods_file_mode2str(mode), strerror(errno));
             } else {
                 file_count++;
-                ods_log_debug("[%s] openfile %s count %u", file_str, openf?openf:"(null)", file_count);
+                ods_log_debug("[%s] openfile %s count %u", file_str, openf, file_count);
             }
         }
         free((void*) openf);
@@ -297,7 +296,7 @@ ods_printf(int fd, const char * format, ...)
 	va_end(ap);
 	if (!ok) {
 		ods_log_error("[%s] vsnprintf buffer too small",file_str);
-		ods_writen(fd, ods_printf_error, sizeof(ods_printf_error));
+		ods_writen(fd, ods_printf_error, strlen(ods_printf_error));
 	}
 	ods_writen(fd, buf, strlen(buf));
 }
