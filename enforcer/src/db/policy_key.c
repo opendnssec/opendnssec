@@ -1918,7 +1918,7 @@ const policy_key_t* policy_key_list_begin(policy_key_list_t* policy_key_list) {
             if (!db_result_list_size(policy_key_list->result_list)) {
                 return NULL;
             }
-            if (!(policy_key_list->object_list = (policy_key_t**)calloc(db_result_list_size(policy_key_list->result_list), sizeof(policy_key_t**)))) {
+            if (!(policy_key_list->object_list = (policy_key_t**)calloc(db_result_list_size(policy_key_list->result_list), sizeof(policy_key_t*)))) {
                 return NULL;
             }
             policy_key_list->object_list_size = db_result_list_size(policy_key_list->result_list);
@@ -2010,7 +2010,7 @@ const policy_key_t* policy_key_list_next(policy_key_list_t* policy_key_list) {
             if (!db_result_list_size(policy_key_list->result_list)) {
                 return NULL;
             }
-            if (!(policy_key_list->object_list = (policy_key_t**)calloc(db_result_list_size(policy_key_list->result_list), sizeof(policy_key_t**)))) {
+            if (!(policy_key_list->object_list = (policy_key_t**)calloc(db_result_list_size(policy_key_list->result_list), sizeof(policy_key_t*)))) {
                 return NULL;
             }
             policy_key_list->object_list_size = db_result_list_size(policy_key_list->result_list);

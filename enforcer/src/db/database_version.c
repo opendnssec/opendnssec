@@ -810,7 +810,7 @@ const database_version_t* database_version_list_begin(database_version_list_t* d
             if (!db_result_list_size(database_version_list->result_list)) {
                 return NULL;
             }
-            if (!(database_version_list->object_list = (database_version_t**)calloc(db_result_list_size(database_version_list->result_list), sizeof(database_version_t**)))) {
+            if (!(database_version_list->object_list = (database_version_t**)calloc(db_result_list_size(database_version_list->result_list), sizeof(database_version_t*)))) {
                 return NULL;
             }
             database_version_list->object_list_size = db_result_list_size(database_version_list->result_list);
@@ -902,7 +902,7 @@ const database_version_t* database_version_list_next(database_version_list_t* da
             if (!db_result_list_size(database_version_list->result_list)) {
                 return NULL;
             }
-            if (!(database_version_list->object_list = (database_version_t**)calloc(db_result_list_size(database_version_list->result_list), sizeof(database_version_t**)))) {
+            if (!(database_version_list->object_list = (database_version_t**)calloc(db_result_list_size(database_version_list->result_list), sizeof(database_version_t*)))) {
                 return NULL;
             }
             database_version_list->object_list_size = db_result_list_size(database_version_list->result_list);
