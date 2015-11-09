@@ -41,7 +41,6 @@ echo -n "LINE: ${LINENO} " && log_grep ods-enforcer-setup_zone_and_keys   stdout
 echo -n "LINE: ${LINENO} " && log_this list-second                        ods-enforcer key list --verbose --all &&
 echo -n "LINE: ${LINENO} " && log_this list-third                         ods-enforcer key list --verbose --all &&
 echo -n "LINE: ${LINENO} " && log_this list-fourth                        ods-enforcer key list --verbose --all &&
-ods_idle &&
 echo -n "LINE: ${LINENO} " && log_this list-fifth                        ods-enforcer key list --verbose --all &&
 
 echo -n "LINE: ${LINENO} " && ods_enforcer_idle &&
