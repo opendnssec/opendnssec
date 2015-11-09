@@ -2432,7 +2432,7 @@ static int key_data_list_get_associated(key_data_list_t* key_data_list) {
         key_data_list->object_list[i]->key_state_list->object_list_first = 1;
     }
     db_clause_list_free(clause_list);
-    hsm_key_list_free(key_state_list);
+    key_state_list_free(key_state_list);
 
     key_data_list->object_list_first = 1;
     return DB_OK;
@@ -2743,7 +2743,7 @@ const key_data_t* key_data_list_begin(key_data_list_t* key_data_list) {
             if (!db_result_list_size(key_data_list->result_list)) {
                 return NULL;
             }
-            if (!(key_data_list->object_list = (key_data_t**)calloc(db_result_list_size(key_data_list->result_list), sizeof(key_data_t**)))) {
+            if (!(key_data_list->object_list = (key_data_t**)calloc(db_result_list_size(key_data_list->result_list), sizeof(key_data_t*)))) {
                 return NULL;
             }
             key_data_list->object_list_size = db_result_list_size(key_data_list->result_list);
@@ -2835,7 +2835,7 @@ const key_data_t* key_data_list_next(key_data_list_t* key_data_list) {
             if (!db_result_list_size(key_data_list->result_list)) {
                 return NULL;
             }
-            if (!(key_data_list->object_list = (key_data_t**)calloc(db_result_list_size(key_data_list->result_list), sizeof(key_data_t**)))) {
+            if (!(key_data_list->object_list = (key_data_t**)calloc(db_result_list_size(key_data_list->result_list), sizeof(key_data_t*)))) {
                 return NULL;
             }
             key_data_list->object_list_size = db_result_list_size(key_data_list->result_list);

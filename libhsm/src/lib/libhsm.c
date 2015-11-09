@@ -3575,7 +3575,7 @@ hsm_get_error(hsm_ctx_t *gctx)
         snprintf(message, HSM_ERROR_MSGSIZE,
             "%s: %s",
             ctx->error_action ? ctx->error_action : "unknown()",
-            ctx->error_message ? ctx->error_message : "unknown error");
+            ctx->error_message[0] ? ctx->error_message : "unknown error");
         return message;
     };
 
