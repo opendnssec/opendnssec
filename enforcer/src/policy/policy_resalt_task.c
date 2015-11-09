@@ -172,7 +172,7 @@ policy_resalt_task_perform(task_type *task)
 		task_cleanup(task);
 		return NULL;
 	}
-	return NULL;
+	return task;
 }
 
 task_type *
