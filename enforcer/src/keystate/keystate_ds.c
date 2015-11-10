@@ -423,7 +423,7 @@ run_ds_cmd(int sockfd, const char *cmd, ssize_t n,
 	hsm_key_t* hsmkey = NULL;
 	int ret;
 	char buf[ODS_SE_MAXLINE];
-	zone_t* zone;
+	zone_t* zone = NULL;
 
 	if (get_args(sockfd, cmd, n, &zonename, &cka_id, &keytag, buf)) {
 		return -1;

@@ -59,7 +59,7 @@ signal_set_engine(void* engine)
  * Handle signals.
  *
  */
-void
+void *
 signal_handler(sig_atomic_t sig)
 {
     switch (sig) {
@@ -88,7 +88,7 @@ signal_handler(sig_atomic_t sig)
         default:
             break;
     }
-    return;
+    return NULL;
 }
 
 

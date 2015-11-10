@@ -570,7 +570,7 @@ engine_setup(engine_type* engine)
         (unsigned long) engine->pid);
     /* catch signals */
     signal_set_engine(engine);
-    action.sa_handler = signal_handler;
+    action.sa_handler = (void (*)(int))signal_handler;
     sigfillset(&action.sa_mask);
     action.sa_flags = 0;
     sigaction(SIGTERM, &action, NULL);
@@ -654,7 +654,7 @@ engine_run(engine_type* engine, int single_run)
                 break;
             default:
                 ods_log_warning("[%s] invalid signal %d captured, "
-                    "keep running", engine_str, engine->signal);
+                    "keep running", engine_str, (int)engine->signal);
                 engine->signal = SIGNAL_RUN;
                 break;
         }
