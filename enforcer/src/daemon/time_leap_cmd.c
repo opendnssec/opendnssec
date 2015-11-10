@@ -39,7 +39,7 @@
 
 #include "daemon/time_leap_cmd.h"
 
-#define MAX_ARGS 16
+#define MAX_ARGS 5
 
 static const char *module_str = "time_leap_cmd";
 
@@ -109,13 +109,18 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 			client_printf(sockfd,
 				"Using %s parameter value as time to leap to\n", time);
 		} else {
-			client_printf(sockfd, 
+			client_printf_err(sockfd, 
 				"Time leap: Error - could not convert '%s' to a time. "
 				"Format is YYYY-MM-DD-HH:MM:SS \n", time);
 			return -1;
 		}
 	}
 	attach = ods_find_arg(&argc,argv,"attach","a") != -1;
+
+	if (argc > 2){
+		ods_log_error_and_printf(sockfd, module_str, "unknown arguments");
+		return -1;
+	}
 
 	ods_log_assert(engine);
 	if (!engine->taskq || !engine->taskq->tasks) {
