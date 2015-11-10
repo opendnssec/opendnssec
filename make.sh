@@ -40,18 +40,6 @@ mv SoftHSMv2-develop SoftHSMv2
 rm develop.tar.gz
 cd SoftHSMv2
 patch -p1 <<EOF
-diff --git a/src/lib/SoftHSM.cpp b/src/lib/SoftHSM.cpp
-index 67b0ce2..d9ea011 100644
---- a/src/lib/SoftHSM.cpp
-+++ b/src/lib/SoftHSM.cpp
-@@ -285,7 +285,6 @@ __attribute__((__destructor__))
- #endif
- static void libcleanup()
- {
--	SoftHSM::i()->C_Finalize(NULL);
- }
- 
- /*****************************************************************************
 diff --git a/testing/build-botan.sh b/testing/build-botan.sh
 index c0d39f6..468c662 100644
 --- a/testing/build-botan.sh
