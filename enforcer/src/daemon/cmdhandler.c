@@ -520,16 +520,22 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
             cmdc->listen_addr = cmdhandler->listen_addr;
             cmdc->engine = cmdhandler->engine;
             cmdc->need_to_exit = cmdhandler->need_to_exit;
-            pthread_create(&cmdc->thread_id, NULL, &cmdhandler_accept_client,
-                (void*) cmdc);
             count++;
+            if (pthread_create(&cmdc->thread_id, NULL, &cmdhandler_accept_client,
+                (void*) cmdc))
+            {
+                count--;
+            }
             ods_log_debug("[%s] %i clients in progress...", module_str, count);
         }
     }
 
+    while (count) {
+        sleep(1);
+    }
+
     ods_log_debug("[%s] done", module_str);
     cmdhandler->engine->cmdhandler_done = 1;
-    return;
 }
 
 /**
