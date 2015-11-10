@@ -943,7 +943,7 @@ ods_stop_enforcer ()
 
  	ods_enforcer_count_stops &&
 	ods_ods-control_enforcer_stop &&
-	ods_enforcer_waitfor_stops "$(( ODS_ENFORCER_STOP_COUNT + 1 ))" "$timeout" &&
+	ods_enforcer_waitfor_stops "$(( ODS_ENFORCER_STOP_COUNT + 1 ))" "$timeout" || true &&
 
 	# double check the process is killed as this seems to take a little while on some platforms
 	if ods_is_enforcer_running; then
