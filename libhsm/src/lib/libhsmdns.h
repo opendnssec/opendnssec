@@ -37,7 +37,7 @@ extern "C" {
 /*! Extra information for signing rrsets (algorithm, expiration, etc) */
 typedef struct {
     /** The DNS signing algorithm identifier */
-    ldns_signing_algorithm algorithm;
+    ldns_algorithm algorithm;
     /** Key flags */
     uint16_t flags;
     /** The inception date of signatures made with this key. */
