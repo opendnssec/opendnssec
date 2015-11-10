@@ -529,12 +529,6 @@ engine_setup(engine_type* engine)
     if (engine_privdrop(engine) != ODS_STATUS_OK) {
         return ODS_STATUS_PRIVDROP_ERR;
     }
-    /* set up hsm */ /* LEAK */
-    result = lhsm_open(engine->config->repositories);
-    if (result != HSM_OK) {
-        fprintf(stderr, "Fail to open hsm\n");
-        return ODS_STATUS_HSM_ERR;
-    }
     /* daemonize */
     if (engine->daemonize) {
         switch ((engine->pid = fork())) {
@@ -564,6 +558,12 @@ engine_setup(engine_type* engine)
     if (util_write_pidfile(engine->config->pid_filename, engine->pid) == -1) {
         hsm_close();
         return ODS_STATUS_WRITE_PIDFILE_ERR;
+    }
+    /* set up hsm */ /* LEAK */
+    result = lhsm_open(engine->config->repositories);
+    if (result != HSM_OK) {
+        fprintf(stderr, "Fail to open hsm\n");
+        return ODS_STATUS_HSM_ERR;
     }
     /* setup done */
     ods_log_verbose("[%s] running as pid %lu", engine_str,
