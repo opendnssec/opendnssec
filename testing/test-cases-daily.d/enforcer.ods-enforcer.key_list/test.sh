@@ -45,7 +45,11 @@ echo -n "LINE: ${LINENO} " && log_this list-fifth                        ods-enf
 
 echo -n "LINE: ${LINENO} " && ods_enforcer_idle &&
 echo -n "LINE: ${LINENO} " && ods_timeleap_search_key ods KSK ready &&
-echo -n "LINE: ${LINENO} " && ods-enforcer key ds-seen -z ods -k `ods-enforcer key ds-seen 2>/dev/null | sed -e 's/^ods[[:space:]]\+KSK[[:space:]]\+[[:digit:]]\+[[:space:]]\+\([[:xdigit:]]\{32\}\)[[:space:]]*/\1/p' -e d` &&
+echo -n "LINE: ${LINENO} " && log_this ods-enforcer-cka-id ods-enforcer key list --verbose &&
+echo -n "LINE: ${LINENO} " && KSK_CKA_ID=`log_grep -o ods-enforcer-cka-id stdout "ods[[:space:]]*KSK[[:space:]]*ready" | awk '{print $9}'` &&
+echo $KSK_CKA_ID &&
+#echo -n "LINE: ${LINENO} " && ods-enforcer key ds-seen -z ods -k `ods-enforcer key ds-seen 2>/dev/null | sed -e 's/^ods[[:space:]]\+KSK[[:space:]]\+[[:digit:]]\+[[:space:]]\+\([[:xdigit:]]\{32\}\)[[:space:]]*/\1/p' -e d` &&
+echo -n "LINE: ${LINENO} " && ods-enforcer key ds-seen -z ods -k $KSK_CKA_ID &&
 echo -n "LINE: ${LINENO} " && ods_enforcer_idle &&
 
 # using --zone you should only get keys for that selected zone
@@ -112,7 +116,7 @@ echo -n "LINE: ${LINENO} " && expect list-*-activezskverbose "active" &&
 echo -n "LINE: ${LINENO} " && ! expectbut list-*-activezskverbose "ZSK" &&
 echo -n "LINE: ${LINENO} " && ! expectbut list-*-activezskverbose "active" &&
 
-ods_ods-control_enforcer_stop &&
+ods_stop_enforcer &&
 
 echo && 
 echo "************OK******************" &&
