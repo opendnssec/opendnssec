@@ -1984,11 +1984,11 @@ updateZone(db_connection_t *dbconn, policy_t* policy, zone_t* zone,
 	return returntime_zone;
 }
 
-static const hsm_key_t*
+static hsm_key_t*
 getLastReusableKey(key_data_list_t *key_list, const policy_key_t *pkey)
 {
 	const key_data_t *key;
-	const hsm_key_t *hkey, *hkey_young = NULL;
+	hsm_key_t *hkey, *hkey_young = NULL;
 	hsm_key_list_t* hsmkeylist;
 	int match;
 	int cmp;
@@ -2312,7 +2312,7 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 	key_data_t *mutkey = NULL;
 	key_data_t *mutkey2 = NULL;
 	const policy_key_t *pkey;
-	const hsm_key_t *hsmkey;
+	hsm_key_t *hsmkey;
 	hsm_key_t *hsmkey2 = NULL;
 	hsm_key_t *newhsmkey = NULL;
 	static const char *scmd = "updatePolicy";
@@ -2515,6 +2515,9 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 			if (!hsmkey) {
 				newhsmkey = hsm_key_factory_get_key(engine, dbconn, pkey, HSM_KEY_STATE_SHARED);
 				hsmkey = newhsmkey;
+			} else {
+				(void)hsm_key_set_state(hsmkey, HSM_KEY_STATE_SHARED);
+				(void)hsm_key_update(hsmkey);
 			}
 		}
 		else {
