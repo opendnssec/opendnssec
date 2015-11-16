@@ -119,4 +119,6 @@ int ods_find_arg_and_param(int *pargc, const char *argv[],
                            const char *longname, const char *shortname,
                            const char **pvalue);
 
+size_t StrToUpper(char* string);
+size_t StrToLower(char* string);
 #endif /* SHARED_STR_H */

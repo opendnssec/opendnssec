@@ -30,6 +30,10 @@
 #ifndef _KEYSTATE_LIST_CMD_H_
 #define _KEYSTATE_LIST_CMD_H_
 
+#include "db/key_data.h"
+
 struct cmd_func_block* key_list_funcblock(void);
+
+const char* map_keystate(key_data_t *key);
 
 #endif /* _KEYSTATE_LIST_CMD_H_ */

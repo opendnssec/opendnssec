@@ -254,3 +254,29 @@ int ods_find_arg_and_param(int *pargc, const char *argv[],
         argv[j] = argv[j+1];
     return i;
 }
+
+size_t StrToUpper(char* string)
+{
+    char* ptr = string;
+    if (ptr) {
+        while (*ptr) {
+            *ptr = toupper((int) *ptr);
+            ++ptr;
+        }
+    }
+
+    return (size_t) (ptr - string);
+}
+
+size_t StrToLower(char* string)
+{
+    char* ptr = string;
+    if (ptr) {
+        while (*ptr) {
+            *ptr = tolower((int) *ptr);
+            ++ptr;
+        }
+    }
+
+    return (size_t) (ptr - string);
+}
