@@ -2512,15 +2512,16 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 		 */
 		if (policy_keys_shared(policy)) {
 			hsmkey = getLastReusableKey(keylist, pkey);
+
 			if (!hsmkey) {
 				newhsmkey = hsm_key_factory_get_key(engine, dbconn, pkey, HSM_KEY_STATE_SHARED);
 				hsmkey = newhsmkey;
 			}
-		}
-		else {
+		} else {
 			newhsmkey = hsm_key_factory_get_key(engine, dbconn, pkey, HSM_KEY_STATE_PRIVATE);
 			hsmkey = newhsmkey;
 		}
+
 		if (!hsmkey) {
 			/*
 			 * Unable to get/create a HSM key at this time, retry later.
@@ -2594,9 +2595,9 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 			/* TODO: better log error */
 			ods_log_error("[%s] %s: error keytag", module_str, scmd);
 			key_data_free(mutkey);
-            if (newhsmkey) {
-                hsm_key_factory_release_key(newhsmkey, dbconn);
-            }
+			if (newhsmkey) {
+				hsm_key_factory_release_key(newhsmkey, dbconn);
+			}
 			hsm_key_free(newhsmkey);
 			key_data_list_free(keylist);
 			policy_key_list_free(policykeylist);
@@ -2611,9 +2612,9 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 			/* TODO: better log error */
 			ods_log_error("[%s] %s: error key_data_create()", module_str, scmd);
 			key_data_free(mutkey);
-            if (newhsmkey) {
-                hsm_key_factory_release_key(newhsmkey, dbconn);
-            }
+			if (newhsmkey) {
+				hsm_key_factory_release_key(newhsmkey, dbconn);
+			}
 			hsm_key_free(newhsmkey);
 			key_data_list_free(keylist);
 			policy_key_list_free(policykeylist);
