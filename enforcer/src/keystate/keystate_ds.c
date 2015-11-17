@@ -135,6 +135,15 @@ exec_dnskey_by_id(int sockfd, key_data_t *key, const char* ds_command,
 		chrptr[0] = '\n';
 		chrptr[1] = '\0';
 	}
+	char *pos = strstr(ds_command, " --cka_id");
+	int cka = 0;
+
+	if (pos){
+		cka = 1;
+		*pos = '\0';
+		rrstr[strlen(rrstr)-1] = '\0';
+		pos = NULL;
+	}
 
 	if (!ds_command || ds_command[0] == '\0') {
 		ods_log_error_and_printf(sockfd, module_str, 
@@ -164,7 +173,11 @@ exec_dnskey_by_id(int sockfd, key_data_t *key, const char* ds_command,
 				"failed to run command: %s: %s",ds_command,
 				strerror(errno));
 		} else {
-			int bytes_written = fprintf(fp, "%s", rrstr);
+			int bytes_written;
+			if (cka)
+				bytes_written = fprintf(fp, "%s; {cka_id = %s}\n", rrstr, locator);
+			else
+				bytes_written = fprintf(fp, "%s", rrstr);
 			if (bytes_written < 0) {
 				status = 5;
 				ods_log_error_and_printf(sockfd,  module_str,
