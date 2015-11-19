@@ -123,9 +123,9 @@ echo "Testing shared ZSKs" &&
 echo "Make sure that there are no additional keys allocated" &&
 log_this hsmutil-list ods-hsmutil list &&
 echo "There are `ods-hsmutil list | grep ^SoftHSM | wc -l` keys and expecting 10" &&
-test `ods-hsmutil list | grep ^SoftHSM | wc -l` -eq 10 &&
+test `ods-hsmutil list | grep ^SoftHSM | wc -l` -eq 12 &&
 
-# YBS: The correct number is 8. In practice there are 10 because of
+# YBS: The correct number is 8. In practice there are 12 because of
 # a race condition. So YMMV. All three of the shared zones request
 # new keys simultainiously, starting too many key generation tasks.
 # One key of each type is never allocated. Normally these will be
@@ -138,9 +138,9 @@ test `ods-hsmutil list | grep ^SoftHSM | wc -l` -eq 10 &&
 # non shared policies.  This is clearly wrong as the shared should
 # use less keys.
 # Depending on the specification (!) of the implementation;
-# - 8 is corrent, when not pre-generating keys, 4 for KSKs, 4 for
+# - 8 is correct, when not pre-generating keys, 4 for KSKs, 4 for
 #   ZSKs, and per 4, 3 for the non-shared, and 1 for the shared policy.
-# - 12 is corrent, when pre-generating keys, 6 for KSKs, 6 for
+# - 12 is correct, when pre-generating keys, 6 for KSKs, 6 for
 #   ZSKs, and per 6, one for the shared plus one as reserve (ie.
 #   two for shared keys, and 3 for the non-shared policy zones plus
 #   one in reserve

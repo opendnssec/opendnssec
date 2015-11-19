@@ -98,6 +98,7 @@ ods_enforcerd_SOURCES = \
 	enforcer/enforce_task.c enforcer/enforce_task.h \
 	enforcer/enforcer.c enforcer/enforcer.h \
 	enforcer/update_repositorylist_cmd.c enforcer/update_repositorylist_cmd.h \
+	enforcer/repositorylist_cmd.c enforcer/repositorylist_cmd.h \
 	enforcer/update_all_cmd.c enforcer/update_all_cmd.h \
 	enforcer/update_conf_cmd.c enforcer/update_conf_cmd.h \
 	utils/kc_helper.c utils/kc_helper.h \

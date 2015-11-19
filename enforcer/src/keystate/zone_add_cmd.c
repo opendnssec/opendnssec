@@ -171,6 +171,14 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
             {
                 client_printf_err(sockfd, "Unable to add zone, failed to set input!\n");
             }
+	    if (access(path, F_OK) == -1) {
+		client_printf_err(sockfd, "WARNING: The input file %s for zone %s does not currently exist. The zone will be added to the database anyway. \n", path, zone_name);
+		ods_log_warning("[%s] WARNING: The input file %s for zone %s does not currently exist. The zone will be added to the database anyway.", module_str, path, zone_name);
+	    }
+	    else if (access(path, R_OK)) {
+		client_printf_err(sockfd, "WARNING: Read access to input file %s for zone %s denied! \n ", path, zone_name);
+		ods_log_warning("[%s] WARNING: Read access to input file %s for zone %s denied! ", module_str, path, zone_name);
+	    }	    
         }
     }
     else {
@@ -178,6 +186,14 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
             || zone_set_input_adapter_uri(zone, path))
         {
             client_printf_err(sockfd, "Unable to add zone, failed to set input!\n");
+        }
+        if (access(path, F_OK) == -1) {
+            client_printf_err(sockfd, "WARNING: The input file %s for zone %s does not currently exist. The zone will be added to the database anyway. \n", path, zone_name);
+	    ods_log_warning("[%s] WARNING: The input file %s for zone %s does not currently exist. The zone will be added to the database anyway. ", module_str, path, zone_name);
+	}
+        else if (access(path, R_OK)) {
+            client_printf_err(sockfd, "WARNING: Read access to input file %s for zone %s denied! \n ", path, zone_name);
+	    ods_log_warning("[%s] WARNING: Read access to input file %s for zone %s denied! ", module_str, path, zone_name);
         }
     }
     if (output_type && zone_set_output_adapter_type(zone, output_type)) {
