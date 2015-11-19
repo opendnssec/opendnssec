@@ -56,6 +56,8 @@ syslog_waitfor 20 'ods-signerd: .*\[STATS\] ods1' &&
 log_this ods-enforcer-zone_add   ods-enforcer zone delete --zone ods1 &&
 log_grep ods-enforcer-zone_add   stdout "Deleted zone.*ods1" &&
 
+sleep 3 &&
+
 log_this ods-signer-sign-all ods-signer update --all &&
 log_this ods-signer-sign-all ods-signer sign --all &&
 
