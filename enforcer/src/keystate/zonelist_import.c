@@ -171,6 +171,12 @@ int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
                 if (!(name = xmlGetProp(node, (const xmlChar*)"name"))) {
                     client_printf_err(sockfd, "Invalid Zone element in zonelist XML!\n");
                     xmlFreeDoc(doc);
+                    while(zones) {
+                        zone2 = zones->next;
+                        free(zones->name);
+                        free(zones);
+                        zones = zone2;
+                    }
                     return ZONELIST_IMPORT_ERR_XML;
                 }
 
