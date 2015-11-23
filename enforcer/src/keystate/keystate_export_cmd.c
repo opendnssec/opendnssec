@@ -78,7 +78,7 @@ get_dnskey(const char *id, const char *zone, int alg, uint32_t ttl)
 	/* Get the DNSKEY record */
 	dnskey_rr = hsm_get_dnskey(hsm_ctx, key, sign_params);
 
-	libhsm_key_free(key);
+	free(key);
 	hsm_sign_params_free(sign_params);
 	hsm_destroy_context(hsm_ctx);
 	
@@ -149,7 +149,7 @@ print_ds_from_id(int sockfd, key_data_t *key, const char *zone,
 	return 0;
 }
 
-int 
+static int
 perform_keystate_export(int sockfd, db_connection_t *dbconn,
 	const char *zonename, int bind_style)
 {

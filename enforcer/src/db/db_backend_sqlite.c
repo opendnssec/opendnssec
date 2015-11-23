@@ -1775,7 +1775,7 @@ static int db_backend_sqlite_transaction_begin(void* data) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (__db_backend_sqlite_prepare(backend_sqlite, &statement, sql, sizeof(sql))) {
+    if (__db_backend_sqlite_prepare(backend_sqlite, &statement, sql, strlen(sql))) {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -1804,7 +1804,7 @@ static int db_backend_sqlite_transaction_commit(void* data) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (__db_backend_sqlite_prepare(backend_sqlite, &statement, sql, sizeof(sql))) {
+    if (__db_backend_sqlite_prepare(backend_sqlite, &statement, sql, strlen(sql))) {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -1833,7 +1833,7 @@ static int db_backend_sqlite_transaction_rollback(void* data) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (__db_backend_sqlite_prepare(backend_sqlite, &statement, sql, sizeof(sql))) {
+    if (__db_backend_sqlite_prepare(backend_sqlite, &statement, sql, strlen(sql))) {
         return DB_ERROR_UNKNOWN;
     }
 

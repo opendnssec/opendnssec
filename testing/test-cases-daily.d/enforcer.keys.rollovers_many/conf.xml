@@ -18,7 +18,8 @@
 	</Common>
 	<Enforcer>
 		<Datastore><SQLite>@INSTALL_ROOT@/var/opendnssec/kasp.db</SQLite></Datastore>
-		<Interval>PT1M</Interval>
+		<Interval>PT10M</Interval>
+		<AutomaticKeyGenerationPeriod>PT1M</AutomaticKeyGenerationPeriod>
 	</Enforcer>
 	<Signer>
 		<WorkingDirectory>@INSTALL_ROOT@/var/opendnssec/signer</WorkingDirectory>

@@ -507,6 +507,7 @@ backup_namedb_done:
         ldns_rdf_deep_free(prev);
         prev = NULL;
     }
+    free(locator);
     return result;
 }
 

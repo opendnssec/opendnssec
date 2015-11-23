@@ -3094,7 +3094,9 @@ static int zone_list_get_associated(zone_list_t* zone_list) {
         zone_list->object_list[i]->key_dependency_list->object_list_size = count;
         zone_list->object_list[i]->key_dependency_list->object_list_first = 1;
     }
+    key_dependency_list_free(key_dependency_list);
     db_clause_list_free(clause_list);
+    key_data_list_free(key_data_list);
 
     zone_list->object_list_first = 1;
     return DB_OK;
@@ -3319,7 +3321,7 @@ const zone_t* zone_list_begin(zone_list_t* zone_list) {
             if (!db_result_list_size(zone_list->result_list)) {
                 return NULL;
             }
-            if (!(zone_list->object_list = (zone_t**)calloc(db_result_list_size(zone_list->result_list), sizeof(zone_t**)))) {
+            if (!(zone_list->object_list = (zone_t**)calloc(db_result_list_size(zone_list->result_list), sizeof(zone_t*)))) {
                 return NULL;
             }
             zone_list->object_list_size = db_result_list_size(zone_list->result_list);
@@ -3411,7 +3413,7 @@ const zone_t* zone_list_next(zone_list_t* zone_list) {
             if (!db_result_list_size(zone_list->result_list)) {
                 return NULL;
             }
-            if (!(zone_list->object_list = (zone_t**)calloc(db_result_list_size(zone_list->result_list), sizeof(zone_t**)))) {
+            if (!(zone_list->object_list = (zone_t**)calloc(db_result_list_size(zone_list->result_list), sizeof(zone_t*)))) {
                 return NULL;
             }
             zone_list->object_list_size = db_result_list_size(zone_list->result_list);

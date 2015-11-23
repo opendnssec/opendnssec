@@ -1404,7 +1404,7 @@ hsm_list_keys_session_internal(hsm_ctx_t *ctx,
                 goto err;
         } 
 
-        keys = malloc(total_count * sizeof(libhsm_key_t *));
+        keys = calloc(total_count, sizeof(libhsm_key_t *));
         if(keys == NULL) {
                 hsm_ctx_set_error(ctx, -1, "hsm_list_keys_session_internal",
                     "Error allocating memory for keys table (OOM)");
@@ -1425,7 +1425,7 @@ hsm_list_keys_session_internal(hsm_ctx_t *ctx,
     return keys;
 
 errkeys:
-    libhsm_key_list_free(keys, i-1);
+    libhsm_key_list_free(keys, total_count);
 
 err:
     free(key_handles);
@@ -1490,7 +1490,7 @@ hsm_find_key_by_id_session(hsm_ctx_t *ctx, const hsm_session_t *session,
 
 /* Find a key pair by CKA_ID (as byte array)
 
-The returned key structure can be freed with libhsm_key_free()
+The returned key structure can be freed with free()
 
 \param context HSM context
 \param id CKA_ID of key to find (array of bytes)
@@ -3029,19 +3029,11 @@ hsm_remove_key(hsm_ctx_t *ctx, libhsm_key_t *key)
 }
 
 void
-libhsm_key_free(libhsm_key_t *key)
-{
-    if (key) {
-        free(key);
-    }
-}
-
-void
 libhsm_key_list_free(libhsm_key_t **key_list, size_t count)
 {
     size_t i;
     for (i = 0; i < count; i++) {
-        libhsm_key_free(key_list[i]);
+        free(key_list[i]);
     }
     free(key_list);
 }
@@ -3583,7 +3575,7 @@ hsm_get_error(hsm_ctx_t *gctx)
         snprintf(message, HSM_ERROR_MSGSIZE,
             "%s: %s",
             ctx->error_action ? ctx->error_action : "unknown()",
-            ctx->error_message ? ctx->error_message : "unknown error");
+            ctx->error_message[0] ? ctx->error_message : "unknown error");
         return message;
     };
 

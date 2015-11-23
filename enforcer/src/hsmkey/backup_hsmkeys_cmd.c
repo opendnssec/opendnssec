@@ -169,7 +169,7 @@ handles(const char *cmd, ssize_t n)
 	return 0;
 }
 
-const char *
+static const char *
 get_repo_param(const char *cmd, ssize_t n, char *buf, size_t buflen)
 {
 	#define NARGV 8

@@ -42,6 +42,8 @@
 #include <libxml/parser.h>
 #include <libxml/tree.h>
 
+static const char* module_str = "zonelist_import";
+
 struct __zonelist_import_zone;
 struct __zonelist_import_zone {
     struct __zonelist_import_zone* next;
@@ -169,6 +171,12 @@ int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
                 if (!(name = xmlGetProp(node, (const xmlChar*)"name"))) {
                     client_printf_err(sockfd, "Invalid Zone element in zonelist XML!\n");
                     xmlFreeDoc(doc);
+                    while(zones) {
+                        zone2 = zones->next;
+                        free(zones->name);
+                        free(zones);
+                        zones = zone2;
+                    }
                     return ZONELIST_IMPORT_ERR_XML;
                 }
 
@@ -209,7 +217,18 @@ int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
                         continue;
                     }
 
-                    ods_log_info("[zonelist_import] zone %s created", (char*)name);
+		    if(!strcmp(zone_input_adapter_type(zone),"File")){
+                        if(access(zone_input_adapter_uri(zone), F_OK) == -1) {
+                            client_printf_err(sockfd, "WARNING: The input file %s for zone %s does not currently exist. The zone will be added to the database anyway.\n", zone_input_adapter_uri(zone), zone_name(zone));
+			    ods_log_warning("[%s] WARNING: The input file %s for zone %s does not currently exist. The zone will be added to the database anyway.", module_str, zone_input_adapter_uri(zone), zone_name(zone));
+                        }
+                        else if (access(zone_input_adapter_uri(zone), R_OK)) {
+                            client_printf_err(sockfd, module_str, "WARNING: Read access to input file %s for zone %s denied! \n", zone_input_adapter_uri(zone), zone_name(zone));
+			    ods_log_warning("[%s] WARNING: Read access to input file %s for zone %s denied!", module_str, zone_input_adapter_uri(zone), zone_name(zone));
+                        }
+                    }
+
+                    ods_log_info("[%s] zone %s created", module_str, (char*)name);
                     client_printf(sockfd, "Zone %s created successfully\n",
                         (char*)name);
                     any_update = 1;
@@ -260,7 +279,7 @@ int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
                             continue;
                         }
 
-                        ods_log_info("[zonelist_import] zone %s updated", (char*)name);
+                        ods_log_info("[%s] zone %s updated", module_str, (char*)name);
                         client_printf(sockfd, "Updated zone %s successfully\n",
                             (char*)name);
                         any_update = 1;
@@ -355,7 +374,7 @@ int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
                     continue;
                 }
 
-                ods_log_info("[zonelist_import] zone %s deleted", zone2->name);
+                ods_log_info("[%s] zone %s deleted", module_str, zone2->name);
                 client_printf(sockfd, "Deleted zone %s successfully\n", zone2->name);
             }
             else {

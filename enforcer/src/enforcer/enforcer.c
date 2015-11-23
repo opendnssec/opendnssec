@@ -498,6 +498,7 @@ successor_rec(key_data_t** keylist, size_t keylist_size,
         }
 
         if (db_value_cmp(key_data_id(predecessor_key), key_dependency_from_key_data_id(dep), &cmp)) {
+            key_dependency_list_free(deplist);
             return -1;
         }
         if (cmp) {
@@ -505,6 +506,7 @@ successor_rec(key_data_t** keylist, size_t keylist_size,
         }
 
         if (db_value_cmp(key_data_id(successor_key), key_dependency_to_key_data_id(dep), &cmp)) {
+            key_dependency_list_free(deplist);
             return -1;
         }
         if (cmp) {
@@ -578,6 +580,7 @@ successor_rec(key_data_t** keylist, size_t keylist_size,
          */
         if ((from_key = key_dependency_get_from_key_data(dep))) {
             key_dependency_list_free(deplist);
+            key_data_free(from_key);
             return -1;
         }
 
@@ -1984,34 +1987,32 @@ updateZone(db_connection_t *dbconn, policy_t* policy, zone_t* zone,
 	return returntime_zone;
 }
 
+/**
+ * Get a reusable key for this policy key.
+ */
 static const hsm_key_t*
 getLastReusableKey(key_data_list_t *key_list, const policy_key_t *pkey)
 {
 	const key_data_t *key;
-	const hsm_key_t *hkey, *hkey_young = NULL;
+	hsm_key_t *hkey, *hkey_young = NULL;
 	hsm_key_list_t* hsmkeylist;
 	int match;
 	int cmp;
 
-	if (!key_list) {
+	if (!key_list || !pkey)
 		return NULL;
-	}
-	if (!pkey) {
-		return NULL;
-	}
 
-	/*
-	 * Get a reusable key for this policy key.
-	 */
-
-	/* TODO: We still need to filter on role and not-in-use by zone */
-	
 	hsmkeylist = hsm_key_list_new_get_by_policy_key(pkey);
 	for (hkey = hsm_key_list_get_begin(hsmkeylist); hkey;
 		hkey = hsm_key_list_get_next(hsmkeylist))
 	{
 		/** only match if the hkey has at least the role(s) of pkey */
 		if ((~hsm_key_role(hkey) & policy_key_role(pkey)) != 0)
+			continue;
+
+		/** hsmkey must be in use already. Allocating UNUSED keys is a
+		 * job for the keyfactory */
+		if (hkey->state == HSM_KEY_STATE_UNUSED)
 			continue;
 
 		/** Now find out if hsmkey is in used by zone */
@@ -2027,8 +2028,10 @@ getLastReusableKey(key_data_list_t *key_list, const policy_key_t *pkey)
 		if (match) continue;
 
 		/** This key matches, is it newer? */
-		if (!hkey_young || hsm_key_inception(hkey_young) < hsm_key_inception(hkey))
-			hkey_young = hkey;
+		if (!hkey_young || hsm_key_inception(hkey_young) < hsm_key_inception(hkey)) {
+            hsm_key_free(hkey_young);
+            hkey_young = hkey;
+        }
 	}
 
 	hsm_key_list_free(hsmkeylist);
@@ -2232,7 +2235,7 @@ keytag(const char *loc, int alg, int ksk, int *success)
 
 	dnskey_rr = hsm_get_dnskey(hsm_ctx, hsmkey, sign_params);
 	if (!dnskey_rr) {
-		libhsm_key_free(hsmkey);
+		free(hsmkey);
 		hsm_sign_params_free(sign_params);
 		hsm_destroy_context(hsm_ctx);
 		return 0;
@@ -2241,7 +2244,7 @@ keytag(const char *loc, int alg, int ksk, int *success)
 	tag = ldns_calc_keytag(dnskey_rr);
 
 	ldns_rr_free(dnskey_rr);
-	libhsm_key_free(hsmkey);
+	free(hsmkey);
 	hsm_sign_params_free(sign_params);
 	hsm_destroy_context(hsm_ctx);
 	*success = 1;
@@ -2512,15 +2515,16 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 		 */
 		if (policy_keys_shared(policy)) {
 			hsmkey = getLastReusableKey(keylist, pkey);
+
 			if (!hsmkey) {
 				newhsmkey = hsm_key_factory_get_key(engine, dbconn, pkey, HSM_KEY_STATE_SHARED);
 				hsmkey = newhsmkey;
 			}
-		}
-		else {
+		} else {
 			newhsmkey = hsm_key_factory_get_key(engine, dbconn, pkey, HSM_KEY_STATE_PRIVATE);
 			hsmkey = newhsmkey;
 		}
+
 		if (!hsmkey) {
 			/*
 			 * Unable to get/create a HSM key at this time, retry later.
@@ -2594,9 +2598,9 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 			/* TODO: better log error */
 			ods_log_error("[%s] %s: error keytag", module_str, scmd);
 			key_data_free(mutkey);
-            if (newhsmkey) {
-                hsm_key_factory_release_key(newhsmkey, dbconn);
-            }
+			if (newhsmkey) {
+				hsm_key_factory_release_key(newhsmkey, dbconn);
+			}
 			hsm_key_free(newhsmkey);
 			key_data_list_free(keylist);
 			policy_key_list_free(policykeylist);
@@ -2611,9 +2615,9 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 			/* TODO: better log error */
 			ods_log_error("[%s] %s: error key_data_create()", module_str, scmd);
 			key_data_free(mutkey);
-            if (newhsmkey) {
-                hsm_key_factory_release_key(newhsmkey, dbconn);
-            }
+			if (newhsmkey) {
+				hsm_key_factory_release_key(newhsmkey, dbconn);
+			}
 			hsm_key_free(newhsmkey);
 			key_data_list_free(keylist);
 			policy_key_list_free(policykeylist);
@@ -2741,19 +2745,26 @@ removeDeadKeys(db_connection_t *dbconn, key_data_t** keylist,
         if (key_purgable) {
 			/* key is purgable, is it time yet? */
             if (now >= key_time) {
+                key_state_t* ks_ds = key_data_get_cached_ds(keylist[i]);
+                key_state_t* ks_dk = key_data_get_cached_dnskey(keylist[i]);
+                key_state_t* ks_rd = key_data_get_cached_rrsigdnskey(keylist[i]);
+                key_state_t* ks_rs = key_data_get_cached_rrsig(keylist[i]);
+
                 ods_log_info("[%s] %s deleting key: %s", module_str, scmd,
                     hsm_key_locator(key_data_cached_hsm_key(keylist[i])));
 
-                if (key_state_delete(key_data_get_cached_ds(keylist[i]))
-                    || key_state_delete(key_data_get_cached_dnskey(keylist[i]))
-                    || key_state_delete(key_data_get_cached_rrsigdnskey(keylist[i]))
-                    || key_state_delete(key_data_get_cached_rrsig(keylist[i]))
+                if (   key_state_delete(ks_ds) || key_state_delete(ks_dk)
+                    || key_state_delete(ks_rd) || key_state_delete(ks_rs)
                     || key_data_delete(keylist[i])
                     || hsm_key_factory_release_key_id(hsm_key_id(key_data_cached_hsm_key(keylist[i])), dbconn))
                 {
                     /* TODO: better log error */
                     ods_log_error("[%s] %s: key_state_delete() || key_data_delete() || hsm_key_factory_release_key() failed", module_str, scmd);
                 }
+                key_state_free(ks_ds);
+                key_state_free(ks_dk);
+                key_state_free(ks_rd);
+                key_state_free(ks_rs);
             } else {
                 minTime(key_time, &first_purge);
             }

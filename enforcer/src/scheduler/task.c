@@ -213,31 +213,15 @@ const char*
 task_what2str(int what)
 {
     switch (what) {
-        case TASK_NONE:
-            return "do nothing with";
-            break;
-        case TASK_SIGNCONF:
-            return "load signconf for";
-            break;
-        case TASK_READ:
-            return "read";
-            break;
-        case TASK_NSECIFY:
-            return "nsecify";
-            break;
-        case TASK_SIGN:
-            return "sign";
-            break;
-        case TASK_AUDIT:
-            return "audit";
-            break;
-        case TASK_WRITE:
-            return "write";
-            break;
-        default:
-            return task_id_to_short_name(what, "???");
+        case TASK_NONE:     return "do nothing with";
+        case TASK_SIGNCONF: return "load signconf for";
+        case TASK_READ:     return "read";
+        case TASK_NSECIFY:  return "nsecify";
+        case TASK_SIGN:     return "sign";
+        case TASK_AUDIT:    return "audit";
+        case TASK_WRITE:    return "write";
     }
-    return "[!!!]"; /* we should never get here.. */
+    return task_id_to_short_name(what, "???");
 }
 
 
@@ -290,32 +274,6 @@ task2str(task_type* task, char* buftask)
         }
     }
     return NULL;
-}
-
-
-/**
- * Print task.
- *
- */
-void
-task_print(FILE* out, task_type* task)
-{
-    char ctimebuf[32]; /* at least 26 according to docs */
-    time_t now = time_now();
-    char* strtime = NULL;
-
-    if (out && task) {
-        if (task->flush) {
-            strtime = ctime_r(&now,ctimebuf);
-        } else {
-            strtime = ctime_r(&task->when,ctimebuf);
-        }
-        if (strtime) {
-            strtime[strlen(strtime)-1] = '\0';
-        }
-        fprintf(out, "On %s I will [%s] %s\n", strtime?strtime:"(null)",
-            task_what2str(task->what), task_who2str(task->who));
-    }
 }
 
 

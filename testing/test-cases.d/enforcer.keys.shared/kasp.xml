@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <KASP>
-<Policy name="Policy1">
+<Policy name="default">
 	<Description>
 			Policy1 in ODS wiki BasicTest outline
 	</Description>
@@ -25,6 +25,7 @@
 		<TTL>PT20S</TTL>
 		<RetireSafety>PT15S</RetireSafety>
 		<PublishSafety>PT1S</PublishSafety>
+		<ShareKeys/>
 		<Purge>PT3H</Purge>
 		<!-- Parameters for KSK only -->
 		<KSK>

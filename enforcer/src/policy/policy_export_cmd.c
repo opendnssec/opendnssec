@@ -100,6 +100,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     }
 
     if (!dbconn) {
+        free(buf);
         return 1;
     }
 
