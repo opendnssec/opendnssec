@@ -17,7 +17,7 @@
 		<Denial>
 			<NSEC3>
 				<OptOut/>
-				<Resalt>P1000D</Resalt>
+				<Resalt>P10D</Resalt>
 				<Hash>
 					<Algorithm>1</Algorithm>
 					<Iterations>5</Iterations>

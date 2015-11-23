@@ -57,7 +57,7 @@ int signconf_export_all(int sockfd, const db_connection_t* connection, int force
     zone_list_t* zone_list;
     zone_t* zone;
     int ret;
-    policy_t* policy = NULL;
+    const policy_t* policy = NULL;
     int cmp;
     int change = 0;
 
@@ -85,7 +85,6 @@ int signconf_export_all(int sockfd, const db_connection_t* connection, int force
             if (db_value_cmp(policy_id(policy), zone_policy_id(zone), &cmp)
                 || cmp)
             {
-                policy_free(policy);
                 policy = NULL;
             }
         }

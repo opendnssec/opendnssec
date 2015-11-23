@@ -102,7 +102,7 @@ ods_enforcer_idle &&
 syslog_waitfor 120 'ods-enforcerd: 16 zone(s) found on policy \"Policy2\"' &&
 # 6 more ZSKs have been made active so we need more keys than when we run the test from ods-enforcer
 log_this enforcer-keylist_2   ods-hsmutil list &&
-log_grep enforcer-keylist_2   stdout "38 keys found." &&
+log_grep enforcer-keylist_2   stdout "39 keys found." &&
 
 ##################  2. Keys not shared, diff alg & length ###########################
 
