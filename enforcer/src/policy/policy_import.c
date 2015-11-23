@@ -806,7 +806,6 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
                     policies = policy2->next;
                     free(policy2);
                 }
-                __policy_import_cleanup(&policy_keys_db, &policy_keys_xml, &policies);
                 return POLICY_IMPORT_ERR_MEMORY;
             }
 

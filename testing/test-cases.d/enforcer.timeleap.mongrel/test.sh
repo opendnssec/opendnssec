@@ -27,17 +27,14 @@ ods_start_enforcer &&
 
 for n in $RANGE
 do
-	echo -n "$n " &&
-	DIFF=1 &&
-	ods-enforcer key list -a -v -p 2>/dev/null | cut -d ";" -f 1-6,8|sed -r "s/[0-9-]{10} [0-9:]{8}/date time/" | sort > base/$n.verbose &&
-	ods-enforcer key list -a -d -p 2>/dev/null | cut -d ";" -f 1-8 | sort > base/$n.debug &&
+	ods-enforcer key list -v -p 2>/dev/null | cut -d ";" -f 1-6,8|sed -r "s/[0-9-]{10} [0-9:]{8}/date time/" | sort > base/$n.verbose &&
+	ods-enforcer key list -d -p 2>/dev/null | cut -d ";" -f 1-8 | sort > base/$n.debug &&
 	log_this 02_timeleap 'ods-enforcer time leap --attach' &&
 	if [ ! $WRITE_GOLD -eq 1 ]
 	then
 		diff -u base/$n.verbose gold/$n.verbose || break &&
 		diff -u base/$n.debug gold/$n.debug || break
-	fi &&
-	DIFF=0
+	fi
 done &&
 
 if [ $WRITE_GOLD -eq 1 ]
@@ -46,7 +43,6 @@ then
 	cp -r base gold
 fi &&
 
-test $DIFF -eq 0 &&
 ods_stop_enforcer &&
 echo "**** OK" &&
 return $KEEP_LOG_ON_SUCCESS

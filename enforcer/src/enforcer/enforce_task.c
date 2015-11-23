@@ -308,6 +308,10 @@ enforce_task(engine_type *engine, bool all)
 	const char *what = "enforce";
 	const char *who = "next zone";
 	struct enf_task_ctx *ctx = &enforcer_context;
+	if (!ctx) {
+		ods_log_error("Malloc failure, enforce task not scheduled");
+		return NULL;
+	}
 	ctx->engine = engine;
 	ctx->enforce_all = all;
 	what_id = task_register(what, module_str, enforce_task_perform);

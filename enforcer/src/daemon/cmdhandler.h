@@ -50,7 +50,6 @@ struct cmdhandler_struct {
     int listen_fd;
     int client_fd;
     int need_to_exit;
-    int stopped;
     db_connection_t* dbconn;
 };
 

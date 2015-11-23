@@ -498,7 +498,6 @@ successor_rec(key_data_t** keylist, size_t keylist_size,
         }
 
         if (db_value_cmp(key_data_id(predecessor_key), key_dependency_from_key_data_id(dep), &cmp)) {
-            key_dependency_list_free(deplist);
             return -1;
         }
         if (cmp) {
@@ -506,7 +505,6 @@ successor_rec(key_data_t** keylist, size_t keylist_size,
         }
 
         if (db_value_cmp(key_data_id(successor_key), key_dependency_to_key_data_id(dep), &cmp)) {
-            key_dependency_list_free(deplist);
             return -1;
         }
         if (cmp) {
@@ -580,7 +578,6 @@ successor_rec(key_data_t** keylist, size_t keylist_size,
          */
         if ((from_key = key_dependency_get_from_key_data(dep))) {
             key_dependency_list_free(deplist);
-            key_data_free(from_key);
             return -1;
         }
 
@@ -1994,7 +1991,7 @@ static const hsm_key_t*
 getLastReusableKey(key_data_list_t *key_list, const policy_key_t *pkey)
 {
 	const key_data_t *key;
-	hsm_key_t *hkey, *hkey_young = NULL;
+	const hsm_key_t *hkey, *hkey_young = NULL;
 	hsm_key_list_t* hsmkeylist;
 	int match;
 	int cmp;
@@ -2028,10 +2025,8 @@ getLastReusableKey(key_data_list_t *key_list, const policy_key_t *pkey)
 		if (match) continue;
 
 		/** This key matches, is it newer? */
-		if (!hkey_young || hsm_key_inception(hkey_young) < hsm_key_inception(hkey)) {
-            hsm_key_free(hkey_young);
-            hkey_young = hkey;
-        }
+		if (!hkey_young || hsm_key_inception(hkey_young) < hsm_key_inception(hkey))
+			hkey_young = hkey;
 	}
 
 	hsm_key_list_free(hsmkeylist);
