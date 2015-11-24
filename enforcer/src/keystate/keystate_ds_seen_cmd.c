@@ -67,7 +67,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 		KEY_DATA_DS_AT_PARENT_SUBMITTED,
 		KEY_DATA_DS_AT_PARENT_SEEN, engine);
 	if (error == 0) {
-		flush_enforce_task(engine, 1);
+		flush_enforce_task(engine, 0);
 	}
 	return error;
 

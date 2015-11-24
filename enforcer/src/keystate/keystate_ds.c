@@ -282,6 +282,36 @@ push_clauses(db_clause_list_t *clause_list, zone_t *zone,
 	return 0;
 }
 
+/** Update timestamp on DS of key to now */
+static int
+ds_changed(key_data_t *key)
+{
+	key_state_list_t* keystatelist;
+	key_state_t* keystate;
+
+	if(key_data_retrieve_key_state_list(key)) return 1;
+	keystatelist = key_data_key_state_list(key);
+	keystate = key_state_list_get_begin(keystatelist);
+	if (!keystate) return 1;
+
+	while (keystate) {
+		key_state_t* keystate_next;
+		if (keystate->type == KEY_STATE_TYPE_DS) {
+			keystate->last_change = time_now();
+			if(key_state_update(keystate)) {
+				key_state_free(keystate);
+				return 1;
+			}
+			key_state_free(keystate);
+			return 0;
+		}
+		keystate_next = key_state_list_get_next(keystatelist);
+		key_state_free(keystate);
+		keystate = keystate_next;
+	}
+	return 1;
+}
+
 /* Change DS state, when zonename not given do it for all zones!
  */
 int
@@ -340,8 +370,9 @@ change_keys_from_to(db_connection_t *dbconn, int sockfd,
 		{
 			(void)retract_dnskey_by_id(sockfd, key, engine);
 		}
+
 		if (key_data_set_ds_at_parent(key, state_to) ||
-			key_data_update(key))
+			key_data_update(key) || ds_changed(key) )
 		{
 			key_data_free(key);
 			ods_log_error("[%s] Error writing to database", module_str);
@@ -357,7 +388,10 @@ change_keys_from_to(db_connection_t *dbconn, int sockfd,
 	client_printf(sockfd, "%d KSK matches found.\n", key_match);
 	if (!key_match) status = 11;
 	client_printf(sockfd, "%d KSKs changed.\n", key_mod);
-
+	if (zone) {
+		zone->next_change = 0; /* asap */
+		(void)zone_update(zone);
+	}
 	zone_free(zone);
 	return status;
 }
