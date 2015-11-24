@@ -181,6 +181,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	signconf_del = (char*) malloc(strlen(zone_signconf_path(zone)) + strlen(".ZONE_DELETED") + 1);
 	strcat(signconf_del, zone_signconf_path(zone));
 	strcat(signconf_del, ".ZONE_DELETED");
+	signconf_del[strlen(signconf_del)] = '\0';
 	rename(zone_signconf_path(zone), signconf_del);
 	free(signconf_del);
 	signconf_del = NULL;
@@ -206,6 +207,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	    signconf_del = (char*) malloc(strlen(zone_signconf_path(zone)) + strlen(".ZONE_DELETED") + 1);
 	    strcat(signconf_del, zone_signconf_path(zone));
 	    strcat(signconf_del, ".ZONE_DELETED");
+	    signconf_del[strlen(signconf_del)] = '\0';
 	    rename(zone_signconf_path(zone), signconf_del);
 	    free(signconf_del);
 	    signconf_del = NULL;
