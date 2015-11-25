@@ -462,22 +462,6 @@ static const int mdays[] = {
 };
 
 
-static int
-is_leap_year(int year)
-{
-    return year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
-}
-
-
-static int
-leap_days(int y1, int y2)
-{
-    --y1;
-    --y2;
-    return (y2/4 - y1/4) - (y2/100 - y1/100) + (y2/400 - y1/400);
-}
-
-
 static time_t time_now_set = 0;
 
 /**
