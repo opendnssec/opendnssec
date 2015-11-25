@@ -102,6 +102,7 @@ exec_dnskey_by_id(int sockfd, key_data_t *key, const char* ds_command,
 	char *rrstr, *chrptr;
 	zone_t* zone;
 	struct stat stat_ret;
+        int cka = 0;
 
 	assert(key);
 
@@ -136,7 +137,6 @@ exec_dnskey_by_id(int sockfd, key_data_t *key, const char* ds_command,
 		chrptr[1] = '\0';
 	}
 	char *pos = strstr(ds_command, " --cka_id");
-	int cka = 0;
 
 	if (pos){
 		cka = 1;
