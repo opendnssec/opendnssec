@@ -67,7 +67,6 @@ netio_add_handler(netio_type* netio, netio_handler_type* handler)
     l->handler = handler;
     netio->handlers = l;
     ods_log_debug("[%s] handler added", netio_str);
-    return;
 }
 
 /*
@@ -94,7 +93,6 @@ netio_remove_handler(netio_type* netio, netio_handler_type* handler)
            }
     }
     ods_log_debug("[%s] handler removed", netio_str);
-    return;
 }
 
 
@@ -107,7 +105,6 @@ timeval_to_timespec(struct timespec* left, const struct timeval* right)
 {
     left->tv_sec = right->tv_sec;
     left->tv_nsec = 1000 * right->tv_usec;
-    return;
 }
 
 /**
@@ -144,7 +141,6 @@ timespec_add(struct timespec* left, const struct timespec* right)
         ++left->tv_sec;
         left->tv_nsec -= NANOSECONDS_PER_SECOND;
     }
-    return;
 }
 
 
@@ -161,7 +157,6 @@ timespec_subtract(struct timespec* left, const struct timespec* right)
         --left->tv_sec;
         left->tv_nsec += NANOSECONDS_PER_SECOND;
     }
-    return;
 }
 
 
@@ -351,6 +346,5 @@ netio_cleanup(netio_type* netio)
     free(netio->handlers);
     free(netio->deallocated);
     free(netio);
-    return;
 }
 

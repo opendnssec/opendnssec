@@ -126,7 +126,6 @@ cleanup_context(void *data)
 {
     HMAC_CTX* context = (HMAC_CTX*) data;
     HMAC_CTX_cleanup(context);
-    return;
 }
 
 static void
@@ -158,7 +157,6 @@ init_context(void* context, tsig_algo_type *algorithm, tsig_key_type *key)
     HMAC_CTX* ctx = (HMAC_CTX*) context;
     const EVP_MD* md = (const EVP_MD*) algorithm->data;
     HMAC_Init_ex(ctx, key->data, key->size, md, NULL);
-    return;
 }
 
 static void
@@ -166,7 +164,6 @@ update(void* context, const void* data, size_t size)
 {
     HMAC_CTX* ctx = (HMAC_CTX*) context;
     HMAC_Update(ctx, (unsigned char*) data, (int) size);
-    return;
 }
 
 static void
@@ -176,7 +173,6 @@ final(void* context, uint8_t* digest, size_t* size)
     unsigned len = (unsigned) *size;
     HMAC_Final(ctx, digest, &len);
     *size = (size_t) len;
-    return;
 }
 
 
@@ -194,7 +190,6 @@ tsig_handler_openssl_finalize(void)
         entry = entry->next;
     }
     EVP_cleanup();
-    return;
 }
 
 #endif /* HAVE_SSL */

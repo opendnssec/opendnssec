@@ -141,7 +141,6 @@ ixfr_add_rr(ixfr_type* ixfr, ldns_rr* rr)
     if (ldns_rr_get_type(rr) == LDNS_RR_TYPE_SOA) {
         ixfr->part[0]->soaplus = rr;
     }
-    return;
 }
 
 
@@ -172,7 +171,6 @@ ixfr_del_rr(ixfr_type* ixfr, ldns_rr* rr)
     if (ldns_rr_get_type(rr) == LDNS_RR_TYPE_SOA) {
         ixfr->part[0]->soamin = rr;
     }
-    return;
 }
 
 
@@ -235,7 +233,6 @@ part_print(FILE* fd, ixfr_type* ixfr, size_t i)
     if (error) {
         zone->adoutbound->error = 1;
     }
-    return;
 }
 
 
@@ -255,7 +252,6 @@ ixfr_print(FILE* fd, ixfr_type* ixfr)
         ods_log_deeebug("[%s] print ixfr part #%d", ixfr_str, i);
         part_print(fd, ixfr, i);
     }
-    return;
 }
 
 
@@ -288,7 +284,6 @@ ixfr_purge(ixfr_type* ixfr)
         ods_fatal_exit("[%s] fatal unable to purge ixfr for zone %s: "
             "part_create() failed", ixfr_str, zone->name);
     }
-    return;
 }
 
 
@@ -312,5 +307,4 @@ ixfr_cleanup(ixfr_type* ixfr)
     }
     free(ixfr);
     lock_basic_destroy(&ixfr_lock);
-    return;
 }

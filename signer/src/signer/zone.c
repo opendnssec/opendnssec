@@ -313,8 +313,6 @@ zone_rollback_dnskeys(zone_type* zone)
             }
         }
     }
-    /* done */
-    return;
 }
 
 
@@ -407,7 +405,6 @@ zone_rollback_nsec3param(zone_type* zone)
             zone->signconf->nsec3params->rr = NULL;
         }
     }
-    return;
 }
 
 
@@ -723,7 +720,6 @@ zone_merge(zone_type* z1, zone_type* z2)
         z1->adoutbound = adtmp;
         adtmp = NULL;
     }
-    return;
 }
 
 
@@ -758,7 +754,6 @@ zone_cleanup(zone_type* zone)
     free(zone);
     lock_basic_destroy(&xfr_lock);
     lock_basic_destroy(&zone_lock);
-    return;
 }
 
 

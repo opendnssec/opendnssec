@@ -122,7 +122,6 @@ interface_print(FILE* fd, interface_type* i)
         fprintf(fd, "<Port>%s</Port>", i->port);
     }
     fprintf(fd, "</Interface>\n");
-    return;
 }
 
 
@@ -142,7 +141,6 @@ listener_print(FILE* fd, listener_type* listener)
         interface_print(fd, &listener->interfaces[i]);
     }
     fprintf(fd, "</Listener>\n");
-    return;
 }
 
 
@@ -160,7 +158,6 @@ interface_log(interface_type* i)
         i->family==AF_INET6?"IPv6":"IPv4",
         i->address?i->address:"localhost",
         i->port?i->port:DNS_PORT_STRING);
-    return;
 }
 
 
@@ -178,7 +175,6 @@ listener_log(listener_type* listener)
     for (i=0; i < listener->count; i++) {
         interface_log(&listener->interfaces[i]);
     }
-    return;
 }
 
 
@@ -194,7 +190,6 @@ interface_cleanup(interface_type* i)
     }
     free((void*)i->port);
     free((void*)i->address);
-    return;
 }
 
 
@@ -214,5 +209,4 @@ listener_cleanup(listener_type* listener)
     }
     free(listener->interfaces);
     free(listener);
-    return;
 }

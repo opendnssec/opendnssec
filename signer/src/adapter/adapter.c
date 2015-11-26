@@ -256,5 +256,4 @@ adapter_cleanup(adapter_type* adapter)
             break;
     }
     free(adapter);
-    return;
 }

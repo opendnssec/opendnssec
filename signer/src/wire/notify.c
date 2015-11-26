@@ -89,7 +89,6 @@ notify_set_timer(notify_type* notify, time_t t)
     notify->handler.timeout = &notify->timeout;
     notify->timeout.tv_sec = t;
     notify->timeout.tv_nsec = 0;
-    return;
 }
 
 
@@ -157,7 +156,6 @@ notify_setup(notify_type* notify)
     notify->secondary = dnsout->do_notify;
     ods_log_debug("[%s] setup notify for zone %s", notify_str, zone->name);
     notify_set_timer(notify, notify_time(notify));
-    return;
 }
 
 
@@ -203,7 +201,6 @@ notify_disable(notify_type* notify)
     }
     ods_log_debug("[%s] notify for zone %s disabled", notify_str, zone->name);
     xfrhandler->notify_udp_num--;
-    return;
 }
 
 
@@ -227,7 +224,6 @@ notify_next(notify_type* notify)
             notify_str, zone->name);
         notify_disable(notify);
     }
-    return;
 }
 
 
@@ -387,7 +383,6 @@ notify_tsig_sign(notify_type* notify, buffer_type* buffer)
     tsig_rr_append(notify->tsig_rr, buffer);
     buffer_pkt_set_arcount(buffer, buffer_pkt_arcount(buffer)+1);
     tsig_rr_prepare(notify->tsig_rr);
-    return;
 }
 
 
@@ -435,7 +430,6 @@ notify_send(notify_type* notify)
     }
     ods_log_verbose("[%s] notify retry %u for zone %s sent to %s", notify_str,
         notify->retry, zone->name, notify->secondary->address);
-    return;
 }
 
 
@@ -494,7 +488,6 @@ notify_handle_zone(netio_type* ATTR_UNUSED(netio),
             notify_send(notify);
         }
     }
-    return;
 }
 
 
@@ -512,7 +505,6 @@ notify_update_soa(notify_type* notify, ldns_rr* soa)
         ldns_rr_free(notify->soa);
     }
     notify->soa = soa;
-    return;
 }
 
 
@@ -569,7 +561,6 @@ notify_enable(notify_type* notify, ldns_rr* soa)
     notify->handler.timeout = NULL;
     ods_log_debug("[%s] zone %s notify on waiting list", notify_str,
         zone->name);
-    return;
 }
 
 

@@ -170,7 +170,6 @@ ods_closeall(int fd)
     while (fd < fdlimit) {
         close(fd++);
     }
-    return;
 }
 
 

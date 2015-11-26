@@ -98,7 +98,6 @@ namedb_init_denials(namedb_type* db)
     if (db) {
         db->denials = ldns_rbtree_create(domain_compare);
     }
-    return;
 }
 
 
@@ -112,7 +111,6 @@ namedb_init_domains(namedb_type* db)
     if (db) {
         db->domains = ldns_rbtree_create(domain_compare);
     }
-    return;
 }
 
 
@@ -499,7 +497,6 @@ namedb_add_nsec_trigger(namedb_type* db, domain_type* domain)
     denial->domain = (void*) domain;
     domain->denial = (void*) denial;
     domain->is_new = 0;
-    return;
 }
 
 
@@ -536,7 +533,6 @@ namedb_add_nsec3_trigger(namedb_type* db, domain_type* domain,
     denial->domain = (void*) domain;
     domain->denial = (void*) denial;
     domain->is_new = 0;
-    return;
 }
 
 
@@ -563,7 +559,6 @@ namedb_add_denial_trigger(namedb_type* db, domain_type* domain)
             }
         }
     }
-    return;
 }
 
 
@@ -588,7 +583,6 @@ namedb_del_nsec_trigger(namedb_type* db, domain_type* domain)
        denial_cleanup(denial);
        domain->denial = NULL;
     }
-    return;
 }
 
 
@@ -625,7 +619,6 @@ namedb_del_nsec3_trigger(namedb_type* db, domain_type* domain,
             domain->denial = NULL;
         }
     }
-    return;
 }
 
 
@@ -845,7 +838,6 @@ namedb_diff(namedb_type* db, unsigned is_ixfr, unsigned more_coming)
             namedb_add_denial_trigger(db, domain);
         }
     }
-    return;
 }
 
 
@@ -871,7 +863,6 @@ namedb_rollback(namedb_type* db, unsigned keepsc)
         domain_rollback(domain, keepsc);
         (void) namedb_del_denial_trigger(db, domain, 1);
     }
-    return;
 }
 
 
@@ -902,7 +893,6 @@ namedb_nsecify(namedb_type* db, uint32_t* num_added)
     if (num_added) {
         *num_added = nsec_added;
     }
-    return;
 }
 
 
@@ -1032,7 +1022,6 @@ namedb_wipe_denial(namedb_type* db)
             node = ldns_rbtree_next(node);
         }
     }
-    return;
 }
 
 
@@ -1068,7 +1057,6 @@ namedb_export(FILE* fd, namedb_type* db, ods_status* status)
         }
         node = ldns_rbtree_next(node);
     }
-    return;
 }
 
 
@@ -1087,7 +1075,6 @@ domain_delfunc(ldns_rbnode_t* elem)
         domain_cleanup(domain);
         free((void*)elem);
     }
-    return;
 }
 
 
@@ -1111,7 +1098,6 @@ denial_delfunc(ldns_rbnode_t* elem)
         denial_cleanup(denial);
         free((void*)elem);
     }
-    return;
 }
 
 
@@ -1127,7 +1113,6 @@ namedb_cleanup_domains(namedb_type* db)
         ldns_rbtree_free(db->domains);
         db->domains = NULL;
     }
-    return;
 }
 
 
@@ -1143,7 +1128,6 @@ namedb_cleanup_denials(namedb_type* db)
         ldns_rbtree_free(db->denials);
         db->denials = NULL;
     }
-    return;
 }
 
 
@@ -1165,7 +1149,6 @@ namedb_cleanup(namedb_type* db)
     namedb_cleanup_denials(db);
     namedb_cleanup_domains(db);
     free(db);
-    return;
 }
 
 
@@ -1214,5 +1197,4 @@ namedb_backup2(FILE* fd, namedb_type* db)
         node = ldns_rbtree_next(node);
     }
     fprintf(fd, ";\n");
-    return;
 }

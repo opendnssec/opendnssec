@@ -88,7 +88,6 @@ log_rr(ldns_rr* rr, const char* pre, int level)
         ods_log_deeebug("[%s] %s: %s", rrset_str, pre?pre:"", str);
     }
     free((void*)str);
-    return;
 }
 
 
@@ -148,7 +147,6 @@ log_rrset(ldns_rdf* dname, ldns_rr_type type, const char* pre, int level)
             rrset_type2str(type));
     }
     free((void*)str);
-    return;
 }
 
 
@@ -329,7 +327,6 @@ rrset_del_rr(rrset_type* rrset, uint16_t rrnum)
     free(rrs_orig);
     rrset->rr_count--;
     rrset->needs_signing = 1;
-    return;
 }
 
 
@@ -385,7 +382,6 @@ rrset_diff(rrset_type* rrset, unsigned is_ixfr, unsigned more_coming)
             i--;
         }
     }
-    return;
 }
 
 
@@ -456,7 +452,6 @@ rrset_del_rrsig(rrset_type* rrset, uint16_t rrnum)
         (rrset->rrsig_count -1) * sizeof(rrsig_type));
     free(rrsigs_orig);
     rrset->rrsig_count--;
-    return;
 }
 
 
@@ -694,7 +689,6 @@ rrset_sigvalid_period(signconf_type* sc, ldns_rr_type rrtype, time_t signtime,
     }
     *inception = signtime - offset;
     *expiration = (signtime + validity + random_jitter) - jitter;
-    return;
 }
 
 
@@ -853,41 +847,40 @@ rrset_print(FILE* fd, rrset_type* rrset, int skip_rrsigs,
         if (status) {
             *status = ODS_STATUS_ASSERT_ERR;
         }
-        return;
-    }
-    for (i=0; i < rrset->rr_count; i++) {
-        if (rrset->rrs[i].exists) {
-            result = util_rr_print(fd, rrset->rrs[i].rr);
-            if (rrset->rrtype == LDNS_RR_TYPE_CNAME ||
-                rrset->rrtype == LDNS_RR_TYPE_DNAME) {
-                /* singleton types */
-                break;
-            }
-            if (result != ODS_STATUS_OK) {
-                zone_type* zone = (zone_type*) rrset->zone;
-                log_rrset(ldns_rr_owner(rrset->rrs[i].rr), rrset->rrtype,
-                    "error printing RRset", LOG_CRIT);
-                zone->adoutbound->error = 1;
-                break;
-            }
-        }
-    }
-    if (! (skip_rrsigs || !rrset->rrsig_count)) {
-        for (i=0; i < rrset->rrsig_count; i++) {
-            result = util_rr_print(fd, rrset->rrsigs[i].rr);
-            if (result != ODS_STATUS_OK) {
-                zone_type* zone = (zone_type*) rrset->zone;
-                log_rrset(ldns_rr_owner(rrset->rrs[i].rr), rrset->rrtype,
-                    "error printing RRset", LOG_CRIT);
-                zone->adoutbound->error = 1;
-                break;
+    } else {
+        for (i=0; i < rrset->rr_count; i++) {
+            if (rrset->rrs[i].exists) {
+                result = util_rr_print(fd, rrset->rrs[i].rr);
+                if (rrset->rrtype == LDNS_RR_TYPE_CNAME ||
+                    rrset->rrtype == LDNS_RR_TYPE_DNAME) {
+                    /* singleton types */
+                    break;
+                }
+                if (result != ODS_STATUS_OK) {
+                    zone_type* zone = (zone_type*) rrset->zone;
+                    log_rrset(ldns_rr_owner(rrset->rrs[i].rr), rrset->rrtype,
+                        "error printing RRset", LOG_CRIT);
+                    zone->adoutbound->error = 1;
+                    break;
+                }
             }
         }
+        if (! (skip_rrsigs || !rrset->rrsig_count)) {
+            for (i=0; i < rrset->rrsig_count; i++) {
+                result = util_rr_print(fd, rrset->rrsigs[i].rr);
+                if (result != ODS_STATUS_OK) {
+                    zone_type* zone = (zone_type*) rrset->zone;
+                    log_rrset(ldns_rr_owner(rrset->rrs[i].rr), rrset->rrtype,
+                        "error printing RRset", LOG_CRIT);
+                    zone->adoutbound->error = 1;
+                    break;
+                }
+            }
+        }
+        if (status) {
+            *status = result;
+        }
     }
-    if (status) {
-        *status = result;
-    }
-    return;
 }
 
 
@@ -919,7 +912,6 @@ rrset_cleanup(rrset_type* rrset)
     free(rrset->rrs);
     free(rrset->rrsigs);
     free(rrset);
-    return;
 }
 
 
@@ -945,5 +937,4 @@ rrset_backup2(FILE* fd, rrset_type* rrset)
             rrset->rrsigs[i].key_locator, rrset->rrsigs[i].key_flags);
         free((void*)str);
     }
-    return;
 }

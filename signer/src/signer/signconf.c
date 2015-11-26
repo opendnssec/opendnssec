@@ -198,7 +198,6 @@ signconf_backup_duration(FILE* fd, const char* opt, duration_type* duration)
     char* str = duration2string(duration);
     fprintf(fd, "%s %s ", opt, str);
     free((void*) str?str:"(null)");
-    return;
 }
 
 
@@ -234,7 +233,6 @@ signconf_backup(FILE* fd, signconf_type* sc, const char* version)
         fprintf(fd, "audit 0");
     }
     fprintf(fd, "\n");
-    return;
 }
 
 
@@ -465,7 +463,6 @@ signconf_print(FILE* out, signconf_type* sc, const char* name)
         fprintf(out, "\t</Zone>\n");
         fprintf(out, "</SignerConfiguration>\n");
     }
-    return;
 }
 
 
@@ -542,7 +539,6 @@ signconf_log(signconf_type* sc, const char* name)
         free((void*)soattl);
         free((void*)soamin);
     }
-    return;
 }
 
 

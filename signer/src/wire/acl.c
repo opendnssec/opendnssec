@@ -461,5 +461,4 @@ acl_cleanup(acl_type* acl)
     acl_cleanup(acl->next);
     free(acl->address);
     free(acl);
-    return;
 }

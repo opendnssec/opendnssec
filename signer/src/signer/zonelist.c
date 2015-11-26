@@ -335,7 +335,6 @@ zonelist_merge(zonelist_type* zl1, zonelist_type* zl2)
         n1 = ldns_rbtree_next(n1);
     }
     zl1->last_modified = zl2->last_modified;
-    return;
 }
 
 
@@ -411,7 +410,6 @@ zone_delfunc(ldns_rbnode_t* elem)
         zone_cleanup(zone);
         free((void*)elem);
     }
-    return;
 }
 
 
@@ -427,7 +425,6 @@ node_delfunc(ldns_rbnode_t* elem)
         node_delfunc(elem->right);
         free((void*)elem);
     }
-    return;
 }
 
 
@@ -451,7 +448,6 @@ zonelist_cleanup(zonelist_type* zl)
     zl_lock = zl->zl_lock;
     free(zl);
     lock_basic_destroy(&zl_lock);
-    return;
 }
 
 
@@ -474,5 +470,4 @@ zonelist_free(zonelist_type* zl)
     zl_lock = zl->zl_lock;
     free(zl);
     lock_basic_destroy(&zl_lock);
-    return;
 }

@@ -228,7 +228,6 @@ dnshandler_signal(dnshandler_type* dnshandler)
     if (dnshandler && dnshandler->thread_id) {
         ods_thread_kill(dnshandler->thread_id, SIGHUP);
     }
-    return;
 }
 
 
@@ -249,7 +248,6 @@ dnshandler_fwd_notify(dnshandler_type* dnshandler, uint8_t* pkt, size_t len)
     } else {
         ods_log_debug("[%s] forwarded notify: %ld bytes sent", dnsh_str, (long)nb);
     }
-    return;
 }
 
 
@@ -276,7 +274,6 @@ dnshandler_handle_xfr(netio_type* ATTR_UNUSED(netio),
         ods_log_error("[%s] unable to forward xfr packet: %s", dnsh_str,
             strerror(errno));
     }
-    return;
 }
 
 
@@ -294,5 +291,4 @@ dnshandler_cleanup(dnshandler_type* dnshandler)
     query_cleanup(dnshandler->query);
     free(dnshandler->socklist);
     free(dnshandler);
-    return;
 }

@@ -317,7 +317,6 @@ task_log(task_type* task)
             strtime?strtime:"(null)",
             task_what2str(task->what), task_who2str(task->who));
     }
-    return;
 }
 
 /**

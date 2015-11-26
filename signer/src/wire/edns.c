@@ -79,7 +79,6 @@ edns_init(edns_data_type* data, uint16_t max_length)
     data->error[3] = (max_length & 0xff00) >> 8;       /* size_hi */
     data->error[4] = max_length & 0x00ff;              /* size_lo */
     data->error[5] = 1; /* Extended RCODE=BAD VERS */
-    return;
 }
 
 
@@ -97,7 +96,6 @@ edns_rr_reset(edns_rr_type* err)
     err->position = 0;
     err->maxlen = 0;
     err->dnssec_ok = 0;
-    return;
 }
 
 

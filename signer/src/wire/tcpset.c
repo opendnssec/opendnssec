@@ -92,7 +92,6 @@ tcp_conn_ready(tcp_conn_type* tcp)
     tcp->total_bytes = 0;
     tcp->msglen = 0;
     buffer_clear(tcp->packet);
-    return;
 }
 
 
@@ -233,7 +232,6 @@ tcp_conn_cleanup(tcp_conn_type* conn)
     }
     buffer_cleanup(conn->packet);
     free(conn);
-    return;
 }
 
 /**
@@ -251,5 +249,4 @@ tcp_set_cleanup(tcp_set_type* set)
         tcp_conn_cleanup(set->tcp_conn[i]);
     }
     free(set);
-    return;
 }

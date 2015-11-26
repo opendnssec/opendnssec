@@ -73,7 +73,6 @@ fifoq_wipe(fifoq_type* q)
         q->owner[i] = NULL;
     }
     q->count = 0;
-    return;
 }
 
 
@@ -164,5 +163,4 @@ fifoq_cleanup(fifoq_type* q)
     lock_basic_off(&q_threshold);
     lock_basic_off(&q_nonfull);
     lock_basic_destroy(&q_lock);
-    return;
 }

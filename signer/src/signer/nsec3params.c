@@ -155,7 +155,6 @@ nsec3params_backup(FILE* fd, uint8_t algo, uint8_t flags,
         fprintf(fd, ";;Nsec3done\n");
         fprintf(fd, ";;\n");
     }
-    return;
 }
 
 
@@ -213,5 +212,4 @@ nsec3params_cleanup(nsec3params_type* nsec3params)
     sc = (signconf_type*) nsec3params->sc;
     free(nsec3params->salt_data);
     free(nsec3params);
-    return;
 }

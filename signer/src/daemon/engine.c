@@ -113,6 +113,7 @@ engine_create(void)
  * Start command handler.
  *
  */
+
 static void*
 cmdhandler_thread_start(void* arg)
 {
@@ -121,6 +122,7 @@ cmdhandler_thread_start(void* arg)
     cmdhandler_start(cmd);
     return NULL;
 }
+
 static void
 engine_start_cmdhandler(engine_type* engine)
 {
@@ -129,8 +131,8 @@ engine_start_cmdhandler(engine_type* engine)
     engine->cmdhandler->engine = engine;
     ods_thread_create(&engine->cmdhandler->thread_id,
         cmdhandler_thread_start, engine->cmdhandler);
-    return;
 }
+
 /**
  * Self pipe trick (see Unix Network Programming).
  *
@@ -191,7 +193,6 @@ engine_stop_cmdhandler(engine_type* engine)
         ods_log_error("[%s] command handler self pipe trick failed, "
             "unclean shutdown", engine_str);
     }
-    return;
 }
 
 
@@ -216,7 +217,6 @@ engine_start_dnshandler(engine_type* engine)
     engine->dnshandler->engine = engine;
     ods_thread_create(&engine->dnshandler->thread_id,
         dnshandler_thread_start, engine->dnshandler);
-    return;
 }
 static void
 engine_stop_dnshandler(engine_type* engine)
@@ -230,7 +230,6 @@ engine_stop_dnshandler(engine_type* engine)
     ods_log_debug("[%s] join dnshandler", engine_str);
     ods_thread_join(engine->dnshandler->thread_id);
     engine->dnshandler->engine = NULL;
-    return;
 }
 
 
@@ -260,7 +259,6 @@ engine_start_xfrhandler(engine_type* engine)
      * it has marked itself started
      */
     engine->xfrhandler->started = 1;
-    return;
 }
 static void
 engine_stop_xfrhandler(engine_type* engine)
@@ -277,7 +275,6 @@ engine_stop_xfrhandler(engine_type* engine)
     	engine->xfrhandler->started = 0;
     }
     engine->xfrhandler->engine = NULL;
-    return;
 }
 
 
@@ -331,7 +328,6 @@ engine_create_workers(engine_type* engine)
     for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
         engine->workers[i] = worker_create(i, WORKER_WORKER);
     }
-    return;
 }
 static void
 engine_create_drudgers(engine_type* engine)
@@ -343,7 +339,6 @@ engine_create_drudgers(engine_type* engine)
     for (i=0; i < (size_t) engine->config->num_signer_threads; i++) {
         engine->drudgers[i] = worker_create(i, WORKER_DRUDGER);
     }
-    return;
 }
 static void*
 worker_thread_start(void* arg)
@@ -366,7 +361,6 @@ engine_start_workers(engine_type* engine)
         ods_thread_create(&engine->workers[i]->thread_id, worker_thread_start,
             engine->workers[i]);
     }
-    return;
 }
 void
 engine_start_drudgers(engine_type* engine)
@@ -381,7 +375,6 @@ engine_start_drudgers(engine_type* engine)
         ods_thread_create(&engine->drudgers[i]->thread_id, worker_thread_start,
             engine->drudgers[i]);
     }
-    return;
 }
 static void
 engine_stop_workers(engine_type* engine)
@@ -403,7 +396,6 @@ engine_stop_workers(engine_type* engine)
         ods_thread_join(engine->workers[i]->thread_id);
         engine->workers[i]->engine = NULL;
     }
-    return;
 }
 void
 engine_stop_drudgers(engine_type* engine)
@@ -424,7 +416,6 @@ engine_stop_drudgers(engine_type* engine)
         ods_thread_join(engine->drudgers[i]->thread_id);
         engine->drudgers[i]->engine = NULL;
     }
-    return;
 }
 
 
@@ -443,7 +434,6 @@ engine_wakeup_workers(engine_type* engine)
     for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
         worker_wakeup(engine->workers[i]);
     }
-    return;
 }
 
 
@@ -653,7 +643,6 @@ engine_run(engine_type* engine, int single_run)
     engine_stop_drudgers(engine);
     engine_stop_workers(engine);
     (void)lhsm_reopen(engine->config->repositories);
-    return;
 }
 
 
@@ -701,7 +690,6 @@ set_notify_ns(zone_type* zone, const char* cmd)
         ods_log_error("[%s] unable to set notify ns: replace zone failed",
             engine_str);
     }
-    return;
 }
 
 
@@ -881,7 +869,6 @@ engine_update_zones(engine_type* engine, ods_status zl_changed)
     if (wake_up) {
         engine_wakeup_workers(engine);
     }
-    return;
 }
 
 
@@ -1117,5 +1104,4 @@ engine_cleanup(engine_type* engine)
     free(engine);
     lock_basic_destroy(&signal_lock);
     lock_basic_off(&signal_cond);
-    return;
 }

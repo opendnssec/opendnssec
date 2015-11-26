@@ -100,7 +100,6 @@ denial_create_bitmap(denial_type* denial, ldns_rr_type types[],
         }
         rrset = rrset->next;
     }
-    return;
 }
 
 
@@ -250,7 +249,6 @@ denial_diff(denial_type* denial)
     if (denial && denial->rrset) {
         rrset_diff(denial->rrset, 0, 0);
     }
-    return;
 }
 
 
@@ -287,7 +285,6 @@ denial_add_rr(denial_type* denial, ldns_rr* rr)
     denial_diff(denial);
     denial->bitmap_changed = 0;
     denial->nxt_changed = 0;
-    return;
 }
 
 
@@ -324,7 +321,6 @@ denial_nsecify(denial_type* denial, denial_type* nxt, uint32_t* num_added)
             (*num_added)++;
         }
     }
-    return;
 }
 
 
@@ -341,12 +337,9 @@ denial_print(FILE* fd, denial_type* denial, ods_status* status)
                 denial_str);
             *status = ODS_STATUS_ASSERT_ERR;
         }
-        return;
-    }
-    if (denial->rrset) {
+    } else if (denial->rrset) {
         rrset_print(fd, denial->rrset, 0, status);
     }
-    return;
 }
 
 
@@ -365,5 +358,4 @@ denial_cleanup(denial_type* denial)
     ldns_rdf_deep_free(denial->dname);
     rrset_cleanup(denial->rrset);
     free(denial);
-    return;
 }

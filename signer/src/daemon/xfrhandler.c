@@ -128,13 +128,6 @@ xfrhandler_start(xfrhandler_type* xfrhandler)
     }
     /* shutdown */
     ods_log_debug("[%s] shutdown", xfrh_str);
-    return;
-
-/*
-    xfrd_write_state(xfrd);
-*/
-    /* close tcp sockets */
-    /* close udp sockets */
 }
 
 
@@ -166,7 +159,6 @@ xfrhandler_signal(xfrhandler_type* xfrhandler)
     if (xfrhandler && xfrhandler->started) {
         ods_thread_kill(xfrhandler->thread_id, SIGHUP);
     }
-    return;
 }
 
 
@@ -193,7 +185,6 @@ xfrhandler_handle_dns(netio_type* ATTR_UNUSED(netio),
         ods_log_error("[%s] unable to forward dns packet: %s", xfrh_str,
             strerror(errno));
     }
-    return;
 }
 
 

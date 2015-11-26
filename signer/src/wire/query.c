@@ -102,7 +102,6 @@ query_reset(query_type* q, size_t maxlen, int is_tcp)
     }
     q->serial = 0;
     q->startpos = 0;
-    return;
 }
 
 
@@ -544,7 +543,6 @@ response_encode(query_type* q, response_type* r)
     buffer_pkt_set_arcount(q->buffer, counts[LDNS_SECTION_ADDITIONAL]);
     buffer_pkt_set_qr(q->buffer);
     buffer_pkt_set_aa(q->buffer);
-    return;
 }
 
 
@@ -617,7 +615,6 @@ query_prepare(query_type* q)
     buffer_set_limit(q->buffer, buffer_capacity(q->buffer));
     q->reserved_space = edns_rr_reserved_space(q->edns_rr);
     q->reserved_space += tsig_rr_reserved_space(q->tsig_rr);
-    return;
 }
 
 
@@ -1019,7 +1016,6 @@ query_add_optional(query_type* q, void* engine)
              }
         }
     }
-    return;
 }
 
 
@@ -1097,5 +1093,4 @@ query_cleanup(query_type* q)
     buffer_cleanup(q->buffer);
     tsig_rr_cleanup(q->tsig_rr);
     free(q);
-    return;
 }

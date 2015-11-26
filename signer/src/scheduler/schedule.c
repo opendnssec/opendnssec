@@ -92,7 +92,6 @@ schedule_flush(schedule_type* schedule, task_id override)
         }
         node = ldns_rbtree_next(node);
     }
-    return;
 }
 
 
@@ -316,7 +315,6 @@ task_delfunc(ldns_rbnode_t* elem)
         task_cleanup(task);
         free((void*)elem);
     }
-    return;
 }
 
 
@@ -341,5 +339,4 @@ schedule_cleanup(schedule_type* schedule)
     schedule_lock = schedule->schedule_lock;
     free(schedule);
     lock_basic_destroy(&schedule_lock);
-    return;
 }

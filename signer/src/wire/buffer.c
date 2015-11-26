@@ -104,7 +104,6 @@ buffer_create_from(buffer_type* buffer, void* data, size_t size)
     buffer->limit = size;
     buffer->capacity = size;
     buffer->fixed = 1;
-    return;
 }
 
 
@@ -118,7 +117,6 @@ buffer_clear(buffer_type* buffer)
     ods_log_assert(buffer);
     buffer->position = 0;
     buffer->limit = buffer->capacity;
-    return;
 }
 
 
@@ -132,7 +130,6 @@ buffer_flip(buffer_type* buffer)
     ods_log_assert(buffer);
     buffer->limit = buffer->position;
     buffer->position = 0;
-    return;
 }
 
 
@@ -145,7 +142,6 @@ buffer_rewind(buffer_type* buffer)
 {
     ods_log_assert(buffer);
     buffer->position = 0;
-    return;
 }
 
 
@@ -171,7 +167,6 @@ buffer_set_position(buffer_type* buffer, size_t pos)
     ods_log_assert(buffer);
     ods_log_assert(pos <= buffer->limit);
     buffer->position = pos;
-    return;
 }
 
 
@@ -185,7 +180,6 @@ buffer_skip(buffer_type* buffer, ssize_t count)
     ods_log_assert(buffer);
     ods_log_assert(buffer->position + count <= buffer->limit);
     buffer->position += count;
-    return;
 }
 
 
@@ -208,7 +202,6 @@ static void
 set_bit(uint8_t bits[], size_t index)
 {
     bits[index / 8] |= (1 << (7 - index % 8));
-    return;
 }
 
 
@@ -425,7 +418,6 @@ buffer_set_limit(buffer_type* buffer, size_t limit)
     if (buffer->position > buffer->limit) {
         buffer->position = buffer->limit;
     }
-    return;
 }
 
 
@@ -549,7 +541,6 @@ buffer_write_u8_at(buffer_type* buffer, size_t at, uint8_t data)
     ods_log_assert(buffer);
     ods_log_assert(buffer_available_at(buffer, at, sizeof(data)));
     buffer->data[at] = data;
-    return;
 }
 
 
@@ -563,7 +554,6 @@ buffer_write_u16_at(buffer_type* buffer, size_t at, uint16_t data)
     ods_log_assert(buffer);
     ods_log_assert(buffer_available_at(buffer, at, sizeof(data)));
     write_uint16(buffer->data + at, data);
-    return;
 }
 
 
@@ -577,7 +567,6 @@ buffer_write_u32_at(buffer_type* buffer, size_t at, uint32_t data)
     ods_log_assert(buffer);
     ods_log_assert(buffer_available_at(buffer, at, sizeof(data)));
     write_uint32(buffer->data + at, data);
-    return;
 }
 
 
@@ -592,7 +581,6 @@ buffer_write(buffer_type* buffer, const void* data, size_t count)
     ods_log_assert(buffer_available(buffer, count));
     memcpy(buffer->data + buffer->position, data, count);
     buffer->position += count;
-    return;
 }
 
 
@@ -606,7 +594,6 @@ buffer_write_u8(buffer_type* buffer, uint8_t data)
     ods_log_assert(buffer);
     buffer_write_u8_at(buffer, buffer->position, data);
     buffer->position += sizeof(data);
-    return;
 }
 
 
@@ -620,7 +607,6 @@ buffer_write_u16(buffer_type* buffer, uint16_t data)
     ods_log_assert(buffer);
     buffer_write_u16_at(buffer, buffer->position, data);
     buffer->position += sizeof(data);
-    return;
 }
 
 
@@ -634,7 +620,6 @@ buffer_write_u32(buffer_type* buffer, uint32_t data)
     ods_log_assert(buffer);
     buffer_write_u32_at(buffer, buffer->position, data);
     buffer->position += sizeof(data);
-    return;
 }
 
 
@@ -649,7 +634,6 @@ buffer_write_rdf(buffer_type* buffer, ldns_rdf* rdf)
     ods_log_assert(rdf);
     buffer_write(buffer, ldns_rdf_data(rdf), ldns_rdf_size(rdf));
     /* position updated by buffer_write() */
-    return;
 }
 
 
@@ -751,7 +735,6 @@ buffer_read(buffer_type* buffer, void* data, size_t count)
     ods_log_assert(buffer_available(buffer, count));
     memcpy(data, buffer->data + buffer->position, count);
     buffer->position += count;
-    return;
 }
 
 
@@ -832,7 +815,6 @@ buffer_pkt_set_random_id(buffer_type* buffer)
     ods_log_assert(buffer);
     qid = random_id();
     buffer_write_u16_at(buffer, 0, qid);
-    return;
 }
 
 
@@ -857,7 +839,6 @@ buffer_pkt_set_flags(buffer_type* buffer, uint16_t flags)
 {
     ods_log_assert(buffer);
     buffer_write_u16_at(buffer, 2, flags);
-    return;
 }
 
 
@@ -882,7 +863,6 @@ buffer_pkt_set_qr(buffer_type* buffer)
 {
     ods_log_assert(buffer);
     QR_SET(buffer);
-    return;
 }
 
 
@@ -895,7 +875,6 @@ buffer_pkt_clear_qr(buffer_type* buffer)
 {
     ods_log_assert(buffer);
     QR_CLR(buffer);
-    return;
 }
 
 
@@ -920,7 +899,6 @@ buffer_pkt_set_opcode(buffer_type* buffer, ldns_pkt_opcode opcode)
 {
     ods_log_assert(buffer);
     OPCODE_SET(buffer, opcode);
-    return;
 }
 
 
@@ -945,7 +923,6 @@ buffer_pkt_set_aa(buffer_type* buffer)
 {
     ods_log_assert(buffer);
     AA_SET(buffer);
-    return;
 }
 
 
@@ -1030,7 +1007,6 @@ buffer_pkt_set_rcode(buffer_type* buffer, ldns_pkt_rcode rcode)
 {
     ods_log_assert(buffer);
     RCODE_SET(buffer, rcode);
-    return;
 }
 
 
@@ -1071,7 +1047,6 @@ buffer_pkt_set_qdcount(buffer_type* buffer, uint16_t count)
 {
     ods_log_assert(buffer);
     buffer_write_u16_at(buffer, 4, count);
-    return;
 }
 
 
@@ -1096,7 +1071,6 @@ buffer_pkt_set_ancount(buffer_type* buffer, uint16_t count)
 {
     ods_log_assert(buffer);
     buffer_write_u16_at(buffer, 6, count);
-    return;
 }
 
 
@@ -1121,7 +1095,6 @@ buffer_pkt_set_nscount(buffer_type* buffer, uint16_t count)
 {
     ods_log_assert(buffer);
     buffer_write_u16_at(buffer, 8, count);
-    return;
 }
 
 
@@ -1146,7 +1119,6 @@ buffer_pkt_set_arcount(buffer_type* buffer, uint16_t count)
 {
     ods_log_assert(buffer);
     buffer_write_u16_at(buffer, 10, count);
-    return;
 }
 
 
@@ -1177,7 +1149,6 @@ buffer_pkt_new(buffer_type* buffer, ldns_rdf* qname, ldns_rr_type qtype,
     buffer_write_rdf(buffer, qname);
     buffer_write_u16(buffer, qtype);
     buffer_write_u16(buffer, qclass);
-    return;
 }
 
 
@@ -1191,7 +1162,6 @@ buffer_pkt_query(buffer_type* buffer, ldns_rdf* qname, ldns_rr_type qtype,
 {
     buffer_pkt_new(buffer, qname, qtype, qclass, LDNS_PACKET_QUERY);
     buffer_pkt_set_flags(buffer, 0);
-    return;
 }
 
 
@@ -1204,7 +1174,6 @@ buffer_pkt_notify(buffer_type* buffer, ldns_rdf* qname, ldns_rr_class qclass)
 {
     buffer_pkt_new(buffer, qname, LDNS_RR_TYPE_SOA, qclass,
         LDNS_PACKET_NOTIFY);
-    return;
 }
 
 
@@ -1218,7 +1187,6 @@ buffer_pkt_axfr(buffer_type* buffer, ldns_rdf* qname, ldns_rr_class qclass)
     buffer_pkt_new(buffer, qname, LDNS_RR_TYPE_AXFR, qclass,
         LDNS_PACKET_QUERY);
     buffer_pkt_set_qr(buffer);
-    return;
 }
 
 
@@ -1246,7 +1214,6 @@ buffer_pkt_print(FILE* fd, buffer_type* buffer)
         fprintf(fd, ";;\n");
         fprintf(fd, "\n");
     }
-    return;
 }
 
 
@@ -1262,7 +1229,6 @@ buffer_cleanup(buffer_type* buffer)
     }
     free(buffer->data);
     free(buffer);
-    return;
 }
 
 

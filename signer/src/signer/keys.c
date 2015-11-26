@@ -177,7 +177,6 @@ key_print(FILE* fd, key_type* key)
     }
     fprintf(fd, "\t\t\t</Key>\n");
     fprintf(fd, "\n");
-    return;
 }
 
 
@@ -194,7 +193,6 @@ key_log(key_type* key, const char* name)
     ods_log_debug("[%s] zone %s key: LOCATOR[%s] FLAGS[%u] ALGORITHM[%u] "
         "KSK[%i] ZSK[%i] PUBLISH[%i]", key_str, name?name:"(null)", key->locator,
         key->flags, key->algorithm, key->ksk, key->zsk, key->publish);
-    return;
 }
 
 
@@ -212,7 +210,6 @@ keylist_print(FILE* fd, keylist_type* kl)
     for (i=0; i < kl->count; i++) {
         key_print(fd, &kl->keys[i]);
     }
-    return;
 }
 
 
@@ -230,7 +227,6 @@ keylist_log(keylist_type* kl, const char* name)
     for (i=0; i < kl->count; i++) {
         key_log(&kl->keys[i], name);
     }
-    return;
 }
 
 
@@ -248,7 +244,6 @@ key_delfunc(key_type* key)
     free(key->hsmkey);
     hsm_sign_params_free(key->params);
     free((void*) key->locator);
-    return;
 }
 
 
@@ -290,7 +285,6 @@ key_backup(FILE* fd, key_type* key, const char* version)
         }
         fprintf(fd, ";;Keydone\n");
     }
-    return;
 }
 
 
@@ -347,5 +341,4 @@ keylist_backup(FILE* fd, keylist_type* kl, const char* version)
     for (i=0; i < kl->count; i++) {
         key_backup(fd, &kl->keys[i], version);
     }
-    return;
 }

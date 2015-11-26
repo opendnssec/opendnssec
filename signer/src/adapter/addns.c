@@ -687,7 +687,6 @@ dnsout_send_notify(void* zone)
     ods_log_assert(rrset);
     soa = ldns_rr_clone(rrset->rrs[0].rr);
     notify_enable(z->notify, soa);
-    return;
 }
 
 
@@ -923,5 +922,4 @@ dnsout_cleanup(dnsout_type* addns)
     acl_cleanup(addns->do_notify);
     tsig_cleanup(addns->tsig);
     free(addns);
-    return;
 }

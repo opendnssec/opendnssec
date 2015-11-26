@@ -233,7 +233,6 @@ engine_config_print(FILE* out, engineconfig_type* config)
            - clisock_filename
          */
     }
-    return;
 }
 
 

@@ -523,7 +523,6 @@ time_itoa_reverse(char* s)
         s[i] = s[j];
         s[j] = c;
     }
-    return;
 }
 
 
@@ -541,7 +540,6 @@ time_itoa(time_t n, char* s)
     } while ((n /= 10) > 0);     /* delete it */
     s[i] = '\0';
     time_itoa_reverse(s);
-    return;
 }
 
 
@@ -556,5 +554,4 @@ duration_cleanup(duration_type* duration)
         return;
     }
     free(duration);
-    return;
 }

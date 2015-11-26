@@ -207,7 +207,6 @@ adutil_rtrim_line(char* line, int* line_len)
         line[++i] = '\n';
     }
     *line_len -= trimmed;
-    return;
 }
 
 

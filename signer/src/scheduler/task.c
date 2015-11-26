@@ -86,7 +86,6 @@ task_backup(FILE* fd, task_type* task)
         (int) task->halted,
         (unsigned) task->backoff,
         task->flush);
-    return;
 }
 
 
@@ -227,7 +226,6 @@ task_print(FILE* out, task_type* task)
             task->flush?"Flush":"On", strtime?strtime:"(null)",
             task_what2str(task->what), task_who2str(task));
     }
-    return;
 }
 
 
@@ -249,7 +247,6 @@ task_log(task_type* task)
             task->flush?"Flush":"On", strtime?strtime:"(null)",
             task_what2str(task->what), task_who2str(task));
     }
-    return;
 }
 
 

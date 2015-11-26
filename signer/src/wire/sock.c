@@ -122,7 +122,6 @@ sock_tcp_reuseaddr(sock_type* sock, const char* node, const char* port,
             "reuse-addr: setsockopt() failed (%s)", sock_str, fam,
             node?node:"localhost", port, strerror(errno));
     }
-    return;
 }
 
 
@@ -378,7 +377,6 @@ send_udp(struct udp_data* data, query_type* q)
             "octets", sock_str, (int)nb,
             (int)buffer_remaining(q->buffer));
     }
-    return;
 }
 
 
@@ -419,7 +417,6 @@ sock_handle_udp(netio_type* ATTR_UNUSED(netio), netio_handler_type* handler,
         buffer_flip(q->buffer);
         send_udp(data, q);
     }
-    return;
 }
 
 
@@ -437,7 +434,6 @@ cleanup_tcp_handler(netio_type* netio, netio_handler_type* handler)
     free(handler);
     query_cleanup(data->query);
     free(data);
-    return;
 }
 
 
@@ -512,7 +508,6 @@ sock_handle_tcp_accept(netio_type* netio, netio_handler_type* handler,
     tcp_handler->event_types = NETIO_EVENT_READ | NETIO_EVENT_TIMEOUT;
     tcp_handler->event_handler = sock_handle_tcp_read;
     netio_add_handler(netio, tcp_handler);
-    return;
 }
 
 
@@ -638,7 +633,6 @@ sock_handle_tcp_read(netio_type* netio, netio_handler_type* handler,
     timespec_add(handler->timeout, netio_current_time(netio));
     handler->event_types = NETIO_EVENT_WRITE | NETIO_EVENT_TIMEOUT;
     handler->event_handler = sock_handle_tcp_write;
-    return;
 }
 
 
@@ -753,5 +747,4 @@ sock_handle_tcp_write(netio_type* netio, netio_handler_type* handler,
     timespec_add(handler->timeout, netio_current_time(netio));
     handler->event_types = NETIO_EVENT_READ | NETIO_EVENT_TIMEOUT;
     handler->event_handler = sock_handle_tcp_read;
-    return;
 }

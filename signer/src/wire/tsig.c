@@ -93,7 +93,6 @@ tsig_handler_add_key(tsig_key_type* key)
         entry->next = tsig_key_table;
         tsig_key_table = entry;
     }
-    return;
 }
 
 
@@ -117,7 +116,6 @@ tsig_handler_add_algo(tsig_algo_type* algo)
             max_algo_digest_size = algo->max_digest_size;
         }
     }
-    return;
 }
 
 
@@ -171,7 +169,6 @@ tsig_handler_cleanup(void)
         free(kentry);
         kentry = knext;
     }
-    return;
 }
 
 
@@ -322,7 +319,6 @@ tsig_rr_reset(tsig_rr_type* trr, tsig_algo_type* algo, tsig_key_type* key)
     trr->original_query_id = 0;
     trr->error_code = LDNS_RCODE_NOERROR;
     trr->other_size = 0;
-    return;
 }
 
 
@@ -560,7 +556,6 @@ tsig_rr_prepare(tsig_rr_type* trr)
             trr->prior_mac_size);
     }
     trr->update_since_last_prepare = 0;
-    return;
 }
 
 /**
@@ -586,7 +581,6 @@ tsig_rr_update(tsig_rr_type* trr, buffer_type* buffer, size_t length)
         ++trr->response_count;
     }
     ++trr->update_since_last_prepare;
-    return;
 }
 
 
@@ -631,7 +625,6 @@ tsig_rr_digest_variables(tsig_rr_type* trr, int tsig_timers_only)
         trr->algo->hmac_update(trr->context, trr->other_data,
             trr->other_size);
     }
-    return;
 }
 
 
@@ -653,7 +646,6 @@ tsig_rr_sign(tsig_rr_type* trr)
         &trr->prior_mac_size);
     trr->mac_size = trr->prior_mac_size;
     trr->mac_data = trr->prior_mac_data;
-    return;
 }
 
 
@@ -717,7 +709,6 @@ tsig_rr_append(tsig_rr_type* trr, buffer_type* buffer)
     buffer_write(buffer, trr->other_data, trr->other_size);
     buffer_write_u16_at(buffer, rdlength_pos,
         buffer_position(buffer) - rdlength_pos - sizeof(uint16_t));
-    return;
 }
 
 
@@ -764,7 +755,6 @@ tsig_rr_error(tsig_rr_type* trr)
         memset(trr->mac_data, 0, trr->mac_size);
     }
     trr->mac_size = 0;
-    return;
 }
 
 
@@ -838,7 +828,6 @@ tsig_rr_free(tsig_rr_type* trr)
     trr->algo_name = NULL;
     trr->mac_data = NULL;
     trr->other_data = NULL;
-    return;
 }
 
 
@@ -854,7 +843,6 @@ tsig_rr_cleanup(tsig_rr_type* trr)
     }
     tsig_rr_free(trr);
     free(trr);
-    return;
 }
 
 
