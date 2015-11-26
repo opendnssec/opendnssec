@@ -88,7 +88,6 @@ domain_type*
 domain_create(void* zoneptr, ldns_rdf* dname)
 {
     domain_type* domain = NULL;
-    zone_type* zone = (zone_type*) zoneptr;
     if (!dname || !zoneptr) {
         return NULL;
     }
@@ -549,11 +548,9 @@ domain_print(FILE* fd, domain_type* domain, ods_status* status)
 void
 domain_cleanup(domain_type* domain)
 {
-    zone_type* zone = NULL;
     if (!domain) {
         return;
     }
-    zone = (zone_type*) domain->zone;
     ldns_rdf_deep_free(domain->dname);
     rrset_cleanup(domain->rrsets);
     free(domain);

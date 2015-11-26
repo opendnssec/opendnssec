@@ -48,7 +48,6 @@ denial_type*
 denial_create(void* zoneptr, ldns_rdf* dname)
 {
     denial_type* denial = NULL;
-    zone_type* zone = (zone_type*) zoneptr;
     if (!dname || !zoneptr) {
         return NULL;
     }
@@ -350,11 +349,9 @@ denial_print(FILE* fd, denial_type* denial, ods_status* status)
 void
 denial_cleanup(denial_type* denial)
 {
-    zone_type* zone = NULL;
     if (!denial) {
         return;
     }
-    zone = (zone_type*) denial->zone;
     ldns_rdf_deep_free(denial->dname);
     rrset_cleanup(denial->rrset);
     free(denial);

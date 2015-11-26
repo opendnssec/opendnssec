@@ -119,13 +119,11 @@ keylist_push(keylist_type* kl, const char* locator,
     uint8_t algorithm, uint32_t flags, int publish, int ksk, int zsk)
 {
     key_type* keys_old = NULL;
-    signconf_type* sc = NULL;
 
     ods_log_assert(kl);
     ods_log_assert(locator);
     ods_log_debug("[%s] add locator %s", key_str, locator);
 
-    sc = (signconf_type*) kl->sc;
     keys_old = kl->keys;
     CHECKALLOC(kl->keys = (key_type*) malloc((kl->count + 1) * sizeof(key_type)));
     if (!kl->keys) {

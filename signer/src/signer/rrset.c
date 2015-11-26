@@ -184,7 +184,6 @@ rrset_type2str(ldns_rr_type type)
 rrset_type*
 rrset_create(void* zoneptr, ldns_rr_type type)
 {
-    zone_type* zone = (zone_type*) zoneptr;
     rrset_type* rrset = NULL;
     if (!type || !zoneptr) {
         return NULL;
@@ -266,13 +265,11 @@ rr_type*
 rrset_add_rr(rrset_type* rrset, ldns_rr* rr)
 {
     rr_type* rrs_old = NULL;
-    zone_type* zone = NULL;
 
     ods_log_assert(rrset);
     ods_log_assert(rr);
     ods_log_assert(rrset->rrtype == ldns_rr_get_type(rr));
 
-    zone = (zone_type*) rrset->zone;
     rrs_old = rrset->rrs;
     CHECKALLOC(rrset->rrs = (rr_type*) malloc((rrset->rr_count + 1) * sizeof(rr_type)));
     if (!rrset->rrs) {
@@ -303,12 +300,10 @@ void
 rrset_del_rr(rrset_type* rrset, uint16_t rrnum)
 {
     rr_type* rrs_orig = NULL;
-    zone_type* zone = NULL;
 
     ods_log_assert(rrset);
     ods_log_assert(rrnum < rrset->rr_count);
 
-    zone = (zone_type*) rrset->zone;
     log_rr(rrset->rrs[rrnum].rr, "-RR", LOG_DEEEBUG);
     rrset->rrs[rrnum].owner = NULL;
     rrset->rrs[rrnum].rr = NULL;
@@ -394,11 +389,9 @@ rrset_add_rrsig(rrset_type* rrset, ldns_rr* rr,
     const char* locator, uint32_t flags)
 {
     rrsig_type* rrsigs_old = NULL;
-    zone_type* zone = NULL;
     ods_log_assert(rrset);
     ods_log_assert(rr);
     ods_log_assert(ldns_rr_get_type(rr) == LDNS_RR_TYPE_RRSIG);
-    zone = (zone_type*) rrset->zone;
     rrsigs_old = rrset->rrsigs;
     CHECKALLOC(rrset->rrsigs = (rrsig_type*) malloc((rrset->rrsig_count + 1) * sizeof(rrsig_type)));
     if (!rrset->rrsigs) {
@@ -428,10 +421,8 @@ void
 rrset_del_rrsig(rrset_type* rrset, uint16_t rrnum)
 {
     rrsig_type* rrsigs_orig = NULL;
-    zone_type* zone = NULL;
     ods_log_assert(rrset);
     ods_log_assert(rrnum < rrset->rrsig_count);
-    zone = (zone_type*) rrset->zone;
     log_rr(rrset->rrsigs[rrnum].rr, "-RRSIG", LOG_DEEEBUG);
     rrset->rrsigs[rrnum].owner = NULL;
     rrset->rrsigs[rrnum].rr = NULL;
@@ -892,14 +883,12 @@ void
 rrset_cleanup(rrset_type* rrset)
 {
     uint16_t i = 0;
-    zone_type* zone = NULL;
     if (!rrset) {
        return;
     }
     rrset_cleanup(rrset->next);
     rrset->next = NULL;
     rrset->domain = NULL;
-    zone = (zone_type*) rrset->zone;
     for (i=0; i < rrset->rr_count; i++) {
         ldns_rr_free(rrset->rrs[i].rr);
         rrset->rrs[i].owner = NULL;

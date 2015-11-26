@@ -104,7 +104,6 @@ nsec3params_create(void* sc, uint8_t algo, uint8_t flags, uint16_t iter,
     const char* salt)
 {
     nsec3params_type* nsec3params = NULL;
-    signconf_type* signconf = (signconf_type*) sc;
     uint8_t salt_len; /* calculate salt len */
     uint8_t* salt_data; /* calculate salt data */
 
@@ -205,11 +204,9 @@ nsec3params_salt2str(nsec3params_type* nsec3params)
 void
 nsec3params_cleanup(nsec3params_type* nsec3params)
 {
-    signconf_type* sc = NULL;
     if (!nsec3params) {
         return;
     }
-    sc = (signconf_type*) nsec3params->sc;
     free(nsec3params->salt_data);
     free(nsec3params);
 }
