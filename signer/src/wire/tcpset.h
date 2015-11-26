@@ -76,7 +76,7 @@ struct tcp_set_struct {
  * \return tcp_conn_type* TCP connection.
  *
  */
-tcp_conn_type* tcp_conn_create();
+tcp_conn_type* tcp_conn_create(void);
 
 /**
  * Create a set of tcp connections.
@@ -84,7 +84,7 @@ tcp_conn_type* tcp_conn_create();
  * \return tcp_set_type* set of tcp connection.
  *
  */
-tcp_set_type* tcp_set_create();
+tcp_set_type* tcp_set_create(void);
 
 /**
  * Make tcp connection ready for reading.

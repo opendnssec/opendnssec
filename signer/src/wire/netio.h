@@ -162,7 +162,7 @@ struct netio_struct {
  * \return netio_type* netio instance
  *
  */
-netio_type* netio_create();
+netio_type* netio_create(void);
 
 /*
  * Add a new handler to netio.

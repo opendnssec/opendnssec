@@ -93,7 +93,7 @@ struct tsig_algo_struct {
     size_t max_digest_size;
     const void* data;
     /* create a new HMAC context */
-    void*(*hmac_create)();
+    void*(*hmac_create)(void);
     /* initialize an HMAC context */
     void(*hmac_init)(void* context, tsig_algo_type* algo,
         tsig_key_type* key);
@@ -208,7 +208,7 @@ tsig_algo_type* tsig_lookup_algo(const char* name);
  * \return tsig_rr_type* TSIG RR
  *
  */
-tsig_rr_type* tsig_rr_create();
+tsig_rr_type* tsig_rr_create(void);
 
 /**
  * Reset TSIG RR.

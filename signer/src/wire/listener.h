@@ -89,7 +89,7 @@ struct listener_struct {
  * \return listener_type* listener
  *
  */
-listener_type* listener_create();
+listener_type* listener_create(void);
 
 /**
  * Push an interface to the listener.

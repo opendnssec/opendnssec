@@ -72,7 +72,7 @@ struct fifoq_struct {
  * \return fifoq_type* created queue
  *
  */
-fifoq_type* fifoq_create();
+fifoq_type* fifoq_create(void);
 
 /**
  * Wipe queue.

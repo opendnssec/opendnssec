@@ -95,7 +95,7 @@ void edns_init(edns_data_type* data, uint16_t max_length);
  * \return edns_rr_type* EDNS RR.
  *
  */
-edns_rr_type* edns_rr_create();
+edns_rr_type* edns_rr_create(void);
 
 
 /**

@@ -60,7 +60,7 @@ struct zonelist_struct {
  * \return zonelist_type* created zone list
  *
  */
-zonelist_type* zonelist_create();
+zonelist_type* zonelist_create(void);
 
 /**
  * Lookup zone by name and class.

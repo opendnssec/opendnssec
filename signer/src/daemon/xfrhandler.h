@@ -75,7 +75,7 @@ struct xfrhandler_struct {
  * \return xfrhandler_type* created zoned transfer handler
  *
  */
-xfrhandler_type* xfrhandler_create();
+xfrhandler_type* xfrhandler_create(void);
 
 /**
  * Start zone transfer handler.

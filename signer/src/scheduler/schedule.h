@@ -68,7 +68,7 @@ struct schedule_struct {
  * \return schedule_type* created schedule
  *
  */
-schedule_type* schedule_create();
+schedule_type* schedule_create(void);
 
 /**
  * Flush schedule.
