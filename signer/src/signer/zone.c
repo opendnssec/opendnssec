@@ -752,9 +752,9 @@ zone_cleanup(zone_type* zone)
     stats_cleanup(zone->stats);
     free(zone->notify_command);
     free(zone->notify_args);
-    free(zone->policy_name);
-    free(zone->signconf_filename);
-    free(zone->name);
+    free((void*)zone->policy_name);
+    free((void*)zone->signconf_filename);
+    free((void*)zone->name);
     free(zone);
     lock_basic_destroy(&xfr_lock);
     lock_basic_destroy(&zone_lock);

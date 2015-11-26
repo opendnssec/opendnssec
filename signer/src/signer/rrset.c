@@ -439,7 +439,7 @@ rrset_del_rrsig(rrset_type* rrset, uint16_t rrnum)
     log_rr(rrset->rrsigs[rrnum].rr, "-RRSIG", LOG_DEEEBUG);
     rrset->rrsigs[rrnum].owner = NULL;
     rrset->rrsigs[rrnum].rr = NULL;
-    free(rrset->rrsigs[rrnum].key_locator);
+    free((void*)rrset->rrsigs[rrnum].key_locator);
     rrset->rrsigs[rrnum].key_locator = NULL;
     while (rrnum < rrset->rrsig_count-1) {
         rrset->rrsigs[rrnum] = rrset->rrsigs[rrnum+1];
@@ -912,7 +912,7 @@ rrset_cleanup(rrset_type* rrset)
         rrset->rrs[i].owner = NULL;
     }
     for (i=0; i < rrset->rrsig_count; i++) {
-        free(rrset->rrsigs[i].key_locator);
+        free((void*)rrset->rrsigs[i].key_locator);
         ldns_rr_free(rrset->rrsigs[i].rr);
         rrset->rrsigs[i].owner = NULL;
     }

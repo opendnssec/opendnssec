@@ -166,8 +166,8 @@ tsig_handler_cleanup(void)
     while (kentry) {
         knext = kentry->next;
         ldns_rdf_deep_free(kentry->key->dname);
-        free(kentry->key->data);
-        free(kentry->key);
+        free((void*)kentry->key->data);
+        free((void*)kentry->key);
         free(kentry);
         kentry = knext;
     }
@@ -869,8 +869,8 @@ tsig_cleanup(tsig_type* tsig)
         return;
     }
     tsig_cleanup(tsig->next);
-    free(tsig->name);
-    free(tsig->algorithm);
-    free(tsig->secret);
+    free((void*)tsig->name);
+    free((void*)tsig->algorithm);
+    free((void*)tsig->secret);
     free(tsig);
 }

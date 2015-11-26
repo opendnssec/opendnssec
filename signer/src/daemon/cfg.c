@@ -249,17 +249,16 @@ engine_config_cleanup(engineconfig_type* config)
     }
     listener_cleanup(config->interfaces);
     hsm_repository_free(config->repositories);
-    free(config->notify_command);
-    free(config->cfg_filename);
-    free(config->zonelist_filename);
-    free(config->log_filename);
-    free(config->pid_filename);
-    free(config->clisock_filename);
-    free(config->working_dir);
-    free(config->username);
-    free(config->group);
-    free(config->chroot);
+    free((void*)config->notify_command);
+    free((void*)config->cfg_filename);
+    free((void*)config->zonelist_filename);
+    free((void*)config->log_filename);
+    free((void*)config->pid_filename);
+    free((void*)config->clisock_filename);
+    free((void*)config->working_dir);
+    free((void*)config->username);
+    free((void*)config->group);
+    free((void*)config->chroot);
     free(config);
-    return;
 }
 

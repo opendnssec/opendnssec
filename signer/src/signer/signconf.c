@@ -568,9 +568,8 @@ signconf_cleanup(signconf_type* sc)
     duration_cleanup(sc->max_zone_ttl);
     keylist_cleanup(sc->keys);
     nsec3params_cleanup(sc->nsec3params);
-    free(sc->filename);
-    free(sc->nsec3_salt);
-    free(sc->soa_serial);
+    free((void*)sc->filename);
+    free((void*)sc->nsec3_salt);
+    free((void*)sc->soa_serial);
     free(sc);
-    return;
 }

@@ -241,7 +241,7 @@ adapter_cleanup(adapter_type* adapter)
     if (!adapter) {
         return;
     }
-    free(adapter->configstr);
+    free((void*)adapter->configstr);
     switch(adapter->type) {
         case ADAPTER_FILE:
             break;
