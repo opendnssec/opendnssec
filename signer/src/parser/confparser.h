@@ -75,8 +75,7 @@ hsm_repository_t* parse_conf_repositories(const char* cfgfile);
  * \return listener_type* listener interfaces
  *
  */
-listener_type* parse_conf_listener(allocator_type* allocator,
-    const char* cfgfile);
+listener_type* parse_conf_listener(const char* cfgfile);
 
 /**
  * Parse elements from the configuration file.
@@ -87,26 +86,17 @@ listener_type* parse_conf_listener(allocator_type* allocator,
  */
 
 /** Common */
-const char* parse_conf_zonelist_filename(allocator_type* allocator,
-    const char* cfgfile);
-const char* parse_conf_log_filename(allocator_type* allocator,
-    const char* cfgfile);
+const char* parse_conf_zonelist_filename(const char* cfgfile);
+const char* parse_conf_log_filename(const char* cfgfile);
 
 /** Signer specific */
-const char* parse_conf_pid_filename(allocator_type* allocator,
-    const char* cfgfile);
-const char* parse_conf_notify_command(allocator_type* allocator,
-    const char* cfgfile);
-const char* parse_conf_clisock_filename(allocator_type* allocator,
-    const char* cfgfile);
-const char* parse_conf_working_dir(allocator_type* allocator,
-    const char* cfgfile);
-const char* parse_conf_username(allocator_type* allocator,
-    const char* cfgfile);
-const char* parse_conf_group(allocator_type* allocator,
-    const char* cfgfile);
-const char* parse_conf_chroot(allocator_type* allocator,
-    const char* cfgfile);
+const char* parse_conf_pid_filename(const char* cfgfile);
+const char* parse_conf_notify_command(const char* cfgfile);
+const char* parse_conf_clisock_filename(const char* cfgfile);
+const char* parse_conf_working_dir(const char* cfgfile);
+const char* parse_conf_username(const char* cfgfile);
+const char* parse_conf_group(const char* cfgfile);
+const char* parse_conf_chroot(const char* cfgfile);
 
 /**
  * Parse elements from the configuration file.

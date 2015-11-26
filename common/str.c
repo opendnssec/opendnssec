@@ -65,7 +65,7 @@ ods_str_explode(char *buf, int argc, const char *argv[])
  *
  */
 char *
-ods_str_join(allocator_type* allocator, int argc, char *argv[], char cjoin)
+ods_str_join(int argc, char *argv[], char cjoin)
 {
     char* buf = NULL;
     int c;
@@ -73,7 +73,7 @@ ods_str_join(allocator_type* allocator, int argc, char *argv[], char cjoin)
     for (c = 0; c < argc; ++c)
 		options_size += strlen(argv[c]) + 1;
     if (options_size > 0) {
-        buf = (char*) allocator_alloc(allocator, (options_size+1) * sizeof(char));
+        CHECKALLOC(buf = (char*) malloc((options_size+1) * sizeof(char)));
 		/*	allocator_alloc will terminate on memory allocation
 		 *	problems, so buf is always assigned when we get here.
 		 */

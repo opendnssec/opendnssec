@@ -75,16 +75,13 @@ ods_lookup_table ods_rcode_str[] = {
  *
  */
 buffer_type*
-buffer_create(allocator_type* allocator, size_t capacity)
+buffer_create(size_t capacity)
 {
     buffer_type* buffer = NULL;
-    if (!allocator || !capacity) {
+    if (!capacity) {
         return NULL;
     }
-    buffer = (buffer_type *) allocator_alloc(allocator, sizeof(buffer_type));
-    if (!buffer) {
-        return NULL;
-    }
+    CHECKALLOC(buffer = (buffer_type *) malloc(sizeof(buffer_type)));
     buffer->data = (uint8_t*) calloc(capacity, sizeof(uint8_t));
     buffer->position = 0;
     buffer->limit = capacity;
@@ -1258,13 +1255,13 @@ buffer_pkt_print(FILE* fd, buffer_type* buffer)
  *
  */
 void
-buffer_cleanup(buffer_type* buffer, allocator_type* allocator)
+buffer_cleanup(buffer_type* buffer)
 {
-    if (!buffer || !allocator) {
+    if (!buffer) {
         return;
     }
-    free((void*)buffer->data);
-    allocator_deallocate(allocator, (void*) buffer);
+    free(buffer->data);
+    free(buffer);
     return;
 }
 

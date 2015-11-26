@@ -128,8 +128,7 @@ namedb_create(void* zone)
 
     ods_log_assert(z);
     ods_log_assert(z->name);
-    ods_log_assert(z->allocator);
-    db = (namedb_type*) allocator_alloc(z->allocator, sizeof(namedb_type));
+    CHECKALLOC(db = (namedb_type*) malloc(sizeof(namedb_type)));
     if (!db) {
         ods_log_error("[%s] unable to create namedb for zone %s: "
             "allocator_alloc() failed", db_str, z->name);
@@ -1160,12 +1159,12 @@ namedb_cleanup(namedb_type* db)
         return;
     }
     z = (zone_type*) db->zone;
-    if (!z || !z->allocator) {
+    if (!z) {
         return;
     }
     namedb_cleanup_denials(db);
     namedb_cleanup_domains(db);
-    allocator_deallocate(z->allocator, (void*) db);
+    free(db);
     return;
 }
 

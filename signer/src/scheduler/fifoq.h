@@ -58,7 +58,6 @@
  */
 typedef struct fifoq_struct fifoq_type;
 struct fifoq_struct {
-    allocator_type* allocator;
     void* blob[FIFOQ_MAX_COUNT];
     worker_type* owner[FIFOQ_MAX_COUNT];
     size_t count;
@@ -73,7 +72,7 @@ struct fifoq_struct {
  * \return fifoq_type* created queue
  *
  */
-fifoq_type* fifoq_create(allocator_type* allocator);
+fifoq_type* fifoq_create();
 
 /**
  * Wipe queue.

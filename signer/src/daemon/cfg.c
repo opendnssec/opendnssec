@@ -49,14 +49,13 @@ static const char* conf_str = "config";
  *
  */
 engineconfig_type*
-engine_config(allocator_type* allocator, const char* cfgfile,
-    int cmdline_verbosity)
+engine_config(const char* cfgfile, int cmdline_verbosity)
 {
     engineconfig_type* ecfg;
     const char* rngfile = ODS_SE_RNGDIR "/conf.rng";
     FILE* cfgfd = NULL;
 
-    if (!allocator || !cfgfile) {
+    if (!cfgfile) {
         return NULL;
     }
     /* check syntax (slows down parsing configuration file) */
@@ -70,28 +69,18 @@ engine_config(allocator_type* allocator, const char* cfgfile,
     if (cfgfd) {
         ods_log_verbose("[%s] read cfgfile: %s", conf_str, cfgfile);
         /* create config */
-        ecfg = (engineconfig_type*) allocator_alloc(allocator,
-            sizeof(engineconfig_type));
-        if (!ecfg) {
-            ods_log_error("[%s] unable to create config: allocator_alloc() "
-                "failed", conf_str);
-            ods_fclose(cfgfd);
-            return NULL;
-        }
-        ecfg->allocator = allocator;
+        CHECKALLOC(ecfg = (engineconfig_type*) malloc(sizeof(engineconfig_type)));
         /* get values */
-        ecfg->cfg_filename = allocator_strdup(allocator, cfgfile);
-        ecfg->zonelist_filename = parse_conf_zonelist_filename(allocator,
-            cfgfile);
-        ecfg->log_filename = parse_conf_log_filename(allocator, cfgfile);
-        ecfg->pid_filename = parse_conf_pid_filename(allocator, cfgfile);
-        ecfg->notify_command = parse_conf_notify_command(allocator, cfgfile);
-        ecfg->clisock_filename = parse_conf_clisock_filename(allocator,
-            cfgfile);
-        ecfg->working_dir = parse_conf_working_dir(allocator, cfgfile);
-        ecfg->username = parse_conf_username(allocator, cfgfile);
-        ecfg->group = parse_conf_group(allocator, cfgfile);
-        ecfg->chroot = parse_conf_chroot(allocator, cfgfile);
+        ecfg->cfg_filename = strdup(cfgfile);
+        ecfg->zonelist_filename = parse_conf_zonelist_filename(cfgfile);
+        ecfg->log_filename = parse_conf_log_filename(cfgfile);
+        ecfg->pid_filename = parse_conf_pid_filename(cfgfile);
+        ecfg->notify_command = parse_conf_notify_command(cfgfile);
+        ecfg->clisock_filename = parse_conf_clisock_filename(cfgfile);
+        ecfg->working_dir = parse_conf_working_dir(cfgfile);
+        ecfg->username = parse_conf_username(cfgfile);
+        ecfg->group = parse_conf_group(cfgfile);
+        ecfg->chroot = parse_conf_chroot(cfgfile);
         ecfg->use_syslog = parse_conf_use_syslog(cfgfile);
         ecfg->num_worker_threads = parse_conf_worker_threads(cfgfile);
         ecfg->num_signer_threads = parse_conf_signer_threads(cfgfile);
@@ -102,7 +91,7 @@ engine_config(allocator_type* allocator, const char* cfgfile,
         else {
         	ecfg->verbosity = parse_conf_verbosity(cfgfile);
         }
-        ecfg->interfaces = parse_conf_listener(allocator, cfgfile);
+        ecfg->interfaces = parse_conf_listener(cfgfile);
         ecfg->repositories = parse_conf_repositories(cfgfile);
         /* done */
         ods_fclose(cfgfd);
@@ -255,24 +244,22 @@ engine_config_print(FILE* out, engineconfig_type* config)
 void
 engine_config_cleanup(engineconfig_type* config)
 {
-    allocator_type* allocator = NULL;
     if (!config) {
         return;
     }
-    allocator = config->allocator;
     listener_cleanup(config->interfaces);
     hsm_repository_free(config->repositories);
-    allocator_deallocate(allocator, (void*) config->notify_command);
-    allocator_deallocate(allocator, (void*) config->cfg_filename);
-    allocator_deallocate(allocator, (void*) config->zonelist_filename);
-    allocator_deallocate(allocator, (void*) config->log_filename);
-    allocator_deallocate(allocator, (void*) config->pid_filename);
-    allocator_deallocate(allocator, (void*) config->clisock_filename);
-    allocator_deallocate(allocator, (void*) config->working_dir);
-    allocator_deallocate(allocator, (void*) config->username);
-    allocator_deallocate(allocator, (void*) config->group);
-    allocator_deallocate(allocator, (void*) config->chroot);
-    allocator_deallocate(allocator, (void*) config);
+    free(config->notify_command);
+    free(config->cfg_filename);
+    free(config->zonelist_filename);
+    free(config->log_filename);
+    free(config->pid_filename);
+    free(config->clisock_filename);
+    free(config->working_dir);
+    free(config->username);
+    free(config->group);
+    free(config->chroot);
+    free(config);
     return;
 }
 

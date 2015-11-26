@@ -46,7 +46,6 @@
  */
 typedef struct zonelist_struct zonelist_type;
 struct zonelist_struct {
-    allocator_type* allocator;
     ldns_rbtree_t* zones;
     time_t last_modified;
     int just_added;
@@ -61,7 +60,7 @@ struct zonelist_struct {
  * \return zonelist_type* created zone list
  *
  */
-zonelist_type* zonelist_create(allocator_type* allocator);
+zonelist_type* zonelist_create();
 
 /**
  * Lookup zone by name and class.

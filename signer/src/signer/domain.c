@@ -93,18 +93,12 @@ domain_create(void* zoneptr, ldns_rdf* dname)
     if (!dname || !zoneptr) {
         return NULL;
     }
-    domain = (domain_type*) allocator_alloc(
-        zone->allocator, sizeof(domain_type));
-    if (!domain) {
-        ods_log_error("[%s] unable to create domain: allocator_alloc() "
-            "failed", dname_str);
-        return NULL;
-    }
+    CHECKALLOC(domain = (domain_type*) malloc(sizeof(domain_type)));
     domain->dname = ldns_rdf_clone(dname);
     if (!domain->dname) {
         ods_log_error("[%s] unable to create domain: ldns_rdf_clone() "
             "failed", dname_str);
-        allocator_deallocate(zone->allocator, domain);
+        free(domain);
         return NULL;
     }
     domain->zone = zoneptr;
@@ -567,7 +561,7 @@ domain_cleanup(domain_type* domain)
     zone = (zone_type*) domain->zone;
     ldns_rdf_deep_free(domain->dname);
     rrset_cleanup(domain->rrsets);
-    allocator_deallocate(zone->allocator, (void*)domain);
+    free(domain);
     return;
 }
 

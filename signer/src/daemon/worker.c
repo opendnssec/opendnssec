@@ -69,21 +69,14 @@ worker2str(worker_id type)
  *
  */
 worker_type*
-worker_create(allocator_type* allocator, int num, worker_id type)
+worker_create(int num, worker_id type)
 {
     worker_type* worker;
-    if (!allocator) {
-        return NULL;
-    }
-    worker = (worker_type*) allocator_alloc(allocator, sizeof(worker_type));
-    if (!worker) {
-        return NULL;
-    }
+    CHECKALLOC(worker = (worker_type*) malloc(sizeof(worker_type)));
     ods_log_debug("[%s[%i]] create", worker2str(type), num+1);
     lock_basic_init(&worker->worker_lock);
     lock_basic_set(&worker->worker_alarm);
     lock_basic_lock(&worker->worker_lock);
-    worker->allocator = allocator;
     worker->thread_num = num +1;
     worker->engine = NULL;
     worker->task = NULL;
@@ -897,16 +890,14 @@ worker_notify_all(lock_basic_type* lock, cond_basic_type* condition)
 void
 worker_cleanup(worker_type* worker)
 {
-    allocator_type* allocator;
     cond_basic_type worker_cond;
     lock_basic_type worker_lock;
     if (!worker) {
         return;
     }
-    allocator = worker->allocator;
     worker_cond = worker->worker_alarm;
     worker_lock = worker->worker_lock;
-    allocator_deallocate(allocator, (void*) worker);
+    free(worker);
     lock_basic_destroy(&worker_lock);
     lock_basic_off(&worker_cond);
     return;

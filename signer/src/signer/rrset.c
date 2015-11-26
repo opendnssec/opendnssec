@@ -191,8 +191,7 @@ rrset_create(void* zoneptr, ldns_rr_type type)
     if (!type || !zoneptr) {
         return NULL;
     }
-    rrset = (rrset_type*) allocator_alloc(
-        zone->allocator, sizeof(rrset_type));
+    CHECKALLOC(rrset = (rrset_type*) malloc(sizeof(rrset_type)));
     if (!rrset) {
         ods_log_error("[%s] unable to create RRset %u: allocator_alloc() "
             "failed", rrset_str, (unsigned) type);
@@ -277,8 +276,7 @@ rrset_add_rr(rrset_type* rrset, ldns_rr* rr)
 
     zone = (zone_type*) rrset->zone;
     rrs_old = rrset->rrs;
-    rrset->rrs = (rr_type*) allocator_alloc(zone->allocator,
-        (rrset->rr_count + 1) * sizeof(rr_type));
+    CHECKALLOC(rrset->rrs = (rr_type*) malloc((rrset->rr_count + 1) * sizeof(rr_type)));
     if (!rrset->rrs) {
         ods_fatal_exit("[%s] fatal unable to add RR: allocator_alloc() failed",
             rrset_str);
@@ -286,7 +284,7 @@ rrset_add_rr(rrset_type* rrset, ldns_rr* rr)
     if (rrs_old) {
         memcpy(rrset->rrs, rrs_old, (rrset->rr_count) * sizeof(rr_type));
     }
-    allocator_deallocate(zone->allocator, (void*) rrs_old);
+    free(rrs_old);
     rrset->rr_count++;
     rrset->rrs[rrset->rr_count - 1].owner = rrset->domain;
     rrset->rrs[rrset->rr_count - 1].rr = rr;
@@ -322,14 +320,13 @@ rrset_del_rr(rrset_type* rrset, uint16_t rrnum)
     }
     memset(&rrset->rrs[rrset->rr_count-1], 0, sizeof(rr_type));
     rrs_orig = rrset->rrs;
-    rrset->rrs = (rr_type*) allocator_alloc(zone->allocator,
-        (rrset->rr_count - 1) * sizeof(rr_type));
+    CHECKALLOC(rrset->rrs = (rr_type*) malloc((rrset->rr_count - 1) * sizeof(rr_type)));
     if(!rrset->rrs) {
         ods_fatal_exit("[%s] fatal unable to delete RR: allocator_alloc() failed",
             rrset_str);
     }
     memcpy(rrset->rrs, rrs_orig, (rrset->rr_count -1) * sizeof(rr_type));
-    allocator_deallocate(zone->allocator, (void*) rrs_orig);
+    free(rrs_orig);
     rrset->rr_count--;
     rrset->needs_signing = 1;
     return;
@@ -407,8 +404,7 @@ rrset_add_rrsig(rrset_type* rrset, ldns_rr* rr,
     ods_log_assert(ldns_rr_get_type(rr) == LDNS_RR_TYPE_RRSIG);
     zone = (zone_type*) rrset->zone;
     rrsigs_old = rrset->rrsigs;
-    rrset->rrsigs = (rrsig_type*) allocator_alloc(zone->allocator,
-        (rrset->rrsig_count + 1) * sizeof(rrsig_type));
+    CHECKALLOC(rrset->rrsigs = (rrsig_type*) malloc((rrset->rrsig_count + 1) * sizeof(rrsig_type)));
     if (!rrset->rrsigs) {
         ods_fatal_exit("[%s] fatal unable to add RRSIG: allocator_alloc() failed",
             rrset_str);
@@ -417,7 +413,7 @@ rrset_add_rrsig(rrset_type* rrset, ldns_rr* rr,
         memcpy(rrset->rrsigs, rrsigs_old,
             (rrset->rrsig_count) * sizeof(rrsig_type));
     }
-    allocator_deallocate(zone->allocator, (void*) rrsigs_old);
+    free(rrsigs_old);
     rrset->rrsig_count++;
     rrset->rrsigs[rrset->rrsig_count - 1].owner = rrset->domain;
     rrset->rrsigs[rrset->rrsig_count - 1].rr = rr;
@@ -443,8 +439,7 @@ rrset_del_rrsig(rrset_type* rrset, uint16_t rrnum)
     log_rr(rrset->rrsigs[rrnum].rr, "-RRSIG", LOG_DEEEBUG);
     rrset->rrsigs[rrnum].owner = NULL;
     rrset->rrsigs[rrnum].rr = NULL;
-    allocator_deallocate(zone->allocator,
-        (void*)rrset->rrsigs[rrnum].key_locator);
+    free(rrset->rrsigs[rrnum].key_locator);
     rrset->rrsigs[rrnum].key_locator = NULL;
     while (rrnum < rrset->rrsig_count-1) {
         rrset->rrsigs[rrnum] = rrset->rrsigs[rrnum+1];
@@ -452,15 +447,14 @@ rrset_del_rrsig(rrset_type* rrset, uint16_t rrnum)
     }
     memset(&rrset->rrsigs[rrset->rrsig_count-1], 0, sizeof(rrsig_type));
     rrsigs_orig = rrset->rrsigs;
-    rrset->rrsigs = (rrsig_type*) allocator_alloc(zone->allocator,
-        (rrset->rrsig_count - 1) * sizeof(rrsig_type));
+    CHECKALLOC(rrset->rrsigs = (rrsig_type*) malloc((rrset->rrsig_count - 1) * sizeof(rrsig_type)));
     if(!rrset->rrsigs) {
         ods_fatal_exit("[%s] fatal unable to delete RRSIG: allocator_alloc() failed",
             rrset_str);
     }
     memcpy(rrset->rrsigs, rrsigs_orig,
         (rrset->rrsig_count -1) * sizeof(rrsig_type));
-    allocator_deallocate(zone->allocator, (void*) rrsigs_orig);
+    free(rrsigs_orig);
     rrset->rrsig_count--;
     return;
 }
@@ -819,8 +813,7 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
             return ODS_STATUS_HSM_ERR;
         }
         /* Add signature */
-        locator = allocator_strdup(zone->allocator,
-            zone->signconf->keys->keys[i].locator);
+        locator = strdup(zone->signconf->keys->keys[i].locator);
         signature = rrset_add_rrsig(rrset, rrsig, locator,
             zone->signconf->keys->keys[i].flags);
         newsigs++;
@@ -919,14 +912,13 @@ rrset_cleanup(rrset_type* rrset)
         rrset->rrs[i].owner = NULL;
     }
     for (i=0; i < rrset->rrsig_count; i++) {
-        allocator_deallocate(zone->allocator,
-            (void*)rrset->rrsigs[i].key_locator);
+        free(rrset->rrsigs[i].key_locator);
         ldns_rr_free(rrset->rrsigs[i].rr);
         rrset->rrsigs[i].owner = NULL;
     }
-    allocator_deallocate(zone->allocator, (void*) rrset->rrs);
-    allocator_deallocate(zone->allocator, (void*) rrset->rrsigs);
-    allocator_deallocate(zone->allocator, (void*) rrset);
+    free(rrset->rrs);
+    free(rrset->rrsigs);
+    free(rrset);
     return;
 }
 

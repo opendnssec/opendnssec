@@ -502,20 +502,7 @@ dnsin_type*
 dnsin_create(void)
 {
     dnsin_type* addns = NULL;
-    allocator_type* allocator = allocator_create(malloc, free);
-    if (!allocator) {
-        ods_log_error("[%s] unable to create dnsin: allocator_create() "
-            " failed", adapter_str);
-        return NULL;
-    }
-    addns = (dnsin_type*) allocator_alloc(allocator, sizeof(dnsin_type));
-    if (!addns) {
-        ods_log_error("[%s] unable to create dnsin: allocator_alloc() "
-            " failed", adapter_str);
-        allocator_cleanup(allocator);
-        return NULL;
-    }
-    addns->allocator = allocator;
+    CHECKALLOC(addns = (dnsin_type*) malloc(sizeof(dnsin_type)));
     addns->request_xfr = NULL;
     addns->allow_notify = NULL;
     addns->tsig = NULL;
@@ -531,20 +518,7 @@ dnsout_type*
 dnsout_create(void)
 {
     dnsout_type* addns = NULL;
-    allocator_type* allocator = allocator_create(malloc, free);
-    if (!allocator) {
-        ods_log_error("[%s] unable to create dnsout: allocator_create() "
-            " failed", adapter_str);
-        return NULL;
-    }
-    addns = (dnsout_type*) allocator_alloc(allocator, sizeof(dnsout_type));
-    if (!addns) {
-        ods_log_error("[%s] unable to create dnsout: allocator_alloc() "
-            " failed", adapter_str);
-        allocator_cleanup(allocator);
-        return NULL;
-    }
-    addns->allocator = allocator;
+    CHECKALLOC(addns = (dnsout_type*) malloc(sizeof(dnsout_type)));
     addns->provide_xfr = NULL;
     addns->do_notify = NULL;
     addns->tsig = NULL;
@@ -574,11 +548,9 @@ dnsin_read(dnsin_type* addns, const char* filename)
     }
     fd = ods_fopen(filename, NULL, "r");
     if (fd) {
-        addns->tsig = parse_addns_tsig(addns->allocator, filename);
-        addns->request_xfr = parse_addns_request_xfr(addns->allocator,
-            filename, addns->tsig);
-        addns->allow_notify = parse_addns_allow_notify(addns->allocator,
-            filename, addns->tsig);
+        addns->tsig = parse_addns_tsig(filename);
+        addns->request_xfr = parse_addns_request_xfr(filename, addns->tsig);
+        addns->allow_notify = parse_addns_allow_notify(filename, addns->tsig);
         ods_fclose(fd);
         return ODS_STATUS_OK;
     }
@@ -643,11 +615,9 @@ dnsout_read(dnsout_type* addns, const char* filename)
     }
     fd = ods_fopen(filename, NULL, "r");
     if (fd) {
-        addns->tsig = parse_addns_tsig(addns->allocator, filename);
-        addns->provide_xfr = parse_addns_provide_xfr(addns->allocator,
-            filename, addns->tsig);
-        addns->do_notify = parse_addns_do_notify(addns->allocator, filename,
-            addns->tsig);
+        addns->tsig = parse_addns_tsig(filename);
+        addns->provide_xfr = parse_addns_provide_xfr(filename, addns->tsig);
+        addns->do_notify = parse_addns_do_notify(filename, addns->tsig);
         ods_fclose(fd);
         return ODS_STATUS_OK;
     }
@@ -929,17 +899,13 @@ addns_write(void* zone)
 void
 dnsin_cleanup(dnsin_type* addns)
 {
-    allocator_type* allocator = NULL;
     if (!addns) {
         return;
     }
-    allocator = addns->allocator;
-    acl_cleanup(addns->request_xfr, allocator);
-    acl_cleanup(addns->allow_notify, allocator);
-    tsig_cleanup(addns->tsig, allocator);
-    allocator_deallocate(allocator, (void*) addns);
-    allocator_cleanup(allocator);
-    return;
+    acl_cleanup(addns->request_xfr);
+    acl_cleanup(addns->allow_notify);
+    tsig_cleanup(addns->tsig);
+    free(addns);
 }
 
 
@@ -950,15 +916,12 @@ dnsin_cleanup(dnsin_type* addns)
 void
 dnsout_cleanup(dnsout_type* addns)
 {
-    allocator_type* allocator = NULL;
     if (!addns) {
         return;
     }
-    allocator = addns->allocator;
-    acl_cleanup(addns->provide_xfr, allocator);
-    acl_cleanup(addns->do_notify, allocator);
-    tsig_cleanup(addns->tsig, allocator);
-    allocator_deallocate(allocator, (void*) addns);
-    allocator_cleanup(allocator);
+    acl_cleanup(addns->provide_xfr);
+    acl_cleanup(addns->do_notify);
+    tsig_cleanup(addns->tsig);
+    free(addns);
     return;
 }

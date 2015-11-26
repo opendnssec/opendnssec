@@ -41,20 +41,10 @@ static const char* listener_str = "listener";
  *
  */
 listener_type*
-listener_create(allocator_type* allocator)
+listener_create()
 {
     listener_type* listener = NULL;
-    if (!allocator) {
-        return NULL;
-    }
-    listener = (listener_type*) allocator_alloc(allocator,
-        sizeof(listener_type));
-    if (!listener) {
-        ods_log_error("[%s] create listener failed: allocator_alloc() failed",
-            listener_str);
-        return NULL;
-    }
-    listener->allocator = allocator;
+    CHECKALLOC(listener = (listener_type*) malloc(sizeof(listener_type)));
     listener->count = 0;
     listener->interfaces = NULL;
     return listener;
@@ -72,25 +62,18 @@ listener_push(listener_type* listener, char* address, int family, char* port)
     ods_log_assert(listener);
     ods_log_assert(address);
     ifs_old = listener->interfaces;
-    listener->interfaces = (interface_type*) allocator_alloc(
-        listener->allocator, (listener->count + 1) * sizeof(interface_type));
-    if (!listener->interfaces) {
-        ods_fatal_exit("[%s] fatal unable to add interface: allocator_alloc() failed",
-            listener_str);
-    }
+    CHECKALLOC(listener->interfaces = (interface_type*) malloc((listener->count + 1) * sizeof(interface_type)));
     if (ifs_old) {
         memcpy(listener->interfaces, ifs_old,
            (listener->count) * sizeof(interface_type));
     }
-    allocator_deallocate(listener->allocator, (void*) ifs_old);
+    free(ifs_old);
     listener->count++;
-    listener->interfaces[listener->count -1].address =
-        allocator_strdup(listener->allocator, address);
+    listener->interfaces[listener->count -1].address = strdup(address);
     listener->interfaces[listener->count -1].family = family;
 
     if (port) {
-        listener->interfaces[listener->count -1].port =
-            allocator_strdup(listener->allocator, port);
+        listener->interfaces[listener->count -1].port = strdup(port);
     } else{
         listener->interfaces[listener->count -1].port = NULL;
     }
@@ -223,15 +206,13 @@ void
 listener_cleanup(listener_type* listener)
 {
     uint16_t i = 0;
-    allocator_type* allocator = NULL;
     if (!listener) {
         return;
     }
     for (i=0; i < listener->count; i++) {
         interface_cleanup(&listener->interfaces[i]);
     }
-    allocator = listener->allocator;
-    allocator_deallocate(allocator, (void*) listener->interfaces);
-    allocator_deallocate(allocator, (void*) listener);
+    free(listener->interfaces);
+    free(listener);
     return;
 }

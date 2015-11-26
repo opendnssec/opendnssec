@@ -76,7 +76,7 @@ struct tcp_set_struct {
  * \return tcp_conn_type* TCP connection.
  *
  */
-tcp_conn_type* tcp_conn_create(allocator_type* allocator);
+tcp_conn_type* tcp_conn_create();
 
 /**
  * Create a set of tcp connections.
@@ -84,7 +84,7 @@ tcp_conn_type* tcp_conn_create(allocator_type* allocator);
  * \return tcp_set_type* set of tcp connection.
  *
  */
-tcp_set_type* tcp_set_create(allocator_type* allocator);
+tcp_set_type* tcp_set_create();
 
 /**
  * Make tcp connection ready for reading.
@@ -123,6 +123,6 @@ int tcp_conn_write(tcp_conn_type* tcp);
  * \param[in] allocator memory allocator
  *
  */
-void tcp_set_cleanup(tcp_set_type* set, allocator_type* allocator);
+void tcp_set_cleanup(tcp_set_type* set);
 
 #endif /* WIRE_TCPSET_H */

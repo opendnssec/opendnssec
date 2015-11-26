@@ -71,20 +71,7 @@ static engine_type*
 engine_create(void)
 {
     engine_type* engine;
-    allocator_type* allocator = allocator_create(malloc, free);
-    if (!allocator) {
-        ods_log_error("[%s] unable to create engine: allocator_create() "
-            "failed", engine_str);
-        return NULL;
-    }
-    engine = (engine_type*) allocator_alloc(allocator, sizeof(engine_type));
-    if (!engine) {
-        ods_log_error("[%s] unable to create engine: allocator_alloc() "
-            "failed", engine_str);
-        allocator_cleanup(allocator);
-        return NULL;
-    }
-    engine->allocator = allocator;
+    CHECKALLOC(engine = (engine_type*) malloc(sizeof(engine_type)));
     engine->config = NULL;
     engine->workers = NULL;
     engine->drudgers = NULL;
@@ -103,17 +90,17 @@ engine_create(void)
     lock_basic_lock(&engine->signal_lock);
     engine->signal = SIGNAL_INIT;
     lock_basic_unlock(&engine->signal_lock);
-    engine->zonelist = zonelist_create(engine->allocator);
+    engine->zonelist = zonelist_create();
     if (!engine->zonelist) {
         engine_cleanup(engine);
         return NULL;
     }
-    engine->taskq = schedule_create(engine->allocator);
+    engine->taskq = schedule_create();
     if (!engine->taskq) {
         engine_cleanup(engine);
         return NULL;
     }
-    engine->signq = fifoq_create(engine->allocator);
+    engine->signq = fifoq_create();
     if (!engine->signq) {
         engine_cleanup(engine);
         return NULL;
@@ -340,12 +327,9 @@ engine_create_workers(engine_type* engine)
     size_t i = 0;
     ods_log_assert(engine);
     ods_log_assert(engine->config);
-    ods_log_assert(engine->allocator);
-    engine->workers = (worker_type**) allocator_alloc(engine->allocator,
-        ((size_t)engine->config->num_worker_threads) * sizeof(worker_type*));
+    CHECKALLOC(engine->workers = (worker_type**) malloc(((size_t)engine->config->num_worker_threads) * sizeof(worker_type*)));
     for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
-        engine->workers[i] = worker_create(engine->allocator, i,
-            WORKER_WORKER);
+        engine->workers[i] = worker_create(i, WORKER_WORKER);
     }
     return;
 }
@@ -355,12 +339,9 @@ engine_create_drudgers(engine_type* engine)
     size_t i = 0;
     ods_log_assert(engine);
     ods_log_assert(engine->config);
-    ods_log_assert(engine->allocator);
-    engine->drudgers = (worker_type**) allocator_alloc(engine->allocator,
-        ((size_t)engine->config->num_signer_threads) * sizeof(worker_type*));
+    CHECKALLOC(engine->drudgers = (worker_type**) malloc(((size_t)engine->config->num_signer_threads) * sizeof(worker_type*)));
     for (i=0; i < (size_t) engine->config->num_signer_threads; i++) {
-        engine->drudgers[i] = worker_create(engine->allocator, i,
-            WORKER_DRUDGER);
+        engine->drudgers[i] = worker_create(i, WORKER_DRUDGER);
     }
     return;
 }
@@ -486,14 +467,12 @@ engine_setup(engine_type* engine)
     edns_init(&engine->edns, EDNS_MAX_MESSAGE_LEN);
 
     /* create command handler (before chowning socket file) */
-    engine->cmdhandler = cmdhandler_create(engine->allocator,
-        engine->config->clisock_filename);
+    engine->cmdhandler = cmdhandler_create(engine->config->clisock_filename);
     if (!engine->cmdhandler) {
         return ODS_STATUS_CMDHANDLER_ERR;
     }
-    engine->dnshandler = dnshandler_create(engine->allocator,
-        engine->config->interfaces);
-    engine->xfrhandler = xfrhandler_create(engine->allocator);
+    engine->dnshandler = dnshandler_create(engine->config->interfaces);
+    engine->xfrhandler = xfrhandler_create();
     if (!engine->xfrhandler) {
         return ODS_STATUS_XFRHANDLER_ERR;
     }
@@ -589,7 +568,7 @@ engine_setup(engine_type* engine)
     engine_start_cmdhandler(engine);
     engine_start_dnshandler(engine);
     engine_start_xfrhandler(engine);
-    tsig_handler_init(engine->allocator);
+    tsig_handler_init();
     return ODS_STATUS_OK;
 }
 
@@ -1010,8 +989,7 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
     engine->daemonize = daemonize;
 
     /* config */
-    engine->config = engine_config(engine->allocator, cfgfile,
-        cmdline_verbosity);
+    engine->config = engine_config(cfgfile, cmdline_verbosity);
     status = engine_config_check(engine->config);
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] cfgfile %s has errors", engine_str, cfgfile);
@@ -1110,26 +1088,24 @@ void
 engine_cleanup(engine_type* engine)
 {
     size_t i = 0;
-    allocator_type* allocator;
     cond_basic_type signal_cond;
     lock_basic_type signal_lock;
     if (!engine) {
         return;
     }
-    allocator = engine->allocator;
     signal_cond = engine->signal_cond;
     signal_lock = engine->signal_lock;
     if (engine->workers && engine->config) {
         for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
             worker_cleanup(engine->workers[i]);
         }
-        allocator_deallocate(allocator, (void*) engine->workers);
+        free(engine->workers);
     }
     if (engine->drudgers && engine->config) {
        for (i=0; i < (size_t) engine->config->num_signer_threads; i++) {
            worker_cleanup(engine->drudgers[i]);
        }
-        allocator_deallocate(allocator, (void*) engine->drudgers);
+       free(engine->drudgers);
     }
     zonelist_cleanup(engine->zonelist);
     schedule_cleanup(engine->taskq);
@@ -1138,9 +1114,8 @@ engine_cleanup(engine_type* engine)
     dnshandler_cleanup(engine->dnshandler);
     xfrhandler_cleanup(engine->xfrhandler);
     engine_config_cleanup(engine->config);
-    allocator_deallocate(allocator, (void*) engine);
+    free(engine);
     lock_basic_destroy(&signal_lock);
     lock_basic_off(&signal_cond);
-    allocator_cleanup(allocator);
     return;
 }

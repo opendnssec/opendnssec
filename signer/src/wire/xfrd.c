@@ -316,27 +316,13 @@ xfrd_type*
 xfrd_create(void* xfrhandler, void* zone)
 {
     xfrd_type* xfrd = NULL;
-    allocator_type* allocator = NULL;
     if (!xfrhandler || !zone) {
         return NULL;
     }
-    allocator = allocator_create(malloc, free);
-    if (!allocator) {
-        ods_log_error("[%s] unable to create zone xfr structure: "
-            "allocator_create() failed", xfrd_str);
-        return NULL;
-    }
-    xfrd = (xfrd_type*) allocator_alloc(allocator, sizeof(xfrd_type));
-    if (!xfrd) {
-        ods_log_error("[%s] unable to create zone xfr structure: "
-            " allocator_alloc() failed", xfrd_str);
-        allocator_cleanup(allocator);
-        return NULL;
-    }
+    CHECKALLOC(xfrd = (xfrd_type*) malloc(sizeof(xfrd_type)));
     lock_basic_init(&xfrd->serial_lock);
     lock_basic_init(&xfrd->rw_lock);
 
-    xfrd->allocator = allocator;
     xfrd->xfrhandler = xfrhandler;
     xfrd->zone = zone;
     xfrd->tcp_conn = -1;
@@ -364,7 +350,7 @@ xfrd_create(void* xfrhandler, void* zone)
     xfrd->udp_waiting_next = NULL;
     xfrd->tcp_waiting = 0;
     xfrd->tcp_waiting_next = NULL;
-    xfrd->tsig_rr = tsig_rr_create(allocator);
+    xfrd->tsig_rr = tsig_rr_create();
     if (!xfrd->tsig_rr) {
         xfrd_cleanup(xfrd, 0);
         return NULL;
@@ -2157,7 +2143,6 @@ xfrd_unlink(xfrd_type* xfrd)
 void
 xfrd_cleanup(xfrd_type* xfrd, int backup)
 {
-    allocator_type* allocator = NULL;
     lock_basic_type serial_lock;
     lock_basic_type rw_lock;
     if (!xfrd) {
@@ -2170,12 +2155,10 @@ xfrd_cleanup(xfrd_type* xfrd, int backup)
         xfrd_unlink(xfrd);
     }
 
-    allocator = xfrd->allocator;
     serial_lock = xfrd->serial_lock;
     rw_lock = xfrd->rw_lock;
     tsig_rr_cleanup(xfrd->tsig_rr);
-    allocator_deallocate(allocator, (void*) xfrd);
-    allocator_cleanup(allocator);
+    free(xfrd);
     lock_basic_destroy(&serial_lock);
     lock_basic_destroy(&rw_lock);
     return;

@@ -878,7 +878,7 @@ cmdhandler_accept_client(void* arg)
  *
  */
 cmdhandler_type*
-cmdhandler_create(allocator_type* allocator, const char* filename)
+cmdhandler_create(const char* filename)
 {
     cmdhandler_type* cmdh = NULL;
     struct sockaddr_un servaddr;
@@ -886,7 +886,7 @@ cmdhandler_create(allocator_type* allocator, const char* filename)
     int flags = 0;
     int ret = 0;
 
-    if (!allocator || !filename) {
+    if (!filename) {
         return NULL;
     }
     /* new socket */
@@ -939,15 +939,7 @@ cmdhandler_create(allocator_type* allocator, const char* filename)
         return NULL;
     }
     /* all ok */
-    cmdh = (cmdhandler_type*) allocator_alloc(allocator,
-        sizeof(cmdhandler_type));
-    if (!cmdh) {
-        ods_log_error("[%s] unable to create cmdhandler: "
-            "allocator_alloc() failed", cmdh_str);
-        close(listenfd);
-        return NULL;
-    }
-    cmdh->allocator = allocator;
+    CHECKALLOC(cmdh = (cmdhandler_type*) malloc(sizeof(cmdhandler_type)));
     cmdh->listen_fd = listenfd;
     cmdh->listen_addr = servaddr;
     cmdh->need_to_exit = 0;
@@ -1029,12 +1021,6 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
 void
 cmdhandler_cleanup(cmdhandler_type* cmdhandler)
 {
-    allocator_type* allocator = NULL;
-    if (!cmdhandler) {
-        return;
-    }
-    allocator = cmdhandler->allocator;
-    allocator_deallocate(allocator, (void*) cmdhandler);
-    return;
+    free(cmdhandler);
 }
 

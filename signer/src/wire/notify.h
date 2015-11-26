@@ -52,7 +52,6 @@
 typedef struct notify_struct notify_type;
 struct notify_struct {
     notify_type* waiting_next;
-    allocator_type* allocator;
     ldns_rr* soa;
     tsig_rr_type* tsig_rr;
     acl_type* secondary;

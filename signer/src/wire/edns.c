@@ -47,19 +47,10 @@ static const char* edns_str = "edns";
  *
  */
 edns_rr_type*
-edns_rr_create(allocator_type* allocator)
+edns_rr_create()
 {
     edns_rr_type* err = NULL;
-    if (!allocator) {
-        return NULL;
-    }
-    err = (edns_rr_type*) allocator_alloc(allocator, sizeof(edns_rr_type));
-    if (!err) {
-        ods_log_error("[%s] unable to create edns rr: allocator_alloc() "
-            "failed", edns_str);
-        return NULL;
-    }
-    err->allocator = allocator;
+    CHECKALLOC(err = (edns_rr_type*) malloc(sizeof(edns_rr_type))) ;
     edns_rr_reset(err);
     return err;
 }

@@ -101,30 +101,21 @@ notify_type*
 notify_create(void* xfrhandler, void* zone)
 {
     notify_type* notify = NULL;
-    allocator_type* allocator = NULL;
     if (!xfrhandler || !zone) {
         return NULL;
     }
-    allocator = allocator_create(malloc, free);
-    if (!allocator) {
-        ods_log_error("[%s] unable to create notify structure: "
-            "allocator_create() failed", notify_str);
-        return NULL;
-    }
-    notify = (notify_type*) allocator_alloc(allocator, sizeof(notify_type));
+    CHECKALLOC(notify = (notify_type*) malloc(sizeof(notify_type)));
     if (!notify) {
         ods_log_error("[%s] unable to create notify structure: "
             " allocator_alloc() failed", notify_str);
-        allocator_cleanup(allocator);
         return NULL;
     }
-    notify->allocator = allocator;
     notify->zone = zone;
     notify->xfrhandler = xfrhandler;
     notify->waiting_next = NULL;
     notify->secondary = NULL;
     notify->soa = NULL;
-    notify->tsig_rr = tsig_rr_create(allocator);
+    notify->tsig_rr = tsig_rr_create();
     if (!notify->tsig_rr) {
         notify_cleanup(notify);
         return NULL;
@@ -589,11 +580,9 @@ notify_enable(notify_type* notify, ldns_rr* soa)
 void
 notify_cleanup(notify_type* notify)
 {
-    allocator_type* allocator = NULL;
     if (!notify) {
         return;
     }
-    allocator = notify->allocator;
     if (notify->handler.fd != -1) {
         close(notify->handler.fd);
         notify->handler.fd = -1;
@@ -602,7 +591,5 @@ notify_cleanup(notify_type* notify)
         ldns_rr_free(notify->soa);
     }
     tsig_rr_cleanup(notify->tsig_rr);
-    allocator_deallocate(allocator, (void*) notify);
-    allocator_cleanup(allocator);
-    return;
+    free(notify);
 }

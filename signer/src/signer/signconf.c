@@ -47,20 +47,7 @@ signconf_type*
 signconf_create(void)
 {
     signconf_type* sc = NULL;
-    allocator_type* allocator = allocator_create(malloc, free);
-    if (!allocator) {
-        ods_log_error("[%s] unable to create signconf: allocator_create() "
-            " failed", sc_str);
-        return NULL;
-    }
-    sc = (signconf_type*) allocator_alloc(allocator, sizeof(signconf_type));
-    if (!sc) {
-        ods_log_error("[%s] unable to create signconf: allocator_alloc() "
-            " failed", sc_str);
-        allocator_cleanup(allocator);
-        return NULL;
-    }
-    sc->allocator = allocator;
+    CHECKALLOC(sc = (signconf_type*) malloc(sizeof(signconf_type)));
     sc->filename = NULL;
     sc->passthrough = 0;
     /* Signatures */
@@ -115,7 +102,7 @@ signconf_read(signconf_type* signconf, const char* scfile)
     }
     fd = ods_fopen(scfile, NULL, "r");
     if (fd) {
-        signconf->filename = allocator_strdup(signconf->allocator, scfile);
+        signconf->filename = strdup(scfile);
         signconf->passthrough = parse_sc_passthrough(scfile);
         signconf->sig_resign_interval = parse_sc_sig_resign_interval(scfile);
         signconf->sig_refresh_interval = parse_sc_sig_refresh_interval(scfile);
@@ -129,8 +116,7 @@ signconf_read(signconf_type* signconf, const char* scfile)
             signconf->nsec3_optout = parse_sc_nsec3_optout(scfile);
             signconf->nsec3_algo = parse_sc_nsec3_algorithm(scfile);
             signconf->nsec3_iterations = parse_sc_nsec3_iterations(scfile);
-            signconf->nsec3_salt = parse_sc_nsec3_salt(signconf->allocator,
-                scfile);
+            signconf->nsec3_salt = parse_sc_nsec3_salt(scfile);
             signconf->nsec3params = nsec3params_create((void*) signconf,
             (uint8_t) signconf->nsec3_algo, (uint8_t) signconf->nsec3_optout,
             (uint16_t)signconf->nsec3_iterations, signconf->nsec3_salt);
@@ -145,8 +131,7 @@ signconf_read(signconf_type* signconf, const char* scfile)
         signconf->dnskey_ttl = parse_sc_dnskey_ttl(scfile);
         signconf->soa_ttl = parse_sc_soa_ttl(scfile);
         signconf->soa_min = parse_sc_soa_min(scfile);
-        signconf->soa_serial = parse_sc_soa_serial(signconf->allocator,
-            scfile);
+        signconf->soa_serial = parse_sc_soa_serial(scfile);
         signconf->max_zone_ttl = parse_sc_max_zone_ttl(scfile);
         ods_fclose(fd);
         return ODS_STATUS_OK;
@@ -568,7 +553,6 @@ signconf_log(signconf_type* sc, const char* name)
 void
 signconf_cleanup(signconf_type* sc)
 {
-    allocator_type* allocator = NULL;
     if (!sc) {
         return;
     }
@@ -584,11 +568,9 @@ signconf_cleanup(signconf_type* sc)
     duration_cleanup(sc->max_zone_ttl);
     keylist_cleanup(sc->keys);
     nsec3params_cleanup(sc->nsec3params);
-    allocator = sc->allocator;
-    allocator_deallocate(allocator, (void*) sc->filename);
-    allocator_deallocate(allocator, (void*) sc->nsec3_salt);
-    allocator_deallocate(allocator, (void*) sc->soa_serial);
-    allocator_deallocate(allocator, (void*) sc);
-    allocator_cleanup(allocator);
+    free(sc->filename);
+    free(sc->nsec3_salt);
+    free(sc->soa_serial);
+    free(sc);
     return;
 }

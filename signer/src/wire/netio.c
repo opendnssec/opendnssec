@@ -36,14 +36,10 @@ static const char* netio_str = "netio";
  *
  */
 netio_type*
-netio_create(allocator_type* allocator)
+netio_create()
 {
     netio_type* netio = NULL;
-    if (!allocator) {
-        return NULL;
-    }
-    netio = (netio_type*) allocator_alloc(allocator, sizeof(netio_type));
-    netio->allocator = allocator;
+    CHECKALLOC(netio = (netio_type*) malloc(sizeof(netio_type)));
     netio->handlers = NULL;
     netio->deallocated = NULL;
     netio->dispatch_next = NULL;
@@ -65,9 +61,7 @@ netio_add_handler(netio_type* netio, netio_handler_type* handler)
         l = netio->deallocated;
         netio->deallocated = l->next;
     } else {
-        ods_log_assert(netio->allocator);
-        l = (netio_handler_list_type*) allocator_alloc(netio->allocator,
-            sizeof(netio_handler_list_type));
+        CHECKALLOC(l = (netio_handler_list_type*) malloc(sizeof(netio_handler_list_type)));
     }
     l->next = netio->handlers;
     l->handler = handler;
@@ -351,14 +345,12 @@ netio_dispatch(netio_type* netio, const struct timespec* timeout,
 void
 netio_cleanup(netio_type* netio)
 {
-    allocator_type* allocator = NULL;
     if (!netio) {
         return;
     }
-    allocator = netio->allocator;
-    allocator_deallocate(allocator, (void*)netio->handlers);
-    allocator_deallocate(allocator, (void*)netio->deallocated);
-    allocator_deallocate(allocator, (void*)netio);
+    free(netio->handlers);
+    free(netio->deallocated);
+    free(netio);
     return;
 }
 

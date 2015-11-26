@@ -42,7 +42,6 @@
 
 typedef struct cmdhandler_struct cmdhandler_type;
 struct cmdhandler_struct {
-    allocator_type* allocator;
     void* engine;
     struct sockaddr_un listen_addr;
     ods_thread_type thread_id;
@@ -58,8 +57,7 @@ struct cmdhandler_struct {
  * \return cmdhandler_type* created command handler
  *
  */
-cmdhandler_type* cmdhandler_create(allocator_type* allocator,
-    const char* filename);
+cmdhandler_type* cmdhandler_create(const char* filename);
 
 /**
  * Start command handler.

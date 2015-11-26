@@ -47,7 +47,6 @@
  */
 typedef struct xfrhandler_struct xfrhandler_type;
 struct xfrhandler_struct {
-    allocator_type* allocator;
     /* Engine reference */
     ods_thread_type thread_id;
     void* engine;
@@ -76,7 +75,7 @@ struct xfrhandler_struct {
  * \return xfrhandler_type* created zoned transfer handler
  *
  */
-xfrhandler_type* xfrhandler_create(allocator_type* allocator);
+xfrhandler_type* xfrhandler_create();
 
 /**
  * Start zone transfer handler.

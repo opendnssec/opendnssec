@@ -47,32 +47,22 @@ const char* query_str = "query";
 query_type*
 query_create(void)
 {
-    allocator_type* allocator = NULL;
     query_type* q = NULL;
-    allocator = allocator_create(malloc, free);
-    if (!allocator) {
-        return NULL;
-    }
-    q = (query_type*) allocator_alloc(allocator, sizeof(query_type));
-    if (!q) {
-        allocator_cleanup(allocator);
-        return NULL;
-    }
-    q->allocator = allocator;
+    CHECKALLOC(q = (query_type*) malloc(sizeof(query_type)));
     q->buffer = NULL;
     q->tsig_rr = NULL;
     q->axfr_fd = NULL;
-    q->buffer = buffer_create(allocator, PACKET_BUFFER_SIZE);
+    q->buffer = buffer_create(PACKET_BUFFER_SIZE);
     if (!q->buffer) {
         query_cleanup(q);
         return NULL;
     }
-    q->tsig_rr = tsig_rr_create(allocator);
+    q->tsig_rr = tsig_rr_create();
     if (!q->tsig_rr) {
         query_cleanup(q);
         return NULL;
     }
-    q->edns_rr = edns_rr_create(allocator);
+    q->edns_rr = edns_rr_create();
     if (!q->edns_rr) {
         query_cleanup(q);
         return NULL;
@@ -1097,18 +1087,15 @@ query_add_rr_tc:
 void
 query_cleanup(query_type* q)
 {
-    allocator_type* allocator = NULL;
     if (!q) {
         return;
     }
-    allocator = q->allocator;
     if (q->axfr_fd) {
         ods_fclose(q->axfr_fd);
         q->axfr_fd = NULL;
     }
-    buffer_cleanup(q->buffer, allocator);
+    buffer_cleanup(q->buffer);
     tsig_rr_cleanup(q->tsig_rr);
-    allocator_deallocate(allocator, (void*)q);
-    allocator_cleanup(allocator);
+    free(q);
     return;
 }

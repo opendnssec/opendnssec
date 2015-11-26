@@ -52,8 +52,7 @@ denial_create(void* zoneptr, ldns_rdf* dname)
     if (!dname || !zoneptr) {
         return NULL;
     }
-    denial = (denial_type*) allocator_alloc(
-        zone->allocator, sizeof(denial_type));
+    CHECKALLOC(denial = (denial_type*) malloc(sizeof(denial_type)));
     if (!denial) {
         ods_log_error("[%s] unable to create denial: allocator_alloc() "
             "failed", denial_str);
@@ -365,6 +364,6 @@ denial_cleanup(denial_type* denial)
     zone = (zone_type*) denial->zone;
     ldns_rdf_deep_free(denial->dname);
     rrset_cleanup(denial->rrset);
-    allocator_deallocate(zone->allocator, (void*) denial);
+    free(denial);
     return;
 }
