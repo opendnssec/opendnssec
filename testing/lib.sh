@@ -1076,11 +1076,6 @@ log_this_timeout ()
 		exit 1
 	fi
 
-	if [ "$timeout" -gt 3600 ] 2>/dev/null; then
-		echo "log_this_timeout: Too long timeout used, can't be over 3600 seconds!" >&2
-		exit 1
-	fi
-
 	time_stop=$(( time_start + timeout ))
 
 	touch "$log_stderr" "$log_stdout"
@@ -1339,11 +1334,6 @@ log_waitfor ()
 
 	if [ ! "$timeout" -gt 0 ] 2>/dev/null; then
 		echo "log_waitfor: Wrong timeout value or 0!" >&2
-		exit 1
-	fi
-
-	if [ "$timeout" -gt 3600 ] 2>/dev/null; then
-		echo "log_waitfor: Too long timeout used, can't be over 3600 seconds!" >&2
 		exit 1
 	fi
 
@@ -1840,11 +1830,6 @@ syslog_waitfor ()
 		exit 1
 	fi
 
-	if [ "$timeout" -gt 3600 ] 2>/dev/null; then
-		echo "syslog_waitfor: Too long timeout used, can't be over 3600 seconds!" >&2
-		exit 1
-	fi
-
 	time_stop=$(( time_start + timeout ))
 
 	echo "syslog_waitfor: waiting for syslog to contain (timeout $timeout): $grep_string"
@@ -1893,11 +1878,6 @@ syslog_waitfor_count ()
 
 	if [ ! "$timeout" -gt 0 ] 2>/dev/null; then
 		echo "syslog_waitfor_count: Wrong timeout value or 0!" >&2
-		exit 1
-	fi
-
-	if [ "$timeout" -gt 3600 ] 2>/dev/null; then
-		echo "syslog_waitfor_count: Too long timeout used, can't be over 3600 seconds!" >&2
 		exit 1
 	fi
 
@@ -2116,11 +2096,6 @@ try_run ()
 		exit 1
 	fi
 
-	if [ "$timeout" -gt 3600 ] 2>/dev/null; then
-		echo "try_run: Too long timeout used, can't be over 3600 seconds!" >&2
-		exit 1
-	fi
-
 	time_stop=$(( time_start + timeout ))
 
 	( $* ) &
@@ -2184,11 +2159,6 @@ waitfor_this ()
 		exit 1
 	fi
 
-	if [ "$timeout" -gt 3600 ] 2>/dev/null; then
-		echo "waitfor_this: Too long timeout used, can't be over 3600 seconds!" >&2
-		exit 1
-	fi
-
 	time_stop=$(( time_start + timeout ))
 
 	echo "waitfor_this: waiting for $file to contain (timeout $timeout): $grep_string"
@@ -2238,11 +2208,6 @@ waitfor_count_this ()
 
 	if [ ! "$timeout" -gt 0 ] 2>/dev/null; then
 		echo "waitfor_count_this: Wrong timeout value or 0!" >&2
-		exit 1
-	fi
-
-	if [ "$timeout" -gt 3600 ] 2>/dev/null; then
-		echo "waitfor_count_this: Too long timeout used, can't be over 3600 seconds!" >&2
 		exit 1
 	fi
 

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<KASP>
+	<Policy name="default">
+		<Description></Description>
+		<Signatures>
+			<Resign>P7D</Resign>
+			<Refresh>P31D</Refresh>
+			<Validity>
+				<Default>P62D</Default>
+				<Denial>P62D</Denial>
+			</Validity>
+			<Jitter>PT0S</Jitter>
+			<InceptionOffset>PT0S</InceptionOffset>
+			<MaxZoneTTL>PT1S</MaxZoneTTL>
+		</Signatures>
+		<Denial>
+			<NSEC3>
+				<OptOut/>
+				<Resalt>P5Y</Resalt>
+				<Hash>
+					<Algorithm>1</Algorithm>
+					<Iterations>5</Iterations>
+					<Salt length="8"/>
+				</Hash>
+			</NSEC3>
+		</Denial>
+		<Keys>
+			<TTL>PT1M</TTL>
+			<RetireSafety>PT0S</RetireSafety>
+			<PublishSafety>PT0S</PublishSafety>
+			<KSK>
+				<Algorithm length="2048">7</Algorithm>
+				<Lifetime>P3Y</Lifetime>
+				<Repository>SoftHSM</Repository>
+				<Standby>0</Standby>
+			</KSK>
+			<ZSK>
+				<Algorithm length="1024">7</Algorithm>
+				<Lifetime>P1Y</Lifetime>
+				<Repository>SoftHSM</Repository>
+				<Standby>0</Standby>
+			</ZSK>
+		</Keys>
+		<Zone>
+			<PropagationDelay>PT0S</PropagationDelay>
+			<SOA>
+				<TTL>PT1M</TTL>
+				<Minimum>PT1M</Minimum>
+				<Serial>keep</Serial>
+			</SOA>
+		</Zone>
+		<Parent>
+			<PropagationDelay>PT0S</PropagationDelay>
+			<DS>
+				<TTL>PT1M</TTL>
+			</DS>
+			<SOA>
+				<TTL>PT1M</TTL>
+				<Minimum>PT1M</Minimum>
+			</SOA>
+		</Parent>
+	</Policy>
+</KASP>
