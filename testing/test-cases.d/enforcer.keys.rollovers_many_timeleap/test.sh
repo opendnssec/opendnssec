@@ -361,7 +361,7 @@ log_this ods-enforcer-output_manual ods-enforcer key list --debug &&
 log_this ods-enforcer-output_manual ods-enforcer rollover list &&
 
 log_this ods-enforcer-temp ods-enforcer key list  --debug &&
-log_grep ods-enforcer-temp stdout "ods1[[:space:]]*KSK[[:space:]]*hidden[[:space:]]*unretentive[[:space:]]*unretentive.*$KSK1_CKA" &&
+log_grep ods-enforcer-temp stdout "ods1[[:space:]]*KSK[[:space:]]*unretentive[[:space:]]*unretentive[[:space:]]*unretentive.*$KSK1_CKA" &&
 log_grep ods-enforcer-temp stdout "ods1[[:space:]]*KSK[[:space:]]*omnipresent[[:space:]]*omnipresent[[:space:]]*omnipresent.*$KSK2_CKA" &&
 rm _log.$BUILD_TAG.ods-enforcer-temp.stdout &&
 
@@ -378,10 +378,23 @@ log_this ods-enforcer-output_manual ods-enforcer key list --debug &&
 log_this ods-enforcer-output_manual ods-enforcer rollover list &&
 
 log_this ods-enforcer-temp ods-enforcer key list  --debug &&
-log_grep ods-enforcer-temp stdout "ods1[[:space:]]*KSK[[:space:]]*hidden[[:space:]]*hidden[[:space:]]*hidden.*$KSK1_CKA" &&
+log_grep ods-enforcer-temp stdout "ods1[[:space:]]*KSK[[:space:]]*hidden[[:space:]]*unretentive[[:space:]]*unretentive.*$KSK1_CKA" &&
 log_grep ods-enforcer-temp stdout "ods1[[:space:]]*KSK[[:space:]]*omnipresent[[:space:]]*omnipresent[[:space:]]*omnipresent.*$KSK2_CKA" &&
 rm _log.$BUILD_TAG.ods-enforcer-temp.stdout &&
 
+#### TIME 12.5
+log_this ods-enforcer-output_manual echo "--------------- TIME LEAP 12.5 -----------------" &&
+log_this ods-enforcer-output_manual 'ods-enforcer time leap' && sleep 1 &&
+log_this ods-enforcer-output_manual echo "--------------------------------------------" &&
+
+log_this ods-enforcer-output_manual echo "----- Expect old ZSK has NOT been removed from the list " &&
+log_this ods-enforcer-output_manual ods-enforcer key list  --verbose &&
+log_this ods-enforcer-output_manual ods-enforcer key list --debug &&
+log_this ods-enforcer-output_manual ods-enforcer rollover list &&
+
+log_this ods-enforcer-temp ods-enforcer key list  --verbose &&
+log_grep ods-enforcer-temp stdout "ods1[[:space:]]*ZSK[[:space:]]*retire" &&
+rm _log.$BUILD_TAG.ods-enforcer-temp.stdout &&
 
 #### TIME 13
 log_this ods-enforcer-output_manual echo "--------------- TIME LEAP 13 -----------------" &&
