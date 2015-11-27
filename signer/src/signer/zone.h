@@ -64,7 +64,6 @@ typedef enum zone_zl_status_enum zone_zl_status;
  */
 typedef struct zone_struct zone_type;
 struct zone_struct {
-    allocator_type* allocator; /* memory allocator */
     ldns_rdf* apex; /* wire format zone name */
     ldns_rr_class klass; /* class */
     uint32_t default_ttl; /* ttl */

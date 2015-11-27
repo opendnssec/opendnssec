@@ -1334,8 +1334,6 @@ void StrAppend(char** str1, const char* str2)
 			*str1 = StrStrdup(str2);
 		}
 	}
-
-	return;
 }
 
 /*+
@@ -1372,7 +1370,6 @@ void StrTrimR(char *text)
 
 		text[0] = '\0';
 	}
-	return;
 }
 
 /*+

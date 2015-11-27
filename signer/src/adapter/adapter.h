@@ -54,7 +54,6 @@ typedef enum adapter_mode_enum adapter_mode;
  */
 typedef struct adapter_struct adapter_type;
 struct adapter_struct {
-    allocator_type* allocator;
     adapter_mode type;
     time_t config_last_modified;
     const char* configstr;

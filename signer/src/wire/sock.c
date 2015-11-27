@@ -122,7 +122,6 @@ sock_tcp_reuseaddr(sock_type* sock, const char* node, const char* port,
             "reuse-addr: setsockopt() failed (%s)", sock_str, fam,
             node?node:"localhost", port, strerror(errno));
     }
-    return;
 }
 
 
@@ -378,7 +377,6 @@ send_udp(struct udp_data* data, query_type* q)
             "octets", sock_str, (int)nb,
             (int)buffer_remaining(q->buffer));
     }
-    return;
 }
 
 
@@ -419,7 +417,6 @@ sock_handle_udp(netio_type* ATTR_UNUSED(netio), netio_handler_type* handler,
         buffer_flip(q->buffer);
         send_udp(data, q);
     }
-    return;
 }
 
 
@@ -431,15 +428,12 @@ static void
 cleanup_tcp_handler(netio_type* netio, netio_handler_type* handler)
 {
     struct tcp_data* data = (struct tcp_data*) handler->user_data;
-    allocator_type* allocator = data->allocator;
     netio_remove_handler(netio, handler);
     close(handler->fd);
-    allocator_deallocate(allocator, (void*) handler->timeout);
-    allocator_deallocate(allocator, (void*) handler);
+    free(handler->timeout);
+    free(handler);
     query_cleanup(data->query);
-    allocator_deallocate(allocator, (void*) data);
-    allocator_cleanup(allocator);
-    return;
+    free(data);
 }
 
 
@@ -451,7 +445,6 @@ void
 sock_handle_tcp_accept(netio_type* netio, netio_handler_type* handler,
     netio_events_type event_types)
 {
-    allocator_type* allocator = NULL;
     struct tcp_accept_data* accept_data = (struct tcp_accept_data*)
         handler->user_data;
     int s = 0;
@@ -479,29 +472,12 @@ sock_handle_tcp_accept(netio_type* netio, netio_handler_type* handler,
         return;
     }
     /* create tcp handler data */
-    allocator = allocator_create(malloc, free);
-    if (!allocator) {
-        ods_log_error("[%s] unable to handle incoming tcp connection: "
-            "allocator_create() failed", sock_str);
-        close(s);
-        return;
-    }
-    tcp_data = (struct tcp_data*) allocator_alloc(allocator,
-        sizeof(struct tcp_data));
-    if (!tcp_data) {
-        ods_log_error("[%s] unable to handle incoming tcp connection: "
-            "allocator_alloc() data failed", sock_str);
-        allocator_cleanup(allocator);
-        close(s);
-        return;
-    }
-    tcp_data->allocator = allocator;
+    CHECKALLOC(tcp_data = (struct tcp_data*) malloc(sizeof(struct tcp_data)));
     tcp_data->query = query_create();
     if (!tcp_data->query) {
         ods_log_error("[%s] unable to handle incoming tcp connection: "
             "query_create() failed", sock_str);
-        allocator_deallocate(allocator, (void*) tcp_data);
-        allocator_cleanup(allocator);
+        free(tcp_data);
         close(s);
         return;
     }
@@ -513,27 +489,15 @@ sock_handle_tcp_accept(netio_type* netio, netio_handler_type* handler,
     tcp_data->bytes_transmitted = 0;
     memcpy(&tcp_data->query->addr, &addr, addrlen);
     tcp_data->query->addrlen = addrlen;
-    tcp_handler = (netio_handler_type*) allocator_alloc(allocator,
-        sizeof(netio_handler_type));
-    if (!tcp_handler) {
-        ods_log_error("[%s] unable to handle incoming tcp connection: "
-            "allocator_alloc() handler failed", sock_str);
-        query_cleanup(tcp_data->query);
-        allocator_deallocate(allocator, (void*) tcp_data);
-        allocator_cleanup(allocator);
-        close(s);
-        return;
-    }
+    CHECKALLOC(tcp_handler = (netio_handler_type*) malloc(sizeof(netio_handler_type)));
     tcp_handler->fd = s;
-    tcp_handler->timeout = (struct timespec*) allocator_alloc(allocator,
-        sizeof(struct timespec));
+    CHECKALLOC(tcp_handler->timeout = (struct timespec*) malloc(sizeof(struct timespec)));
     if (!tcp_handler->timeout) {
         ods_log_error("[%s] unable to handle incoming tcp connection: "
             "allocator_alloc() timeout failed", sock_str);
-        allocator_deallocate(allocator, (void*) tcp_handler);
+        free(tcp_handler);
         query_cleanup(tcp_data->query);
-        allocator_deallocate(allocator, (void*) tcp_data);
-        allocator_cleanup(allocator);
+        free(tcp_data);
         close(s);
         return;
     }
@@ -544,7 +508,6 @@ sock_handle_tcp_accept(netio_type* netio, netio_handler_type* handler,
     tcp_handler->event_types = NETIO_EVENT_READ | NETIO_EVENT_TIMEOUT;
     tcp_handler->event_handler = sock_handle_tcp_read;
     netio_add_handler(netio, tcp_handler);
-    return;
 }
 
 
@@ -670,7 +633,6 @@ sock_handle_tcp_read(netio_type* netio, netio_handler_type* handler,
     timespec_add(handler->timeout, netio_current_time(netio));
     handler->event_types = NETIO_EVENT_WRITE | NETIO_EVENT_TIMEOUT;
     handler->event_handler = sock_handle_tcp_write;
-    return;
 }
 
 
@@ -785,5 +747,4 @@ sock_handle_tcp_write(netio_type* netio, netio_handler_type* handler,
     timespec_add(handler->timeout, netio_current_time(netio));
     handler->event_types = NETIO_EVENT_READ | NETIO_EVENT_TIMEOUT;
     handler->event_handler = sock_handle_tcp_read;
-    return;
 }

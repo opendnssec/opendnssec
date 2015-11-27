@@ -66,8 +66,7 @@ int ods_str_explode(char *buf, int argc, const char *argv[]);
  *          be freed using allocator_deallocate or NULL when no arguments
  *          were passed.
  */
-char *ods_str_join(allocator_type* allocator, int argc, char *argv[], 
-                   char cjoin);
+char *ods_str_join(int argc, char *argv[], char cjoin);
 
 /**
  * Concatenate characters without custom allocators.

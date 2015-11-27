@@ -85,7 +85,6 @@ struct tcp_accept_data {
  *
  */
 struct tcp_data {
-    allocator_type* allocator;
     void* engine;
     query_type* query;
     size_t tcp_accept_handler_count;

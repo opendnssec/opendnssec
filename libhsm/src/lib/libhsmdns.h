@@ -54,8 +54,7 @@ typedef struct {
 /*!
  * Returns an allocated hsm_sign_params_t with some defaults
  */
-hsm_sign_params_t *
-hsm_sign_params_new();
+hsm_sign_params_t * hsm_sign_params_new(void);
 
 
 /*!

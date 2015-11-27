@@ -63,7 +63,7 @@ struct db_value {
  * Create a new database value.
  * \return a db_value_t pointer or NULL on error.
  */
-db_value_t* db_value_new();
+db_value_t* db_value_new(void);
 
 /**
  * Create a new database value that is a copy of another.

@@ -79,7 +79,6 @@ struct interface_struct {
  */
 typedef struct listener_struct listener_type;
 struct listener_struct {
-    allocator_type* allocator;
     interface_type* interfaces;
     size_t count;
 };
@@ -90,7 +89,7 @@ struct listener_struct {
  * \return listener_type* listener
  *
  */
-listener_type* listener_create(allocator_type* allocator);
+listener_type* listener_create(void);
 
 /**
  * Push an interface to the listener.

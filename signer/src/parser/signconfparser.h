@@ -105,9 +105,7 @@ int parse_sc_passthrough(const char* cfgfile);
  * \return const char* string
  *
  */
-const char* parse_sc_soa_serial(allocator_type* allocator,
-    const char* cfgfile);
-const char* parse_sc_nsec3_salt(allocator_type* allocator,
-    const char* cfgfile);
+const char* parse_sc_soa_serial(const char* cfgfile);
+const char* parse_sc_nsec3_salt(const char* cfgfile);
 
 #endif /* PARSER_SIGNCONFPARSER_H */

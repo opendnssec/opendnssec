@@ -36,14 +36,10 @@ static const char* netio_str = "netio";
  *
  */
 netio_type*
-netio_create(allocator_type* allocator)
+netio_create()
 {
     netio_type* netio = NULL;
-    if (!allocator) {
-        return NULL;
-    }
-    netio = (netio_type*) allocator_alloc(allocator, sizeof(netio_type));
-    netio->allocator = allocator;
+    CHECKALLOC(netio = (netio_type*) malloc(sizeof(netio_type)));
     netio->handlers = NULL;
     netio->deallocated = NULL;
     netio->dispatch_next = NULL;
@@ -65,15 +61,12 @@ netio_add_handler(netio_type* netio, netio_handler_type* handler)
         l = netio->deallocated;
         netio->deallocated = l->next;
     } else {
-        ods_log_assert(netio->allocator);
-        l = (netio_handler_list_type*) allocator_alloc(netio->allocator,
-            sizeof(netio_handler_list_type));
+        CHECKALLOC(l = (netio_handler_list_type*) malloc(sizeof(netio_handler_list_type)));
     }
     l->next = netio->handlers;
     l->handler = handler;
     netio->handlers = l;
     ods_log_debug("[%s] handler added", netio_str);
-    return;
 }
 
 /*
@@ -100,7 +93,6 @@ netio_remove_handler(netio_type* netio, netio_handler_type* handler)
            }
     }
     ods_log_debug("[%s] handler removed", netio_str);
-    return;
 }
 
 
@@ -113,7 +105,6 @@ timeval_to_timespec(struct timespec* left, const struct timeval* right)
 {
     left->tv_sec = right->tv_sec;
     left->tv_nsec = 1000 * right->tv_usec;
-    return;
 }
 
 /**
@@ -150,7 +141,6 @@ timespec_add(struct timespec* left, const struct timespec* right)
         ++left->tv_sec;
         left->tv_nsec -= NANOSECONDS_PER_SECOND;
     }
-    return;
 }
 
 
@@ -167,7 +157,6 @@ timespec_subtract(struct timespec* left, const struct timespec* right)
         --left->tv_sec;
         left->tv_nsec += NANOSECONDS_PER_SECOND;
     }
-    return;
 }
 
 
@@ -351,14 +340,11 @@ netio_dispatch(netio_type* netio, const struct timespec* timeout,
 void
 netio_cleanup(netio_type* netio)
 {
-    allocator_type* allocator = NULL;
     if (!netio) {
         return;
     }
-    allocator = netio->allocator;
-    allocator_deallocate(allocator, (void*)netio->handlers);
-    allocator_deallocate(allocator, (void*)netio->deallocated);
-    allocator_deallocate(allocator, (void*)netio);
-    return;
+    free(netio->handlers);
+    free(netio->deallocated);
+    free(netio);
 }
 

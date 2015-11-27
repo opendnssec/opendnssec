@@ -339,7 +339,7 @@ tokenizeparam(char *argument)
 {
     char** tokenized;
     char** newtokenized;
-    int argCount, i;
+    int argCount;
     char* argString;
     char* argSavePtr;
     int argSize = 8;

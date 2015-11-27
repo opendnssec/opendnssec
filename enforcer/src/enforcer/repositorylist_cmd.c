@@ -10,7 +10,7 @@
 static const char *module_str = "repositorylist_cmd";
 
 static int
-perform_repositorylist(int sockfd, engine_type* engine)
+perform_repositorylist(int sockfd)
 {
 	const char* cfgfile = ODS_SE_CFGFILE;
 	xmlDocPtr doc = NULL;
@@ -104,7 +104,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	ods_log_debug("[%s] %s command", module_str, 
 		repositorylist_funcblock()->cmdname);
 
-	if (perform_repositorylist(sockfd, engine)) {
+	if (perform_repositorylist(sockfd)) {
 		ods_log_error_and_printf(sockfd, module_str,
 			"unable to list repositories ");
 		return 1;

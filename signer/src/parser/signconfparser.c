@@ -431,7 +431,7 @@ parse_sc_passthrough(const char* cfgfile)
  *
  */
 const char*
-parse_sc_soa_serial(allocator_type* allocator, const char* cfgfile)
+parse_sc_soa_serial(const char* cfgfile)
 {
     const char* dup = NULL;
     const char* str = parse_conf_string(
@@ -440,7 +440,7 @@ parse_sc_soa_serial(allocator_type* allocator, const char* cfgfile)
         1);
 
     if (str) {
-        dup = allocator_strdup(allocator, str);
+        dup = strdup(str);
         free((void*)str);
     }
     return dup;
@@ -448,7 +448,7 @@ parse_sc_soa_serial(allocator_type* allocator, const char* cfgfile)
 
 
 const char*
-parse_sc_nsec3_salt(allocator_type* allocator, const char* cfgfile)
+parse_sc_nsec3_salt(const char* cfgfile)
 {
     const char* dup = NULL;
     const char* str = parse_conf_string(
@@ -457,7 +457,7 @@ parse_sc_nsec3_salt(allocator_type* allocator, const char* cfgfile)
         1);
 
     if (str) {
-        dup = allocator_strdup(allocator, str);
+        dup = strdup(str);
         free((void*)str);
     }
     return dup;

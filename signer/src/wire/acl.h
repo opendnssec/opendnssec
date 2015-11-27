@@ -81,7 +81,7 @@ struct acl_struct {
  * \return acl_type* ACL
  *
  */
-acl_type* acl_create(allocator_type* allocator, char* address,
+acl_type* acl_create(char* address,
     char* port, char* tsig_name, tsig_type* tsig);
 
 /**
@@ -119,6 +119,6 @@ int addr2ip(struct sockaddr_storage addr, char* ip, size_t len);
  * \param[in] allocator memory allocator
  *
  */
-void acl_cleanup(acl_type* acl, allocator_type* allocator);
+void acl_cleanup(acl_type* acl);
 
 #endif /* WIRE_ACL_H */

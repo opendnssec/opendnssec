@@ -123,21 +123,13 @@ acl_parse_family(const char* a)
  *
  */
 acl_type*
-acl_create(allocator_type* allocator, char* address, char* port,
+acl_create(char* address, char* port,
     char* tsig_name, tsig_type* tsig)
 {
     ods_status status = ODS_STATUS_OK;
     acl_type* acl = NULL;
     char* p = NULL;
-    if (!allocator) {
-        return NULL;
-    }
-    acl = (acl_type*) allocator_alloc(allocator, sizeof(acl_type));
-    if (!acl) {
-        ods_log_error("[%s] unable to create acl: allocator_alloc() "
-            "failed", acl_str);
-        return NULL;
-    }
+    CHECKALLOC(acl = (acl_type*) malloc(sizeof(acl_type)));
     acl->address = NULL;
     acl->next = NULL;
     acl->tsig = NULL;
@@ -146,7 +138,7 @@ acl_create(allocator_type* allocator, char* address, char* port,
         if (!acl->tsig) {
             ods_log_error("[%s] unable to create acl: tsig %s not found",
                 acl_str, tsig_name);
-            acl_cleanup(acl, allocator);
+            acl_cleanup(acl);
             return NULL;
         }
     }
@@ -159,18 +151,18 @@ acl_create(allocator_type* allocator, char* address, char* port,
     if (address) {
         acl->family = acl_parse_family(address);
         acl->range_type = acl_parse_range_type(address, &p);
-        acl->address = allocator_strdup(allocator, address);
+        acl->address = strdup(address);
         if (!acl->address) {
             ods_log_error("[%s] unable to create acl: allocator_strdup() "
                 "failed", acl_str);
-            acl_cleanup(acl, allocator);
+            acl_cleanup(acl);
             return NULL;
         }
         if (acl->family == AF_INET6) {
             if (inet_pton(AF_INET6, acl->address, &acl->addr.addr6) != 1) {
                 ods_log_error("[%s] unable to create acl: bad ipv6 address "
                     "(%s)", acl_str, acl->address);
-                acl_cleanup(acl, allocator);
+                acl_cleanup(acl);
                 return NULL;
             }
             if (acl->range_type == ACL_RANGE_MASK ||
@@ -178,7 +170,7 @@ acl_create(allocator_type* allocator, char* address, char* port,
                 if (inet_pton(AF_INET6, p, &acl->range_mask.addr6) != 1) {
                     ods_log_error("[%s] unable to create acl: bad ipv6 address"
                         " mask (%s)", acl_str, p);
-                    acl_cleanup(acl, allocator);
+                    acl_cleanup(acl);
                     return NULL;
                 }
             } else if (acl->range_type == ACL_RANGE_SUBNET) {
@@ -186,7 +178,7 @@ acl_create(allocator_type* allocator, char* address, char* port,
                 if (status != ODS_STATUS_OK) {
                     ods_log_error("[%s] unable to create acl: %s (%s)",
                         acl_str, ods_status2str(status), p);
-                    acl_cleanup(acl, allocator);
+                    acl_cleanup(acl);
                     return NULL;
                 }
             }
@@ -194,7 +186,7 @@ acl_create(allocator_type* allocator, char* address, char* port,
             if (inet_pton(AF_INET, acl->address, &acl->addr.addr) != 1) {
                 ods_log_error("[%s] unable to create acl: bad ipv4 address "
                     "(%s)", acl_str, acl->address);
-                acl_cleanup(acl, allocator);
+                acl_cleanup(acl);
                 return NULL;
             }
             if (acl->range_type == ACL_RANGE_MASK ||
@@ -202,7 +194,7 @@ acl_create(allocator_type* allocator, char* address, char* port,
                 if (inet_pton(AF_INET, p, &acl->range_mask.addr) != 1) {
                     ods_log_error("[%s] unable to create acl: bad ipv4 address"
                         " mask (%s)", acl_str, p);
-                    acl_cleanup(acl, allocator);
+                    acl_cleanup(acl);
                     return NULL;
                 }
             } else if (acl->range_type == ACL_RANGE_SUBNET) {
@@ -210,7 +202,7 @@ acl_create(allocator_type* allocator, char* address, char* port,
                 if (status != ODS_STATUS_OK) {
                     ods_log_error("[%s] unable to create acl: %s (%s)",
                         acl_str, ods_status2str(status), p);
-                    acl_cleanup(acl, allocator);
+                    acl_cleanup(acl);
                     return NULL;
                 }
             }
@@ -461,13 +453,12 @@ acl_find(acl_type* acl, struct sockaddr_storage* addr, tsig_rr_type* trr)
  *
  */
 void
-acl_cleanup(acl_type* acl, allocator_type* allocator)
+acl_cleanup(acl_type* acl)
 {
-    if (!acl || !allocator) {
+    if (!acl) {
         return;
     }
-    acl_cleanup(acl->next, allocator);
-    allocator_deallocate(allocator, (void*) acl->address);
-    allocator_deallocate(allocator, (void*) acl);
-    return;
+    acl_cleanup(acl->next);
+    free(acl->address);
+    free(acl);
 }
