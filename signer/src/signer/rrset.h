@@ -24,55 +24,42 @@
  *
  */
 
-/**
- * RRset.
- *
- */
-
 #ifndef SIGNER_RRSET_H
 #define SIGNER_RRSET_H
 
 #include "config.h"
+#include <ldns/ldns.h>
+
+typedef struct rrsig_struct rrsig_type;
+typedef struct rr_struct rr_type;
+typedef struct rrset_struct rrset_type;
+
 #include "status.h"
 #include "signer/stats.h"
 #include "libhsm.h"
+#include "domain.h"
+#include "zone.h"
 
-#include <ldns/ldns.h>
-
-/**
- * RRSIG.
- *
- */
-typedef struct rrsig_struct rrsig_type;
 struct rrsig_struct {
     ldns_rr* rr;
-    void* owner;
+    domain_type* owner;
     const char* key_locator;
     uint32_t key_flags;
 };
 
-/**
- * RR.
- *
- */
-typedef struct rr_struct rr_type;
 struct rr_struct {
     ldns_rr* rr;
-    void* owner;
+    domain_type* owner;
     unsigned exists : 1;
     unsigned is_added : 1;
     unsigned is_removed : 1;
 };
 
-/**
- * RRset.
- *
- */
-typedef struct rrset_struct rrset_type;
+
 struct rrset_struct {
     rrset_type* next;
-    void* zone;
-    void* domain;
+    zone_type* zone;
+    domain_type* domain;
     ldns_rr_type rrtype;
     rr_type* rrs;
     rrsig_type* rrsigs;
@@ -115,7 +102,7 @@ const char* rrset_type2str(ldns_rr_type type);
  * \return rrset_type* RRset
  *
  */
-rrset_type* rrset_create(void* zoneptr, ldns_rr_type type);
+rrset_type* rrset_create(zone_type* zone, ldns_rr_type type);
 
 /**
  * Lookup RR in RRset.

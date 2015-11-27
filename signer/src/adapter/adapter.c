@@ -147,27 +147,26 @@ adapter_load_config(adapter_type* adapter)
  *
  */
 ods_status
-adapter_read(void* zone)
+adapter_read(zone_type* zone)
 {
-    zone_type* adzone = (zone_type*) zone;
-    if (!adzone || !adzone->adinbound) {
+    if (!zone || !zone->adinbound) {
         ods_log_error("[%s] unable to read zone: no input adapter",
             adapter_str);
         return ODS_STATUS_ASSERT_ERR;
     }
-    ods_log_assert(adzone->adinbound->configstr);
-    switch (adzone->adinbound->type) {
+    ods_log_assert(zone->adinbound->configstr);
+    switch (zone->adinbound->type) {
         case ADAPTER_FILE:
             ods_log_verbose("[%s] read zone %s from file input adapter %s",
-                adapter_str, adzone->name, adzone->adinbound->configstr);
+                adapter_str, zone->name, zone->adinbound->configstr);
             return adfile_read(zone);
         case ADAPTER_DNS:
             ods_log_verbose("[%s] read zone %s from dns input adapter %s",
-                adapter_str, adzone->name, adzone->adinbound->configstr);
+                adapter_str, zone->name, zone->adinbound->configstr);
             return addns_read(zone);
         default:
             ods_log_error("[%s] unable to read zone %s from adapter: unknown "
-                "adapter", adapter_str, adzone->name);
+                "adapter", adapter_str, zone->name);
             return ODS_STATUS_ERR;
     }
     /* not reached */
@@ -180,28 +179,27 @@ adapter_read(void* zone)
  *
  */
 ods_status
-adapter_write(void* zone)
+adapter_write(zone_type* zone)
 {
-    zone_type* adzone = (zone_type*) zone;
-    if (!adzone || !adzone->db || !adzone->adoutbound) {
+    if (!zone || !zone->db || !zone->adoutbound) {
         ods_log_error("[%s] unable to write zone: no output adapter",
             adapter_str);
         return ODS_STATUS_ASSERT_ERR;
     }
-    ods_log_assert(adzone->name);
-    ods_log_assert(adzone->adoutbound->configstr);
+    ods_log_assert(zone->name);
+    ods_log_assert(zone->adoutbound->configstr);
 
-    switch(adzone->adoutbound->type) {
+    switch(zone->adoutbound->type) {
         case ADAPTER_FILE:
             ods_log_verbose("[%s] write zone %s serial %u to output file "
-                "adapter %s", adapter_str, adzone->name,
-                adzone->db->intserial, adzone->adoutbound->configstr);
-            return adfile_write(zone, adzone->adoutbound->configstr);
+                "adapter %s", adapter_str, zone->name,
+                zone->db->intserial, zone->adoutbound->configstr);
+            return adfile_write(zone, zone->adoutbound->configstr);
         case ADAPTER_DNS:
             return addns_write(zone);
         default:
             ods_log_error("[%s] unable to write zone %s to adapter: unknown "
-                "adapter", adapter_str, adzone->name);
+                "adapter", adapter_str, zone->name);
             return ODS_STATUS_ERR;
     }
     /* not reached */

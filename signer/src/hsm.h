@@ -64,7 +64,7 @@ int lhsm_reopen(hsm_repository_t* rlist);
  * \param[in] engine signer engine.
  *
  */
-void lhsm_check_connection(void* engine);
+void lhsm_check_connection(engine_type* engine);
 
 /**
  * Get key from one of the HSMs, store the DNSKEY and HSM key.

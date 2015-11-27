@@ -33,22 +33,8 @@
 #define WIRE_XFRD_H
 
 #include "config.h"
-#include "allocator.h"
-#include "locks.h"
-#include "status.h"
-#include "wire/acl.h"
-#include "wire/buffer.h"
-#include "wire/netio.h"
-#include "wire/tsig.h"
-
 #include <stdint.h>
 #include <time.h>
-
-#define XFRD_MAX_ROUNDS 3 /* max number of rounds along the masters */
-#define XFRD_MAX_UDP 100 /* max number of udp sockets at a time for ixfr */
-#define XFRD_NO_IXFR_CACHE 172800 /* 48h before retrying ixfr after notimpl */
-#define XFRD_TCP_TIMEOUT 120 /* seconds, before a tcp request times out */
-#define XFRD_UDP_TIMEOUT 5 /* seconds, before a udp request times out */
 
 /**
  * Packet status.
@@ -64,10 +50,28 @@ enum xfrd_pkt_enum {
 };
 typedef enum xfrd_pkt_enum xfrd_pkt_status;
 
+typedef struct soa_struct soa_type;
+
+typedef struct xfrd_struct xfrd_type;
+
+#include "allocator.h"
+#include "locks.h"
+#include "status.h"
+#include "wire/acl.h"
+#include "wire/buffer.h"
+#include "wire/netio.h"
+#include "wire/tsig.h"
+#include "daemon/xfrhandler.h"
+
+#define XFRD_MAX_ROUNDS 3 /* max number of rounds along the masters */
+#define XFRD_MAX_UDP 100 /* max number of udp sockets at a time for ixfr */
+#define XFRD_NO_IXFR_CACHE 172800 /* 48h before retrying ixfr after notimpl */
+#define XFRD_TCP_TIMEOUT 120 /* seconds, before a tcp request times out */
+#define XFRD_UDP_TIMEOUT 5 /* seconds, before a udp request times out */
+
 /*
  * Zone transfer SOA information.
  */
-typedef struct soa_struct soa_type;
 struct soa_struct {
     /* owner equals zone apex */
     /* class equals zone klass */
@@ -87,11 +91,10 @@ struct soa_struct {
  * Zone transfer state.
  *
  */
-typedef struct xfrd_struct xfrd_type;
 struct xfrd_struct
 {
-    void* xfrhandler;
-    void* zone;
+    xfrhandler_type* xfrhandler;
+    zone_type* zone;
     lock_basic_type serial_lock; /* mutexes soa serial management */
     lock_basic_type rw_lock; /* mutexes <zone>.xfrd file */
 
@@ -140,7 +143,7 @@ struct xfrd_struct
  * \return xfrd_type* zone transfer structure.
  *
  */
-xfrd_type* xfrd_create(void* xfrhandler, void* zone);
+xfrd_type* xfrd_create(xfrhandler_type* xfrhandler, zone_type* zone);
 
 /**
  * Set timeout for zone transfer to now.

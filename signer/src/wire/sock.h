@@ -64,7 +64,7 @@ struct socklist_struct {
  *
  */
 struct udp_data {
-    void* engine;
+    engine_type* engine;
     sock_type* socket;
     query_type* query;
 };
@@ -74,7 +74,7 @@ struct udp_data {
  *
  */
 struct tcp_accept_data {
-    void* engine;
+    engine_type* engine;
     sock_type* socket;
     size_t tcp_accept_handler_count;
     netio_handler_type* tcp_accept_handlers;
@@ -85,7 +85,7 @@ struct tcp_accept_data {
  *
  */
 struct tcp_data {
-    void* engine;
+    engine_type* engine;
     query_type* query;
     size_t tcp_accept_handler_count;
     netio_handler_type* tcp_accept_handlers;

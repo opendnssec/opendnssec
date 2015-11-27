@@ -45,10 +45,10 @@ static const char* denial_str = "denial";
  *
  */
 denial_type*
-denial_create(void* zoneptr, ldns_rdf* dname)
+denial_create(zone_type* zone, ldns_rdf* dname)
 {
     denial_type* denial = NULL;
-    if (!dname || !zoneptr) {
+    if (!dname || !zone) {
         return NULL;
     }
     CHECKALLOC(denial = (denial_type*) malloc(sizeof(denial_type)));
@@ -58,7 +58,7 @@ denial_create(void* zoneptr, ldns_rdf* dname)
         return NULL;
     }
     denial->dname = dname;
-    denial->zone = zoneptr;
+    denial->zone = zone;
     denial->domain = NULL; /* no back reference yet */
     denial->node = NULL; /* not in db yet */
     denial->rrset = NULL;

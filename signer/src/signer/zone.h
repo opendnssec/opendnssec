@@ -24,31 +24,11 @@
  *
  */
 
-/**
- * Zone.
- *
- */
-
 #ifndef SIGNER_ZONE_H
 #define SIGNER_ZONE_H
 
 #include "config.h"
-#include "adapter/adapter.h"
-#include "scheduler/schedule.h"
-#include "allocator.h"
-#include "locks.h"
-#include "status.h"
-#include "signer/ixfr.h"
-#include "signer/namedb.h"
-#include "signer/signconf.h"
-#include "signer/stats.h"
-#include "wire/buffer.h"
-#include "wire/notify.h"
-#include "wire/xfrd.h"
-
 #include <ldns/ldns.h>
-
-struct schedule_struct;
 
 enum zone_zl_status_enum {
     ZONE_ZL_OK = 0,
@@ -58,11 +38,24 @@ enum zone_zl_status_enum {
 };
 typedef enum zone_zl_status_enum zone_zl_status;
 
-/**
- * Zone.
- *
- */
 typedef struct zone_struct zone_type;
+
+#include "adapter/adapter.h"
+#include "scheduler/schedule.h"
+#include "allocator.h"
+#include "locks.h"
+#include "status.h"
+#include "signer/ixfr.h"
+#include "signer/namedb.h"
+#include "signer/signconf.h"
+#include "signer/stats.h"
+#include "signer/rrset.h"
+#include "wire/buffer.h"
+#include "wire/notify.h"
+#include "wire/xfrd.h"
+
+struct schedule_struct;
+
 struct zone_struct {
     ldns_rdf* apex; /* wire format zone name */
     ldns_rr_class klass; /* class */
@@ -88,7 +81,7 @@ struct zone_struct {
     xfrd_type* xfrd;
     notify_type* notify;
     /* worker variables */
-    void* task; /* next assigned task */
+    task_type* task; /* next assigned task */
     /* statistics */
     stats_type* stats;
     lock_basic_type zone_lock;

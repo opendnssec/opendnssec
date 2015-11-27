@@ -33,6 +33,10 @@
 #define DAEMON_DNSHANDLER_H
 
 #include "config.h"
+#include <stdint.h>
+
+typedef struct dnshandler_struct dnshandler_type;
+
 #include "allocator.h"
 #include "locks.h"
 #include "status.h"
@@ -41,15 +45,12 @@
 #include "wire/query.h"
 #include "wire/sock.h"
 
-#include <stdint.h>
-
 #define ODS_SE_NOTIFY_CMD "NOTIFY"
 #define ODS_SE_MAX_HANDLERS 5
 
-typedef struct dnshandler_struct dnshandler_type;
 struct dnshandler_struct {
     ods_thread_type thread_id;
-    void* engine;
+    engine_type* engine;
     listener_type* interfaces;
     socklist_type* socklist;
     netio_type* netio;

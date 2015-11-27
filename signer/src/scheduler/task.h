@@ -33,8 +33,6 @@
 #define SCHEDULER_TASK_H
 
 #include "config.h"
-#include "allocator.h"
-
 #include <ldns/ldns.h>
 
 enum task_id_enum {
@@ -47,10 +45,14 @@ enum task_id_enum {
 };
 typedef enum task_id_enum task_id;
 
+typedef struct task_struct task_type;
+
+#include "allocator.h"
+#include "signer/zone.h"
+
 /**
  * Task.
  */
-typedef struct task_struct task_type;
 struct task_struct {
     task_id what;
     task_id interrupt;
@@ -59,7 +61,7 @@ struct task_struct {
     time_t halted_when;
     time_t backoff;
     int flush;
-    void* zone;
+    zone_type* zone;
 };
 
 /**

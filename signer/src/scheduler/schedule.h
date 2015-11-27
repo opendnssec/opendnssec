@@ -33,11 +33,6 @@
 #define SCHEDULER_SCHEDULE_H
 
 #include "config.h"
-#include "scheduler/task.h"
-#include "allocator.h"
-#include "locks.h"
-#include "status.h"
-
 #include <stdio.h>
 #include <time.h>
 
@@ -50,11 +45,17 @@
 
 #include <ldns/ldns.h>
 
+typedef struct schedule_struct schedule_type;
+
+#include "scheduler/task.h"
+#include "allocator.h"
+#include "locks.h"
+#include "status.h"
+#include "task.h"
 
 /**
  * Task schedule.
  */
-typedef struct schedule_struct schedule_type;
 struct schedule_struct {
     ldns_rbtree_t* tasks;
     int flushcount;

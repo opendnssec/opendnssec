@@ -547,7 +547,7 @@ namedb_add_denial_trigger(namedb_type* db, domain_type* domain)
     ods_log_assert(db);
     ods_log_assert(domain);
     if (!domain->denial) {
-        zone = (void*) domain->zone;
+        zone = domain->zone;
         ods_log_assert(zone);
         ods_log_assert(zone->signconf);
         if (!zone->signconf->passthrough) {
@@ -635,7 +635,7 @@ namedb_del_denial_trigger(namedb_type* db, domain_type* domain, int rollback)
     ods_log_assert(db);
     ods_log_assert(domain);
     ods_log_assert(domain->dname);
-    zone = (void*) domain->zone;
+    zone = domain->zone;
     ods_log_assert(zone);
     ods_log_assert(zone->signconf);
     while(domain) {

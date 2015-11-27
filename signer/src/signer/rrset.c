@@ -182,10 +182,10 @@ rrset_type2str(ldns_rr_type type)
  *
  */
 rrset_type*
-rrset_create(void* zoneptr, ldns_rr_type type)
+rrset_create(zone_type* zone, ldns_rr_type type)
 {
     rrset_type* rrset = NULL;
-    if (!type || !zoneptr) {
+    if (!type || !zone) {
         return NULL;
     }
     CHECKALLOC(rrset = (rrset_type*) malloc(sizeof(rrset_type)));
@@ -198,7 +198,7 @@ rrset_create(void* zoneptr, ldns_rr_type type)
     rrset->rrs = NULL;
     rrset->rrsigs = NULL;
     rrset->domain = NULL;
-    rrset->zone = zoneptr;
+    rrset->zone = zone;
     rrset->rrtype = type;
     rrset->rr_count = 0;
     rrset->rrsig_count = 0;

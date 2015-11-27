@@ -184,7 +184,7 @@ zone_reschedule_task(zone_type* zone, schedule_type* taskq, task_id what)
      ods_log_assert(zone->task);
      ods_log_debug("[%s] reschedule task for zone %s", zone_str, zone->name);
      lock_basic_lock(&taskq->schedule_lock);
-     task = unschedule_task(taskq, (task_type*) zone->task);
+     task = unschedule_task(taskq, zone->task);
      if (task != NULL) {
          if (task->what != what) {
              task->halted = task->what;
@@ -202,7 +202,7 @@ zone_reschedule_task(zone_type* zone, schedule_type* taskq, task_id what)
          ods_log_verbose("[%s] unable to reschedule task for zone %s now: "
              "task is not queued (task will be rescheduled when it is put "
              "back on the queue)", zone_str, zone->name);
-         task = (task_type*) zone->task;
+         task = zone->task;
          task->interrupt = what;
          /* task->halted(_when) set by worker */
      }
@@ -1039,7 +1039,7 @@ zone_backup2(zone_type* zone)
     fd = ods_fopen(tmpfile, NULL, "w");
     if (fd) {
         fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC_V3);
-        task = (task_type*) zone->task;
+        task = zone->task;
         fprintf(fd, ";;Time: %u\n", (unsigned) task->when);
         /** Backup zone */
         fprintf(fd, ";;Zone: name %s class %i inbound %u internal %u "

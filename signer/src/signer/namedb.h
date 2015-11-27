@@ -33,19 +33,21 @@
 #define SIGNER_NAMEDB_H
 
 #include "config.h"
+#include <ldns/ldns.h>
+
+typedef struct namedb_struct namedb_type;
+
 #include "signer/denial.h"
 #include "signer/domain.h"
+#include "signer/zone.h"
 #include "signer/nsec3params.h"
-
-#include <ldns/ldns.h>
 
 /**
  * Domain name database.
  *
  */
-typedef struct namedb_struct namedb_type;
 struct namedb_struct {
-    void* zone;
+    zone_type* zone;
     ldns_rbtree_t* domains;
     ldns_rbtree_t* denials;
     uint32_t inbserial;

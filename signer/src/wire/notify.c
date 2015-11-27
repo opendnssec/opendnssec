@@ -97,7 +97,7 @@ notify_set_timer(notify_type* notify, time_t t)
  *
  */
 notify_type*
-notify_create(void* xfrhandler, void* zone)
+notify_create(xfrhandler_type* xfrhandler, zone_type* zone)
 {
     notify_type* notify = NULL;
     if (!xfrhandler || !zone) {

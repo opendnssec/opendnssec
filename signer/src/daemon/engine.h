@@ -33,6 +33,10 @@
 #define DAEMON_ENGINE_H
 
 #include "config.h"
+#include <signal.h>
+
+typedef struct engine_struct engine_type;
+
 #include "daemon/cfg.h"
 #include "daemon/cmdhandler.h"
 #include "daemon/dnshandler.h"
@@ -45,13 +49,10 @@
 #include "signer/zonelist.h"
 #include "wire/edns.h"
 
-#include <signal.h>
-
 /**
  * Engine stuff.
  *
  */
-typedef struct engine_struct engine_type;
 struct engine_struct {
     engineconfig_type* config;
     worker_type** workers;

@@ -90,19 +90,18 @@ part_cleanup(part_type* part)
  *
  */
 ixfr_type*
-ixfr_create(void* zone)
+ixfr_create(zone_type* zone)
 {
     size_t i = 0;
     ixfr_type* xfr = NULL;
-    zone_type* z = (zone_type*) zone;
 
-    ods_log_assert(z);
-    ods_log_assert(z->name);
+    ods_log_assert(zone);
+    ods_log_assert(zone->name);
 
     CHECKALLOC(xfr = (ixfr_type*) malloc(sizeof(ixfr_type)));
     if (!xfr) {
         ods_log_error("[%s] unable to create ixfr for zone %s: "
-            "allocator_alloc() failed", ixfr_str, z->name);
+            "allocator_alloc() failed", ixfr_str, zone->name);
         return NULL;
     }
     for (i=0; i < IXFR_MAX_PARTS; i++) {

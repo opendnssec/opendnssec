@@ -45,9 +45,8 @@ static const char* key_str = "keys";
  *
  */
 keylist_type*
-keylist_create(void* sc)
+keylist_create(signconf_type* signconf)
 {
-    signconf_type* signconf = (signconf_type*) sc;
     keylist_type* kl = NULL;
 
     if (!signconf) {
@@ -59,7 +58,7 @@ keylist_create(void* sc)
             key_str);
         return NULL;
     }
-    kl->sc = sc;
+    kl->sc = signconf;
     kl->count = 0;
     kl->keys = NULL;
     return kl;
