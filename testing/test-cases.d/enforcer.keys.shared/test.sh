@@ -63,7 +63,7 @@ exit 0
 echo "################## ERROR: CURRENT STATE ###########################"
 echo "DEBUG: " && ods-enforcer key list -d -p
 echo "DEBUG: " && ods-enforcer key list -v
-echo "DEBUG: " && ods-enforcer queue 
+echo "DEBUG: " && ods-enforcer queue
 
 echo
 echo "************error******************"

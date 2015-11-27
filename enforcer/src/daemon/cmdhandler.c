@@ -104,6 +104,7 @@
 #define SUN_LEN(su) (sizeof(*(su))-sizeof((su)->sun_path)+strlen((su)->sun_path))
 #endif
 
+static int count = 0;
 static char* module_str = "cmdhandler";
 
 typedef struct cmd_func_block* (*fbgetfunctype)(void);
@@ -341,6 +342,8 @@ cmdhandler_accept_client(void* arg)
     if((err=pthread_sigmask(SIG_SETMASK, &sigset, NULL)))
         ods_fatal_exit("[%s] pthread_sigmask: %s", module_str, strerror(err));
 
+    pthread_detach(cmdc->thread_id);
+
     ods_log_debug("[%s] accept client %i", module_str, cmdc->client_fd);
 
     cmdc->dbconn = get_database_connection(cmdc->engine->dbcfg_list);
@@ -355,7 +358,8 @@ cmdhandler_accept_client(void* arg)
         close(cmdc->client_fd);
     }
     db_connection_free(cmdc->dbconn);
-    cmdc->stopped = 1;
+    free(cmdc);
+    count--; /* !not thread safe! */
     return NULL;
 }
 
@@ -462,8 +466,6 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
     cmdhandler_type* cmdc = NULL;
     fd_set rset;
     int flags, connfd = 0, ret = 0;
-    size_t MAX_CLIENT_CONN = 8, thread_index = 0, i;
-    cmdhandler_type cmdcs[MAX_CLIENT_CONN];
 
     ods_log_assert(cmdhandler);
     ods_log_assert(cmdhandler->engine);
@@ -477,16 +479,6 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
         ret = select(cmdhandler->listen_fd+1, &rset, NULL, NULL, NULL);
         /* Don't handle new connections when need to exit, this
          * removes the delay of the self_pipe_trick*/
-
-        /* Opportunistic join threads LIFO. */
-        for (i = thread_index-1; i>0; i--) {
-            if (!cmdcs[i].stopped) break;
-            if (pthread_join(cmdcs[i].thread_id, NULL)) {
-                break;
-            }
-            thread_index--;
-        }
-
         if (cmdhandler->need_to_exit) break;
         if (ret < 0) {
             if (errno != EINTR && errno != EWOULDBLOCK) {
@@ -495,9 +487,7 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
             }
             continue;
         }
-        if (FD_ISSET(cmdhandler->listen_fd, &rset) &&
-            thread_index < MAX_CLIENT_CONN)
-        {
+        if (FD_ISSET(cmdhandler->listen_fd, &rset)) {
             connfd = accept(cmdhandler->listen_fd,
                 (struct sockaddr *) &cliaddr, &clilen);
             if (connfd < 0) {
@@ -523,31 +513,27 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
                 continue;
             }
             /* client accepted, create new thread */
-            cmdc = &cmdcs[thread_index];
-            cmdc->stopped = 0;
+            cmdc = (cmdhandler_type*) malloc(sizeof(cmdhandler_type));
+            if (!cmdc) {
+                ods_log_crit("[%s] unable to create thread for client: "
+                    "malloc failed", module_str);
+                cmdhandler->need_to_exit = 1;
+            }
             cmdc->listen_fd = cmdhandler->listen_fd;
             cmdc->client_fd = connfd;
             cmdc->listen_addr = cmdhandler->listen_addr;
             cmdc->engine = cmdhandler->engine;
             cmdc->need_to_exit = cmdhandler->need_to_exit;
-            if (!pthread_create(&(cmdcs[thread_index].thread_id), NULL, &cmdhandler_accept_client,
-                (void*) cmdc))
-            {
-                thread_index++;
-            }
-            ods_log_debug("[%s] %lu clients in progress...", module_str, thread_index);
-        }
-    }
-
-    /* join threads LIFO. */
-    for (i = thread_index-1; i>0; i--) {
-        if (pthread_join(cmdcs[i].thread_id, NULL)) {
-            break;
+            pthread_create(&cmdc->thread_id, NULL, &cmdhandler_accept_client,
+                (void*) cmdc);
+            count++;
+            ods_log_debug("[%s] %i clients in progress...", module_str, count);
         }
     }
 
     ods_log_debug("[%s] done", module_str);
     cmdhandler->engine->cmdhandler_done = 1;
+    return;
 }
 
 /**
