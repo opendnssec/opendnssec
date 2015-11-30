@@ -3,44 +3,37 @@
 #include "log.h"
 #include "hsmkey/hsm_key_factory.h"
 
-void free_all(key_data_list_t *key_list, key_data_t** keylist, key_dependency_list_t *deplist, key_dependency_t **deplist2, zone_t *zone){
+static void free_all(key_data_list_t *key_list, key_data_t** keylist, key_dependency_list_t *deplist, key_dependency_t **deplist2, zone_t *zone){
         int i;
 
-        if (deplist){
-                key_dependency_list_free(deplist);
-		deplist = NULL;
-        }
+	key_dependency_list_free(deplist);
+	deplist = NULL;
+        
+	key_data_list_free(key_list);
+	key_list = NULL;
 
-        if (key_list){
-                key_data_list_free(key_list);
-		key_list = NULL;
-        }
-
-        if (keylist){
+        if (keylist) {
                 int keylist_size = key_data_list_size(key_list);
                 for (i = 0; i < keylist_size; i++) {
-                        if (keylist[i])
-                                key_data_free(keylist[i]);
+                	key_data_free(keylist[i]);
                 }
                 free(keylist);
 		keylist = NULL;
         }
 
-        if (deplist2){
+        if (deplist2) {
                 int deplist2_size = key_dependency_list_size(deplist);
                 for (i = 0; i < deplist2_size; i++){
-                        if (deplist2[i])
-                                key_dependency_free(deplist2[i]);
+                	key_dependency_free(deplist2[i]);
                 }
                 free(deplist2);
 		deplist2 = NULL;
-
         }
-	if (zone){
+
+	if (zone) {
 		zone_free(zone);
 		zone = NULL;
 	}
-
 }
 
 
@@ -67,12 +60,6 @@ int removeDeadKeysNow(int sockfd, db_connection_t *dbconn, policy_t *policy, zon
 		client_printf_err(sockfd, "[%s] no dbconn", scmd);
                 return 1;
         }
-        if (!rzone && !policy) {
-                ods_log_error("[%s] expected --zone and either --policy", scmd);
-                client_printf_err(sockfd, "[%s] expected --zone and either --policy", scmd);
-                return 1;
-        }
-
 
         if (policy) {
                 if (policy_retrieve_zone_list(policy)) {
