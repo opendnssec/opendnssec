@@ -82,7 +82,7 @@ denial_create_bitmap(denial_type* denial, ldns_rr_type types[],
     ods_log_assert(denial);
     ods_log_assert(denial->domain);
 
-    domain = (domain_type*) denial->domain;
+    domain = denial->domain;
     rrset = domain->rrsets;
     while (rrset) {
         ldns_rr_type dstatus = domain_is_occluded(domain);
