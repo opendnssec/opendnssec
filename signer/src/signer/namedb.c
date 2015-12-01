@@ -1008,21 +1008,13 @@ namedb_wipe_denial(namedb_type* db)
                 rrset_del_rr(denial->rrset, i);
                 i--;
             }
-            for (i=0; i < denial->rrset->rrsig_count; i++) {
-                /* ixfr -RRSIG */
-                lock_basic_lock(&zone->ixfr->ixfr_lock);
-                ixfr_del_rr(zone->ixfr, denial->rrset->rrsigs[i].rr);
-                lock_basic_unlock(&zone->ixfr->ixfr_lock);
-                rrset_del_rrsig(denial->rrset, i);
-                i--;
-            }
+            rrset_drop_rrsigs(zone, denial->rrset);
             rrset_cleanup(denial->rrset);
             denial->rrset = NULL;
             node = ldns_rbtree_next(node);
         }
     }
 }
-
 
 /**
  * Export db to file.

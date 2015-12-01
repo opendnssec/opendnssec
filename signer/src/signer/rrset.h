@@ -55,6 +55,7 @@ struct rr_struct {
     unsigned is_removed : 1;
 };
 
+typedef struct collection_struct* collection_t;
 
 struct rrset_struct {
     rrset_type* next;
@@ -62,9 +63,8 @@ struct rrset_struct {
     domain_type* domain;
     ldns_rr_type rrtype;
     rr_type* rrs;
-    rrsig_type* rrsigs;
     size_t rr_count;
-    size_t rrsig_count;
+    collection_t rrsigs;
     unsigned needs_signing : 1;
 };
 
@@ -144,19 +144,18 @@ void rrset_del_rr(rrset_type* rrset, uint16_t rrnum);
  * \param[in] rr RRSIG
  * \param[in] locator key locator
  * \param[in] flags key flags
- * \return rr_type* added RRSIG
  *
  */
-rrsig_type* rrset_add_rrsig(rrset_type* rrset, ldns_rr* rr,
+void rrset_add_rrsig(rrset_type* rrset, ldns_rr* rr,
     const char* locator, uint32_t flags);
 
 /**
- * Delete RRSIG from RRset.
+ * Delete all RRSIG from RRset and add then to the zone's outgoing IXFR as change.
  * \param[in] rrset RRset
  * \param[in] rrnum position of RRSIG
  *
  */
-void rrset_del_rrsig(rrset_type* rrset, uint16_t rrnum);
+void rrset_drop_rrsigs(zone_type* zone, rrset_type* rrset);
 
 /**
  * Apply differences at RRset.
@@ -202,5 +201,12 @@ void rrset_cleanup(rrset_type* rrset);
  *
  */
 void rrset_backup2(FILE* fd, rrset_type* rrset);
+
+int collection_create_array(collection_t* collection, size_t membsize);
+int collection_destroy(collection_t* collection);
+int collection_add(collection_t collection, rrsig_type *data);
+int collection_del_index(collection_t collection, int index);
+int collection_del_cursor(collection_t collection);
+rrsig_type* collection_iterator(collection_t collection);
 
 #endif /* SIGNER_RRSET_H */

@@ -196,12 +196,11 @@ rrset_create(zone_type* zone, ldns_rr_type type)
     }
     rrset->next = NULL;
     rrset->rrs = NULL;
-    rrset->rrsigs = NULL;
     rrset->domain = NULL;
     rrset->zone = zone;
     rrset->rrtype = type;
     rrset->rr_count = 0;
-    rrset->rrsig_count = 0;
+    collection_create_array(&rrset->rrsigs, sizeof(rrsig_type));
     rrset->needs_signing = 0;
     return rrset;
 }
@@ -324,7 +323,6 @@ rrset_del_rr(rrset_type* rrset, uint16_t rrnum)
     rrset->needs_signing = 1;
 }
 
-
 /**
  * Apply differences at RRset.
  *
@@ -368,83 +366,45 @@ rrset_diff(rrset_type* rrset, unsigned is_ixfr, unsigned more_coming)
         }
     }
     if (del_sigs) {
-       for (i=0; i < rrset->rrsig_count; i++) {
-            /* ixfr -RRSIG */
-            lock_basic_lock(&zone->ixfr->ixfr_lock);
-            ixfr_del_rr(zone->ixfr, rrset->rrsigs[i].rr);
-            lock_basic_unlock(&zone->ixfr->ixfr_lock);
-            rrset_del_rrsig(rrset, i);
-            i--;
-        }
+        rrset_drop_rrsigs(zone, rrset);
     }
 }
 
+/**
+ * Remove signatures, deallocate storage and add then to the outgoing IFXR for that zone.
+ *
+ */
+void
+rrset_drop_rrsigs(zone_type* zone, rrset_type* rrset)
+{
+    rrsig_type* rrsig;
+    while((rrsig = collection_iterator(rrset->rrsigs))) {
+        /* ixfr -RRSIG */
+        lock_basic_lock(&zone->ixfr->ixfr_lock);
+        ixfr_del_rr(zone->ixfr, rrsig->rr);
+        lock_basic_unlock(&zone->ixfr->ixfr_lock);
+        collection_del_cursor(rrset->rrsigs);
+    }
+}
 
 /**
  * Add RRSIG to RRset.
  *
  */
-rrsig_type*
+void
 rrset_add_rrsig(rrset_type* rrset, ldns_rr* rr,
     const char* locator, uint32_t flags)
 {
-    rrsig_type* rrsigs_old = NULL;
+    rrsig_type rrsig;
     ods_log_assert(rrset);
     ods_log_assert(rr);
     ods_log_assert(ldns_rr_get_type(rr) == LDNS_RR_TYPE_RRSIG);
-    rrsigs_old = rrset->rrsigs;
-    CHECKALLOC(rrset->rrsigs = (rrsig_type*) malloc((rrset->rrsig_count + 1) * sizeof(rrsig_type)));
-    if (!rrset->rrsigs) {
-        ods_fatal_exit("[%s] fatal unable to add RRSIG: allocator_alloc() failed",
-            rrset_str);
-    }
-    if (rrsigs_old) {
-        memcpy(rrset->rrsigs, rrsigs_old,
-            (rrset->rrsig_count) * sizeof(rrsig_type));
-    }
-    free(rrsigs_old);
-    rrset->rrsig_count++;
-    rrset->rrsigs[rrset->rrsig_count - 1].owner = rrset->domain;
-    rrset->rrsigs[rrset->rrsig_count - 1].rr = rr;
-    rrset->rrsigs[rrset->rrsig_count - 1].key_locator = locator;
-    rrset->rrsigs[rrset->rrsig_count - 1].key_flags = flags;
-    log_rr(rr, "+RRSIG", LOG_DEEEBUG);
-    return &rrset->rrsigs[rrset->rrsig_count -1];
+    rrsig.owner = rrset->domain;
+    rrsig.rr = rr;
+    rrsig.key_locator = locator;
+    rrsig.key_flags = flags;
+    collection_add(rrset->rrsigs, &rrsig);
 }
-
-
-/**
- * Delete RRSIG from RRset.
- *
- */
-void
-rrset_del_rrsig(rrset_type* rrset, uint16_t rrnum)
-{
-    rrsig_type* rrsigs_orig = NULL;
-    ods_log_assert(rrset);
-    ods_log_assert(rrnum < rrset->rrsig_count);
-    log_rr(rrset->rrsigs[rrnum].rr, "-RRSIG", LOG_DEEEBUG);
-    rrset->rrsigs[rrnum].owner = NULL;
-    rrset->rrsigs[rrnum].rr = NULL;
-    free((void*)rrset->rrsigs[rrnum].key_locator);
-    rrset->rrsigs[rrnum].key_locator = NULL;
-    while (rrnum < rrset->rrsig_count-1) {
-        rrset->rrsigs[rrnum] = rrset->rrsigs[rrnum+1];
-        rrnum++;
-    }
-    memset(&rrset->rrsigs[rrset->rrsig_count-1], 0, sizeof(rrsig_type));
-    rrsigs_orig = rrset->rrsigs;
-    CHECKALLOC(rrset->rrsigs = (rrsig_type*) malloc((rrset->rrsig_count - 1) * sizeof(rrsig_type)));
-    if(!rrset->rrsigs) {
-        ods_fatal_exit("[%s] fatal unable to delete RRSIG: allocator_alloc() failed",
-            rrset_str);
-    }
-    memcpy(rrset->rrsigs, rrsigs_orig,
-        (rrset->rrsig_count -1) * sizeof(rrsig_type));
-    free(rrsigs_orig);
-    rrset->rrsig_count--;
-}
-
 
 /**
  * Recycle signatures from RRset and drop unreusable signatures.
@@ -459,9 +419,9 @@ rrset_recycle(rrset_type* rrset, time_t signtime, ldns_rr_type dstatus,
     uint32_t inception = 0;
     uint32_t reusedsigs = 0;
     unsigned drop_sig = 0;
-    size_t i = 0;
     key_type* key = NULL;
     zone_type* zone = NULL;
+    rrsig_type* rrsig;
 
     if (!rrset) {
         return 0;
@@ -473,7 +433,7 @@ rrset_recycle(rrset_type* rrset, time_t signtime, ldns_rr_type dstatus,
             duration2time(zone->signconf->sig_refresh_interval));
     }
     /* Check every signature if it matches the recycling logic. */
-    for (i=0; i < rrset->rrsig_count; i++) {
+    while((rrsig = collection_iterator(rrset->rrsigs))) {
         drop_sig = 0;
         /* 0. Skip delegation, glue and occluded RRsets */
         if (dstatus != LDNS_RR_TYPE_SOA || (delegpt != LDNS_RR_TYPE_SOA &&
@@ -491,22 +451,22 @@ rrset_recycle(rrset_type* rrset, time_t signtime, ldns_rr_type dstatus,
         }
         /* 3. Expiration - Refresh has passed */
         expiration = ldns_rdf2native_int32(
-            ldns_rr_rrsig_expiration(rrset->rrsigs[i].rr));
+            ldns_rr_rrsig_expiration(rrsig->rr));
         if (expiration < refresh) {
             drop_sig = 1;
             goto recycle_drop_sig;
         }
         /* 4. Inception has not yet passed */
         inception = ldns_rdf2native_int32(
-            ldns_rr_rrsig_inception(rrset->rrsigs[i].rr));
+            ldns_rr_rrsig_inception(rrsig->rr));
         if (inception > (uint32_t) signtime) {
             drop_sig = 1;
             goto recycle_drop_sig;
         }
         /* 5. Corresponding key is dead (key is locator+flags) */
         key = keylist_lookup_by_locator(zone->signconf->keys,
-            rrset->rrsigs[i].key_locator);
-        if (!key || key->flags != rrset->rrsigs[i].key_flags) {
+            rrsig->key_locator);
+        if (!key || key->flags != rrsig->key_flags) {
             drop_sig = 1;
         }
 
@@ -515,10 +475,9 @@ recycle_drop_sig:
             /* A rule mismatched, refresh signature */
             /* ixfr -RRSIG */
             lock_basic_lock(&zone->ixfr->ixfr_lock);
-            ixfr_del_rr(zone->ixfr, rrset->rrsigs[i].rr);
+            ixfr_del_rr(zone->ixfr, rrsig->rr);
             lock_basic_unlock(&zone->ixfr->ixfr_lock);
-            rrset_del_rrsig(rrset, i);
-            i--;
+            collection_del_cursor(rrset->rrsigs);
         } else {
             /* All rules ok, recycle signature */
             reusedsigs += 1;
@@ -537,46 +496,52 @@ rrset_sigok(rrset_type* rrset, key_type* key)
 {
     key_type* sigkey = NULL;
     zone_type* zone = NULL;
-    size_t i = 0;
+    rrsig_type* rrsig;
+    int match;
     ods_log_assert(rrset);
     ods_log_assert(key);
     ods_log_assert(key->locator);
     zone = (zone_type*) rrset->zone;
     ods_log_assert(zone);
-
+        
     /* Does this key have a RRSIG? */
-    for (i=0; i < rrset->rrsig_count; i++) {
-        if (ods_strcmp(key->locator, rrset->rrsigs[i].key_locator) == 0 &&
-            key->flags == rrset->rrsigs[i].key_flags) {
+    match = 0;
+    while((rrsig = collection_iterator(rrset->rrsigs))) {
+        if (ods_strcmp(key->locator, rrsig->key_locator) == 0 &&
+            key->flags == rrsig->key_flags) {
             /* Active key already has a valid RRSIG. SIGOK */
-            return 1;
+            match = 1;
         }
+    }
+    if (match) {
+        return match;
     }
     /* DNSKEY RRset always needs to be signed with active key */
     if (rrset->rrtype == LDNS_RR_TYPE_DNSKEY) {
         return 0;
     }
     /* Let's look for RRSIGs from inactive ZSKs */
-    for (i=0; i < rrset->rrsig_count; i++) {
+    match = 0;
+    while((rrsig = collection_iterator(rrset->rrsigs))) {
         /* Same algorithm? */
         if (key->algorithm != ldns_rdf2native_int8(
-                ldns_rr_rrsig_algorithm(rrset->rrsigs[i].rr))) {
+                ldns_rr_rrsig_algorithm(rrsig->rr))) {
             /* Not the same algorithm, so this one does not count */
             continue;
         }
         /* Inactive key? */
         sigkey = keylist_lookup_by_locator(zone->signconf->keys,
-            rrset->rrsigs[i].key_locator);
+            rrsig->key_locator);
         ods_log_assert(sigkey);
         if (sigkey->zsk) {
             /* Active key, so this one does not count */
             continue;
         }
         /* So we found a valid RRSIG from an inactive key. SIGOK */
-        return 1;
+        match = 1;
     }
     /* We need a new RRSIG. */
-    return 0;
+    return match;
 }
 
 /**
@@ -586,17 +551,16 @@ rrset_sigok(rrset_type* rrset, key_type* key)
 static int
 rrset_sigalgo(rrset_type* rrset, uint8_t algorithm)
 {
-    size_t i = 0;
-    if (!rrset) {
-        return 0;
-    }
-    for (i=0; i < rrset->rrsig_count; i++) {
-        if (algorithm == ldns_rdf2native_int8(
-                ldns_rr_rrsig_algorithm(rrset->rrsigs[i].rr))) {
-            return 1;
+    rrsig_type* rrsig;
+    int match = 0;
+    if (rrset) {
+        while((rrsig = collection_iterator(rrset->rrsigs))) {
+            if (algorithm == ldns_rdf2native_int8(ldns_rr_rrsig_algorithm(rrsig->rr))) {
+                match = 1;
+            }
         }
     }
-    return 0;
+    return match;
 }
 
 /**
@@ -606,16 +570,16 @@ rrset_sigalgo(rrset_type* rrset, uint8_t algorithm)
 static int
 rrset_siglocator(rrset_type* rrset, const char* locator)
 {
-    size_t i = 0;
-    if (!rrset) {
-        return 0;
-    }
-    for (i=0; i < rrset->rrsig_count; i++) {
-        if (!ods_strcmp(locator, rrset->rrsigs[i].key_locator)) {
-            return 1;
+    rrsig_type* rrsig;
+    int match = 0;
+    if (rrset) {
+        while ((rrsig = collection_iterator(rrset->rrsigs))) {
+            if (!ods_strcmp(locator, rrsig->key_locator)) {
+                match = 1;
+            }
         }
     }
-    return 0;
+    return match;
 }
 
 
@@ -695,7 +659,6 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
     uint32_t reusedsigs = 0;
     ldns_rr* rrsig = NULL;
     ldns_rr_list* rr_list = NULL;
-    rrsig_type* signature = NULL;
     const char* locator = NULL;
     time_t inception = 0;
     time_t expiration = 0;
@@ -743,11 +706,6 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
         (delegpt == LDNS_RR_TYPE_SOA || rrset->rrtype == LDNS_RR_TYPE_DS));
     /* Transmogrify rrset */
     rr_list = rrset2rrlist(rrset);
-    if (!rr_list) {
-        ods_log_error("[%s] unable to sign RRset[%i]: rrset2rrlist() failed",
-            rrset_str, rrset->rrtype);
-        return ODS_STATUS_MALLOC_ERR;
-    }
     if (ldns_rr_list_rr_count(rr_list) <= 0) {
         /* Empty RRset, no signatures needed */
         ldns_rr_list_free(rr_list);
@@ -799,13 +757,12 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
         }
         /* Add signature */
         locator = strdup(zone->signconf->keys->keys[i].locator);
-        signature = rrset_add_rrsig(rrset, rrsig, locator,
+        rrset_add_rrsig(rrset, rrsig, locator,
             zone->signconf->keys->keys[i].flags);
         newsigs++;
         /* ixfr +RRSIG */
-        ods_log_assert(signature->rr);
         lock_basic_lock(&zone->ixfr->ixfr_lock);
-        ixfr_add_rr(zone->ixfr, signature->rr);
+        ixfr_add_rr(zone->ixfr, rrsig);
         lock_basic_unlock(&zone->ixfr->ixfr_lock);
     }
     /* RRset signing completed */
@@ -829,6 +786,7 @@ void
 rrset_print(FILE* fd, rrset_type* rrset, int skip_rrsigs,
     ods_status* status)
 {
+    rrsig_type* rrsig;
     uint16_t i = 0;
     ods_status result = ODS_STATUS_OK;
 
@@ -856,11 +814,11 @@ rrset_print(FILE* fd, rrset_type* rrset, int skip_rrsigs,
                 }
             }
         }
-        if (! (skip_rrsigs || !rrset->rrsig_count)) {
-            for (i=0; i < rrset->rrsig_count; i++) {
-                result = util_rr_print(fd, rrset->rrsigs[i].rr);
+        if (! skip_rrsigs) {
+            while((rrsig = collection_iterator(rrset->rrsigs))) {
+                result = util_rr_print(fd, rrsig->rr);
                 if (result != ODS_STATUS_OK) {
-                    zone_type* zone = (zone_type*) rrset->zone;
+                    zone_type* zone = rrset->zone;
                     log_rrset(ldns_rr_owner(rrset->rrs[i].rr), rrset->rrtype,
                         "error printing RRset", LOG_CRIT);
                     zone->adoutbound->error = 1;
@@ -893,16 +851,10 @@ rrset_cleanup(rrset_type* rrset)
         ldns_rr_free(rrset->rrs[i].rr);
         rrset->rrs[i].owner = NULL;
     }
-    for (i=0; i < rrset->rrsig_count; i++) {
-        free((void*)rrset->rrsigs[i].key_locator);
-        ldns_rr_free(rrset->rrsigs[i].rr);
-        rrset->rrsigs[i].owner = NULL;
-    }
+    collection_destroy(&rrset->rrsigs);
     free(rrset->rrs);
-    free(rrset->rrsigs);
     free(rrset);
 }
-
 
 /**
  * Backup RRset.
@@ -911,19 +863,106 @@ rrset_cleanup(rrset_type* rrset)
 void
 rrset_backup2(FILE* fd, rrset_type* rrset)
 {
+    rrsig_type* rrsig;
     char* str = NULL;
-    uint16_t i = 0;
     if (!rrset || !fd) {
         return;
     }
-    for (i=0; i < rrset->rrsig_count; i++) {
-        str = ldns_rr2str(rrset->rrsigs[i].rr);
-        if (!str) {
-            continue;
+    while((rrsig = collection_iterator(rrset->rrsigs))) {
+        if ((str = ldns_rr2str(rrsig->rr))) {
+            fprintf(fd, "%.*s; {locator %s flags %u}\n", (int)strlen(str)-1, str,
+                    rrsig->key_locator, rrsig->key_flags);
+            free(str);
         }
-        str[(strlen(str))-1] = '\0';
-        fprintf(fd, "%s; {locator %s flags %u}\n", str,
-            rrset->rrsigs[i].key_locator, rrset->rrsigs[i].key_flags);
-        free((void*)str);
+    }
+}
+
+struct collection_struct {
+    rrsig_type* rrsigs; /** array with members */
+    size_t size; /** member size */
+    int iterator;
+    int count; /** number of members in array */
+};
+
+int
+collection_create_array(collection_t* collection, size_t membsize)
+{
+    *collection = malloc(sizeof(struct collection_struct));
+    (*collection)->size = membsize;
+    (*collection)->count = 0;
+    (*collection)->rrsigs = NULL;
+    (*collection)->iterator = -1;
+    return *collection != NULL;
+}
+
+int
+collection_destroy(collection_t* collection)
+{
+    int i;
+    if(collection == NULL)
+        return 0;
+    for (i=0; i < (*collection)->count; i++) {
+        free((void*)(*collection)->rrsigs[i].key_locator);
+        ldns_rr_free((*collection)->rrsigs[i].rr);
+        (*collection)->rrsigs[i].owner = NULL;
+    }
+    free(*collection);
+    *collection = NULL;
+    return 0;
+}
+
+int
+collection_add(collection_t collection, rrsig_type *data)
+{
+    rrsig_type* ptr;
+    CHECKALLOC(ptr = realloc(collection->rrsigs, (collection->count+1)*collection->size));
+    if (ptr == NULL) {
+        return ENOMEM;
+    }
+    collection->rrsigs = ptr;
+    collection->rrsigs[collection->count] = *data;
+    collection->count += 1;
+    return 0;
+}
+
+int
+collection_del_index(collection_t collection, int index)
+{
+    rrsig_type* ptr;
+    if (index<0 || index >= collection->count)
+        return -1;
+    free((void*)collection->rrsigs[index].key_locator);
+    memmove(&collection->rrsigs[index], &collection->rrsigs[index + 1], (collection->count - index) * collection->size);
+    collection->count -= 1;
+    if (collection->count > 0) {
+        CHECKALLOC(ptr = realloc(collection->rrsigs, collection->count * collection->size));
+        if (ptr == NULL) {
+            return ENOMEM;
+        }
+        collection->rrsigs = ptr;
+    } else {
+        free(collection->rrsigs);
+        collection->rrsigs = NULL;
+    }
+    return 0;
+}
+
+int
+collection_del_cursor(collection_t collection)
+{
+    return collection_del_index(collection, collection->iterator);
+}
+
+rrsig_type*
+collection_iterator(collection_t collection)
+{
+    if(collection->iterator < 0) {
+        collection->iterator = collection->count;
+    }
+    collection->iterator -= 1;
+    if(collection->iterator >= 0) {
+        return &collection->rrsigs[collection->iterator];
+    } else {
+        return NULL;
     }
 }
