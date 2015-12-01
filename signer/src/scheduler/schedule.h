@@ -48,7 +48,6 @@
 typedef struct schedule_struct schedule_type;
 
 #include "scheduler/task.h"
-#include "allocator.h"
 #include "locks.h"
 #include "status.h"
 #include "task.h"

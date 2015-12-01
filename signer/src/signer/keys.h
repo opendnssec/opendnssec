@@ -38,7 +38,6 @@
 typedef struct key_struct key_type;
 typedef struct keylist_struct keylist_type;
 
-#include "allocator.h"
 #include "status.h"
 #include "libhsm.h"
 #include "libhsmdns.h"

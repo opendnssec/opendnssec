@@ -30,7 +30,6 @@
  */
 
 #include "adapter/adapter.h"
-#include "allocator.h"
 #include "file.h"
 #include "log.h"
 #include "status.h"

@@ -37,7 +37,7 @@
 
 typedef struct dnshandler_struct dnshandler_type;
 
-#include "allocator.h"
+#include "status.h"
 #include "locks.h"
 #include "status.h"
 #include "wire/listener.h"

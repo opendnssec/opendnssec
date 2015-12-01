@@ -33,7 +33,6 @@
 #include "compat.h"
 #include "parser/confparser.h"
 #include "parser/zonelistparser.h"
-#include "allocator.h"
 #include "log.h"
 #include "status.h"
 #include "wire/acl.h"

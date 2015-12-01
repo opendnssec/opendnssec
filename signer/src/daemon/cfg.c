@@ -32,7 +32,6 @@
 #include "config.h"
 #include "daemon/cfg.h"
 #include "parser/confparser.h"
-#include "allocator.h"
 #include "file.h"
 #include "log.h"
 #include "status.h"

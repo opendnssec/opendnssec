@@ -28,7 +28,6 @@
 
 #include "daemon/engine.h"
 #include "daemon/worker.h"
-#include "allocator.h"
 #include "duration.h"
 #include "hsm.h"
 #include "locks.h"
@@ -189,7 +188,7 @@ worker_queue_domain(worker_type* worker, fifoq_type* q, domain_type* domain)
     while (rrset) {
         worker_queue_rrset(worker, q, rrset);
         rrset = rrset->next;
-    }
+}
     denial = (denial_type*) domain->denial;
     if (denial && denial->rrset) {
         worker_queue_rrset(worker, q, denial->rrset);

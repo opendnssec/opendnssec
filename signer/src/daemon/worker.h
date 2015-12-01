@@ -45,7 +45,7 @@ typedef enum worker_enum worker_id;
 typedef struct worker_struct worker_type;
 
 #include "scheduler/task.h"
-#include "allocator.h"
+#include "status.h"
 #include "locks.h"
 
 struct worker_struct {

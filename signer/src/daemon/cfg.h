@@ -32,7 +32,7 @@
 
 typedef struct engineconfig_struct engineconfig_type;
 
-#include "allocator.h"
+#include "status.h"
 #include "hsm.h"
 #include "locks.h"
 #include "status.h"

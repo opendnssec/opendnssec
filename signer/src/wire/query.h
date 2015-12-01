@@ -33,7 +33,7 @@
 #define WIRE_QUERY_H
 
 #include "config.h"
-#include "allocator.h"
+#include "status.h"
 #include "signer/zone.h"
 #include "wire/buffer.h"
 #include "wire/edns.h"

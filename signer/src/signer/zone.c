@@ -30,7 +30,6 @@
  */
 
 #include "adapter/adapter.h"
-#include "allocator.h"
 #include "file.h"
 #include "hsm.h"
 #include "locks.h"

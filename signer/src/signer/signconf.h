@@ -33,7 +33,7 @@
 typedef struct signconf_struct signconf_type;
 
 #include "scheduler/task.h"
-#include "allocator.h"
+#include "status.h"
 #include "duration.h"
 #include "signer/keys.h"
 #include "signer/nsec3params.h"

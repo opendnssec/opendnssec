@@ -30,7 +30,7 @@
  */
 
 #include "config.h"
-#include "allocator.h"
+#include "status.h"
 #include "file.h"
 #include "log.h"
 #include "util.h"
@@ -39,7 +39,6 @@
 #include "signer/zone.h"
 
 const char* db_str = "namedb";
-
 
 /**
  * Convert a domain to a tree node.

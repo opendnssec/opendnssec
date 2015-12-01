@@ -36,7 +36,7 @@
 
 typedef struct xfrhandler_struct xfrhandler_type;
 
-#include "allocator.h"
+#include "status.h"
 #include "locks.h"
 #include "wire/buffer.h"
 #include "wire/netio.h"

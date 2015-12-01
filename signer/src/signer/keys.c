@@ -35,7 +35,7 @@
 #include "signer/backup.h"
 #include "signer/keys.h"
 #include "signer/signconf.h"
-#include "allocator.h"
+#include "status.h"
 
 static const char* key_str = "keys";
 

@@ -37,7 +37,7 @@
 
 typedef struct cmdhandler_struct cmdhandler_type;
 
-#include "allocator.h"
+#include "status.h"
 #include "locks.h"
 #include "engine.h"
 

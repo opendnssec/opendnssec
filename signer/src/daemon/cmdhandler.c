@@ -31,7 +31,6 @@
 
 #include "daemon/cmdhandler.h"
 #include "daemon/engine.h"
-#include "allocator.h"
 #include "file.h"
 #include "str.h"
 #include "locks.h"

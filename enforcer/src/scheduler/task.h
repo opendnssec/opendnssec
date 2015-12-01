@@ -33,7 +33,7 @@
 #define SCHEDULER_TASK_H
 
 #include "config.h"
-#include "allocator.h"
+#include "status.h"
 #include "db/db_connection.h"
 
 #include <ldns/ldns.h>

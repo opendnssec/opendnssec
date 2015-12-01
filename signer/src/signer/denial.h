@@ -38,7 +38,6 @@
 
 typedef struct denial_struct denial_type;
 
-#include "allocator.h"
 #include "status.h"
 #include "signer/nsec3params.h"
 #include "signer/rrset.h"

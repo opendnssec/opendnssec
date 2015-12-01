@@ -47,7 +47,6 @@ typedef struct adapter_struct adapter_type;
 
 #include "adapter/addns.h"
 #include "adapter/adfile.h"
-#include "allocator.h"
 #include "status.h"
 #include "signer/zone.h"
 

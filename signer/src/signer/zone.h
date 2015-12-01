@@ -42,7 +42,6 @@ typedef struct zone_struct zone_type;
 
 #include "adapter/adapter.h"
 #include "scheduler/schedule.h"
-#include "allocator.h"
 #include "locks.h"
 #include "status.h"
 #include "signer/ixfr.h"

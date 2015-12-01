@@ -34,7 +34,6 @@
 
 typedef struct domain_struct domain_type;
 
-#include "allocator.h"
 #include "status.h"
 #include "signer/rrset.h"
 #include "signer/signconf.h"

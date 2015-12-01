@@ -33,7 +33,7 @@
 
 typedef struct zonelist_struct zonelist_type;
 
-#include "allocator.h"
+#include "status.h"
 #include "locks.h"
 #include "signer/zone.h"
 

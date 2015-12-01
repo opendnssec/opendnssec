@@ -52,7 +52,7 @@
 #include <signal.h>
 
 #include "config.h"
-#include "allocator.h"
+#include "status.h"
 
 #ifndef PF_INET
 #define PF_INET AF_INET

@@ -38,7 +38,7 @@
 typedef struct tcp_conn_struct tcp_conn_type;
 typedef struct tcp_set_struct tcp_set_type;
 
-#include "allocator.h"
+#include "status.h"
 #include "wire/buffer.h"
 #include "wire/xfrd.h"
 

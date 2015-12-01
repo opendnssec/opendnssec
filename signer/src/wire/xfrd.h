@@ -54,7 +54,6 @@ typedef struct soa_struct soa_type;
 
 typedef struct xfrd_struct xfrd_type;
 
-#include "allocator.h"
 #include "locks.h"
 #include "status.h"
 #include "wire/acl.h"

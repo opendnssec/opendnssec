@@ -37,7 +37,7 @@
 
 typedef struct notify_struct notify_type;
 
-#include "allocator.h"
+#include "status.h"
 #include "wire/acl.h"
 #include "wire/buffer.h"
 #include "wire/netio.h"

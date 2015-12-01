@@ -33,7 +33,6 @@
 #include "daemon/cfg.h"
 #include "daemon/engine.h"
 #include "daemon/signal.h"
-#include "allocator.h"
 #include "duration.h"
 #include "file.h"
 #include "str.h"

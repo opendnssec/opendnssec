@@ -44,7 +44,7 @@ typedef struct engine_struct engine_type;
 #include "daemon/worker.h"
 #include "scheduler/fifoq.h"
 #include "scheduler/schedule.h"
-#include "allocator.h"
+#include "status.h"
 #include "locks.h"
 #include "signer/zonelist.h"
 #include "wire/edns.h"

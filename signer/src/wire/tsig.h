@@ -35,7 +35,6 @@
 #define WIRE_TSIG_H
 
 #include "config.h"
-#include "allocator.h"
 #include "status.h"
 #include "wire/buffer.h"
 

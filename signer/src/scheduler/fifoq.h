@@ -48,7 +48,6 @@
 typedef struct fifoq_struct fifoq_type;
 
 #include "daemon/worker.h"
-#include "allocator.h"
 #include "locks.h"
 #include "status.h"
 

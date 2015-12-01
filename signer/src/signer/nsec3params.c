@@ -29,7 +29,7 @@
  *
  */
 
-#include "allocator.h"
+#include "status.h"
 #include "log.h"
 #include "util.h"
 #include "signer/backup.h"
