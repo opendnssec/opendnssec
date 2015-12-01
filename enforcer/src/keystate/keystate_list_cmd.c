@@ -411,10 +411,10 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     if ((argIndex = ods_find_arg_and_param(&argc, argv, "zone", "z", &filterZone)) == -1) {
         filterZone = NULL;
     }
-    if (ods_find_arg_and_param(&argc, argv, "keytype", "k", &keytypeParam) == -1) {
+    if (ods_find_arg_and_param(&argc, argv, "keytype", "k", (const char **)&keytypeParam) == -1) {
         keytypeParam = NULL;
     }
-    if (ods_find_arg_and_param(&argc, argv, "keystate", "e", &keystateParam) == -1) {
+    if (ods_find_arg_and_param(&argc, argv, "keystate", "e", (const char **)&keystateParam) == -1) {
         keystateParam = NULL;
     }
 
