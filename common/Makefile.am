@@ -19,4 +19,5 @@ libcompat_a_SOURCES = \
 	pselect.c \
 	status.c status.h \
 	str.c str.h strlcat.c strlcpy.c \
-	util.c util.h
+	util.c util.h \
+	datastructure.c datastructure.h

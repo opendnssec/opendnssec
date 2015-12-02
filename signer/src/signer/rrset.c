@@ -39,7 +39,6 @@
 
 static const char* rrset_str = "rrset";
 
-
 /**
  * Log RR.
  *
@@ -176,6 +175,15 @@ rrset_type2str(ldns_rr_type type)
     return "TYPE???";
 }
 
+static void
+memberdestroy(void* dummy, void* member)
+{
+    rrsig_type* sig = (rrsig_type*) member;
+    (void)dummy;
+    free((void*) sig->key_locator);
+    ldns_rr_free(sig->rr);
+    sig->owner = NULL;
+}
 
 /**
  * Create RRset.
@@ -200,7 +208,7 @@ rrset_create(zone_type* zone, ldns_rr_type type)
     rrset->zone = zone;
     rrset->rrtype = type;
     rrset->rr_count = 0;
-    collection_create_array(&rrset->rrsigs, sizeof(rrsig_type));
+    collection_create_array(&rrset->rrsigs, sizeof(rrsig_type), NULL, memberdestroy);
     rrset->needs_signing = 0;
     return rrset;
 }
@@ -874,95 +882,5 @@ rrset_backup2(FILE* fd, rrset_type* rrset)
                     rrsig->key_locator, rrsig->key_flags);
             free(str);
         }
-    }
-}
-
-struct collection_struct {
-    rrsig_type* rrsigs; /** array with members */
-    size_t size; /** member size */
-    int iterator;
-    int count; /** number of members in array */
-};
-
-int
-collection_create_array(collection_t* collection, size_t membsize)
-{
-    *collection = malloc(sizeof(struct collection_struct));
-    (*collection)->size = membsize;
-    (*collection)->count = 0;
-    (*collection)->rrsigs = NULL;
-    (*collection)->iterator = -1;
-    return *collection != NULL;
-}
-
-int
-collection_destroy(collection_t* collection)
-{
-    int i;
-    if(collection == NULL)
-        return 0;
-    for (i=0; i < (*collection)->count; i++) {
-        free((void*)(*collection)->rrsigs[i].key_locator);
-        ldns_rr_free((*collection)->rrsigs[i].rr);
-        (*collection)->rrsigs[i].owner = NULL;
-    }
-    free(*collection);
-    *collection = NULL;
-    return 0;
-}
-
-int
-collection_add(collection_t collection, rrsig_type *data)
-{
-    rrsig_type* ptr;
-    CHECKALLOC(ptr = realloc(collection->rrsigs, (collection->count+1)*collection->size));
-    if (ptr == NULL) {
-        return ENOMEM;
-    }
-    collection->rrsigs = ptr;
-    collection->rrsigs[collection->count] = *data;
-    collection->count += 1;
-    return 0;
-}
-
-int
-collection_del_index(collection_t collection, int index)
-{
-    rrsig_type* ptr;
-    if (index<0 || index >= collection->count)
-        return -1;
-    free((void*)collection->rrsigs[index].key_locator);
-    memmove(&collection->rrsigs[index], &collection->rrsigs[index + 1], (collection->count - index) * collection->size);
-    collection->count -= 1;
-    if (collection->count > 0) {
-        CHECKALLOC(ptr = realloc(collection->rrsigs, collection->count * collection->size));
-        if (ptr == NULL) {
-            return ENOMEM;
-        }
-        collection->rrsigs = ptr;
-    } else {
-        free(collection->rrsigs);
-        collection->rrsigs = NULL;
-    }
-    return 0;
-}
-
-int
-collection_del_cursor(collection_t collection)
-{
-    return collection_del_index(collection, collection->iterator);
-}
-
-rrsig_type*
-collection_iterator(collection_t collection)
-{
-    if(collection->iterator < 0) {
-        collection->iterator = collection->count;
-    }
-    collection->iterator -= 1;
-    if(collection->iterator >= 0) {
-        return &collection->rrsigs[collection->iterator];
-    } else {
-        return NULL;
     }
 }

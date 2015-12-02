@@ -39,6 +39,7 @@ typedef struct rrset_struct rrset_type;
 #include "libhsm.h"
 #include "domain.h"
 #include "zone.h"
+#include "datastructure.h"
 
 struct rrsig_struct {
     ldns_rr* rr;
@@ -54,8 +55,6 @@ struct rr_struct {
     unsigned is_added : 1;
     unsigned is_removed : 1;
 };
-
-typedef struct collection_struct* collection_t;
 
 struct rrset_struct {
     rrset_type* next;
@@ -201,12 +200,5 @@ void rrset_cleanup(rrset_type* rrset);
  *
  */
 void rrset_backup2(FILE* fd, rrset_type* rrset);
-
-int collection_create_array(collection_t* collection, size_t membsize);
-int collection_destroy(collection_t* collection);
-int collection_add(collection_t collection, rrsig_type *data);
-int collection_del_index(collection_t collection, int index);
-int collection_del_cursor(collection_t collection);
-rrsig_type* collection_iterator(collection_t collection);
 
 #endif /* SIGNER_RRSET_H */
