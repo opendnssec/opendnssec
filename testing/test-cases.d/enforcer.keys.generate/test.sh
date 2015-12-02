@@ -102,7 +102,7 @@ ods_enforcer_idle &&
 syslog_waitfor 120 'ods-enforcerd: 16 zone(s) found on policy \"Policy2\"' &&
 # 6 more ZSKs have been made active so we need more keys than when we run the test from ods-enforcer
 log_this enforcer-keylist_2   ods-hsmutil list &&
-log_grep enforcer-keylist_2   stdout "39 keys found." &&
+log_grep enforcer-keylist_2   stdout "38 keys found." &&
 
 ##################  2. Keys not shared, diff alg & length ###########################
 
@@ -212,6 +212,8 @@ ods_enforcer_idle &&
 log_this ods-zone-add-15 ods-enforcer zone add --zone ods15 --policy Policy5 &&
 ods_enforcer_idle &&
 # Now a policy with shared keys one with alg 7, length 1024 and one with alg 8, length 2048
+## YBS: NOTE, this is a wierd policy, having KSK a different algorithm than 
+## the ZSK
 log_this ods-zone-add-16 ods-enforcer zone add --zone ods16 --policy Policy6 &&
 ods_enforcer_idle &&
 log_this ods-zone-add-17 ods-enforcer zone add --zone ods17 --policy Policy6 &&
@@ -247,7 +249,8 @@ ods_enforcer_leap_over 60 &&
 syslog_waitfor 120 "ods-enforcerd: .*1 zone(s) found on policy \"Policy5\""  &&
 syslog_waitfor 120 "ods-enforcerd: .*1 zone(s) found on policy \"Policy6\""  &&
 log_this enforcer-keylist_8   ods-hsmutil list &&
-log_grep enforcer-keylist_8   stdout "8 keys found." &&
+## 3xKSK, 3xZSK Policy5, 3xKSK(1024bit), 3xZSK Policy6
+log_grep enforcer-keylist_8   stdout "12 keys found." &&
 
 ods_stop_enforcer &&
 

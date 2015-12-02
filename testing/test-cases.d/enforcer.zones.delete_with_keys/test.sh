@@ -42,7 +42,9 @@ log_grep ods-enforcer-key-list1 stdout 'test.delete[[:space:]]*KSK[[:space:]]*re
 log_grep ods-enforcer-key-list1 stdout 'test.delete[[:space:]]*ZSK[[:space:]]*active' &&
 
 # Delete our first zone (from non-shared key policy)
+ods_enforcer_idle &&
 log_this_timeout ods-enforcer-zone-del 30 ods-enforcer zone delete -z test.delete &&
+ods_enforcer_idle &&
 
 # Check the zone is _not_ there
 log_this ods-enforcer-zone-list2 ods-enforcer zone list &&
@@ -61,7 +63,9 @@ log_grep ods-enforcer-key-list2 stdout 'test.keep[[:space:]]*ZSK[[:space:]]*acti
 
 
 # Delete our second zone (from shared key policy)
+ods_enforcer_idle &&
 log_this_timeout ods-enforcer-zone-del 30 ods-enforcer zone delete -z ods2 &&
+ods_enforcer_idle &&
 
 # Check the zone is _not_ there
 log_this ods-enforcer-zone-list3 ods-enforcer zone list &&
@@ -79,7 +83,10 @@ log_grep ods-enforcer-key-list3 stdout 'test.keep[[:space:]]*ZSK[[:space:]]*acti
 ! log_grep ods-enforcer-key-list3 stdout 'test.delete[[:space:]]*ZSK[[:space:]]*active' &&
 
 # Finally, delete the remaining zones
+ods_enforcer_idle &&
 log_this ods-enforcer-zone-del ods-enforcer zone delete --all &&
+ods_enforcer_idle &&
+
 # Check the zone is _not_ there
 log_this ods-enforcer-zone-list4 ods-enforcer zone list &&
 log_grep ods-enforcer-zone-list4 stdout 'No zones in database' &&

@@ -43,54 +43,94 @@
 static const char *module_str = "keystate_rollover_cmd";
 
 static int
-perform_keystate_rollover(int sockfd, db_connection_t *dbconn,
+perform_keystate_rollover(int sockfd, db_connection_t *dbconn, const char * policyname,
 	const char *zonename, int nkeyrole)
 {
-	zone_t* zone;
+	policy_t* policy = NULL;
+	zone_t* zone = NULL;
+	zone_list_t *zonelist = NULL;
+	int reterror = 0;
 	int error = 0;
+	int listsize = 0;
 
-	if (!(zone = zone_new_get_by_name(dbconn, zonename))) {
-		client_printf(sockfd, "zone %s not found\n", zonename);
-		return 1;
+	if (policyname) {
+		policy = policy_new(dbconn);
+		if (policy_get_by_name(policy, policyname)){
+			policy_free(policy);
+			policy = NULL;
+			client_printf_err(sockfd, "unknown policy %s\n", policyname);
+			return -1;
+		}
+                if (policy_retrieve_zone_list(policy)) {
+			ods_log_error("[%s] Error fetching zones", module_str);
+                        client_printf_err(sockfd, "[%s] Error fetching zones", module_str);
+			policy_free(policy);
+			policy = NULL;
+	                return 1;
+                }
+                zonelist = policy_zone_list(policy);
+                listsize = zone_list_size(zonelist);
+		if (listsize == 0) {
+			client_printf (sockfd, "No zones on policy %s\n", policy_name(policy));
+			client_printf (sockfd, "No keys to be rolled\n");
+			policy_free(policy);
+			return 0;
+		}
+                zone = zone_list_get_next(zonelist);
+	}
+	else if (zonename) {
+		listsize = 1;
+		if (!(zone = zone_new_get_by_name(dbconn, zonename))) {
+			client_printf(sockfd, "zone %s not found\n", zonename);
+			return 1;
+		}
 	}
 	
-	switch (nkeyrole) {
-		case 0:
-			if (zone_set_roll_ksk_now(zone, 1) ||
-				zone_set_roll_zsk_now(zone, 1) ||
-				zone_set_roll_csk_now(zone, 1)) {error = 1; break;}
-			client_printf(sockfd, "rolling all keys for zone %s\n", zonename);
-			ods_log_info("[%s] Manual rollover initiated for all keys on Zone: %s",
-				module_str, zonename);
-			break;
-		case KEY_DATA_ROLE_KSK:
-			if (zone_set_roll_ksk_now(zone, 1)) {error = 1; break;};
-			client_printf(sockfd, "rolling KSK for zone %s\n", zonename);
-			ods_log_info("[%s] Manual rollover initiated for KSK on Zone: %s", module_str, zonename);
-			break;
-		case KEY_DATA_ROLE_ZSK:
-			if (zone_set_roll_zsk_now(zone, 1)) {error = 1; break;}
-			client_printf(sockfd, "rolling ZSK for zone %s\n", zonename);
-			ods_log_info("[%s] Manual rollover initiated for ZSK on Zone: %s", module_str, zonename);
-			break;
-		case KEY_DATA_ROLE_CSK:
-			if (zone_set_roll_csk_now(zone, 1)) {error = 1; break;}
-			client_printf(sockfd, "rolling CSK for zone %s\n", zonename);
-			ods_log_info("[%s] Manual rollover initiated for CSK on Zone: %s", module_str, zonename);
-			break;
-		default:
-			ods_log_assert(false && "nkeyrole out of range");
+	while (listsize > 0) {
+		error = 0;
+		switch (nkeyrole) {
+			case 0:
+				if (zone_set_roll_ksk_now(zone, 1) ||
+					zone_set_roll_zsk_now(zone, 1) ||
+					zone_set_roll_csk_now(zone, 1)) {error = 1; break;}
+				client_printf(sockfd, "rolling all keys for zone %s\n", zone_name(zone));
+				ods_log_info("[%s] Manual rollover initiated for all keys on Zone: %s",
+					module_str, zone_name(zone));
+				break;
+			case KEY_DATA_ROLE_KSK:
+				if (zone_set_roll_ksk_now(zone, 1)) {error = 1; break;};
+				client_printf(sockfd, "rolling KSK for zone %s\n", zone_name(zone));
+				ods_log_info("[%s] Manual rollover initiated for KSK on Zone: %s", module_str, zone_name(zone));
+				break;
+			case KEY_DATA_ROLE_ZSK:
+				if (zone_set_roll_zsk_now(zone, 1)) {error = 1; break;}
+				client_printf(sockfd, "rolling ZSK for zone %s\n", zone_name(zone));
+				ods_log_info("[%s] Manual rollover initiated for ZSK on Zone: %s", module_str, zone_name(zone));
+				break;
+			case KEY_DATA_ROLE_CSK:
+				if (zone_set_roll_csk_now(zone, 1)) {error = 1; break;}
+				client_printf(sockfd, "rolling CSK for zone %s\n", zone_name(zone));
+				ods_log_info("[%s] Manual rollover initiated for CSK on Zone: %s", module_str, zone_name(zone));
+				break;
+			default:
+				ods_log_assert(false && "nkeyrole out of range");
+				ods_log_error_and_printf(sockfd, module_str,
+					"nkeyrole out of range");
+				error = 1;
+		}
+		error = error || zone_set_next_change(zone, 0) || zone_update(zone);
+		if (error) {
 			ods_log_error_and_printf(sockfd, module_str,
-				"nkeyrole out of range");
-			error = 1;
+				"updating zone %s in the database failed", zone_name(zone));
+		}
+		reterror = error || reterror;
+		listsize--;
+		zone_free(zone);
+		if (listsize > 0)
+			zone = zone_list_get_next(zonelist);
 	}
-	error = error || zone_set_next_change(zone, 0) || zone_update(zone);
-	zone_free(zone);
-	if (error) {
-		ods_log_error_and_printf(sockfd, module_str,
-			"updating zone in the database failed");
-	}
-	return error;
+	policy_free(policy);
+	return reterror;
 }
 
 static void
@@ -101,6 +141,13 @@ usage(int sockfd)
 		"      --zone <zone>              (aka -z)  zone.\n"
 		"      [--keytype <keytype>]      (aka -t)  KSK or ZSK (default all).\n"
 	);
+
+        client_printf(sockfd,
+                "key rollover           Perform a manual key rollover.\n"
+                "      --policy <policy>              (aka -p)  policy.\n"
+                "      [--keytype <keytype>]      (aka -t)  KSK or ZSK (default all).\n"
+        );
+
 }
 
 static void
@@ -125,10 +172,10 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	db_connection_t *dbconn)
 {
 	char buf[ODS_SE_MAXLINE];
-	#define NARGV 8
+	#define NARGV 4
 	const char *argv[NARGV];
 	int argc, error, nkeytype = 0;
-	const char *zone = NULL, *keytype = NULL;
+	const char *zone = NULL, *keytype = NULL, *policy = NULL;
 
 	ods_log_debug("[%s] %s command", module_str, key_rollover_funcblock()->cmdname);
 
@@ -146,20 +193,28 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 		client_printf(sockfd,"too many arguments\n");
 		return -1;
 	}
-
+	
+	(void)ods_find_arg_and_param(&argc,argv,"policy","p",&policy);
 	(void)ods_find_arg_and_param(&argc,argv,"zone","z",&zone);
 	(void)ods_find_arg_and_param(&argc,argv,"keytype","t",&keytype);
+
 	if (argc) {
 		ods_log_warning("[%s] unknown arguments for %s command",
 			module_str, key_rollover_funcblock()->cmdname);
 		client_printf(sockfd,"unknown arguments\n");
 		return -1;
 	}
-	if (!zone) {
-		ods_log_warning("[%s] expected option --zone <zone> for %s command",
+	if (!zone && !policy) {
+		ods_log_warning("[%s] expected either --zone <zone> or --policy <policy> for %s command",
 			module_str, key_rollover_funcblock()->cmdname);
-		client_printf(sockfd,"expected --zone <zone> option\n");
+		client_printf(sockfd,"expected either --zone <zone> or --policy <policy> option\n");
 		return -1;
+	}
+	else if (zone && policy) {
+		 ods_log_warning("[%s] expected either --zone <zone> or --policy <policy> for %s command",
+                        module_str, key_rollover_funcblock()->cmdname);
+                client_printf(sockfd,"expected either --zone <zone> or --policy <policy> option\n");
+                return -1;
 	}
 
 	if (keytype) {
@@ -178,7 +233,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 		}
 	}
 
-	error = perform_keystate_rollover(sockfd, dbconn, zone, nkeytype);
+	error = perform_keystate_rollover(sockfd, dbconn, policy, zone, nkeytype);
 	flush_enforce_task(engine, 0);
 	return error;
 }

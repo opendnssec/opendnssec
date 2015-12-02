@@ -40,7 +40,7 @@ log_grep ods-enforcer-key-list1 stdout 'ods3[[:space:]]*ZSK[[:space:]]*active' &
 
 #Make sure a zone name is required
 ! log_this ods-enforcer-key-rollover_bad1 ods-enforcer key rollover --keytype ZSK &&
-log_grep ods-enforcer-key-rollover_bad1 stdout 'expected --zone <zone> option' &&
+log_grep ods-enforcer-key-rollover_bad1 stdout 'expected either --zone <zone> or --policy <policy> option' &&
 
 # Make sure nothing happens for a non-existant zone
 ! log_this ods-enforcer-key-rollover_bad2 ods-enforcer key rollover --zone bob --keytype ZSK &&

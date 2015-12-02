@@ -87,7 +87,7 @@ static void
 usage(int sockfd)
 {
 	client_printf(sockfd,
-		"Repository List  \n");
+		"repository list            List repositories.\n");
 }
 
 static int
