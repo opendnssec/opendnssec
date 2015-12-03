@@ -167,9 +167,9 @@ echo "Zonelist export contents OK" &&
 ##################  TEST:  Zone delete command  ###########################
 
 # Delete zone successfully 
-ods_enforcer_idle &&
+sleep 3 && ods_enforcer_idle &&
 log_this ods-enforcer-zone_del_1  ods-enforcer zone delete -z ods1  &&
-ods_enforcer_idle &&
+sleep 3 && ods_enforcer_idle &&
 log_grep ods-enforcer-zone_del_1   stdout "Deleted zone ods1 successfully" &&
 log_this ods-enforcer-zone_del_list_1   ods-enforcer zone list &&
 ! log_grep ods-enforcer-zone_del_list_1   stdout "ods1[[:space:]]*Policy1" &&
@@ -183,9 +183,9 @@ $GREP -q -- "ods14" "$ZONES_FILE" &&
 echo "Zonelist contents OK again" &&
 
 # sometimes the connection is closed on slow machines, ignoring for now any return code
-ods_enforcer_idle &&
+sleep 3 && ods_enforcer_idle &&
 ( log_this ods-enforcer-zone_del_2  ods-enforcer zone delete --zone ods2 --xml || true ) &&
-ods_enforcer_idle &&
+sleep 3 && ods_enforcer_idle &&
 log_grep ods-enforcer-zone_del_2   stdout "Deleted zone ods2 successfully" &&
 log_this ods-enforcer-zone_del_list_2   ods-enforcer zone list &&
 ! log_grep ods-enforcer-zone_del_list_2   stdout "ods2[[:space:]]*Policy1" &&
@@ -202,12 +202,12 @@ log_grep ods-enforcer-zone_del_2 stderr  "Unable to delete zone, zone ods1 not f
 
 # This sleep is necessary to ensure that deleting zone ods1 is completely
 # done, otherwise deleting the other zones will partially fail (silently)
-ods_enforcer_idle &&
+sleep 3 && ods_enforcer_idle &&
 
 # Delete all remaining zones 
 echo "y " | log_this ods-enforcer-zone_del_3  ods-enforcer zone delete --all  &&
 # Need a sleep to make sure all are gone
-ods_enforcer_idle &&
+sleep 3 && ods_enforcer_idle &&
 
 log_this ods-enforcer-zone_del_list_3  ods-enforcer zone list  &&
 log_grep ods-enforcer-zone_del_list_3   stdout "No zones in database." &&
