@@ -349,12 +349,14 @@ query_process_notify(query_type* q, ldns_rr_type qtype, void* engine)
 
                 if (addr2ip(q->addr, address, sizeof(address))) {
                     ods_log_info("[%s] ignore notify from %s: already got "
-                        "zone %s serial %u on disk", query_str, address,
-                        q->zone->name, q->zone->xfrd->serial_notify);
+                        "zone %s serial %u on disk (received %u)", query_str,
+                        address, q->zone->name, q->zone->xfrd->serial_disk,
+                        q->zone->xfrd->serial_notify);
                 } else {
                     ods_log_info("[%s] ignore notify: already got zone %s "
-                        "serial %u on disk", query_str, q->zone->name,
-                    q->zone->xfrd->serial_notify);
+                        "serial %u on disk (received %u)", query_str,
+                        q->zone->name, q->zone->xfrd->serial_disk,
+                        q->zone->xfrd->serial_notify);
                 }
                 q->zone->xfrd->serial_notify_acquired = 0;
             } else {
