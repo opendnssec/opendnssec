@@ -105,5 +105,15 @@ ods_enforcer_idle &&
 ods_stop_enforcer &&
 return 0
 
+echo "################## ERROR: CURRENT STATE ###########################"
+echo "DEBUG: " && ods-enforcer zone list
+echo "DEBUG: " && ods-enforcer key list -d -p
+echo "DEBUG: " && ods-enforcer key list -v
+echo "DEBUG: " && ods-enforcer queue
+
+echo
+echo "************ERROR******************"
+echo
+
 ods_kill
 return 1

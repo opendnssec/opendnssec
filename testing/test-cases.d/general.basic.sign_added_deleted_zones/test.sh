@@ -76,7 +76,13 @@ echo "************OK******************" &&
 echo &&
 return 0
 
-echo
+
+echo "################## ERROR: CURRENT STATE ###########################"
+echo "DEBUG: " && ods-enforcer zone list
+echo "DEBUG: " && ods-enforcer key list -d -p
+echo "DEBUG: " && ods-enforcer key list -v
+echo "DEBUG: " && ods-enforcer queue
+
 echo "************ERROR******************"
 echo
 ods_kill
