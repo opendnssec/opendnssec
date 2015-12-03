@@ -80,9 +80,9 @@ ods_comparexml "$INSTALL_ROOT/etc/opendnssec/kasp.xml" "kasp.xml.gold_export_2_p
 echo "************kasp OK******************" &&
 
 # Now use purge to clean up policy 3 and it will also remove policy 2
-sleep 3 && ods_enforcer_idle &&
+ods_enforcer_idle &&
 log_this ods-enforcer-policy-purge_1 "ods-enforcer policy purge" &&
-sleep 3 && ods_enforcer_idle &&
+ods_enforcer_idle &&
 # check the kasp has been updated
 #sed  -e 's#>.*</Salt>#/>#g' "$INSTALL_ROOT/etc/opendnssec/kasp.xml" > "$INSTALL_ROOT/etc/opendnssec/kasp.xml2" &&
 #$diff_ignore_whitespace -I "^<?xml" "$INSTALL_ROOT/etc/opendnssec/kasp.xml2"  kasp.xml.gold_export_default_policy &&
@@ -98,12 +98,12 @@ echo "************export OK******************" &&
 echo &&
 
 # Now check we export an empty policy 
-sleep 3 && ods_enforcer_idle &&
+ods_enforcer_idle &&
 log_this ods-enforcer-remove-zone ods-enforcer zone delete --all &&
-sleep 3 && ods_enforcer_idle &&
+ods_enforcer_idle &&
 # Now use purge to remomve the remainin policy
 log_this ods-enforcer-policy-purge_2 "ods-enforcer policy purge" &&
-sleep 3 && ods_enforcer_idle &&
+ods_enforcer_idle &&
 # check the kasp has been updated
 #$diff_ignore_whitespace  "$INSTALL_ROOT/etc/opendnssec/kasp.xml"  kasp.xml.gold_export_empty &&
 echo "************empty kasp OK******************" &&

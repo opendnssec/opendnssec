@@ -15,7 +15,7 @@ ods_start_enforcer &&
 log_this_timeout ods-enforcer-zone-add 30 ods-enforcer zone add -z test.delete --policy non-default &&
 # and wait for all the keys and signconf files to have been generated
 ods_waitfor_keys &&
-sleep 3 && ods_enforcer_idle &&
+ods_enforcer_idle &&
 
 # Check the presence of all signconfs
 test -f "$INSTALL_ROOT/var/opendnssec/signconf/ods.xml" &&
@@ -42,9 +42,9 @@ log_grep ods-enforcer-key-list1 stdout 'test.delete[[:space:]]*KSK[[:space:]]*re
 log_grep ods-enforcer-key-list1 stdout 'test.delete[[:space:]]*ZSK[[:space:]]*active' &&
 
 # Delete our first zone (from non-shared key policy)
-sleep 3 && ods_enforcer_idle &&
+ods_enforcer_idle &&
 log_this_timeout ods-enforcer-zone-del 30 ods-enforcer zone delete -z test.delete &&
-sleep 3 && ods_enforcer_idle &&
+ods_enforcer_idle &&
 
 # Check the zone is _not_ there
 log_this ods-enforcer-zone-list2 ods-enforcer zone list &&
@@ -63,9 +63,9 @@ log_grep ods-enforcer-key-list2 stdout 'test.keep[[:space:]]*ZSK[[:space:]]*acti
 
 
 # Delete our second zone (from shared key policy)
-sleep 3 && ods_enforcer_idle &&
+ods_enforcer_idle &&
 log_this_timeout ods-enforcer-zone-del 30 ods-enforcer zone delete -z ods2 &&
-sleep 3 && ods_enforcer_idle &&
+ods_enforcer_idle &&
 
 # Check the zone is _not_ there
 log_this ods-enforcer-zone-list3 ods-enforcer zone list &&
@@ -83,9 +83,9 @@ log_grep ods-enforcer-key-list3 stdout 'test.keep[[:space:]]*ZSK[[:space:]]*acti
 ! log_grep ods-enforcer-key-list3 stdout 'test.delete[[:space:]]*ZSK[[:space:]]*active' &&
 
 # Finally, delete the remaining zones
-sleep 3 && ods_enforcer_idle &&
+ods_enforcer_idle &&
 log_this ods-enforcer-zone-del ods-enforcer zone delete --all &&
-sleep 3 && ods_enforcer_idle &&
+ods_enforcer_idle &&
 
 # Check the zone is _not_ there
 log_this ods-enforcer-zone-list4 ods-enforcer zone list &&
@@ -98,9 +98,9 @@ log_this_timeout ods-enforcer-zone-add 30 ods-enforcer zone add -z test.delete -
 #sleep 30 &&
 ods_waitfor_keys &&
 
-sleep 3 && ods_enforcer_idle &&
+ods_enforcer_idle &&
 log_this_timeout ods-enforcer-zone-del 30 ods-enforcer zone delete -z test.delete &&
-sleep 3 && ods_enforcer_idle &&
+ods_enforcer_idle &&
 
 ods_stop_enforcer &&
 return 0
