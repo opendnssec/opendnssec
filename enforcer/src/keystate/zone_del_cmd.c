@@ -133,6 +133,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     int ret = 0;
     char path[PATH_MAX];
     (void)engine;
+    char *signconf_del = NULL;
 
 	ods_log_debug("[%s] %s command", module_str, zone_del_funcblock()->cmdname);
     cmd = ods_check_command(cmd, n, zone_del_funcblock()->cmdname);
@@ -177,6 +178,16 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
             free(buf);
             return 1;
         }
+	signconf_del = (char*) malloc(strlen(zone_signconf_path(zone)) + strlen(".ZONE_DELETED") + 1);
+	if (!signconf_del) {
+		ods_log_error("[%s] malloc failed", module_str);
+		return 1;
+	}
+	strncpy(signconf_del, zone_signconf_path(zone), strlen(zone_signconf_path(zone)));
+	strncat(signconf_del, ".ZONE_DELETED", 13);
+	rename(zone_signconf_path(zone), signconf_del);
+	free(signconf_del);
+	signconf_del = NULL;
 
         ods_log_info("[%s] zone %s deleted", module_str, zone_name2);
         client_printf(sockfd, "Deleted zone %s successfully\n", zone_name2);
@@ -195,6 +206,16 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
                 client_printf_err(sockfd, "Unable to delete zone %s from database!\n", zone_name(zone));
                 continue;
             }
+	    signconf_del = (char*) malloc(strlen(zone_signconf_path(zone)) + strlen(".ZONE_DELETED") + 1);
+	    if (!signconf_del) {
+		ods_log_error("[%s] malloc failed", module_str);
+		return 1;
+	    }
+	    strncpy(signconf_del, zone_signconf_path(zone), strlen(zone_signconf_path(zone)));
+ 	    strncat(signconf_del, ".ZONE_DELETED", 13);
+	    rename(zone_signconf_path(zone), signconf_del);
+	    free(signconf_del);
+	    signconf_del = NULL;
 
             ods_log_info("[%s] zone %s deleted", module_str, zone_name(zone));
             client_printf(sockfd, "Deleted zone %s successfully\n", zone_name(zone));
