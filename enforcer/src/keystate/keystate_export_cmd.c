@@ -76,7 +76,7 @@ get_dnskey(const char *id, const char *zone, const char *keytype, int alg, uint3
 	sign_params->algorithm = (ldns_algorithm) alg;
 	sign_params->flags = LDNS_KEY_ZONE_KEY;
 
-	if (keytype && !strcmp(keytype, "KSK"))
+	if (keytype && !strcasecmp(keytype, "KSK"))
 		sign_params->flags = sign_params->flags | LDNS_KEY_SEP_KEY;
 		
 	/* Get the DNSKEY record */
@@ -104,7 +104,7 @@ get_dnskey(const char *id, const char *zone, const char *keytype, int alg, uint3
  */
 static int 
 print_ds_from_id(int sockfd, key_data_t *key, const char *zone,
-	int bind_style)
+	const char* state, int bind_style)
 {
 	ldns_rr *dnskey_rr;
 	ldns_rr *ds_sha_rr;
@@ -133,14 +133,14 @@ print_ds_from_id(int sockfd, key_data_t *key, const char *zone,
 		rrstr = ldns_rr2str(ds_sha_rr);
 		ldns_rr_free(ds_sha_rr);
 		/* TODO log error on failure */
-		(void)client_printf(sockfd, ";KSK DS record (SHA1):\n%s", rrstr);
+		(void)client_printf(sockfd, ";%s %s DS record (SHA1):\n%s", state, key_data_role_text(key), rrstr);
 		LDNS_FREE(rrstr);
 
 		ds_sha_rr = ldns_key_rr2ds(dnskey_rr, LDNS_SHA256);
 		rrstr = ldns_rr2str(ds_sha_rr);
 		ldns_rr_free(ds_sha_rr);
 		/* TODO log error on failure */
-		(void)client_printf(sockfd, ";KSK DS record (SHA256):\n%s", rrstr);
+		(void)client_printf(sockfd, ";%s %s DS record (SHA256):\n%s", state, key_data_role_text(key), rrstr);
 		LDNS_FREE(rrstr);
 	} else {
 		rrstr = ldns_rr2str(dnskey_rr);
@@ -186,11 +186,11 @@ perform_keystate_export(int sockfd, db_connection_t *dbconn,
 	
 	/* Print data*/
 	while ((key = key_data_list_get_next(key_list))) {
-		if (keytype && strcmp(key_data_role_text(key), keytype)) {
+		if (keytype && strcasecmp(key_data_role_text(key), keytype)) {
 			key_data_free(key);
 			continue;
 		}
-		if (keystate && strcmp(map_keystate(key), keystate)) {
+		if (keystate && strcasecmp(map_keystate(key), keystate)) {
 			key_data_free(key);
 			continue;
 		}
@@ -210,12 +210,9 @@ perform_keystate_export(int sockfd, db_connection_t *dbconn,
 			zone_free(zone);
 		}
 
-		if (!all)
-			azonename = strdup(zonename);
-
                 /* check return code TODO */	
 		if (key_data_cache_hsm_key(key) == DB_OK) {
-			if (print_ds_from_id(sockfd, key, azonename, bind_style)) {
+			if (print_ds_from_id(sockfd, key, (const char*)azonename?azonename:zonename, (const char*)map_keystate(key), bind_style)) {
 				ods_log_error("[%s] Error in print_ds_from_id", module_str);
 				client_printf_err(sockfd, "Error in print_ds_from_id \n");
 			}
@@ -258,9 +255,10 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	char buf[ODS_SE_MAXLINE];
 	const char *argv[NARGV];
 	int argc;
-	const char *zone = NULL;
+	const char *zonename = NULL;
 	char* keytype = NULL;
 	char* keystate = NULL;
+	zone_t * zone = NULL;
 	int all = 0;
 	(void)engine;
 	
@@ -281,14 +279,13 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	}
 	
 	bool bds = 0;
-	(void)ods_find_arg_and_param(&argc,argv,"zone","z",&zone);
+	(void)ods_find_arg_and_param(&argc,argv,"zone","z",&zonename);
 	(void)ods_find_arg_and_param(&argc, argv, "keytype", "t", &keytype);
 	(void)ods_find_arg_and_param(&argc, argv, "keystate", "e", &keystate);
 	all = ods_find_arg(&argc, argv, "all", "a") > -1 ? 1 : 0;
 
 	if (keytype) {
-		(void)StrToUpper(keytype);
-		if (strcmp(keytype, "KSK") && strcmp(keytype, "ZSK") && strcmp(keytype, "CSK")) {
+		if (strcasecmp(keytype, "KSK") && strcasecmp(keytype, "ZSK") && strcasecmp(keytype, "CSK")) {
 			ods_log_error("[%s] unknown keytype, should be one of KSK, ZSK, or CSK", module_str);
 			client_printf_err(sockfd, "unknown keytype, should be one of KSK, ZSK, or CSK\n");
 			return -1;
@@ -296,8 +293,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	}
 
 	if (keystate) {
-		(void)StrToLower(keystate);
-		if (strcmp(keystate, "generate") && strcmp(keystate, "publish") && strcmp(keystate, "ready") && strcmp(keystate, "active") && strcmp(keystate, "retire") && strcmp(keystate, "revoke")) {
+		if (strcasecmp(keystate, "generate") && strcasecmp(keystate, "publish") && strcasecmp(keystate, "ready") && strcasecmp(keystate, "active") && strcasecmp(keystate, "retire") && strcasecmp(keystate, "revoke")) {
 			ods_log_error("[%s] unknown keystate", module_str);
 			client_printf_err(sockfd, "unknown keystate\n");
 			return -1;
@@ -313,23 +309,30 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 		return -1;
 	}
 
-	if ((!zone && !all) || (zone && all)) {
+	if ((!zonename && !all) || (zonename && all)) {
 		ods_log_error("[%s] expected either --zone or --all for %s command", module_str, key_export_funcblock()->cmdname);
 		client_printf_err(sockfd, "expected either --zone or --all \n");
 		return -1;
 	}
+	if (zonename && !(zone = zone_new_get_by_name(dbconn, zonename))) {
+		ods_log_error("[%s] Unknown zone: %s", module_str, zonename);
+		client_printf_err(sockfd, "Unknown zone: %s\n", zonename);
+		return -1;
+	}
+	free(zone);
+	zone = NULL;
 	
 	/* in 1.4 the default state for ZSK is active */
-	if (keytype && !strcmp(keytype, "ZSK") && !keystate)
+	if (keytype && !strcasecmp(keytype, "ZSK") && !keystate)
 		keystate = "active";
 	/* in 1.4 the dafault type is KSK */
 	else if (keystate && !keytype)
 		keytype = "KSK";
-	else if (keytype && !strcmp(keytype, "KSK") && !keystate)
+	else if (keytype && !strcasecmp(keytype, "KSK") && !keystate)
 		keytype = NULL; 
 
 	/* perform task immediately */
-	return perform_keystate_export(sockfd, dbconn, zone, (const char*) keytype, (const char*) keystate, all, bds?1:0);
+	return perform_keystate_export(sockfd, dbconn, zonename, (const char*) keytype, (const char*) keystate, all, bds?1:0);
 }
 
 static struct cmd_func_block funcblock = {
