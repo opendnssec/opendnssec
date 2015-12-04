@@ -183,8 +183,8 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 		ods_log_error("[%s] malloc failed", module_str);
 		return 1;
 	}
-	strcat(signconf_del, zone_signconf_path(zone));
-	strcat(signconf_del, ".ZONE_DELETED");
+	strncpy(signconf_del, zone_signconf_path(zone), strlen(zone_signconf_path(zone)));
+	strncat(signconf_del, ".ZONE_DELETED", 13);
 	rename(zone_signconf_path(zone), signconf_del);
 	free(signconf_del);
 	signconf_del = NULL;
@@ -212,8 +212,8 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 		ods_log_error("[%s] malloc failed", module_str);
 		return 1;
 	    }
-	    strcat(signconf_del, zone_signconf_path(zone));
-	    strcat(signconf_del, ".ZONE_DELETED");
+	    strncpy(signconf_del, zone_signconf_path(zone), strlen(zone_signconf_path(zone)));
+	    strncat(signconf_del, ".ZONE_DELETED", 13);
 	    rename(zone_signconf_path(zone), signconf_del);
 	    free(signconf_del);
 	    signconf_del = NULL;
