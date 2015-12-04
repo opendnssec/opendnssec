@@ -1,3 +1,8 @@
+Future:
+
+Bugfixes:
+ * OPENDNSSEC-723: received SOA serial reported as on disk.
+
 OpenDNSSEC 1.4.8 - 2015-09-24
 
 * Support for RFC5011 style KSK rollovers. KSK section in the KASP now 
