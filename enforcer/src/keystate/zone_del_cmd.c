@@ -179,7 +179,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
             return 1;
         }
         signconf_del = (char*) calloc(strlen(zone_signconf_path(zone)) +
-            strlen(".ZONE_DELETED") + 1, sizeof char);
+            strlen(".ZONE_DELETED") + 1, sizeof(char));
         if (!signconf_del) {
             ods_log_error("[%s] malloc failed", module_str);
             zone_free(zone);
@@ -210,7 +210,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
             }
 
             signconf_del = (char*) calloc(strlen(zone_signconf_path(zone)) +
-                strlen(".ZONE_DELETED") + 1, sizeof char);
+                strlen(".ZONE_DELETED") + 1, sizeof(char));
             if (!signconf_del) {
                 ods_log_error("[%s] malloc failed", module_str);
                 zone_free(zone);
