@@ -6,7 +6,7 @@ AM_CPPFLAGS = \
 noinst_LIBRARIES = libcompat.a
 
 libcompat_a_SOURCES = \
-	allocator.c allocator.h \
+	allocator.h \
 	b64_ntop.c b64_pton.c \
 	backup.c backup.h \
 	clientpipe.c clientpipe.h \

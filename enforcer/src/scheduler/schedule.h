@@ -56,7 +56,7 @@ struct schedule_struct {
  * \param[in] allocator memory allocator
  * \return schedule_type* created schedule
  */
-schedule_type* schedule_create();
+schedule_type* schedule_create(void);
 
 /**
  * Clean up schedule.

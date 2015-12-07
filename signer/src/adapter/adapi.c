@@ -67,7 +67,6 @@ adapi_set_serial(zone_type* zone, uint32_t serial)
         return;
     }
     zone->db->inbserial = serial;
-    return;
 }
 
 
@@ -147,7 +146,6 @@ adapi_trans_full(zone_type* zone, unsigned more_coming)
         zone->stats->nsec_count = num_added;
         lock_basic_unlock(&zone->stats->stats_lock);
     }
-    return;
 }
 
 
@@ -185,7 +183,6 @@ adapi_trans_diff(zone_type* zone, unsigned more_coming)
         zone->stats->nsec_count = num_added;
         lock_basic_unlock(&zone->stats->stats_lock);
     }
-    return;
 }
 
 
@@ -283,7 +280,6 @@ adapi_process_dnskey(zone_type* zone, ldns_rr* rr)
     ods_log_verbose("[%s] zone %s set dnskey ttl to %u",
         adapi_str, zone->name, tmp);
     ldns_rr_set_ttl(rr, tmp);
-    return;
 }
 
 

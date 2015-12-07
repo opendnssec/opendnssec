@@ -47,26 +47,12 @@ static const char* task_str = "task";
 task_type*
 task_create(task_id what, time_t when, void* zone)
 {
-    allocator_type* allocator = NULL;
     task_type* task = NULL;
 
     if (!zone) {
         return NULL;
     }
-    allocator = allocator_create(malloc, free);
-    if (!allocator) {
-        ods_log_error("[%s] unable to create task: allocator_create() failed",
-            task_str);
-        return NULL;
-    }
-    task = (task_type*) allocator_alloc(allocator, sizeof(task_type));
-    if (!task) {
-        ods_log_error("[%s] unable to create task: allocator_alloc() failed",
-            task_str);
-        allocator_cleanup(allocator);
-        return NULL;
-    }
-    task->allocator = allocator;
+    CHECKALLOC(task = (task_type*) malloc(sizeof(task_type)));
     task->what = what;
     task->interrupt = TASK_NONE;
     task->halted = TASK_NONE;
@@ -100,7 +86,6 @@ task_backup(FILE* fd, task_type* task)
         (int) task->halted,
         (unsigned) task->backoff,
         task->flush);
-    return;
 }
 
 
@@ -241,7 +226,6 @@ task_print(FILE* out, task_type* task)
             task->flush?"Flush":"On", strtime?strtime:"(null)",
             task_what2str(task->what), task_who2str(task));
     }
-    return;
 }
 
 
@@ -263,7 +247,6 @@ task_log(task_type* task)
             task->flush?"Flush":"On", strtime?strtime:"(null)",
             task_what2str(task->what), task_who2str(task));
     }
-    return;
 }
 
 
@@ -274,12 +257,8 @@ task_log(task_type* task)
 void
 task_cleanup(task_type* task)
 {
-    allocator_type* allocator;
     if (!task) {
         return;
     }
-    allocator = task->allocator;
-    allocator_deallocate(allocator, (void*) task);
-    allocator_cleanup(allocator);
-    return;
+    free(task);
 }

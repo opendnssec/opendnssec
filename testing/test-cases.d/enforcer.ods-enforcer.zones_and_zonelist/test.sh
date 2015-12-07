@@ -167,7 +167,9 @@ echo "Zonelist export contents OK" &&
 ##################  TEST:  Zone delete command  ###########################
 
 # Delete zone successfully 
+ods_enforcer_idle &&
 log_this ods-enforcer-zone_del_1  ods-enforcer zone delete -z ods1  &&
+ods_enforcer_idle &&
 log_grep ods-enforcer-zone_del_1   stdout "Deleted zone ods1 successfully" &&
 log_this ods-enforcer-zone_del_list_1   ods-enforcer zone list &&
 ! log_grep ods-enforcer-zone_del_list_1   stdout "ods1[[:space:]]*Policy1" &&
@@ -181,7 +183,9 @@ $GREP -q -- "ods14" "$ZONES_FILE" &&
 echo "Zonelist contents OK again" &&
 
 # sometimes the connection is closed on slow machines, ignoring for now any return code
+ods_enforcer_idle &&
 ( log_this ods-enforcer-zone_del_2  ods-enforcer zone delete --zone ods2 --xml || true ) &&
+ods_enforcer_idle &&
 log_grep ods-enforcer-zone_del_2   stdout "Deleted zone ods2 successfully" &&
 log_this ods-enforcer-zone_del_list_2   ods-enforcer zone list &&
 ! log_grep ods-enforcer-zone_del_list_2   stdout "ods2[[:space:]]*Policy1" &&
@@ -332,6 +336,11 @@ echo "************OK******************" &&
 echo &&
 return 0
 
+echo "################## ERROR: CURRENT STATE ###########################"
+echo "DEBUG: " && ods-enforcer zone list
+echo "DEBUG: " && ods-enforcer key list -d -p
+echo "DEBUG: " && ods-enforcer key list -v
+echo "DEBUG: " && ods-enforcer queue
 echo
 echo "************ERROR******************"
 echo

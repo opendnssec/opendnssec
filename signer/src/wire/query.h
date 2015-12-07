@@ -57,8 +57,6 @@ typedef enum query_enum query_state;
  */
 typedef struct query_struct query_type;
 struct query_struct {
-    /* Memory allocator */
-    allocator_type* allocator;
     /* Query from addres */
     struct sockaddr_storage addr;
     socklen_t addrlen;

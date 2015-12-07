@@ -53,32 +53,18 @@ static const char* zone_str = "zone";
 zone_type*
 zone_create(char* name, ldns_rr_class klass)
 {
-    allocator_type* allocator = NULL;
     zone_type* zone = NULL;
 
     if (!name || !klass) {
         return NULL;
     }
-    allocator = allocator_create(malloc, free);
-    if (!allocator) {
-        ods_log_error("[%s] unable to create zone %s: allocator_create() "
-            "failed", zone_str, name);
-        return NULL;
-    }
-    zone = (zone_type*) allocator_alloc(allocator, sizeof(zone_type));
-    if (!zone) {
-        ods_log_error("[%s] unable to create zone %s: allocator_alloc()"
-            "failed", zone_str, name);
-        allocator_cleanup(allocator);
-        return NULL;
-    }
-    zone->allocator = allocator;
+    CHECKALLOC(zone = (zone_type*) malloc(sizeof(zone_type)));
     /* [start] PS 9218653: Drop trailing dot in domain name */
     if (strlen(name) > 1 && name[strlen(name)-1] == '.') {
         name[strlen(name)-1] = '\0';
     }
     /* [end] PS 9218653 */
-    zone->name = allocator_strdup(allocator, name);
+    zone->name = strdup(name);
     if (!zone->name) {
         ods_log_error("[%s] unable to create zone %s: allocator_strdup() "
             "failed", zone_str, name);
@@ -327,8 +313,6 @@ zone_rollback_dnskeys(zone_type* zone)
             }
         }
     }
-    /* done */
-    return;
 }
 
 
@@ -421,7 +405,6 @@ zone_rollback_nsec3param(zone_type* zone)
             zone->signconf->nsec3params->rr = NULL;
         }
     }
-    return;
 }
 
 
@@ -737,7 +720,6 @@ zone_merge(zone_type* z1, zone_type* z2)
         z1->adoutbound = adtmp;
         adtmp = NULL;
     }
-    return;
 }
 
 
@@ -748,13 +730,11 @@ zone_merge(zone_type* z1, zone_type* z2)
 void
 zone_cleanup(zone_type* zone)
 {
-    allocator_type* allocator;
     lock_basic_type zone_lock;
     lock_basic_type xfr_lock;
     if (!zone) {
         return;
     }
-    allocator = zone->allocator;
     zone_lock = zone->zone_lock;
     xfr_lock = zone->xfr_lock;
     ldns_rdf_deep_free(zone->apex);
@@ -766,16 +746,14 @@ zone_cleanup(zone_type* zone)
     notify_cleanup(zone->notify);
     signconf_cleanup(zone->signconf);
     stats_cleanup(zone->stats);
-    allocator_deallocate(allocator, (void*) zone->notify_command);
-    allocator_deallocate(allocator, (void*) zone->notify_args);
-    allocator_deallocate(allocator, (void*) zone->policy_name);
-    allocator_deallocate(allocator, (void*) zone->signconf_filename);
-    allocator_deallocate(allocator, (void*) zone->name);
-    allocator_deallocate(allocator, (void*) zone);
-    allocator_cleanup(allocator);
+    free(zone->notify_command);
+    free(zone->notify_args);
+    free((void*)zone->policy_name);
+    free((void*)zone->signconf_filename);
+    free((void*)zone->name);
+    free(zone);
     lock_basic_destroy(&xfr_lock);
     lock_basic_destroy(&zone_lock);
-    return;
 }
 
 
@@ -898,8 +876,7 @@ zone_recover2(zone_type* zone)
                     "nsec3parameters error", zone_str, zone->name);
                 goto recover_error2;
             }
-            zone->signconf->nsec3_salt = allocator_strdup(
-                zone->signconf->allocator, salt);
+            zone->signconf->nsec3_salt = strdup(salt);
             free((void*) salt);
             salt = NULL;
             zone->signconf->nsec3params = nsec3params_create(

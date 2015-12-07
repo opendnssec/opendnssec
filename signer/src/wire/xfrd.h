@@ -90,7 +90,6 @@ struct soa_struct {
 typedef struct xfrd_struct xfrd_type;
 struct xfrd_struct
 {
-    allocator_type* allocator;
     void* xfrhandler;
     void* zone;
     lock_basic_type serial_lock; /* mutexes soa serial management */

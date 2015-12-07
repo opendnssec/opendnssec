@@ -53,7 +53,6 @@ test_LDADD = \
 	../../database_version.o ../../database_version_ext.o \
 	../../zone.o ../../zone_ext.o \
 	../../../../common/duration.o \
-	../../../../common/allocator.o \
 	$(BACKEND_LDADD_CUSTOM)
 
 test_LDFLAGS = -no-install \

@@ -69,21 +69,14 @@ worker2str(worker_id type)
  *
  */
 worker_type*
-worker_create(allocator_type* allocator, int num, worker_id type)
+worker_create(int num, worker_id type)
 {
     worker_type* worker;
-    if (!allocator) {
-        return NULL;
-    }
-    worker = (worker_type*) allocator_alloc(allocator, sizeof(worker_type));
-    if (!worker) {
-        return NULL;
-    }
+    CHECKALLOC(worker = (worker_type*) malloc(sizeof(worker_type)));
     ods_log_debug("[%s[%i]] create", worker2str(type), num+1);
     lock_basic_init(&worker->worker_lock);
     lock_basic_set(&worker->worker_alarm);
     lock_basic_lock(&worker->worker_lock);
-    worker->allocator = allocator;
     worker->thread_num = num +1;
     worker->engine = NULL;
     worker->task = NULL;
@@ -114,7 +107,6 @@ worker_working_with(worker_type* worker, task_id with, task_id next,
        worker->thread_num, str, name);
     *what = next;
     *when = time_now();
-    return;
 }
 
 
@@ -145,7 +137,6 @@ worker_clear_jobs(worker_type* worker)
     worker->jobs_completed = 0;
     worker->jobs_failed = 0;
     lock_basic_unlock(&worker->worker_lock);
-    return;
 }
 
 
@@ -185,7 +176,6 @@ worker_queue_rrset(worker_type* worker, fifoq_type* q, rrset_type* rrset)
     lock_basic_lock(&worker->worker_lock);
     worker->jobs_appointed += 1;
     lock_basic_unlock(&worker->worker_lock);
-    return;
 }
 
 
@@ -210,7 +200,6 @@ worker_queue_domain(worker_type* worker, fifoq_type* q, domain_type* domain)
     if (denial && denial->rrset) {
         worker_queue_rrset(worker, q, denial->rrset);
     }
-    return;
 }
 
 
@@ -238,7 +227,6 @@ worker_queue_zone(worker_type* worker, fifoq_type* q, zone_type* zone)
         worker_queue_domain(worker, q, domain);
         node = ldns_rbtree_next(node);
     }
-    return;
 }
 
 
@@ -642,7 +630,6 @@ worker_work(worker_type* worker)
             worker_sleep(worker, timeout);
         }
     }
-    return;
 }
 
 
@@ -746,7 +733,6 @@ worker_drudge(worker_type* worker)
     if (ctx) {
         hsm_destroy_context(ctx);
     }
-    return;
 }
 
 
@@ -769,7 +755,6 @@ worker_start(worker_type* worker)
             ods_log_error("[worker] illegal worker (id=%i)", worker->type);
             break;
     }
-    return;
 }
 
 
@@ -788,7 +773,6 @@ worker_sleep(worker_type* worker, time_t timeout)
             timeout);
         lock_basic_unlock(&worker->worker_lock);
     }
-    return;
 }
 
 
@@ -811,7 +795,6 @@ worker_sleep_unless(worker_type* worker, time_t timeout)
            (long)worker->jobs_failed);
     }
     lock_basic_unlock(&worker->worker_lock);
-    return;
 }
 
 
@@ -831,7 +814,6 @@ worker_wakeup(worker_type* worker)
         worker->sleeping = 0;
         lock_basic_unlock(&worker->worker_lock);
     }
-    return;
 }
 
 
@@ -846,7 +828,6 @@ worker_wait_timeout(lock_basic_type* lock, cond_basic_type* condition,
     lock_basic_lock(lock);
     lock_basic_sleep(condition, lock, timeout);
     lock_basic_unlock(lock);
-    return;
 }
 
 
@@ -858,7 +839,6 @@ void
 worker_wait(lock_basic_type* lock, cond_basic_type* condition)
 {
     worker_wait_timeout(lock, condition, 0);
-    return;
 }
 
 
@@ -872,7 +852,6 @@ worker_notify(lock_basic_type* lock, cond_basic_type* condition)
     lock_basic_lock(lock);
     lock_basic_alarm(condition);
     lock_basic_unlock(lock);
-    return;
 }
 
 
@@ -886,7 +865,6 @@ worker_notify_all(lock_basic_type* lock, cond_basic_type* condition)
     lock_basic_lock(lock);
     lock_basic_broadcast(condition);
     lock_basic_unlock(lock);
-    return;
 }
 
 
@@ -897,17 +875,14 @@ worker_notify_all(lock_basic_type* lock, cond_basic_type* condition)
 void
 worker_cleanup(worker_type* worker)
 {
-    allocator_type* allocator;
     cond_basic_type worker_cond;
     lock_basic_type worker_lock;
     if (!worker) {
         return;
     }
-    allocator = worker->allocator;
     worker_cond = worker->worker_alarm;
     worker_lock = worker->worker_lock;
-    allocator_deallocate(allocator, (void*) worker);
+    free(worker);
     lock_basic_destroy(&worker_lock);
     lock_basic_off(&worker_cond);
-    return;
 }

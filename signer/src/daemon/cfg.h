@@ -47,7 +47,6 @@
  */
 typedef struct engineconfig_struct engineconfig_type;
 struct engineconfig_struct {
-    allocator_type* allocator;
     listener_type* interfaces;
     hsm_repository_t* repositories;
     const char* cfg_filename;
@@ -74,8 +73,7 @@ struct engineconfig_struct {
  * \return engineconfig_type* engine configuration
  *
  */
-engineconfig_type* engine_config(allocator_type* allocator,
-    const char* cfgfile, int cmdline_verbosity);
+engineconfig_type* engine_config(const char* cfgfile, int cmdline_verbosity);
 
 /**
  * Check configuration.

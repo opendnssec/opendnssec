@@ -50,7 +50,6 @@ typedef struct signconf_struct signconf_type;
 struct signconf_struct {
     /* Zone */
     const char* name;
-    allocator_type* allocator;
     int passthrough;
     /* Signatures */
     duration_type* sig_resign_interval;

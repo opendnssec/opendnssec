@@ -100,7 +100,6 @@ lhsm_clear_key_cache(key_type* key)
         hsm_sign_params_free(key->params);
         key->params = NULL;
     }
-    return;
 }
 
 
@@ -122,7 +121,6 @@ lhsm_check_connection(void* engine)
     } else {
         ods_log_debug("[%s] libhsm connection ok", hsm_str);
     }
-    return;
 }
 
 

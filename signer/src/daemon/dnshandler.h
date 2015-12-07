@@ -48,7 +48,6 @@
 
 typedef struct dnshandler_struct dnshandler_type;
 struct dnshandler_struct {
-    allocator_type* allocator;
     ods_thread_type thread_id;
     void* engine;
     listener_type* interfaces;
@@ -66,8 +65,7 @@ struct dnshandler_struct {
  * \return dnshandler_type* created dns handler
  *
  */
-dnshandler_type* dnshandler_create(allocator_type* allocator,
-    listener_type* interfaces);
+dnshandler_type* dnshandler_create(listener_type* interfaces);
 
 /**
  * Start dns handler listener.

@@ -136,5 +136,4 @@ worker_cleanup(worker_type* worker)
 {
     if (!worker) return;
     free(worker);
-    return;
 }

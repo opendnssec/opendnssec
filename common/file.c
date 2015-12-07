@@ -607,7 +607,6 @@ ods_chown(const char* file, uid_t uid, gid_t gid, int getdir)
     } else {
         ods_log_warning("[%s] use of relative path: %s", file_str, file);
     }
-    return;
 }
 
 
@@ -647,5 +646,4 @@ ods_str_list_add(char*** list, char* str)
         }
         (*list)[0] = str;
     }
-    return;
 }
