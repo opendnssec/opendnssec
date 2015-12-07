@@ -60,7 +60,7 @@ static task_type* get_first_task(schedule_type *schedule);
  * there is a rare race condition where the thread just misses this
  * event. Having multiple threads the race condition is not a problem.
  */
-static void
+static void*
 alarm_handler(sig_atomic_t sig)
 {
     switch (sig) {
@@ -74,8 +74,9 @@ alarm_handler(sig_atomic_t sig)
             break;
         default:
             ods_log_debug("[%s] Spurious signal %d received", 
-                schedule_str, sig);
+                schedule_str, (int)sig);
     }
+    return NULL;
 }
 
 /**
@@ -203,7 +204,7 @@ schedule_create()
     /* static condition for alarm. Must be accessible from interrupt */
     schedule_cond = &schedule->schedule_cond;
 
-    action.sa_handler = &alarm_handler;
+    action.sa_handler = (void (*)(int))&alarm_handler;
     sigfillset(&action.sa_mask);
     action.sa_flags = 0;
     sigaction(SIGALRM, &action, NULL);

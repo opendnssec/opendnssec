@@ -50,7 +50,7 @@ void signal_set_engine(struct engine_struct* engine);
  * \param[in] sig signal to handle
  *
  */
-void signal_handler(sig_atomic_t sig);
+void* signal_handler(sig_atomic_t sig);
 
 /**
  * Capture signal.
