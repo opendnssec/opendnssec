@@ -51,7 +51,6 @@ void
 signal_set_engine(void* engine)
 {
     signal_engine = (engine_type*) engine;
-    return;
 }
 
 
@@ -88,7 +87,6 @@ signal_handler(sig_atomic_t sig)
         default:
             break;
     }
-    return;
 }
 
 

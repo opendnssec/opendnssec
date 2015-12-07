@@ -87,5 +87,4 @@ signal_handler(sig_atomic_t sig)
                 signal_str, sig);
             break;
     }
-    return;
 }

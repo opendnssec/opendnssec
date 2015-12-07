@@ -35,6 +35,7 @@
 #include "signer/backup.h"
 #include "signer/keys.h"
 #include "signer/signconf.h"
+#include "allocator.h"
 
 static const char* key_str = "keys";
 
@@ -49,11 +50,10 @@ keylist_create(void* sc)
     signconf_type* signconf = (signconf_type*) sc;
     keylist_type* kl = NULL;
 
-    if (!signconf || !signconf->allocator) {
+    if (!signconf) {
         return NULL;
     }
-    kl = (keylist_type*) allocator_alloc(signconf->allocator,
-        sizeof(keylist_type));
+    CHECKALLOC(kl = (keylist_type*) malloc((sizeof(keylist_type))));
     if (!kl) {
         ods_log_error("[%s] create list failed: allocator_alloc() failed",
             key_str);
@@ -119,16 +119,13 @@ keylist_push(keylist_type* kl, const char* locator,
     uint8_t algorithm, uint32_t flags, int publish, int ksk, int zsk)
 {
     key_type* keys_old = NULL;
-    signconf_type* sc = NULL;
 
     ods_log_assert(kl);
     ods_log_assert(locator);
     ods_log_debug("[%s] add locator %s", key_str, locator);
 
-    sc = (signconf_type*) kl->sc;
     keys_old = kl->keys;
-    kl->keys = (key_type*) allocator_alloc(sc->allocator,
-        (kl->count + 1) * sizeof(key_type));
+    CHECKALLOC(kl->keys = (key_type*) malloc((kl->count + 1) * sizeof(key_type)));
     if (!kl->keys) {
         ods_fatal_exit("[%s] unable to add key: allocator_alloc() failed",
             key_str);
@@ -136,7 +133,7 @@ keylist_push(keylist_type* kl, const char* locator,
     if (keys_old) {
         memcpy(kl->keys, keys_old, (kl->count) * sizeof(key_type));
     }
-    allocator_deallocate(sc->allocator, (void*) keys_old);
+    free(keys_old);
     kl->count++;
     kl->keys[kl->count -1].locator = locator;
     kl->keys[kl->count -1].algorithm = algorithm;
@@ -178,7 +175,6 @@ key_print(FILE* fd, key_type* key)
     }
     fprintf(fd, "\t\t\t</Key>\n");
     fprintf(fd, "\n");
-    return;
 }
 
 
@@ -195,7 +191,6 @@ key_log(key_type* key, const char* name)
     ods_log_debug("[%s] zone %s key: LOCATOR[%s] FLAGS[%u] ALGORITHM[%u] "
         "KSK[%i] ZSK[%i] PUBLISH[%i]", key_str, name?name:"(null)", key->locator,
         key->flags, key->algorithm, key->ksk, key->zsk, key->publish);
-    return;
 }
 
 
@@ -213,7 +208,6 @@ keylist_print(FILE* fd, keylist_type* kl)
     for (i=0; i < kl->count; i++) {
         key_print(fd, &kl->keys[i]);
     }
-    return;
 }
 
 
@@ -231,7 +225,6 @@ keylist_log(keylist_type* kl, const char* name)
     for (i=0; i < kl->count; i++) {
         key_log(&kl->keys[i], name);
     }
-    return;
 }
 
 
@@ -249,7 +242,6 @@ key_delfunc(key_type* key)
     free(key->hsmkey);
     hsm_sign_params_free(key->params);
     free((void*) key->locator);
-    return;
 }
 
 
@@ -261,16 +253,14 @@ void
 keylist_cleanup(keylist_type* kl)
 {
     uint16_t i = 0;
-    signconf_type* sc = NULL;
     if (!kl) {
         return;
     }
     for (i=0; i < kl->count; i++) {
         key_delfunc(&kl->keys[i]);
     }
-    sc = (signconf_type*) kl->sc;
-    allocator_deallocate(sc->allocator, (void*) kl->keys);
-    allocator_deallocate(sc->allocator, (void*) kl);
+    free(kl->keys);
+    free(kl);
 }
 
 
@@ -293,7 +283,6 @@ key_backup(FILE* fd, key_type* key, const char* version)
         }
         fprintf(fd, ";;Keydone\n");
     }
-    return;
 }
 
 
@@ -350,5 +339,4 @@ keylist_backup(FILE* fd, keylist_type* kl, const char* version)
     for (i=0; i < kl->count; i++) {
         key_backup(fd, &kl->keys[i], version);
     }
-    return;
 }

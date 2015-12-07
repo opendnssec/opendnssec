@@ -48,12 +48,10 @@ denial_type*
 denial_create(void* zoneptr, ldns_rdf* dname)
 {
     denial_type* denial = NULL;
-    zone_type* zone = (zone_type*) zoneptr;
     if (!dname || !zoneptr) {
         return NULL;
     }
-    denial = (denial_type*) allocator_alloc(
-        zone->allocator, sizeof(denial_type));
+    CHECKALLOC(denial = (denial_type*) malloc(sizeof(denial_type)));
     if (!denial) {
         ods_log_error("[%s] unable to create denial: allocator_alloc() "
             "failed", denial_str);
@@ -101,7 +99,6 @@ denial_create_bitmap(denial_type* denial, ldns_rr_type types[],
         }
         rrset = rrset->next;
     }
-    return;
 }
 
 
@@ -251,7 +248,6 @@ denial_diff(denial_type* denial)
     if (denial && denial->rrset) {
         rrset_diff(denial->rrset, 0, 0);
     }
-    return;
 }
 
 
@@ -288,7 +284,6 @@ denial_add_rr(denial_type* denial, ldns_rr* rr)
     denial_diff(denial);
     denial->bitmap_changed = 0;
     denial->nxt_changed = 0;
-    return;
 }
 
 
@@ -325,7 +320,6 @@ denial_nsecify(denial_type* denial, denial_type* nxt, uint32_t* num_added)
             (*num_added)++;
         }
     }
-    return;
 }
 
 
@@ -342,12 +336,9 @@ denial_print(FILE* fd, denial_type* denial, ods_status* status)
                 denial_str);
             *status = ODS_STATUS_ASSERT_ERR;
         }
-        return;
-    }
-    if (denial->rrset) {
+    } else if (denial->rrset) {
         rrset_print(fd, denial->rrset, 0, status);
     }
-    return;
 }
 
 
@@ -358,13 +349,10 @@ denial_print(FILE* fd, denial_type* denial, ods_status* status)
 void
 denial_cleanup(denial_type* denial)
 {
-    zone_type* zone = NULL;
     if (!denial) {
         return;
     }
-    zone = (zone_type*) denial->zone;
     ldns_rdf_deep_free(denial->dname);
     rrset_cleanup(denial->rrset);
-    allocator_deallocate(zone->allocator, (void*) denial);
-    return;
+    free(denial);
 }

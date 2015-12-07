@@ -240,7 +240,7 @@ parse_conf_repositories(const char* cfgfile)
  *
  */
 listener_type*
-parse_conf_listener(allocator_type* allocator, const char* cfgfile)
+parse_conf_listener(const char* cfgfile)
 {
     listener_type* listener = NULL;
     interface_type* interface = NULL;
@@ -253,7 +253,6 @@ parse_conf_listener(allocator_type* allocator, const char* cfgfile)
     xmlNode* curNode = NULL;
     xmlChar* xexpr = NULL;
 
-    ods_log_assert(allocator);
     ods_log_assert(cfgfile);
 
     /* Load XML document */
@@ -282,7 +281,7 @@ parse_conf_listener(allocator_type* allocator, const char* cfgfile)
         return NULL;
     }
     /* Parse interfaces */
-    listener = listener_create(allocator);
+    listener = listener_create();
     ods_log_assert(listener);
     if (xpathObj->nodesetval && xpathObj->nodesetval->nodeNr > 0) {
         for (i = 0; i < xpathObj->nodesetval->nodeNr; i++) {
@@ -396,7 +395,7 @@ parse_conf_string(const char* cfgfile, const char* expr, int required)
  * */
 
 const char*
-parse_conf_zonelist_filename(allocator_type* allocator, const char* cfgfile)
+parse_conf_zonelist_filename(const char* cfgfile)
 {
     int lwd = 0;
     int lzl = 0;
@@ -415,13 +414,13 @@ parse_conf_zonelist_filename(allocator_type* allocator, const char* cfgfile)
     lwd = strlen(str);
     lzl = strlen(OPENDNSSEC_ENFORCER_ZONELIST);
     if (lwd>0 && strncmp(str + (lwd-1), "/", 1) != 0) {
-        dup = allocator_alloc(allocator, sizeof(char)*(lwd+lzl+2));
+        CHECKALLOC(dup = malloc(sizeof(char)*(lwd+lzl+2)));
         memcpy(dup, str, sizeof(char)*(lwd+1));
         strlcat(dup, "/", sizeof(char)*(lwd+2));
         strlcat(dup, OPENDNSSEC_ENFORCER_ZONELIST, sizeof(char)*(lwd+lzl+2));
         lwd += (lzl+1);
     } else {
-        dup = allocator_alloc(allocator, sizeof(char)*(lwd+lzl+1));
+        CHECKALLOC(dup = malloc(sizeof(char)*(lwd+lzl+1)));
         memcpy(dup, str, sizeof(char)*(lwd+1));
         strlcat(dup, OPENDNSSEC_ENFORCER_ZONELIST, sizeof(char)*(lwd+lzl+1));
         lwd += (lzl+1);
@@ -435,7 +434,7 @@ parse_conf_zonelist_filename(allocator_type* allocator, const char* cfgfile)
 
 
 const char*
-parse_conf_log_filename(allocator_type* allocator, const char* cfgfile)
+parse_conf_log_filename(const char* cfgfile)
 {
     const char* dup = NULL;
     const char* str = parse_conf_string(cfgfile,
@@ -447,7 +446,7 @@ parse_conf_log_filename(allocator_type* allocator, const char* cfgfile)
             0);
     }
     if (str) {
-        dup = allocator_strdup(allocator, str);
+        dup = strdup(str);
         free((void*)str);
     }
     return dup; /* NULL, Facility or Filename */
@@ -455,7 +454,7 @@ parse_conf_log_filename(allocator_type* allocator, const char* cfgfile)
 
 
 const char*
-parse_conf_pid_filename(allocator_type* allocator, const char* cfgfile)
+parse_conf_pid_filename(const char* cfgfile)
 {
     const char* dup = NULL;
     const char* str = parse_conf_string(
@@ -464,17 +463,17 @@ parse_conf_pid_filename(allocator_type* allocator, const char* cfgfile)
         0);
 
     if (str) {
-        dup = allocator_strdup(allocator, str);
+        dup = strdup(str);
         free((void*)str);
     } else {
-        dup = allocator_strdup(allocator, ODS_SE_PIDFILE);
+        dup = strdup(ODS_SE_PIDFILE);
     }
     return dup;
 }
 
 
 const char*
-parse_conf_notify_command(allocator_type* allocator, const char* cfgfile)
+parse_conf_notify_command(const char* cfgfile)
 {
     const char* dup = NULL;
     const char* str = parse_conf_string(
@@ -483,7 +482,7 @@ parse_conf_notify_command(allocator_type* allocator, const char* cfgfile)
         0);
 
     if (str) {
-        dup = allocator_strdup(allocator, str);
+        dup = strdup(str);
         free((void*)str);
     }
     return dup;
@@ -491,7 +490,7 @@ parse_conf_notify_command(allocator_type* allocator, const char* cfgfile)
 
 
 const char*
-parse_conf_clisock_filename(allocator_type* allocator, const char* cfgfile)
+parse_conf_clisock_filename(const char* cfgfile)
 {
     const char* dup = NULL;
     const char* str = parse_conf_string(
@@ -500,17 +499,17 @@ parse_conf_clisock_filename(allocator_type* allocator, const char* cfgfile)
         0);
 
     if (str) {
-        dup = allocator_strdup(allocator, str);
+        dup = strdup(str);
         free((void*)str);
     } else {
-        dup = allocator_strdup(allocator, ODS_SE_SOCKFILE);
+        dup = strdup(ODS_SE_SOCKFILE);
     }
     return dup;
 }
 
 
 const char*
-parse_conf_working_dir(allocator_type* allocator, const char* cfgfile)
+parse_conf_working_dir(const char* cfgfile)
 {
     const char* dup = NULL;
     const char* str = parse_conf_string(
@@ -519,10 +518,10 @@ parse_conf_working_dir(allocator_type* allocator, const char* cfgfile)
         0);
 
     if (str) {
-        dup = allocator_strdup(allocator, str);
+        dup = strdup(str);
         free((void*)str);
     } else {
-        dup = allocator_strdup(allocator, ODS_SE_WORKDIR);
+        dup = strdup(ODS_SE_WORKDIR);
     }
     ods_log_assert(dup);
     return dup;
@@ -530,7 +529,7 @@ parse_conf_working_dir(allocator_type* allocator, const char* cfgfile)
 
 
 const char*
-parse_conf_username(allocator_type* allocator, const char* cfgfile)
+parse_conf_username(const char* cfgfile)
 {
     const char* dup = NULL;
     const char* str = parse_conf_string(
@@ -539,7 +538,7 @@ parse_conf_username(allocator_type* allocator, const char* cfgfile)
         0);
 
     if (str) {
-        dup = allocator_strdup(allocator, str);
+        dup = strdup(str);
         free((void*)str);
     }
     return dup;
@@ -547,7 +546,7 @@ parse_conf_username(allocator_type* allocator, const char* cfgfile)
 
 
 const char*
-parse_conf_group(allocator_type* allocator, const char* cfgfile)
+parse_conf_group(const char* cfgfile)
 {
     const char* dup = NULL;
     const char* str = parse_conf_string(
@@ -556,7 +555,7 @@ parse_conf_group(allocator_type* allocator, const char* cfgfile)
         0);
 
     if (str) {
-        dup = allocator_strdup(allocator, str);
+        dup = strdup(str);
         free((void*)str);
     }
     return dup;
@@ -564,7 +563,7 @@ parse_conf_group(allocator_type* allocator, const char* cfgfile)
 
 
 const char*
-parse_conf_chroot(allocator_type* allocator, const char* cfgfile)
+parse_conf_chroot(const char* cfgfile)
 {
     const char* dup = NULL;
     const char* str = parse_conf_string(
@@ -573,7 +572,7 @@ parse_conf_chroot(allocator_type* allocator, const char* cfgfile)
         0);
 
     if (str) {
-        dup = allocator_strdup(allocator, str);
+        dup = strdup(str);
         free((void*)str);
     }
     return dup;

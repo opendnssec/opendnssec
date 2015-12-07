@@ -52,7 +52,6 @@ typedef enum task_id_enum task_id;
  */
 typedef struct task_struct task_type;
 struct task_struct {
-    allocator_type* allocator;
     task_id what;
     task_id interrupt;
     task_id halted;

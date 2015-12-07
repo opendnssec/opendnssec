@@ -47,7 +47,6 @@ typedef enum worker_enum worker_id;
 
 typedef struct worker_struct worker_type;
 struct worker_struct {
-    allocator_type* allocator;
     int thread_num;
     ods_thread_type thread_id;
     void* engine;
@@ -73,8 +72,7 @@ struct worker_struct {
  * \return worker_type* created worker
  *
  */
-worker_type* worker_create(allocator_type* allocator, int num,
-    worker_id type);
+worker_type* worker_create(int num, worker_id type);
 
 /**
  * Start working.

@@ -42,21 +42,14 @@ static const char* tcp_str = "tcp";
  *
  */
 tcp_conn_type*
-tcp_conn_create(allocator_type* allocator)
+tcp_conn_create()
 {
     tcp_conn_type* tcp_conn = NULL;
-    if (!allocator) {
-        return NULL;
-    }
-    tcp_conn = (tcp_conn_type*) allocator_alloc(allocator,
-        sizeof(tcp_conn_type));
-    if (!tcp_conn) {
-        return NULL;
-    }
+    CHECKALLOC(tcp_conn = (tcp_conn_type*) malloc(sizeof(tcp_conn_type)));
     memset(tcp_conn, 0, sizeof(tcp_conn_type));
-    tcp_conn->packet = buffer_create(allocator, PACKET_BUFFER_SIZE);
+    tcp_conn->packet = buffer_create(PACKET_BUFFER_SIZE);
     if (!tcp_conn->packet) {
-        allocator_deallocate(allocator, (void*)tcp_conn);
+        free(tcp_conn);
         return NULL;
     }
     tcp_conn->msglen = 0;
@@ -71,15 +64,15 @@ tcp_conn_create(allocator_type* allocator)
  *
  */
 tcp_set_type*
-tcp_set_create(allocator_type* allocator)
+tcp_set_create()
 {
     size_t i = 0;
     tcp_set_type* tcp_set = NULL;
-    tcp_set = (tcp_set_type*) allocator_alloc(allocator, sizeof(tcp_set_type));
+    CHECKALLOC(tcp_set = (tcp_set_type*) malloc(sizeof(tcp_set_type)));
     memset(tcp_set, 0, sizeof(tcp_set_type));
     tcp_set->tcp_count = 0;
     for (i=0; i < TCPSET_MAX; i++) {
-        tcp_set->tcp_conn[i] = tcp_conn_create(allocator);
+        tcp_set->tcp_conn[i] = tcp_conn_create();
     }
     tcp_set->tcp_waiting_first = NULL;
     tcp_set->tcp_waiting_last = NULL;
@@ -99,7 +92,6 @@ tcp_conn_ready(tcp_conn_type* tcp)
     tcp->total_bytes = 0;
     tcp->msglen = 0;
     buffer_clear(tcp->packet);
-    return;
 }
 
 
@@ -233,14 +225,13 @@ tcp_conn_write(tcp_conn_type* tcp)
  *
  */
 static void
-tcp_conn_cleanup(tcp_conn_type* conn, allocator_type* allocator)
+tcp_conn_cleanup(tcp_conn_type* conn)
 {
-    if (!conn || !allocator) {
+    if (!conn) {
         return;
     }
-    buffer_cleanup(conn->packet, allocator);
-    allocator_deallocate(allocator, (void*) conn);
-    return;
+    buffer_cleanup(conn->packet);
+    free(conn);
 }
 
 /**
@@ -248,15 +239,14 @@ tcp_conn_cleanup(tcp_conn_type* conn, allocator_type* allocator)
  *
  */
 void
-tcp_set_cleanup(tcp_set_type* set, allocator_type* allocator)
+tcp_set_cleanup(tcp_set_type* set)
 {
     size_t i = 0;
-    if (!set || !allocator) {
+    if (!set) {
         return;
     }
     for (i=0; i < TCPSET_MAX; i++) {
-        tcp_conn_cleanup(set->tcp_conn[i], allocator);
+        tcp_conn_cleanup(set->tcp_conn[i]);
     }
-    allocator_deallocate(allocator, (void*) set);
-    return;
+    free(set);
 }

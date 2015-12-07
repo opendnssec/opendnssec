@@ -531,7 +531,6 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
 
     ods_log_debug("[%s] done", module_str);
     cmdhandler->engine->cmdhandler_done = 1;
-    return;
 }
 
 /**

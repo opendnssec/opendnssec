@@ -37,10 +37,8 @@
 #include "wire/tsig-openssl.h"
 
 static const char* tsig_str = "tsig-ssl";
-/** allocator */
-static allocator_type* tsig_allocator = NULL;
 /** helper funcgtions */
-static void *create_context(allocator_type* allocator);
+static void *create_context();
 static void init_context(void *context,
                          tsig_algo_type *algorithm,
                          tsig_key_type *key);
@@ -60,12 +58,10 @@ static tsig_cleanup_table_type* tsig_cleanup_table = NULL;
  *
  */
 static int
-tsig_openssl_init_algorithm(allocator_type* allocator,
-        const char* digest, const char* name, const char* wireformat)
+tsig_openssl_init_algorithm(const char* digest, const char* name, const char* wireformat)
 {
     tsig_algo_type* algorithm = NULL;
     const EVP_MD *hmac_algorithm = NULL;
-    ods_log_assert(allocator);
     ods_log_assert(digest);
     ods_log_assert(name);
     ods_log_assert(wireformat);
@@ -74,8 +70,7 @@ tsig_openssl_init_algorithm(allocator_type* allocator,
         ods_log_error("[%s] %s digest not available", tsig_str, digest);
         return 0;
     }
-    algorithm = (tsig_algo_type *) allocator_alloc(allocator,
-        sizeof(tsig_algo_type));
+    CHECKALLOC(algorithm = (tsig_algo_type *) malloc(sizeof(tsig_algo_type)));
     algorithm->txt_name = name;
     algorithm->wf_name = ldns_dname_new_frm_str(wireformat);
     if (!algorithm->wf_name) {
@@ -99,19 +94,18 @@ tsig_openssl_init_algorithm(allocator_type* allocator,
  *
  */
 ods_status
-tsig_handler_openssl_init(allocator_type* allocator)
+tsig_handler_openssl_init()
 {
     tsig_cleanup_table = NULL;
-    tsig_allocator = allocator;
     OpenSSL_add_all_digests();
     ods_log_debug("[%s] add md5", tsig_str);
-    if (!tsig_openssl_init_algorithm(allocator, "md5", "hmac-md5",
+    if (!tsig_openssl_init_algorithm("md5", "hmac-md5",
         "hmac-md5.sig-alg.reg.int.")) {
         return ODS_STATUS_ERR;
     }
 #ifdef HAVE_EVP_SHA1
     ods_log_debug("[%s] add sha1", tsig_str);
-    if (!tsig_openssl_init_algorithm(allocator, "sha1", "hmac-sha1",
+    if (!tsig_openssl_init_algorithm("sha1", "hmac-sha1",
         "hmac-sha1.")) {
         return ODS_STATUS_ERR;
     }
@@ -119,7 +113,7 @@ tsig_handler_openssl_init(allocator_type* allocator)
 
 #ifdef HAVE_EVP_SHA256
     ods_log_debug("[%s] add sha256", tsig_str);
-    if (!tsig_openssl_init_algorithm(allocator, "sha256", "hmac-sha256",
+    if (!tsig_openssl_init_algorithm("sha256", "hmac-sha256",
         "hmac-sha256.")) {
         return ODS_STATUS_ERR;
     }
@@ -132,7 +126,6 @@ cleanup_context(void *data)
 {
     HMAC_CTX* context = (HMAC_CTX*) data;
     HMAC_CTX_cleanup(context);
-    return;
 }
 
 static void
@@ -142,21 +135,17 @@ context_add_cleanup(void* context)
     if (!context) {
         return;
     }
-    entry = (tsig_cleanup_table_type *) allocator_alloc(tsig_allocator,
-        sizeof(tsig_cleanup_table_type));
-    if (entry) {
-        entry->cleanup = context;
-        entry->next = tsig_cleanup_table;
-        tsig_cleanup_table = entry;
-    }
-    return;
+    CHECKALLOC(entry = (tsig_cleanup_table_type *) malloc(sizeof(tsig_cleanup_table_type)));
+    entry->cleanup = context;
+    entry->next = tsig_cleanup_table;
+    tsig_cleanup_table = entry;
 }
 
 static void*
-create_context(allocator_type* allocator)
+create_context()
 {
-    HMAC_CTX* context = (HMAC_CTX*) allocator_alloc(allocator,
-        sizeof(HMAC_CTX));
+    HMAC_CTX* context;
+    CHECKALLOC(context = (HMAC_CTX*) malloc(sizeof(HMAC_CTX)));
     HMAC_CTX_init(context);
     context_add_cleanup(context);
     return context;
@@ -168,7 +157,6 @@ init_context(void* context, tsig_algo_type *algorithm, tsig_key_type *key)
     HMAC_CTX* ctx = (HMAC_CTX*) context;
     const EVP_MD* md = (const EVP_MD*) algorithm->data;
     HMAC_Init_ex(ctx, key->data, key->size, md, NULL);
-    return;
 }
 
 static void
@@ -176,7 +164,6 @@ update(void* context, const void* data, size_t size)
 {
     HMAC_CTX* ctx = (HMAC_CTX*) context;
     HMAC_Update(ctx, (unsigned char*) data, (int) size);
-    return;
 }
 
 static void
@@ -186,7 +173,6 @@ final(void* context, uint8_t* digest, size_t* size)
     unsigned len = (unsigned) *size;
     HMAC_Final(ctx, digest, &len);
     *size = (size_t) len;
-    return;
 }
 
 
@@ -204,7 +190,6 @@ tsig_handler_openssl_finalize(void)
         entry = entry->next;
     }
     EVP_cleanup();
-    return;
 }
 
 #endif /* HAVE_SSL */

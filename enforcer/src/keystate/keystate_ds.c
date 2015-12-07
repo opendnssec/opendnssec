@@ -398,7 +398,7 @@ change_keys_from_to(db_connection_t *dbconn, int sockfd,
 
 static int
 get_args(int sockfd, const char *cmd, ssize_t n, const char **zone,
-	const char **cka_id, int *keytag, char *buf)
+	const char **cka_id, int *keytag, int *all, char *buf)
 {
 
 	#define NARGV 6
@@ -427,6 +427,7 @@ get_args(int sockfd, const char *cmd, ssize_t n, const char **zone,
 	(void)ods_find_arg_and_param(&argc, argv, "zone", "z", zone);
 	(void)ods_find_arg_and_param(&argc, argv, "cka_id", "k", cka_id);
 	(void)ods_find_arg_and_param(&argc, argv, "keytag", "x", &tag);
+	*all = ods_find_arg(&argc, argv, "all", "a") > -1 ? 1 : 0;
 
 	if (argc > 2) {
 		client_printf_err(sockfd, "Unknown arguments\n");
@@ -457,14 +458,21 @@ run_ds_cmd(int sockfd, const char *cmd, ssize_t n,
 	hsm_key_t* hsmkey = NULL;
 	int ret;
 	char buf[ODS_SE_MAXLINE];
-	zone_t* zone;
+	zone_t* zone = NULL;
+	int all;
 
-	if (get_args(sockfd, cmd, n, &zonename, &cka_id, &keytag, buf)) {
+	if (get_args(sockfd, cmd, n, &zonename, &cka_id, &keytag, &all, buf)) {
 		return -1;
 	}
-	
-	if (!zonename && !cka_id && keytag == -1) {
+
+	if (!all && !zonename && !cka_id && keytag == -1) {
 		return ds_list_keys(dbconn, sockfd, state_from);
+	}
+
+	if (all && zonename) {
+		ods_log_warning ("[%s] Error: Unable to use --zone and --all together", module_str);
+		client_printf_err(sockfd, "Error: Unable to use --zone and --all together\n");
+		return -1;
 	}
 
 	if (zonename && (!(zone = zone_new(dbconn)) || zone_get_by_name(zone, zonename))) {
@@ -476,19 +484,18 @@ run_ds_cmd(int sockfd, const char *cmd, ssize_t n,
 	}
 	zone_free(zone);
 	zone = NULL;
-
         if (!zonename && (keytag != -1 || cka_id)) {
                 ods_log_warning ("[%s] Error: expected --zone <zone>", module_str);
                 client_printf_err(sockfd, "Error: expected --zone <zone>\n");
                 return -1;
         }
 
-	if (!(zonename && ((cka_id && keytag == -1) || (!cka_id && keytag != -1))))
+	if (!(zonename && ((cka_id && keytag == -1) || (!cka_id && keytag != -1))) && !all)
 	{
 		ods_log_warning("[%s] expected --zone and either --cka_id or "
-			"--keytag option", module_str);
+			"--keytag option or expected --all", module_str);
 		client_printf_err(sockfd, "expected --zone and either --cka_id or "
-			"--keytag option.\n");
+			"--keytag option or expected --all.\n");
 		return -1;
 	}
 	
@@ -497,7 +504,6 @@ run_ds_cmd(int sockfd, const char *cmd, ssize_t n,
 			client_printf_err(sockfd, "CKA_ID %s can not be found!\n", cka_id);
 		}
 	}
-
 	ret = change_keys_from_to(dbconn, sockfd, zonename, hsmkey, keytag,
 		state_from, state_to, engine);
 	hsm_key_free(hsmkey);

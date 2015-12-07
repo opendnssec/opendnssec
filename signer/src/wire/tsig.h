@@ -93,7 +93,7 @@ struct tsig_algo_struct {
     size_t max_digest_size;
     const void* data;
     /* create a new HMAC context */
-    void*(*hmac_create)(allocator_type* allocator);
+    void*(*hmac_create)(void);
     /* initialize an HMAC context */
     void(*hmac_init)(void* context, tsig_algo_type* algo,
         tsig_key_type* key);
@@ -122,7 +122,6 @@ struct tsig_struct {
  */
 typedef struct tsig_rr_struct tsig_rr_type;
 struct tsig_rr_struct {
-    allocator_type* allocator;
     tsig_status status;
     size_t position;
     size_t response_count;
@@ -152,7 +151,7 @@ struct tsig_rr_struct {
  * \return ods_status status
  *
  */
-ods_status tsig_handler_init(allocator_type* allocator);
+ods_status tsig_handler_init(void);
 
 /**
  * Clean up TSIG handler.
@@ -183,7 +182,7 @@ void tsig_handler_add_algo(tsig_algo_type* algo);
  * \return tsig_type* TSIG
  *
  */
-tsig_type* tsig_create(allocator_type* allocator, char* name, char* algo,
+tsig_type* tsig_create(char* name, char* algo,
     char* secret);
 
 /**
@@ -209,7 +208,7 @@ tsig_algo_type* tsig_lookup_algo(const char* name);
  * \return tsig_rr_type* TSIG RR
  *
  */
-tsig_rr_type* tsig_rr_create(allocator_type* allocator);
+tsig_rr_type* tsig_rr_create(void);
 
 /**
  * Reset TSIG RR.
@@ -338,6 +337,6 @@ void tsig_rr_cleanup(tsig_rr_type* trr);
  * \param[in] allocator memory allocator
  *
  */
-void tsig_cleanup(tsig_type* tsig, allocator_type* allocator);
+void tsig_cleanup(tsig_type* tsig);
 
 #endif /* WIRE_TSIG_H */

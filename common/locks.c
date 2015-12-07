@@ -74,9 +74,7 @@ ods_thr_fork_create(ods_thread_type* thr, void* (*func)(void*), void* arg)
                 strerror(errno));
         default: /* main */
             *thr = (ods_thread_type)pid;
-            return;
     }
-    return;
 }
 
 
@@ -97,7 +95,6 @@ void ods_thr_fork_wait(ods_thread_type thread)
         ods_log_warning("[%s] process %d abnormal exit with status %d",
              lock_str, (int)thread, status);
     }
-    return;
 }
 #else /* defined(HAVE_PTHREAD) */
 

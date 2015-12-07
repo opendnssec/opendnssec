@@ -124,7 +124,7 @@ struct buffer_struct {
  * \return buffer_type* buffer
  *
  */
-buffer_type* buffer_create(allocator_type* allocator, size_t capacity);
+buffer_type* buffer_create(size_t capacity);
 
 /**
  * Create a buffer with the specified data.
@@ -653,7 +653,7 @@ void buffer_pkt_print(FILE* fd, buffer_type* buffer);
  * \param[in] allocator memory allocator
  *
  */
-void buffer_cleanup(buffer_type* buffer, allocator_type* allocator);
+void buffer_cleanup(buffer_type* buffer);
 
 /** UTIL **/
 

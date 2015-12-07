@@ -95,7 +95,6 @@ stats_log(stats_type* stats, const char* name, uint32_t serial,
         (unsigned long)stats->nsec_time, stats->sig_count, stats->sig_reuse,
         (unsigned long)stats->sig_time, avsign,
         (uint32_t) (stats->end_time - stats->start_time));
-    return;
 }
 
 
@@ -108,5 +107,4 @@ stats_cleanup(stats_type* stats)
 {
     lock_basic_destroy(&stats->stats_lock);
     free((void*) stats);
-    return;
 }

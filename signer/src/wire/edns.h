@@ -74,7 +74,6 @@ typedef enum edns_status_enum edns_status;
  */
 typedef struct edns_rr_struct edns_rr_type;
 struct edns_rr_struct {
-    allocator_type* allocator;
     edns_status status;
     size_t position;
     size_t maxlen;
@@ -96,7 +95,7 @@ void edns_init(edns_data_type* data, uint16_t max_length);
  * \return edns_rr_type* EDNS RR.
  *
  */
-edns_rr_type* edns_rr_create(allocator_type* allocator);
+edns_rr_type* edns_rr_create(void);
 
 
 /**
