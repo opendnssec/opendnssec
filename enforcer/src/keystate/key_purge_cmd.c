@@ -80,6 +80,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
         if ((!zone_name && !policy_name) || (zone_name && policy_name)) {
                 ods_log_error("[%s] expected either --zone or --policy", module_str);
                 client_printf_err(sockfd, "expected either --zone or --policy \n");
+		free(buf);
                 return -1;
         }
 	
