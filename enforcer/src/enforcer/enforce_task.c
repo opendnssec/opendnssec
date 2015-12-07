@@ -333,7 +333,7 @@ flush_enforce_task(engine_type *engine, bool enforce_all)
 		return 1;
 	}
 
-	enforcer_context.enforce_all = 1;
+	enforcer_context.enforce_all = enforce_all;
 
 	if (!schedule_flush_type(engine->taskq, what_id)) {
 		status = schedule_task(engine->taskq, enforce_task(engine, enforce_all));
