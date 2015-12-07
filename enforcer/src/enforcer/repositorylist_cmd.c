@@ -50,7 +50,6 @@ perform_repositorylist(int sockfd)
 	char *backup = NULL;
 	char *repository = NULL;
 	int i;
-	(void)engine;
 
 
 	xmlChar *xexpr = (unsigned char *)"//Configuration/RepositoryList/Repository";	
@@ -128,7 +127,7 @@ static int
 run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	db_connection_t *dbconn)
 {
-	(void)cmd; (void)n, (void)dbconn;
+	(void)cmd; (void)n; (void)dbconn; (void)engine;
 	ods_log_debug("[%s] %s command", module_str, 
 		repositorylist_funcblock()->cmdname);
 
