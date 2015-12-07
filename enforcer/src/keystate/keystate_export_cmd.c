@@ -178,6 +178,7 @@ perform_keystate_export(int sockfd, db_connection_t *dbconn,
 			return 1;
 		}
 		db_clause_list_free(clause_list);
+		zone_free(zone);
 	}
 	if (all && !(key_list = key_data_list_new_get(dbconn))) {
 		client_printf_err(sockfd, "Unable to get list of keys, memory allocation or database error!\n");
@@ -207,7 +208,6 @@ perform_keystate_export(int sockfd, db_connection_t *dbconn,
 		if (all && (!(zone = zone_new (dbconn)) || (zone_get_by_id(zone, key_data_zone_id(key))) || !(azonename = zone_name(zone)))) {
                         ods_log_error("[%s] Error fetching from database", module_str);
                         client_printf_err(sockfd, "Error fetching from database \n");
-			zone_free(zone);
 		}
 
                 /* check return code TODO */	
@@ -222,8 +222,9 @@ perform_keystate_export(int sockfd, db_connection_t *dbconn,
 			client_printf_err(sockfd, "Error fetching from database \n");
 		}
 		key_data_free(key);
-		free(azonename);
-		azonename = NULL;
+
+		if (all)
+			zone_free(zone);
 	}
 	key_data_list_free(key_list);
 	return 0;
