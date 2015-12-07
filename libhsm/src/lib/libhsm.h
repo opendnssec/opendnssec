@@ -235,7 +235,7 @@ hsm_check_pin(unsigned int id, const char *repository, unsigned int mode);
     with the HSM.
 */
 int
-hsm_logout_pin();
+hsm_logout_pin(void);
 
 
 /*! Close HSM library
@@ -245,7 +245,7 @@ hsm_logout_pin();
     called.
 */
 int
-hsm_close();
+hsm_close(void);
 
 
 /*! Create new HSM context

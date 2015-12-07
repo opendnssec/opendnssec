@@ -77,7 +77,6 @@ log_dname(ldns_rdf *rdf, const char* pre, int level)
         ods_log_deeebug("[%s] %s: %s", dname_str, pre?pre:"", str);
     }
     free((void*)str);
-    return;
 }
 
 
@@ -89,22 +88,15 @@ domain_type*
 domain_create(void* zoneptr, ldns_rdf* dname)
 {
     domain_type* domain = NULL;
-    zone_type* zone = (zone_type*) zoneptr;
     if (!dname || !zoneptr) {
         return NULL;
     }
-    domain = (domain_type*) allocator_alloc(
-        zone->allocator, sizeof(domain_type));
-    if (!domain) {
-        ods_log_error("[%s] unable to create domain: allocator_alloc() "
-            "failed", dname_str);
-        return NULL;
-    }
+    CHECKALLOC(domain = (domain_type*) malloc(sizeof(domain_type)));
     domain->dname = ldns_rdf_clone(dname);
     if (!domain->dname) {
         ods_log_error("[%s] unable to create domain: ldns_rdf_clone() "
             "failed", dname_str);
-        allocator_deallocate(zone->allocator, domain);
+        free(domain);
         return NULL;
     }
     domain->zone = zoneptr;
@@ -208,7 +200,6 @@ domain_add_rrset(domain_type* domain, rrset_type* rrset)
         denial = (denial_type*) domain->denial;
         denial->bitmap_changed = 1;
     }
-    return;
 }
 
 
@@ -319,7 +310,6 @@ domain_diff(domain_type* domain, unsigned is_ixfr, unsigned more_coming)
             rrset = rrset->next;
         }
     }
-    return;
 }
 
 
@@ -393,7 +383,6 @@ domain_rollback(domain_type* domain, int keepsc)
             rrset = rrset->next;
         }
     }
-    return;
 }
 
 
@@ -549,7 +538,6 @@ domain_print(FILE* fd, domain_type* domain, ods_status* status)
     if (domain->denial) {
         denial_print(fd, (denial_type*) domain->denial, status);
     }
-    return;
 }
 
 
@@ -560,15 +548,12 @@ domain_print(FILE* fd, domain_type* domain, ods_status* status)
 void
 domain_cleanup(domain_type* domain)
 {
-    zone_type* zone = NULL;
     if (!domain) {
         return;
     }
-    zone = (zone_type*) domain->zone;
     ldns_rdf_deep_free(domain->dname);
     rrset_cleanup(domain->rrsets);
-    allocator_deallocate(zone->allocator, (void*)domain);
-    return;
+    free(domain);
 }
 
 
@@ -606,5 +591,4 @@ domain_backup2(FILE* fd, domain_type* domain, int sigs)
         }
         rrset = rrset->next;
     }
-    return;
 }

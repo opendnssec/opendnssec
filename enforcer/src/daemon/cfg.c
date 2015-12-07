@@ -265,7 +265,6 @@ engine_config_print(FILE* out, engineconfig_type* config)
            - clisock_filename
          */
     }
-    return;
 }
 
 void
@@ -312,6 +311,5 @@ engine_config_cleanup(engineconfig_type* config)
 	engine_config_freehsms(config->hsm);
 	config->hsm = NULL;
     free(config);
-    return;
 }
 

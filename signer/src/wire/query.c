@@ -47,32 +47,22 @@ const char* query_str = "query";
 query_type*
 query_create(void)
 {
-    allocator_type* allocator = NULL;
     query_type* q = NULL;
-    allocator = allocator_create(malloc, free);
-    if (!allocator) {
-        return NULL;
-    }
-    q = (query_type*) allocator_alloc(allocator, sizeof(query_type));
-    if (!q) {
-        allocator_cleanup(allocator);
-        return NULL;
-    }
-    q->allocator = allocator;
+    CHECKALLOC(q = (query_type*) malloc(sizeof(query_type)));
     q->buffer = NULL;
     q->tsig_rr = NULL;
     q->axfr_fd = NULL;
-    q->buffer = buffer_create(allocator, PACKET_BUFFER_SIZE);
+    q->buffer = buffer_create(PACKET_BUFFER_SIZE);
     if (!q->buffer) {
         query_cleanup(q);
         return NULL;
     }
-    q->tsig_rr = tsig_rr_create(allocator);
+    q->tsig_rr = tsig_rr_create();
     if (!q->tsig_rr) {
         query_cleanup(q);
         return NULL;
     }
-    q->edns_rr = edns_rr_create(allocator);
+    q->edns_rr = edns_rr_create();
     if (!q->edns_rr) {
         query_cleanup(q);
         return NULL;
@@ -112,7 +102,6 @@ query_reset(query_type* q, size_t maxlen, int is_tcp)
     }
     q->serial = 0;
     q->startpos = 0;
-    return;
 }
 
 
@@ -360,12 +349,14 @@ query_process_notify(query_type* q, ldns_rr_type qtype, void* engine)
 
                 if (addr2ip(q->addr, address, sizeof(address))) {
                     ods_log_info("[%s] ignore notify from %s: already got "
-                        "zone %s serial %u on disk", query_str, address,
-                        q->zone->name, q->zone->xfrd->serial_notify);
+                        "zone %s serial %u on disk (received %u)", query_str,
+                        address, q->zone->name, q->zone->xfrd->serial_disk,
+                        q->zone->xfrd->serial_notify);
                 } else {
                     ods_log_info("[%s] ignore notify: already got zone %s "
-                        "serial %u on disk", query_str, q->zone->name,
-                    q->zone->xfrd->serial_notify);
+                        "serial %u on disk (received %u)", query_str,
+                        q->zone->name, q->zone->xfrd->serial_disk,
+                        q->zone->xfrd->serial_notify);
                 }
                 q->zone->xfrd->serial_notify_acquired = 0;
             } else {
@@ -554,7 +545,6 @@ response_encode(query_type* q, response_type* r)
     buffer_pkt_set_arcount(q->buffer, counts[LDNS_SECTION_ADDITIONAL]);
     buffer_pkt_set_qr(q->buffer);
     buffer_pkt_set_aa(q->buffer);
-    return;
 }
 
 
@@ -627,7 +617,6 @@ query_prepare(query_type* q)
     buffer_set_limit(q->buffer, buffer_capacity(q->buffer));
     q->reserved_space = edns_rr_reserved_space(q->edns_rr);
     q->reserved_space += tsig_rr_reserved_space(q->tsig_rr);
-    return;
 }
 
 
@@ -1029,7 +1018,6 @@ query_add_optional(query_type* q, void* engine)
              }
         }
     }
-    return;
 }
 
 
@@ -1097,18 +1085,14 @@ query_add_rr_tc:
 void
 query_cleanup(query_type* q)
 {
-    allocator_type* allocator = NULL;
     if (!q) {
         return;
     }
-    allocator = q->allocator;
     if (q->axfr_fd) {
         ods_fclose(q->axfr_fd);
         q->axfr_fd = NULL;
     }
-    buffer_cleanup(q->buffer, allocator);
+    buffer_cleanup(q->buffer);
     tsig_rr_cleanup(q->tsig_rr);
-    allocator_deallocate(allocator, (void*)q);
-    allocator_cleanup(allocator);
-    return;
+    free(q);
 }

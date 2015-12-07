@@ -317,5 +317,4 @@ privclose(const char* username, const char* groupname)
     if (groupname) {
         endgrent();
     }
-    return;
 }

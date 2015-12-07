@@ -282,6 +282,36 @@ push_clauses(db_clause_list_t *clause_list, zone_t *zone,
 	return 0;
 }
 
+/** Update timestamp on DS of key to now */
+static int
+ds_changed(key_data_t *key)
+{
+	key_state_list_t* keystatelist;
+	key_state_t* keystate;
+
+	if(key_data_retrieve_key_state_list(key)) return 1;
+	keystatelist = key_data_key_state_list(key);
+	keystate = key_state_list_get_begin(keystatelist);
+	if (!keystate) return 1;
+
+	while (keystate) {
+		key_state_t* keystate_next;
+		if (keystate->type == KEY_STATE_TYPE_DS) {
+			keystate->last_change = time_now();
+			if(key_state_update(keystate)) {
+				key_state_free(keystate);
+				return 1;
+			}
+			key_state_free(keystate);
+			return 0;
+		}
+		keystate_next = key_state_list_get_next(keystatelist);
+		key_state_free(keystate);
+		keystate = keystate_next;
+	}
+	return 1;
+}
+
 /* Change DS state, when zonename not given do it for all zones!
  */
 int
@@ -340,8 +370,9 @@ change_keys_from_to(db_connection_t *dbconn, int sockfd,
 		{
 			(void)retract_dnskey_by_id(sockfd, key, engine);
 		}
+
 		if (key_data_set_ds_at_parent(key, state_to) ||
-			key_data_update(key))
+			key_data_update(key) || ds_changed(key) )
 		{
 			key_data_free(key);
 			ods_log_error("[%s] Error writing to database", module_str);
@@ -357,14 +388,17 @@ change_keys_from_to(db_connection_t *dbconn, int sockfd,
 	client_printf(sockfd, "%d KSK matches found.\n", key_match);
 	if (!key_match) status = 11;
 	client_printf(sockfd, "%d KSKs changed.\n", key_mod);
-
+	if (zone) {
+		zone->next_change = 0; /* asap */
+		(void)zone_update(zone);
+	}
 	zone_free(zone);
 	return status;
 }
 
 static int
 get_args(int sockfd, const char *cmd, ssize_t n, const char **zone,
-	const char **cka_id, int *keytag, char *buf)
+	const char **cka_id, int *keytag, int *all, char *buf)
 {
 
 	#define NARGV 6
@@ -393,6 +427,7 @@ get_args(int sockfd, const char *cmd, ssize_t n, const char **zone,
 	(void)ods_find_arg_and_param(&argc, argv, "zone", "z", zone);
 	(void)ods_find_arg_and_param(&argc, argv, "cka_id", "k", cka_id);
 	(void)ods_find_arg_and_param(&argc, argv, "keytag", "x", &tag);
+	*all = ods_find_arg(&argc, argv, "all", "a") > -1 ? 1 : 0;
 
 	if (argc > 2) {
 		client_printf_err(sockfd, "Unknown arguments\n");
@@ -424,13 +459,20 @@ run_ds_cmd(int sockfd, const char *cmd, ssize_t n,
 	int ret;
 	char buf[ODS_SE_MAXLINE];
 	zone_t* zone = NULL;
+	int all;
 
-	if (get_args(sockfd, cmd, n, &zonename, &cka_id, &keytag, buf)) {
+	if (get_args(sockfd, cmd, n, &zonename, &cka_id, &keytag, &all, buf)) {
 		return -1;
 	}
-	
-	if (!zonename && !cka_id && keytag == -1) {
+
+	if (!all && !zonename && !cka_id && keytag == -1) {
 		return ds_list_keys(dbconn, sockfd, state_from);
+	}
+
+	if (all && zonename) {
+		ods_log_warning ("[%s] Error: Unable to use --zone and --all together", module_str);
+		client_printf_err(sockfd, "Error: Unable to use --zone and --all together\n");
+		return -1;
 	}
 
 	if (zonename && (!(zone = zone_new(dbconn)) || zone_get_by_name(zone, zonename))) {
@@ -442,19 +484,18 @@ run_ds_cmd(int sockfd, const char *cmd, ssize_t n,
 	}
 	zone_free(zone);
 	zone = NULL;
-
         if (!zonename && (keytag != -1 || cka_id)) {
                 ods_log_warning ("[%s] Error: expected --zone <zone>", module_str);
                 client_printf_err(sockfd, "Error: expected --zone <zone>\n");
                 return -1;
         }
 
-	if (!(zonename && ((cka_id && keytag == -1) || (!cka_id && keytag != -1))))
+	if (!(zonename && ((cka_id && keytag == -1) || (!cka_id && keytag != -1))) && !all)
 	{
 		ods_log_warning("[%s] expected --zone and either --cka_id or "
-			"--keytag option", module_str);
+			"--keytag option or expected --all", module_str);
 		client_printf_err(sockfd, "expected --zone and either --cka_id or "
-			"--keytag option.\n");
+			"--keytag option or expected --all.\n");
 		return -1;
 	}
 	
@@ -463,7 +504,6 @@ run_ds_cmd(int sockfd, const char *cmd, ssize_t n,
 			client_printf_err(sockfd, "CKA_ID %s can not be found!\n", cka_id);
 		}
 	}
-
 	ret = change_keys_from_to(dbconn, sockfd, zonename, hsmkey, keytag,
 		state_from, state_to, engine);
 	hsm_key_free(hsmkey);

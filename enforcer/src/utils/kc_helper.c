@@ -967,11 +967,11 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 				jitter, denial, policy_name, kasp);
 		status++;
 	}
-	while (firstkey) {
-		curkey = firstkey;
-		firstkey = curkey->next;
-		StrFree(curkey->repo);
-		free(curkey);
+	while (curkey) {
+		tmpkey = curkey;
+		curkey = curkey->next;
+		StrFree(tmpkey->repo);
+		free(tmpkey);
 	}
 	StrFree(serial);
 
@@ -1334,8 +1334,6 @@ void StrAppend(char** str1, const char* str2)
 			*str1 = StrStrdup(str2);
 		}
 	}
-
-	return;
 }
 
 /*+
@@ -1372,7 +1370,6 @@ void StrTrimR(char *text)
 
 		text[0] = '\0';
 	}
-	return;
 }
 
 /*+

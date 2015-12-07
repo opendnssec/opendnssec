@@ -53,7 +53,6 @@
  */
 typedef struct engine_struct engine_type;
 struct engine_struct {
-    allocator_type* allocator;
     engineconfig_type* config;
     worker_type** workers;
     worker_type** drudgers;

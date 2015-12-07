@@ -224,7 +224,6 @@ engine_start_workers(engine_type* engine)
         pthread_create(&engine->workers[i]->thread_id, NULL,
             worker_thread_start, engine->workers[i]);
     }
-    return;
 }
 
 void
@@ -246,7 +245,6 @@ engine_stop_workers(engine_type* engine)
         pthread_join(engine->workers[i]->thread_id, NULL);
         engine->workers[i]->engine = NULL;
     }
-    return;
 }
 
 /**

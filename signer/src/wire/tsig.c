@@ -47,8 +47,6 @@
 #define TSIG_SIGNED_TIME_FUDGE 300
 
 static const char* tsig_str = "tsig";
-/** allocator */
-static allocator_type* tsig_allocator = NULL;
 /** key table */
 typedef struct tsig_key_table_struct tsig_key_table_type;
 struct tsig_key_table_struct {
@@ -89,14 +87,12 @@ tsig_handler_add_key(tsig_key_type* key)
     if (!key) {
         return;
     }
-    entry = (tsig_key_table_type *) allocator_alloc(tsig_allocator,
-        sizeof(tsig_key_table_type));
+    CHECKALLOC(entry = (tsig_key_table_type *) malloc(sizeof(tsig_key_table_type)));
     if (entry) {
         entry->key = key;
         entry->next = tsig_key_table;
         tsig_key_table = entry;
     }
-    return;
 }
 
 
@@ -111,8 +107,7 @@ tsig_handler_add_algo(tsig_algo_type* algo)
     if (!algo) {
         return;
     }
-    entry = (tsig_algo_table_type *) allocator_alloc(tsig_allocator,
-        sizeof(tsig_algo_table_type));
+    CHECKALLOC(entry = (tsig_algo_table_type *) malloc(sizeof(tsig_algo_table_type)));
     if (entry) {
         entry->algorithm = algo;
         entry->next = tsig_algo_table;
@@ -121,7 +116,6 @@ tsig_handler_add_algo(tsig_algo_type* algo)
             max_algo_digest_size = algo->max_digest_size;
         }
     }
-    return;
 }
 
 
@@ -130,17 +124,13 @@ tsig_handler_add_algo(tsig_algo_type* algo)
  *
  */
 ods_status
-tsig_handler_init(allocator_type* allocator)
+tsig_handler_init()
 {
-    if (!allocator) {
-        return ODS_STATUS_ERR;
-    }
-    tsig_allocator = allocator;
     tsig_key_table = NULL;
     tsig_algo_table = NULL;
 #ifdef HAVE_SSL
     ods_log_debug("[%s] init openssl", tsig_str);
-    return tsig_handler_openssl_init(allocator);
+    return tsig_handler_openssl_init();
 #else
     ods_log_debug("[%s] openssl disabled", tsig_str);
     return ODS_STATUS_OK;
@@ -165,8 +155,8 @@ tsig_handler_cleanup(void)
     while (aentry) {
         anext = aentry->next;
         ldns_rdf_deep_free(aentry->algorithm->wf_name);
-        allocator_deallocate(tsig_allocator, (void*)aentry->algorithm);
-        allocator_deallocate(tsig_allocator, (void*)aentry);
+        free(aentry->algorithm);
+        free(aentry);
         aentry = anext;
     }
 
@@ -174,12 +164,11 @@ tsig_handler_cleanup(void)
     while (kentry) {
         knext = kentry->next;
         ldns_rdf_deep_free(kentry->key->dname);
-        allocator_deallocate(tsig_allocator, (void*)kentry->key->data);
-        allocator_deallocate(tsig_allocator, (void*)kentry->key);
-        allocator_deallocate(tsig_allocator, (void*)kentry);
+        free((void*)kentry->key->data);
+        free((void*)kentry->key);
+        free(kentry);
         kentry = knext;
     }
-    return;
 }
 
 
@@ -188,36 +177,28 @@ tsig_handler_cleanup(void)
  *
  */
 tsig_key_type*
-tsig_key_create(allocator_type* allocator, tsig_type* tsig)
+tsig_key_create(tsig_type* tsig)
 {
     tsig_key_type* key = NULL;
     ldns_rdf* dname = NULL;
     uint8_t* data = NULL;
     int size = 0;
-    if (!allocator || !tsig || !tsig->name || !tsig->secret) {
+    if (!tsig || !tsig->name || !tsig->secret) {
         return NULL;
     }
-    key = (tsig_key_type*) allocator_alloc(allocator, sizeof(tsig_key_type));
-    if (!key) {
-        return NULL;
-    }
+    CHECKALLOC(key = (tsig_key_type*) malloc(sizeof(tsig_key_type)));
     dname = ldns_dname_new_frm_str(tsig->name);
     if (!dname) {
         return NULL;
     }
-    data = allocator_alloc(allocator, sizeof(uint8_t) *
-        util_b64_pton_calculate_size(strlen(tsig->secret)));
-    if (!data) {
-        ldns_rdf_deep_free(dname);
-        return NULL;
-    }
+    CHECKALLOC(data = malloc(sizeof(uint8_t) * util_b64_pton_calculate_size(strlen(tsig->secret))));
     size = b64_pton(tsig->secret, data,
         util_b64_pton_calculate_size(strlen(tsig->secret)));
     if (size < 0) {
         ods_log_error("[%s] unable to create tsig key %s: failed to parse "
             "secret", tsig_str, tsig->name);
         ldns_rdf_deep_free(dname);
-        allocator_deallocate(allocator, (void*)data);
+        free(data);
     }
     key->dname = dname;
     key->size = size;
@@ -232,27 +213,22 @@ tsig_key_create(allocator_type* allocator, tsig_type* tsig)
  *
  */
 tsig_type*
-tsig_create(allocator_type* allocator, char* name, char* algo, char* secret)
+tsig_create(char* name, char* algo, char* secret)
 {
     tsig_type* tsig = NULL;
-    if (!allocator || !name || !algo || !secret) {
+    if (!name || !algo || !secret) {
         return NULL;
     }
-    tsig = (tsig_type*) allocator_alloc(allocator, sizeof(tsig_type));
-    if (!tsig) {
-        ods_log_error("[%s] unable to create tsig: allocator_alloc() "
-            "failed", tsig_str);
-        return NULL;
-    }
+    CHECKALLOC(tsig = (tsig_type*) malloc(sizeof(tsig_type)));
     tsig->next = NULL;
-    tsig->name = allocator_strdup(allocator, name);
-    tsig->algorithm = allocator_strdup(allocator, algo);
-    tsig->secret = allocator_strdup(allocator, secret);
-    tsig->key = tsig_key_create(allocator, tsig);
+    tsig->name = strdup(name);
+    tsig->algorithm = strdup(algo);
+    tsig->secret = strdup(secret);
+    tsig->key = tsig_key_create(tsig);
     if (!tsig->key) {
         ods_log_error("[%s] unable to create tsig: tsig_key_create() "
             "failed", tsig_str);
-        tsig_cleanup(tsig, allocator);
+        tsig_cleanup(tsig);
         return NULL;
     }
     return tsig;
@@ -303,19 +279,10 @@ tsig_lookup_algo(const char* name)
  *
  */
 tsig_rr_type*
-tsig_rr_create(allocator_type* allocator)
+tsig_rr_create()
 {
     tsig_rr_type* trr = NULL;
-    if (!allocator) {
-        return NULL;
-    }
-    trr = (tsig_rr_type*) allocator_alloc(allocator, sizeof(tsig_rr_type));
-    if (!trr) {
-        ods_log_error("[%s] unable to create tsig rr: allocator_alloc() "
-            "failed", tsig_str);
-        return NULL;
-    }
-    trr->allocator = allocator;
+    CHECKALLOC(trr = (tsig_rr_type*) malloc(sizeof(tsig_rr_type)));
     trr->key_name = NULL;
     trr->algo_name = NULL;
     trr->mac_data = NULL;
@@ -352,7 +319,6 @@ tsig_rr_reset(tsig_rr_type* trr, tsig_algo_type* algo, tsig_key_type* key)
     trr->original_query_id = 0;
     trr->error_code = LDNS_RCODE_NOERROR;
     trr->other_size = 0;
-    return;
 }
 
 
@@ -370,7 +336,6 @@ tsig_rr_parse(tsig_rr_type* trr, buffer_type* buffer)
     uint16_t rdlen = 0;
     uint16_t curpos = 0;
     ods_log_assert(trr);
-    ods_log_assert(trr->allocator);
     ods_log_assert(buffer);
     trr->status = TSIG_NOT_PRESENT;
     trr->position = buffer_position(buffer);
@@ -445,8 +410,8 @@ tsig_rr_parse(tsig_rr_type* trr, buffer_type* buffer)
         trr->mac_size = 0;
         return 0;
     }
-    trr->mac_data = (uint8_t *) allocator_alloc_init(trr->allocator,
-        trr->mac_size, (const void*) buffer_current(buffer));
+    CHECKALLOC(trr->mac_data = (uint8_t *) malloc(trr->mac_size));
+    memcpy(trr->mac_data, (const void*) buffer_current(buffer), trr->mac_size);
     buffer_skip(buffer, trr->mac_size);
     if (!buffer_available(buffer, 6)) {
         ods_log_debug("[%s] parse: not enough available", tsig_str);
@@ -462,8 +427,8 @@ tsig_rr_parse(tsig_rr_type* trr, buffer_type* buffer)
         buffer_set_position(buffer, trr->position);
         return 0;
     }
-    trr->other_data = (uint8_t *) allocator_alloc_init(trr->allocator,
-        trr->other_size, (const void*) buffer_current(buffer));
+    CHECKALLOC(trr->other_data = (uint8_t *) malloc(trr->other_size));
+    memcpy(trr->other_data, (const void*) buffer_current(buffer), trr->other_size);
     buffer_skip(buffer, trr->other_size);
     trr->status = TSIG_OK;
     return 1;
@@ -557,8 +522,7 @@ tsig_rr_lookup(tsig_rr_type* trr)
         current_time_high = (uint16_t) (current_time >> 32);
         current_time_low = (uint32_t) current_time;
         trr->other_size = 6;
-        trr->other_data = (uint8_t *) allocator_alloc(trr->allocator,
-            sizeof(uint16_t) + sizeof(uint32_t));
+        CHECKALLOC(trr->other_data = (uint8_t *) malloc(sizeof(uint16_t) + sizeof(uint32_t)));
         write_uint16(trr->other_data, current_time_high);
         write_uint32(trr->other_data + 2, current_time_low);
         ods_log_debug("[%s] bad time", tsig_str);
@@ -580,11 +544,9 @@ void
 tsig_rr_prepare(tsig_rr_type* trr)
 {
     ods_log_assert(trr->algo);
-    ods_log_assert(trr->allocator);
     if (!trr->context) {
-        trr->context = trr->algo->hmac_create(trr->allocator);
-        trr->prior_mac_data = (uint8_t *) allocator_alloc(
-            trr->allocator, trr->algo->max_digest_size);
+        trr->context = trr->algo->hmac_create();
+        CHECKALLOC(trr->prior_mac_data = (uint8_t *) malloc(trr->algo->max_digest_size));
     }
     trr->algo->hmac_init(trr->context, trr->algo, trr->key);
     if (trr->prior_mac_size > 0) {
@@ -594,7 +556,6 @@ tsig_rr_prepare(tsig_rr_type* trr)
             trr->prior_mac_size);
     }
     trr->update_since_last_prepare = 0;
-    return;
 }
 
 /**
@@ -620,7 +581,6 @@ tsig_rr_update(tsig_rr_type* trr, buffer_type* buffer, size_t length)
         ++trr->response_count;
     }
     ++trr->update_since_last_prepare;
-    return;
 }
 
 
@@ -665,7 +625,6 @@ tsig_rr_digest_variables(tsig_rr_type* trr, int tsig_timers_only)
         trr->algo->hmac_update(trr->context, trr->other_data,
             trr->other_size);
     }
-    return;
 }
 
 
@@ -687,7 +646,6 @@ tsig_rr_sign(tsig_rr_type* trr)
         &trr->prior_mac_size);
     trr->mac_size = trr->prior_mac_size;
     trr->mac_data = trr->prior_mac_data;
-    return;
 }
 
 
@@ -751,7 +709,6 @@ tsig_rr_append(tsig_rr_type* trr, buffer_type* buffer)
     buffer_write(buffer, trr->other_data, trr->other_size);
     buffer_write_u16_at(buffer, rdlength_pos,
         buffer_position(buffer) - rdlength_pos - sizeof(uint16_t));
-    return;
 }
 
 
@@ -798,7 +755,6 @@ tsig_rr_error(tsig_rr_type* trr)
         memset(trr->mac_data, 0, trr->mac_size);
     }
     trr->mac_size = 0;
-    return;
 }
 
 
@@ -861,18 +817,17 @@ tsig_strerror(uint16_t error)
 void
 tsig_rr_free(tsig_rr_type* trr)
 {
-    if (!trr || !trr->allocator) {
+    if (!trr) {
         return;
     }
     ldns_rdf_deep_free(trr->key_name);
     ldns_rdf_deep_free(trr->algo_name);
-    allocator_deallocate(trr->allocator, (void*) trr->mac_data);
-    allocator_deallocate(trr->allocator, (void*) trr->other_data);
+    free(trr->mac_data);
+    free(trr->other_data);
     trr->key_name = NULL;
     trr->algo_name = NULL;
     trr->mac_data = NULL;
     trr->other_data = NULL;
-    return;
 }
 
 
@@ -883,14 +838,11 @@ tsig_rr_free(tsig_rr_type* trr)
 void
 tsig_rr_cleanup(tsig_rr_type* trr)
 {
-    allocator_type* allocator = NULL;
-    if (!trr || !trr->allocator) {
+    if (!trr) {
         return;
     }
     tsig_rr_free(trr);
-    allocator = trr->allocator;
-    allocator_deallocate(allocator, (void*) trr);
-    return;
+    free(trr);
 }
 
 
@@ -899,15 +851,14 @@ tsig_rr_cleanup(tsig_rr_type* trr)
  *
  */
 void
-tsig_cleanup(tsig_type* tsig, allocator_type* allocator)
+tsig_cleanup(tsig_type* tsig)
 {
-    if (!tsig || !allocator) {
+    if (!tsig) {
         return;
     }
-    tsig_cleanup(tsig->next, allocator);
-    allocator_deallocate(allocator, (void*) tsig->name);
-    allocator_deallocate(allocator, (void*) tsig->algorithm);
-    allocator_deallocate(allocator, (void*) tsig->secret);
-    allocator_deallocate(allocator, (void*) tsig);
-    return;
+    tsig_cleanup(tsig->next);
+    free((void*)tsig->name);
+    free((void*)tsig->algorithm);
+    free((void*)tsig->secret);
+    free(tsig);
 }

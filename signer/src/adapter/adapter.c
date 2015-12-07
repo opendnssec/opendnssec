@@ -49,27 +49,13 @@ adapter_type*
 adapter_create(const char* str, adapter_mode type, unsigned in)
 {
     adapter_type* adapter = NULL;
-    allocator_type* allocator = NULL;
-    allocator = allocator_create(malloc, free);
-    if (!allocator) {
-        ods_log_error("[%s] unable to create adapter: allocator_create() "
-            "failed", adapter_str);
-        return NULL;
-    }
-    adapter = (adapter_type*) allocator_alloc(allocator, sizeof(adapter_type));
-    if (!adapter) {
-        ods_log_error("[%s] unable to create adapter: allocator_alloc() "
-            "failed", adapter_str);
-        allocator_cleanup(allocator);
-        return NULL;
-    }
-    adapter->allocator = allocator;
+    CHECKALLOC(adapter = (adapter_type*) malloc(sizeof(adapter_type)));
     adapter->type = type;
     adapter->inbound = in;
     adapter->error = 0;
     adapter->config = NULL;
     adapter->config_last_modified = 0;
-    adapter->configstr = allocator_strdup(allocator, str);
+    adapter->configstr = strdup(str);
     if (!adapter->configstr) {
         ods_log_error("[%s] unable to create adapter: allocator_strdup() "
             "failed", adapter_str);
@@ -252,12 +238,10 @@ adapter_compare(adapter_type* a1, adapter_type* a2)
 void
 adapter_cleanup(adapter_type* adapter)
 {
-    allocator_type* allocator = NULL;
     if (!adapter) {
         return;
     }
-    allocator = adapter->allocator;
-    allocator_deallocate(allocator, (void*) adapter->configstr);
+    free((void*)adapter->configstr);
     switch(adapter->type) {
         case ADAPTER_FILE:
             break;
@@ -271,7 +255,5 @@ adapter_cleanup(adapter_type* adapter)
         default:
             break;
     }
-    allocator_deallocate(allocator, (void*) adapter);
-    allocator_cleanup(allocator);
-    return;
+    free(adapter);
 }

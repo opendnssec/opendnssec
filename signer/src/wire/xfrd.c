@@ -304,7 +304,6 @@ xfrd_recover_error:
         ods_log_verbose("[%s] did not recover xfrd.state file zone %s", xfrd_str,
             (zone && zone->name)?zone->name:"(null)");
     }
-    return;
 }
 
 
@@ -316,27 +315,13 @@ xfrd_type*
 xfrd_create(void* xfrhandler, void* zone)
 {
     xfrd_type* xfrd = NULL;
-    allocator_type* allocator = NULL;
     if (!xfrhandler || !zone) {
         return NULL;
     }
-    allocator = allocator_create(malloc, free);
-    if (!allocator) {
-        ods_log_error("[%s] unable to create zone xfr structure: "
-            "allocator_create() failed", xfrd_str);
-        return NULL;
-    }
-    xfrd = (xfrd_type*) allocator_alloc(allocator, sizeof(xfrd_type));
-    if (!xfrd) {
-        ods_log_error("[%s] unable to create zone xfr structure: "
-            " allocator_alloc() failed", xfrd_str);
-        allocator_cleanup(allocator);
-        return NULL;
-    }
+    CHECKALLOC(xfrd = (xfrd_type*) malloc(sizeof(xfrd_type)));
     lock_basic_init(&xfrd->serial_lock);
     lock_basic_init(&xfrd->rw_lock);
 
-    xfrd->allocator = allocator;
     xfrd->xfrhandler = xfrhandler;
     xfrd->zone = zone;
     xfrd->tcp_conn = -1;
@@ -364,7 +349,7 @@ xfrd_create(void* xfrhandler, void* zone)
     xfrd->udp_waiting_next = NULL;
     xfrd->tcp_waiting = 0;
     xfrd->tcp_waiting_next = NULL;
-    xfrd->tsig_rr = tsig_rr_create(allocator);
+    xfrd->tsig_rr = tsig_rr_create();
     if (!xfrd->tsig_rr) {
         xfrd_cleanup(xfrd, 0);
         return NULL;
@@ -434,7 +419,6 @@ xfrd_set_timer(xfrd_type* xfrd, time_t t)
     xfrd->handler.timeout = &xfrd->timeout;
     xfrd->timeout.tv_sec = t;
     xfrd->timeout.tv_nsec = 0;
-    return;
 }
 
 
@@ -447,7 +431,6 @@ xfrd_unset_timer(xfrd_type* xfrd)
 {
     ods_log_assert(xfrd);
     xfrd->handler.timeout = NULL;
-    return;
 }
 
 
@@ -460,7 +443,6 @@ xfrd_set_timer_time(xfrd_type* xfrd, time_t t)
 {
     ods_log_assert(xfrd);
     xfrd_set_timer(xfrd, xfrd_time(xfrd) + t);
-    return;
 }
 
 
@@ -479,7 +461,6 @@ xfrd_set_timer_now(xfrd_type* xfrd)
     ods_log_debug("[%s] zone %s sets timer timeout now", xfrd_str,
         zone->name);
     xfrd_set_timer_time(xfrd, 0);
-    return;
 }
 
 
@@ -498,7 +479,6 @@ xfrd_set_timer_retry(xfrd_type* xfrd)
     ods_log_debug("[%s] zone %s sets timer timeout retry %u", xfrd_str,
         zone->name, (unsigned) xfrd->soa.retry);
     xfrd_set_timer_time(xfrd, xfrd->soa.retry);
-    return;
 }
 
 
@@ -517,7 +497,6 @@ xfrd_set_timer_refresh(xfrd_type* xfrd)
     ods_log_debug("[%s] zone %s sets timer timeout refresh %u", xfrd_str,
         zone->name, (unsigned) xfrd->soa.refresh);
     xfrd_set_timer_time(xfrd, xfrd->soa.refresh);
-    return;
 }
 
 
@@ -600,7 +579,6 @@ xfrd_tsig_sign(xfrd_type* xfrd, buffer_type* buffer)
     tsig_rr_append(xfrd->tsig_rr, buffer);
     buffer_pkt_set_arcount(buffer, buffer_pkt_arcount(buffer)+1);
     tsig_rr_prepare(xfrd->tsig_rr);
-    return;
 }
 
 
@@ -743,7 +721,6 @@ xfrd_commit_packet(xfrd_type* xfrd)
     lock_basic_unlock(&xfrd->serial_lock);
     lock_basic_unlock(&xfrd->rw_lock);
     lock_basic_unlock(&zone->zone_lock);
-    return;
 }
 
 
@@ -799,7 +776,6 @@ xfrd_dump_packet(xfrd_type* xfrd, buffer_type* buffer)
     ods_fclose(fd);
     lock_basic_unlock(&xfrd->rw_lock);
     ldns_pkt_free(pkt);
-    return;
 }
 
 
@@ -833,7 +809,6 @@ xfrd_write_soa(xfrd_type* xfrd, buffer_type* buffer)
     buffer_write_u32(buffer, xfrd->soa.minimum);
     rdlength = buffer_position(buffer) - rdlength_pos - sizeof(rdlength);
     buffer_write_u16_at(buffer, rdlength_pos, rdlength);
-    return;
 }
 
 
@@ -869,7 +844,6 @@ xfrd_update_soa(xfrd_type* xfrd, buffer_type* buffer, uint32_t ttl,
         xfrd->soa.rname[0] = 1;
         xfrd->soa.rname[1] = 0;
     }
-    return;
 }
 
 
@@ -1346,7 +1320,6 @@ xfrd_tcp_write(xfrd_type* xfrd, tcp_set_type* set)
     tcp_conn_ready(tcp);
     xfrd->handler.event_types = NETIO_EVENT_READ|NETIO_EVENT_TIMEOUT;
     xfrd_tcp_read(xfrd, set);
-    return;
 }
 
 
@@ -1454,7 +1427,6 @@ xfrd_tcp_obtain(xfrd_type* xfrd, tcp_set_type* set)
         xfrd_str, TCPSET_MAX);
     xfrd->tcp_waiting = 1;
     xfrd_unset_timer(xfrd);
-    return;
 }
 
 
@@ -1507,7 +1479,6 @@ xfrd_tcp_xfr(xfrd_type* xfrd, tcp_set_type* set)
     ods_log_verbose("[%s] zone %s sending tcp query id=%d", xfrd_str,
         zone->name, xfrd->query_id);
     /* wait for select to complete connect before write */
-    return;
 }
 
 
@@ -1561,7 +1532,6 @@ xfrd_tcp_read(xfrd_type* xfrd, tcp_set_type* set)
             xfrd_make_request(xfrd);
             break;
     }
-    return;
 }
 
 
@@ -1595,7 +1565,6 @@ xfrd_tcp_release(xfrd_type* xfrd, tcp_set_type* set)
     }
     set->tcp_conn[conn]->fd = -1;
     set->tcp_count --;
-    return;
 }
 
 
@@ -1731,7 +1700,6 @@ xfrd_udp_obtain(xfrd_type* xfrd)
     }
     xfrhandler->udp_waiting_last = xfrd;
     xfrd_unset_timer(xfrd);
-    return;
 }
 
 
@@ -1815,7 +1783,6 @@ xfrd_udp_read(xfrd_type* xfrd)
             xfrd_make_request(xfrd);
             break;
     }
-    return;
 }
 
 
@@ -1859,7 +1826,6 @@ xfrd_udp_release(xfrd_type* xfrd)
     if (xfrhandler->udp_use_num > 0) {
         xfrhandler->udp_use_num --;
     }
-    return;
 }
 
 
@@ -1959,7 +1925,6 @@ xfrd_make_request(xfrd_type* xfrd)
 	    xfrd->master->port);
         xfrd_tcp_obtain(xfrd, xfrhandler->tcp_set);
     }
-    return;
 }
 
 
@@ -2037,7 +2002,6 @@ xfrd_handle_zone(netio_type* ATTR_UNUSED(netio),
     }
     /* make a new request */
     xfrd_make_request(xfrd);
-    return;
 }
 
 
@@ -2125,7 +2089,6 @@ xfrd_backup(xfrd_type* xfrd)
             free(file);
         }
     }
-    return;
 }
 
 
@@ -2146,7 +2109,6 @@ xfrd_unlink(xfrd_type* xfrd)
             free(file);
         }
     }
-    return;
 }
 
 
@@ -2157,7 +2119,6 @@ xfrd_unlink(xfrd_type* xfrd)
 void
 xfrd_cleanup(xfrd_type* xfrd, int backup)
 {
-    allocator_type* allocator = NULL;
     lock_basic_type serial_lock;
     lock_basic_type rw_lock;
     if (!xfrd) {
@@ -2170,13 +2131,10 @@ xfrd_cleanup(xfrd_type* xfrd, int backup)
         xfrd_unlink(xfrd);
     }
 
-    allocator = xfrd->allocator;
     serial_lock = xfrd->serial_lock;
     rw_lock = xfrd->rw_lock;
     tsig_rr_cleanup(xfrd->tsig_rr);
-    allocator_deallocate(allocator, (void*) xfrd);
-    allocator_cleanup(allocator);
+    free(xfrd);
     lock_basic_destroy(&serial_lock);
     lock_basic_destroy(&rw_lock);
-    return;
 }

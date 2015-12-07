@@ -213,15 +213,31 @@ const char*
 task_what2str(int what)
 {
     switch (what) {
-        case TASK_NONE:     return "do nothing with";
-        case TASK_SIGNCONF: return "load signconf for";
-        case TASK_READ:     return "read";
-        case TASK_NSECIFY:  return "nsecify";
-        case TASK_SIGN:     return "sign";
-        case TASK_AUDIT:    return "audit";
-        case TASK_WRITE:    return "write";
+        case TASK_NONE:
+            return "do nothing with";
+            break;
+        case TASK_SIGNCONF:
+            return "load signconf for";
+            break;
+        case TASK_READ:
+            return "read";
+            break;
+        case TASK_NSECIFY:
+            return "nsecify";
+            break;
+        case TASK_SIGN:
+            return "sign";
+            break;
+        case TASK_AUDIT:
+            return "audit";
+            break;
+        case TASK_WRITE:
+            return "write";
+            break;
+        default:
+            return task_id_to_short_name(what, "???");
     }
-    return task_id_to_short_name(what, "???");
+    return "[!!!]"; /* we should never get here.. */
 }
 
 
@@ -301,7 +317,6 @@ task_log(task_type* task)
             strtime?strtime:"(null)",
             task_what2str(task->what), task_who2str(task->who));
     }
-    return;
 }
 
 /**

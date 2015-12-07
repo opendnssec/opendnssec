@@ -51,7 +51,6 @@ void
 signal_set_engine(void* engine)
 {
     signal_engine = (engine_type*) engine;
-    return;
 }
 
 

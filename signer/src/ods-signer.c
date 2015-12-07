@@ -353,11 +353,6 @@ main(int argc, char* argv[])
     char* argv0;
     char* cmd = NULL;
     int ret = 0;
-    allocator_type* clialloc = allocator_create(malloc, free);
-    if (!clialloc) {
-        fprintf(stderr,"error, malloc failed for client\n");
-        exit(1);
-    }
 
     /* Get the name of the program */
     if((argv0 = strrchr(argv[0],'/')) == NULL)
@@ -378,7 +373,7 @@ main(int argc, char* argv[])
         }
     }
     if (argc > 1) {
-        cmd = (char*) allocator_alloc(clialloc, (options_size+2)*sizeof(char));
+        CHECKALLOC(cmd = (char*) malloc((options_size+2)*sizeof(char)));
         if (!cmd) {
             fprintf(stderr, "memory allocation failed\n");
             exit(1);
@@ -403,7 +398,6 @@ main(int argc, char* argv[])
     }
 
     /* done */
-    allocator_deallocate(clialloc, (void*) cmd);
-    allocator_cleanup(clialloc);
+    free(cmd);
     return ret;
 }

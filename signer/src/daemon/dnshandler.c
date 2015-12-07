@@ -48,20 +48,18 @@ static void dnshandler_handle_xfr(netio_type* netio,
  *
  */
 dnshandler_type*
-dnshandler_create(allocator_type* allocator, listener_type* interfaces)
+dnshandler_create(listener_type* interfaces)
 {
     dnshandler_type* dnsh = NULL;
-    if (!allocator || !interfaces || interfaces->count <= 0) {
+    if (!interfaces || interfaces->count <= 0) {
         return NULL;
     }
-    dnsh = (dnshandler_type*) allocator_alloc(allocator,
-        sizeof(dnshandler_type));
+    CHECKALLOC(dnsh = (dnshandler_type*) malloc(sizeof(dnshandler_type)));
     if (!dnsh) {
         ods_log_error("[%s] unable to create dnshandler: "
             "allocator_alloc() failed", dnsh_str);
         return NULL;
     }
-    dnsh->allocator = allocator;
     dnsh->need_to_exit = 0;
     dnsh->engine = NULL;
     dnsh->interfaces = interfaces;
@@ -69,15 +67,14 @@ dnshandler_create(allocator_type* allocator, listener_type* interfaces)
     dnsh->netio = NULL;
     dnsh->query = NULL;
     /* setup */
-    dnsh->socklist = (socklist_type*) allocator_alloc(allocator,
-        sizeof(socklist_type));
+    CHECKALLOC(dnsh->socklist = (socklist_type*) malloc(sizeof(socklist_type)));
     if (!dnsh->socklist) {
         ods_log_error("[%s] unable to create socklist: "
             "allocator_alloc() failed", dnsh_str);
         dnshandler_cleanup(dnsh);
         return NULL;
     }
-    dnsh->netio = netio_create(allocator);
+    dnsh->netio = netio_create();
     if (!dnsh->netio) {
         ods_log_error("[%s] unable to create dnshandler: "
             "netio_create() failed", dnsh_str);
@@ -139,8 +136,7 @@ dnshandler_start(dnshandler_type* dnshandler)
     for (i=0; i < dnshandler->interfaces->count; i++) {
         struct udp_data* data = NULL;
         netio_handler_type* handler = NULL;
-        data = (struct udp_data*) allocator_alloc(dnshandler->allocator,
-            sizeof(struct udp_data));
+        CHECKALLOC(data = (struct udp_data*) malloc(sizeof(struct udp_data)));
         if (!data) {
             ods_log_error("[%s] unable to start: allocator_alloc() "
                 "failed", dnsh_str);
@@ -151,12 +147,11 @@ dnshandler_start(dnshandler_type* dnshandler)
         data->query = dnshandler->query;
         data->engine = dnshandler->engine;
         data->socket = &dnshandler->socklist->udp[i];
-        handler = (netio_handler_type*) allocator_alloc(
-            dnshandler->allocator, sizeof(netio_handler_type));
+        CHECKALLOC(handler = (netio_handler_type*) malloc(sizeof(netio_handler_type)));
         if (!handler) {
             ods_log_error("[%s] unable to start: allocator_alloc() "
                 "failed", dnsh_str);
-            allocator_deallocate(dnshandler->allocator, (void*)data);
+            free(data);
             dnshandler->thread_id = 0;
             engine->need_to_exit = 1;
             break;
@@ -171,14 +166,11 @@ dnshandler_start(dnshandler_type* dnshandler)
         netio_add_handler(dnshandler->netio, handler);
     }
     /* tcp */
-    tcp_accept_handlers = (netio_handler_type*) allocator_alloc(
-        dnshandler->allocator,
-        dnshandler->interfaces->count * sizeof(netio_handler_type));
+    CHECKALLOC(tcp_accept_handlers = (netio_handler_type*) malloc(dnshandler->interfaces->count * sizeof(netio_handler_type)));
     for (i=0; i < dnshandler->interfaces->count; i++) {
         struct tcp_accept_data* data = NULL;
         netio_handler_type* handler = NULL;
-        data = (struct tcp_accept_data*) allocator_alloc(
-            dnshandler->allocator, sizeof(struct tcp_accept_data));
+        CHECKALLOC(data = (struct tcp_accept_data*) malloc(sizeof(struct tcp_accept_data)));
         if (!data) {
             ods_log_error("[%s] unable to start: allocator_alloc() "
                 "failed", dnsh_str);
@@ -236,7 +228,6 @@ dnshandler_signal(dnshandler_type* dnshandler)
     if (dnshandler && dnshandler->thread_id) {
         ods_thread_kill(dnshandler->thread_id, SIGHUP);
     }
-    return;
 }
 
 
@@ -257,7 +248,6 @@ dnshandler_fwd_notify(dnshandler_type* dnshandler, uint8_t* pkt, size_t len)
     } else {
         ods_log_debug("[%s] forwarded notify: %ld bytes sent", dnsh_str, (long)nb);
     }
-    return;
 }
 
 
@@ -284,7 +274,6 @@ dnshandler_handle_xfr(netio_type* ATTR_UNUSED(netio),
         ods_log_error("[%s] unable to forward xfr packet: %s", dnsh_str,
             strerror(errno));
     }
-    return;
 }
 
 
@@ -295,14 +284,11 @@ dnshandler_handle_xfr(netio_type* ATTR_UNUSED(netio),
 void
 dnshandler_cleanup(dnshandler_type* dnshandler)
 {
-    allocator_type* allocator = NULL;
     if (!dnshandler) {
         return;
     }
-    allocator = dnshandler->allocator;
     netio_cleanup(dnshandler->netio);
     query_cleanup(dnshandler->query);
-    allocator_deallocate(allocator, (void*) dnshandler->socklist);
-    allocator_deallocate(allocator, (void*) dnshandler);
-    return;
+    free(dnshandler->socklist);
+    free(dnshandler);
 }

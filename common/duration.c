@@ -49,21 +49,8 @@ duration_type*
 duration_create(void)
 {
     duration_type* duration;
-    allocator_type* allocator = allocator_create(malloc, free);
-    if (!allocator) {
-        ods_log_error("[%s] cannot create: no allocator available",
-            duration_str);
-        return NULL;
-    }
 
-    duration = (duration_type*) allocator_alloc(allocator,
-        sizeof(duration_type));
-    if (!duration) {
-        ods_log_error("[%s] cannot create: allocator failed", duration_str);
-        allocator_cleanup(allocator);
-        return NULL;
-    }
-    duration->allocator = allocator;
+    CHECKALLOC(duration = (duration_type*) malloc(sizeof(duration_type)));
     duration->years = 0;
     duration->months = 0;
     duration->weeks = 0;
@@ -529,7 +516,6 @@ time_itoa_reverse(char* s)
         s[i] = s[j];
         s[j] = c;
     }
-    return;
 }
 
 
@@ -547,7 +533,6 @@ time_itoa(time_t n, char* s)
     } while ((n /= 10) > 0);     /* delete it */
     s[i] = '\0';
     time_itoa_reverse(s);
-    return;
 }
 
 
@@ -558,13 +543,8 @@ time_itoa(time_t n, char* s)
 void
 duration_cleanup(duration_type* duration)
 {
-    allocator_type* allocator;
-
     if (!duration) {
         return;
     }
-    allocator = duration->allocator;
-    allocator_deallocate(allocator, (void*) duration);
-    allocator_cleanup(allocator);
-    return;
+    free(duration);
 }
