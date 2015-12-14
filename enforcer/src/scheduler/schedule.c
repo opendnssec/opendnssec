@@ -297,7 +297,7 @@ schedule_flush(schedule_type* schedule)
 int
 schedule_flush_type(schedule_type* schedule, task_id id)
 {
-    ldns_rbnode_t *node, *prevnode;
+    ldns_rbnode_t *node, *nextnode;
     int nflushed = 0;
     
     ods_log_debug("[%s] flush task", schedule_str);
@@ -305,8 +305,8 @@ schedule_flush_type(schedule_type* schedule, task_id id)
 
     pthread_mutex_lock(&schedule->schedule_lock);
         node = ldns_rbtree_first(schedule->tasks);
-        prevnode = node;
         while (node && node != LDNS_RBTREE_NULL) {
+            nextnode = ldns_rbtree_next(node);
             if (node->data && ((task_type*)node->data)->what == id) {
                 /* Merely setting flush is not enough. We must set it
                  * to the front of the queue as well. */
@@ -325,13 +325,8 @@ schedule_flush_type(schedule_type* schedule, task_id id)
                     }
                     nflushed++;
                 }
-                /* node pushed to front, prevnode doesn't change. */
-            } else {
-                /* We didn't move anything around, prevnode advances */
-                prevnode = node;
             }
-            
-            node = ldns_rbtree_next(prevnode);
+            node = nextnode;
         }
         /* wakeup! work to do! */
         pthread_cond_signal(&schedule->schedule_cond);
