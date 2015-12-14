@@ -459,6 +459,7 @@ schedule_task(schedule_type* schedule, task_type* task)
                 (void) ldns_rbtree_insert(schedule->tasks, node1);
                 /* node1 now owned by tree */
                 node1 = NULL;
+                set_alarm(schedule);
                 status = ODS_STATUS_OK;
             }
         } /* else {failure) */
