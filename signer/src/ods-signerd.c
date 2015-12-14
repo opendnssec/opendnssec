@@ -35,6 +35,7 @@
 #include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <libxml/parser.h>
 
 
 #define AUTHOR_NAME "Matthijs Mekking"
@@ -80,6 +81,28 @@ version(FILE* out)
     exit(0);
 }
 
+void
+program_setup(int cmdline_verbosity)
+{
+    ods_log_init("ods-signerd", 0, NULL, cmdline_verbosity);
+    ods_log_verbose("[engine] starting signer");
+
+    /* initialize */
+    xmlInitGlobals();
+    xmlInitParser();
+    xmlInitThreads();
+
+    tzset(); /* for portability */
+}
+
+void
+program_teardown()
+{
+    xmlCleanupParser();
+    xmlCleanupGlobals();
+    xmlCleanupThreads();
+    ods_log_close();
+}
 
 /**
  * Main. start engine and run it.
@@ -88,7 +111,7 @@ version(FILE* out)
 int
 main(int argc, char* argv[])
 {
-    int c;
+    int c, returncode;
     int options_index = 0;
     int info = 0;
     int single_run = 0;
@@ -148,5 +171,11 @@ main(int argc, char* argv[])
 
     /* main stuff */
     fprintf(stdout, "OpenDNSSEC signer engine version %s\n", PACKAGE_VERSION);
-    return engine_start(cfgfile, cmdline_verbosity, daemonize, info, single_run);
+
+    program_setup(cmdline_verbosity);
+    returncode = engine_start(cfgfile, cmdline_verbosity, daemonize,
+        info, single_run);
+    program_teardown();
+
+    return returncode;
 }
