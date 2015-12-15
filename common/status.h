@@ -33,6 +33,7 @@
 #define UTIL_STATUS_H
 
 #include "config.h"
+#include "log.h"
 
 enum ods_enum_status {
     ODS_STATUS_OK,
