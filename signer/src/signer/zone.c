@@ -107,11 +107,11 @@ zone_create(char* name, ldns_rr_class klass)
         return NULL;
     }
     zone->stats = stats_create();
+    zone->rrstore = rrset_store_initialize(ods_build_path(zone->name, ".sigs", 0, 1));
     lock_basic_init(&zone->zone_lock);
     lock_basic_init(&zone->xfr_lock);
     return zone;
 }
-
 
 /**
  * Load signer configuration for zone.
@@ -750,6 +750,7 @@ zone_cleanup(zone_type* zone)
     free((void*)zone->policy_name);
     free((void*)zone->signconf_filename);
     free((void*)zone->name);
+    collection_class_destroy(&zone->rrstore);
     free(zone);
     lock_basic_destroy(&xfr_lock);
     lock_basic_destroy(&zone_lock);

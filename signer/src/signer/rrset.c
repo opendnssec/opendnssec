@@ -175,7 +175,7 @@ rrset_type2str(ldns_rr_type type)
     return "TYPE???";
 }
 
-static void
+static int
 memberdestroy(void* dummy, void* member)
 {
     rrsig_type* sig = (rrsig_type*) member;
@@ -183,6 +183,34 @@ memberdestroy(void* dummy, void* member)
     free((void*) sig->key_locator);
     ldns_rr_free(sig->rr);
     sig->owner = NULL;
+    return 0;
+}
+
+static int
+memberdispose(void* dummy, void* member, FILE* fp)
+{
+    rrsig_type* sig = (rrsig_type*) member;
+    (void)dummy;
+    ldns_rr_print(fp, sig->rr);
+    ldns_rr_free(sig->rr);
+    sig->rr = NULL;
+    return 0;
+}
+
+static int
+memberrestore(void* dummy, void* member, FILE* fp)
+{
+    ldns_status status;
+    rrsig_type* sig = (rrsig_type*) member;
+    ldns_rdf* prev = NULL;
+    ldns_rdf* origin = NULL;
+    uint32_t defaulttl = 0;
+    (void)dummy;
+    if((status = ldns_rr_new_frm_fp(&sig->rr, fp, &defaulttl, &origin, &prev)) != LDNS_STATUS_OK) {
+        ods_log_error("[%s] unable to recreate RRset: %s", rrset_str, ldns_get_errorstr_by_id(status));
+        return 1;
+    }
+    return 0;
 }
 
 /**
@@ -208,9 +236,17 @@ rrset_create(zone_type* zone, ldns_rr_type type)
     rrset->zone = zone;
     rrset->rrtype = type;
     rrset->rr_count = 0;
-    collection_create_array(&rrset->rrsigs, sizeof(rrsig_type), NULL, memberdestroy);
+    collection_create_array(&rrset->rrsigs, sizeof(rrsig_type), rrset->zone->rrstore);
     rrset->needs_signing = 0;
     return rrset;
+}
+
+collection_class
+rrset_store_initialize(char* filename)
+{
+    collection_class klass;
+    collection_class_allocated(&klass, NULL, memberdestroy);
+    return klass;
 }
 
 

@@ -85,6 +85,8 @@ struct zone_struct {
     stats_type* stats;
     lock_basic_type zone_lock;
     lock_basic_type xfr_lock;
+    /* backing store for rrsigs (both domain as denial) */
+    collection_class rrstore;
 };
 
 /**

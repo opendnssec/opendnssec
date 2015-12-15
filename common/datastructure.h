@@ -29,15 +29,28 @@
 
 #include "config.h"
 
-struct collection_struct;
-typedef struct collection_struct* collection_t;
+struct collection_class_struct;
+typedef struct collection_class_struct* collection_class;
+
+struct collection_instance_struct;
+typedef struct collection_instance_struct* collection_t;
 
 /**
  * Creates and initialized an empty collection
  * \param[out] collection a reference to the collection to be initialized
  * \param[in] membsize the size as returned by sizeof() of the data elements stored
  */
-void collection_create_array(collection_t* collection, size_t membsize, void *cargo, void (*member_destroy)(void* cargo, void* member));
+void collection_create_array(collection_t* collection, size_t membsize, collection_class klass);
+
+void collection_class_allocated(collection_class* klass, void *cargo,
+        int (*member_destroy)(void* cargo, void* member));
+
+void collection_class_backed(collection_class* klass, char* fname, void *cargo,
+        int (*member_destroy)(void* cargo, void* member),
+        int (*member_dispose)(void* cargo, void* member, FILE*),
+        int (*member_restore)(void* cargo, void* member, FILE*));
+
+void collection_class_destroy(collection_class* klass);
 
 void collection_destroy(collection_t* collection);
 void collection_add(collection_t collection, void* data);
