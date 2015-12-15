@@ -257,7 +257,9 @@ query_parse_soa(buffer_type* buffer, uint32_t* serial)
 
 /**
  * NOTIFY.
- *
+ * Parse notify query and initiate zone transfer if received serial is
+ * newer than serial on disk. On success return QUERY_PROCESSED and
+ * prepare notify reply packet in q->buffer.
  */
 static query_state
 query_process_notify(query_type* q, ldns_rr_type qtype, void* engine)
@@ -342,10 +344,9 @@ query_process_notify(query_type* q, ldns_rr_type qtype, void* engine)
             }
             return QUERY_DISCARDED;
         }
-        lock_basic_lock(&q->zone->xfrd->serial_lock);
 
-        if (!util_serial_gt(serial, q->zone->xfrd->serial_disk))
-        {
+        lock_basic_lock(&q->zone->xfrd->serial_lock);
+        if (!util_serial_gt(serial, q->zone->xfrd->serial_disk)) {
             if (addr2ip(q->addr, address, sizeof(address))) {
                 ods_log_info("[%s] ignore notify from %s: already got "
                     "zone %s serial %u on disk (received %u)", query_str,
