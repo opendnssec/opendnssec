@@ -57,6 +57,7 @@ xfrhandler_create()
     xfrh->packet = NULL;
     xfrh->netio = NULL;
     xfrh->tcp_set = NULL;
+    xfrh->tcp_waiting_first = NULL;
     xfrh->udp_waiting_first = NULL;
     xfrh->udp_waiting_last = NULL;
     xfrh->udp_use_num = 0;
