@@ -1394,6 +1394,7 @@ xfrd_tcp_open(xfrd_type* xfrd, tcp_set_type* set)
 static void
 xfrd_tcp_obtain(xfrd_type* xfrd, tcp_set_type* set)
 {
+    xfrhandler_type* xfrhandler;
     int i = 0;
 
     ods_log_assert(set);
@@ -1427,6 +1428,11 @@ xfrd_tcp_obtain(xfrd_type* xfrd, tcp_set_type* set)
         xfrd_str, TCPSET_MAX);
     xfrd->tcp_waiting = 1;
     xfrd_unset_timer(xfrd);
+
+    /* add it to the waiting queue */
+    xfrhandler = (xfrhandler_type*) xfrd->xfrhandler;
+    xfrd->tcp_waiting_next = xfrhandler->tcp_waiting_first;
+    xfrhandler->tcp_waiting_first = xfrd;
 }
 
 
@@ -1542,6 +1548,7 @@ xfrd_tcp_read(xfrd_type* xfrd, tcp_set_type* set)
 static void
 xfrd_tcp_release(xfrd_type* xfrd, tcp_set_type* set)
 {
+    xfrhandler_type* xfrhandler;
     int conn = 0;
     zone_type* zone = NULL;
 
@@ -1565,6 +1572,35 @@ xfrd_tcp_release(xfrd_type* xfrd, tcp_set_type* set)
     }
     set->tcp_conn[conn]->fd = -1;
     set->tcp_count --;
+
+    /* now see if there are any waiting connections */
+    xfrhandler = (xfrhandler_type*) xfrd->xfrhandler;
+    while (xfrhandler->tcp_waiting_first) {
+        int i;
+        xfrd_type* waiting_xfrd = xfrhandler->tcp_waiting_first;
+        xfrhandler->tcp_waiting_first = waiting_xfrd->tcp_waiting_next;
+        waiting_xfrd->tcp_waiting_next = NULL;
+
+        set->tcp_count ++;
+        /* find a free tcp_buffer */
+        for (i=0; i < TCPSET_MAX; i++) {
+            if (set->tcp_conn[i]->fd == -1) {
+                waiting_xfrd->tcp_conn = i;
+                break;
+            }
+        }
+        waiting_xfrd->tcp_waiting = 0;
+        /* stop udp use (if any) */
+        if (waiting_xfrd->handler.fd != -1) {
+            xfrd_udp_release(waiting_xfrd);
+        }
+        if (!xfrd_tcp_open(waiting_xfrd, set)) {
+            return;
+        }
+        xfrd_tcp_xfr(waiting_xfrd, set);
+
+        if (set->tcp_count >= TCPSET_MAX) break;
+    }
 }
 
 
