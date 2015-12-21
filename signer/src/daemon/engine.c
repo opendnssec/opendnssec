@@ -1132,7 +1132,7 @@ engine_cleanup(engine_type* engine)
     fifoq_cleanup(engine->signq);
     cmdhandler_cleanup(engine->cmdhandler);
     dnshandler_cleanup(engine->dnshandler);
-    xfrhandler_cleanup(engine->xfrhandler);
+    //~ xfrhandler_cleanup(engine->xfrhandler);
     engine_config_cleanup(engine->config);
     allocator_deallocate(allocator, (void*) engine);
     lock_basic_destroy(&signal_lock);
