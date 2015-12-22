@@ -70,7 +70,7 @@ static xfrd_pkt_status xfrd_handle_packet(xfrd_type* xfrd,
 
 static void xfrd_tcp_obtain(xfrd_type* xfrd, tcp_set_type* set);
 static void xfrd_tcp_read(xfrd_type* xfrd, tcp_set_type* set);
-static void xfrd_tcp_release(xfrd_type* xfrd, tcp_set_type* set);
+static void xfrd_tcp_release(xfrd_type* xfrd, tcp_set_type* set, int open_waiting);
 static void xfrd_tcp_write(xfrd_type* xfrd, tcp_set_type* set);
 static void xfrd_tcp_xfr(xfrd_type* xfrd, tcp_set_type* set);
 static int xfrd_tcp_open(xfrd_type* xfrd, tcp_set_type* set);
@@ -1296,7 +1296,7 @@ xfrd_tcp_write(xfrd_type* xfrd, tcp_set_type* set)
             ods_log_error("[%s] zone %s cannot tcp connect to %s: %s",
                 xfrd_str, zone->name, xfrd->master->address, strerror(errno));
             xfrd_set_timer_now(xfrd);
-            xfrd_tcp_release(xfrd, set);
+            xfrd_tcp_release(xfrd, set, 1);
             return;
         }
     }
@@ -1305,7 +1305,7 @@ xfrd_tcp_write(xfrd_type* xfrd, tcp_set_type* set)
         ods_log_error("[%s] zone %s cannot tcp write to %s: %s",
             xfrd_str, zone->name, xfrd->master->address, strerror(errno));
         xfrd_set_timer_now(xfrd);
-        xfrd_tcp_release(xfrd, set);
+        xfrd_tcp_release(xfrd, set, 1);
         return;
     }
     if (ret == 0) {
@@ -1359,14 +1359,14 @@ xfrd_tcp_open(xfrd_type* xfrd, tcp_set_type* set)
         ods_log_error("[%s] zone %s cannot create tcp socket to %s: %s",
             xfrd_str, zone->name, xfrd->master->address, strerror(errno));
         xfrd_set_timer_now(xfrd);
-        xfrd_tcp_release(xfrd, set);
+        xfrd_tcp_release(xfrd, set, 0);
         return 0;
     }
     if (fcntl(fd, F_SETFL, O_NONBLOCK) == -1) {
         ods_log_error("[%s] zone %s cannot fcntl tcp socket to %s: %s",
             xfrd_str, zone->name, xfrd->master->address, strerror(errno));
         xfrd_set_timer_now(xfrd);
-        xfrd_tcp_release(xfrd, set);
+        xfrd_tcp_release(xfrd, set, 0);
         return 0;
     }
     to_len = xfrd_acl_sockaddr_to(xfrd->master, &to);
@@ -1377,7 +1377,7 @@ xfrd_tcp_open(xfrd_type* xfrd, tcp_set_type* set)
         ods_log_error("[%s] zone %s cannot connect tcp socket to %s: %s",
             xfrd_str, zone->name, xfrd->master->address, strerror(errno));
         xfrd_set_timer_now(xfrd);
-        xfrd_tcp_release(xfrd, set);
+        xfrd_tcp_release(xfrd, set, 0);
         return 0;
     }
     xfrd->handler.fd = fd;
@@ -1505,7 +1505,7 @@ xfrd_tcp_read(xfrd_type* xfrd, tcp_set_type* set)
     ret = tcp_conn_read(tcp);
     if (ret == -1) {
         xfrd_set_timer_now(xfrd);
-        xfrd_tcp_release(xfrd, set);
+        xfrd_tcp_release(xfrd, set, 1);
         return;
     }
     if (ret == 0) {
@@ -1522,7 +1522,7 @@ xfrd_tcp_read(xfrd_type* xfrd, tcp_set_type* set)
         case XFRD_PKT_NEWLEASE:
             ods_log_verbose("[%s] tcp read %s: release connection", xfrd_str,
                 XFRD_PKT_XFR?"xfr":"newlease");
-            xfrd_tcp_release(xfrd, set);
+            xfrd_tcp_release(xfrd, set, 1);
             ods_log_assert(xfrd->round_num == -1);
             break;
         case XFRD_PKT_NOTIMPL:
@@ -1534,7 +1534,7 @@ xfrd_tcp_read(xfrd_type* xfrd, tcp_set_type* set)
         default:
             ods_log_debug("[%s] tcp read %s: release connection", xfrd_str,
                 ret==XFRD_PKT_BAD?"bad":"notimpl");
-            xfrd_tcp_release(xfrd, set);
+            xfrd_tcp_release(xfrd, set, 1);
             xfrd_make_request(xfrd);
             break;
     }
@@ -1542,11 +1542,12 @@ xfrd_tcp_read(xfrd_type* xfrd, tcp_set_type* set)
 
 
 /**
- * Release tcp.
- *
+ * Release tcp connection from set for xfrd. If there are waiting TCP
+ * connections open as many as free slots in set. This step is skipped
+ * if open_waiting flag is unset.
  */
 static void
-xfrd_tcp_release(xfrd_type* xfrd, tcp_set_type* set)
+xfrd_tcp_release(xfrd_type* xfrd, tcp_set_type* set, int open_waiting)
 {
     xfrhandler_type* xfrhandler;
     int conn = 0;
@@ -1573,19 +1574,20 @@ xfrd_tcp_release(xfrd_type* xfrd, tcp_set_type* set)
     set->tcp_conn[conn]->fd = -1;
     set->tcp_count --;
 
-    /* now see if there are any waiting connections */
+    /* see if there are any connections waiting for a slot. Or return. */
+    if (!open_waiting) return;
     xfrhandler = (xfrhandler_type*) xfrd->xfrhandler;
-    while (xfrhandler->tcp_waiting_first) {
+    while (xfrhandler->tcp_waiting_first && set->tcp_count < TCPSET_MAX) {
         int i;
         xfrd_type* waiting_xfrd = xfrhandler->tcp_waiting_first;
         xfrhandler->tcp_waiting_first = waiting_xfrd->tcp_waiting_next;
         waiting_xfrd->tcp_waiting_next = NULL;
 
-        set->tcp_count ++;
         /* find a free tcp_buffer */
         for (i=0; i < TCPSET_MAX; i++) {
             if (set->tcp_conn[i]->fd == -1) {
                 waiting_xfrd->tcp_conn = i;
+                set->tcp_count++;
                 break;
             }
         }
@@ -1594,12 +1596,11 @@ xfrd_tcp_release(xfrd_type* xfrd, tcp_set_type* set)
         if (waiting_xfrd->handler.fd != -1) {
             xfrd_udp_release(waiting_xfrd);
         }
-        if (!xfrd_tcp_open(waiting_xfrd, set)) {
-            return;
+        /* if xfrd_tcp_open() fails its slot in set->tcp_conn[]
+         * is released. Continue to next. */
+        if (xfrd_tcp_open(waiting_xfrd, set)) {
+            xfrd_tcp_xfr(waiting_xfrd, set);
         }
-        xfrd_tcp_xfr(waiting_xfrd, set);
-
-        if (set->tcp_count >= TCPSET_MAX) break;
     }
 }
 
@@ -1715,7 +1716,7 @@ xfrd_udp_obtain(xfrd_type* xfrd)
     xfrhandler = (void*) xfrd->xfrhandler;
     if (xfrd->tcp_conn != -1) {
         /* no tcp and udp at the same time */
-        xfrd_tcp_release(xfrd, xfrhandler->tcp_set);
+        xfrd_tcp_release(xfrd, xfrhandler->tcp_set, 1);
     }
     if (xfrhandler->udp_use_num < XFRD_MAX_UDP) {
             xfrhandler->udp_use_num++;
@@ -2003,7 +2004,7 @@ xfrd_handle_zone(netio_type* ATTR_UNUSED(netio),
            /* tcp connection timed out. Stop it. */
            ods_log_deeebug("[%s] zone %s event tcp timeout", xfrd_str,
                zone->name);
-           xfrd_tcp_release(xfrd, xfrhandler->tcp_set);
+           xfrd_tcp_release(xfrd, xfrhandler->tcp_set, 1);
            /* continue to retry; as if a timeout happened */
            event_types = NETIO_EVENT_TIMEOUT;
         }
