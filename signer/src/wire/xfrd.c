@@ -1627,7 +1627,9 @@ xfrd_tcp_release(xfrd_type* xfrd, tcp_set_type* set, int open_waiting)
             xfrd_udp_release(waiting_xfrd);
         }
         /* if xfrd_tcp_open() fails its slot in set->tcp_conn[]
-         * is released. Continue to next. */
+         * is released. Continue to next. We don't put it back in the
+         * waiting queue, it would keep the signer busy retrying, making
+         * things only worse. */
         if (xfrd_tcp_open(waiting_xfrd, set)) {
             xfrd_tcp_xfr(waiting_xfrd, set);
         }
