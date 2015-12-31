@@ -175,23 +175,6 @@ backup_read_int(FILE* in, int* v)
 
 
 /**
- * Read size type from backup file.
- *
- */
-int
-backup_read_size_t(FILE* in, size_t* v)
-{
-    char* p = backup_read_token(in);
-    if (!p) {
-        ods_log_debug("[%s] cannot read size_t", backup_str);
-       return 0;
-    }
-    *v=(size_t)atoi(p);
-    return 1;
-}
-
-
-/**
  * Read 8bit unsigned integer from backup file.
  *
  */
@@ -204,23 +187,6 @@ backup_read_uint8_t(FILE* in, uint8_t* v)
        return 0;
     }
     *v= (uint8_t)atoi(p);
-    return 1;
-}
-
-
-/**
- * Read 16bit unsigned integer from backup file.
- *
- */
-int
-backup_read_uint16_t(FILE* in, uint16_t* v)
-{
-    char* p = backup_read_token(in);
-    if (!p) {
-        ods_log_debug("[%s] cannot read uint16_t", backup_str);
-       return 0;
-    }
-    *v= (uint16_t)atoi(p);
     return 1;
 }
 

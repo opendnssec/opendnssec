@@ -53,13 +53,6 @@ void log_init(int facility, const char *program_name)
 	openlog(program_name, 0, facility);
 }
 
-/* Switch log to new facility */
-void log_switch(int facility, const char *program_name)
-{
-	closelog();
-	openlog(program_name, 0, facility);
-}
-
 /* As far as possible we send messages both to syslog and STDOUT */
 void dual_log(const char *format, ...) {
 
@@ -1309,33 +1302,6 @@ char* StrStrdup(const char* string)
  *          The string to be appended.
 -*/
 
-void StrAppend(char** str1, const char* str2)
-{
-	int len1;   /* Length of string 1 */
-	int len2;   /* Length of string 2 */
-
-	if (str1 && str2) {
-
-		/* Something to append and we can append it */
-
-		len2 = strlen(str2);
-		if (*str1) {
-			len1 = strlen(*str1);
-
-			/* Allocate space for combined string and concatenate */
-
-			*str1 = MemRealloc(*str1, (len1 + len2 + 1) * sizeof(char));
-			memcpy(*str1, str2, len2);
-		}
-		else {
-
-			/* Nothing in string 1, so just duplicate string 2 */
-
-			*str1 = StrStrdup(str2);
-		}
-	}
-}
-
 /*+
  * StrTrimR - Trim Right
  *
@@ -1409,16 +1375,6 @@ void* MemCalloc(size_t nmemb, size_t size)
 		exit(1);
 	}
 	return ptr;
-}
-
-void* MemRealloc(void *ptr, size_t size)
-{
-	void *ptr1 = realloc(ptr, size);
-	if (ptr1 == NULL) {
-		dual_log("ERROR: realloc: Out of swap space");
-		exit(1);
-	}
-	return ptr1;
 }
 
 /* Used to squelch libxml output when linked in Enforcer */

@@ -1448,20 +1448,6 @@ hsm_list_keys_session(hsm_ctx_t *ctx, const hsm_session_t *session,
     return hsm_list_keys_session_internal(ctx, session, count, 1);
 }
 
-/* returns a count all keys available to the given session
- *
- * \param session the session to find the keys in
- *
- * \return the number of keys
- */
-size_t
-hsm_count_keys_session(hsm_ctx_t *ctx, const hsm_session_t *session)
-{
-    size_t count = 0;
-    (void) hsm_list_keys_session_internal(ctx, session, &count, 0);
-    return count;
-}
-
 /* returns a newly allocated key structure containing the key data
  * for the given CKA_ID available in the session. Returns NULL if not
  * found
@@ -2570,35 +2556,6 @@ hsm_list_keys_repository(hsm_ctx_t *ctx,
     return hsm_list_keys_session(ctx, session, count);
 }
 
-size_t
-hsm_count_keys(hsm_ctx_t *ctx)
-{
-    size_t count = 0;
-    unsigned int i;
-
-    if (!ctx) ctx = _hsm_ctx;
-    for (i = 0; i < ctx->session_count; i++) {
-        count += hsm_count_keys_session(ctx, ctx->session[i]);
-    }
-    return count;
-}
-
-size_t
-hsm_count_keys_repository(hsm_ctx_t *ctx,
-                          const char *repository)
-{
-    hsm_session_t *session;
-
-    if (!repository) return 0;
-    if (!ctx) ctx = _hsm_ctx;
-
-    session = hsm_find_repository_session(ctx, repository);
-    if (!session) {
-        return 0;
-    }
-    return hsm_count_keys_session(ctx, session);
-}
-
 libhsm_key_t *
 hsm_find_key_by_id(hsm_ctx_t *ctx, const char *id)
 {
@@ -3190,169 +3147,6 @@ hsm_sign_rrset(hsm_ctx_t *ctx,
     return signature;
 }
 
-/* returns a newly allocated (not null-terminated!) string containing
- * the message digest of the given source string
- * digest length contains the length of the result
- * caller must free returned data with free()
- * returns NULL (and zero digest length) on error
- */
-static CK_BYTE *
-hsm_digest(hsm_ctx_t *ctx,
-           hsm_session_t *session,
-           CK_MECHANISM digest_mechanism,
-           char *source,
-           size_t length,
-           size_t *digest_length)
-{
-    CK_RV rv;
-    CK_BYTE *digest;
-    CK_ULONG d = 0;
-
-    rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_DigestInit(session->session,
-                                                 &digest_mechanism);
-    if (hsm_pkcs11_check_error(ctx, rv, "digest init")) {
-        *digest_length = 0;
-        return NULL;
-    }
-
-    rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_Digest(session->session,
-                                        (CK_BYTE *)source,
-                                        length,
-                                        NULL,
-                                        &d);
-
-    if (hsm_pkcs11_check_error(ctx, rv, "digest to determine result size")) {
-        *digest_length = 0;
-        return NULL;
-    }
-    digest = malloc(d);
-    rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_Digest(session->session,
-                                        (CK_BYTE *)source,
-                                        length,
-                                        digest,
-                                        &d);
-    if (hsm_pkcs11_check_error(ctx, rv, "digest")) {
-        *digest_length = 0;
-        free(digest);
-        return NULL;
-    }
-
-    *digest_length = d;
-    return digest;
-}
-
-ldns_rdf *
-hsm_nsec3_hash_name(hsm_ctx_t *ctx,
-                    ldns_rdf *name,
-                    uint8_t algorithm,
-                    uint16_t iterations,
-                    uint8_t salt_length,
-                    uint8_t *salt)
-{
-    char *orig_owner_str;
-    size_t hashed_owner_str_len;
-    ldns_rdf *hashed_owner;
-    char *hashed_owner_str;
-    char *hashed_owner_b32;
-    int hashed_owner_b32_len;
-    uint32_t cur_it;
-    char *hash = NULL;
-    size_t hash_length = 0;
-    ldns_status status;
-    CK_MECHANISM mechanism;
-    unsigned int i;
-    hsm_session_t *session = NULL;
-    char *error_name;
-
-    switch(algorithm) {
-    case 1:
-        mechanism.mechanism = CKM_SHA_1;
-        mechanism.pParameter = NULL;
-        mechanism.ulParameterLen = 0;
-        break;
-    default:
-        printf("unknown algo: %u\n", (unsigned int)algorithm);
-        return NULL;
-        break;
-    }
-
-    /* just use the first available session */
-    if (!ctx) ctx = _hsm_ctx;
-    for (i = 0; i < ctx->session_count; i++) {
-        if (ctx->session[i]) session = ctx->session[i];
-    }
-    if (!session) {
-        return NULL;
-    }
-
-    /* prepare the owner name according to the draft section bla */
-    orig_owner_str = ldns_rdf2str(name);
-
-    hashed_owner_str_len = salt_length + ldns_rdf_size(name);
-    hashed_owner_str = LDNS_XMALLOC(char, hashed_owner_str_len);
-    memcpy(hashed_owner_str, ldns_rdf_data(name), ldns_rdf_size(name));
-    memcpy(hashed_owner_str + ldns_rdf_size(name), salt, salt_length);
-
-    for (cur_it = iterations + 1; cur_it > 0; cur_it--) {
-        if (hash != NULL) free(hash);
-        hash = (char *) hsm_digest(ctx,
-                                   session,
-                                   mechanism,
-                                   hashed_owner_str,
-                                   hashed_owner_str_len,
-                                   &hash_length);
-
-        LDNS_FREE(hashed_owner_str);
-        hashed_owner_str_len = salt_length + hash_length;
-        hashed_owner_str = LDNS_XMALLOC(char, hashed_owner_str_len);
-        if (!hashed_owner_str) {
-            hsm_ctx_set_error(ctx, -1, "hsm_nsec3_hash_name()",
-                "Memory error");
-            return NULL;
-        }
-        memcpy(hashed_owner_str, hash, hash_length);
-        memcpy(hashed_owner_str + hash_length, salt, salt_length);
-    }
-
-    LDNS_FREE(hashed_owner_str);
-    hashed_owner_str = hash;
-    hashed_owner_str_len = hash_length;
-    hashed_owner_b32 = LDNS_XMALLOC(char,
-                              ldns_b32_ntop_calculate_size(
-                                   hashed_owner_str_len) + 1);
-    LDNS_FREE(orig_owner_str);
-    hashed_owner_b32_len =
-        (size_t) ldns_b32_ntop_extended_hex((uint8_t *) hashed_owner_str,
-                                     hashed_owner_str_len,
-                                     hashed_owner_b32,
-                                     ldns_b32_ntop_calculate_size(
-                                         hashed_owner_str_len));
-    if (hashed_owner_b32_len < 1) {
-        error_name = ldns_rdf2str(name);
-        hsm_ctx_set_error(ctx, -1, "hsm_nsec3_hash_name()",
-             "Error in base32 extended hex encoding "
-             "of hashed owner name (name: %s, return code: %d)",
-             error_name, hashed_owner_b32_len);
-        LDNS_FREE(error_name);
-        LDNS_FREE(hashed_owner_b32);
-        return NULL;
-    }
-    hashed_owner_str_len = hashed_owner_b32_len;
-    hashed_owner_b32[hashed_owner_b32_len] = '\0';
-
-    status = ldns_str2rdf_dname(&hashed_owner, hashed_owner_b32);
-    if (status != LDNS_STATUS_OK) {
-        hsm_ctx_set_error(ctx, -1, "hsm_nsec3_hash_name()",
-            "Error creating rdf from %s", hashed_owner_b32);
-        LDNS_FREE(hashed_owner_b32);
-        return NULL;
-    }
-
-    free(hash);
-    LDNS_FREE(hashed_owner_b32);
-    return hashed_owner;
-}
-
 ldns_rr *
 hsm_get_dnskey(hsm_ctx_t *ctx,
                const libhsm_key_t *key,
@@ -3486,30 +3280,6 @@ int hsm_attach(const char *repository,
     }
 }
 
-/*! Detach a named HSM */
-int hsm_detach(const char *repository)
-{
-    unsigned int i;
-    for (i = 0; i < _hsm_ctx->session_count; i++) {
-        if (_hsm_ctx->session[i] &&
-            strcmp(_hsm_ctx->session[i]->module->name,
-                   repository) == 0) {
-            hsm_session_close(_hsm_ctx, _hsm_ctx->session[i], 1);
-            _hsm_ctx->session[i] = NULL;
-            /* if this was the last session in the list, decrease the
-             * session count */
-            if (i == _hsm_ctx->session_count) {
-                while(_hsm_ctx->session_count > 0 &&
-                      !_hsm_ctx->session[i]) {
-                    _hsm_ctx->session_count--;
-                }
-            }
-            return 0;
-        }
-    }
-    return -1;
-}
-
 int
 hsm_token_attached(hsm_ctx_t *ctx, const char *repository)
 {
@@ -3526,29 +3296,6 @@ hsm_token_attached(hsm_ctx_t *ctx, const char *repository)
                     "hsm_token_attached()",
                     "Can't find repository: %s", repository);
     return 0;
-}
-
-int
-hsm_supported_algorithm(ldns_algorithm algorithm)
-{
-    switch(algorithm) {
-        case LDNS_SIGN_RSAMD5:
-        case LDNS_SIGN_RSASHA1:
-        case LDNS_SIGN_RSASHA1_NSEC3:
-        case LDNS_SIGN_RSASHA256:
-        case LDNS_SIGN_RSASHA512:
-        case LDNS_SIGN_DSA:
-        case LDNS_SIGN_DSA_NSEC3:
-        case LDNS_SIGN_ECC_GOST:
-/* TODO: We can remove the directive if we require LDNS >= 1.6.13 */
-#if !defined LDNS_BUILD_CONFIG_USE_ECDSA || LDNS_BUILD_CONFIG_USE_ECDSA
-        case LDNS_SIGN_ECDSAP256SHA256:
-        case LDNS_SIGN_ECDSAP384SHA384:
-#endif
-            return 0;
-        default:
-            return -1;
-    }
 }
 
 char *
