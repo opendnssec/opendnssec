@@ -1218,21 +1218,6 @@ int policy_update_from_xml(policy_t* policy, xmlNodePtr policy_node, int* update
     return __xmlNode2policy(policy, policy_node, updated);
 }
 
-zone_list_t* policy_get_zones(const policy_t* policy) {
-    if (!policy) {
-        return NULL;
-    }
-    if (!policy->dbo) {
-        return NULL;
-    }
-    if (db_value_not_empty(&(policy->id))) {
-        return NULL;
-    }
-
-    return zone_list_new_get_by_policy_id(db_object_connection(policy->dbo),
-        &(policy->id));
-}
-
 policy_key_list_t* policy_get_policy_keys(const policy_t* policy) {
     if (!policy) {
         return NULL;

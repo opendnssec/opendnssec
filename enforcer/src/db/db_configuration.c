@@ -57,14 +57,6 @@ void db_configuration_free(db_configuration_t* configuration) {
     }
 }
 
-const char* db_configuration_name(const db_configuration_t* configuration) {
-    if (!configuration) {
-        return NULL;
-    }
-
-    return configuration->name;
-}
-
 const char* db_configuration_value(const db_configuration_t* configuration) {
     if (!configuration) {
         return NULL;

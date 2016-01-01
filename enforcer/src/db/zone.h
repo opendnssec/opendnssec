@@ -92,29 +92,12 @@ zone_t* zone_new_copy(const zone_t* zone);
 void zone_free(zone_t* zone);
 
 /**
- * Reset the content of a zone object making it as if its new. This does not change anything in the database.
- * \param[in] zone a zone_t pointer.
- */
-void zone_reset(zone_t* zone);
-
-/**
  * Copy the content of a zone object.
  * \param[in] zone a zone_t pointer.
  * \param[in] zone_copy a zone_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int zone_copy(zone_t* zone, const zone_t* zone_copy);
-
-/**
- * Compare two zone objects and return less than, equal to,
- * or greater than zero if A is found, respectively, to be less than, to match,
- * or be greater than B.
- * \param[in] zone_a a zone_t pointer.
- * \param[in] zone_b a zone_t pointer.
- * \return less than, equal to, or greater than zero if A is found, respectively,
- * to be less than, to match, or be greater than B.
- */
-int zone_cmp(const zone_t* zone_a, const zone_t* zone_b);
 
 /**
  * Set the content of a zone object based on a database result.
@@ -137,13 +120,6 @@ const db_value_t* zone_id(const zone_t* zone);
  * \return a db_value_t pointer or NULL on error.
  */
 const db_value_t* zone_policy_id(const zone_t* zone);
-
-/**
- * Cache the policy_id object related to a zone object.
- * \param[in] zone a zone_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int zone_cache_policy(zone_t* zone);
 
 /**
  * Get the policy_id object related to a zone object.
@@ -280,38 +256,6 @@ unsigned int zone_next_zsk_roll(const zone_t* zone);
 unsigned int zone_next_csk_roll(const zone_t* zone);
 
 /**
- * Get the key_data objects related to a zone object.
- * \param[in] zone a zone_t pointer.
- * \return a key_data_list_t pointer or NULL on error.
- */
-key_data_list_t* zone_key_data_list(zone_t* zone);
-
-/**
- * Retrieve key_data objects related to a zone object.
- * Use zone_key_data_list() to get the list afterwards.
- * This will refetch objects if already retrieved.
- * \param[in] zone a zone_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int zone_retrieve_key_data_list(zone_t* zone);
-
-/**
- * Get the key_dependency objects related to a zone object.
- * \param[in] zone a zone_t pointer.
- * \return a key_dependency_list_t pointer or NULL on error.
- */
-key_dependency_list_t* zone_key_dependency_list(zone_t* zone);
-
-/**
- * Retrieve key_dependency objects related to a zone object.
- * Use zone_key_dependency_list() to get the list afterwards.
- * This will refetch objects if already retrieved.
- * \param[in] zone a zone_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int zone_retrieve_key_dependency_list(zone_t* zone);
-
-/**
  * Set the policy_id of a zone object. If this fails the original value may have been lost.
  * \param[in] zone a zone_t pointer.
  * \param[in] policy_id a db_value_t pointer.
@@ -432,30 +376,6 @@ int zone_set_output_adapter_type(zone_t* zone, const char* output_adapter_type_t
 int zone_set_output_adapter_uri(zone_t* zone, const char* output_adapter_uri_text);
 
 /**
- * Set the next_ksk_roll of a zone object.
- * \param[in] zone a zone_t pointer.
- * \param[in] next_ksk_roll an unsigned integer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int zone_set_next_ksk_roll(zone_t* zone, unsigned int next_ksk_roll);
-
-/**
- * Set the next_zsk_roll of a zone object.
- * \param[in] zone a zone_t pointer.
- * \param[in] next_zsk_roll an unsigned integer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int zone_set_next_zsk_roll(zone_t* zone, unsigned int next_zsk_roll);
-
-/**
- * Set the next_csk_roll of a zone object.
- * \param[in] zone a zone_t pointer.
- * \param[in] next_csk_roll an unsigned integer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int zone_set_next_csk_roll(zone_t* zone, unsigned int next_csk_roll);
-
-/**
  * Create a clause for policy_id of a zone object and add it to a database clause list.
  * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
  * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
@@ -465,17 +385,6 @@ int zone_set_next_csk_roll(zone_t* zone, unsigned int next_csk_roll);
  * \return a db_clause_t pointer to the added clause or NULL on error.
  */
 db_clause_t* zone_policy_id_clause(db_clause_list_t* clause_list, const db_value_t* policy_id);
-
-/**
- * Create a clause for name of a zone object and add it to a database clause list.
- * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
- * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
- * returned db_clause_t pointer.
- * \param[in] clause_list db_clause_list_t pointer.
- * \param[in] name_text a character pointer.
- * \return a db_clause_t pointer to the added clause or NULL on error.
- */
-db_clause_t* zone_name_clause(db_clause_list_t* clause_list, const char* name_text);
 
 /**
  * Create a clause for signconf_needs_writing of a zone object and add it to a database clause list.
@@ -542,39 +451,6 @@ db_clause_t* zone_ttl_end_dk_clause(db_clause_list_t* clause_list, unsigned int 
  * \return a db_clause_t pointer to the added clause or NULL on error.
  */
 db_clause_t* zone_ttl_end_rs_clause(db_clause_list_t* clause_list, unsigned int ttl_end_rs);
-
-/**
- * Create a clause for roll_ksk_now of a zone object and add it to a database clause list.
- * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
- * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
- * returned db_clause_t pointer.
- * \param[in] clause_list db_clause_list_t pointer.
- * \param[in] roll_ksk_now an unsigned integer.
- * \return a db_clause_t pointer to the added clause or NULL on error.
- */
-db_clause_t* zone_roll_ksk_now_clause(db_clause_list_t* clause_list, unsigned int roll_ksk_now);
-
-/**
- * Create a clause for roll_zsk_now of a zone object and add it to a database clause list.
- * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
- * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
- * returned db_clause_t pointer.
- * \param[in] clause_list db_clause_list_t pointer.
- * \param[in] roll_zsk_now an unsigned integer.
- * \return a db_clause_t pointer to the added clause or NULL on error.
- */
-db_clause_t* zone_roll_zsk_now_clause(db_clause_list_t* clause_list, unsigned int roll_zsk_now);
-
-/**
- * Create a clause for roll_csk_now of a zone object and add it to a database clause list.
- * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
- * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
- * returned db_clause_t pointer.
- * \param[in] clause_list db_clause_list_t pointer.
- * \param[in] roll_csk_now an unsigned integer.
- * \return a db_clause_t pointer to the added clause or NULL on error.
- */
-db_clause_t* zone_roll_csk_now_clause(db_clause_list_t* clause_list, unsigned int roll_csk_now);
 
 /**
  * Create a clause for input_adapter_type of a zone object and add it to a database clause list.

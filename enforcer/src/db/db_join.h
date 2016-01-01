@@ -49,18 +49,6 @@ struct db_join {
 };
 
 /**
- * Create a new database join.
- * \return a db_join_t pointer or NULL on error.
- */
-db_join_t* db_join_new(void);
-
-/**
- * Delete a database join.
- * \param[in] join a db_join_t pointer.
- */
-void db_join_free(db_join_t* join);
-
-/**
  * Get the from table name of a database join.
  * \param[in] join a db_join_t pointer.
  * \return a character pointer or NULL on error or if no from table name has
@@ -93,45 +81,6 @@ const char* db_join_to_table(const db_join_t* join);
 const char* db_join_to_field(const db_join_t* join);
 
 /**
- * Set the from table name of a database join.
- * \param[in] join a db_join_t pointer.
- * \param[in] from_table a character pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int db_join_set_from_table(db_join_t* join, const char* from_table);
-
-/**
- * Set the from field name of a database join.
- * \param[in] join a db_join_t pointer.
- * \param[in] from_field a character pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int db_join_set_from_field(db_join_t* join, const char* from_field);
-
-/**
- * Set the to table name of a database join.
- * \param[in] join a db_join_t pointer.
- * \param[in] to_table a character pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int db_join_set_to_table(db_join_t* join, const char* to_table);
-
-/**
- * Set the to field of a database join.
- * \param[in] join a db_join_t pointer.
- * \param[in] to_field a character pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int db_join_set_to_field(db_join_t* join, const char* to_field);
-
-/**
- * Check if the database join is not empty.
- * \param[in] join a db_join_t pointer.
- * \return DB_ERROR_* if empty, otherwise DB_OK.
- */
-int db_join_not_empty(const db_join_t* join);
-
-/**
  * Get the next database join connected in a database join list.
  * \param[in] join a db_join_t pointer.
  * \return a db_join_t pointer or NULL on error or if there are no more database
@@ -146,27 +95,6 @@ struct db_join_list {
     db_join_t* begin;
     db_join_t* end;
 };
-
-/**
- * Create a new database join list.
- * \return a db_join_list_t pointer or NULL on error.
- */
-db_join_list_t* db_join_list_new(void);
-
-/**
- * Delete a database join list and all database joins within the list.
- * \param[in] join_list a db_join_list_t pointer.
- */
-void db_join_list_free(db_join_list_t* join_list);
-
-/**
- * Add a database join to a database join list, this takes over the ownership
- * of the database join.
- * \param[in] join_list a db_join_list_t pointer.
- * \param[in] join a db_join_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int db_join_list_add(db_join_list_t* join_list, db_join_t* join);
 
 /**
  * Return the first database join in a database join list.

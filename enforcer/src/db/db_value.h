@@ -66,13 +66,6 @@ struct db_value {
 db_value_t* db_value_new(void);
 
 /**
- * Create a new database value that is a copy of another.
- * \param[in] from_value a db_value_t pointer.
- * \return a db_value_t pointer or NULL on error.
- */
-db_value_t* db_value_new_copy(const db_value_t* from_value);
-
-/**
  * Delete a database value.
  * \param[in] value a db_value_t pointer.
  */
@@ -111,42 +104,6 @@ int db_value_cmp(const db_value_t* value_a, const db_value_t* value_b, int* resu
 db_type_t db_value_type(const db_value_t* value);
 
 /**
- * Get a pointer for the 32bit integer in a database value.
- * \param[in] value a db_value_t pointer.
- * \return a db_type_int32_t pointer or NULL on error, if empty or not a 32bit
- * integer value.
- * TODO: unit test
- */
-const db_type_int32_t* db_value_int32(const db_value_t* value);
-
-/**
- * Get a pointer for the unsigned 32bit integer in a database value.
- * \param[in] value a db_value_t pointer.
- * \return a db_type_uint32_t pointer or NULL on error, if empty or not an
- * unsigned 32bit integer value.
- * TODO: unit test
- */
-const db_type_uint32_t* db_value_uint32(const db_value_t* value);
-
-/**
- * Get a pointer for the 64bit integer in a database value.
- * \param[in] value a db_value_t pointer.
- * \return a db_type_int64_t pointer or NULL on error, if empty or not a 64bit
- * integer value.
- * TODO: unit test
- */
-const db_type_int64_t* db_value_int64(const db_value_t* value);
-
-/**
- * Get a pointer for the unsigned 64bit integer in a database value.
- * \param[in] value a db_value_t pointer.
- * \return a db_type_uint64_t pointer or NULL on error, if empty or not an
- * unsigned 64bit integer value.
- * TODO: unit test
- */
-const db_type_uint64_t* db_value_uint64(const db_value_t* value);
-
-/**
  * Get a character pointer for the text in a database value.
  * \param[in] value a db_value_t pointer.
  * \return a character pointer or NULL on error, if empty or not a text value.
@@ -160,14 +117,6 @@ const char* db_value_text(const db_value_t* value);
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_value_enum_value(const db_value_t* value, int* enum_value);
-
-/**
- * Get the character representation of the integer value of an enumeration
- * database value.
- * \param[in] value a db_value_t pointer.
- * \return a character pointer or NULL on error, if empty or not an enum value.
- */
-const char* db_value_enum_text(const db_value_t* value);
 
 /**
  * Check if a database value is not empty.
@@ -226,15 +175,6 @@ int db_value_to_text(const db_value_t* value, char** to_text);
 int db_value_to_enum_value(const db_value_t* value, int* to_int, const db_enum_t* enum_set);
 
 /**
- * Get the character enumeration representation of the database value.
- * \param[in] value a db_value_t pointer.
- * \param[out] to_text a character pointer pointer.
- * \param[in] enum_set a db_enum_t array that MUST end with NULL.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int db_value_to_enum_text(const db_value_t* value, const char** to_text, const db_enum_t* enum_set);
-
-/**
  * Set the database value to a 32bit integer value.
  * \param[in] value a db_value_t pointer.
  * \param[in] from_int32 a db_type_int32_t pointer.
@@ -275,15 +215,6 @@ int db_value_from_uint64(db_value_t* value, db_type_uint64_t from_uint64);
 int db_value_from_text(db_value_t* value, const char* from_text);
 
 /**
- * Set the database value to a text value.
- * \param[in] value a db_value_t pointer.
- * \param[in] from_text a character pointer.
- * \param[in] size a size_t.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int db_value_from_text2(db_value_t* value, const char* from_text, size_t size);
-
-/**
  * Set the database value to an enumeration value based on an integer value.
  * \param[in] value a db_value_t pointer.
  * \param[in] enum_value an integer pointer.
@@ -291,22 +222,6 @@ int db_value_from_text2(db_value_t* value, const char* from_text, size_t size);
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_value_from_enum_value(db_value_t* value, int enum_value, const db_enum_t* enum_set);
-
-/**
- * Set the database value to an enumeration value based on a text value.
- * \param[in] value a db_value_t pointer.
- * \param[in] enum_text a character pointer.
- * \param[in] enum_set a db_enum_t array that MUST end with NULL.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int db_value_from_enum_text(db_value_t* value, const char* enum_text, const db_enum_t* enum_set);
-
-/**
- * Check if the database value is a primary key.
- * \param[in] value a db_value_t pointer.
- * \return DB_ERROR_* if its not a primary key, otherwise DB_OK.
- */
-int db_value_primary_key(const db_value_t* value);
 
 /**
  * Mark the database as a primary key.

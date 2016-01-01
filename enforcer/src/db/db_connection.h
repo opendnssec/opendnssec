@@ -84,13 +84,6 @@ int db_connection_setup(db_connection_t* connection);
 int db_connection_connect(const db_connection_t* connection);
 
 /**
- * Disconnect from the database.
- * \param[in] connection a db_connection_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int db_connection_disconnect(const db_connection_t* connection);
-
-/**
  * Create an object in the database. The `object` refer to the database object
  * begin created, the `object_field_list` describes the fields that should be
  * set in the object and the `value_set` has the values for each field.
@@ -143,26 +136,5 @@ int db_connection_delete(const db_connection_t* connection, const db_object_t* o
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_connection_count(const db_connection_t* connection, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list, size_t* count);
-
-/**
- * Begin a transaction for a database connection.
- * \param[in] connection a db_connection_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int db_connection_transaction_begin(const db_connection_t* connection);
-
-/**
- * Commit a transaction for a database connection.
- * \param[in] connection a db_connection_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int db_connection_transaction_commit(const db_connection_t* connection);
-
-/**
- * Roll back a transaction for a database connection.
- * \param[in] connection a db_connection_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int db_connection_transaction_rollback(const db_connection_t* connection);
 
 #endif

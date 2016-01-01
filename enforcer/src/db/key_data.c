@@ -323,41 +323,6 @@ void key_data_free(key_data_t* key_data) {
     }
 }
 
-void key_data_reset(key_data_t* key_data) {
-    if (key_data) {
-        db_value_reset(&(key_data->id));
-        db_value_reset(&(key_data->rev));
-        db_value_reset(&(key_data->zone_id));
-        if (key_data->private_zone_id) {
-            zone_free(key_data->private_zone_id);
-            key_data->private_zone_id = NULL;
-        }
-        key_data->associated_zone_id = NULL;
-        db_value_reset(&(key_data->hsm_key_id));
-        if (key_data->private_hsm_key_id) {
-            hsm_key_free(key_data->private_hsm_key_id);
-            key_data->private_hsm_key_id = NULL;
-        }
-        key_data->associated_hsm_key_id = NULL;
-        key_data->algorithm = 0;
-        key_data->inception = 0;
-        key_data->role = KEY_DATA_ROLE_INVALID;
-        key_data->introducing = 1;
-        key_data->should_revoke = 0;
-        key_data->standby = 0;
-        key_data->active_zsk = 0;
-        key_data->publish = 0;
-        key_data->active_ksk = 0;
-        key_data->ds_at_parent = KEY_DATA_DS_AT_PARENT_UNSUBMITTED;
-        key_data->keytag = 0;
-        key_data->minimize = 0;
-        if (key_data->key_state_list) {
-            key_state_list_free(key_data->key_state_list);
-            key_data->key_state_list = NULL;
-        }
-    }
-}
-
 int key_data_copy(key_data_t* key_data, const key_data_t* key_data_copy) {
     if (!key_data) {
         return DB_ERROR_UNKNOWN;
@@ -601,40 +566,6 @@ const db_value_t* key_data_zone_id(const key_data_t* key_data) {
     return &(key_data->zone_id);
 }
 
-int key_data_cache_zone(key_data_t* key_data) {
-    if (!key_data) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    if (key_data->associated_zone_id
-        || key_data->private_zone_id)
-    {
-        return DB_OK;
-    }
-
-    if (!(key_data->private_zone_id = zone_new(db_object_connection(key_data->dbo)))) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (zone_get_by_id(key_data->private_zone_id, &(key_data->zone_id))) {
-        zone_free(key_data->private_zone_id);
-        key_data->private_zone_id = NULL;
-        return DB_ERROR_UNKNOWN;
-    }
-
-    return DB_OK;
-}
-
-const zone_t* key_data_zone(const key_data_t* key_data) {
-    if (!key_data) {
-        return NULL;
-    }
-
-    if (key_data->private_zone_id) {
-        return key_data->private_zone_id;
-    }
-    return key_data->associated_zone_id;
-}
-
 zone_t* key_data_get_zone(const key_data_t* key_data) {
     zone_t* zone_id = NULL;
 
@@ -801,22 +732,6 @@ unsigned int key_data_introducing(const key_data_t* key_data) {
     return key_data->introducing;
 }
 
-unsigned int key_data_should_revoke(const key_data_t* key_data) {
-    if (!key_data) {
-        return 0;
-    }
-
-    return key_data->should_revoke;
-}
-
-unsigned int key_data_standby(const key_data_t* key_data) {
-    if (!key_data) {
-        return 0;
-    }
-
-    return key_data->standby;
-}
-
 unsigned int key_data_active_zsk(const key_data_t* key_data) {
     if (!key_data) {
         return 0;
@@ -847,22 +762,6 @@ key_data_ds_at_parent_t key_data_ds_at_parent(const key_data_t* key_data) {
     }
 
     return key_data->ds_at_parent;
-}
-
-const char* key_data_ds_at_parent_text(const key_data_t* key_data) {
-    const db_enum_t* enum_set = key_data_enum_set_ds_at_parent;
-
-    if (!key_data) {
-        return NULL;
-    }
-
-    while (enum_set->text) {
-        if (enum_set->value == key_data->ds_at_parent) {
-            return enum_set->text;
-        }
-        enum_set++;
-    }
-    return NULL;
 }
 
 unsigned int key_data_keytag(const key_data_t* key_data) {
@@ -1001,49 +900,12 @@ int key_data_set_role(key_data_t* key_data, key_data_role_t role) {
     return DB_OK;
 }
 
-int key_data_set_role_text(key_data_t* key_data, const char* role) {
-    const db_enum_t* enum_set = key_data_enum_set_role;
-
-    if (!key_data) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    while (enum_set->text) {
-        if (!strcmp(enum_set->text, role)) {
-            key_data->role = enum_set->value;
-            return DB_OK;
-        }
-        enum_set++;
-    }
-    return DB_ERROR_UNKNOWN;
-}
-
 int key_data_set_introducing(key_data_t* key_data, unsigned int introducing) {
     if (!key_data) {
         return DB_ERROR_UNKNOWN;
     }
 
     key_data->introducing = introducing;
-
-    return DB_OK;
-}
-
-int key_data_set_should_revoke(key_data_t* key_data, unsigned int should_revoke) {
-    if (!key_data) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    key_data->should_revoke = should_revoke;
-
-    return DB_OK;
-}
-
-int key_data_set_standby(key_data_t* key_data, unsigned int standby) {
-    if (!key_data) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    key_data->standby = standby;
 
     return DB_OK;
 }
@@ -1089,23 +951,6 @@ int key_data_set_ds_at_parent(key_data_t* key_data, key_data_ds_at_parent_t ds_a
     key_data->ds_at_parent = ds_at_parent;
 
     return DB_OK;
-}
-
-int key_data_set_ds_at_parent_text(key_data_t* key_data, const char* ds_at_parent) {
-    const db_enum_t* enum_set = key_data_enum_set_ds_at_parent;
-
-    if (!key_data) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    while (enum_set->text) {
-        if (!strcmp(enum_set->text, ds_at_parent)) {
-            key_data->ds_at_parent = enum_set->value;
-            return DB_OK;
-        }
-        enum_set++;
-    }
-    return DB_ERROR_UNKNOWN;
 }
 
 int key_data_set_keytag(key_data_t* key_data, unsigned int keytag) {
@@ -1182,48 +1027,6 @@ db_clause_t* key_data_hsm_key_id_clause(db_clause_list_t* clause_list, const db_
     return clause;
 }
 
-db_clause_t* key_data_algorithm_clause(db_clause_list_t* clause_list, unsigned int algorithm) {
-    db_clause_t* clause;
-
-    if (!clause_list) {
-        return NULL;
-    }
-
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "algorithm")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
-        || db_value_from_uint32(db_clause_get_value(clause), algorithm)
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        return NULL;
-    }
-
-    return clause;
-}
-
-db_clause_t* key_data_inception_clause(db_clause_list_t* clause_list, unsigned int inception) {
-    db_clause_t* clause;
-
-    if (!clause_list) {
-        return NULL;
-    }
-
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "inception")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
-        || db_value_from_uint32(db_clause_get_value(clause), inception)
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        return NULL;
-    }
-
-    return clause;
-}
-
 db_clause_t* key_data_role_clause(db_clause_list_t* clause_list, key_data_role_t role) {
     db_clause_t* clause;
 
@@ -1236,132 +1039,6 @@ db_clause_t* key_data_role_clause(db_clause_list_t* clause_list, key_data_role_t
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
         || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
         || db_value_from_enum_value(db_clause_get_value(clause), role, key_data_enum_set_role)
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        return NULL;
-    }
-
-    return clause;
-}
-
-db_clause_t* key_data_introducing_clause(db_clause_list_t* clause_list, unsigned int introducing) {
-    db_clause_t* clause;
-
-    if (!clause_list) {
-        return NULL;
-    }
-
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "introducing")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
-        || db_value_from_uint32(db_clause_get_value(clause), introducing)
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        return NULL;
-    }
-
-    return clause;
-}
-
-db_clause_t* key_data_should_revoke_clause(db_clause_list_t* clause_list, unsigned int should_revoke) {
-    db_clause_t* clause;
-
-    if (!clause_list) {
-        return NULL;
-    }
-
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "shouldRevoke")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
-        || db_value_from_uint32(db_clause_get_value(clause), should_revoke)
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        return NULL;
-    }
-
-    return clause;
-}
-
-db_clause_t* key_data_standby_clause(db_clause_list_t* clause_list, unsigned int standby) {
-    db_clause_t* clause;
-
-    if (!clause_list) {
-        return NULL;
-    }
-
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "standby")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
-        || db_value_from_uint32(db_clause_get_value(clause), standby)
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        return NULL;
-    }
-
-    return clause;
-}
-
-db_clause_t* key_data_active_zsk_clause(db_clause_list_t* clause_list, unsigned int active_zsk) {
-    db_clause_t* clause;
-
-    if (!clause_list) {
-        return NULL;
-    }
-
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "activeZsk")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
-        || db_value_from_uint32(db_clause_get_value(clause), active_zsk)
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        return NULL;
-    }
-
-    return clause;
-}
-
-db_clause_t* key_data_publish_clause(db_clause_list_t* clause_list, unsigned int publish) {
-    db_clause_t* clause;
-
-    if (!clause_list) {
-        return NULL;
-    }
-
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "publish")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
-        || db_value_from_uint32(db_clause_get_value(clause), publish)
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        return NULL;
-    }
-
-    return clause;
-}
-
-db_clause_t* key_data_active_ksk_clause(db_clause_list_t* clause_list, unsigned int active_ksk) {
-    db_clause_t* clause;
-
-    if (!clause_list) {
-        return NULL;
-    }
-
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "activeKsk")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
-        || db_value_from_uint32(db_clause_get_value(clause), active_ksk)
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -1404,27 +1081,6 @@ db_clause_t* key_data_keytag_clause(db_clause_list_t* clause_list, unsigned int 
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
         || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
         || db_value_from_uint32(db_clause_get_value(clause), keytag)
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        return NULL;
-    }
-
-    return clause;
-}
-
-db_clause_t* key_data_minimize_clause(db_clause_list_t* clause_list, unsigned int minimize) {
-    db_clause_t* clause;
-
-    if (!clause_list) {
-        return NULL;
-    }
-
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "minimize")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
-        || db_value_from_uint32(db_clause_get_value(clause), minimize)
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -1688,29 +1344,6 @@ int key_data_get_by_id(key_data_t* key_data, const db_value_t* id) {
 
     db_result_list_free(result_list);
     return DB_ERROR_UNKNOWN;
-}
-
-key_data_t* key_data_new_get_by_id(const db_connection_t* connection, const db_value_t* id) {
-    key_data_t* key_data;
-
-    if (!connection) {
-        return NULL;
-    }
-    if (!id) {
-        return NULL;
-    }
-    if (db_value_not_empty(id)) {
-        return NULL;
-    }
-
-    if (!(key_data = key_data_new(connection))
-        || key_data_get_by_id(key_data, id))
-    {
-        key_data_free(key_data);
-        return NULL;
-    }
-
-    return key_data;
 }
 
 int key_data_update(key_data_t* key_data) {
@@ -2054,17 +1687,6 @@ int key_data_list_object_store(key_data_list_t* key_data_list) {
     }
 
     key_data_list->object_store = 1;
-
-    return DB_OK;
-}
-
-int key_data_list_associated_fetch(key_data_list_t* key_data_list) {
-    if (!key_data_list) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    key_data_list->object_store = 1;
-    key_data_list->associated_fetch = 1;
 
     return DB_OK;
 }
@@ -2634,92 +2256,6 @@ key_data_list_t* key_data_list_new_get_by_zone_id(const db_connection_t* connect
 
     if (!(key_data_list = key_data_list_new(connection))
         || key_data_list_get_by_zone_id(key_data_list, zone_id))
-    {
-        key_data_list_free(key_data_list);
-        return NULL;
-    }
-
-    return key_data_list;
-}
-
-int key_data_list_get_by_hsm_key_id(key_data_list_t* key_data_list, const db_value_t* hsm_key_id) {
-    db_clause_list_t* clause_list;
-    db_clause_t* clause;
-    size_t i;
-
-    if (!key_data_list) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!key_data_list->dbo) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!hsm_key_id) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (db_value_not_empty(hsm_key_id)) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    if (!(clause_list = db_clause_list_new())) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "hsmKeyId")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_copy(db_clause_get_value(clause), hsm_key_id)
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        db_clause_list_free(clause_list);
-        return DB_ERROR_UNKNOWN;
-    }
-
-    if (key_data_list->result_list) {
-        db_result_list_free(key_data_list->result_list);
-    }
-    if (key_data_list->object_list_size) {
-        for (i = 0; i < key_data_list->object_list_size; i++) {
-            if (key_data_list->object_list[i]) {
-                key_data_free(key_data_list->object_list[i]);
-            }
-        }
-        key_data_list->object_list_size = 0;
-        key_data_list->object_list_first = 0;
-    }
-    if (key_data_list->object_list) {
-        free(key_data_list->object_list);
-        key_data_list->object_list = NULL;
-    }
-    if (!(key_data_list->result_list = db_object_read(key_data_list->dbo, NULL, clause_list))
-        || db_result_list_fetch_all(key_data_list->result_list))
-    {
-        db_clause_list_free(clause_list);
-        return DB_ERROR_UNKNOWN;
-    }
-    db_clause_list_free(clause_list);
-    if (key_data_list->associated_fetch
-        && key_data_list_get_associated(key_data_list))
-    {
-        return DB_ERROR_UNKNOWN;
-    }
-    return DB_OK;
-}
-
-key_data_list_t* key_data_list_new_get_by_hsm_key_id(const db_connection_t* connection, const db_value_t* hsm_key_id) {
-    key_data_list_t* key_data_list;
-
-    if (!connection) {
-        return NULL;
-    }
-    if (!hsm_key_id) {
-        return NULL;
-    }
-    if (db_value_not_empty(hsm_key_id)) {
-        return NULL;
-    }
-
-    if (!(key_data_list = key_data_list_new(connection))
-        || key_data_list_get_by_hsm_key_id(key_data_list, hsm_key_id))
     {
         key_data_list_free(key_data_list);
         return NULL;

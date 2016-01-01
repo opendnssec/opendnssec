@@ -58,7 +58,6 @@ typedef enum hsm_key_key_type {
     HSM_KEY_KEY_TYPE_INVALID = -1,
     HSM_KEY_KEY_TYPE_RSA = 1
 } hsm_key_key_type_t;
-extern const db_enum_t hsm_key_enum_set_key_type[];
 
 typedef enum hsm_key_backup {
     HSM_KEY_BACKUP_INVALID = -1,
@@ -115,29 +114,12 @@ hsm_key_t* hsm_key_new_copy(const hsm_key_t* hsm_key);
 void hsm_key_free(hsm_key_t* hsm_key);
 
 /**
- * Reset the content of a hsm key object making it as if its new. This does not change anything in the database.
- * \param[in] hsm_key a hsm_key_t pointer.
- */
-void hsm_key_reset(hsm_key_t* hsm_key);
-
-/**
  * Copy the content of a hsm key object.
  * \param[in] hsm_key a hsm_key_t pointer.
  * \param[in] hsm_key_copy a hsm_key_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int hsm_key_copy(hsm_key_t* hsm_key, const hsm_key_t* hsm_key_copy);
-
-/**
- * Compare two hsm key objects and return less than, equal to,
- * or greater than zero if A is found, respectively, to be less than, to match,
- * or be greater than B.
- * \param[in] hsm_key_a a hsm_key_t pointer.
- * \param[in] hsm_key_b a hsm_key_t pointer.
- * \return less than, equal to, or greater than zero if A is found, respectively,
- * to be less than, to match, or be greater than B.
- */
-int hsm_key_cmp(const hsm_key_t* hsm_key_a, const hsm_key_t* hsm_key_b);
 
 /**
  * Set the content of a hsm key object based on a database result.
@@ -162,28 +144,6 @@ const db_value_t* hsm_key_id(const hsm_key_t* hsm_key);
 const db_value_t* hsm_key_policy_id(const hsm_key_t* hsm_key);
 
 /**
- * Cache the policy_id object related to a hsm key object.
- * \param[in] hsm_key a hsm_key_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int hsm_key_cache_policy(hsm_key_t* hsm_key);
-
-/**
- * Get the policy_id object related to a hsm key object.
- * \param[in] hsm_key a hsm_key_t pointer.
- * \return a policy_t pointer or NULL on error or if no object could be found.
- */
-const policy_t* hsm_key_policy(const hsm_key_t* hsm_key);
-
-/**
- * Get the policy_id object related to a hsm key object.
- * The caller will be given ownership of this object and is responsible for freeing it.
- * \param[in] hsm_key a hsm_key_t pointer.
- * \return a policy_t pointer or NULL on error or if no object could be found.
- */
-policy_t* hsm_key_get_policy(const hsm_key_t* hsm_key);
-
-/**
  * Get the locator of a hsm key object.
  * \param[in] hsm_key a hsm_key_t pointer.
  * \return a character pointer or NULL on error or if no locator has been set.
@@ -196,13 +156,6 @@ const char* hsm_key_locator(const hsm_key_t* hsm_key);
  * \return a hsm_key_state_t which may be HSM_KEY_STATE_INVALID on error or if no state has been set.
  */
 hsm_key_state_t hsm_key_state(const hsm_key_t* hsm_key);
-
-/**
- * Get the state as text of a hsm key object.
- * \param[in] hsm_key a hsm_key_t pointer.
- * \return a character pointer or NULL on error or if no state has been set.
- */
-const char* hsm_key_state_text(const hsm_key_t* hsm_key);
 
 /**
  * Get the bits of a hsm key object. Undefined behavior if `hsm_key` is NULL.
@@ -226,39 +179,11 @@ unsigned int hsm_key_algorithm(const hsm_key_t* hsm_key);
 hsm_key_role_t hsm_key_role(const hsm_key_t* hsm_key);
 
 /**
- * Get the role as text of a hsm key object.
- * \param[in] hsm_key a hsm_key_t pointer.
- * \return a character pointer or NULL on error or if no role has been set.
- */
-const char* hsm_key_role_text(const hsm_key_t* hsm_key);
-
-/**
  * Get the inception of a hsm key object. Undefined behavior if `hsm_key` is NULL.
  * \param[in] hsm_key a hsm_key_t pointer.
  * \return an unsigned integer.
  */
 unsigned int hsm_key_inception(const hsm_key_t* hsm_key);
-
-/**
- * Get the is_revoked of a hsm key object. Undefined behavior if `hsm_key` is NULL.
- * \param[in] hsm_key a hsm_key_t pointer.
- * \return an unsigned integer.
- */
-unsigned int hsm_key_is_revoked(const hsm_key_t* hsm_key);
-
-/**
- * Get the key_type of a hsm key object.
- * \param[in] hsm_key a hsm_key_t pointer.
- * \return a hsm_key_key_type_t which may be HSM_KEY_KEY_TYPE_INVALID on error or if no key_type has been set.
- */
-hsm_key_key_type_t hsm_key_key_type(const hsm_key_t* hsm_key);
-
-/**
- * Get the key_type as text of a hsm key object.
- * \param[in] hsm_key a hsm_key_t pointer.
- * \return a character pointer or NULL on error or if no key_type has been set.
- */
-const char* hsm_key_key_type_text(const hsm_key_t* hsm_key);
 
 /**
  * Get the repository of a hsm key object.
@@ -273,13 +198,6 @@ const char* hsm_key_repository(const hsm_key_t* hsm_key);
  * \return a hsm_key_backup_t which may be HSM_KEY_BACKUP_INVALID on error or if no backup has been set.
  */
 hsm_key_backup_t hsm_key_backup(const hsm_key_t* hsm_key);
-
-/**
- * Get the backup as text of a hsm key object.
- * \param[in] hsm_key a hsm_key_t pointer.
- * \return a character pointer or NULL on error or if no backup has been set.
- */
-const char* hsm_key_backup_text(const hsm_key_t* hsm_key);
 
 /**
  * Set the policy_id of a hsm key object. If this fails the original value may have been lost.
@@ -306,14 +224,6 @@ int hsm_key_set_locator(hsm_key_t* hsm_key, const char* locator_text);
 int hsm_key_set_state(hsm_key_t* hsm_key, hsm_key_state_t state);
 
 /**
- * Set the state of a hsm key object from text.
- * \param[in] hsm_key a hsm_key_t pointer.
- * \param[in] state a character pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int hsm_key_set_state_text(hsm_key_t* hsm_key, const char* state);
-
-/**
  * Set the bits of a hsm key object.
  * \param[in] hsm_key a hsm_key_t pointer.
  * \param[in] bits an unsigned integer.
@@ -338,14 +248,6 @@ int hsm_key_set_algorithm(hsm_key_t* hsm_key, unsigned int algorithm);
 int hsm_key_set_role(hsm_key_t* hsm_key, hsm_key_role_t role);
 
 /**
- * Set the role of a hsm key object from text.
- * \param[in] hsm_key a hsm_key_t pointer.
- * \param[in] role a character pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int hsm_key_set_role_text(hsm_key_t* hsm_key, const char* role);
-
-/**
  * Set the inception of a hsm key object.
  * \param[in] hsm_key a hsm_key_t pointer.
  * \param[in] inception an unsigned integer.
@@ -354,28 +256,12 @@ int hsm_key_set_role_text(hsm_key_t* hsm_key, const char* role);
 int hsm_key_set_inception(hsm_key_t* hsm_key, unsigned int inception);
 
 /**
- * Set the is_revoked of a hsm key object.
- * \param[in] hsm_key a hsm_key_t pointer.
- * \param[in] is_revoked an unsigned integer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int hsm_key_set_is_revoked(hsm_key_t* hsm_key, unsigned int is_revoked);
-
-/**
  * Set the key_type of a hsm key object.
  * \param[in] hsm_key a hsm_key_t pointer.
  * \param[in] key_type a hsm_key_key_type_t.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int hsm_key_set_key_type(hsm_key_t* hsm_key, hsm_key_key_type_t key_type);
-
-/**
- * Set the key_type of a hsm key object from text.
- * \param[in] hsm_key a hsm_key_t pointer.
- * \param[in] key_type a character pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int hsm_key_set_key_type_text(hsm_key_t* hsm_key, const char* key_type);
 
 /**
  * Set the repository of a hsm key object.
@@ -394,14 +280,6 @@ int hsm_key_set_repository(hsm_key_t* hsm_key, const char* repository_text);
 int hsm_key_set_backup(hsm_key_t* hsm_key, hsm_key_backup_t backup);
 
 /**
- * Set the backup of a hsm key object from text.
- * \param[in] hsm_key a hsm_key_t pointer.
- * \param[in] backup a character pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int hsm_key_set_backup_text(hsm_key_t* hsm_key, const char* backup);
-
-/**
  * Create a clause for policy_id of a hsm key object and add it to a database clause list.
  * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
  * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
@@ -411,17 +289,6 @@ int hsm_key_set_backup_text(hsm_key_t* hsm_key, const char* backup);
  * \return a db_clause_t pointer to the added clause or NULL on error.
  */
 db_clause_t* hsm_key_policy_id_clause(db_clause_list_t* clause_list, const db_value_t* policy_id);
-
-/**
- * Create a clause for locator of a hsm key object and add it to a database clause list.
- * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
- * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
- * returned db_clause_t pointer.
- * \param[in] clause_list db_clause_list_t pointer.
- * \param[in] locator_text a character pointer.
- * \return a db_clause_t pointer to the added clause or NULL on error.
- */
-db_clause_t* hsm_key_locator_clause(db_clause_list_t* clause_list, const char* locator_text);
 
 /**
  * Create a clause for state of a hsm key object and add it to a database clause list.
@@ -466,17 +333,6 @@ db_clause_t* hsm_key_algorithm_clause(db_clause_list_t* clause_list, unsigned in
  * \return a db_clause_t pointer to the added clause or NULL on error.
  */
 db_clause_t* hsm_key_role_clause(db_clause_list_t* clause_list, hsm_key_role_t role);
-
-/**
- * Create a clause for inception of a hsm key object and add it to a database clause list.
- * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
- * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
- * returned db_clause_t pointer.
- * \param[in] clause_list db_clause_list_t pointer.
- * \param[in] inception an unsigned integer.
- * \return a db_clause_t pointer to the added clause or NULL on error.
- */
-db_clause_t* hsm_key_inception_clause(db_clause_list_t* clause_list, unsigned int inception);
 
 /**
  * Create a clause for is_revoked of a hsm key object and add it to a database clause list.
@@ -538,14 +394,6 @@ int hsm_key_create(hsm_key_t* hsm_key);
 int hsm_key_get_by_id(hsm_key_t* hsm_key, const db_value_t* id);
 
 /**
- * Get a new hsm key object from the database by a id specified in `id`.
- * \param[in] connection a db_connection_t pointer.
- * \param[in] id a db_value_t pointer.
- * \return a hsm_key_t pointer or NULL on error or if it does not exist.
- */
-hsm_key_t* hsm_key_new_get_by_id(const db_connection_t* connection, const db_value_t* id);
-
-/**
  * Get a hsm key object from the database by a locator specified in `locator`.
  * \param[in] hsm_key a hsm_key_t pointer.
  * \param[in] locator a character pointer.
@@ -567,13 +415,6 @@ hsm_key_t* hsm_key_new_get_by_locator(const db_connection_t* connection, const c
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int hsm_key_update(hsm_key_t* hsm_key);
-
-/**
- * Delete a hsm key object from the database.
- * \param[in] hsm_key a hsm_key_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int hsm_key_delete(hsm_key_t* hsm_key);
 
 /**
  * Count the number of hsm key objects in the database, if a selection of
@@ -627,15 +468,6 @@ hsm_key_list_t* hsm_key_list_new_copy(const hsm_key_list_t* hsm_key_copy);
 int hsm_key_list_object_store(hsm_key_list_t* hsm_key_list);
 
 /**
- * Specify that the list should also fetch associated objects in a more optimal
- * way then fetching them for each individual object later on. This also forces
- * the list to store all objects (see hsm_key_list_object_store()).
- * \param[in] hsm_key_list a hsm_key_list_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int hsm_key_list_associated_fetch(hsm_key_list_t* hsm_key_list);
-
-/**
  * Delete a hsm key object list.
  * \param[in] hsm_key_list a hsm_key_list_t pointer.
  */
@@ -652,20 +484,6 @@ void hsm_key_list_free(hsm_key_list_t* hsm_key_list);
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int hsm_key_list_copy(hsm_key_list_t* hsm_key_list, const hsm_key_list_t* from_hsm_key_list);
-
-/**
- * Get all hsm key objects.
- * \param[in] hsm_key_list a hsm_key_list_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int hsm_key_list_get(hsm_key_list_t* hsm_key_list);
-
-/**
- * Get a new list with all hsm key objects.
- * \param[in] connection a db_connection_t pointer.
- * \return a hsm_key_list_t pointer or NULL on error.
- */
-hsm_key_list_t* hsm_key_list_new_get(const db_connection_t* connection);
 
 /**
  * Get hsm key objects from the database by a clause list.
@@ -737,13 +555,5 @@ const hsm_key_t* hsm_key_list_next(hsm_key_list_t* hsm_key_list);
  * hsm key objects in the hsm key object list.
  */
 hsm_key_t* hsm_key_list_get_next(hsm_key_list_t* hsm_key_list);
-
-/**
- * Get the size of a hsm key object list.
- * \param[in] hsm_key_list a hsm_key_list_t pointer.
- * \return a size_t with the size of the list or zero on error, if the list is
- * empty or if the backend does not support returning the size.
- */
-size_t hsm_key_list_size(hsm_key_list_t* hsm_key_list);
 
 #endif
