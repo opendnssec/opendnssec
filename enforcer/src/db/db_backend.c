@@ -76,17 +76,6 @@ int db_backend_handle_initialize(const db_backend_handle_t* backend_handle) {
     return backend_handle->initialize_function((void*)backend_handle->data);
 }
 
-int db_backend_handle_shutdown(const db_backend_handle_t* backend_handle) {
-    if (!backend_handle) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!backend_handle->shutdown_function) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    return backend_handle->shutdown_function((void*)backend_handle->data);
-}
-
 int db_backend_handle_connect(const db_backend_handle_t* backend_handle, const db_configuration_list_t* configuration_list) {
     if (!backend_handle) {
         return DB_ERROR_UNKNOWN;
@@ -195,47 +184,6 @@ int db_backend_handle_count(const db_backend_handle_t* backend_handle, const db_
     }
 
     return backend_handle->count_function((void*)backend_handle->data, object, join_list, clause_list, count);
-}
-
-int db_backend_handle_transaction_begin(const db_backend_handle_t* backend_handle) {
-    if (!backend_handle) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!backend_handle->transaction_begin_function) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    return backend_handle->transaction_begin_function((void*)backend_handle->data);
-}
-
-int db_backend_handle_transaction_commit(const db_backend_handle_t* backend_handle) {
-    if (!backend_handle) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!backend_handle->transaction_commit_function) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    return backend_handle->transaction_commit_function((void*)backend_handle->data);
-}
-
-int db_backend_handle_transaction_rollback(const db_backend_handle_t* backend_handle) {
-    if (!backend_handle) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!backend_handle->transaction_rollback_function) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    return backend_handle->transaction_rollback_function((void*)backend_handle->data);
-}
-
-const void* db_backend_handle_data(const db_backend_handle_t* backend_handle) {
-    if (!backend_handle) {
-        return NULL;
-    }
-
-    return backend_handle->data;
 }
 
 int db_backend_handle_set_initialize(db_backend_handle_t* backend_handle, db_backend_handle_initialize_t initialize_function) {
@@ -367,52 +315,6 @@ int db_backend_handle_set_data(db_backend_handle_t* backend_handle, void* data) 
     return DB_OK;
 }
 
-int db_backend_handle_not_empty(const db_backend_handle_t* backend_handle) {
-    if (!backend_handle) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!backend_handle->initialize_function) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!backend_handle->shutdown_function) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!backend_handle->connect_function) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!backend_handle->disconnect_function) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!backend_handle->create_function) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!backend_handle->read_function) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!backend_handle->update_function) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!backend_handle->count_function) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!backend_handle->delete_function) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!backend_handle->free_function) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!backend_handle->transaction_begin_function) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!backend_handle->transaction_commit_function) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!backend_handle->transaction_rollback_function) {
-        return DB_ERROR_UNKNOWN;
-    }
-    return DB_OK;
-}
-
 /* DB BACKEND */
 
 
@@ -434,22 +336,6 @@ void db_backend_free(db_backend_t* backend) {
         }
         free(backend);
     }
-}
-
-const char* db_backend_name(const db_backend_t* backend) {
-    if (!backend) {
-        return NULL;
-    }
-
-    return backend->name;
-}
-
-const db_backend_handle_t* db_backend_handle(const db_backend_t* backend) {
-    if (!backend) {
-        return NULL;
-    }
-
-    return backend->handle;
 }
 
 int db_backend_set_name(db_backend_t* backend, const char* name) {
@@ -482,19 +368,6 @@ int db_backend_set_handle(db_backend_t* backend, db_backend_handle_t* handle) {
     return DB_OK;
 }
 
-int db_backend_not_empty(const db_backend_t* backend) {
-    if (!backend) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!backend->name) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!backend->handle) {
-        return DB_ERROR_UNKNOWN;
-    }
-    return DB_OK;
-}
-
 int db_backend_initialize(const db_backend_t* backend) {
     if (!backend) {
         return DB_ERROR_UNKNOWN;
@@ -504,17 +377,6 @@ int db_backend_initialize(const db_backend_t* backend) {
     }
 
     return db_backend_handle_initialize(backend->handle);
-}
-
-int db_backend_shutdown(const db_backend_t* backend) {
-    if (!backend) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!backend->handle) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    return db_backend_handle_shutdown(backend->handle);
 }
 
 int db_backend_connect(const db_backend_t* backend, const db_configuration_list_t* configuration_list) {
@@ -627,39 +489,6 @@ int db_backend_count(const db_backend_t* backend, const db_object_t* object, con
     return db_backend_handle_count(backend->handle, object, join_list, clause_list, count);
 }
 
-int db_backend_transaction_begin(const db_backend_t* backend) {
-    if (!backend) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!backend->handle) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    return db_backend_handle_transaction_begin(backend->handle);
-}
-
-int db_backend_transaction_commit(const db_backend_t* backend) {
-    if (!backend) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!backend->handle) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    return db_backend_handle_transaction_commit(backend->handle);
-}
-
-int db_backend_transaction_rollback(const db_backend_t* backend) {
-    if (!backend) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!backend->handle) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    return db_backend_handle_transaction_rollback(backend->handle);
-}
-
 /* DB BACKEND FACTORY */
 
 db_backend_t* db_backend_factory_get_backend(const char* name) {
@@ -697,11 +526,6 @@ db_backend_t* db_backend_factory_get_backend(const char* name) {
 #endif
 
     return backend;
-}
-
-int db_backend_factory_shutdown(void) {
-    /* TODO: Implement support for shutting down backends at exit/stop */
-    return 1;
 }
 
 /* DB BACKEND META DATA */
@@ -787,52 +611,6 @@ int db_backend_meta_data_copy(db_backend_meta_data_t* backend_meta_data, const d
     return DB_OK;
 }
 
-const char* db_backend_meta_data_name(const db_backend_meta_data_t* backend_meta_data) {
-    if (!backend_meta_data) {
-        return NULL;
-    }
-
-    return backend_meta_data->name;
-}
-
-const db_value_t* db_backend_meta_data_value(const db_backend_meta_data_t* backend_meta_data) {
-    if (!backend_meta_data) {
-        return NULL;
-    }
-
-    return backend_meta_data->value;
-}
-
-int db_backend_meta_data_set_name(db_backend_meta_data_t* backend_meta_data, const char* name) {
-    char* new_name;
-
-    if (!backend_meta_data) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    if (!(new_name = strdup(name))) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    if (backend_meta_data->name) {
-        free(backend_meta_data->name);
-    }
-    backend_meta_data->name = new_name;
-    return DB_OK;
-}
-
-int db_backend_meta_data_set_value(db_backend_meta_data_t* backend_meta_data, db_value_t* value) {
-    if (!backend_meta_data) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (backend_meta_data->value) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    backend_meta_data->value = value;
-    return DB_OK;
-}
-
 int db_backend_meta_data_not_empty(const db_backend_meta_data_t* backend_meta_data) {
     if (!backend_meta_data) {
         return DB_ERROR_UNKNOWN;
@@ -849,13 +627,6 @@ int db_backend_meta_data_not_empty(const db_backend_meta_data_t* backend_meta_da
 /* DB BACKEND META DATA LIST */
 
 
-
-db_backend_meta_data_list_t* db_backend_meta_data_list_new(void) {
-    db_backend_meta_data_list_t* backend_meta_data_list =
-        (db_backend_meta_data_list_t*)calloc(1, sizeof(db_backend_meta_data_list_t));
-
-    return backend_meta_data_list;
-}
 
 /* TODO: unit test */
 db_backend_meta_data_list_t* db_backend_meta_data_list_new_copy(const db_backend_meta_data_list_t* from_backend_meta_data_list) {

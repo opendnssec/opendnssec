@@ -62,26 +62,12 @@ struct db_object_field {
  */
 db_object_field_t* db_object_field_new(void);
 
-/**
- * Create a database object field that is a copy of another.
- * \param[in] from_object_field a db_object_field_t pointer.
- * \return a db_object_field_t pointer or NULL on error.
- */
-db_object_field_t* db_object_field_new_copy(const db_object_field_t* from_object_field);
 
 /**
  * Delete a database object field.
  * \param[in] object_field a db_object_field_t pointer.
  */
 void db_object_field_free(db_object_field_t* object_field);
-
-/**
- * Copy the content of a database object field.
- * \param[in] object_field a db_object_field_t pointer.
- * \param[in] from_object_field a db_object_field_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int db_object_field_copy(db_object_field_t* object_field, const db_object_field_t* from_object_field);
 
 /**
  * Get the name of a database object field.
@@ -96,14 +82,6 @@ const char* db_object_field_name(const db_object_field_t* object_field);
  * \return a db_type_t.
  */
 db_type_t db_object_field_type(const db_object_field_t* object_field);
-
-/**
- * Get the enumerate set of a database object field.
- * \param[in] object_field a db_object_field_t pointer.
- * \return a NULL terminated db_enum_t list or NULL on error or if no enumerate
- * set has been set.
- */
-const db_enum_t* db_object_field_enum_set(const db_object_field_t* object_field);
 
 /**
  * Set the name of a database object field.
@@ -160,25 +138,10 @@ struct db_object_field_list {
 db_object_field_list_t* db_object_field_list_new(void);
 
 /**
- * Create a new object field list that is a copy of another.
- * \param[in] from_object_field_list a db_object_field_list_t pointer.
- * \return a db_object_field_list_t pointer or NULL on error.
- */
-db_object_field_list_t* db_object_field_list_new_copy(const db_object_field_list_t* from_object_field_list);
-
-/**
  * Delete a object field list and all object fields within the list.
  * \param[in] object_field_list a db_object_field_list_t pointer.
  */
 void db_object_field_list_free(db_object_field_list_t* object_field_list);
-
-/**
- * Copy the content of a database object field list.
- * \param[in] object_field_list a db_object_field_list_t pointer.
- * \param[in] from_object_field_list a db_object_field_list_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int db_object_field_list_copy(db_object_field_list_t* object_field_list, const db_object_field_list_t* from_object_field_list);
 
 /**
  * Add a database object field to a database object field list, this will takes
@@ -195,13 +158,6 @@ int db_object_field_list_add(db_object_field_list_t* object_field_list, db_objec
  * \return a db_object_field_t pointer or NULL on error or if the list is empty.
  */
 const db_object_field_t* db_object_field_list_begin(const db_object_field_list_t* object_field_list);
-
-/**
- * Return the size of a object field list.
- * \param[in] object_field_list a db_object_field_list_t pointer.
- * \return a size_t, may be zero on error.
- */
-size_t db_object_field_list_size(const db_object_field_list_t* object_field_list);
 
 /**
  * A database object.
@@ -244,28 +200,12 @@ const db_connection_t* db_object_connection(const db_object_t* object);
 const char* db_object_table(const db_object_t* object);
 
 /**
- * Get the primary key name of a database object.
- * \param[in] object a db_object_t pointer.
- * \return a character pointer or NULL on error or if no primary key name has
- * been set.
- */
-const char* db_object_primary_key_name(const db_object_t* object);
-
-/**
  * Get the object field list of a database object.
  * \param[in] object a db_object_t pointer.
  * \return a db_object_field_list_t pointer or NULL on error or if no object
  * field list has been set.
  */
 const db_object_field_list_t* db_object_object_field_list(const db_object_t* object);
-
-/**
- * Get the backend meta data list of a database object.
- * \param[in] object a db_object_t pointer.
- * \return a db_backend_meta_data_list_t pointer or NULL on error or if no
- * backend meta data list has been set.
- */
-const db_backend_meta_data_list_t* db_object_backend_meta_data_list(const db_object_t* object);
 
 /**
  * Set the database connection of a database object.
@@ -299,15 +239,6 @@ int db_object_set_primary_key_name(db_object_t* object, const char* primary_key_
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_object_set_object_field_list(db_object_t* object, db_object_field_list_t* object_field_list);
-
-/**
- * Set the backend meta data list of a database object, this takes over the
- * ownership of the backend meta data list.
- * \param[in] object a db_object_t pointer.
- * \param[in] backend_meta_data_list a db_backend_meta_data_list_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int db_object_set_backend_meta_data_list(db_object_t* object, db_backend_meta_data_list_t* backend_meta_data_list);
 
 /**
  * Create an object in the database. The `object_field_list` describes the

@@ -51,7 +51,6 @@ typedef enum policy_zone_soa_serial {
     POLICY_ZONE_SOA_SERIAL_UNIXTIME = 2,
     POLICY_ZONE_SOA_SERIAL_KEEP = 3
 } policy_zone_soa_serial_t;
-extern const db_enum_t policy_enum_set_zone_soa_serial[];
 
 #include "policy_ext.h"
 
@@ -123,29 +122,12 @@ policy_t* policy_new_copy(const policy_t* policy);
 void policy_free(policy_t* policy);
 
 /**
- * Reset the content of a policy object making it as if its new. This does not change anything in the database.
- * \param[in] policy a policy_t pointer.
- */
-void policy_reset(policy_t* policy);
-
-/**
  * Copy the content of a policy object.
  * \param[in] policy a policy_t pointer.
  * \param[in] policy_copy a policy_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int policy_copy(policy_t* policy, const policy_t* policy_copy);
-
-/**
- * Compare two policy objects and return less than, equal to,
- * or greater than zero if A is found, respectively, to be less than, to match,
- * or be greater than B.
- * \param[in] policy_a a policy_t pointer.
- * \param[in] policy_b a policy_t pointer.
- * \return less than, equal to, or greater than zero if A is found, respectively,
- * to be less than, to match, or be greater than B.
- */
-int policy_cmp(const policy_t* policy_a, const policy_t* policy_b);
 
 /**
  * Set the content of a policy object based on a database result.
@@ -238,13 +220,6 @@ unsigned int policy_signatures_max_zone_ttl(const policy_t* policy);
  * \return a policy_denial_type_t which may be POLICY_DENIAL_TYPE_INVALID on error or if no denial_type has been set.
  */
 policy_denial_type_t policy_denial_type(const policy_t* policy);
-
-/**
- * Get the denial_type as text of a policy object.
- * \param[in] policy a policy_t pointer.
- * \return a character pointer or NULL on error or if no denial_type has been set.
- */
-const char* policy_denial_type_text(const policy_t* policy);
 
 /**
  * Get the denial_optout of a policy object. Undefined behavior if `policy` is NULL.
@@ -359,13 +334,6 @@ unsigned int policy_zone_soa_ttl(const policy_t* policy);
 unsigned int policy_zone_soa_minimum(const policy_t* policy);
 
 /**
- * Get the zone_soa_serial of a policy object.
- * \param[in] policy a policy_t pointer.
- * \return a policy_zone_soa_serial_t which may be POLICY_ZONE_SOA_SERIAL_INVALID on error or if no zone_soa_serial has been set.
- */
-policy_zone_soa_serial_t policy_zone_soa_serial(const policy_t* policy);
-
-/**
  * Get the zone_soa_serial as text of a policy object.
  * \param[in] policy a policy_t pointer.
  * \return a character pointer or NULL on error or if no zone_soa_serial has been set.
@@ -408,22 +376,6 @@ unsigned int policy_parent_soa_ttl(const policy_t* policy);
 unsigned int policy_parent_soa_minimum(const policy_t* policy);
 
 /**
- * Get the policy_key objects related to a policy object.
- * \param[in] policy a policy_t pointer.
- * \return a policy_key_list_t pointer or NULL on error.
- */
-policy_key_list_t* policy_policy_key_list(policy_t* policy);
-
-/**
- * Retrieve policy_key objects related to a policy object.
- * Use policy_policy_key_list() to get the list afterwards.
- * This will refetch objects if already retrieved.
- * \param[in] policy a policy_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int policy_retrieve_policy_key_list(policy_t* policy);
-
-/**
  * Get the zone objects related to a policy object.
  * \param[in] policy a policy_t pointer.
  * \return a zone_list_t pointer or NULL on error.
@@ -438,22 +390,6 @@ zone_list_t* policy_zone_list(policy_t* policy);
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int policy_retrieve_zone_list(policy_t* policy);
-
-/**
- * Get the hsm_key objects related to a policy object.
- * \param[in] policy a policy_t pointer.
- * \return a hsm_key_list_t pointer or NULL on error.
- */
-hsm_key_list_t* policy_hsm_key_list(policy_t* policy);
-
-/**
- * Retrieve hsm_key objects related to a policy object.
- * Use policy_hsm_key_list() to get the list afterwards.
- * This will refetch objects if already retrieved.
- * \param[in] policy a policy_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int policy_retrieve_hsm_key_list(policy_t* policy);
 
 /**
  * Set the name of a policy object.
@@ -542,14 +478,6 @@ int policy_set_signatures_max_zone_ttl(policy_t* policy, unsigned int signatures
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int policy_set_denial_type(policy_t* policy, policy_denial_type_t denial_type);
-
-/**
- * Set the denial_type of a policy object from text.
- * \param[in] policy a policy_t pointer.
- * \param[in] denial_type a character pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int policy_set_denial_type_text(policy_t* policy, const char* denial_type);
 
 /**
  * Set the denial_optout of a policy object.
@@ -680,14 +608,6 @@ int policy_set_zone_soa_ttl(policy_t* policy, unsigned int zone_soa_ttl);
 int policy_set_zone_soa_minimum(policy_t* policy, unsigned int zone_soa_minimum);
 
 /**
- * Set the zone_soa_serial of a policy object.
- * \param[in] policy a policy_t pointer.
- * \param[in] zone_soa_serial a policy_zone_soa_serial_t.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int policy_set_zone_soa_serial(policy_t* policy, policy_zone_soa_serial_t zone_soa_serial);
-
-/**
  * Set the zone_soa_serial of a policy object from text.
  * \param[in] policy a policy_t pointer.
  * \param[in] zone_soa_serial a character pointer.
@@ -736,116 +656,6 @@ int policy_set_parent_soa_ttl(policy_t* policy, unsigned int parent_soa_ttl);
 int policy_set_parent_soa_minimum(policy_t* policy, unsigned int parent_soa_minimum);
 
 /**
- * Create a clause for name of a policy object and add it to a database clause list.
- * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
- * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
- * returned db_clause_t pointer.
- * \param[in] clause_list db_clause_list_t pointer.
- * \param[in] name_text a character pointer.
- * \return a db_clause_t pointer to the added clause or NULL on error.
- */
-db_clause_t* policy_name_clause(db_clause_list_t* clause_list, const char* name_text);
-
-/**
- * Create a clause for passthrough of a policy object and add it to a database clause list.
- * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
- * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
- * returned db_clause_t pointer.
- * \param[in] clause_list db_clause_list_t pointer.
- * \param[in] passthrough an unsigned integer.
- * \return a db_clause_t pointer to the added clause or NULL on error.
- */
-db_clause_t* policy_passthrough_clause(db_clause_list_t* clause_list, unsigned int passthrough);
-
-/**
- * Create a clause for description of a policy object and add it to a database clause list.
- * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
- * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
- * returned db_clause_t pointer.
- * \param[in] clause_list db_clause_list_t pointer.
- * \param[in] description_text a character pointer.
- * \return a db_clause_t pointer to the added clause or NULL on error.
- */
-db_clause_t* policy_description_clause(db_clause_list_t* clause_list, const char* description_text);
-
-/**
- * Create a clause for signatures_resign of a policy object and add it to a database clause list.
- * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
- * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
- * returned db_clause_t pointer.
- * \param[in] clause_list db_clause_list_t pointer.
- * \param[in] signatures_resign an unsigned integer.
- * \return a db_clause_t pointer to the added clause or NULL on error.
- */
-db_clause_t* policy_signatures_resign_clause(db_clause_list_t* clause_list, unsigned int signatures_resign);
-
-/**
- * Create a clause for signatures_refresh of a policy object and add it to a database clause list.
- * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
- * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
- * returned db_clause_t pointer.
- * \param[in] clause_list db_clause_list_t pointer.
- * \param[in] signatures_refresh an unsigned integer.
- * \return a db_clause_t pointer to the added clause or NULL on error.
- */
-db_clause_t* policy_signatures_refresh_clause(db_clause_list_t* clause_list, unsigned int signatures_refresh);
-
-/**
- * Create a clause for signatures_jitter of a policy object and add it to a database clause list.
- * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
- * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
- * returned db_clause_t pointer.
- * \param[in] clause_list db_clause_list_t pointer.
- * \param[in] signatures_jitter an unsigned integer.
- * \return a db_clause_t pointer to the added clause or NULL on error.
- */
-db_clause_t* policy_signatures_jitter_clause(db_clause_list_t* clause_list, unsigned int signatures_jitter);
-
-/**
- * Create a clause for signatures_inception_offset of a policy object and add it to a database clause list.
- * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
- * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
- * returned db_clause_t pointer.
- * \param[in] clause_list db_clause_list_t pointer.
- * \param[in] signatures_inception_offset an unsigned integer.
- * \return a db_clause_t pointer to the added clause or NULL on error.
- */
-db_clause_t* policy_signatures_inception_offset_clause(db_clause_list_t* clause_list, unsigned int signatures_inception_offset);
-
-/**
- * Create a clause for signatures_validity_default of a policy object and add it to a database clause list.
- * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
- * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
- * returned db_clause_t pointer.
- * \param[in] clause_list db_clause_list_t pointer.
- * \param[in] signatures_validity_default an unsigned integer.
- * \return a db_clause_t pointer to the added clause or NULL on error.
- */
-db_clause_t* policy_signatures_validity_default_clause(db_clause_list_t* clause_list, unsigned int signatures_validity_default);
-
-/**
- * Create a clause for signatures_validity_denial of a policy object and add it to a database clause list.
- * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
- * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
- * returned db_clause_t pointer.
- * \param[in] clause_list db_clause_list_t pointer.
- * \param[in] signatures_validity_denial an unsigned integer.
- * \return a db_clause_t pointer to the added clause or NULL on error.
- */
-db_clause_t* policy_signatures_validity_denial_clause(db_clause_list_t* clause_list, unsigned int signatures_validity_denial);
-
-/**
- * Create a clause for signatures_max_zone_ttl of a policy object and add it to a database clause list.
- * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
- * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
- * returned db_clause_t pointer.
- * \param[in] clause_list db_clause_list_t pointer.
- * \param[in] signatures_max_zone_ttl an unsigned integer.
- * \return a db_clause_t pointer to the added clause or NULL on error.
- */
-db_clause_t* policy_signatures_max_zone_ttl_clause(db_clause_list_t* clause_list, unsigned int signatures_max_zone_ttl);
-
-/**
  * Create a clause for denial_type of a policy object and add it to a database clause list.
  * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
  * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
@@ -855,248 +665,6 @@ db_clause_t* policy_signatures_max_zone_ttl_clause(db_clause_list_t* clause_list
  * \return a db_clause_t pointer to the added clause or NULL on error.
  */
 db_clause_t* policy_denial_type_clause(db_clause_list_t* clause_list, policy_denial_type_t denial_type);
-
-/**
- * Create a clause for denial_optout of a policy object and add it to a database clause list.
- * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
- * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
- * returned db_clause_t pointer.
- * \param[in] clause_list db_clause_list_t pointer.
- * \param[in] denial_optout an unsigned integer.
- * \return a db_clause_t pointer to the added clause or NULL on error.
- */
-db_clause_t* policy_denial_optout_clause(db_clause_list_t* clause_list, unsigned int denial_optout);
-
-/**
- * Create a clause for denial_ttl of a policy object and add it to a database clause list.
- * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
- * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
- * returned db_clause_t pointer.
- * \param[in] clause_list db_clause_list_t pointer.
- * \param[in] denial_ttl an unsigned integer.
- * \return a db_clause_t pointer to the added clause or NULL on error.
- */
-db_clause_t* policy_denial_ttl_clause(db_clause_list_t* clause_list, unsigned int denial_ttl);
-
-/**
- * Create a clause for denial_resalt of a policy object and add it to a database clause list.
- * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
- * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
- * returned db_clause_t pointer.
- * \param[in] clause_list db_clause_list_t pointer.
- * \param[in] denial_resalt an unsigned integer.
- * \return a db_clause_t pointer to the added clause or NULL on error.
- */
-db_clause_t* policy_denial_resalt_clause(db_clause_list_t* clause_list, unsigned int denial_resalt);
-
-/**
- * Create a clause for denial_algorithm of a policy object and add it to a database clause list.
- * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
- * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
- * returned db_clause_t pointer.
- * \param[in] clause_list db_clause_list_t pointer.
- * \param[in] denial_algorithm an unsigned integer.
- * \return a db_clause_t pointer to the added clause or NULL on error.
- */
-db_clause_t* policy_denial_algorithm_clause(db_clause_list_t* clause_list, unsigned int denial_algorithm);
-
-/**
- * Create a clause for denial_iterations of a policy object and add it to a database clause list.
- * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
- * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
- * returned db_clause_t pointer.
- * \param[in] clause_list db_clause_list_t pointer.
- * \param[in] denial_iterations an unsigned integer.
- * \return a db_clause_t pointer to the added clause or NULL on error.
- */
-db_clause_t* policy_denial_iterations_clause(db_clause_list_t* clause_list, unsigned int denial_iterations);
-
-/**
- * Create a clause for denial_salt_length of a policy object and add it to a database clause list.
- * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
- * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
- * returned db_clause_t pointer.
- * \param[in] clause_list db_clause_list_t pointer.
- * \param[in] denial_salt_length an unsigned integer.
- * \return a db_clause_t pointer to the added clause or NULL on error.
- */
-db_clause_t* policy_denial_salt_length_clause(db_clause_list_t* clause_list, unsigned int denial_salt_length);
-
-/**
- * Create a clause for denial_salt of a policy object and add it to a database clause list.
- * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
- * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
- * returned db_clause_t pointer.
- * \param[in] clause_list db_clause_list_t pointer.
- * \param[in] denial_salt_text a character pointer.
- * \return a db_clause_t pointer to the added clause or NULL on error.
- */
-db_clause_t* policy_denial_salt_clause(db_clause_list_t* clause_list, const char* denial_salt_text);
-
-/**
- * Create a clause for denial_salt_last_change of a policy object and add it to a database clause list.
- * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
- * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
- * returned db_clause_t pointer.
- * \param[in] clause_list db_clause_list_t pointer.
- * \param[in] denial_salt_last_change an unsigned integer.
- * \return a db_clause_t pointer to the added clause or NULL on error.
- */
-db_clause_t* policy_denial_salt_last_change_clause(db_clause_list_t* clause_list, unsigned int denial_salt_last_change);
-
-/**
- * Create a clause for keys_ttl of a policy object and add it to a database clause list.
- * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
- * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
- * returned db_clause_t pointer.
- * \param[in] clause_list db_clause_list_t pointer.
- * \param[in] keys_ttl an unsigned integer.
- * \return a db_clause_t pointer to the added clause or NULL on error.
- */
-db_clause_t* policy_keys_ttl_clause(db_clause_list_t* clause_list, unsigned int keys_ttl);
-
-/**
- * Create a clause for keys_retire_safety of a policy object and add it to a database clause list.
- * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
- * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
- * returned db_clause_t pointer.
- * \param[in] clause_list db_clause_list_t pointer.
- * \param[in] keys_retire_safety an unsigned integer.
- * \return a db_clause_t pointer to the added clause or NULL on error.
- */
-db_clause_t* policy_keys_retire_safety_clause(db_clause_list_t* clause_list, unsigned int keys_retire_safety);
-
-/**
- * Create a clause for keys_publish_safety of a policy object and add it to a database clause list.
- * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
- * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
- * returned db_clause_t pointer.
- * \param[in] clause_list db_clause_list_t pointer.
- * \param[in] keys_publish_safety an unsigned integer.
- * \return a db_clause_t pointer to the added clause or NULL on error.
- */
-db_clause_t* policy_keys_publish_safety_clause(db_clause_list_t* clause_list, unsigned int keys_publish_safety);
-
-/**
- * Create a clause for keys_shared of a policy object and add it to a database clause list.
- * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
- * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
- * returned db_clause_t pointer.
- * \param[in] clause_list db_clause_list_t pointer.
- * \param[in] keys_shared an unsigned integer.
- * \return a db_clause_t pointer to the added clause or NULL on error.
- */
-db_clause_t* policy_keys_shared_clause(db_clause_list_t* clause_list, unsigned int keys_shared);
-
-/**
- * Create a clause for keys_purge_after of a policy object and add it to a database clause list.
- * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
- * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
- * returned db_clause_t pointer.
- * \param[in] clause_list db_clause_list_t pointer.
- * \param[in] keys_purge_after an unsigned integer.
- * \return a db_clause_t pointer to the added clause or NULL on error.
- */
-db_clause_t* policy_keys_purge_after_clause(db_clause_list_t* clause_list, unsigned int keys_purge_after);
-
-/**
- * Create a clause for zone_propagation_delay of a policy object and add it to a database clause list.
- * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
- * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
- * returned db_clause_t pointer.
- * \param[in] clause_list db_clause_list_t pointer.
- * \param[in] zone_propagation_delay an unsigned integer.
- * \return a db_clause_t pointer to the added clause or NULL on error.
- */
-db_clause_t* policy_zone_propagation_delay_clause(db_clause_list_t* clause_list, unsigned int zone_propagation_delay);
-
-/**
- * Create a clause for zone_soa_ttl of a policy object and add it to a database clause list.
- * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
- * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
- * returned db_clause_t pointer.
- * \param[in] clause_list db_clause_list_t pointer.
- * \param[in] zone_soa_ttl an unsigned integer.
- * \return a db_clause_t pointer to the added clause or NULL on error.
- */
-db_clause_t* policy_zone_soa_ttl_clause(db_clause_list_t* clause_list, unsigned int zone_soa_ttl);
-
-/**
- * Create a clause for zone_soa_minimum of a policy object and add it to a database clause list.
- * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
- * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
- * returned db_clause_t pointer.
- * \param[in] clause_list db_clause_list_t pointer.
- * \param[in] zone_soa_minimum an unsigned integer.
- * \return a db_clause_t pointer to the added clause or NULL on error.
- */
-db_clause_t* policy_zone_soa_minimum_clause(db_clause_list_t* clause_list, unsigned int zone_soa_minimum);
-
-/**
- * Create a clause for zone_soa_serial of a policy object and add it to a database clause list.
- * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
- * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
- * returned db_clause_t pointer.
- * \param[in] clause_list db_clause_list_t pointer.
- * \param[in] zone_soa_serial a policy_zone_soa_serial_t.
- * \return a db_clause_t pointer to the added clause or NULL on error.
- */
-db_clause_t* policy_zone_soa_serial_clause(db_clause_list_t* clause_list, policy_zone_soa_serial_t zone_soa_serial);
-
-/**
- * Create a clause for parent_registration_delay of a policy object and add it to a database clause list.
- * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
- * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
- * returned db_clause_t pointer.
- * \param[in] clause_list db_clause_list_t pointer.
- * \param[in] parent_registration_delay an unsigned integer.
- * \return a db_clause_t pointer to the added clause or NULL on error.
- */
-db_clause_t* policy_parent_registration_delay_clause(db_clause_list_t* clause_list, unsigned int parent_registration_delay);
-
-/**
- * Create a clause for parent_propagation_delay of a policy object and add it to a database clause list.
- * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
- * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
- * returned db_clause_t pointer.
- * \param[in] clause_list db_clause_list_t pointer.
- * \param[in] parent_propagation_delay an unsigned integer.
- * \return a db_clause_t pointer to the added clause or NULL on error.
- */
-db_clause_t* policy_parent_propagation_delay_clause(db_clause_list_t* clause_list, unsigned int parent_propagation_delay);
-
-/**
- * Create a clause for parent_ds_ttl of a policy object and add it to a database clause list.
- * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
- * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
- * returned db_clause_t pointer.
- * \param[in] clause_list db_clause_list_t pointer.
- * \param[in] parent_ds_ttl an unsigned integer.
- * \return a db_clause_t pointer to the added clause or NULL on error.
- */
-db_clause_t* policy_parent_ds_ttl_clause(db_clause_list_t* clause_list, unsigned int parent_ds_ttl);
-
-/**
- * Create a clause for parent_soa_ttl of a policy object and add it to a database clause list.
- * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
- * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
- * returned db_clause_t pointer.
- * \param[in] clause_list db_clause_list_t pointer.
- * \param[in] parent_soa_ttl an unsigned integer.
- * \return a db_clause_t pointer to the added clause or NULL on error.
- */
-db_clause_t* policy_parent_soa_ttl_clause(db_clause_list_t* clause_list, unsigned int parent_soa_ttl);
-
-/**
- * Create a clause for parent_soa_minimum of a policy object and add it to a database clause list.
- * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
- * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
- * returned db_clause_t pointer.
- * \param[in] clause_list db_clause_list_t pointer.
- * \param[in] parent_soa_minimum an unsigned integer.
- * \return a db_clause_t pointer to the added clause or NULL on error.
- */
-db_clause_t* policy_parent_soa_minimum_clause(db_clause_list_t* clause_list, unsigned int parent_soa_minimum);
 
 /**
  * Create a policy object in the database.
@@ -1112,14 +680,6 @@ int policy_create(policy_t* policy);
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int policy_get_by_id(policy_t* policy, const db_value_t* id);
-
-/**
- * Get a new policy object from the database by a id specified in `id`.
- * \param[in] connection a db_connection_t pointer.
- * \param[in] id a db_value_t pointer.
- * \return a policy_t pointer or NULL on error or if it does not exist.
- */
-policy_t* policy_new_get_by_id(const db_connection_t* connection, const db_value_t* id);
 
 /**
  * Get a policy object from the database by a name specified in `name`.
@@ -1150,18 +710,6 @@ int policy_update(policy_t* policy);
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int policy_delete(policy_t* policy);
-
-/**
- * Count the number of policy objects in the database, if a selection of
- * objects should be counted then it can be limited by a database clause list
- * otherwise all objects are counted.
- * \param[in] policy a policy_t pointer.
- * \param[in] clause_list a db_clause_list_t pointer or NULL if all objects.
- * \param[out] count a size_t pointer to where the count should be stored.
- * should be counted.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int policy_count(policy_t* policy, db_clause_list_t* clause_list, size_t* count);
 
 /**
  * A list of policy objects.
@@ -1200,15 +748,6 @@ policy_list_t* policy_list_new_copy(const policy_list_t* policy_copy);
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int policy_list_object_store(policy_list_t* policy_list);
-
-/**
- * Specify that the list should also fetch associated objects in a more optimal
- * way then fetching them for each individual object later on. This also forces
- * the list to store all objects (see policy_list_object_store()).
- * \param[in] policy_list a policy_list_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int policy_list_associated_fetch(policy_list_t* policy_list);
 
 /**
  * Delete a policy object list.
@@ -1264,16 +803,6 @@ policy_list_t* policy_list_new_get_by_clauses(const db_connection_t* connection,
 const policy_t* policy_list_begin(policy_list_t* policy_list);
 
 /**
- * Get the first policy object in a policy object list and reset the
- * position of the list. The caller will be given ownership of this object and
- * is responsible for freeing it.
- * \param[in] policy_list a policy_list_t pointer.
- * \return a policy_t pointer or NULL on error or if there are no
- * policy objects in the policy object list.
- */
-policy_t* policy_list_get_begin(policy_list_t* policy_list);
-
-/**
  * Get the next policy object in a policy object list.
  * Ownership of this object is retained within the list and the object is only
  * valid until the next call to this function.
@@ -1292,13 +821,5 @@ const policy_t* policy_list_next(policy_list_t* policy_list);
  * policy objects in the policy object list.
  */
 policy_t* policy_list_get_next(policy_list_t* policy_list);
-
-/**
- * Get the size of a policy object list.
- * \param[in] policy_list a policy_list_t pointer.
- * \return a size_t with the size of the list or zero on error, if the list is
- * empty or if the backend does not support returning the size.
- */
-size_t policy_list_size(policy_list_t* policy_list);
 
 #endif

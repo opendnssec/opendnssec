@@ -48,47 +48,10 @@ db_object_field_t* db_object_field_new(void) {
     return object_field;
 }
 
-/* TODO: unit test */
-db_object_field_t* db_object_field_new_copy(const db_object_field_t* from_object_field) {
-    db_object_field_t* object_field;
-
-    if (!from_object_field) {
-        return NULL;
-    }
-
-    if (!(object_field = db_object_field_new())
-        || db_object_field_copy(object_field, from_object_field))
-    {
-        db_object_field_free(object_field);
-        return NULL;
-    }
-
-    return object_field;
-}
-
 void db_object_field_free(db_object_field_t* object_field) {
     if (object_field) {
         free(object_field);
     }
-}
-
-/* TODO: unit test */
-int db_object_field_copy(db_object_field_t* object_field, const db_object_field_t* from_object_field) {
-    if (!object_field) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!from_object_field) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (object_field->next) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    object_field->name = from_object_field->name;
-    object_field->type = from_object_field->type;
-    object_field->enum_set = from_object_field->enum_set;
-
-    return DB_OK;
 }
 
 const char* db_object_field_name(const db_object_field_t* object_field) {
@@ -105,14 +68,6 @@ db_type_t db_object_field_type(const db_object_field_t* object_field) {
     }
 
     return object_field->type;
-}
-
-const db_enum_t* db_object_field_enum_set(const db_object_field_t* object_field) {
-    if (!object_field) {
-        return NULL;
-    }
-
-    return object_field->enum_set;
 }
 
 int db_object_field_set_name(db_object_field_t* object_field, const char* name) {
@@ -186,24 +141,6 @@ db_object_field_list_t* db_object_field_list_new(void) {
     return object_field_list;
 }
 
-/* TODO: unit test */
-db_object_field_list_t* db_object_field_list_new_copy(const db_object_field_list_t* from_object_field_list) {
-    db_object_field_list_t* object_field_list;
-
-    if (!from_object_field_list) {
-        return NULL;
-    }
-
-    if (!(object_field_list = db_object_field_list_new())
-        || db_object_field_list_copy(object_field_list, from_object_field_list))
-    {
-        db_object_field_list_free(object_field_list);
-        return NULL;
-    }
-
-    return object_field_list;
-}
-
 void db_object_field_list_free(db_object_field_list_t* object_field_list) {
     if (object_field_list) {
         if (object_field_list->begin) {
@@ -218,45 +155,6 @@ void db_object_field_list_free(db_object_field_list_t* object_field_list) {
         }
         free(object_field_list);
     }
-}
-
-/* TODO: unit test */
-int db_object_field_list_copy(db_object_field_list_t* object_field_list, const db_object_field_list_t* from_object_field_list) {
-    db_object_field_t* object_field;
-    db_object_field_t* object_field_copy;
-
-    if (!object_field_list) {
-        return DB_ERROR_UNKNOWN;
-    }
-    /*
-     * TODO: Should we be able to copy into a object field list that already
-     * contains data?
-     */
-    if (object_field_list->begin) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (object_field_list->end) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (object_field_list->size) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!from_object_field_list) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    object_field = from_object_field_list->begin;
-    while (object_field) {
-        if (!(object_field_copy = db_object_field_new_copy(object_field))
-            || db_object_field_list_add(object_field_list, object_field_copy))
-        {
-            return DB_ERROR_UNKNOWN;
-        }
-
-        object_field = object_field->next;
-    }
-
-    return DB_OK;
 }
 
 int db_object_field_list_add(db_object_field_list_t* object_field_list, db_object_field_t* object_field) {
@@ -297,14 +195,6 @@ const db_object_field_t* db_object_field_list_begin(const db_object_field_list_t
     return object_field_list->begin;
 }
 
-size_t db_object_field_list_size(const db_object_field_list_t* object_field_list) {
-    if (!object_field_list) {
-        return 0;
-    }
-
-    return object_field_list->size;
-}
-
 /* DB OBJECT */
 
 
@@ -342,25 +232,11 @@ const char* db_object_table(const db_object_t* object) {
     return object->table;
 }
 
-const char* db_object_primary_key_name(const db_object_t* object) {
-    if (!object) {
-        return NULL;
-    }
-    return object->primary_key_name;
-}
-
 const db_object_field_list_t* db_object_object_field_list(const db_object_t* object) {
     if (!object) {
         return NULL;
     }
     return object->object_field_list;
-}
-
-const db_backend_meta_data_list_t* db_object_backend_meta_data_list(const db_object_t* object) {
-    if (!object) {
-        return NULL;
-    }
-    return object->backend_meta_data_list;
 }
 
 int db_object_set_connection(db_object_t* object, const db_connection_t* connection) {
@@ -420,22 +296,6 @@ int db_object_set_object_field_list(db_object_t* object, db_object_field_list_t*
     }
 
     object->object_field_list = object_field_list;
-    return DB_OK;
-}
-
-int db_object_set_backend_meta_data_list(db_object_t* object, db_backend_meta_data_list_t* backend_meta_data_list) {
-    if (!object) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!backend_meta_data_list) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    if (object->backend_meta_data_list) {
-        db_backend_meta_data_list_free(object->backend_meta_data_list);
-    }
-
-    object->backend_meta_data_list = backend_meta_data_list;
     return DB_OK;
 }
 
