@@ -36,7 +36,6 @@
 #include "str.h"
 #include "clientpipe.h"
 
-#include "db/key_data.h"
 #include "db/key_state.h"
 #include "db/hsm_key.h"
 #include "db/zone.h"
@@ -102,7 +101,7 @@ kskstate(key_data_t *key)
  * @param key: key to evaluate
  * @return: state as string
  **/
-static const char*
+const char*
 map_keystate(key_data_t *key)
 {
 	int z,k;

@@ -2504,7 +2504,7 @@ hsm_sign_params_new()
     if (!params) {
         return NULL;
     }
-    params->algorithm = LDNS_SIGN_RSASHA256;
+    params->algorithm = LDNS_RSASHA256;
     params->flags = LDNS_KEY_ZONE_KEY;
     params->inception = 0;
     params->expiration = 0;

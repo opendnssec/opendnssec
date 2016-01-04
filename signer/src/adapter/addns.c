@@ -714,11 +714,13 @@ addns_read(void* zone)
     /* did we already store a new zone transfer on disk? */
     if (!z->xfrd->serial_disk_acquired ||
         z->xfrd->serial_disk_acquired <= z->xfrd->serial_xfr_acquired) {
-        lock_basic_unlock(&z->xfrd->serial_lock);
-        lock_basic_unlock(&z->xfrd->rw_lock);
         if (!z->xfrd->serial_disk_acquired) {
+            lock_basic_unlock(&z->xfrd->serial_lock);
+            lock_basic_unlock(&z->xfrd->rw_lock);
             return ODS_STATUS_XFR_NOT_READY;
         }
+        lock_basic_unlock(&z->xfrd->serial_lock);
+        lock_basic_unlock(&z->xfrd->rw_lock);
         /* do a transaction for DNSKEY and NSEC3PARAM */
         adapi_trans_diff(z, 0);
         ods_log_verbose("[%s] no new xfr ready for zone %s", adapter_str,

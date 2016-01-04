@@ -178,7 +178,7 @@ static void
 engine_stop_cmdhandler(engine_type* engine)
 {
     ods_log_assert(engine);
-    if (!engine->cmdhandler) {
+    if (!engine->cmdhandler || engine->cmdhandler_done) {
         return;
     }
     ods_log_debug("[%s] stop command handler", engine_str);
@@ -446,7 +446,6 @@ engine_setup(engine_type* engine)
 {
     ods_status status = ODS_STATUS_OK;
     struct sigaction action;
-    int result = 0;
     int sockets[2] = {0,0};
 
     ods_log_debug("[%s] setup signer engine", engine_str);
@@ -498,12 +497,6 @@ engine_setup(engine_type* engine)
     if (engine_privdrop(engine) != ODS_STATUS_OK) {
         return ODS_STATUS_PRIVDROP_ERR;
     }
-    /* set up hsm */ /* LEAK */
-    result = lhsm_open(engine->config->repositories);
-    if (result != HSM_OK) {
-        fprintf(stderr, "Fail to open hsm\n");
-        return ODS_STATUS_HSM_ERR;
-    }
     /* daemonize */
     if (engine->daemonize) {
         switch ((engine->pid = fork())) {
@@ -522,7 +515,6 @@ engine_setup(engine_type* engine)
                 exit(0);
         }
         if (setsid() == -1) {
-            hsm_close();
             ods_log_error("[%s] setup: unable to setsid daemon (%s)",
                 engine_str, strerror(errno));
             return ODS_STATUS_SETSID_ERR;
@@ -531,7 +523,6 @@ engine_setup(engine_type* engine)
     engine->pid = getpid();
     /* write pidfile */
     if (util_write_pidfile(engine->config->pid_filename, engine->pid) == -1) {
-        hsm_close();
         return ODS_STATUS_WRITE_PIDFILE_ERR;
     }
     /* setup done */
@@ -539,7 +530,7 @@ engine_setup(engine_type* engine)
         (unsigned long) engine->pid);
     /* catch signals */
     signal_set_engine(engine);
-    action.sa_handler = signal_handler;
+    action.sa_handler = (void (*)(int))signal_handler;
     sigfillset(&action.sa_mask);
     action.sa_flags = 0;
     sigaction(SIGTERM, &action, NULL);
@@ -623,7 +614,7 @@ engine_run(engine_type* engine, int single_run)
                 break;
             default:
                 ods_log_warning("[%s] invalid signal %d captured, "
-                    "keep running", engine_str, engine->signal);
+                    "keep running", engine_str, (int)engine->signal);
                 engine->signal = SIGNAL_RUN;
                 break;
         }
@@ -642,7 +633,6 @@ engine_run(engine_type* engine, int single_run)
     ods_log_debug("[%s] signer halted", engine_str);
     engine_stop_drudgers(engine);
     engine_stop_workers(engine);
-    (void)lhsm_reopen(engine->config->repositories);
 }
 
 
@@ -954,24 +944,13 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
     int info, int single_run)
 {
     engine_type* engine = NULL;
-    int use_syslog = 0;
     ods_status zl_changed = ODS_STATUS_UNCHANGED;
     ods_status status = ODS_STATUS_OK;
-    int close_hsm = 0;
-    int ret = 1;
 
-    ods_log_assert(cfgfile);
-    ods_log_init("ods-signerd", use_syslog, NULL, cmdline_verbosity);
-    ods_log_verbose("[%s] starting signer", engine_str);
-
-    /* initialize */
-    xmlInitGlobals();
-    xmlInitParser();
-    xmlInitThreads();
     engine = engine_create();
     if (!engine) {
         ods_fatal_exit("[%s] create failed", engine_str);
-        return ret;
+        return 1;
     }
     engine->daemonize = daemonize;
 
@@ -991,9 +970,9 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
         exit(1);
     }
     /* open log */
-    ods_log_init("ods-signerd", engine->config->use_syslog, engine->config->log_filename, engine->config->verbosity);
+    ods_log_init("ods-signerd", engine->config->use_syslog,
+        engine->config->log_filename, engine->config->verbosity);
     /* setup */
-    tzset(); /* for portability */
     status = engine_setup(engine);
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] setup failed: %s", engine_str,
@@ -1003,10 +982,6 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
             engine->cmdhandler_done = 1;
         }
         goto earlyexit;
-    } else {
-        /* setup ok, mark hsm open */
-        ret = 1;
-        close_hsm = 1;
     }
 
     /* run */
@@ -1032,20 +1007,17 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
             zl_changed == ODS_STATUS_UNCHANGED) {
             engine_update_zones(engine, zl_changed);
         }
+        if (lhsm_open(engine->config->repositories) != HSM_OK)
+            break;
         engine_run(engine, single_run);
+        (void)hsm_close();
     }
 
     /* shutdown */
     ods_log_info("[%s] signer shutdown", engine_str);
-    if (close_hsm) {
-        ods_log_verbose("[%s] close hsm", engine_str);
-        hsm_close();
-    }
-    if (!engine->cmdhandler_done) {
-        engine_stop_xfrhandler(engine);
-        engine_stop_dnshandler(engine);
-        engine_stop_cmdhandler(engine);
-    }
+    engine_stop_cmdhandler(engine);
+    engine_stop_xfrhandler(engine);
+    engine_stop_dnshandler(engine);
 
 earlyexit:
     if (engine && engine->config) {
@@ -1059,11 +1031,8 @@ earlyexit:
     tsig_handler_cleanup();
     engine_cleanup(engine);
     engine = NULL;
-    ods_log_close();
-    xmlCleanupParser();
-    xmlCleanupGlobals();
-    xmlCleanupThreads();
-    return ret;
+
+    return 1;
 }
 
 

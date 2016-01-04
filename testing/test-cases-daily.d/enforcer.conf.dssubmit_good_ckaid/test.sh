@@ -44,8 +44,7 @@ test -f "$INSTALL_ROOT/var/opendnssec/enforcer/dssub.out" &&
 
 echo "Testing contents of dssub.out" &&
 grep "ods. 600 IN DNSKEY 257 3 7 AwEAA.*" "$INSTALL_ROOT/var/opendnssec/enforcer/dssub.out" &&
-#not implemented in 2.0
-#grep "; {cka_id = $KSK_CKA_ID}" "$INSTALL_ROOT/var/opendnssec/enforcer/dssub.out" &&
+grep "; {cka_id = $KSK_CKA_ID}" "$INSTALL_ROOT/var/opendnssec/enforcer/dssub.out" &&
 
 # Clean up
 echo "Cleaning up files" &&

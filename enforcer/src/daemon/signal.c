@@ -59,7 +59,7 @@ signal_set_engine(struct engine_struct* engine)
  * Handle signals.
  *
  */
-void
+void *
 signal_handler(sig_atomic_t sig)
 {
     switch (sig) {
@@ -84,7 +84,8 @@ signal_handler(sig_atomic_t sig)
             break;
         default:
             ods_log_debug("[%s] Spurious signal %d received", 
-                signal_str, sig);
+                signal_str, (int)sig);
             break;
     }
+    return NULL;
 }
