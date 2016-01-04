@@ -1,4 +1,16 @@
-OpenDNSSEC 1.4.8 - 2015-10-05
+OpenDNSSEC 1.4.9 - 2016-01-04
+
+Bugfixes:
+ * Add TCP waiting queue. Fix signer getting 'stuck' when adding many zones
+   at once. Thanks to Havard Eidnes to bringing this to our attention.
+ * OPENDNSSEC-723: received SOA serial reported as on disk.
+ * Fix potential locking issue on SOA serial.
+ * Crash on shutdown. At all times join xfr and dns handler threads.
+ * Make handling of notifies more consistent. Previous implementation would
+   bounce between code paths.
+ 
+
+OpenDNSSEC 1.4.8 - 2015-09-24
 
 * Support for RFC5011 style KSK rollovers. KSK section in the KASP now 
   accepts <RFC5011/> element.

@@ -188,7 +188,7 @@ static void
 engine_stop_cmdhandler(engine_type* engine)
 {
     ods_log_assert(engine);
-    if (!engine->cmdhandler) {
+    if (!engine->cmdhandler || engine->cmdhandler_done) {
         return;
     }
     ods_log_debug("[%s] stop command handler", engine_str);
@@ -203,7 +203,6 @@ engine_stop_cmdhandler(engine_type* engine)
         ods_log_error("[%s] command handler self pipe trick failed, "
             "unclean shutdown", engine_str);
     }
-    return;
 }
 
 
@@ -556,7 +555,7 @@ engine_setup(engine_type* engine)
         (unsigned long) engine->pid);
     /* catch signals */
     signal_set_engine(engine);
-    action.sa_handler = signal_handler;
+    action.sa_handler = (void (*)(int))signal_handler;
     sigfillset(&action.sa_mask);
     action.sa_flags = 0;
     sigaction(SIGTERM, &action, NULL);
@@ -1072,11 +1071,9 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
         ods_log_verbose("[%s] close hsm", engine_str);
         hsm_close();
     }
-    if (!engine->cmdhandler_done) {
-        engine_stop_xfrhandler(engine);
-        engine_stop_dnshandler(engine);
-        engine_stop_cmdhandler(engine);
-    }
+    engine_stop_cmdhandler(engine);
+    engine_stop_xfrhandler(engine);
+    engine_stop_dnshandler(engine);
 
 earlyexit:
     if (engine && engine->config) {

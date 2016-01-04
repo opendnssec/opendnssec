@@ -268,7 +268,9 @@ query_parse_soa(buffer_type* buffer, uint32_t* serial)
 
 /**
  * NOTIFY.
- *
+ * Parse notify query and initiate zone transfer if received serial is
+ * newer than serial on disk. On success return QUERY_PROCESSED and
+ * prepare notify reply packet in q->buffer.
  */
 static query_state
 query_process_notify(query_type* q, ldns_rr_type qtype, void* engine)
@@ -353,55 +355,47 @@ query_process_notify(query_type* q, ldns_rr_type qtype, void* engine)
             }
             return QUERY_DISCARDED;
         }
-        lock_basic_lock(&q->zone->xfrd->serial_lock);
-        if (q->zone->xfrd->serial_notify_acquired) {
-            if (!util_serial_gt(q->zone->xfrd->serial_notify,
-                q->zone->xfrd->serial_disk)) {
 
-                if (addr2ip(q->addr, address, sizeof(address))) {
-                    ods_log_info("[%s] ignore notify from %s: already got "
-                        "zone %s serial %u on disk", query_str, address,
-                        q->zone->name, q->zone->xfrd->serial_notify);
-                } else {
-                    ods_log_info("[%s] ignore notify: already got zone %s "
-                        "serial %u on disk", query_str, q->zone->name,
-                        q->zone->xfrd->serial_notify);
-                }
-                q->zone->xfrd->serial_notify_acquired = 0;
+        lock_basic_lock(&q->zone->xfrd->serial_lock);
+        if (!util_serial_gt(serial, q->zone->xfrd->serial_disk)) {
+            if (addr2ip(q->addr, address, sizeof(address))) {
+                ods_log_info("[%s] ignore notify from %s: already got "
+                    "zone %s serial %u on disk (received %u)", query_str,
+                    address, q->zone->name, q->zone->xfrd->serial_disk,
+                    serial);
             } else {
-                if (addr2ip(q->addr, address, sizeof(address))) {
-                    ods_log_info("[%s] ignore notify from %s: zone %s "
-                        "transfer in progress", query_str, address,
-                        q->zone->name);
-                } else {
-                    ods_log_info("[%s] ignore notify: zone %s transfer in "
-                        "progress", query_str, q->zone->name);
-                }
-                /* update values */
-                q->zone->xfrd->serial_notify = serial;
-                q->zone->xfrd->serial_notify_acquired = time_now();
+                ods_log_info("[%s] ignore notify: already got zone %s "
+                    "serial %u on disk (received %u)", query_str,
+                    q->zone->name, q->zone->xfrd->serial_disk, serial);
             }
             lock_basic_unlock(&q->zone->xfrd->serial_lock);
-            goto send_notify_ok;
+        } else if (q->zone->xfrd->serial_notify_acquired) {
+            lock_basic_unlock(&q->zone->xfrd->serial_lock);
+            if (addr2ip(q->addr, address, sizeof(address))) {
+                ods_log_info("[%s] ignore notify from %s: zone %s "
+                    "transfer in progress", query_str, address,
+                    q->zone->name);
+            } else {
+                ods_log_info("[%s] ignore notify: zone %s transfer in "
+                    "progress", query_str, q->zone->name);
+            }
+        } else {
+            q->zone->xfrd->serial_notify = serial;
+            q->zone->xfrd->serial_notify_acquired = time_now();
+            lock_basic_unlock(&q->zone->xfrd->serial_lock);
+            /* forward notify to xfrd */
+            if (addr2ip(q->addr, address, sizeof(address))) {
+                ods_log_verbose("[%s] forward notify for zone %s from client %s",
+                    query_str, q->zone->name, address);
+            } else {
+                ods_log_verbose("[%s] forward notify for zone %s", query_str,
+                    q->zone->name);
+            }
+            xfrd_set_timer_now(q->zone->xfrd);
+            dnshandler_fwd_notify(e->dnshandler, buffer_begin(q->buffer),
+                buffer_remaining(q->buffer));
         }
-        q->zone->xfrd->serial_notify = serial;
-        q->zone->xfrd->serial_notify_acquired = time_now();
-        lock_basic_unlock(&q->zone->xfrd->serial_lock);
     }
-
-    /* forward notify to xfrd */
-    if (addr2ip(q->addr, address, sizeof(address))) {
-        ods_log_verbose("[%s] forward notify for zone %s from client %s",
-            query_str, q->zone->name, address);
-    } else {
-        ods_log_verbose("[%s] forward notify for zone %s", query_str,
-            q->zone->name);
-    }
-    xfrd_set_timer_now(q->zone->xfrd);
-    dnshandler_fwd_notify(e->dnshandler, buffer_begin(q->buffer),
-        buffer_remaining(q->buffer));
-
-send_notify_ok:
     /* send notify ok */
     buffer_pkt_set_qr(q->buffer);
     buffer_pkt_set_aa(q->buffer);
