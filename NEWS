@@ -1,5 +1,3 @@
-Future:
-
 OpenDNSSEC 1.4.9 - 2016-01-04
 
 Bugfixes:
@@ -8,6 +6,8 @@ Bugfixes:
  * OPENDNSSEC-723: received SOA serial reported as on disk.
  * Fix potential locking issue on SOA serial.
  * Crash on shutdown. At all times join xfr and dns handler threads.
+ * Make handling of notifies more consistent. Previous implementation would
+   bounce between code paths.
  
 
 OpenDNSSEC 1.4.8 - 2015-09-24
