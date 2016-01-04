@@ -69,15 +69,6 @@ int util_is_dnssec_rr(ldns_rr* rr);
 int util_serial_gt(uint32_t serial_new, uint32_t serial_old);
 
 /**
- * Compare RRs, ignore SOA SERIAL.
- * \param[in] rr1 RR
- * \param[in] rr2 another RR
- * \return int 0 if equal SOA RRs, 1 otherwise
- *
- */
-int util_soa_compare(ldns_rr* rr1, ldns_rr* rr2);
-
-/**
  * Compare RRs only on RDATA.
  * \param[in] rr1 RR
  * \param[in] rr2 another RR
@@ -86,15 +77,6 @@ int util_soa_compare(ldns_rr* rr1, ldns_rr* rr2);
  *
  */
 ldns_status util_dnssec_rrs_compare(ldns_rr* rr1, ldns_rr* rr2, int* cmp);
-
-/**
- * A more efficient ldns_dnssec_rrs_add_rr(), get rid of ldns_rr_compare().
- * \param[in] rrs RRset
- * \param[in] rr to add
- * \return ldns_status status
- *
- */
-ldns_status util_dnssec_rrs_add_rr(ldns_dnssec_rrs *rrs, ldns_rr *rr);
 
 /**
  * Check process id file.
