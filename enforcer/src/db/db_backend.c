@@ -90,17 +90,6 @@ int db_backend_handle_connect(const db_backend_handle_t* backend_handle, const d
     return backend_handle->connect_function((void*)backend_handle->data, configuration_list);
 }
 
-int db_backend_handle_disconnect(const db_backend_handle_t* backend_handle) {
-    if (!backend_handle) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!backend_handle->disconnect_function) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    return backend_handle->disconnect_function((void*)backend_handle->data);
-}
-
 int db_backend_handle_create(const db_backend_handle_t* backend_handle, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set) {
     if (!backend_handle) {
         return DB_ERROR_UNKNOWN;
@@ -393,17 +382,6 @@ int db_backend_connect(const db_backend_t* backend, const db_configuration_list_
     return db_backend_handle_connect(backend->handle, configuration_list);
 }
 
-int db_backend_disconnect(const db_backend_t* backend) {
-    if (!backend) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!backend->handle) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    return db_backend_handle_disconnect(backend->handle);
-}
-
 int db_backend_create(const db_backend_t* backend, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set) {
     if (!backend) {
         return DB_ERROR_UNKNOWN;
@@ -535,25 +513,6 @@ db_backend_t* db_backend_factory_get_backend(const char* name) {
 db_backend_meta_data_t* db_backend_meta_data_new(void) {
     db_backend_meta_data_t* backend_meta_data =
         (db_backend_meta_data_t*)calloc(1, sizeof(db_backend_meta_data_t));
-
-    return backend_meta_data;
-}
-
-/* TODO: unit test */
-db_backend_meta_data_t* db_backend_meta_data_new_copy(const db_backend_meta_data_t* from_backend_meta_data) {
-    db_backend_meta_data_t* backend_meta_data;
-
-    if (!from_backend_meta_data) {
-        return NULL;
-    }
-
-    backend_meta_data = (db_backend_meta_data_t*)calloc(1, sizeof(db_backend_meta_data_t));
-    if (backend_meta_data) {
-        if (db_backend_meta_data_copy(backend_meta_data, from_backend_meta_data)) {
-            db_backend_meta_data_free(backend_meta_data);
-            return NULL;
-        }
-    }
 
     return backend_meta_data;
 }
@@ -734,28 +693,4 @@ int db_backend_meta_data_list_add(db_backend_meta_data_list_t* backend_meta_data
     }
 
     return DB_OK;
-}
-
-const db_backend_meta_data_t* db_backend_meta_data_list_find(const db_backend_meta_data_list_t* backend_meta_data_list, const char* name) {
-    db_backend_meta_data_t* backend_meta_data;
-
-    if (!backend_meta_data_list) {
-        return NULL;
-    }
-    if (!name) {
-        return NULL;
-    }
-
-    backend_meta_data = backend_meta_data_list->begin;
-    while (backend_meta_data) {
-        if (db_backend_meta_data_not_empty(backend_meta_data)) {
-            return NULL;
-        }
-        if (!strcmp(backend_meta_data->name, name)) {
-            break;
-        }
-        backend_meta_data = backend_meta_data->next;
-    }
-
-    return backend_meta_data;
 }
