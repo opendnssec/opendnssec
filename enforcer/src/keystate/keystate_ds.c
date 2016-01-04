@@ -102,6 +102,8 @@ exec_dnskey_by_id(int sockfd, key_data_t *key, const char* ds_command,
 	char *rrstr, *chrptr;
 	zone_t* zone;
 	struct stat stat_ret;
+        int cka = 0;
+	char *pos = NULL;
 
 	assert(key);
 
@@ -141,44 +143,58 @@ exec_dnskey_by_id(int sockfd, key_data_t *key, const char* ds_command,
 			"No \"DelegationSigner%sCommand\" "
 			"configured.", action);
 		status = 1;
-	} else if (stat(ds_command, &stat_ret) != 0) {
-		ods_log_error_and_printf(sockfd, module_str,
-			"Cannot stat file %s: %s", ds_command,
-			strerror(errno));
-		status = 2;
-	} else if (S_ISREG(stat_ret.st_mode) && 
-			!(stat_ret.st_mode & S_IXUSR || 
-			  stat_ret.st_mode & S_IXGRP || 
-			  stat_ret.st_mode & S_IXOTH)) {
-		/* Then see if it is a regular file, then if usr, grp or 
-		 * all have execute set */
-		status = 3;
-		ods_log_error_and_printf(sockfd, module_str,
-			"File %s is not executable", ds_command);
 	} else {
-		/* send records to the configured command */
-		FILE *fp = popen(ds_command, "w");
-		if (fp == NULL) {
-			status = 4;
+		pos = strstr(ds_command, " --cka_id");
+                if (pos){
+                        cka = 1;
+                        *pos = '\0';
+                        rrstr[strlen(rrstr)-1] = '\0';
+                        pos = NULL;
+                }
+
+		if (stat(ds_command, &stat_ret) != 0) {
 			ods_log_error_and_printf(sockfd, module_str,
-				"failed to run command: %s: %s",ds_command,
+				"Cannot stat file %s: %s", ds_command,
 				strerror(errno));
+			status = 2;
+		} else if (S_ISREG(stat_ret.st_mode) && 
+				!(stat_ret.st_mode & S_IXUSR || 
+				  stat_ret.st_mode & S_IXGRP || 
+				  stat_ret.st_mode & S_IXOTH)) {
+			/* Then see if it is a regular file, then if usr, grp or 
+			 * all have execute set */
+			status = 3;
+			ods_log_error_and_printf(sockfd, module_str,
+				"File %s is not executable", ds_command);
 		} else {
-			int bytes_written = fprintf(fp, "%s", rrstr);
-			if (bytes_written < 0) {
-				status = 5;
-				ods_log_error_and_printf(sockfd,  module_str,
-					 "[%s] Failed to write to %s: %s", ds_command,
-					 strerror(errno));
-			} else if (pclose(fp) == -1) {
-				status = 6;
+			/* send records to the configured command */
+			FILE *fp = popen(ds_command, "w");
+			if (fp == NULL) {
+				status = 4;
 				ods_log_error_and_printf(sockfd, module_str,
-					"failed to close %s: %s", ds_command,
+					"failed to run command: %s: %s",ds_command,
 					strerror(errno));
 			} else {
-				client_printf(sockfd, "key %sed to %s\n",
-					action, ds_command);
-				status = 0;
+				int bytes_written;
+				if (cka)
+					bytes_written = fprintf(fp, "%s; {cka_id = %s}\n", rrstr, locator);
+				else
+					bytes_written = fprintf(fp, "%s", rrstr);
+				if (bytes_written < 0) {
+					status = 5;
+					ods_log_error_and_printf(sockfd,  module_str,
+						 "[%s] Failed to write to %s: %s", ds_command,
+						 strerror(errno));
+				} else if (pclose(fp) == -1) {
+					status = 6;
+					ods_log_error_and_printf(sockfd, module_str,
+						"failed to close %s: %s", ds_command,
+						strerror(errno));
+				} else {
+					client_printf(sockfd, "key %sed to %s\n",
+						action, ds_command);
+					status = 0;
+				}
 			}
 		}
 	}
@@ -282,6 +298,36 @@ push_clauses(db_clause_list_t *clause_list, zone_t *zone,
 	return 0;
 }
 
+/** Update timestamp on DS of key to now */
+static int
+ds_changed(key_data_t *key)
+{
+	key_state_list_t* keystatelist;
+	key_state_t* keystate;
+
+	if(key_data_retrieve_key_state_list(key)) return 1;
+	keystatelist = key_data_key_state_list(key);
+	keystate = key_state_list_get_begin(keystatelist);
+	if (!keystate) return 1;
+
+	while (keystate) {
+		key_state_t* keystate_next;
+		if (keystate->type == KEY_STATE_TYPE_DS) {
+			keystate->last_change = time_now();
+			if(key_state_update(keystate)) {
+				key_state_free(keystate);
+				return 1;
+			}
+			key_state_free(keystate);
+			return 0;
+		}
+		keystate_next = key_state_list_get_next(keystatelist);
+		key_state_free(keystate);
+		keystate = keystate_next;
+	}
+	return 1;
+}
+
 /* Change DS state, when zonename not given do it for all zones!
  */
 int
@@ -340,8 +386,9 @@ change_keys_from_to(db_connection_t *dbconn, int sockfd,
 		{
 			(void)retract_dnskey_by_id(sockfd, key, engine);
 		}
+
 		if (key_data_set_ds_at_parent(key, state_to) ||
-			key_data_update(key))
+			key_data_update(key) || ds_changed(key) )
 		{
 			key_data_free(key);
 			ods_log_error("[%s] Error writing to database", module_str);
@@ -357,7 +404,10 @@ change_keys_from_to(db_connection_t *dbconn, int sockfd,
 	client_printf(sockfd, "%d KSK matches found.\n", key_match);
 	if (!key_match) status = 11;
 	client_printf(sockfd, "%d KSKs changed.\n", key_mod);
-
+	if (zone) {
+		zone->next_change = 0; /* asap */
+		(void)zone_update(zone);
+	}
 	zone_free(zone);
 	return status;
 }

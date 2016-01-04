@@ -106,9 +106,14 @@ struct xfrd_struct
 
     /* soa serial management */
     uint32_t serial_xfr;
+    /* Last received serial via notify. Only valid if
+     * serial_notify_acquired is not 0 */
     uint32_t serial_notify;
+    /* current serial on inbound side */
     uint32_t serial_disk;
     time_t serial_xfr_acquired;
+    /* time of last received notify that is being handled. If non-zero
+     * it indicates a transfer is in progress */
     time_t serial_notify_acquired;
     time_t serial_disk_acquired;
     uint8_t serial_retransfer;

@@ -440,13 +440,6 @@ ods_rand(time_t mod)
 #endif
 }
 
-
-/* Number of days per month (except for February in leap years). */
-static const int mdays[] = {
-    31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
-};
-
-
 static time_t time_now_set = 0;
 
 /**

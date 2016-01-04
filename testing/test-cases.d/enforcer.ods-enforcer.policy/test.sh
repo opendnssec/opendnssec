@@ -148,6 +148,11 @@ echo "****************all test OK******************" &&
 echo &&
 return 0
 
+echo "################## ERROR: CURRENT STATE ###########################"
+echo "DEBUG: " && ods-enforcer zone list
+echo "DEBUG: " && ods-enforcer key list -d -p
+echo "DEBUG: " && ods-enforcer key list -v
+echo "DEBUG: " && ods-enforcer queue
 echo
 echo "************ERROR******************"
 echo

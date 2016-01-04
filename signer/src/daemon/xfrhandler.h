@@ -60,6 +60,7 @@ struct xfrhandler_struct {
     netio_type* netio;
     tcp_set_type* tcp_set;
     buffer_type* packet;
+    xfrd_type* tcp_waiting_first;
     xfrd_type* udp_waiting_first;
     xfrd_type* udp_waiting_last;
     size_t udp_use_num;

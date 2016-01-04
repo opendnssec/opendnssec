@@ -60,7 +60,7 @@ static task_type* get_first_task(schedule_type *schedule);
  * there is a rare race condition where the thread just misses this
  * event. Having multiple threads the race condition is not a problem.
  */
-static void
+static void*
 alarm_handler(sig_atomic_t sig)
 {
     switch (sig) {
@@ -74,8 +74,9 @@ alarm_handler(sig_atomic_t sig)
             break;
         default:
             ods_log_debug("[%s] Spurious signal %d received", 
-                schedule_str, sig);
+                schedule_str, (int)sig);
     }
+    return NULL;
 }
 
 /**
@@ -203,7 +204,7 @@ schedule_create()
     /* static condition for alarm. Must be accessible from interrupt */
     schedule_cond = &schedule->schedule_cond;
 
-    action.sa_handler = &alarm_handler;
+    action.sa_handler = (void (*)(int))&alarm_handler;
     sigfillset(&action.sa_mask);
     action.sa_flags = 0;
     sigaction(SIGALRM, &action, NULL);
@@ -296,7 +297,7 @@ schedule_flush(schedule_type* schedule)
 int
 schedule_flush_type(schedule_type* schedule, task_id id)
 {
-    ldns_rbnode_t *node, *prevnode;
+    ldns_rbnode_t *node, *nextnode;
     int nflushed = 0;
     
     ods_log_debug("[%s] flush task", schedule_str);
@@ -304,8 +305,8 @@ schedule_flush_type(schedule_type* schedule, task_id id)
 
     pthread_mutex_lock(&schedule->schedule_lock);
         node = ldns_rbtree_first(schedule->tasks);
-        prevnode = node;
         while (node && node != LDNS_RBTREE_NULL) {
+            nextnode = ldns_rbtree_next(node);
             if (node->data && ((task_type*)node->data)->what == id) {
                 /* Merely setting flush is not enough. We must set it
                  * to the front of the queue as well. */
@@ -324,13 +325,8 @@ schedule_flush_type(schedule_type* schedule, task_id id)
                     }
                     nflushed++;
                 }
-                /* node pushed to front, prevnode doesn't change. */
-            } else {
-                /* We didn't move anything around, prevnode advances */
-                prevnode = node;
             }
-            
-            node = ldns_rbtree_next(prevnode);
+            node = nextnode;
         }
         /* wakeup! work to do! */
         pthread_cond_signal(&schedule->schedule_cond);
@@ -463,6 +459,7 @@ schedule_task(schedule_type* schedule, task_type* task)
                 (void) ldns_rbtree_insert(schedule->tasks, node1);
                 /* node1 now owned by tree */
                 node1 = NULL;
+                set_alarm(schedule);
                 status = ODS_STATUS_OK;
             }
         } /* else {failure) */

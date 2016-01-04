@@ -592,7 +592,7 @@ engine_init(engine_type* engine, int daemonize)
     engine->daemonize = daemonize;
     /* catch signals */
     signal_set_engine(engine);
-    action.sa_handler = signal_handler;
+    action.sa_handler = (void (*)(int))signal_handler;
     sigfillset(&action.sa_mask);
     action.sa_flags = 0;
     sigaction(SIGHUP, &action, NULL);

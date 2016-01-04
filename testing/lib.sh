@@ -1617,6 +1617,8 @@ run_tests ()
 			test_failed=1
 			break
 		fi
+		killall -9 ods-signerd
+		killall -9 ods-enforcerd
 	done
 
 	if [ -n "$INTERRUPT_TEST" ]; then

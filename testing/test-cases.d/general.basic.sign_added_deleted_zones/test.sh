@@ -61,6 +61,8 @@ log_this ods-enforcer-zone_add   ods-enforcer zone delete --zone ods1 &&
 sleep 5 && ods_enforcer_idle &&
 log_grep ods-enforcer-zone_add   stdout "Deleted zone.*ods1" &&
 
+sleep 3 &&
+
 log_this ods-signer-sign-all ods-signer update --all &&
 log_this ods-signer-sign-all ods-signer sign --all &&
 
@@ -76,7 +78,13 @@ echo "************OK******************" &&
 echo &&
 return 0
 
-echo
+
+echo "################## ERROR: CURRENT STATE ###########################"
+echo "DEBUG: " && ods-enforcer zone list
+echo "DEBUG: " && ods-enforcer key list -d -p
+echo "DEBUG: " && ods-enforcer key list -v
+echo "DEBUG: " && ods-enforcer queue
+
 echo "************ERROR******************"
 echo
 ods_kill
