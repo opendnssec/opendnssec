@@ -178,7 +178,7 @@ static void
 engine_stop_cmdhandler(engine_type* engine)
 {
     ods_log_assert(engine);
-    if (!engine->cmdhandler) {
+    if (!engine->cmdhandler || engine->cmdhandler_done) {
         return;
     }
     ods_log_debug("[%s] stop command handler", engine_str);
@@ -1015,11 +1015,9 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
 
     /* shutdown */
     ods_log_info("[%s] signer shutdown", engine_str);
-    if (!engine->cmdhandler_done) {
-        engine_stop_xfrhandler(engine);
-        engine_stop_dnshandler(engine);
-        engine_stop_cmdhandler(engine);
-    }
+    engine_stop_cmdhandler(engine);
+    engine_stop_xfrhandler(engine);
+    engine_stop_dnshandler(engine);
 
 earlyexit:
     if (engine && engine->config) {
