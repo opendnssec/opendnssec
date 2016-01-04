@@ -66,4 +66,3 @@ originate in the enforcer, the signer and SQLite on different occasions. These
 appear to be due to a bug in the FreeBSD malloc/pthread implementation and are
 not due to issues in the OpenDNSSEC code. 
 
-
