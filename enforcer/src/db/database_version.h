@@ -101,15 +101,6 @@ struct database_version_list {
 database_version_list_t* database_version_list_new(const db_connection_t* connection);
 
 /**
- * Specify that the list should also fetch associated objects in a more optimal
- * way then fetching them for each individual object later on. This also forces
- * the list to store all objects (see database_version_list_object_store()).
- * \param[in] database_version_list a database_version_list_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int database_version_list_associated_fetch(database_version_list_t* database_version_list);
-
-/**
  * Delete a database version object list.
  * \param[in] database_version_list a database_version_list_t pointer.
  */

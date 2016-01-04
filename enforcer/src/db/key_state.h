@@ -303,6 +303,14 @@ int key_state_list_copy(key_state_list_t* key_state_list, const key_state_list_t
 
 
 /**
+ * Get key state objects from the database by a clause list.
+ * \param[in] key_state_list a key_state_list_t pointer.
+ * \param[in] clause_list a db_clause_list_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int key_state_list_get_by_clauses(key_state_list_t* key_state_list, const db_clause_list_t* clause_list);
+
+/**
  * Get key state objects from the database by a key_data_id specified in `key_data_id`.
  * \param[in] key_state_list a key_state_list_t pointer.
  * \param[in] key_data_id a db_value_t pointer.

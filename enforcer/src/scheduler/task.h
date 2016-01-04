@@ -147,14 +147,6 @@ const char* task_what2str(int taskid);
 const char* task_who2str(const char* who);
 
 /**
- * Print task.
- * \param[in] out file descriptor
- * \param[in] task task
- *
- */
-void task_print(FILE* out, task_type* task);
-
-/**
  * Log task.
  * \param[in] task task
  *

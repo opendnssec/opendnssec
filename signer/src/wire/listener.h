@@ -104,21 +104,6 @@ interface_type* listener_push(listener_type* list, char* address, int family,
     char* port);
 
 /**
- * Print listener.
- * \param[in] fd file descriptor
- * \param[in] listener listener to print
- *
- */
-void listener_print(FILE* fd, listener_type* listener);
-
-/**
- * Log listener.
- * \param[in] listener listener
- *
- */
-void listener_log(listener_type* listener);
-
-/**
  * Clean up interface.
  * \param[in] i interface
  *

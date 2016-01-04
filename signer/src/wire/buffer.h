@@ -127,17 +127,6 @@ struct buffer_struct {
 buffer_type* buffer_create(size_t capacity);
 
 /**
- * Create a buffer with the specified data.
- * The data is not copied and no memory allocations are done.
- * The buffer is fixed and cannot be resized using buffer_reserve().
- * \param[in] buffer buffer
- * \param[in] data specified data
- * \param[in] size size of data
- *
- */
-void buffer_create_from(buffer_type* buffer, void* data, size_t size);
-
-/**
  * Clear the buffer and make it ready for writing.
  * The buffer's limit is set to the capacity and the position is set to 0.
  * \param[in] buffer buffer
@@ -154,14 +143,6 @@ void buffer_clear(buffer_type* buffer);
  *
  */
 void buffer_flip(buffer_type* buffer);
-
-/**
- * Make the buffer ready for re-reading the data.
- * The buffer's position is reset to 0.
- * \param[in] buffer buffer
- *
- */
-void buffer_rewind(buffer_type* buffer);
 
 /**
  * Get the buffer's position.
@@ -250,14 +231,6 @@ uint8_t* buffer_at(buffer_type* buffer, size_t at);
  *
  */
 uint8_t* buffer_begin(buffer_type* buffer);
-
-/**
- * Return a pointer to the data at the end of the buffer.
- * \param[in] buffer buffer
- * \return uint8_t* pointer to the data at the end of the buffer
- *
- */
-uint8_t* buffer_end(buffer_type* buffer);
 
 /**
  * Return a pointer to the data at the buffer's current position.
@@ -628,24 +601,6 @@ buffer_pkt_query(buffer_type* buffer, ldns_rdf* qname, ldns_rr_type qtype,
  */
 void
 buffer_pkt_notify(buffer_type* buffer, ldns_rdf* qname, ldns_rr_class qclass);
-
-/**
- * Make a new axfr.
- * \param[in] buffer buffer
- * \param[in] qname qname
- * \param[in] qclass qclass
- *
- */
-void
-buffer_pkt_axfr(buffer_type* buffer, ldns_rdf* qname, ldns_rr_class qclass);
-
-/**
- * Print packet buffer.
- * \param[in] fd file descriptor
- * \param[in] buffer buffer
- *
- */
-void buffer_pkt_print(FILE* fd, buffer_type* buffer);
 
 /**
  * Clean up buffer.

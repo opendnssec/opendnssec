@@ -107,18 +107,6 @@ ods_status schedule_task(schedule_type* schedule, task_type* task, int log);
 task_type* unschedule_task(schedule_type* schedule, task_type* task);
 
 /**
- * Reschedule task.
- * \param[in] schedule schedule
- * \param[in] task task to delete
- * \param[in] what new task
- * \param[in] when new time
- * \return ods_status status
- *
- */
-ods_status reschedule_task(schedule_type* schedule, task_type* task,
-    task_id what, time_t when);
-
-/**
  * Pop the first scheduled task.
  * \param[in] schedule schedule
  * \return task_type* popped task
