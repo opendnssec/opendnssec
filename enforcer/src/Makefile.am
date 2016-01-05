@@ -10,7 +10,7 @@ CLEANFILES = $(BUILT_SOURCES)
 
 LIBHSM = ${top_builddir}/libhsm/src/lib/libhsm.a
 
-SUBDIRS = utils db/test
+SUBDIRS = utils
 
 AM_CFLAGS = \
 	-I$(top_srcdir)/common \
