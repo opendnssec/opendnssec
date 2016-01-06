@@ -48,10 +48,47 @@ db_object_field_t* db_object_field_new(void) {
     return object_field;
 }
 
+/* TODO: unit test */
+db_object_field_t* db_object_field_new_copy(const db_object_field_t* from_object_field) {
+    db_object_field_t* object_field;
+
+    if (!from_object_field) {
+        return NULL;
+    }
+
+    if (!(object_field = db_object_field_new())
+        || db_object_field_copy(object_field, from_object_field))
+    {
+        db_object_field_free(object_field);
+        return NULL;
+    }
+
+    return object_field;
+}
+
 void db_object_field_free(db_object_field_t* object_field) {
     if (object_field) {
         free(object_field);
     }
+}
+
+/* TODO: unit test */
+int db_object_field_copy(db_object_field_t* object_field, const db_object_field_t* from_object_field) {
+    if (!object_field) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!from_object_field) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (object_field->next) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    object_field->name = from_object_field->name;
+    object_field->type = from_object_field->type;
+    object_field->enum_set = from_object_field->enum_set;
+
+    return DB_OK;
 }
 
 const char* db_object_field_name(const db_object_field_t* object_field) {
@@ -173,6 +210,45 @@ void db_object_field_list_free(db_object_field_list_t* object_field_list) {
         }
         free(object_field_list);
     }
+}
+
+/* TODO: unit test */
+int db_object_field_list_copy(db_object_field_list_t* object_field_list, const db_object_field_list_t* from_object_field_list) {
+    db_object_field_t* object_field;
+    db_object_field_t* object_field_copy;
+
+    if (!object_field_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+    /*
+     * TODO: Should we be able to copy into a object field list that already
+     * contains data?
+     */
+    if (object_field_list->begin) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (object_field_list->end) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (object_field_list->size) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!from_object_field_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    object_field = from_object_field_list->begin;
+    while (object_field) {
+        if (!(object_field_copy = db_object_field_new_copy(object_field))
+            || db_object_field_list_add(object_field_list, object_field_copy))
+        {
+            return DB_ERROR_UNKNOWN;
+        }
+
+        object_field = object_field->next;
+    }
+
+    return DB_OK;
 }
 
 int db_object_field_list_add(db_object_field_list_t* object_field_list, db_object_field_t* object_field) {

@@ -62,12 +62,26 @@ struct db_object_field {
  */
 db_object_field_t* db_object_field_new(void);
 
+/**
+ * Create a database object field that is a copy of another.
+ * \param[in] from_object_field a db_object_field_t pointer.
+ * \return a db_object_field_t pointer or NULL on error.
+ */
+db_object_field_t* db_object_field_new_copy(const db_object_field_t* from_object_field);
 
 /**
  * Delete a database object field.
  * \param[in] object_field a db_object_field_t pointer.
  */
 void db_object_field_free(db_object_field_t* object_field);
+
+/**
+ * Copy the content of a database object field.
+ * \param[in] object_field a db_object_field_t pointer.
+ * \param[in] from_object_field a db_object_field_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int db_object_field_copy(db_object_field_t* object_field, const db_object_field_t* from_object_field);
 
 /**
  * Get the name of a database object field.
@@ -149,6 +163,14 @@ db_object_field_list_t* db_object_field_list_new_copy(const db_object_field_list
  * \param[in] object_field_list a db_object_field_list_t pointer.
  */
 void db_object_field_list_free(db_object_field_list_t* object_field_list);
+
+/**
+ * Copy the content of a database object field list.
+ * \param[in] object_field_list a db_object_field_list_t pointer.
+ * \param[in] from_object_field_list a db_object_field_list_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int db_object_field_list_copy(db_object_field_list_t* object_field_list, const db_object_field_list_t* from_object_field_list);
 
 /**
  * Add a database object field to a database object field list, this will takes
