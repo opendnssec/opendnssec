@@ -138,6 +138,13 @@ struct db_object_field_list {
 db_object_field_list_t* db_object_field_list_new(void);
 
 /**
+ * Create a new object field list that is a copy of another.
+ * \param[in] from_object_field_list a db_object_field_list_t pointer.
+ * \return a db_object_field_list_t pointer or NULL on error.
+ */
+db_object_field_list_t* db_object_field_list_new_copy(const db_object_field_list_t* from_object_field_list);
+
+/**
  * Delete a object field list and all object fields within the list.
  * \param[in] object_field_list a db_object_field_list_t pointer.
  */
@@ -158,6 +165,13 @@ int db_object_field_list_add(db_object_field_list_t* object_field_list, db_objec
  * \return a db_object_field_t pointer or NULL on error or if the list is empty.
  */
 const db_object_field_t* db_object_field_list_begin(const db_object_field_list_t* object_field_list);
+
+/**
+ * Return the size of a object field list.
+ * \param[in] object_field_list a db_object_field_list_t pointer.
+ * \return a size_t, may be zero on error.
+ */
+size_t db_object_field_list_size(const db_object_field_list_t* object_field_list);
 
 /**
  * A database object.

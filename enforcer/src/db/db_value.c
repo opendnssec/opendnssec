@@ -274,6 +274,50 @@ db_type_t db_value_type(const db_value_t* value) {
     return value->type;
 }
 
+const db_type_int32_t* db_value_int32(const db_value_t* value) {
+    if (!value) {
+        return NULL;
+    }
+    if (value->type != DB_TYPE_INT32) {
+        return NULL;
+    }
+
+    return &value->int32;
+}
+
+const db_type_uint32_t* db_value_uint32(const db_value_t* value) {
+    if (!value) {
+        return NULL;
+    }
+    if (value->type != DB_TYPE_UINT32) {
+        return NULL;
+    }
+
+    return &value->uint32;
+}
+
+const db_type_int64_t* db_value_int64(const db_value_t* value) {
+    if (!value) {
+        return NULL;
+    }
+    if (value->type != DB_TYPE_INT64) {
+        return NULL;
+    }
+
+    return &value->int64;
+}
+
+const db_type_uint64_t* db_value_uint64(const db_value_t* value) {
+    if (!value) {
+        return NULL;
+    }
+    if (value->type != DB_TYPE_UINT64) {
+        return NULL;
+    }
+
+    return &value->uint64;
+}
+
 const char* db_value_text(const db_value_t* value) {
     if (!value) {
         return NULL;
@@ -496,6 +540,28 @@ int db_value_from_text(db_value_t* value, const char* from_text) {
     }
 
     value->text = (void*)strdup(from_text);
+    if (!value->text) {
+        return DB_ERROR_UNKNOWN;
+    }
+    value->type = DB_TYPE_TEXT;
+    return DB_OK;
+}
+
+int db_value_from_text2(db_value_t* value, const char* from_text, size_t size) {
+    if (!value) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!from_text) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!size) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (value->type != DB_TYPE_EMPTY) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    value->text = (void*)strndup(from_text, size);
     if (!value->text) {
         return DB_ERROR_UNKNOWN;
     }
