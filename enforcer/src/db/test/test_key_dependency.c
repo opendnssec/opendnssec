@@ -283,13 +283,9 @@ static void test_key_dependency_set(void) {
     CU_ASSERT(!key_dependency_set_from_key_data_id(object, &from_key_data_id));
     CU_ASSERT(!key_dependency_set_to_key_data_id(object, &to_key_data_id));
     CU_ASSERT(!key_dependency_set_type(object, KEY_DEPENDENCY_TYPE_DS));
-    CU_ASSERT(!key_dependency_set_type_text(object, "DS"));
     CU_ASSERT(!key_dependency_set_type(object, KEY_DEPENDENCY_TYPE_RRSIG));
-    CU_ASSERT(!key_dependency_set_type_text(object, "RRSIG"));
     CU_ASSERT(!key_dependency_set_type(object, KEY_DEPENDENCY_TYPE_DNSKEY));
-    CU_ASSERT(!key_dependency_set_type_text(object, "DNSKEY"));
     CU_ASSERT(!key_dependency_set_type(object, KEY_DEPENDENCY_TYPE_RRSIGDNSKEY));
-    CU_ASSERT(!key_dependency_set_type_text(object, "RRSIGDNSKEY"));
     db_value_reset(&zone_id);
     db_value_reset(&from_key_data_id);
     db_value_reset(&to_key_data_id);
@@ -325,8 +321,6 @@ static void test_key_dependency_get(void) {
     CU_ASSERT(!db_value_cmp(key_dependency_to_key_data_id(object), &to_key_data_id, &ret));
     CU_ASSERT(!ret);
     CU_ASSERT(key_dependency_type(object) == KEY_DEPENDENCY_TYPE_RRSIGDNSKEY);
-    CU_ASSERT_PTR_NOT_NULL_FATAL(key_dependency_type_text(object));
-    CU_ASSERT(!strcmp(key_dependency_type_text(object), "RRSIGDNSKEY"));
     db_value_reset(&zone_id);
     db_value_reset(&from_key_data_id);
     db_value_reset(&to_key_data_id);
@@ -337,45 +331,27 @@ static void test_key_dependency_create(void) {
 }
 
 static void test_key_dependency_clauses(void) {
-    key_dependency_list_t* new_list;
-
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(key_dependency_zone_id_clause(clause_list, key_dependency_zone_id(object)));
     CU_ASSERT(!key_dependency_list_get_by_clauses(object_list, clause_list));
     CU_ASSERT_PTR_NOT_NULL(key_dependency_list_next(object_list));
-    CU_ASSERT_PTR_NOT_NULL((new_list = key_dependency_list_new_get_by_clauses(connection, clause_list)));
-    CU_ASSERT_PTR_NOT_NULL(key_dependency_list_next(new_list));
-    key_dependency_list_free(new_list);
     db_clause_list_free(clause_list);
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(key_dependency_from_key_data_id_clause(clause_list, key_dependency_from_key_data_id(object)));
     CU_ASSERT(!key_dependency_list_get_by_clauses(object_list, clause_list));
     CU_ASSERT_PTR_NOT_NULL(key_dependency_list_next(object_list));
-    CU_ASSERT_PTR_NOT_NULL((new_list = key_dependency_list_new_get_by_clauses(connection, clause_list)));
-    CU_ASSERT_PTR_NOT_NULL(key_dependency_list_next(new_list));
-    key_dependency_list_free(new_list);
     db_clause_list_free(clause_list);
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(key_dependency_to_key_data_id_clause(clause_list, key_dependency_to_key_data_id(object)));
     CU_ASSERT(!key_dependency_list_get_by_clauses(object_list, clause_list));
     CU_ASSERT_PTR_NOT_NULL(key_dependency_list_next(object_list));
-    CU_ASSERT_PTR_NOT_NULL((new_list = key_dependency_list_new_get_by_clauses(connection, clause_list)));
-    CU_ASSERT_PTR_NOT_NULL(key_dependency_list_next(new_list));
-    key_dependency_list_free(new_list);
     db_clause_list_free(clause_list);
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(key_dependency_type_clause(clause_list, key_dependency_type(object)));
     CU_ASSERT(!key_dependency_list_get_by_clauses(object_list, clause_list));
     CU_ASSERT_PTR_NOT_NULL(key_dependency_list_next(object_list));
-    CU_ASSERT_PTR_NOT_NULL((new_list = key_dependency_list_new_get_by_clauses(connection, clause_list)));
-    CU_ASSERT_PTR_NOT_NULL(key_dependency_list_next(new_list));
-    key_dependency_list_free(new_list);
     db_clause_list_free(clause_list);
     clause_list = NULL;
 }
@@ -383,33 +359,24 @@ static void test_key_dependency_clauses(void) {
 static void test_key_dependency_count(void) {
     size_t count;
 
-    CU_ASSERT(!key_dependency_count(object, NULL, &count));
     CU_ASSERT(count == 1);
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(key_dependency_zone_id_clause(clause_list, key_dependency_zone_id(object)));
-    CU_ASSERT(!key_dependency_count(object, clause_list, &count));
     CU_ASSERT(count == 1);
     db_clause_list_free(clause_list);
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(key_dependency_from_key_data_id_clause(clause_list, key_dependency_from_key_data_id(object)));
-    CU_ASSERT(!key_dependency_count(object, clause_list, &count));
     CU_ASSERT(count == 1);
     db_clause_list_free(clause_list);
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(key_dependency_to_key_data_id_clause(clause_list, key_dependency_to_key_data_id(object)));
-    CU_ASSERT(!key_dependency_count(object, clause_list, &count));
     CU_ASSERT(count == 1);
     db_clause_list_free(clause_list);
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(key_dependency_type_clause(clause_list, key_dependency_type(object)));
-    CU_ASSERT(!key_dependency_count(object, clause_list, &count));
     CU_ASSERT(count == 1);
     db_clause_list_free(clause_list);
     clause_list = NULL;
@@ -418,24 +385,16 @@ static void test_key_dependency_count(void) {
 static void test_key_dependency_list(void) {
     const key_dependency_t* item;
     key_dependency_t* item2;
-    key_dependency_list_t* new_list;
 
-    CU_ASSERT_FATAL(!key_dependency_list_get(object_list));
     CU_ASSERT_PTR_NOT_NULL_FATAL((item = key_dependency_list_next(object_list)));
-    CU_ASSERT_FATAL(!db_value_copy(&id, key_dependency_id(item)));
     CU_ASSERT_PTR_NOT_NULL_FATAL((item = key_dependency_list_begin(object_list)));
 
-    CU_ASSERT_FATAL(!key_dependency_list_get(object_list));
     CU_ASSERT_PTR_NOT_NULL_FATAL((item2 = key_dependency_list_get_next(object_list)));
     key_dependency_free(item2);
     CU_PASS("key_dependency_free");
     CU_ASSERT_PTR_NOT_NULL_FATAL((item2 = key_dependency_list_get_begin(object_list)));
     key_dependency_free(item2);
     CU_PASS("key_dependency_free");
-
-    CU_ASSERT_PTR_NOT_NULL((new_list = key_dependency_list_new_get(connection)));
-    CU_ASSERT_PTR_NOT_NULL(key_dependency_list_next(new_list));
-    key_dependency_list_free(new_list);
 }
 
 static void test_key_dependency_list_store(void) {
@@ -444,7 +403,6 @@ static void test_key_dependency_list_store(void) {
 
     CU_ASSERT_PTR_NOT_NULL((new_list = key_dependency_list_new(connection)));
     CU_ASSERT_FATAL(!key_dependency_list_object_store(new_list));
-    CU_ASSERT_FATAL(!key_dependency_list_get(new_list));
 
     CU_ASSERT_PTR_NOT_NULL_FATAL(key_dependency_list_next(new_list));
     CU_ASSERT_PTR_NOT_NULL_FATAL(key_dependency_list_begin(new_list));
@@ -461,8 +419,6 @@ static void test_key_dependency_list_associated(void) {
     key_dependency_list_t* new_list;
 
     CU_ASSERT_PTR_NOT_NULL((new_list = key_dependency_list_new(connection)));
-    CU_ASSERT_FATAL(!key_dependency_list_associated_fetch(new_list));
-    CU_ASSERT_FATAL(!key_dependency_list_get(new_list));
 
     CU_ASSERT_PTR_NOT_NULL_FATAL(key_dependency_list_next(new_list));
     CU_ASSERT_PTR_NOT_NULL_FATAL(key_dependency_list_begin(new_list));
@@ -475,11 +431,6 @@ static void test_key_dependency_list_associated(void) {
 }
 
 static void test_key_dependency_read(void) {
-    key_dependency_t* item;
-
-    CU_ASSERT_FATAL(!key_dependency_get_by_id(object, &id));
-    CU_ASSERT_PTR_NOT_NULL((item = key_dependency_new_get_by_id(connection, &id)));
-    key_dependency_free(item);
 }
 
 static void test_key_dependency_verify(void) {
@@ -512,10 +463,7 @@ static void test_key_dependency_verify(void) {
     CU_ASSERT(!db_value_cmp(key_dependency_to_key_data_id(object), &to_key_data_id, &ret));
     CU_ASSERT(!ret);
     CU_ASSERT(key_dependency_type(object) == KEY_DEPENDENCY_TYPE_RRSIGDNSKEY);
-    CU_ASSERT_PTR_NOT_NULL_FATAL(key_dependency_type_text(object));
-    CU_ASSERT(!strcmp(key_dependency_type_text(object), "RRSIGDNSKEY"));
     db_value_reset(&zone_id);
-    db_value_reset(&from_key_data_id);
     db_value_reset(&to_key_data_id);
 }
 
@@ -545,18 +493,15 @@ static void test_key_dependency_change(void) {
     CU_ASSERT(!key_dependency_set_from_key_data_id(object, &from_key_data_id));
     CU_ASSERT(!key_dependency_set_to_key_data_id(object, &to_key_data_id));
     CU_ASSERT(!key_dependency_set_type(object, KEY_DEPENDENCY_TYPE_DS));
-    CU_ASSERT(!key_dependency_set_type_text(object, "DS"));
     db_value_reset(&zone_id);
     db_value_reset(&from_key_data_id);
     db_value_reset(&to_key_data_id);
 }
 
 static void test_key_dependency_update(void) {
-    CU_ASSERT_FATAL(!key_dependency_update(object));
 }
 
 static void test_key_dependency_read2(void) {
-    CU_ASSERT_FATAL(!key_dependency_get_by_id(object, &id));
 }
 
 static void test_key_dependency_verify2(void) {
@@ -589,8 +534,6 @@ static void test_key_dependency_verify2(void) {
     CU_ASSERT(!db_value_cmp(key_dependency_to_key_data_id(object), &to_key_data_id, &ret));
     CU_ASSERT(!ret);
     CU_ASSERT(key_dependency_type(object) == KEY_DEPENDENCY_TYPE_DS);
-    CU_ASSERT_PTR_NOT_NULL_FATAL(key_dependency_type_text(object));
-    CU_ASSERT(!strcmp(key_dependency_type_text(object), "DS"));
     db_value_reset(&zone_id);
     db_value_reset(&from_key_data_id);
     db_value_reset(&to_key_data_id);
@@ -600,7 +543,6 @@ static void test_key_dependency_cmp(void) {
     key_dependency_t* local_object;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((local_object = key_dependency_new(connection)));
-    CU_ASSERT(key_dependency_cmp(object, local_object));
 }
 
 static void test_key_dependency_delete(void) {
@@ -608,7 +550,6 @@ static void test_key_dependency_delete(void) {
 }
 
 static void test_key_dependency_list2(void) {
-    CU_ASSERT_FATAL(!key_dependency_list_get(object_list));
     CU_ASSERT_PTR_NULL(key_dependency_list_next(object_list));
 }
 
