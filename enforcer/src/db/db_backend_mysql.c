@@ -882,7 +882,7 @@ static int __db_backend_mysql_build_clause(const db_object_t* object, const db_c
             }
             *sqlp += ret;
             *left -= ret;
-            if (__db_backend_sqlite_build_clause(object, db_clause_list(clause), sqlp, left)) {
+            if (__db_backend_mysql_build_clause(object, db_clause_list(clause), sqlp, left)) {
                 return DB_ERROR_UNKNOWN;
             }
             if ((ret = snprintf(*sqlp, *left, " )")) >= *left) {
