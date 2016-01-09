@@ -55,9 +55,6 @@ db_clause_t* db_clause_new(void) {
 
 void db_clause_free(db_clause_t* clause) {
     if (clause) {
-        if (clause->table) {
-            free(clause->table);
-        }
         if (clause->field) {
             free(clause->field);
         }
@@ -67,14 +64,6 @@ void db_clause_free(db_clause_t* clause) {
         }
         free(clause);
     }
-}
-
-const char* db_clause_table(const db_clause_t* clause) {
-    if (!clause) {
-        return NULL;
-    }
-
-    return clause->table;
 }
 
 const char* db_clause_field(const db_clause_t* clause) {

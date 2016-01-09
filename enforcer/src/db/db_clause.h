@@ -138,13 +138,6 @@ db_clause_t* db_clause_new(void);
 void db_clause_free(db_clause_t* clause);
 
 /**
- * Get the table name of a database clause.
- * \param[in] a db_clause_t pointer.
- * \return a character pointer or NULL on error or if no table name has been set.
- */
-const char* db_clause_table(const db_clause_t* clause);
-
-/**
  * Get the field name of a database clause.
  * \param[in] a db_clause_t pointer.
  * \return a character pointer or NULL on error or if no field name has been set.

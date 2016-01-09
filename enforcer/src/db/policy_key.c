@@ -857,6 +857,59 @@ int policy_key_create(policy_key_t* policy_key) {
     return ret;
 }
 
+int policy_key_get_by_id(policy_key_t* policy_key, const db_value_t* id) {
+    db_clause_list_t* clause_list;
+    db_clause_t* clause;
+    db_result_list_t* result_list;
+    const db_result_t* result;
+
+    if (!policy_key) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!policy_key->dbo) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!id) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(id)) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(clause_list = db_clause_list_new())) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "id")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_value_copy(db_clause_get_value(clause), id)
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        db_clause_list_free(clause_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    result_list = db_object_read(policy_key->dbo, NULL, clause_list);
+    db_clause_list_free(clause_list);
+
+    if (result_list) {
+        result = db_result_list_next(result_list);
+        if (result) {
+            if (policy_key_from_result(policy_key, result)) {
+                db_result_list_free(result_list);
+                return DB_ERROR_UNKNOWN;
+            }
+
+            db_result_list_free(result_list);
+            return DB_OK;
+        }
+    }
+
+    db_result_list_free(result_list);
+    return DB_ERROR_UNKNOWN;
+}
+
 int policy_key_delete(policy_key_t* policy_key) {
     db_clause_list_t* clause_list;
     db_clause_t* clause;

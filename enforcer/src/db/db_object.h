@@ -203,7 +203,6 @@ struct db_object {
     const char* table;
     const char* primary_key_name;
     db_object_field_list_t* object_field_list;
-    db_backend_meta_data_list_t* backend_meta_data_list;
 };
 
 /**

@@ -65,9 +65,6 @@ void db_result_free(db_result_t* result) {
         if (result->value_set) {
             db_value_set_free(result->value_set);
         }
-        if (result->backend_meta_data_list) {
-            db_backend_meta_data_list_free(result->backend_meta_data_list);
-        }
         free(result);
     }
 }
@@ -75,7 +72,6 @@ void db_result_free(db_result_t* result) {
 /* TODO: unit test */
 int db_result_copy(db_result_t* result, const db_result_t* from_result) {
     db_value_set_t* value_set = NULL;
-    db_backend_meta_data_list_t* backend_meta_data_list = NULL;
 
     if (!result) {
         return DB_ERROR_UNKNOWN;
@@ -90,21 +86,10 @@ int db_result_copy(db_result_t* result, const db_result_t* from_result) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (from_result->backend_meta_data_list
-        && !(backend_meta_data_list = db_backend_meta_data_list_new_copy(from_result->backend_meta_data_list)))
-    {
-        db_value_set_free(value_set);
-        return DB_ERROR_UNKNOWN;
-    }
-
     if (result->value_set) {
         db_value_set_free(result->value_set);
     }
     result->value_set = value_set;
-    if (result->backend_meta_data_list) {
-        db_backend_meta_data_list_free(result->backend_meta_data_list);
-    }
-    result->backend_meta_data_list = backend_meta_data_list;
 
     return DB_OK;
 }

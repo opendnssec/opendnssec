@@ -302,6 +302,14 @@ int policy_key_set_minimize(policy_key_t* policy_key, unsigned int minimize);
 int policy_key_create(policy_key_t* policy_key);
 
 /**
+ * Get a policy key object from the database by a id specified in `id`.
+ * \param[in] policy_key a policy_key_t pointer.
+ * \param[in] id a db_value_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int policy_key_get_by_id(policy_key_t* policy_key, const db_value_t* id);
+
+/**
  * Delete a policy key object from the database.
  * \param[in] policy_key a policy_key_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.

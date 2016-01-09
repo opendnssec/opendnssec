@@ -181,6 +181,14 @@ int key_dependency_set_type(key_dependency_t* key_dependency, key_dependency_typ
 int key_dependency_create(key_dependency_t* key_dependency);
 
 /**
+ * Get a key dependency object from the database by a id specified in `id`.
+ * \param[in] key_dependency a key_dependency_t pointer.
+ * \param[in] id a db_value_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int key_dependency_get_by_id(key_dependency_t* key_dependency, const db_value_t* id);
+
+/**
  * Delete a key dependency object from the database.
  * \param[in] key_dependency a key_dependency_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.

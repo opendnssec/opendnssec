@@ -1146,6 +1146,36 @@ int zone_set_output_adapter_uri(zone_t* zone, const char* output_adapter_uri_tex
     return DB_OK;
 }
 
+int zone_set_next_ksk_roll(zone_t* zone, unsigned int next_ksk_roll) {
+    if (!zone) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    zone->next_ksk_roll = next_ksk_roll;
+
+    return DB_OK;
+}
+
+int zone_set_next_zsk_roll(zone_t* zone, unsigned int next_zsk_roll) {
+    if (!zone) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    zone->next_zsk_roll = next_zsk_roll;
+
+    return DB_OK;
+}
+
+int zone_set_next_csk_roll(zone_t* zone, unsigned int next_csk_roll) {
+    if (!zone) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    zone->next_csk_roll = next_csk_roll;
+
+    return DB_OK;
+}
+
 db_clause_t* zone_policy_id_clause(db_clause_list_t* clause_list, const db_value_t* policy_id) {
     db_clause_t* clause;
 

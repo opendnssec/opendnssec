@@ -632,173 +632,6 @@ static void test_policy_clauses(void) {
     clause_list = NULL;
 }
 
-static void test_policy_count(void) {
-    size_t count;
-
-    CU_ASSERT(count == 1);
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_denial_type_clause(clause_list, policy_denial_type(object)));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-}
-
 static void test_policy_list(void) {
     const policy_t* item;
     policy_t* item2;
@@ -811,8 +644,6 @@ static void test_policy_list(void) {
 
     CU_ASSERT_FATAL(!policy_list_get(object_list));
     CU_ASSERT_PTR_NOT_NULL_FATAL((item2 = policy_list_get_next(object_list)));
-    policy_free(item2);
-    CU_PASS("policy_free");
     policy_free(item2);
     CU_PASS("policy_free");
 
@@ -1093,7 +924,6 @@ static int test_policy_add_tests(CU_pSuite pSuite) {
         || !CU_add_test(pSuite, "get fields", test_policy_get)
         || !CU_add_test(pSuite, "create object", test_policy_create)
         || !CU_add_test(pSuite, "object clauses", test_policy_clauses)
-        || !CU_add_test(pSuite, "object count", test_policy_count)
         || !CU_add_test(pSuite, "list objects", test_policy_list)
         || !CU_add_test(pSuite, "list objects (store)", test_policy_list_store)
         || !CU_add_test(pSuite, "list objects (associated)", test_policy_list_associated)

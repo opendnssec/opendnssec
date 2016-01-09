@@ -32,12 +32,8 @@
 
 struct db_backend_handle;
 struct db_backend;
-struct db_backend_meta_data;
-struct db_backend_meta_data_list;
 typedef struct db_backend_handle db_backend_handle_t;
 typedef struct db_backend db_backend_t;
-typedef struct db_backend_meta_data db_backend_meta_data_t;
-typedef struct db_backend_meta_data_list db_backend_meta_data_list_t;
 
 #include "db_configuration.h"
 #include "db_result.h"
@@ -505,82 +501,5 @@ int db_backend_count(const db_backend_t* backend, const db_object_t* object, con
  * does not exist.
  */
 db_backend_t* db_backend_factory_get_backend(const char* name);
-
-/**
- * A database backend meta data that may be used by backends to store backend
- * specific data about objects and results.
- */
-struct db_backend_meta_data {
-    db_backend_meta_data_t* next;
-    char* name;
-    db_value_t* value;
-};
-
-/**
- * Create a new database backend meta data.
- * \return a db_backend_meta_data_t pointer or NULL on error.
- */
-db_backend_meta_data_t* db_backend_meta_data_new(void);
-
-/**
- * Delete a database backend meta data.
- * \param[in] backend_meta_data a db_backend_meta_data_t pointer.
- */
-void db_backend_meta_data_free(db_backend_meta_data_t* backend_meta_data);
-
-/**
- * Copy a database backend meta data.
- * \param[in] backend_meta_data a db_backend_meta_data_t pointer.
- * \param[in] from_backend_meta_data a db_backend_meta_data_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int db_backend_meta_data_copy(db_backend_meta_data_t* backend_meta_data, const db_backend_meta_data_t* from_backend_meta_data);
-
-/**
- * Check if the database meta data is not empty.
- * \param[in] backend_meta_data a db_backend_meta_data_t pointer.
- * \return DB_ERROR_* if empty, otherwise DB_OK.
- */
-int db_backend_meta_data_not_empty(const db_backend_meta_data_t* backend_meta_data);
-
-/**
- * A list of database backend meta data that may be used by backends to store
- * backend specific data about objects and results.
- */
-struct db_backend_meta_data_list {
-    db_backend_meta_data_t* begin;
-    db_backend_meta_data_t* end;
-};
-
-/**
- * Create a new database backend meta data list that is a copy of another.
- * \param[in] from_backend_meta_data_list a db_backend_meta_data_list_t pointer.
- * \return a db_backend_meta_data_list_t pointer or NULL on error.
- */
-db_backend_meta_data_list_t* db_backend_meta_data_list_new_copy(const db_backend_meta_data_list_t* from_backend_meta_data_list);
-
-/**
- * Delete a database backend meta data list and all database backend meta data
- * in the list.
- * \param[in] backend_meta_data_list a db_backend_meta_data_list_t pointer.
- */
-void db_backend_meta_data_list_free(db_backend_meta_data_list_t* backend_meta_data_list);
-
-/**
- * Copy a database backend meta data list.
- * \param[in] backend_meta_data_list a db_backend_meta_data_list_t pointer.
- * \param[in] from_backend_meta_data_list a db_backend_meta_data_list_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int db_backend_meta_data_list_copy(db_backend_meta_data_list_t* backend_meta_data_list, const db_backend_meta_data_list_t* from_backend_meta_data_list);
-
-/**
- * Add a database backend meta data to a database backend meta data list, this
- * takes over the ownership of the database backend meta data.
- * \param[in] backend_meta_data_list a db_backend_meta_data_list_t pointer.
- * \param[in] backend_meta_data a db_backend_meta_data_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int db_backend_meta_data_list_add(db_backend_meta_data_list_t* backend_meta_data_list, db_backend_meta_data_t* backend_meta_data);
 
 #endif

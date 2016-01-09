@@ -56,7 +56,6 @@ typedef db_result_t* (*db_result_list_next_t)(void* data, int finish);
 struct db_result {
     db_result_t* next;
     db_value_set_t* value_set;
-    db_backend_meta_data_list_t* backend_meta_data_list;
 };
 
 /**

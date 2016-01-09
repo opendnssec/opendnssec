@@ -313,9 +313,6 @@ void db_object_free(db_object_t* object) {
         if (object->object_field_list) {
             db_object_field_list_free(object->object_field_list);
         }
-        if (object->backend_meta_data_list) {
-            db_backend_meta_data_list_free(object->backend_meta_data_list);
-        }
         free(object);
     }
 }

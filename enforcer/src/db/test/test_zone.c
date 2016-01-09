@@ -280,6 +280,9 @@ static void test_zone_set(void) {
     CU_ASSERT(!zone_set_input_adapter_uri(object, "input_adapter_uri 1"));
     CU_ASSERT(!zone_set_output_adapter_type(object, "output_adapter_type 1"));
     CU_ASSERT(!zone_set_output_adapter_uri(object, "output_adapter_uri 1"));
+    CU_ASSERT(!zone_set_next_ksk_roll(object, 1));
+    CU_ASSERT(!zone_set_next_zsk_roll(object, 1));
+    CU_ASSERT(!zone_set_next_csk_roll(object, 1));
     db_value_reset(&policy_id);
 }
 
@@ -565,8 +568,6 @@ static void test_zone_list(void) {
     CU_ASSERT_PTR_NOT_NULL_FATAL((item2 = zone_list_get_next(object_list)));
     zone_free(item2);
     CU_PASS("zone_free");
-    zone_free(item2);
-    CU_PASS("zone_free");
 
     CU_ASSERT_PTR_NOT_NULL((new_list = zone_list_new_get(connection)));
     CU_ASSERT_PTR_NOT_NULL(zone_list_next(new_list));
@@ -707,6 +708,9 @@ static void test_zone_change(void) {
     CU_ASSERT(!zone_set_input_adapter_uri(object, "input_adapter_uri 2"));
     CU_ASSERT(!zone_set_output_adapter_type(object, "output_adapter_type 2"));
     CU_ASSERT(!zone_set_output_adapter_uri(object, "output_adapter_uri 2"));
+    CU_ASSERT(!zone_set_next_ksk_roll(object, 2));
+    CU_ASSERT(!zone_set_next_zsk_roll(object, 2));
+    CU_ASSERT(!zone_set_next_csk_roll(object, 2));
     db_value_reset(&policy_id);
 }
 

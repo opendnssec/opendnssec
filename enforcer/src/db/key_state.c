@@ -628,6 +628,59 @@ int key_state_create(key_state_t* key_state) {
     return ret;
 }
 
+int key_state_get_by_id(key_state_t* key_state, const db_value_t* id) {
+    db_clause_list_t* clause_list;
+    db_clause_t* clause;
+    db_result_list_t* result_list;
+    const db_result_t* result;
+
+    if (!key_state) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!key_state->dbo) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!id) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (db_value_not_empty(id)) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(clause_list = db_clause_list_new())) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "id")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_value_copy(db_clause_get_value(clause), id)
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        db_clause_list_free(clause_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    result_list = db_object_read(key_state->dbo, NULL, clause_list);
+    db_clause_list_free(clause_list);
+
+    if (result_list) {
+        result = db_result_list_next(result_list);
+        if (result) {
+            if (key_state_from_result(key_state, result)) {
+                db_result_list_free(result_list);
+                return DB_ERROR_UNKNOWN;
+            }
+
+            db_result_list_free(result_list);
+            return DB_OK;
+        }
+    }
+
+    db_result_list_free(result_list);
+    return DB_ERROR_UNKNOWN;
+}
+
 int key_state_update(key_state_t* key_state) {
     db_object_field_list_t* object_field_list;
     db_object_field_t* object_field;

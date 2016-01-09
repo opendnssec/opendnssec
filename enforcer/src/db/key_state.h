@@ -235,6 +235,14 @@ db_clause_t* key_state_key_data_id_clause(db_clause_list_t* clause_list, const d
 int key_state_create(key_state_t* key_state);
 
 /**
+ * Get a key state object from the database by a id specified in `id`.
+ * \param[in] key_state a key_state_t pointer.
+ * \param[in] id a db_value_t pointer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int key_state_get_by_id(key_state_t* key_state, const db_value_t* id);
+
+/**
  * Update a key state object in the database.
  * \param[in] key_state a key_state_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.

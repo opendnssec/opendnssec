@@ -369,6 +369,30 @@ int zone_set_output_adapter_type(zone_t* zone, const char* output_adapter_type_t
 int zone_set_output_adapter_uri(zone_t* zone, const char* output_adapter_uri_text);
 
 /**
+ * Set the next_ksk_roll of a zone object.
+ * \param[in] zone a zone_t pointer.
+ * \param[in] next_ksk_roll an unsigned integer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_set_next_ksk_roll(zone_t* zone, unsigned int next_ksk_roll);
+
+/**
+ * Set the next_zsk_roll of a zone object.
+ * \param[in] zone a zone_t pointer.
+ * \param[in] next_zsk_roll an unsigned integer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_set_next_zsk_roll(zone_t* zone, unsigned int next_zsk_roll);
+
+/**
+ * Set the next_csk_roll of a zone object.
+ * \param[in] zone a zone_t pointer.
+ * \param[in] next_csk_roll an unsigned integer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int zone_set_next_csk_roll(zone_t* zone, unsigned int next_csk_roll);
+
+/**
  * Create a clause for policy_id of a zone object and add it to a database clause list.
  * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
  * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
