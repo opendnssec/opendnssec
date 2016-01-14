@@ -7,6 +7,7 @@ fi
 log_this 01 cp kasp.xml zonelist.xml $INSTALL_ROOT/etc/opendnssec/. &&
 log_this 02 cp conf-bunker.xml $INSTALL_ROOT/etc/opendnssec/conf.xml &&
 log_this 03 cp softhsm-bunker.conf $INSTALL_ROOT/etc/softhsm.conf &&
+log_this 04 apply_parameter "INSTALL_ROOT" "$INSTALL_ROOT" "$INSTALL_ROOT/etc/softhsm.conf" &&
 log_this 04 apply_parameter "INSTALL_ROOT" "$INSTALL_ROOT" "$INSTALL_ROOT/etc/opendnssec/conf.xml" &&
 log_this 05 apply_parameter "SOFTHSM_MODULE" "$SOFTHSM_MODULE" "$INSTALL_ROOT/etc/opendnssec/conf.xml" &&
 log_this 06 rm -f "$INSTALL_ROOT/var/opendnssec/enforcer/zones.xml" &&
