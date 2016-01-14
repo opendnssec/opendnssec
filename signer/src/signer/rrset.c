@@ -529,57 +529,6 @@ recycle_drop_sig:
 
 
 /**
- * Is the list of RRSIGs ok?
- *
- */
-static int
-rrset_sigok(rrset_type* rrset, key_type* key)
-{
-    key_type* sigkey = NULL;
-    zone_type* zone = NULL;
-    size_t i = 0;
-    ods_log_assert(rrset);
-    ods_log_assert(key);
-    ods_log_assert(key->locator);
-    zone = (zone_type*) rrset->zone;
-    ods_log_assert(zone);
-
-    /* Does this key have a RRSIG? */
-    for (i=0; i < rrset->rrsig_count; i++) {
-        if (ods_strcmp(key->locator, rrset->rrsigs[i].key_locator) == 0 &&
-            key->flags == rrset->rrsigs[i].key_flags) {
-            /* Active key already has a valid RRSIG. SIGOK */
-            return 1;
-        }
-    }
-    /* DNSKEY RRset always needs to be signed with active key */
-    if (rrset->rrtype == LDNS_RR_TYPE_DNSKEY) {
-        return 0;
-    }
-    /* Let's look for RRSIGs from inactive ZSKs */
-    for (i=0; i < rrset->rrsig_count; i++) {
-        /* Same algorithm? */
-        if (key->algorithm != ldns_rdf2native_int8(
-                ldns_rr_rrsig_algorithm(rrset->rrsigs[i].rr))) {
-            /* Not the same algorithm, so this one does not count */
-            continue;
-        }
-        /* Inactive key? */
-        sigkey = keylist_lookup_by_locator(zone->signconf->keys,
-            rrset->rrsigs[i].key_locator);
-        ods_log_assert(sigkey);
-        if (sigkey->zsk) {
-            /* Active key, so this one does not count */
-            continue;
-        }
-        /* So we found a valid RRSIG from an inactive key. SIGOK */
-        return 1;
-    }
-    /* We need a new RRSIG. */
-    return 0;
-}
-
-/**
  * Is the RRset signed with this algorithm?
  *
  */
@@ -690,6 +639,7 @@ rrset_sigvalid_period(signconf_type* sc, ldns_rr_type rrtype, time_t signtime,
 ods_status
 rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
 {
+    ods_status status;
     zone_type* zone = NULL;
     uint32_t newsigs = 0;
     uint32_t reusedsigs = 0;
@@ -776,14 +726,9 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
 	    rrset_sigalgo(rrset, zone->signconf->keys->keys[i].algorithm)) {
             continue;
         }
-
-        /**
-         * currently, there is no rule that the number of signatures
-         * over this RRset equals the number of active keys.
-         */
-        if (rrset_sigok(rrset, &zone->signconf->keys->keys[i])) {
-            ods_log_debug("[%s] RRset[%i] with key %s returns sigok",
-               rrset_str, rrset->rrtype, zone->signconf->keys->keys[i].locator);
+        /* If key has no locator, and should be pre-signed dnskey RR, skip */
+        if (zone->signconf->keys->keys[i].ksk && zone->signconf->keys->keys[i].locator == NULL) {
+            continue;
         }
 
         /* Sign the RRset with this key */
@@ -808,6 +753,24 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
         ixfr_add_rr(zone->ixfr, signature->rr);
         lock_basic_unlock(&zone->ixfr->ixfr_lock);
     }
+    if(zone->signconf->dnskey_signature) {
+        for(i=0; zone->signconf->dnskey_signature[i]; i++) {
+            rrsig = NULL;
+            if ((status = rrset_getliteralrr(&rrsig, zone->signconf->dnskey_signature[i], duration2time(zone->signconf->dnskey_ttl), zone->apex)) != ODS_STATUS_OK) {
+                    ods_log_error("[%s] unable to publish dnskeys for zone %s: "
+                            "error decoding literal dnskey", rrset_str, zone->name);
+                    return status;
+            }
+            /* Add signature */
+            signature = rrset_add_rrsig(rrset, rrsig, NULL, 0);
+            newsigs++;
+            /* ixfr +RRSIG */
+            ods_log_assert(signature->rr);
+            lock_basic_lock(&zone->ixfr->ixfr_lock);
+            ixfr_add_rr(zone->ixfr, signature->rr);
+            lock_basic_unlock(&zone->ixfr->ixfr_lock);            
+        }
+    }
     /* RRset signing completed */
     ldns_rr_list_free(rr_list);
     lock_basic_lock(&zone->stats->stats_lock);
@@ -820,6 +783,21 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
     return ODS_STATUS_OK;
 }
 
+ods_status
+rrset_getliteralrr(ldns_rr** dnskey, const char *resourcerecord, uint32_t ttl, ldns_rdf* apex)
+{
+    uint8_t dnskeystring[4096];
+    ldns_status ldnsstatus;
+    int len;
+    if ((len = b64_pton(resourcerecord, dnskeystring, sizeof (dnskeystring) - 2)) < 0) {
+        return ODS_STATUS_PARSE_ERR;
+    }
+    dnskeystring[len] = '\0';
+    if ((ldnsstatus = ldns_rr_new_frm_str(dnskey, (const char*) dnskeystring, ttl, apex, NULL)) != LDNS_STATUS_OK) {
+        return ODS_STATUS_PARSE_ERR;
+    }
+    return ODS_STATUS_OK;
+}
 
 /**
  * Print RRset.
