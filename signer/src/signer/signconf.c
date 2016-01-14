@@ -67,6 +67,7 @@ signconf_create(void)
     sc->nsec3params = NULL;
     /* Keys */
     sc->dnskey_ttl = NULL;
+    sc->dnskey_signature = NULL;
     sc->keys = NULL;
     /* Source of authority */
     sc->soa_ttl = NULL;
@@ -129,6 +130,7 @@ signconf_read(signconf_type* signconf, const char* scfile)
         }
         signconf->keys = parse_sc_keys((void*) signconf, scfile);
         signconf->dnskey_ttl = parse_sc_dnskey_ttl(scfile);
+        signconf->dnskey_signature = parse_sc_dnskey_sigrrs(scfile);
         signconf->soa_ttl = parse_sc_soa_ttl(scfile);
         signconf->soa_min = parse_sc_soa_min(scfile);
         signconf->soa_serial = parse_sc_soa_serial(scfile);

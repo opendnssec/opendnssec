@@ -68,6 +68,7 @@ struct signconf_struct {
     nsec3params_type* nsec3params;
     /* Keys */
     duration_type* dnskey_ttl;
+    const char** dnskey_signature; /* may be NULL and must be NULL terminated */
     keylist_type* keys;
     /* Source of authority */
     duration_type* soa_ttl;
