@@ -28,6 +28,11 @@ log_this 18 ods-enforcer stop &&
 log_this 19 ods-signerd --set-time 2017-01-01-00:00:00 &&
 syslog_waitfor_count 10 1 'ods-signerd: .*\[STATS\] xx ' &&
 log_this 20 ods-signer stop &&
+log_this 21 perl sneakernet.pl $INSTALL_ROOT/var/opendnssec/signconf/xx.xml $INSTALL_ROOT/var/opendnssec/signer/xx.backup2 &&
+log_this 22 rm -f $INSTALL_ROOT/var/opendnssec/signer/* $INSTALL_ROOT/var/opendnssec/signed/* &&
+log_this 23 ods-signerd --set-time 2017-02-01-00:00:00 &&
+syslog_waitfor_count 10 2 'ods-signerd: .*\[STATS\] xx ' &&
+log_this 24 ods-signer stop &&
 
 return 0
 

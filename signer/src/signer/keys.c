@@ -273,9 +273,8 @@ key_backup(FILE* fd, key_type* key, const char* version)
     if (!fd || !key) {
         return;
     }
-    fprintf(fd, ";;Key: locator %s algorithm %u flags %u publish %i ksk %i "
-        "zsk %i\n", key->locator, (unsigned) key->algorithm,
-        (unsigned) key->flags, key->publish, key->ksk, key->zsk);
+    fprintf(fd, ";;Key: locator %s algorithm %u flags %u publish %i ksk %i zsk %i keytag %d\n", key->locator, (unsigned) key->algorithm,
+        (unsigned) key->flags, key->publish, key->ksk, key->zsk, ldns_calc_keytag(key->dnskey));
     if (strcmp(version, ODS_SE_FILE_MAGIC_V2) == 0) {
         if (key->dnskey) {
             (void)util_rr_print(fd, key->dnskey);
