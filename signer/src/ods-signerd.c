@@ -117,6 +117,7 @@ main(int argc, char* argv[])
     int single_run = 0;
     int daemonize = 1;
     int cmdline_verbosity = 0;
+    char *time_arg = NULL;
     const char* cfgfile = ODS_SE_CFGFILE;
     static struct option long_options[] = {
         {"single-run", no_argument, 0, '1'},
@@ -126,6 +127,7 @@ main(int argc, char* argv[])
         {"info", no_argument, 0, 'i'},
         {"verbose", no_argument, 0, 'v'},
         {"version", no_argument, 0, 'V'},
+        {"set-time", required_argument, 0, 256},
         { 0, 0, 0, 0}
     };
 
@@ -156,6 +158,9 @@ main(int argc, char* argv[])
                 version(stdout);
                 exit(0);
                 break;
+            case 256:
+                time_arg = optarg;
+                break;
             default:
                 usage(stderr);
                 exit(2);
@@ -167,6 +172,13 @@ main(int argc, char* argv[])
     if (argc != 0) {
         usage(stderr);
         exit(2);
+    }
+
+    if (time_arg) {
+        if(set_time_now_str(time_arg)) {
+            fprintf(stderr, "Error: Failed to interpret start time argument.  Daemon not started.\n");
+            return 1;
+        }
     }
 
     /* main stuff */
