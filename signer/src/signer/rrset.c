@@ -34,6 +34,7 @@
 #include "hsm.h"
 #include "log.h"
 #include "util.h"
+#include "compat.h"
 #include "signer/rrset.h"
 #include "signer/zone.h"
 
@@ -623,9 +624,9 @@ rrset_sigvalid_period(signconf_type* sc, ldns_rr_type rrtype, time_t signtime,
     }
     offset = duration2time(sc->sig_inception_offset);
     if (rrtype == LDNS_RR_TYPE_NSEC || rrtype == LDNS_RR_TYPE_NSEC3) {
-        validity = duration2time(sc->sig_validity_denial);
-    } else {
-        validity = duration2time(sc->sig_validity_default);
+            validity = duration2time(sc->sig_validity_denial);
+            } else {
+            validity = duration2time(sc->sig_validity_default);
     }
     *inception = signtime - offset;
     *expiration = (signtime + validity + random_jitter) - jitter;
