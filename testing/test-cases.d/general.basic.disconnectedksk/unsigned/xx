@@ -1,0 +1,3 @@
+$ORIGIN xx.
+$TTL 86400
+xx.	600	IN	SOA	nic.xx. contact.nic.de. 2016010100 7200 7200 3600000 7200
