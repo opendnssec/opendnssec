@@ -45,7 +45,6 @@ struct worker_struct {
     pthread_t thread_id;
     struct engine_struct* engine;
     task_type* task;
-    time_t clock_in;
     size_t jobs_appointed;
     size_t jobs_completed;
     size_t jobs_failed;

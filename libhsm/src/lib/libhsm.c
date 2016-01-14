@@ -43,6 +43,7 @@
 #include "libhsm.h"
 #include "libhsmdns.h"
 #include "compat.h"
+#include "duration.h"
 
 #include <pkcs11.h>
 
@@ -2158,7 +2159,7 @@ hsm_create_empty_rrsig(const ldns_rr_list *rrset,
             ldns_native2rdf_int8(LDNS_RDF_TYPE_INT8,
                                  label_count));
     /* inception, expiration */
-    now = time(NULL);
+    now = time_now();
     if (sign_params->inception != 0) {
         (void)ldns_rr_rrsig_set_inception(
                 rrsig,
