@@ -40,6 +40,7 @@
 #include "signer/backup.h"
 #include "signer/zone.h"
 #include "wire/netio.h"
+#include "compat.h"
 
 #include <ldns/ldns.h>
 
@@ -221,7 +222,7 @@ zone_publish_dnskeys(zone_type* zone)
 {
     hsm_ctx_t* ctx = NULL;
     uint32_t ttl = 0;
-    uint16_t i = 0;
+    int i;
     ods_status status = ODS_STATUS_OK;
     rrset_type* rrset = NULL;
     rr_type* dnskey = NULL;
@@ -250,12 +251,20 @@ zone_publish_dnskeys(zone_type* zone)
         }
         if (!zone->signconf->keys->keys[i].dnskey) {
             /* get dnskey */
-            status = lhsm_get_key(ctx, zone->apex,
-                &zone->signconf->keys->keys[i]);
-            if (status != ODS_STATUS_OK) {
-                ods_log_error("[%s] unable to publish dnskeys for zone %s: "
-                    "error creating dnskey", zone_str, zone->name);
-                break;
+            if  (zone->signconf->keys->keys[i].resourcerecord) {
+                if ((status = rrset_getliteralrr(&zone->signconf->keys->keys[i].dnskey, zone->signconf->keys->keys[i].resourcerecord, ttl, zone->apex)) != ODS_STATUS_OK) {
+                    ods_log_error("[%s] unable to publish dnskeys for zone %s: "
+                            "error decoding literal dnskey", zone_str, zone->name);
+                    return status;
+                }
+            } else {
+                status = lhsm_get_key(ctx, zone->apex,
+                        &zone->signconf->keys->keys[i]);
+                if (status != ODS_STATUS_OK) {
+                    ods_log_error("[%s] unable to publish dnskeys for zone %s: "
+                            "error creating dnskey", zone_str, zone->name);
+                    break;
+                }
             }
         }
         ods_log_debug("[%s] publish %s DNSKEY locator %s", zone_str,
@@ -432,6 +441,8 @@ zone_prepare_keys(zone_type* zone)
     }
     /* prepare keys */
     for (i=0; i < zone->signconf->keys->count; i++) {
+        if(zone->signconf->dnskey_signature != NULL && zone->signconf->keys->keys[i].ksk)
+            continue;
         /* get dnskey */
         status = lhsm_get_key(ctx, zone->apex, &zone->signconf->keys->keys[i]);
         if (status != ODS_STATUS_OK) {

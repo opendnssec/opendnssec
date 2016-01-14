@@ -115,14 +115,12 @@ keylist_lookup_by_dnskey(keylist_type* kl, ldns_rr* dnskey)
  *
  */
 key_type*
-keylist_push(keylist_type* kl, const char* locator,
+keylist_push(keylist_type* kl, const char* locator, const char* resourcerecord,
     uint8_t algorithm, uint32_t flags, int publish, int ksk, int zsk)
 {
     key_type* keys_old = NULL;
 
     ods_log_assert(kl);
-    ods_log_assert(locator);
-    ods_log_debug("[%s] add locator %s", key_str, locator);
 
     keys_old = kl->keys;
     CHECKALLOC(kl->keys = (key_type*) malloc((kl->count + 1) * sizeof(key_type)));
@@ -136,6 +134,7 @@ keylist_push(keylist_type* kl, const char* locator,
     free(keys_old);
     kl->count++;
     kl->keys[kl->count -1].locator = locator;
+    kl->keys[kl->count -1].resourcerecord = resourcerecord;
     kl->keys[kl->count -1].algorithm = algorithm;
     kl->keys[kl->count -1].flags = flags;
     kl->keys[kl->count -1].publish = publish;
@@ -294,6 +293,7 @@ key_type*
 key_recover2(FILE* fd, keylist_type* kl)
 {
     const char* locator = NULL;
+    const char* resourcerecord = NULL;
     uint8_t algorithm = 0;
     uint32_t flags = 0;
     int publish = 0;
@@ -303,6 +303,7 @@ key_recover2(FILE* fd, keylist_type* kl)
     ods_log_assert(fd);
 
     if (!backup_read_check_str(fd, "locator") ||
+        !backup_read_check_str(fd, "resourcerecord") ||
         !backup_read_str(fd, &locator) ||
         !backup_read_check_str(fd, "algorithm") ||
         !backup_read_uint8_t(fd, &algorithm) ||
@@ -321,7 +322,7 @@ key_recover2(FILE* fd, keylist_type* kl)
         return NULL;
     }
     /* key ok */
-    return keylist_push(kl, locator, algorithm, flags, publish, ksk, zsk);
+    return keylist_push(kl, locator, resourcerecord, algorithm, flags, publish, ksk, zsk);
 }
 
 

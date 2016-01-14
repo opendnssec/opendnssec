@@ -56,6 +56,7 @@ struct key_struct {
     libhsm_key_t* hsmkey;
     hsm_sign_params_t* params;
     const char* locator;
+    const char* resourcerecord;
     uint8_t algorithm;
     uint32_t flags;
     int publish;
@@ -112,7 +113,7 @@ key_type* keylist_lookup_by_dnskey(keylist_type* kl, ldns_rr* dnskey);
  * \return key_type* key
  *
  */
-key_type* keylist_push(keylist_type* kl, const char* locator,
+key_type* keylist_push(keylist_type* kl, const char* locator, const char* resourcerecord,
     uint8_t algorithm, uint32_t flags, int publish, int ksk, int zsk);
 
 /**
