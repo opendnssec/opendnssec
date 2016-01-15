@@ -3,6 +3,8 @@
 if [ -n "$HAVE_MYSQL" ]; then
 	return 0
 fi
+PATH=$INSTALL_ROOT/bin:$PATH
+export PATH
 
 log_this 01 cp kasp.xml zonelist.xml $INSTALL_ROOT/etc/opendnssec/. &&
 log_this 02 cp conf-bunker.xml $INSTALL_ROOT/etc/opendnssec/conf.xml &&
