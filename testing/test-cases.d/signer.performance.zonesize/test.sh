@@ -26,7 +26,7 @@ timestart=`date '+%s'` &&
 ods-enforcer zone add --zone z$size &&
 syslog_waitfor 20000 "ods-signerd: .*\[STATS\] z$size " &&
 timestop=`date '+%s'` &&
-memusage=`ps -C ods-signerd -o vsz=` &&
+( memusage=`ps -C ods-signerd -o vsz=` || true ) &&
 echo -n "STATISTICS	$size	$memusage	" &&
 expr $timestop - $timestart &&
 
