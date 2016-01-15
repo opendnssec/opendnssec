@@ -481,16 +481,16 @@ backup_read_namedb(FILE* in, void* zone)
         } else {
             rrset = zone_lookup_rrset(z, ldns_rr_owner(rr), type_covered);
         }
-        if (!rrset || !rrset_add_rrsig(rrset, rr, locator, flags)) {
+        if (!rrset) {
             ods_log_error("[%s] error restoring RRSIG #%i (%s): %s",
                 backup_str, l, ldns_get_errorstr_by_id(status), line);
             ldns_rr_free(rr);
             rr = NULL;
             result = ODS_STATUS_ERR;
             goto backup_namedb_done;
-        } else {
-            rrset->needs_signing = 0;
         }
+        rrset_add_rrsig(rrset, rr, locator, flags);
+        rrset->needs_signing = 0;
     }
     if (result == ODS_STATUS_OK && status != LDNS_STATUS_OK) {
         ods_log_error("[%s] error reading RRSIG #%i (%s): %s",

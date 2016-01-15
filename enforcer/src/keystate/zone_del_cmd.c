@@ -132,8 +132,8 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     zone_t* zone;
     int ret = 0;
     char path[PATH_MAX];
-    (void)engine;
     char *signconf_del = NULL;
+    (void)engine;
 
     ods_log_debug("[%s] %s command", module_str, zone_del_funcblock()->cmdname);
     cmd = ods_check_command(cmd, n, zone_del_funcblock()->cmdname);

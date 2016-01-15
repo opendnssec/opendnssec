@@ -33,11 +33,14 @@
 #define WIRE_TCPSET_H
 
 #include "config.h"
-#include "allocator.h"
+#include <stdint.h>
+
+typedef struct tcp_conn_struct tcp_conn_type;
+typedef struct tcp_set_struct tcp_set_type;
+
+#include "status.h"
 #include "wire/buffer.h"
 #include "wire/xfrd.h"
-
-#include <stdint.h>
 
 #define TCPSET_MAX 50
 
@@ -45,7 +48,6 @@
  * tcp connection.
  *
  */
-typedef struct tcp_conn_struct tcp_conn_type;
 struct tcp_conn_struct {
    int fd;
    /* how many bytes have been read/written - total, incl. tcp length bytes */
@@ -62,7 +64,6 @@ struct tcp_conn_struct {
  * Set of tcp connections.
  *
  */
-typedef struct tcp_set_struct tcp_set_type;
 struct tcp_set_struct {
     tcp_conn_type* tcp_conn[TCPSET_MAX];
     xfrd_type* tcp_waiting_first;

@@ -33,11 +33,6 @@
 #define SCHEDULER_FIFOQ_H
 
 #include "config.h"
-#include "daemon/worker.h"
-#include "allocator.h"
-#include "locks.h"
-#include "status.h"
-
 #include <stdio.h>
 #include <time.h>
 
@@ -50,13 +45,18 @@
 
 #include <ldns/ldns.h>
 
+typedef struct fifoq_struct fifoq_type;
+
+#include "daemon/worker.h"
+#include "locks.h"
+#include "status.h"
+
 #define FIFOQ_MAX_COUNT 1000
 #define FIFOQ_TRIES_COUNT 10
 
 /**
  * FIFO Queue.
  */
-typedef struct fifoq_struct fifoq_type;
 struct fifoq_struct {
     void* blob[FIFOQ_MAX_COUNT];
     worker_type* owner[FIFOQ_MAX_COUNT];

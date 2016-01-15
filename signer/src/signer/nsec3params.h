@@ -24,17 +24,10 @@
  *
  */
 
-/**
- * NSEC3 Parameters.
- *
- */
-
 #ifndef SIGNER_NSEC3PARAMS_H
 #define SIGNER_NSEC3PARAMS_H
 
 #include "config.h"
-#include "status.h"
-
 #include <ctype.h>
 #include <stdint.h>
 #ifdef HAVE_SYS_TYPES_H
@@ -46,18 +39,19 @@
 
 #include <ldns/ldns.h>
 
-/**
- * NSEC3 Parameters structure.
- */
 typedef struct nsec3params_struct nsec3params_type;
+
+#include "status.h"
+#include "signconf.h"
+
 struct nsec3params_struct {
-    void* sc;
-    uint8_t     algorithm;
-    uint8_t     flags;
-    uint16_t    iterations;
-    uint8_t     salt_len;
-    uint8_t*    salt_data;
-    ldns_rr*    rr;
+    signconf_type* sc;
+    uint8_t        algorithm;
+    uint8_t        flags;
+    uint16_t       iterations;
+    uint8_t        salt_len;
+    uint8_t*       salt_data;
+    ldns_rr*       rr;
 };
 
 /**

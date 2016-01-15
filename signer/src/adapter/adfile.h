@@ -33,7 +33,6 @@
 #define ADAPTER_ADFILE_H
 
 #include "config.h"
-#include "allocator.h"
 #include "status.h"
 
 #include <stdio.h>

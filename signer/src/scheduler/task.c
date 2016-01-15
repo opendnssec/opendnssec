@@ -31,7 +31,7 @@
 
 #include "config.h"
 #include "scheduler/task.h"
-#include "allocator.h"
+#include "status.h"
 #include "duration.h"
 #include "file.h"
 #include "log.h"

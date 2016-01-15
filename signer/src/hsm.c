@@ -108,16 +108,15 @@ lhsm_clear_key_cache(key_type* key)
  *
  */
 void
-lhsm_check_connection(void* engine)
+lhsm_check_connection(engine_type* engine)
 {
-    engine_type* e = (engine_type*) engine;
     if (hsm_check_context(NULL) != HSM_OK) {
         ods_log_warning("[%s] idle libhsm connection, trying to reopen",
             hsm_str);
-        engine_stop_drudgers(e);
+        engine_stop_drudgers(engine);
         hsm_close();
-        (void)lhsm_open(e->config->repositories);
-        engine_start_drudgers((engine_type*) engine);
+        (void)lhsm_open(engine->config->repositories);
+        engine_start_drudgers(engine);
     } else {
         ods_log_debug("[%s] libhsm connection ok", hsm_str);
     }

@@ -30,6 +30,7 @@
  */
 
 #include "config.h"
+#include <stdlib.h>
 #include "log.h"
 #include "wire/listener.h"
 

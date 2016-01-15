@@ -33,13 +33,17 @@
 #define WIRE_NOTIFY_H
 
 #include "config.h"
-#include "allocator.h"
+#include <ldns/ldns.h>
+
+typedef struct notify_struct notify_type;
+
+#include "status.h"
 #include "wire/acl.h"
 #include "wire/buffer.h"
 #include "wire/netio.h"
 #include "wire/tsig.h"
-
-#include <ldns/ldns.h>
+#include "daemon/xfrhandler.h"
+#include "signer/zone.h"
 
 #define NOTIFY_MAX_UDP 50
 #define NOTIFY_MAX_RETRY 5
@@ -49,14 +53,13 @@
  * Notify.
  *
  */
-typedef struct notify_struct notify_type;
 struct notify_struct {
     notify_type* waiting_next;
     ldns_rr* soa;
     tsig_rr_type* tsig_rr;
     acl_type* secondary;
-    void* zone;
-    void* xfrhandler;
+    zone_type* zone;
+    xfrhandler_type* xfrhandler;
     netio_handler_type handler;
     struct timespec timeout;
     uint16_t query_id;
@@ -71,7 +74,7 @@ struct notify_struct {
  * \return notify_type* notify structure.
  *
  */
-notify_type* notify_create(void* xfrhandler, void* zone);
+notify_type* notify_create(xfrhandler_type* xfrhandler, zone_type* zone);
 
 /**
  * Enable notify.

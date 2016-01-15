@@ -24,29 +24,20 @@
  *
  */
 
-/**
- * Signer configuration.
- *
- */
-
 #ifndef SIGNER_SIGNCONF_H
 #define SIGNER_SIGNCONF_H
-
-#include "scheduler/task.h"
-#include "allocator.h"
-#include "duration.h"
-#include "signer/keys.h"
-#include "signer/nsec3params.h"
 
 #include <ldns/ldns.h>
 #include <time.h>
 
-
-/**
- * Signer Configuration.
- *
- */
 typedef struct signconf_struct signconf_type;
+
+#include "scheduler/task.h"
+#include "status.h"
+#include "duration.h"
+#include "signer/keys.h"
+#include "signer/nsec3params.h"
+
 struct signconf_struct {
     /* Zone */
     const char* name;

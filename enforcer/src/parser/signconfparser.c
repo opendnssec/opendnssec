@@ -31,7 +31,7 @@
 
 #include "parser/confparser.h"
 #include "parser/signconfparser.h"
-#include "allocator.h"
+#include "status.h"
 #include "duration.h"
 #include "log.h"
 #include "signer/keys.h"

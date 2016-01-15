@@ -33,7 +33,7 @@
 #define WIRE_BUFFER_H
 
 #include "config.h"
-#include "allocator.h"
+#include "status.h"
 #include "log.h"
 #include "status.h"
 
