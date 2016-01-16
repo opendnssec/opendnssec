@@ -24,14 +24,10 @@
  *
  */
 
-/**
- * The hard workers.
- *
- */
+#include <time.h> /* time() */
 
 #include "daemon/engine.h"
 #include "daemon/worker.h"
-#include "allocator.h"
 #include "duration.h"
 #include "hsm.h"
 #include "locks.h"
@@ -40,14 +36,11 @@
 #include "signer/tools.h"
 #include "signer/zone.h"
 
-#include <time.h> /* time() */
-
 ods_lookup_table worker_str[] = {
     { WORKER_WORKER, "worker" },
     { WORKER_DRUDGER, "drudger" },
     { 0, NULL }
 };
-
 
 /**
  * Convert worker type to string.
@@ -195,7 +188,7 @@ worker_queue_domain(worker_type* worker, fifoq_type* q, domain_type* domain)
     while (rrset) {
         worker_queue_rrset(worker, q, rrset);
         rrset = rrset->next;
-    }
+}
     denial = (denial_type*) domain->denial;
     if (denial && denial->rrset) {
         worker_queue_rrset(worker, q, denial->rrset);
@@ -291,7 +284,7 @@ worker_perform_task(worker_type* worker)
     if (!worker || !worker->task || !worker->task->zone || !worker->engine) {
         return;
     }
-    engine = (engine_type*) worker->engine;
+    engine = worker->engine;
     task = (task_type*) worker->task;
     zone = (zone_type*) worker->task->zone;
     ods_log_debug("[%s[%i]] perform task %s for zone %s",
@@ -338,7 +331,7 @@ worker_perform_task(worker_type* worker)
                     task_who2str(task));
                 status = ODS_STATUS_ERR;
             } else {
-                lhsm_check_connection((void*)engine);
+                lhsm_check_connection(engine);
                 status = tools_input(zone);
             }
 
@@ -396,7 +389,7 @@ worker_perform_task(worker_type* worker)
                 lock_basic_unlock(&zone->stats->stats_lock);
             }
             /* check the HSM connection before queuing sign operations */
-            lhsm_check_connection((void*)engine);
+            lhsm_check_connection(engine);
             /* prepare keys */
             status = zone_prepare_keys(zone);
             if (status == ODS_STATUS_OK) {
@@ -573,7 +566,7 @@ worker_work(worker_type* worker)
     ods_log_assert(worker);
     ods_log_assert(worker->type == WORKER_WORKER);
 
-    engine = (engine_type*) worker->engine;
+    engine = worker->engine;
     while (worker->need_to_exit == 0) {
         ods_log_debug("[%s[%i]] report for duty", worker2str(worker->type),
             worker->thread_num);
@@ -652,7 +645,7 @@ worker_drudge(worker_type* worker)
     ods_log_assert(worker->engine);
     ods_log_assert(worker->type == WORKER_DRUDGER);
 
-    engine = (engine_type*) worker->engine;
+    engine = worker->engine;
     while (worker->need_to_exit == 0) {
         ods_log_deeebug("[%s[%i]] report for duty", worker2str(worker->type),
             worker->thread_num);

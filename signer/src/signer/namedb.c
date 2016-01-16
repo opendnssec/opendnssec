@@ -30,7 +30,7 @@
  */
 
 #include "config.h"
-#include "allocator.h"
+#include "status.h"
 #include "file.h"
 #include "log.h"
 #include "util.h"
@@ -39,7 +39,6 @@
 #include "signer/zone.h"
 
 const char* db_str = "namedb";
-
 
 /**
  * Convert a domain to a tree node.
@@ -547,7 +546,7 @@ namedb_add_denial_trigger(namedb_type* db, domain_type* domain)
     ods_log_assert(db);
     ods_log_assert(domain);
     if (!domain->denial) {
-        zone = (void*) domain->zone;
+        zone = domain->zone;
         ods_log_assert(zone);
         ods_log_assert(zone->signconf);
         if (!zone->signconf->passthrough) {
@@ -635,7 +634,7 @@ namedb_del_denial_trigger(namedb_type* db, domain_type* domain, int rollback)
     ods_log_assert(db);
     ods_log_assert(domain);
     ods_log_assert(domain->dname);
-    zone = (void*) domain->zone;
+    zone = domain->zone;
     ods_log_assert(zone);
     ods_log_assert(zone->signconf);
     while(domain) {
@@ -1009,21 +1008,13 @@ namedb_wipe_denial(namedb_type* db)
                 rrset_del_rr(denial->rrset, i);
                 i--;
             }
-            for (i=0; i < denial->rrset->rrsig_count; i++) {
-                /* ixfr -RRSIG */
-                lock_basic_lock(&zone->ixfr->ixfr_lock);
-                ixfr_del_rr(zone->ixfr, denial->rrset->rrsigs[i].rr);
-                lock_basic_unlock(&zone->ixfr->ixfr_lock);
-                rrset_del_rrsig(denial->rrset, i);
-                i--;
-            }
+            rrset_drop_rrsigs(zone, denial->rrset);
             rrset_cleanup(denial->rrset);
             denial->rrset = NULL;
             node = ldns_rbtree_next(node);
         }
     }
 }
-
 
 /**
  * Export db to file.

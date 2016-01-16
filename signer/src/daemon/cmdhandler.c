@@ -31,7 +31,6 @@
 
 #include "daemon/cmdhandler.h"
 #include "daemon/engine.h"
-#include "allocator.h"
 #include "file.h"
 #include "str.h"
 #include "locks.h"
@@ -128,7 +127,7 @@ cmdhandler_handle_cmd_zones(int sockfd, cmdhandler_type* cmdc)
     zone_type* zone = NULL;
     ods_log_assert(cmdc);
     ods_log_assert(cmdc->engine);
-    engine = (engine_type*) cmdc->engine;
+    engine = cmdc->engine;
     if (!engine->zonelist || !engine->zonelist->zones) {
         (void)snprintf(buf, ODS_SE_MAXLINE, "There are no zones configured\n");
         ods_writen(sockfd, buf, strlen(buf));
@@ -170,7 +169,7 @@ cmdhandler_handle_cmd_update(int sockfd, cmdhandler_type* cmdc,
     ods_log_assert(tbd);
     ods_log_assert(cmdc);
     ods_log_assert(cmdc->engine);
-    engine = (engine_type*) cmdc->engine;
+    engine = cmdc->engine;
     ods_log_assert(engine->taskq);
     if (ods_strcmp(tbd, "--all") == 0) {
         lock_basic_lock(&engine->zonelist->zl_lock);
@@ -943,7 +942,7 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
     ods_log_assert(cmdhandler);
     ods_log_assert(cmdhandler->engine);
     ods_log_debug("[%s] start", cmdh_str);
-    engine = (engine_type*) cmdhandler->engine;
+    engine = cmdhandler->engine;
     ods_thread_detach(cmdhandler->thread_id);
     FD_ZERO(&rset);
     while (cmdhandler->need_to_exit == 0) {

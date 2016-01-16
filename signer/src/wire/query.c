@@ -262,19 +262,18 @@ query_parse_soa(buffer_type* buffer, uint32_t* serial)
  * prepare notify reply packet in q->buffer.
  */
 static query_state
-query_process_notify(query_type* q, ldns_rr_type qtype, void* engine)
+query_process_notify(query_type* q, ldns_rr_type qtype, engine_type* engine)
 {
-    engine_type* e = (engine_type*) engine;
     dnsin_type* dnsin = NULL;
     uint16_t count = 0;
     uint16_t rrcount = 0;
     uint32_t serial = 0;
     size_t pos = 0;
     char address[128];
-    if (!e || !q || !q->zone) {
+    if (!engine || !q || !q->zone) {
         return QUERY_DISCARDED;
     }
-    ods_log_assert(e->dnshandler);
+    ods_log_assert(engine->dnshandler);
     ods_log_assert(q->zone->name);
     ods_log_verbose("[%s] incoming notify for zone %s", query_str,
         q->zone->name);
@@ -381,7 +380,7 @@ query_process_notify(query_type* q, ldns_rr_type qtype, void* engine)
                     q->zone->name);
             }
             xfrd_set_timer_now(q->zone->xfrd);
-            dnshandler_fwd_notify(e->dnshandler, buffer_begin(q->buffer),
+            dnshandler_fwd_notify(engine->dnshandler, buffer_begin(q->buffer),
                 buffer_remaining(q->buffer));
         }
     }
@@ -491,6 +490,7 @@ response_encode_rr(query_type* q, ldns_rr* rr, ldns_pkt_section section)
 static uint16_t
 response_encode_rrset(query_type* q, rrset_type* rrset, ldns_pkt_section section)
 {
+    rrsig_type* rrsig;
     uint16_t i = 0;
     uint16_t added = 0;
     ods_log_assert(q);
@@ -501,8 +501,8 @@ response_encode_rrset(query_type* q, rrset_type* rrset, ldns_pkt_section section
         added += response_encode_rr(q, rrset->rrs[i].rr, section);
     }
     if (q->edns_rr && q->edns_rr->dnssec_ok) {
-        for (i = 0; i < rrset->rrsig_count; i++) {
-            added += response_encode_rr(q, rrset->rrsigs[i].rr, section);
+        while((rrsig = collection_iterator(rrset->rrsigs))) {
+            added += response_encode_rr(q, rrsig->rr, section);
         }
     }
     /* truncation? */
@@ -823,7 +823,7 @@ query_find_tsig(query_type* q)
  *
  */
 query_state
-query_process(query_type* q, void* engine)
+query_process(query_type* q, engine_type* engine)
 {
     ldns_status status = LDNS_STATUS_OK;
     ldns_pkt* pkt = NULL;
@@ -831,11 +831,10 @@ query_process(query_type* q, void* engine)
     ldns_pkt_rcode rcode = LDNS_RCODE_NOERROR;
     ldns_pkt_opcode opcode = LDNS_PACKET_QUERY;
     ldns_rr_type qtype = LDNS_RR_TYPE_SOA;
-    engine_type* e = (engine_type*) engine;
-    ods_log_assert(e);
+    ods_log_assert(engine);
     ods_log_assert(q);
     ods_log_assert(q->buffer);
-    if (!e || !q || !q->buffer) {
+    if (!engine || !q || !q->buffer) {
         ods_log_error("[%s] drop query: assertion error", query_str);
         return QUERY_DISCARDED; /* should not happen */
     }
@@ -856,10 +855,10 @@ query_process(query_type* q, void* engine)
         return query_formerr(q);
     }
     rr = ldns_rr_list_rr(ldns_pkt_question(pkt), 0);
-    lock_basic_lock(&e->zonelist->zl_lock);
+    lock_basic_lock(&engine->zonelist->zl_lock);
     /* we can just lookup the zone, because we will only handle SOA queries,
        zone transfers, updates and notifies */
-    q->zone = zonelist_lookup_zone_by_dname(e->zonelist, ldns_rr_owner(rr),
+    q->zone = zonelist_lookup_zone_by_dname(engine->zonelist, ldns_rr_owner(rr),
         ldns_rr_get_class(rr));
     /* don't answer for zones that are just added */
     if (q->zone && q->zone->zl_status == ZONE_ZL_ADDED) {
@@ -868,7 +867,7 @@ query_process(query_type* q, void* engine)
             query_str, q->zone->name);
         q->zone = NULL;
     }
-    lock_basic_unlock(&e->zonelist->zl_lock);
+    lock_basic_unlock(&engine->zonelist->zl_lock);
     if (!q->zone) {
         ods_log_debug("[%s] zone not found", query_str);
         return query_servfail(q);
@@ -938,16 +937,15 @@ query_overflow(query_type* q)
  *
  */
 void
-query_add_optional(query_type* q, void* engine)
+query_add_optional(query_type* q, engine_type* engine)
 {
-    engine_type* e = (engine_type*) engine;
     edns_data_type* edns = NULL;
-    if (!q || !e) {
+    if (!q || !engine) {
         return;
     }
     /** First EDNS */
     if (q->edns_rr) {
-        edns = &e->edns;
+        edns = &engine->edns;
         switch (q->edns_rr->status) {
             case EDNS_NOT_PRESENT:
                 break;

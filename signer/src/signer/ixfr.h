@@ -33,9 +33,13 @@
 #define SIGNER_IXFR_H
 
 #include "config.h"
-#include "locks.h"
-
 #include <ldns/ldns.h>
+
+typedef struct part_struct part_type;
+typedef struct ixfr_struct ixfr_type;
+
+#include "locks.h"
+#include "zone.h"
 
 #define IXFR_MAX_PARTS 3
 
@@ -43,7 +47,6 @@
  * Part of IXFR Journal.
  *
  */
-typedef struct part_struct part_type;
 struct part_struct {
     ldns_rr* soamin;
     ldns_rr_list* min;
@@ -55,9 +58,8 @@ struct part_struct {
  * IXFR Journal.
  *
  */
-typedef struct ixfr_struct ixfr_type;
 struct ixfr_struct {
-    void* zone;
+    zone_type* zone;
     part_type* part[IXFR_MAX_PARTS];
     lock_basic_type ixfr_lock;
 };
@@ -68,7 +70,7 @@ struct ixfr_struct {
  * \return ixfr_type* ixfr
  *
  */
-ixfr_type* ixfr_create(void* zone);
+ixfr_type* ixfr_create(zone_type* zone);
 
 /**
  * Add +RR to ixfr journal.

@@ -32,7 +32,6 @@
 #ifndef PARSER_ZONELISTPARSER_H
 #define PARSER_ZONELISTPARSER_H
 
-#include "allocator.h"
 #include "status.h"
 
 struct zonelist_struct;

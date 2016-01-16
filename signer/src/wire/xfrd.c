@@ -312,7 +312,7 @@ xfrd_recover_error:
  *
  */
 xfrd_type*
-xfrd_create(void* xfrhandler, void* zone)
+xfrd_create(xfrhandler_type* xfrhandler, zone_type* zone)
 {
     xfrd_type* xfrd = NULL;
     if (!xfrhandler || !zone) {

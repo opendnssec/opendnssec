@@ -32,10 +32,7 @@
 #ifndef DAEMON_WORKER_H
 #define DAEMON_WORKER_H
 
-#include "scheduler/task.h"
-#include "allocator.h"
-#include "locks.h"
-
+#include "config.h"
 #include <time.h>
 
 enum worker_enum {
@@ -46,10 +43,15 @@ enum worker_enum {
 typedef enum worker_enum worker_id;
 
 typedef struct worker_struct worker_type;
+
+#include "scheduler/task.h"
+#include "status.h"
+#include "locks.h"
+
 struct worker_struct {
     int thread_num;
     ods_thread_type thread_id;
-    void* engine;
+    engine_type* engine;
     task_type* task;
     task_id working_with;
     worker_id type;

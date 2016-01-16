@@ -33,7 +33,7 @@
 #define PARSER_SIGNCONFPARSER_H
 
 #include "parser/confparser.h"
-#include "allocator.h"
+#include "status.h"
 #include "duration.h"
 #include "signer/keys.h"
 #include "config.h"

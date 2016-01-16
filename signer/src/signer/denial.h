@@ -33,22 +33,23 @@
 #define SIGNER_DENIAL_H
 
 #include "config.h"
-#include "allocator.h"
+#include <ldns/ldns.h>
+#include <time.h>
+
+typedef struct denial_struct denial_type;
+
 #include "status.h"
 #include "signer/nsec3params.h"
 #include "signer/rrset.h"
-
-#include <ldns/ldns.h>
-#include <time.h>
+#include "signer/domain.h"
 
 /**
  * Denial of Existence data point.
  *
  */
-typedef struct denial_struct denial_type;
 struct denial_struct {
-    void* zone;
-    void* domain;
+    zone_type* zone;
+    domain_type* domain;
     ldns_rbnode_t* node;
     ldns_rdf* dname;
     rrset_type* rrset;
@@ -63,7 +64,7 @@ struct denial_struct {
  * \return denial_type* denial of existence data point
  *
  */
-denial_type* denial_create(void* zoneptr, ldns_rdf* dname);
+denial_type* denial_create(zone_type* zoneptr, ldns_rdf* dname);
 
 /**
  * Apply differences at denial.

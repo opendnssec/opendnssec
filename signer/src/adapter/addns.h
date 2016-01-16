@@ -33,7 +33,6 @@
 #define ADAPTER_ADDNS_H
 
 #include "config.h"
-#include "allocator.h"
 #include "status.h"
 #include "wire/acl.h"
 #include "wire/tsig.h"

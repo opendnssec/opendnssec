@@ -85,10 +85,10 @@ log_dname(ldns_rdf *rdf, const char* pre, int level)
  *
  */
 domain_type*
-domain_create(void* zoneptr, ldns_rdf* dname)
+domain_create(zone_type* zone, ldns_rdf* dname)
 {
     domain_type* domain = NULL;
-    if (!dname || !zoneptr) {
+    if (!dname || !zone) {
         return NULL;
     }
     CHECKALLOC(domain = (domain_type*) malloc(sizeof(domain_type)));
@@ -99,7 +99,7 @@ domain_create(void* zoneptr, ldns_rdf* dname)
         free(domain);
         return NULL;
     }
-    domain->zone = zoneptr;
+    domain->zone = zone;
     domain->denial = NULL; /* no reference yet */
     domain->node = NULL; /* not in db yet */
     domain->rrsets = NULL;

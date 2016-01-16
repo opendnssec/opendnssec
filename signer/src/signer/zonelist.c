@@ -32,7 +32,6 @@
 #include "config.h"
 #include "parser/confparser.h"
 #include "parser/zonelistparser.h"
-#include "allocator.h"
 #include "duration.h"
 #include "file.h"
 #include "log.h"

@@ -34,7 +34,6 @@
 
 #include "config.h"
 #include "wire/listener.h"
-#include "allocator.h"
 #include "hsm.h"
 #include "status.h"
 

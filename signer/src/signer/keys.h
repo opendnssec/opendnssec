@@ -24,17 +24,8 @@
  *
  */
 
-/**
- * Signing keys.
- *
- */
-
 #ifndef SIGNER_KEYS_H
 #define SIGNER_KEYS_H
-
-#include "allocator.h"
-#include "status.h"
-#include "libhsm.h"
 
 #ifdef HAVE_SYS_TYPES_H
 # include <sys/types.h>
@@ -43,14 +34,19 @@
 # include <unistd.h>
 #endif
 #include <ldns/ldns.h>
-#include <libhsmdns.h>
 
+typedef struct key_struct key_type;
+typedef struct keylist_struct keylist_type;
+
+#include "status.h"
+#include "libhsm.h"
+#include "libhsmdns.h"
+#include "signconf.h"
 
 /**
  * Key.
  *
  */
-typedef struct key_struct key_type;
 struct key_struct {
     ldns_rr* dnskey;
     libhsm_key_t* hsmkey;
@@ -68,9 +64,8 @@ struct key_struct {
  * Key list.
  *
  */
-typedef struct keylist_struct keylist_type;
 struct keylist_struct {
-    void* sc;
+    signconf_type* sc;
     key_type* keys;
     size_t count;
 };
@@ -81,7 +76,7 @@ struct keylist_struct {
  * \return keylist_type* key list
  *
  */
-keylist_type* keylist_create(void* sc);
+keylist_type* keylist_create(signconf_type* sc);
 
 /**
  * Lookup a key in the key list by locator.
