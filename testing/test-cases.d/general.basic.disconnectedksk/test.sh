@@ -19,6 +19,7 @@ log_this 08 softhsm --init-token --pin 1234 --slot 1 --label KSKs --so-pin 1234 
 log_this 09 softhsm --init-token --pin 1234 --slot 2 --label ZSKs --so-pin 1234 &&
 echo 'y' | log_this 10 ods-enforcer-db-setup &&
 log_this 11 ods-enforcerd --set-time 2017-01-01-00:00:00 &&
+sleep 15 &&
 log_this 12 ods-enforcer policy import &&
 log_this 13 ods-enforcer zone add -z xx &&
 log_this 14 ods_enforcer_idle &&
@@ -32,12 +33,13 @@ log_this 18 ods-enforcer stop &&
 log_this 19 ods-signerd --set-time 2017-01-01-00:00:00 &&
 syslog_waitfor_count 10 1 'ods-signerd: .*\[STATS\] xx ' &&
 log_this 20 ods-signer stop &&
-sleep 5 &&
+sleep 15 &&
 log_this 21 perl sneakernet.pl $INSTALL_ROOT/var/opendnssec/signconf/xx.xml $INSTALL_ROOT/var/opendnssec/signer/xx.backup2 &&
 log_this 22 rm -f $INSTALL_ROOT/var/opendnssec/signer/* $INSTALL_ROOT/var/opendnssec/signed/* &&
 log_this 23 ods-signerd --set-time 2017-02-01-00:00:00 &&
 syslog_waitfor_count 10 2 'ods-signerd: .*\[STATS\] xx ' &&
 log_this 24 ods-signer stop &&
+sleep 15 &&
 
 return 0
 
