@@ -8,12 +8,12 @@
 			<PIN>1234</PIN>		
 		</Repository>
 		<Repository name="KSKs">
-			<Module>/home/berry/workspace/root/OpenDNSSEC/lib/softhsm/libsofthsm.so</Module>
+			<Module>@SOFTHSM_MODULE@</Module>
 			<TokenLabel>KSKs</TokenLabel>
 			<PIN>1234</PIN>		
 		</Repository>
 		<Repository name="ZSKs">
-			<Module>/home/berry/workspace/root/OpenDNSSEC/lib/softhsm/libsofthsm.so</Module>
+			<Module>@SOFTHSM_MODULE@</Module>
 			<TokenLabel>ZSKs</TokenLabel>
 			<PIN>1234</PIN>		
 		</Repository>
