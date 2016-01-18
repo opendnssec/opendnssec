@@ -463,7 +463,7 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
     cmdhandler_type* cmdc = NULL;
     fd_set rset;
     int flags, connfd = 0, ret = 0;
-    size_t thread_index = 0, i;
+    ssize_t thread_index = 0, i;
     cmdhandler_type cmdcs[MAX_CLIENT_CONN];
 
     ods_log_assert(cmdhandler);
