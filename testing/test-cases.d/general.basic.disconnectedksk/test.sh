@@ -19,7 +19,7 @@ log_this 08 softhsm --init-token --pin 1234 --slot 1 --label KSKs --so-pin 1234 
 log_this 09 softhsm --init-token --pin 1234 --slot 2 --label ZSKs --so-pin 1234 &&
 echo 'y' | log_this 10 ods-enforcer-db-setup &&
 log_this 11 ods-enforcerd --set-time 2017-01-01-00:00:00 &&
-sleep 15 &&
+# sleep 15 &&    unsure whether this is really needed.
 log_this 12 ods-enforcer policy import &&
 log_this 13 ods-enforcer zone add -z xx &&
 log_this 14 ods_enforcer_idle &&
