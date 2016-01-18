@@ -34,7 +34,6 @@
 
 #ifdef HAVE_SSL
 
-#include "allocator.h"
 #include "status.h"
 #include <openssl/hmac.h>
 #include <openssl/sha.h>

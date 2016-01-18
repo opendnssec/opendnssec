@@ -33,7 +33,7 @@
 #define WIRE_ACL_H
 
 #include "config.h"
-#include "allocator.h"
+#include "status.h"
 #include "wire/listener.h"
 #include "wire/tsig.h"
 

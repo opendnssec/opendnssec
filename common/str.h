@@ -33,7 +33,7 @@
 #define SHARED_STR_H
 
 #include "config.h"
-#include "allocator.h"
+#include "status.h"
 #include <time.h>
 
 

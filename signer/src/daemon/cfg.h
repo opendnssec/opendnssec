@@ -24,28 +24,24 @@
  *
  */
 
-/**
- * Signer engine configuration.
- *
- */
-
 #ifndef DAEMON_CONFIG_H
 #define DAEMON_CONFIG_H
 
 #include "config.h"
-#include "allocator.h"
+#include <stdio.h>
+
+typedef struct engineconfig_struct engineconfig_type;
+
+#include "status.h"
 #include "hsm.h"
 #include "locks.h"
 #include "status.h"
 #include "wire/listener.h"
 
-#include <stdio.h>
-
 /**
  * Engine configuration.
  *
  */
-typedef struct engineconfig_struct engineconfig_type;
 struct engineconfig_struct {
     listener_type* interfaces;
     hsm_repository_t* repositories;

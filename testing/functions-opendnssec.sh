@@ -1078,7 +1078,7 @@ ods_stop_ods-control ()
 	fi
 
 	local timeout="$1"
-	local running_timeout="20"
+	local running_timeout="120"
 
 	echo "ods_stop_ods-control: Stopping with ods-control now..."
 

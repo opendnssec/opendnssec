@@ -29,7 +29,7 @@
  * Durations.
  */
 
-#include "allocator.h"
+#include "status.h"
 #include "duration.h"
 #include "log.h"
 
@@ -372,8 +372,6 @@ duration2time(duration_type* duration)
         if (duration->months || duration->years) {
             /* [TODO] calculate correct number of days in this month/year */
             dstr = duration2string(duration);
-            ods_log_warning("[%s] converting duration %s to approximate value",
-                duration_str, dstr?dstr:"(null)");
             free((void*) dstr);
         }
     }

@@ -33,16 +33,19 @@
 #define DAEMON_CMDHANDLER_H
 
 #include "config.h"
-#include "allocator.h"
-#include "locks.h"
-
 #include <sys/un.h>
+
+typedef struct cmdhandler_struct cmdhandler_type;
+
+#include "status.h"
+#include "locks.h"
+#include "engine.h"
+
 
 #define ODS_SE_MAX_HANDLERS 5
 
-typedef struct cmdhandler_struct cmdhandler_type;
 struct cmdhandler_struct {
-    void* engine;
+    engine_type* engine;
     struct sockaddr_un listen_addr;
     ods_thread_type thread_id;
     int listen_fd;

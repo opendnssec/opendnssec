@@ -33,7 +33,7 @@
 #define WIRE_QUERY_H
 
 #include "config.h"
-#include "allocator.h"
+#include "status.h"
 #include "signer/zone.h"
 #include "wire/buffer.h"
 #include "wire/edns.h"
@@ -120,7 +120,7 @@ void query_prepare(query_type* q);
  * \return query_state state of the query
  *
  */
-query_state query_process(query_type* q, void* engine);
+query_state query_process(query_type* q, engine_type* engine);
 
 /**
  * Reset query.
@@ -137,7 +137,7 @@ void query_reset(query_type* q, size_t maxlen, int is_tcp);
  * \param[in] engine signer engine
  *
  */
-void query_add_optional(query_type* q, void* engine);
+void query_add_optional(query_type* q, engine_type* engine);
 
 /**
  * Add RR to query.

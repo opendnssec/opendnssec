@@ -224,3 +224,4 @@ int ods_find_arg_and_param(int *pargc, const char *argv[],
         argv[j] = argv[j+1];
     return i;
 }
+
