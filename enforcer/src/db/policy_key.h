@@ -123,25 +123,11 @@ int policy_key_cmp(const policy_key_t* policy_key_a, const policy_key_t* policy_
 int policy_key_from_result(policy_key_t* policy_key, const db_result_t* result);
 
 /**
- * Get the id of a policy key object.
- * \param[in] policy_key a policy_key_t pointer.
- * \return a db_value_t pointer or NULL on error.
- */
-const db_value_t* policy_key_id(const policy_key_t* policy_key);
-
-/**
  * Get the policy_id of a policy key object.
  * \param[in] policy_key a policy_key_t pointer.
  * \return a db_value_t pointer or NULL on error.
  */
 const db_value_t* policy_key_policy_id(const policy_key_t* policy_key);
-
-/**
- * Cache the policy_id object related to a policy key object.
- * \param[in] policy_key a policy_key_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int policy_key_cache_policy(policy_key_t* policy_key);
 
 /**
  * Get the policy_id object related to a policy key object.
@@ -245,14 +231,6 @@ int policy_key_set_policy_id(policy_key_t* policy_key, const db_value_t* policy_
 int policy_key_set_role(policy_key_t* policy_key, policy_key_role_t role);
 
 /**
- * Set the role of a policy key object from text.
- * \param[in] policy_key a policy_key_t pointer.
- * \param[in] role a character pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int policy_key_set_role_text(policy_key_t* policy_key, const char* role);
-
-/**
  * Set the algorithm of a policy key object.
  * \param[in] policy_key a policy_key_t pointer.
  * \param[in] algorithm an unsigned integer with a maximum value of 255.
@@ -317,116 +295,6 @@ int policy_key_set_rfc5011(policy_key_t* policy_key, unsigned int rfc5011);
 int policy_key_set_minimize(policy_key_t* policy_key, unsigned int minimize);
 
 /**
- * Create a clause for policy_id of a policy key object and add it to a database clause list.
- * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
- * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
- * returned db_clause_t pointer.
- * \param[in] clause_list db_clause_list_t pointer.
- * \param[in] policy_id a db_value_t pointer.
- * \return a db_clause_t pointer to the added clause or NULL on error.
- */
-db_clause_t* policy_key_policy_id_clause(db_clause_list_t* clause_list, const db_value_t* policy_id);
-
-/**
- * Create a clause for role of a policy key object and add it to a database clause list.
- * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
- * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
- * returned db_clause_t pointer.
- * \param[in] clause_list db_clause_list_t pointer.
- * \param[in] role a policy_key_role_t.
- * \return a db_clause_t pointer to the added clause or NULL on error.
- */
-db_clause_t* policy_key_role_clause(db_clause_list_t* clause_list, policy_key_role_t role);
-
-/**
- * Create a clause for algorithm of a policy key object and add it to a database clause list.
- * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
- * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
- * returned db_clause_t pointer.
- * \param[in] clause_list db_clause_list_t pointer.
- * \param[in] algorithm an unsigned integer.
- * \return a db_clause_t pointer to the added clause or NULL on error.
- */
-db_clause_t* policy_key_algorithm_clause(db_clause_list_t* clause_list, unsigned int algorithm);
-
-/**
- * Create a clause for bits of a policy key object and add it to a database clause list.
- * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
- * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
- * returned db_clause_t pointer.
- * \param[in] clause_list db_clause_list_t pointer.
- * \param[in] bits an unsigned integer.
- * \return a db_clause_t pointer to the added clause or NULL on error.
- */
-db_clause_t* policy_key_bits_clause(db_clause_list_t* clause_list, unsigned int bits);
-
-/**
- * Create a clause for lifetime of a policy key object and add it to a database clause list.
- * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
- * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
- * returned db_clause_t pointer.
- * \param[in] clause_list db_clause_list_t pointer.
- * \param[in] lifetime an unsigned integer.
- * \return a db_clause_t pointer to the added clause or NULL on error.
- */
-db_clause_t* policy_key_lifetime_clause(db_clause_list_t* clause_list, unsigned int lifetime);
-
-/**
- * Create a clause for repository of a policy key object and add it to a database clause list.
- * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
- * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
- * returned db_clause_t pointer.
- * \param[in] clause_list db_clause_list_t pointer.
- * \param[in] repository_text a character pointer.
- * \return a db_clause_t pointer to the added clause or NULL on error.
- */
-db_clause_t* policy_key_repository_clause(db_clause_list_t* clause_list, const char* repository_text);
-
-/**
- * Create a clause for standby of a policy key object and add it to a database clause list.
- * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
- * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
- * returned db_clause_t pointer.
- * \param[in] clause_list db_clause_list_t pointer.
- * \param[in] standby an unsigned integer.
- * \return a db_clause_t pointer to the added clause or NULL on error.
- */
-db_clause_t* policy_key_standby_clause(db_clause_list_t* clause_list, unsigned int standby);
-
-/**
- * Create a clause for manual_rollover of a policy key object and add it to a database clause list.
- * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
- * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
- * returned db_clause_t pointer.
- * \param[in] clause_list db_clause_list_t pointer.
- * \param[in] manual_rollover an unsigned integer.
- * \return a db_clause_t pointer to the added clause or NULL on error.
- */
-db_clause_t* policy_key_manual_rollover_clause(db_clause_list_t* clause_list, unsigned int manual_rollover);
-
-/**
- * Create a clause for rfc5011 of a policy key object and add it to a database clause list.
- * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
- * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
- * returned db_clause_t pointer.
- * \param[in] clause_list db_clause_list_t pointer.
- * \param[in] rfc5011 an unsigned integer.
- * \return a db_clause_t pointer to the added clause or NULL on error.
- */
-db_clause_t* policy_key_rfc5011_clause(db_clause_list_t* clause_list, unsigned int rfc5011);
-
-/**
- * Create a clause for minimize of a policy key object and add it to a database clause list.
- * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
- * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
- * returned db_clause_t pointer.
- * \param[in] clause_list db_clause_list_t pointer.
- * \param[in] minimize an unsigned integer.
- * \return a db_clause_t pointer to the added clause or NULL on error.
- */
-db_clause_t* policy_key_minimize_clause(db_clause_list_t* clause_list, unsigned int minimize);
-
-/**
  * Create a policy key object in the database.
  * \param[in] policy_key a policy_key_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
@@ -442,38 +310,11 @@ int policy_key_create(policy_key_t* policy_key);
 int policy_key_get_by_id(policy_key_t* policy_key, const db_value_t* id);
 
 /**
- * Get a new policy key object from the database by a id specified in `id`.
- * \param[in] connection a db_connection_t pointer.
- * \param[in] id a db_value_t pointer.
- * \return a policy_key_t pointer or NULL on error or if it does not exist.
- */
-policy_key_t* policy_key_new_get_by_id(const db_connection_t* connection, const db_value_t* id);
-
-/**
- * Update a policy key object in the database.
- * \param[in] policy_key a policy_key_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int policy_key_update(policy_key_t* policy_key);
-
-/**
  * Delete a policy key object from the database.
  * \param[in] policy_key a policy_key_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int policy_key_delete(policy_key_t* policy_key);
-
-/**
- * Count the number of policy key objects in the database, if a selection of
- * objects should be counted then it can be limited by a database clause list
- * otherwise all objects are counted.
- * \param[in] policy_key a policy_key_t pointer.
- * \param[in] clause_list a db_clause_list_t pointer or NULL if all objects.
- * \param[out] count a size_t pointer to where the count should be stored.
- * should be counted.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int policy_key_count(policy_key_t* policy_key, db_clause_list_t* clause_list, size_t* count);
 
 /**
  * A list of policy key objects.
@@ -515,15 +356,6 @@ policy_key_list_t* policy_key_list_new_copy(const policy_key_list_t* policy_key_
 int policy_key_list_object_store(policy_key_list_t* policy_key_list);
 
 /**
- * Specify that the list should also fetch associated objects in a more optimal
- * way then fetching them for each individual object later on. This also forces
- * the list to store all objects (see policy_key_list_object_store()).
- * \param[in] policy_key_list a policy_key_list_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int policy_key_list_associated_fetch(policy_key_list_t* policy_key_list);
-
-/**
  * Delete a policy key object list.
  * \param[in] policy_key_list a policy_key_list_t pointer.
  */
@@ -538,34 +370,12 @@ void policy_key_list_free(policy_key_list_t* policy_key_list);
 int policy_key_list_copy(policy_key_list_t* policy_key_list, const policy_key_list_t* from_policy_key_list);
 
 /**
- * Get all policy key objects.
- * \param[in] policy_key_list a policy_key_list_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int policy_key_list_get(policy_key_list_t* policy_key_list);
-
-/**
- * Get a new list with all policy key objects.
- * \param[in] connection a db_connection_t pointer.
- * \return a policy_key_list_t pointer or NULL on error.
- */
-policy_key_list_t* policy_key_list_new_get(const db_connection_t* connection);
-
-/**
  * Get policy key objects from the database by a clause list.
  * \param[in] policy_key_list a policy_key_list_t pointer.
  * \param[in] clause_list a db_clause_list_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int policy_key_list_get_by_clauses(policy_key_list_t* policy_key_list, const db_clause_list_t* clause_list);
-
-/**
- * Get a new list of policy key objects from the database by a clause list.
- * \param[in] connection a db_connection_t pointer.
- * \param[in] clause_list a db_clause_list_t pointer.
- * \return a policy_key_list_t pointer or NULL on error.
- */
-policy_key_list_t* policy_key_list_new_get_by_clauses(const db_connection_t* connection, const db_clause_list_t* clause_list);
 
 /**
  * Get policy key objects from the database by a policy_id specified in `policy_id`.
@@ -591,16 +401,6 @@ policy_key_list_t* policy_key_list_new_get_by_policy_id(const db_connection_t* c
  * policy key objects in the policy key object list.
  */
 const policy_key_t* policy_key_list_begin(policy_key_list_t* policy_key_list);
-
-/**
- * Get the first policy key object in a policy key object list and reset the
- * position of the list. The caller will be given ownership of this object and
- * is responsible for freeing it.
- * \param[in] policy_key_list a policy_key_list_t pointer.
- * \return a policy_key_t pointer or NULL on error or if there are no
- * policy key objects in the policy key object list.
- */
-policy_key_t* policy_key_list_get_begin(policy_key_list_t* policy_key_list);
 
 /**
  * Get the next policy key object in a policy key object list.

@@ -112,26 +112,4 @@ key_state_t* key_data_get_cached_rrsigdnskey(key_data_t* key_data);
  */
 const hsm_key_t* key_data_cached_hsm_key(const key_data_t* key_data);
 
-/**
- * Get the cached hsm key object of a key data object.
- * key_data_cache_hsm_key() must have been called before this.
- * \param[in] key_data a key_data_t pointer.
- * \return a key_state_t pointer.
- */
-hsm_key_t* key_data_get_cached_hsm_key(key_data_t* key_data);
-
-/**
- * Tests if key has KSK role (includes CSK)
- * \param[in] key_data a key_data_t pointer.
- * \return 1 if ksk, 0 otherwise or error
- */
-int key_data_is_ksk(const key_data_t* key_data);
-
-/**
- * Tests if key has ZSK role (includes CSK)
- * \param[in] key_data a key_data_t pointer.
- * \return 1 if zsk, 0 otherwise or error
- */
-int key_data_is_zsk(const key_data_t* key_data);
-
 #endif

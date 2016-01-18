@@ -66,30 +66,6 @@ task_create(task_id what, time_t when, void* zone)
 
 
 /**
- * Backup task.
- *
- */
-void
-task_backup(FILE* fd, task_type* task)
-{
-    if (!fd || !task) {
-        return;
-    }
-    ods_log_assert(fd);
-    ods_log_assert(task);
-
-    fprintf(fd, ";;Task: when %u what %i interrupt %i halted %i backoff %i "
-        "flush %i\n",
-        (unsigned) task->when,
-        (int) task->what,
-        (int) task->interrupt,
-        (int) task->halted,
-        (unsigned) task->backoff,
-        task->flush);
-}
-
-
-/**
  * Compare tasks.
  *
  */
@@ -205,27 +181,6 @@ task2str(task_type* task, char* buftask)
         }
     }
     return NULL;
-}
-
-
-/**
- * Print task.
- *
- */
-void
-task_print(FILE* out, task_type* task)
-{
-    char* strtime = NULL;
-
-    if (out && task) {
-        strtime = ctime(&task->when);
-        if (strtime) {
-            strtime[strlen(strtime)-1] = '\0';
-        }
-        fprintf(out, "%s %s I will %s zone %s\n",
-            task->flush?"Flush":"On", strtime?strtime:"(null)",
-            task_what2str(task->what), task_who2str(task));
-    }
 }
 
 

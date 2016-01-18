@@ -811,44 +811,6 @@ worker_wakeup(worker_type* worker)
 
 
 /**
- * Worker waiting.
- *
- */
-void
-worker_wait_timeout(lock_basic_type* lock, cond_basic_type* condition,
-    time_t timeout)
-{
-    lock_basic_lock(lock);
-    lock_basic_sleep(condition, lock, timeout);
-    lock_basic_unlock(lock);
-}
-
-
-/**
- * Worker waiting.
- *
- */
-void
-worker_wait(lock_basic_type* lock, cond_basic_type* condition)
-{
-    worker_wait_timeout(lock, condition, 0);
-}
-
-
-/**
- * Notify a worker.
- *
- */
-void
-worker_notify(lock_basic_type* lock, cond_basic_type* condition)
-{
-    lock_basic_lock(lock);
-    lock_basic_alarm(condition);
-    lock_basic_unlock(lock);
-}
-
-
-/**
  * Notify all workers.
  *
  */

@@ -93,14 +93,6 @@ void nsec3params_backup(FILE* fd, uint8_t algo, uint8_t flags,
     uint16_t iter, const char* salt, ldns_rr* rr, const char* version);
 
 /**
- * Convert salt to string.
- * \param[in] nsec3params NSEC3 parameters
- * \return const char* str salt in string format
- *
- */
-const char* nsec3params_salt2str(nsec3params_type* nsec3params);
-
-/**
  * Clean up the NSEC3 parameters.
  * \param[in] nsec3params the nsec3param to be deleted
  *

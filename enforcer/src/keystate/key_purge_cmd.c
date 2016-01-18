@@ -60,6 +60,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	int argc;
 	const char *argv[4];
 	int error = 0;
+	(void)engine;
 
         if (!dbconn) return 1;
 

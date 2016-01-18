@@ -304,35 +304,6 @@ void hsm_key_free(hsm_key_t* hsm_key) {
     }
 }
 
-void hsm_key_reset(hsm_key_t* hsm_key) {
-    if (hsm_key) {
-        db_value_reset(&(hsm_key->id));
-        db_value_reset(&(hsm_key->rev));
-        db_value_reset(&(hsm_key->policy_id));
-        if (hsm_key->private_policy_id) {
-            policy_free(hsm_key->private_policy_id);
-            hsm_key->private_policy_id = NULL;
-        }
-        hsm_key->associated_policy_id = NULL;
-        if (hsm_key->locator) {
-            free(hsm_key->locator);
-            hsm_key->locator = NULL;
-        }
-        hsm_key->state = HSM_KEY_STATE_UNUSED;
-        hsm_key->bits = 2048;
-        hsm_key->algorithm = 1;
-        hsm_key->role = HSM_KEY_ROLE_ZSK;
-        hsm_key->inception = 0;
-        hsm_key->is_revoked = 0;
-        hsm_key->key_type = HSM_KEY_KEY_TYPE_RSA;
-        if (hsm_key->repository) {
-            free(hsm_key->repository);
-            hsm_key->repository = NULL;
-        }
-        hsm_key->backup = HSM_KEY_BACKUP_NO_BACKUP;
-    }
-}
-
 int hsm_key_copy(hsm_key_t* hsm_key, const hsm_key_t* hsm_key_copy) {
     char* locator_text = NULL;
     char* repository_text = NULL;
@@ -429,87 +400,6 @@ int hsm_key_copy(hsm_key_t* hsm_key, const hsm_key_t* hsm_key_copy) {
     hsm_key->repository = repository_text;
     hsm_key->backup = hsm_key_copy->backup;
     return DB_OK;
-}
-
-int hsm_key_cmp(const hsm_key_t* hsm_key_a, const hsm_key_t* hsm_key_b) {
-    int ret;
-
-    if (!hsm_key_a && !hsm_key_b) {
-        return 0;
-    }
-    if (!hsm_key_a && hsm_key_b) {
-        return -1;
-    }
-    if (hsm_key_a && !hsm_key_b) {
-        return 1;
-    }
-
-    ret = 0;
-    (void)db_value_cmp(&(hsm_key_a->policy_id), &(hsm_key_b->policy_id), &ret);
-    if (ret) {
-        return ret;
-    }
-
-    if (hsm_key_a->locator && hsm_key_b->locator) {
-        if ((ret = strcmp(hsm_key_a->locator, hsm_key_b->locator))) {
-            return ret;
-        }
-    }
-    else {
-        if (!hsm_key_a->locator && hsm_key_b->locator) {
-            return -1;
-        }
-        if (hsm_key_a->locator && !hsm_key_b->locator) {
-            return -1;
-        }
-    }
-
-    if (hsm_key_a->state != hsm_key_b->state) {
-        return hsm_key_a->state < hsm_key_b->state ? -1 : 1;
-    }
-
-    if (hsm_key_a->bits != hsm_key_b->bits) {
-        return hsm_key_a->bits < hsm_key_b->bits ? -1 : 1;
-    }
-
-    if (hsm_key_a->algorithm != hsm_key_b->algorithm) {
-        return hsm_key_a->algorithm < hsm_key_b->algorithm ? -1 : 1;
-    }
-
-    if (hsm_key_a->role != hsm_key_b->role) {
-        return hsm_key_a->role < hsm_key_b->role ? -1 : 1;
-    }
-
-    if (hsm_key_a->inception != hsm_key_b->inception) {
-        return hsm_key_a->inception < hsm_key_b->inception ? -1 : 1;
-    }
-
-    if (hsm_key_a->is_revoked != hsm_key_b->is_revoked) {
-        return hsm_key_a->is_revoked < hsm_key_b->is_revoked ? -1 : 1;
-    }
-
-    if (hsm_key_a->key_type != hsm_key_b->key_type) {
-        return hsm_key_a->key_type < hsm_key_b->key_type ? -1 : 1;
-    }
-
-    if (hsm_key_a->repository && hsm_key_b->repository) {
-        if ((ret = strcmp(hsm_key_a->repository, hsm_key_b->repository))) {
-            return ret;
-        }
-    }
-    else {
-        if (!hsm_key_a->repository && hsm_key_b->repository) {
-            return -1;
-        }
-        if (hsm_key_a->repository && !hsm_key_b->repository) {
-            return -1;
-        }
-    }
-
-    if (hsm_key_a->backup != hsm_key_b->backup) {
-        return hsm_key_a->backup < hsm_key_b->backup ? -1 : 1;
-    }
-    return 0;
 }
 
 int hsm_key_from_result(hsm_key_t* hsm_key, const db_result_t* result) {
@@ -627,78 +517,6 @@ const db_value_t* hsm_key_policy_id(const hsm_key_t* hsm_key) {
     return &(hsm_key->policy_id);
 }
 
-int hsm_key_cache_policy(hsm_key_t* hsm_key) {
-    if (!hsm_key) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    if (hsm_key->associated_policy_id
-        || hsm_key->private_policy_id)
-    {
-        return DB_OK;
-    }
-
-    if (!(hsm_key->private_policy_id = policy_new(db_object_connection(hsm_key->dbo)))) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (policy_get_by_id(hsm_key->private_policy_id, &(hsm_key->policy_id))) {
-        policy_free(hsm_key->private_policy_id);
-        hsm_key->private_policy_id = NULL;
-        return DB_ERROR_UNKNOWN;
-    }
-
-    return DB_OK;
-}
-
-const policy_t* hsm_key_policy(const hsm_key_t* hsm_key) {
-    if (!hsm_key) {
-        return NULL;
-    }
-
-    if (hsm_key->private_policy_id) {
-        return hsm_key->private_policy_id;
-    }
-    return hsm_key->associated_policy_id;
-}
-
-policy_t* hsm_key_get_policy(const hsm_key_t* hsm_key) {
-    policy_t* policy_id = NULL;
-
-    if (!hsm_key) {
-        return NULL;
-    }
-    if (!hsm_key->dbo) {
-        return NULL;
-    }
-    if (db_value_not_empty(&(hsm_key->policy_id))) {
-        return NULL;
-    }
-
-    if (!(policy_id = policy_new(db_object_connection(hsm_key->dbo)))) {
-        return NULL;
-    }
-    if (hsm_key->private_policy_id) {
-        if (policy_copy(policy_id, hsm_key->private_policy_id)) {
-            policy_free(policy_id);
-            return NULL;
-        }
-    }
-    else if (hsm_key->associated_policy_id) {
-        if (policy_copy(policy_id, hsm_key->associated_policy_id)) {
-            policy_free(policy_id);
-            return NULL;
-        }
-    }
-    else {
-        if (policy_get_by_id(policy_id, &(hsm_key->policy_id))) {
-            policy_free(policy_id);
-            return NULL;
-        }
-    }
-
-    return policy_id;
-}
-
 const char* hsm_key_locator(const hsm_key_t* hsm_key) {
     if (!hsm_key) {
         return NULL;
@@ -713,22 +531,6 @@ hsm_key_state_t hsm_key_state(const hsm_key_t* hsm_key) {
     }
 
     return hsm_key->state;
-}
-
-const char* hsm_key_state_text(const hsm_key_t* hsm_key) {
-    const db_enum_t* enum_set = hsm_key_enum_set_state;
-
-    if (!hsm_key) {
-        return NULL;
-    }
-
-    while (enum_set->text) {
-        if (enum_set->value == hsm_key->state) {
-            return enum_set->text;
-        }
-        enum_set++;
-    }
-    return NULL;
 }
 
 unsigned int hsm_key_bits(const hsm_key_t* hsm_key) {
@@ -755,60 +557,12 @@ hsm_key_role_t hsm_key_role(const hsm_key_t* hsm_key) {
     return hsm_key->role;
 }
 
-const char* hsm_key_role_text(const hsm_key_t* hsm_key) {
-    const db_enum_t* enum_set = hsm_key_enum_set_role;
-
-    if (!hsm_key) {
-        return NULL;
-    }
-
-    while (enum_set->text) {
-        if (enum_set->value == hsm_key->role) {
-            return enum_set->text;
-        }
-        enum_set++;
-    }
-    return NULL;
-}
-
 unsigned int hsm_key_inception(const hsm_key_t* hsm_key) {
     if (!hsm_key) {
         return 0;
     }
 
     return hsm_key->inception;
-}
-
-unsigned int hsm_key_is_revoked(const hsm_key_t* hsm_key) {
-    if (!hsm_key) {
-        return 0;
-    }
-
-    return hsm_key->is_revoked;
-}
-
-hsm_key_key_type_t hsm_key_key_type(const hsm_key_t* hsm_key) {
-    if (!hsm_key) {
-        return HSM_KEY_KEY_TYPE_INVALID;
-    }
-
-    return hsm_key->key_type;
-}
-
-const char* hsm_key_key_type_text(const hsm_key_t* hsm_key) {
-    const db_enum_t* enum_set = hsm_key_enum_set_key_type;
-
-    if (!hsm_key) {
-        return NULL;
-    }
-
-    while (enum_set->text) {
-        if (enum_set->value == hsm_key->key_type) {
-            return enum_set->text;
-        }
-        enum_set++;
-    }
-    return NULL;
 }
 
 const char* hsm_key_repository(const hsm_key_t* hsm_key) {
@@ -825,22 +579,6 @@ hsm_key_backup_t hsm_key_backup(const hsm_key_t* hsm_key) {
     }
 
     return hsm_key->backup;
-}
-
-const char* hsm_key_backup_text(const hsm_key_t* hsm_key) {
-    const db_enum_t* enum_set = hsm_key_enum_set_backup;
-
-    if (!hsm_key) {
-        return NULL;
-    }
-
-    while (enum_set->text) {
-        if (enum_set->value == hsm_key->backup) {
-            return enum_set->text;
-        }
-        enum_set++;
-    }
-    return NULL;
 }
 
 int hsm_key_set_policy_id(hsm_key_t* hsm_key, const db_value_t* policy_id) {
@@ -897,23 +635,6 @@ int hsm_key_set_state(hsm_key_t* hsm_key, hsm_key_state_t state) {
     return DB_OK;
 }
 
-int hsm_key_set_state_text(hsm_key_t* hsm_key, const char* state) {
-    const db_enum_t* enum_set = hsm_key_enum_set_state;
-
-    if (!hsm_key) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    while (enum_set->text) {
-        if (!strcmp(enum_set->text, state)) {
-            hsm_key->state = enum_set->value;
-            return DB_OK;
-        }
-        enum_set++;
-    }
-    return DB_ERROR_UNKNOWN;
-}
-
 int hsm_key_set_bits(hsm_key_t* hsm_key, unsigned int bits) {
     if (!hsm_key) {
         return DB_ERROR_UNKNOWN;
@@ -947,39 +668,12 @@ int hsm_key_set_role(hsm_key_t* hsm_key, hsm_key_role_t role) {
     return DB_OK;
 }
 
-int hsm_key_set_role_text(hsm_key_t* hsm_key, const char* role) {
-    const db_enum_t* enum_set = hsm_key_enum_set_role;
-
-    if (!hsm_key) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    while (enum_set->text) {
-        if (!strcmp(enum_set->text, role)) {
-            hsm_key->role = enum_set->value;
-            return DB_OK;
-        }
-        enum_set++;
-    }
-    return DB_ERROR_UNKNOWN;
-}
-
 int hsm_key_set_inception(hsm_key_t* hsm_key, unsigned int inception) {
     if (!hsm_key) {
         return DB_ERROR_UNKNOWN;
     }
 
     hsm_key->inception = inception;
-
-    return DB_OK;
-}
-
-int hsm_key_set_is_revoked(hsm_key_t* hsm_key, unsigned int is_revoked) {
-    if (!hsm_key) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    hsm_key->is_revoked = is_revoked;
 
     return DB_OK;
 }
@@ -995,23 +689,6 @@ int hsm_key_set_key_type(hsm_key_t* hsm_key, hsm_key_key_type_t key_type) {
     hsm_key->key_type = key_type;
 
     return DB_OK;
-}
-
-int hsm_key_set_key_type_text(hsm_key_t* hsm_key, const char* key_type) {
-    const db_enum_t* enum_set = hsm_key_enum_set_key_type;
-
-    if (!hsm_key) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    while (enum_set->text) {
-        if (!strcmp(enum_set->text, key_type)) {
-            hsm_key->key_type = enum_set->value;
-            return DB_OK;
-        }
-        enum_set++;
-    }
-    return DB_ERROR_UNKNOWN;
 }
 
 int hsm_key_set_repository(hsm_key_t* hsm_key, const char* repository_text) {
@@ -1049,23 +726,6 @@ int hsm_key_set_backup(hsm_key_t* hsm_key, hsm_key_backup_t backup) {
     return DB_OK;
 }
 
-int hsm_key_set_backup_text(hsm_key_t* hsm_key, const char* backup) {
-    const db_enum_t* enum_set = hsm_key_enum_set_backup;
-
-    if (!hsm_key) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    while (enum_set->text) {
-        if (!strcmp(enum_set->text, backup)) {
-            hsm_key->backup = enum_set->value;
-            return DB_OK;
-        }
-        enum_set++;
-    }
-    return DB_ERROR_UNKNOWN;
-}
-
 db_clause_t* hsm_key_policy_id_clause(db_clause_list_t* clause_list, const db_value_t* policy_id) {
     db_clause_t* clause;
 
@@ -1084,30 +744,6 @@ db_clause_t* hsm_key_policy_id_clause(db_clause_list_t* clause_list, const db_va
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
         || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
         || db_value_copy(db_clause_get_value(clause), policy_id)
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        return NULL;
-    }
-
-    return clause;
-}
-
-db_clause_t* hsm_key_locator_clause(db_clause_list_t* clause_list, const char* locator_text) {
-    db_clause_t* clause;
-
-    if (!clause_list) {
-        return NULL;
-    }
-    if (!locator_text) {
-        return NULL;
-    }
-
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "locator")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
-        || db_value_from_text(db_clause_get_value(clause), locator_text)
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -1192,27 +828,6 @@ db_clause_t* hsm_key_role_clause(db_clause_list_t* clause_list, hsm_key_role_t r
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
         || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
         || db_value_from_enum_value(db_clause_get_value(clause), role, hsm_key_enum_set_role)
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        return NULL;
-    }
-
-    return clause;
-}
-
-db_clause_t* hsm_key_inception_clause(db_clause_list_t* clause_list, unsigned int inception) {
-    db_clause_t* clause;
-
-    if (!clause_list) {
-        return NULL;
-    }
-
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "inception")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
-        || db_value_from_uint32(db_clause_get_value(clause), inception)
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -1537,29 +1152,6 @@ int hsm_key_get_by_id(hsm_key_t* hsm_key, const db_value_t* id) {
     return DB_ERROR_UNKNOWN;
 }
 
-hsm_key_t* hsm_key_new_get_by_id(const db_connection_t* connection, const db_value_t* id) {
-    hsm_key_t* hsm_key;
-
-    if (!connection) {
-        return NULL;
-    }
-    if (!id) {
-        return NULL;
-    }
-    if (db_value_not_empty(id)) {
-        return NULL;
-    }
-
-    if (!(hsm_key = hsm_key_new(connection))
-        || hsm_key_get_by_id(hsm_key, id))
-    {
-        hsm_key_free(hsm_key);
-        return NULL;
-    }
-
-    return hsm_key;
-}
-
 int hsm_key_get_by_locator(hsm_key_t* hsm_key, const char* locator) {
     db_clause_list_t* clause_list;
     db_clause_t* clause;
@@ -1840,52 +1432,6 @@ int hsm_key_update(hsm_key_t* hsm_key) {
     return ret;
 }
 
-int hsm_key_delete(hsm_key_t* hsm_key) {
-    db_clause_list_t* clause_list;
-    db_clause_t* clause;
-    int ret;
-
-    if (!hsm_key) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!hsm_key->dbo) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (db_value_not_empty(&(hsm_key->id))) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    if (!(clause_list = db_clause_list_new())) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "id")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_copy(db_clause_get_value(clause), &(hsm_key->id))
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        db_clause_list_free(clause_list);
-        return DB_ERROR_UNKNOWN;
-    }
-
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "rev")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_copy(db_clause_get_value(clause), &(hsm_key->rev))
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        db_clause_list_free(clause_list);
-        return DB_ERROR_UNKNOWN;
-    }
-
-    ret = db_object_delete(hsm_key->dbo, clause_list);
-    db_clause_list_free(clause_list);
-    return ret;
-}
-
 int hsm_key_count(hsm_key_t* hsm_key, db_clause_list_t* clause_list, size_t* count) {
     if (!hsm_key) {
         return DB_ERROR_UNKNOWN;
@@ -1943,17 +1489,6 @@ int hsm_key_list_object_store(hsm_key_list_t* hsm_key_list) {
     }
 
     hsm_key_list->object_store = 1;
-
-    return DB_OK;
-}
-
-int hsm_key_list_associated_fetch(hsm_key_list_t* hsm_key_list) {
-    if (!hsm_key_list) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    hsm_key_list->object_store = 1;
-    hsm_key_list->associated_fetch = 1;
 
     return DB_OK;
 }
@@ -2144,62 +1679,6 @@ static int hsm_key_list_get_associated(hsm_key_list_t* hsm_key_list) {
 
     hsm_key_list->object_list_first = 1;
     return DB_OK;
-}
-
-int hsm_key_list_get(hsm_key_list_t* hsm_key_list) {
-    size_t i;
-
-    if (!hsm_key_list) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!hsm_key_list->dbo) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    if (hsm_key_list->result_list) {
-        db_result_list_free(hsm_key_list->result_list);
-    }
-    if (hsm_key_list->object_list_size) {
-        for (i = 0; i < hsm_key_list->object_list_size; i++) {
-            if (hsm_key_list->object_list[i]) {
-                hsm_key_free(hsm_key_list->object_list[i]);
-            }
-        }
-        hsm_key_list->object_list_size = 0;
-        hsm_key_list->object_list_first = 0;
-    }
-    if (hsm_key_list->object_list) {
-        free(hsm_key_list->object_list);
-        hsm_key_list->object_list = NULL;
-    }
-    if (!(hsm_key_list->result_list = db_object_read(hsm_key_list->dbo, NULL, NULL))
-        || db_result_list_fetch_all(hsm_key_list->result_list))
-    {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (hsm_key_list->associated_fetch
-        && hsm_key_list_get_associated(hsm_key_list))
-    {
-        return DB_ERROR_UNKNOWN;
-    }
-    return DB_OK;
-}
-
-hsm_key_list_t* hsm_key_list_new_get(const db_connection_t* connection) {
-    hsm_key_list_t* hsm_key_list;
-
-    if (!connection) {
-        return NULL;
-    }
-
-    if (!(hsm_key_list = hsm_key_list_new(connection))
-        || hsm_key_list_get(hsm_key_list))
-    {
-        hsm_key_list_free(hsm_key_list);
-        return NULL;
-    }
-
-    return hsm_key_list;
 }
 
 int hsm_key_list_get_by_clauses(hsm_key_list_t* hsm_key_list, const db_clause_list_t* clause_list) {
@@ -2542,22 +2021,4 @@ hsm_key_t* hsm_key_list_get_next(hsm_key_list_t* hsm_key_list) {
         return NULL;
     }
     return hsm_key;
-}
-
-size_t hsm_key_list_size(hsm_key_list_t* hsm_key_list) {
-    if (!hsm_key_list) {
-        return 0;
-    }
-
-    if (hsm_key_list->object_store
-        && hsm_key_list->object_list)
-    {
-        return hsm_key_list->object_list_size;
-    }
-
-    if (!hsm_key_list->result_list) {
-        return 0;
-    }
-
-    return db_result_list_size(hsm_key_list->result_list);
 }

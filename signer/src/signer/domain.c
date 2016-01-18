@@ -111,27 +111,6 @@ domain_create(zone_type* zone, ldns_rdf* dname)
 
 
 /**
- * Count the number of RRsets at this domain.
- *
- */
-size_t
-domain_count_rrset(domain_type* domain)
-{
-    rrset_type* rrset = NULL;
-    size_t count = 0;
-    if (!domain) {
-        return 0;
-    }
-    rrset = domain->rrsets;
-    while (rrset) {
-        count++; /* rr_count may be zero */
-        rrset = rrset->next;
-    }
-    return count;
-}
-
-
-/**
  * Count the number of RRsets at this domain with RRs that have is_added.
  *
  */
@@ -200,65 +179,6 @@ domain_add_rrset(domain_type* domain, rrset_type* rrset)
         denial = (denial_type*) domain->denial;
         denial->bitmap_changed = 1;
     }
-}
-
-
-/**
- * Delete RRset from domain.
- *
- */
-rrset_type*
-domain_del_rrset(domain_type* domain, ldns_rr_type rrtype)
-{
-    rrset_type* cur = NULL;
-    denial_type* denial = NULL;
-    if (!domain || !rrtype) {
-        return NULL;
-    }
-    if (!domain->rrsets) {
-        ods_log_error("[%s] unable to delete RRset: RRset with RRtype %s "
-            "does not exist", dname_str, rrset_type2str(rrtype));
-        return NULL;
-    }
-    if (domain->rrsets->rrtype == rrtype) {
-        cur = domain->rrsets;
-        domain->rrsets = cur->next;
-        cur->domain = NULL;
-        cur->next = NULL;
-        log_rrset(domain->dname, rrtype, "-RRSET", LOG_DEEEBUG);
-        if (domain->denial) {
-            denial = (denial_type*) domain->denial;
-            denial->bitmap_changed = 1;
-        }
-        return cur;
-    }
-    cur = domain->rrsets;
-    while (cur) {
-        if (!cur->next) {
-            ods_log_error("[%s] unable to delete RRset: RRset with RRtype %s "
-                "does not exist", dname_str, rrset_type2str(rrtype));
-            return NULL;
-        }
-        ods_log_assert(cur->next);
-        if (cur->next->rrtype != rrtype) {
-            cur = cur->next;
-        } else {
-            ods_log_assert(cur->next->rrtype == rrtype);
-            cur->next = cur->next->next;
-            cur = cur->next;
-            cur->domain = NULL;
-            cur->next = NULL;
-            log_rrset(domain->dname, rrtype, "-RRSET", LOG_DEEEBUG);
-            if (domain->denial) {
-                denial = (denial_type*) domain->denial;
-                denial->bitmap_changed = 1;
-            }
-            return cur;
-        }
-    }
-    ods_log_error("[%s] unable to delete RRset: RRset with RRtype %s "
-        "does not exist", dname_str, rrset_type2str(rrtype));
-    return NULL;
 }
 
 

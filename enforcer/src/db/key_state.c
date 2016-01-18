@@ -226,24 +226,6 @@ void key_state_free(key_state_t* key_state) {
     }
 }
 
-void key_state_reset(key_state_t* key_state) {
-    if (key_state) {
-        db_value_reset(&(key_state->id));
-        db_value_reset(&(key_state->rev));
-        db_value_reset(&(key_state->key_data_id));
-        if (key_state->private_key_data_id) {
-            key_data_free(key_state->private_key_data_id);
-            key_state->private_key_data_id = NULL;
-        }
-        key_state->associated_key_data_id = NULL;
-        key_state->type = KEY_STATE_TYPE_INVALID;
-        key_state->state = KEY_STATE_STATE_HIDDEN;
-        key_state->last_change = 0;
-        key_state->minimize = 0;
-        key_state->ttl = 0;
-    }
-}
-
 int key_state_copy(key_state_t* key_state, const key_state_t* key_state_copy) {
     if (!key_state) {
         return DB_ERROR_UNKNOWN;
@@ -283,47 +265,6 @@ int key_state_copy(key_state_t* key_state, const key_state_t* key_state_copy) {
     key_state->minimize = key_state_copy->minimize;
     key_state->ttl = key_state_copy->ttl;
     return DB_OK;
-}
-
-int key_state_cmp(const key_state_t* key_state_a, const key_state_t* key_state_b) {
-    int ret;
-
-    if (!key_state_a && !key_state_b) {
-        return 0;
-    }
-    if (!key_state_a && key_state_b) {
-        return -1;
-    }
-    if (key_state_a && !key_state_b) {
-        return 1;
-    }
-
-    ret = 0;
-    db_value_cmp(&(key_state_a->key_data_id), &(key_state_b->key_data_id), &ret);
-    if (ret) {
-        return ret;
-    }
-
-    if (key_state_a->type != key_state_b->type) {
-        return key_state_a->type < key_state_b->type ? -1 : 1;
-    }
-
-    if (key_state_a->state != key_state_b->state) {
-        return key_state_a->state < key_state_b->state ? -1 : 1;
-    }
-
-    if (key_state_a->last_change != key_state_b->last_change) {
-        return key_state_a->last_change < key_state_b->last_change ? -1 : 1;
-    }
-
-    if (key_state_a->minimize != key_state_b->minimize) {
-        return key_state_a->minimize < key_state_b->minimize ? -1 : 1;
-    }
-
-    if (key_state_a->ttl != key_state_b->ttl) {
-        return key_state_a->ttl < key_state_b->ttl ? -1 : 1;
-    }
-    return 0;
 }
 
 int key_state_from_result(key_state_t* key_state, const db_result_t* result) {
@@ -393,92 +334,12 @@ int key_state_from_result(key_state_t* key_state, const db_result_t* result) {
     return DB_OK;
 }
 
-const db_value_t* key_state_id(const key_state_t* key_state) {
-    if (!key_state) {
-        return NULL;
-    }
-
-    return &(key_state->id);
-}
-
 const db_value_t* key_state_key_data_id(const key_state_t* key_state) {
     if (!key_state) {
         return NULL;
     }
 
     return &(key_state->key_data_id);
-}
-
-int key_state_cache_key_data(key_state_t* key_state) {
-    if (!key_state) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    if (key_state->associated_key_data_id
-        || key_state->private_key_data_id)
-    {
-        return DB_OK;
-    }
-
-    if (!(key_state->private_key_data_id = key_data_new(db_object_connection(key_state->dbo)))) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (key_data_get_by_id(key_state->private_key_data_id, &(key_state->key_data_id))) {
-        key_data_free(key_state->private_key_data_id);
-        key_state->private_key_data_id = NULL;
-        return DB_ERROR_UNKNOWN;
-    }
-
-    return DB_OK;
-}
-
-const key_data_t* key_state_key_data(const key_state_t* key_state) {
-    if (!key_state) {
-        return NULL;
-    }
-
-    if (key_state->private_key_data_id) {
-        return key_state->private_key_data_id;
-    }
-    return key_state->associated_key_data_id;
-}
-
-key_data_t* key_state_get_key_data(const key_state_t* key_state) {
-    key_data_t* key_data_id = NULL;
-
-    if (!key_state) {
-        return NULL;
-    }
-    if (!key_state->dbo) {
-        return NULL;
-    }
-    if (db_value_not_empty(&(key_state->key_data_id))) {
-        return NULL;
-    }
-
-    if (!(key_data_id = key_data_new(db_object_connection(key_state->dbo)))) {
-        return NULL;
-    }
-    if (key_state->private_key_data_id) {
-        if (key_data_copy(key_data_id, key_state->private_key_data_id)) {
-            key_data_free(key_data_id);
-            return NULL;
-        }
-    }
-    else if (key_state->associated_key_data_id) {
-        if (key_data_copy(key_data_id, key_state->associated_key_data_id)) {
-            key_data_free(key_data_id);
-            return NULL;
-        }
-    }
-    else {
-        if (key_data_get_by_id(key_data_id, &(key_state->key_data_id))) {
-            key_data_free(key_data_id);
-            return NULL;
-        }
-    }
-
-    return key_data_id;
 }
 
 key_state_type_t key_state_type(const key_state_t* key_state) {
@@ -585,23 +446,6 @@ int key_state_set_type(key_state_t* key_state, key_state_type_t type) {
     return DB_OK;
 }
 
-int key_state_set_type_text(key_state_t* key_state, const char* type) {
-    const db_enum_t* enum_set = key_state_enum_set_type;
-
-    if (!key_state) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    while (enum_set->text) {
-        if (!strcmp(enum_set->text, type)) {
-            key_state->type = enum_set->value;
-            return DB_OK;
-        }
-        enum_set++;
-    }
-    return DB_ERROR_UNKNOWN;
-}
-
 int key_state_set_state(key_state_t* key_state, key_state_state_t state) {
     if (!key_state) {
         return DB_ERROR_UNKNOWN;
@@ -613,23 +457,6 @@ int key_state_set_state(key_state_t* key_state, key_state_state_t state) {
     key_state->state = state;
 
     return DB_OK;
-}
-
-int key_state_set_state_text(key_state_t* key_state, const char* state) {
-    const db_enum_t* enum_set = key_state_enum_set_state;
-
-    if (!key_state) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    while (enum_set->text) {
-        if (!strcmp(enum_set->text, state)) {
-            key_state->state = enum_set->value;
-            return DB_OK;
-        }
-        enum_set++;
-    }
-    return DB_ERROR_UNKNOWN;
 }
 
 int key_state_set_last_change(key_state_t* key_state, unsigned int last_change) {
@@ -680,111 +507,6 @@ db_clause_t* key_state_key_data_id_clause(db_clause_list_t* clause_list, const d
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
         || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
         || db_value_copy(db_clause_get_value(clause), key_data_id)
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        return NULL;
-    }
-
-    return clause;
-}
-
-db_clause_t* key_state_type_clause(db_clause_list_t* clause_list, key_state_type_t type) {
-    db_clause_t* clause;
-
-    if (!clause_list) {
-        return NULL;
-    }
-
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "type")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
-        || db_value_from_enum_value(db_clause_get_value(clause), type, key_state_enum_set_type)
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        return NULL;
-    }
-
-    return clause;
-}
-
-db_clause_t* key_state_state_clause(db_clause_list_t* clause_list, key_state_state_t state) {
-    db_clause_t* clause;
-
-    if (!clause_list) {
-        return NULL;
-    }
-
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "state")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
-        || db_value_from_enum_value(db_clause_get_value(clause), state, key_state_enum_set_state)
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        return NULL;
-    }
-
-    return clause;
-}
-
-db_clause_t* key_state_last_change_clause(db_clause_list_t* clause_list, unsigned int last_change) {
-    db_clause_t* clause;
-
-    if (!clause_list) {
-        return NULL;
-    }
-
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "lastChange")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
-        || db_value_from_uint32(db_clause_get_value(clause), last_change)
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        return NULL;
-    }
-
-    return clause;
-}
-
-db_clause_t* key_state_minimize_clause(db_clause_list_t* clause_list, unsigned int minimize) {
-    db_clause_t* clause;
-
-    if (!clause_list) {
-        return NULL;
-    }
-
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "minimize")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
-        || db_value_from_uint32(db_clause_get_value(clause), minimize)
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        return NULL;
-    }
-
-    return clause;
-}
-
-db_clause_t* key_state_ttl_clause(db_clause_list_t* clause_list, unsigned int ttl) {
-    db_clause_t* clause;
-
-    if (!clause_list) {
-        return NULL;
-    }
-
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "ttl")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
-        || db_value_from_uint32(db_clause_get_value(clause), ttl)
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -957,29 +679,6 @@ int key_state_get_by_id(key_state_t* key_state, const db_value_t* id) {
 
     db_result_list_free(result_list);
     return DB_ERROR_UNKNOWN;
-}
-
-key_state_t* key_state_new_get_by_id(const db_connection_t* connection, const db_value_t* id) {
-    key_state_t* key_state;
-
-    if (!connection) {
-        return NULL;
-    }
-    if (!id) {
-        return NULL;
-    }
-    if (db_value_not_empty(id)) {
-        return NULL;
-    }
-
-    if (!(key_state = key_state_new(connection))
-        || key_state_get_by_id(key_state, id))
-    {
-        key_state_free(key_state);
-        return NULL;
-    }
-
-    return key_state;
 }
 
 int key_state_update(key_state_t* key_state) {
@@ -1175,20 +874,6 @@ int key_state_delete(key_state_t* key_state) {
     return ret;
 }
 
-int key_state_count(key_state_t* key_state, db_clause_list_t* clause_list, size_t* count) {
-    if (!key_state) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!key_state->dbo) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!count) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    return db_object_count(key_state->dbo, NULL, clause_list, count);
-}
-
 /* KEY STATE LIST */
 
 
@@ -1232,17 +917,6 @@ int key_state_list_object_store(key_state_list_t* key_state_list) {
     }
 
     key_state_list->object_store = 1;
-
-    return DB_OK;
-}
-
-int key_state_list_associated_fetch(key_state_list_t* key_state_list) {
-    if (!key_state_list) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    key_state_list->object_store = 1;
-    key_state_list->associated_fetch = 1;
 
     return DB_OK;
 }
@@ -1435,62 +1109,6 @@ static int key_state_list_get_associated(key_state_list_t* key_state_list) {
     return DB_OK;
 }
 
-int key_state_list_get(key_state_list_t* key_state_list) {
-    size_t i;
-
-    if (!key_state_list) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!key_state_list->dbo) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    if (key_state_list->result_list) {
-        db_result_list_free(key_state_list->result_list);
-    }
-    if (key_state_list->object_list_size) {
-        for (i = 0; i < key_state_list->object_list_size; i++) {
-            if (key_state_list->object_list[i]) {
-                key_state_free(key_state_list->object_list[i]);
-            }
-        }
-        key_state_list->object_list_size = 0;
-        key_state_list->object_list_first = 0;
-    }
-    if (key_state_list->object_list) {
-        free(key_state_list->object_list);
-        key_state_list->object_list = NULL;
-    }
-    if (!(key_state_list->result_list = db_object_read(key_state_list->dbo, NULL, NULL))
-        || db_result_list_fetch_all(key_state_list->result_list))
-    {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (key_state_list->associated_fetch
-        && key_state_list_get_associated(key_state_list))
-    {
-        return DB_ERROR_UNKNOWN;
-    }
-    return DB_OK;
-}
-
-key_state_list_t* key_state_list_new_get(const db_connection_t* connection) {
-    key_state_list_t* key_state_list;
-
-    if (!connection) {
-        return NULL;
-    }
-
-    if (!(key_state_list = key_state_list_new(connection))
-        || key_state_list_get(key_state_list))
-    {
-        key_state_list_free(key_state_list);
-        return NULL;
-    }
-
-    return key_state_list;
-}
-
 int key_state_list_get_by_clauses(key_state_list_t* key_state_list, const db_clause_list_t* clause_list) {
     size_t i;
 
@@ -1531,26 +1149,6 @@ int key_state_list_get_by_clauses(key_state_list_t* key_state_list, const db_cla
         return DB_ERROR_UNKNOWN;
     }
     return DB_OK;
-}
-
-key_state_list_t* key_state_list_new_get_by_clauses(const db_connection_t* connection, const db_clause_list_t* clause_list) {
-    key_state_list_t* key_state_list;
-
-    if (!connection) {
-        return NULL;
-    }
-    if (!clause_list) {
-        return NULL;
-    }
-
-    if (!(key_state_list = key_state_list_new(connection))
-        || key_state_list_get_by_clauses(key_state_list, clause_list))
-    {
-        key_state_list_free(key_state_list);
-        return NULL;
-    }
-
-    return key_state_list;
 }
 
 int key_state_list_get_by_key_data_id(key_state_list_t* key_state_list, const db_value_t* key_data_id) {
@@ -1831,22 +1429,4 @@ key_state_t* key_state_list_get_next(key_state_list_t* key_state_list) {
         return NULL;
     }
     return key_state;
-}
-
-size_t key_state_list_size(key_state_list_t* key_state_list) {
-    if (!key_state_list) {
-        return 0;
-    }
-
-    if (key_state_list->object_store
-        && key_state_list->object_list)
-    {
-        return key_state_list->object_list_size;
-    }
-
-    if (!key_state_list->result_list) {
-        return 0;
-    }
-
-    return db_result_list_size(key_state_list->result_list);
 }

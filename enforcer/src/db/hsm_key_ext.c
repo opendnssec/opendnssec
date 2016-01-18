@@ -30,40 +30,6 @@
 #include "hsm_key.h"
 #include "db_error.h"
 
-int hsm_key_list_get_by_repository(hsm_key_list_t* hsm_key_list,
-    const char* repository)
-{
-    db_clause_list_t* clause_list;
-
-    if (!hsm_key_list) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!hsm_key_list->dbo) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!repository) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    if (!(clause_list = db_clause_list_new())
-        || !hsm_key_repository_clause(clause_list, repository))
-    {
-        db_clause_list_free(clause_list);
-        return DB_ERROR_UNKNOWN;
-    }
-
-    if (hsm_key_list->result_list) {
-        db_result_list_free(hsm_key_list->result_list);
-    }
-    if (!(hsm_key_list->result_list = db_object_read(hsm_key_list->dbo,
-            NULL, clause_list))) {
-        db_clause_list_free(clause_list);
-        return DB_ERROR_UNKNOWN;
-    }
-    db_clause_list_free(clause_list);
-    return DB_OK;
-}
-
 hsm_key_list_t* hsm_key_list_new_get_by_policy_key(const policy_key_t *pkey)
 {
     hsm_key_list_t* hkey_list = NULL;

@@ -66,15 +66,6 @@ const char* ods_file_mode2str(const char* mode);
 int ods_fgetc(FILE* fd, unsigned int* line_nr);
 
 /**
- * Skip white space.
- * \param[in] fd file descriptor
- * \param[in] line_nr line number
- * \return int first encountered non-whitespace character
- *
- */
-int ods_skip_whitespace(FILE* fd, unsigned int* line_nr);
-
-/**
  * Construct file or directory name.
  * \param[in] file filename without extension
  * \param[in] suffix extension.
@@ -111,15 +102,6 @@ void ods_fclose(FILE* fd);
  *
  */
 ssize_t ods_writen(int fd, const void* vptr, size_t n);
-	
-/**
- * Write to file descriptor.
- * \param[in] fd file descriptor
- * \param[in] format pointer to C format string
- * \param[in] ... parameters to be expanded in format string
- *
- */
-void ods_printf(int fd, const char * format, ...);
 	
 /**
  * Combined error logging and writing to file descriptor.

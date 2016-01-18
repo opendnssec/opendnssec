@@ -97,29 +97,12 @@ key_state_t* key_state_new_copy(const key_state_t* key_state);
 void key_state_free(key_state_t* key_state);
 
 /**
- * Reset the content of a key state object making it as if its new. This does not change anything in the database.
- * \param[in] key_state a key_state_t pointer.
- */
-void key_state_reset(key_state_t* key_state);
-
-/**
  * Copy the content of a key state object.
  * \param[in] key_state a key_state_t pointer.
  * \param[in] key_state_copy a key_state_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int key_state_copy(key_state_t* key_state, const key_state_t* key_state_copy);
-
-/**
- * Compare two key state objects and return less than, equal to,
- * or greater than zero if A is found, respectively, to be less than, to match,
- * or be greater than B.
- * \param[in] key_state_a a key_state_t pointer.
- * \param[in] key_state_b a key_state_t pointer.
- * \return less than, equal to, or greater than zero if A is found, respectively,
- * to be less than, to match, or be greater than B.
- */
-int key_state_cmp(const key_state_t* key_state_a, const key_state_t* key_state_b);
 
 /**
  * Set the content of a key state object based on a database result.
@@ -130,40 +113,11 @@ int key_state_cmp(const key_state_t* key_state_a, const key_state_t* key_state_b
 int key_state_from_result(key_state_t* key_state, const db_result_t* result);
 
 /**
- * Get the id of a key state object.
- * \param[in] key_state a key_state_t pointer.
- * \return a db_value_t pointer or NULL on error.
- */
-const db_value_t* key_state_id(const key_state_t* key_state);
-
-/**
  * Get the key_data_id of a key state object.
  * \param[in] key_state a key_state_t pointer.
  * \return a db_value_t pointer or NULL on error.
  */
 const db_value_t* key_state_key_data_id(const key_state_t* key_state);
-
-/**
- * Cache the key_data_id object related to a key state object.
- * \param[in] key_state a key_state_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int key_state_cache_key_data(key_state_t* key_state);
-
-/**
- * Get the key_data_id object related to a key state object.
- * \param[in] key_state a key_state_t pointer.
- * \return a key_data_t pointer or NULL on error or if no object could be found.
- */
-const key_data_t* key_state_key_data(const key_state_t* key_state);
-
-/**
- * Get the key_data_id object related to a key state object.
- * The caller will be given ownership of this object and is responsible for freeing it.
- * \param[in] key_state a key_state_t pointer.
- * \return a key_data_t pointer or NULL on error or if no object could be found.
- */
-key_data_t* key_state_get_key_data(const key_state_t* key_state);
 
 /**
  * Get the type of a key state object.
@@ -231,28 +185,12 @@ int key_state_set_key_data_id(key_state_t* key_state, const db_value_t* key_data
 int key_state_set_type(key_state_t* key_state, key_state_type_t type);
 
 /**
- * Set the type of a key state object from text.
- * \param[in] key_state a key_state_t pointer.
- * \param[in] type a character pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int key_state_set_type_text(key_state_t* key_state, const char* type);
-
-/**
  * Set the state of a key state object.
  * \param[in] key_state a key_state_t pointer.
  * \param[in] state a key_state_state_t.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int key_state_set_state(key_state_t* key_state, key_state_state_t state);
-
-/**
- * Set the state of a key state object from text.
- * \param[in] key_state a key_state_t pointer.
- * \param[in] state a character pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int key_state_set_state_text(key_state_t* key_state, const char* state);
 
 /**
  * Set the last_change of a key state object.
@@ -290,61 +228,6 @@ int key_state_set_ttl(key_state_t* key_state, unsigned int ttl);
 db_clause_t* key_state_key_data_id_clause(db_clause_list_t* clause_list, const db_value_t* key_data_id);
 
 /**
- * Create a clause for type of a key state object and add it to a database clause list.
- * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
- * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
- * returned db_clause_t pointer.
- * \param[in] clause_list db_clause_list_t pointer.
- * \param[in] type a key_state_type_t.
- * \return a db_clause_t pointer to the added clause or NULL on error.
- */
-db_clause_t* key_state_type_clause(db_clause_list_t* clause_list, key_state_type_t type);
-
-/**
- * Create a clause for state of a key state object and add it to a database clause list.
- * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
- * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
- * returned db_clause_t pointer.
- * \param[in] clause_list db_clause_list_t pointer.
- * \param[in] state a key_state_state_t.
- * \return a db_clause_t pointer to the added clause or NULL on error.
- */
-db_clause_t* key_state_state_clause(db_clause_list_t* clause_list, key_state_state_t state);
-
-/**
- * Create a clause for last_change of a key state object and add it to a database clause list.
- * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
- * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
- * returned db_clause_t pointer.
- * \param[in] clause_list db_clause_list_t pointer.
- * \param[in] last_change an unsigned integer.
- * \return a db_clause_t pointer to the added clause or NULL on error.
- */
-db_clause_t* key_state_last_change_clause(db_clause_list_t* clause_list, unsigned int last_change);
-
-/**
- * Create a clause for minimize of a key state object and add it to a database clause list.
- * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
- * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
- * returned db_clause_t pointer.
- * \param[in] clause_list db_clause_list_t pointer.
- * \param[in] minimize an unsigned integer.
- * \return a db_clause_t pointer to the added clause or NULL on error.
- */
-db_clause_t* key_state_minimize_clause(db_clause_list_t* clause_list, unsigned int minimize);
-
-/**
- * Create a clause for ttl of a key state object and add it to a database clause list.
- * The clause operator is set to DB_CLAUSE_OPERATOR_AND and the clause type is
- * set to DB_CLAUSE_EQUAL, if you want to change these you can do it with the
- * returned db_clause_t pointer.
- * \param[in] clause_list db_clause_list_t pointer.
- * \param[in] ttl an unsigned integer.
- * \return a db_clause_t pointer to the added clause or NULL on error.
- */
-db_clause_t* key_state_ttl_clause(db_clause_list_t* clause_list, unsigned int ttl);
-
-/**
  * Create a key state object in the database.
  * \param[in] key_state a key_state_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
@@ -360,14 +243,6 @@ int key_state_create(key_state_t* key_state);
 int key_state_get_by_id(key_state_t* key_state, const db_value_t* id);
 
 /**
- * Get a new key state object from the database by a id specified in `id`.
- * \param[in] connection a db_connection_t pointer.
- * \param[in] id a db_value_t pointer.
- * \return a key_state_t pointer or NULL on error or if it does not exist.
- */
-key_state_t* key_state_new_get_by_id(const db_connection_t* connection, const db_value_t* id);
-
-/**
  * Update a key state object in the database.
  * \param[in] key_state a key_state_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
@@ -380,18 +255,6 @@ int key_state_update(key_state_t* key_state);
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int key_state_delete(key_state_t* key_state);
-
-/**
- * Count the number of key state objects in the database, if a selection of
- * objects should be counted then it can be limited by a database clause list
- * otherwise all objects are counted.
- * \param[in] key_state a key_state_t pointer.
- * \param[in] clause_list a db_clause_list_t pointer or NULL if all objects.
- * \param[out] count a size_t pointer to where the count should be stored.
- * should be counted.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int key_state_count(key_state_t* key_state, db_clause_list_t* clause_list, size_t* count);
 
 /**
  * A list of key state objects.
@@ -433,15 +296,6 @@ key_state_list_t* key_state_list_new_copy(const key_state_list_t* key_state_copy
 int key_state_list_object_store(key_state_list_t* key_state_list);
 
 /**
- * Specify that the list should also fetch associated objects in a more optimal
- * way then fetching them for each individual object later on. This also forces
- * the list to store all objects (see key_state_list_object_store()).
- * \param[in] key_state_list a key_state_list_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int key_state_list_associated_fetch(key_state_list_t* key_state_list);
-
-/**
  * Delete a key state object list.
  * \param[in] key_state_list a key_state_list_t pointer.
  */
@@ -455,19 +309,6 @@ void key_state_list_free(key_state_list_t* key_state_list);
  */
 int key_state_list_copy(key_state_list_t* key_state_list, const key_state_list_t* from_key_state_list);
 
-/**
- * Get all key state objects.
- * \param[in] key_state_list a key_state_list_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int key_state_list_get(key_state_list_t* key_state_list);
-
-/**
- * Get a new list with all key state objects.
- * \param[in] connection a db_connection_t pointer.
- * \return a key_state_list_t pointer or NULL on error.
- */
-key_state_list_t* key_state_list_new_get(const db_connection_t* connection);
 
 /**
  * Get key state objects from the database by a clause list.
@@ -476,14 +317,6 @@ key_state_list_t* key_state_list_new_get(const db_connection_t* connection);
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int key_state_list_get_by_clauses(key_state_list_t* key_state_list, const db_clause_list_t* clause_list);
-
-/**
- * Get a new list of key state objects from the database by a clause list.
- * \param[in] connection a db_connection_t pointer.
- * \param[in] clause_list a db_clause_list_t pointer.
- * \return a key_state_list_t pointer or NULL on error.
- */
-key_state_list_t* key_state_list_new_get_by_clauses(const db_connection_t* connection, const db_clause_list_t* clause_list);
 
 /**
  * Get key state objects from the database by a key_data_id specified in `key_data_id`.
@@ -539,13 +372,5 @@ const key_state_t* key_state_list_next(key_state_list_t* key_state_list);
  * key state objects in the key state object list.
  */
 key_state_t* key_state_list_get_next(key_state_list_t* key_state_list);
-
-/**
- * Get the size of a key state object list.
- * \param[in] key_state_list a key_state_list_t pointer.
- * \return a size_t with the size of the list or zero on error, if the list is
- * empty or if the backend does not support returning the size.
- */
-size_t key_state_list_size(key_state_list_t* key_state_list);
 
 #endif

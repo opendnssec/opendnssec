@@ -115,15 +115,6 @@ ods_status signconf_check(signconf_type* signconf);
 task_id signconf_compare_denial(signconf_type* a, signconf_type* b);
 
 /**
- * Print signer configuration.
- * \param[in] out file descriptor
- * \param[in] sc signconf to print
- * \param[in] name zone name
- *
- */
-void signconf_print(FILE* out, signconf_type* sc, const char* name);
-
-/**
  * Log signer configuration.
  * \param[in] sc signconf to log
  * \param[in] name zone name

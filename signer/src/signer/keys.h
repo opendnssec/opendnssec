@@ -87,15 +87,6 @@ keylist_type* keylist_create(signconf_type* sc);
 key_type* keylist_lookup_by_locator(keylist_type* kl, const char* locator);
 
 /**
- * Lookup a key in the key list by dnskey.
- * \param[in] kl key list
- * \param[in] dnskey dnskey
- * \return key_type* key if it exists, NULL otherwise
- *
- */
-key_type* keylist_lookup_by_dnskey(keylist_type* kl, ldns_rr* dnskey);
-
-/**
  * Push a key to the keylist.
  * \param[in] kl key list
  * \param[in] locator string that identifies location of key
@@ -109,14 +100,6 @@ key_type* keylist_lookup_by_dnskey(keylist_type* kl, ldns_rr* dnskey);
  */
 key_type* keylist_push(keylist_type* kl, const char* locator,
     uint8_t algorithm, uint32_t flags, int publish, int ksk, int zsk);
-
-/**
- * Print key list.
- * \param[in] fd file descriptor
- * \param[in] kl key list to print
- *
- */
-void keylist_print(FILE* fd, keylist_type* kl);
 
 /**
  * Log key list.

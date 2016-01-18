@@ -34,7 +34,6 @@
 #include "duration.h"
 #include "file.h"
 #include "log.h"
-#include "backup.h"
 
 static const char* task_str = "task";
 
@@ -292,32 +291,6 @@ task2str(task_type* task, char* buftask)
     return NULL;
 }
 
-
-/**
- * Log task.
- *
- */
-void
-task_log(task_type* task)
-{
-    char ctimebuf[32]; /* at least 26 according to docs */
-    time_t now = time_now();
-    char* strtime = NULL;
-
-    if (task) {
-        if (task->flush) {
-            strtime = ctime_r(&now,ctimebuf);
-        } else {
-            strtime = ctime_r(&task->when,ctimebuf);
-        }
-        if (strtime) {
-            strtime[strlen(strtime)-1] = '\0';
-        }
-        ods_log_debug("[%s] On %s I will [%s] %s", task_str,
-            strtime?strtime:"(null)",
-            task_what2str(task->what), task_who2str(task->who));
-    }
-}
 
 /**
  * Perform task.

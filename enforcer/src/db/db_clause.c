@@ -55,9 +55,6 @@ db_clause_t* db_clause_new(void) {
 
 void db_clause_free(db_clause_t* clause) {
     if (clause) {
-        if (clause->table) {
-            free(clause->table);
-        }
         if (clause->field) {
             free(clause->field);
         }
@@ -67,14 +64,6 @@ void db_clause_free(db_clause_t* clause) {
         }
         free(clause);
     }
-}
-
-const char* db_clause_table(const db_clause_t* clause) {
-    if (!clause) {
-        return NULL;
-    }
-
-    return clause->table;
 }
 
 const char* db_clause_field(const db_clause_t* clause) {
@@ -115,27 +104,6 @@ const db_clause_list_t* db_clause_list(const db_clause_t* clause) {
     }
 
     return clause->clause_list;
-}
-
-int db_clause_set_table(db_clause_t* clause, const char* table) {
-    char* new_table;
-
-    if (!clause) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (clause->clause_list) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    if (!(new_table = strdup(table))) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    if (clause->table) {
-        free(clause->table);
-    }
-    clause->table = new_table;
-    return DB_OK;
 }
 
 int db_clause_set_field(db_clause_t* clause, const char* field) {
@@ -180,27 +148,6 @@ int db_clause_set_operator(db_clause_t* clause, db_clause_operator_t clause_oper
     }
 
     clause->clause_operator = clause_operator;
-    return DB_OK;
-}
-
-int db_clause_set_list(db_clause_t* clause, db_clause_list_t* clause_list) {
-    if (!clause) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (clause->table) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (clause->field) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (clause->clause_list) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (db_value_type(&(clause->value)) != DB_TYPE_EMPTY) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    clause->clause_list = clause_list;
     return DB_OK;
 }
 

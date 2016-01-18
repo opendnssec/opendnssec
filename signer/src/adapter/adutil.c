@@ -40,41 +40,6 @@ static const char* adapter_str = "adapter";
 
 
 /**
- * Lookup SOA RR.
- *
- */
-ldns_rr*
-adutil_lookup_soa_rr(FILE* fd)
-{
-    ldns_rr *cur_rr = NULL;
-    char line[SE_ADFILE_MAXLINE];
-    ldns_status status = LDNS_STATUS_OK;
-    int line_len = 0;
-    unsigned int l = 0;
-
-    while (line_len >= 0) {
-        line_len = adutil_readline_frm_file(fd, (char*) line, &l, 0);
-        adutil_rtrim_line(line, &line_len);
-
-        if (line_len > 0) {
-            if (line[0] != ';') {
-                status = ldns_rr_new_frm_str(&cur_rr, line, 0, NULL, NULL);
-                if (status == LDNS_STATUS_OK) {
-                    if (ldns_rr_get_type(cur_rr) == LDNS_RR_TYPE_SOA) {
-                        return cur_rr;
-                    } else {
-                        ldns_rr_free(cur_rr);
-                        cur_rr = NULL;
-                    }
-                }
-            }
-        }
-    }
-    return NULL;
-}
-
-
-/**
  * Read one line from zone file.
  *
  */

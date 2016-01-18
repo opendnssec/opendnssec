@@ -78,14 +78,6 @@ void log_dname(ldns_rdf* rdf, const char* pre, int level);
 domain_type* domain_create(zone_type* zone, ldns_rdf* dname);
 
 /**
- * Count the number of RRsets at this domain.
- * \param[in] domain domain
- * \return size_t number of RRsets
- *
- */
-size_t domain_count_rrset(domain_type* domain);
-
-/**
  * Count the number of RRsets at this domain with RRs that have is_added.
  * \param[in] domain domain
  * \return size_t number of RRsets
@@ -109,15 +101,6 @@ rrset_type* domain_lookup_rrset(domain_type* domain, ldns_rr_type rrtype);
  *
  */
 void domain_add_rrset(domain_type* domain, rrset_type* rrset);
-
-/**
- * Delete RRset from domain.
- * \param[in] domain domain
- * \param[in] rrtype RRtype of RRset
- * \return rrset_type* deleted RRset
- *
- */
-rrset_type* domain_del_rrset(domain_type* domain, ldns_rr_type rrtype);
 
 /**
  * Apply differences at domain.
