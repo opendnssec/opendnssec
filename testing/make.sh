@@ -2,6 +2,10 @@
 
 set -e 
 
+if [ -n "$INSTALL_TAG" -a -z "$INSTALL_ROOT" ]; then
+  INSTALL_ROOT="$WORKSPACE_ROOT/root/$INSTALL_TAG"
+fi
+
 if [ \! -f $INSTALL_ROOT/.botan.ok ] ; then
   rm -f Botan-1.10.10.tgz
   wget 'http://botan.randombit.net/releases/Botan-1.10.10.tgz'
