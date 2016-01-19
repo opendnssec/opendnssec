@@ -85,24 +85,6 @@ hsm_sign_rrset(hsm_ctx_t *ctx,
                const hsm_sign_params_t *sign_params);
 
 
-/*! Generate a base32 encoded hashed NSEC3 name
-
-\param ctx HSM context
-\param name Domain name to hash
-\param algorithm NSEC3 algorithm (must be 1 atm)
-\param iteration number of hash iterations
-\param salt_length the length of the salt
-\param salt the salt
-*/
-ldns_rdf *
-hsm_nsec3_hash_name(hsm_ctx_t *ctx,
-                    ldns_rdf *name,
-                    uint8_t algorithm,
-                    uint16_t iterations,
-                    uint8_t salt_length,
-                    uint8_t *salt);
-
-
 /*! Get DNSKEY RR
 
 The returned ldns_rr structure can be freed with ldns_rr_free()
@@ -116,15 +98,6 @@ ldns_rr*
 hsm_get_dnskey(hsm_ctx_t *ctx,
                const libhsm_key_t *key,
                const hsm_sign_params_t *sign_params);
-
-
-/*! Check if a given DNSSEC algorithm is supported
-
-\param ldns_algorithm algorithm number
-\return 0 if supported, -1 otherwise
-*/
-int
-hsm_supported_algorithm(ldns_algorithm algorithm);
 
 #ifdef __cplusplus
 }

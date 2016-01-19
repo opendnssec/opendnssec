@@ -99,6 +99,7 @@
 #include "daemon/cmdhandler.h"
 
 #define SE_CMDH_CMDLEN 7
+#define MAX_CLIENT_CONN 8
 
 #ifndef SUN_LEN
 #define SUN_LEN(su) (sizeof(*(su))-sizeof((su)->sun_path)+strlen((su)->sun_path))
@@ -462,7 +463,7 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
     cmdhandler_type* cmdc = NULL;
     fd_set rset;
     int flags, connfd = 0, ret = 0;
-    size_t MAX_CLIENT_CONN = 8, thread_index = 0, i;
+    ssize_t thread_index = 0, i;
     cmdhandler_type cmdcs[MAX_CLIENT_CONN];
 
     ods_log_assert(cmdhandler);

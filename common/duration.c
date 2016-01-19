@@ -404,27 +404,6 @@ int duration_set_time(duration_type* duration, time_t time) {
 }
 
 /**
- * Return the shortest time.
- *
- */
-time_t
-time_minimum(time_t a, time_t b)
-{
-    return (a < b ? a : b);
-}
-
-/**
- * Return the longest time.
- *
- */
-time_t
-time_maximum(time_t a, time_t b)
-{
-    return (a > b ? a : b);
-}
-
-
-/**
  * Return a random time.
  *
  */
@@ -502,37 +481,6 @@ time_datestamp(time_t tt, const char* format, char** str)
     }
     return ut;
 }
-
-static void
-time_itoa_reverse(char* s)
-{
-    int i, j;
-    char c;
-
-    for (i = 0, j = strlen(s)-1; i<j; i++, j--) {
-        c = s[i];
-        s[i] = s[j];
-        s[j] = c;
-    }
-}
-
-
-/**
- * Convert time into string.
- *
- */
-void
-time_itoa(time_t n, char* s)
-{
-    int i = 0;
-
-    do {       /* generate digits in reverse order */
-        s[i++] = n % 10 + '0';   /* get next digit */
-    } while ((n /= 10) > 0);     /* delete it */
-    s[i] = '\0';
-    time_itoa_reverse(s);
-}
-
 
 /**
  * Clean up duration.

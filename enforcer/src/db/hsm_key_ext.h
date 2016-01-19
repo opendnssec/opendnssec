@@ -33,14 +33,6 @@
 #include "policy_key.h"
 
 /**
- * Get hsm key objects from the database by a repository specified in `repository`.
- * \param[in] hsm_key_list initialised but empty hms key list.
- * \param[in] repository HSM name.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int hsm_key_list_get_by_repository(hsm_key_list_t* hsm_key_list, const char* repository);
-
-/**
  * Get all HSM keys for policy/algorithm/bits/repository.
  * NULL on failure
  */

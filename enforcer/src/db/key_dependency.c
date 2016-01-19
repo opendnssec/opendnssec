@@ -203,32 +203,6 @@ void key_dependency_free(key_dependency_t* key_dependency) {
     }
 }
 
-void key_dependency_reset(key_dependency_t* key_dependency) {
-    if (key_dependency) {
-        db_value_reset(&(key_dependency->id));
-        db_value_reset(&(key_dependency->rev));
-        db_value_reset(&(key_dependency->zone_id));
-        if (key_dependency->private_zone_id) {
-            zone_free(key_dependency->private_zone_id);
-            key_dependency->private_zone_id = NULL;
-        }
-        key_dependency->associated_zone_id = NULL;
-        db_value_reset(&(key_dependency->from_key_data_id));
-        if (key_dependency->private_from_key_data_id) {
-            key_data_free(key_dependency->private_from_key_data_id);
-            key_dependency->private_from_key_data_id = NULL;
-        }
-        key_dependency->associated_from_key_data_id = NULL;
-        db_value_reset(&(key_dependency->to_key_data_id));
-        if (key_dependency->private_to_key_data_id) {
-            key_data_free(key_dependency->private_to_key_data_id);
-            key_dependency->private_to_key_data_id = NULL;
-        }
-        key_dependency->associated_to_key_data_id = NULL;
-        key_dependency->type = KEY_DEPENDENCY_TYPE_INVALID;
-    }
-}
-
 int key_dependency_copy(key_dependency_t* key_dependency, const key_dependency_t* key_dependency_copy) {
     if (!key_dependency) {
         return DB_ERROR_UNKNOWN;
@@ -304,43 +278,6 @@ int key_dependency_copy(key_dependency_t* key_dependency, const key_dependency_t
     return DB_OK;
 }
 
-int key_dependency_cmp(const key_dependency_t* key_dependency_a, const key_dependency_t* key_dependency_b) {
-    int ret;
-
-    if (!key_dependency_a && !key_dependency_b) {
-        return 0;
-    }
-    if (!key_dependency_a && key_dependency_b) {
-        return -1;
-    }
-    if (key_dependency_a && !key_dependency_b) {
-        return 1;
-    }
-
-    ret = 0;
-    db_value_cmp(&(key_dependency_a->zone_id), &(key_dependency_b->zone_id), &ret);
-    if (ret) {
-        return ret;
-    }
-
-    ret = 0;
-    db_value_cmp(&(key_dependency_a->from_key_data_id), &(key_dependency_b->from_key_data_id), &ret);
-    if (ret) {
-        return ret;
-    }
-
-    ret = 0;
-    db_value_cmp(&(key_dependency_a->to_key_data_id), &(key_dependency_b->to_key_data_id), &ret);
-    if (ret) {
-        return ret;
-    }
-
-    if (key_dependency_a->type != key_dependency_b->type) {
-        return key_dependency_a->type < key_dependency_b->type ? -1 : 1;
-    }
-    return 0;
-}
-
 int key_dependency_from_result(key_dependency_t* key_dependency, const db_result_t* result) {
     const db_value_set_t* value_set;
     int type;
@@ -388,14 +325,6 @@ int key_dependency_from_result(key_dependency_t* key_dependency, const db_result
     return DB_OK;
 }
 
-const db_value_t* key_dependency_id(const key_dependency_t* key_dependency) {
-    if (!key_dependency) {
-        return NULL;
-    }
-
-    return &(key_dependency->id);
-}
-
 const db_value_t* key_dependency_zone_id(const key_dependency_t* key_dependency) {
     if (!key_dependency) {
         return NULL;
@@ -404,118 +333,12 @@ const db_value_t* key_dependency_zone_id(const key_dependency_t* key_dependency)
     return &(key_dependency->zone_id);
 }
 
-int key_dependency_cache_zone(key_dependency_t* key_dependency) {
-    if (!key_dependency) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    if (key_dependency->associated_zone_id
-        || key_dependency->private_zone_id)
-    {
-        return DB_OK;
-    }
-
-    if (!(key_dependency->private_zone_id = zone_new(db_object_connection(key_dependency->dbo)))) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (zone_get_by_id(key_dependency->private_zone_id, &(key_dependency->zone_id))) {
-        zone_free(key_dependency->private_zone_id);
-        key_dependency->private_zone_id = NULL;
-        return DB_ERROR_UNKNOWN;
-    }
-
-    return DB_OK;
-}
-
-const zone_t* key_dependency_zone(const key_dependency_t* key_dependency) {
-    if (!key_dependency) {
-        return NULL;
-    }
-
-    if (key_dependency->private_zone_id) {
-        return key_dependency->private_zone_id;
-    }
-    return key_dependency->associated_zone_id;
-}
-
-zone_t* key_dependency_get_zone(const key_dependency_t* key_dependency) {
-    zone_t* zone_id = NULL;
-
-    if (!key_dependency) {
-        return NULL;
-    }
-    if (!key_dependency->dbo) {
-        return NULL;
-    }
-    if (db_value_not_empty(&(key_dependency->zone_id))) {
-        return NULL;
-    }
-
-    if (!(zone_id = zone_new(db_object_connection(key_dependency->dbo)))) {
-        return NULL;
-    }
-    if (key_dependency->private_zone_id) {
-        if (zone_copy(zone_id, key_dependency->private_zone_id)) {
-            zone_free(zone_id);
-            return NULL;
-        }
-    }
-    else if (key_dependency->associated_zone_id) {
-        if (zone_copy(zone_id, key_dependency->associated_zone_id)) {
-            zone_free(zone_id);
-            return NULL;
-        }
-    }
-    else {
-        if (zone_get_by_id(zone_id, &(key_dependency->zone_id))) {
-            zone_free(zone_id);
-            return NULL;
-        }
-    }
-
-    return zone_id;
-}
-
 const db_value_t* key_dependency_from_key_data_id(const key_dependency_t* key_dependency) {
     if (!key_dependency) {
         return NULL;
     }
 
     return &(key_dependency->from_key_data_id);
-}
-
-int key_dependency_cache_from_key_data(key_dependency_t* key_dependency) {
-    if (!key_dependency) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    if (key_dependency->associated_from_key_data_id
-        || key_dependency->private_from_key_data_id)
-    {
-        return DB_OK;
-    }
-
-    if (!(key_dependency->private_from_key_data_id = key_data_new(db_object_connection(key_dependency->dbo)))) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (key_data_get_by_id(key_dependency->private_from_key_data_id, &(key_dependency->from_key_data_id))) {
-        key_data_free(key_dependency->private_from_key_data_id);
-        key_dependency->private_from_key_data_id = NULL;
-        return DB_ERROR_UNKNOWN;
-    }
-
-    return DB_OK;
-}
-
-const key_data_t* key_dependency_from_key_data(const key_dependency_t* key_dependency) {
-    if (!key_dependency) {
-        return NULL;
-    }
-
-    if (key_dependency->private_from_key_data_id) {
-        return key_dependency->private_from_key_data_id;
-    }
-    return key_dependency->associated_from_key_data_id;
 }
 
 key_data_t* key_dependency_get_from_key_data(const key_dependency_t* key_dependency) {
@@ -564,100 +387,12 @@ const db_value_t* key_dependency_to_key_data_id(const key_dependency_t* key_depe
     return &(key_dependency->to_key_data_id);
 }
 
-int key_dependency_cache_to_key_data(key_dependency_t* key_dependency) {
-    if (!key_dependency) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    if (key_dependency->associated_to_key_data_id
-        || key_dependency->private_to_key_data_id)
-    {
-        return DB_OK;
-    }
-
-    if (!(key_dependency->private_to_key_data_id = key_data_new(db_object_connection(key_dependency->dbo)))) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (key_data_get_by_id(key_dependency->private_to_key_data_id, &(key_dependency->to_key_data_id))) {
-        key_data_free(key_dependency->private_to_key_data_id);
-        key_dependency->private_to_key_data_id = NULL;
-        return DB_ERROR_UNKNOWN;
-    }
-
-    return DB_OK;
-}
-
-const key_data_t* key_dependency_to_key_data(const key_dependency_t* key_dependency) {
-    if (!key_dependency) {
-        return NULL;
-    }
-
-    if (key_dependency->private_to_key_data_id) {
-        return key_dependency->private_to_key_data_id;
-    }
-    return key_dependency->associated_to_key_data_id;
-}
-
-key_data_t* key_dependency_get_to_key_data(const key_dependency_t* key_dependency) {
-    key_data_t* to_key_data_id = NULL;
-
-    if (!key_dependency) {
-        return NULL;
-    }
-    if (!key_dependency->dbo) {
-        return NULL;
-    }
-    if (db_value_not_empty(&(key_dependency->to_key_data_id))) {
-        return NULL;
-    }
-
-    if (!(to_key_data_id = key_data_new(db_object_connection(key_dependency->dbo)))) {
-        return NULL;
-    }
-    if (key_dependency->private_to_key_data_id) {
-        if (key_data_copy(to_key_data_id, key_dependency->private_to_key_data_id)) {
-            key_data_free(to_key_data_id);
-            return NULL;
-        }
-    }
-    else if (key_dependency->associated_to_key_data_id) {
-        if (key_data_copy(to_key_data_id, key_dependency->associated_to_key_data_id)) {
-            key_data_free(to_key_data_id);
-            return NULL;
-        }
-    }
-    else {
-        if (key_data_get_by_id(to_key_data_id, &(key_dependency->to_key_data_id))) {
-            key_data_free(to_key_data_id);
-            return NULL;
-        }
-    }
-
-    return to_key_data_id;
-}
-
 key_dependency_type_t key_dependency_type(const key_dependency_t* key_dependency) {
     if (!key_dependency) {
         return KEY_DEPENDENCY_TYPE_INVALID;
     }
 
     return key_dependency->type;
-}
-
-const char* key_dependency_type_text(const key_dependency_t* key_dependency) {
-    const db_enum_t* enum_set = key_dependency_enum_set_type;
-
-    if (!key_dependency) {
-        return NULL;
-    }
-
-    while (enum_set->text) {
-        if (enum_set->value == key_dependency->type) {
-            return enum_set->text;
-        }
-        enum_set++;
-    }
-    return NULL;
 }
 
 int key_dependency_set_zone_id(key_dependency_t* key_dependency, const db_value_t* zone_id) {
@@ -728,125 +463,6 @@ int key_dependency_set_type(key_dependency_t* key_dependency, key_dependency_typ
     key_dependency->type = type;
 
     return DB_OK;
-}
-
-int key_dependency_set_type_text(key_dependency_t* key_dependency, const char* type) {
-    const db_enum_t* enum_set = key_dependency_enum_set_type;
-
-    if (!key_dependency) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    while (enum_set->text) {
-        if (!strcmp(enum_set->text, type)) {
-            key_dependency->type = enum_set->value;
-            return DB_OK;
-        }
-        enum_set++;
-    }
-    return DB_ERROR_UNKNOWN;
-}
-
-db_clause_t* key_dependency_zone_id_clause(db_clause_list_t* clause_list, const db_value_t* zone_id) {
-    db_clause_t* clause;
-
-    if (!clause_list) {
-        return NULL;
-    }
-    if (!zone_id) {
-        return NULL;
-    }
-    if (db_value_not_empty(zone_id)) {
-        return NULL;
-    }
-
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "zoneId")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
-        || db_value_copy(db_clause_get_value(clause), zone_id)
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        return NULL;
-    }
-
-    return clause;
-}
-
-db_clause_t* key_dependency_from_key_data_id_clause(db_clause_list_t* clause_list, const db_value_t* from_key_data_id) {
-    db_clause_t* clause;
-
-    if (!clause_list) {
-        return NULL;
-    }
-    if (!from_key_data_id) {
-        return NULL;
-    }
-    if (db_value_not_empty(from_key_data_id)) {
-        return NULL;
-    }
-
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "fromKeyDataId")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
-        || db_value_copy(db_clause_get_value(clause), from_key_data_id)
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        return NULL;
-    }
-
-    return clause;
-}
-
-db_clause_t* key_dependency_to_key_data_id_clause(db_clause_list_t* clause_list, const db_value_t* to_key_data_id) {
-    db_clause_t* clause;
-
-    if (!clause_list) {
-        return NULL;
-    }
-    if (!to_key_data_id) {
-        return NULL;
-    }
-    if (db_value_not_empty(to_key_data_id)) {
-        return NULL;
-    }
-
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "toKeyDataId")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
-        || db_value_copy(db_clause_get_value(clause), to_key_data_id)
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        return NULL;
-    }
-
-    return clause;
-}
-
-db_clause_t* key_dependency_type_clause(db_clause_list_t* clause_list, key_dependency_type_t type) {
-    db_clause_t* clause;
-
-    if (!clause_list) {
-        return NULL;
-    }
-
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "type")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
-        || db_value_from_enum_value(db_clause_get_value(clause), type, key_dependency_enum_set_type)
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        return NULL;
-    }
-
-    return clause;
 }
 
 int key_dependency_create(key_dependency_t* key_dependency) {
@@ -997,159 +613,6 @@ int key_dependency_get_by_id(key_dependency_t* key_dependency, const db_value_t*
     return DB_ERROR_UNKNOWN;
 }
 
-key_dependency_t* key_dependency_new_get_by_id(const db_connection_t* connection, const db_value_t* id) {
-    key_dependency_t* key_dependency;
-
-    if (!connection) {
-        return NULL;
-    }
-    if (!id) {
-        return NULL;
-    }
-    if (db_value_not_empty(id)) {
-        return NULL;
-    }
-
-    if (!(key_dependency = key_dependency_new(connection))
-        || key_dependency_get_by_id(key_dependency, id))
-    {
-        key_dependency_free(key_dependency);
-        return NULL;
-    }
-
-    return key_dependency;
-}
-
-int key_dependency_update(key_dependency_t* key_dependency) {
-    db_object_field_list_t* object_field_list;
-    db_object_field_t* object_field;
-    db_value_set_t* value_set;
-    db_clause_list_t* clause_list;
-    db_clause_t* clause;
-    int ret;
-
-    if (!key_dependency) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!key_dependency->dbo) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (db_value_not_empty(&(key_dependency->id))) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (db_value_not_empty(&(key_dependency->rev))) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (db_value_not_empty(&(key_dependency->zone_id))) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (db_value_not_empty(&(key_dependency->from_key_data_id))) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (db_value_not_empty(&(key_dependency->to_key_data_id))) {
-        return DB_ERROR_UNKNOWN;
-    }
-    /* TODO: validate content more */
-
-    if (!(object_field_list = db_object_field_list_new())) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "zoneId")
-        || db_object_field_set_type(object_field, DB_TYPE_ANY)
-        || db_object_field_list_add(object_field_list, object_field))
-    {
-        db_object_field_free(object_field);
-        db_object_field_list_free(object_field_list);
-        return DB_ERROR_UNKNOWN;
-    }
-
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "fromKeyDataId")
-        || db_object_field_set_type(object_field, DB_TYPE_ANY)
-        || db_object_field_list_add(object_field_list, object_field))
-    {
-        db_object_field_free(object_field);
-        db_object_field_list_free(object_field_list);
-        return DB_ERROR_UNKNOWN;
-    }
-
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "toKeyDataId")
-        || db_object_field_set_type(object_field, DB_TYPE_ANY)
-        || db_object_field_list_add(object_field_list, object_field))
-    {
-        db_object_field_free(object_field);
-        db_object_field_list_free(object_field_list);
-        return DB_ERROR_UNKNOWN;
-    }
-
-    if (!(object_field = db_object_field_new())
-        || db_object_field_set_name(object_field, "type")
-        || db_object_field_set_type(object_field, DB_TYPE_ENUM)
-        || db_object_field_set_enum_set(object_field, key_dependency_enum_set_type)
-        || db_object_field_list_add(object_field_list, object_field))
-    {
-        db_object_field_free(object_field);
-        db_object_field_list_free(object_field_list);
-        return DB_ERROR_UNKNOWN;
-    }
-
-    if (!(value_set = db_value_set_new(4))) {
-        db_object_field_list_free(object_field_list);
-        return DB_ERROR_UNKNOWN;
-    }
-
-    if (db_value_copy(db_value_set_get(value_set, 0), &(key_dependency->zone_id))
-        || db_value_copy(db_value_set_get(value_set, 1), &(key_dependency->from_key_data_id))
-        || db_value_copy(db_value_set_get(value_set, 2), &(key_dependency->to_key_data_id))
-        || db_value_from_enum_value(db_value_set_get(value_set, 3), key_dependency->type, key_dependency_enum_set_type))
-    {
-        db_value_set_free(value_set);
-        db_object_field_list_free(object_field_list);
-        return DB_ERROR_UNKNOWN;
-    }
-
-    if (!(clause_list = db_clause_list_new())) {
-        db_value_set_free(value_set);
-        db_object_field_list_free(object_field_list);
-        return DB_ERROR_UNKNOWN;
-    }
-
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "id")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_copy(db_clause_get_value(clause), &(key_dependency->id))
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        db_clause_list_free(clause_list);
-        db_value_set_free(value_set);
-        db_object_field_list_free(object_field_list);
-        return DB_ERROR_UNKNOWN;
-    }
-
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "rev")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_copy(db_clause_get_value(clause), &(key_dependency->rev))
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        db_clause_list_free(clause_list);
-        db_value_set_free(value_set);
-        db_object_field_list_free(object_field_list);
-        return DB_ERROR_UNKNOWN;
-    }
-
-    ret = db_object_update(key_dependency->dbo, object_field_list, value_set, clause_list);
-    db_value_set_free(value_set);
-    db_object_field_list_free(object_field_list);
-    db_clause_list_free(clause_list);
-    return ret;
-}
-
 int key_dependency_delete(key_dependency_t* key_dependency) {
     db_clause_list_t* clause_list;
     db_clause_t* clause;
@@ -1196,20 +659,6 @@ int key_dependency_delete(key_dependency_t* key_dependency) {
     return ret;
 }
 
-int key_dependency_count(key_dependency_t* key_dependency, db_clause_list_t* clause_list, size_t* count) {
-    if (!key_dependency) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!key_dependency->dbo) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!count) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    return db_object_count(key_dependency->dbo, NULL, clause_list, count);
-}
-
 /* KEY DEPENDENCY LIST */
 
 
@@ -1253,17 +702,6 @@ int key_dependency_list_object_store(key_dependency_list_t* key_dependency_list)
     }
 
     key_dependency_list->object_store = 1;
-
-    return DB_OK;
-}
-
-int key_dependency_list_associated_fetch(key_dependency_list_t* key_dependency_list) {
-    if (!key_dependency_list) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    key_dependency_list->object_store = 1;
-    key_dependency_list->associated_fetch = 1;
 
     return DB_OK;
 }
@@ -1614,62 +1052,6 @@ static int key_dependency_list_get_associated(key_dependency_list_t* key_depende
     return DB_OK;
 }
 
-int key_dependency_list_get(key_dependency_list_t* key_dependency_list) {
-    size_t i;
-
-    if (!key_dependency_list) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!key_dependency_list->dbo) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    if (key_dependency_list->result_list) {
-        db_result_list_free(key_dependency_list->result_list);
-    }
-    if (key_dependency_list->object_list_size) {
-        for (i = 0; i < key_dependency_list->object_list_size; i++) {
-            if (key_dependency_list->object_list[i]) {
-                key_dependency_free(key_dependency_list->object_list[i]);
-            }
-        }
-        key_dependency_list->object_list_size = 0;
-        key_dependency_list->object_list_first = 0;
-    }
-    if (key_dependency_list->object_list) {
-        free(key_dependency_list->object_list);
-        key_dependency_list->object_list = NULL;
-    }
-    if (!(key_dependency_list->result_list = db_object_read(key_dependency_list->dbo, NULL, NULL))
-        || db_result_list_fetch_all(key_dependency_list->result_list))
-    {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (key_dependency_list->associated_fetch
-        && key_dependency_list_get_associated(key_dependency_list))
-    {
-        return DB_ERROR_UNKNOWN;
-    }
-    return DB_OK;
-}
-
-key_dependency_list_t* key_dependency_list_new_get(const db_connection_t* connection) {
-    key_dependency_list_t* key_dependency_list;
-
-    if (!connection) {
-        return NULL;
-    }
-
-    if (!(key_dependency_list = key_dependency_list_new(connection))
-        || key_dependency_list_get(key_dependency_list))
-    {
-        key_dependency_list_free(key_dependency_list);
-        return NULL;
-    }
-
-    return key_dependency_list;
-}
-
 int key_dependency_list_get_by_clauses(key_dependency_list_t* key_dependency_list, const db_clause_list_t* clause_list) {
     size_t i;
 
@@ -1710,26 +1092,6 @@ int key_dependency_list_get_by_clauses(key_dependency_list_t* key_dependency_lis
         return DB_ERROR_UNKNOWN;
     }
     return DB_OK;
-}
-
-key_dependency_list_t* key_dependency_list_new_get_by_clauses(const db_connection_t* connection, const db_clause_list_t* clause_list) {
-    key_dependency_list_t* key_dependency_list;
-
-    if (!connection) {
-        return NULL;
-    }
-    if (!clause_list) {
-        return NULL;
-    }
-
-    if (!(key_dependency_list = key_dependency_list_new(connection))
-        || key_dependency_list_get_by_clauses(key_dependency_list, clause_list))
-    {
-        key_dependency_list_free(key_dependency_list);
-        return NULL;
-    }
-
-    return key_dependency_list;
 }
 
 int key_dependency_list_get_by_zone_id(key_dependency_list_t* key_dependency_list, const db_value_t* zone_id) {
@@ -1810,178 +1172,6 @@ key_dependency_list_t* key_dependency_list_new_get_by_zone_id(const db_connectio
 
     if (!(key_dependency_list = key_dependency_list_new(connection))
         || key_dependency_list_get_by_zone_id(key_dependency_list, zone_id))
-    {
-        key_dependency_list_free(key_dependency_list);
-        return NULL;
-    }
-
-    return key_dependency_list;
-}
-
-int key_dependency_list_get_by_from_key_data_id(key_dependency_list_t* key_dependency_list, const db_value_t* from_key_data_id) {
-    db_clause_list_t* clause_list;
-    db_clause_t* clause;
-    size_t i;
-
-    if (!key_dependency_list) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!key_dependency_list->dbo) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!from_key_data_id) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (db_value_not_empty(from_key_data_id)) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    if (!(clause_list = db_clause_list_new())) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "fromKeyDataId")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_copy(db_clause_get_value(clause), from_key_data_id)
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        db_clause_list_free(clause_list);
-        return DB_ERROR_UNKNOWN;
-    }
-
-    if (key_dependency_list->result_list) {
-        db_result_list_free(key_dependency_list->result_list);
-    }
-    if (key_dependency_list->object_list_size) {
-        for (i = 0; i < key_dependency_list->object_list_size; i++) {
-            if (key_dependency_list->object_list[i]) {
-                key_dependency_free(key_dependency_list->object_list[i]);
-            }
-        }
-        key_dependency_list->object_list_size = 0;
-        key_dependency_list->object_list_first = 0;
-    }
-    if (key_dependency_list->object_list) {
-        free(key_dependency_list->object_list);
-        key_dependency_list->object_list = NULL;
-    }
-    if (!(key_dependency_list->result_list = db_object_read(key_dependency_list->dbo, NULL, clause_list))
-        || db_result_list_fetch_all(key_dependency_list->result_list))
-    {
-        db_clause_list_free(clause_list);
-        return DB_ERROR_UNKNOWN;
-    }
-    db_clause_list_free(clause_list);
-    if (key_dependency_list->associated_fetch
-        && key_dependency_list_get_associated(key_dependency_list))
-    {
-        return DB_ERROR_UNKNOWN;
-    }
-    return DB_OK;
-}
-
-key_dependency_list_t* key_dependency_list_new_get_by_from_key_data_id(const db_connection_t* connection, const db_value_t* from_key_data_id) {
-    key_dependency_list_t* key_dependency_list;
-
-    if (!connection) {
-        return NULL;
-    }
-    if (!from_key_data_id) {
-        return NULL;
-    }
-    if (db_value_not_empty(from_key_data_id)) {
-        return NULL;
-    }
-
-    if (!(key_dependency_list = key_dependency_list_new(connection))
-        || key_dependency_list_get_by_from_key_data_id(key_dependency_list, from_key_data_id))
-    {
-        key_dependency_list_free(key_dependency_list);
-        return NULL;
-    }
-
-    return key_dependency_list;
-}
-
-int key_dependency_list_get_by_to_key_data_id(key_dependency_list_t* key_dependency_list, const db_value_t* to_key_data_id) {
-    db_clause_list_t* clause_list;
-    db_clause_t* clause;
-    size_t i;
-
-    if (!key_dependency_list) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!key_dependency_list->dbo) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!to_key_data_id) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (db_value_not_empty(to_key_data_id)) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    if (!(clause_list = db_clause_list_new())) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "toKeyDataId")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_value_copy(db_clause_get_value(clause), to_key_data_id)
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        db_clause_list_free(clause_list);
-        return DB_ERROR_UNKNOWN;
-    }
-
-    if (key_dependency_list->result_list) {
-        db_result_list_free(key_dependency_list->result_list);
-    }
-    if (key_dependency_list->object_list_size) {
-        for (i = 0; i < key_dependency_list->object_list_size; i++) {
-            if (key_dependency_list->object_list[i]) {
-                key_dependency_free(key_dependency_list->object_list[i]);
-            }
-        }
-        key_dependency_list->object_list_size = 0;
-        key_dependency_list->object_list_first = 0;
-    }
-    if (key_dependency_list->object_list) {
-        free(key_dependency_list->object_list);
-        key_dependency_list->object_list = NULL;
-    }
-    if (!(key_dependency_list->result_list = db_object_read(key_dependency_list->dbo, NULL, clause_list))
-        || db_result_list_fetch_all(key_dependency_list->result_list))
-    {
-        db_clause_list_free(clause_list);
-        return DB_ERROR_UNKNOWN;
-    }
-    db_clause_list_free(clause_list);
-    if (key_dependency_list->associated_fetch
-        && key_dependency_list_get_associated(key_dependency_list))
-    {
-        return DB_ERROR_UNKNOWN;
-    }
-    return DB_OK;
-}
-
-key_dependency_list_t* key_dependency_list_new_get_by_to_key_data_id(const db_connection_t* connection, const db_value_t* to_key_data_id) {
-    key_dependency_list_t* key_dependency_list;
-
-    if (!connection) {
-        return NULL;
-    }
-    if (!to_key_data_id) {
-        return NULL;
-    }
-    if (db_value_not_empty(to_key_data_id)) {
-        return NULL;
-    }
-
-    if (!(key_dependency_list = key_dependency_list_new(connection))
-        || key_dependency_list_get_by_to_key_data_id(key_dependency_list, to_key_data_id))
     {
         key_dependency_list_free(key_dependency_list);
         return NULL;

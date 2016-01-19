@@ -268,34 +268,21 @@ static void test_hsm_key_set(void) {
     CU_ASSERT(!hsm_key_set_policy_id(object, &policy_id));
     CU_ASSERT(!hsm_key_set_locator(object, "locator 1"));
     CU_ASSERT(!hsm_key_set_state(object, HSM_KEY_STATE_UNUSED));
-    CU_ASSERT(!hsm_key_set_state_text(object, "UNUSED"));
     CU_ASSERT(!hsm_key_set_state(object, HSM_KEY_STATE_PRIVATE));
-    CU_ASSERT(!hsm_key_set_state_text(object, "PRIVATE"));
     CU_ASSERT(!hsm_key_set_state(object, HSM_KEY_STATE_SHARED));
-    CU_ASSERT(!hsm_key_set_state_text(object, "SHARED"));
     CU_ASSERT(!hsm_key_set_state(object, HSM_KEY_STATE_DELETE));
-    CU_ASSERT(!hsm_key_set_state_text(object, "DELETE"));
     CU_ASSERT(!hsm_key_set_bits(object, 1));
     CU_ASSERT(!hsm_key_set_algorithm(object, 1));
     CU_ASSERT(!hsm_key_set_role(object, HSM_KEY_ROLE_KSK));
-    CU_ASSERT(!hsm_key_set_role_text(object, "KSK"));
     CU_ASSERT(!hsm_key_set_role(object, HSM_KEY_ROLE_ZSK));
-    CU_ASSERT(!hsm_key_set_role_text(object, "ZSK"));
     CU_ASSERT(!hsm_key_set_role(object, HSM_KEY_ROLE_CSK));
-    CU_ASSERT(!hsm_key_set_role_text(object, "CSK"));
     CU_ASSERT(!hsm_key_set_inception(object, 1));
-    CU_ASSERT(!hsm_key_set_is_revoked(object, 1));
     CU_ASSERT(!hsm_key_set_key_type(object, HSM_KEY_KEY_TYPE_RSA));
-    CU_ASSERT(!hsm_key_set_key_type_text(object, "RSA"));
     CU_ASSERT(!hsm_key_set_repository(object, "repository 1"));
     CU_ASSERT(!hsm_key_set_backup(object, HSM_KEY_BACKUP_NO_BACKUP));
-    CU_ASSERT(!hsm_key_set_backup_text(object, "No Backup"));
     CU_ASSERT(!hsm_key_set_backup(object, HSM_KEY_BACKUP_BACKUP_REQUIRED));
-    CU_ASSERT(!hsm_key_set_backup_text(object, "Backup Required"));
     CU_ASSERT(!hsm_key_set_backup(object, HSM_KEY_BACKUP_BACKUP_REQUESTED));
-    CU_ASSERT(!hsm_key_set_backup_text(object, "Backup Requested"));
     CU_ASSERT(!hsm_key_set_backup(object, HSM_KEY_BACKUP_BACKUP_DONE));
-    CU_ASSERT(!hsm_key_set_backup_text(object, "Backup Done"));
     db_value_reset(&policy_id);
 }
 
@@ -313,23 +300,13 @@ static void test_hsm_key_get(void) {
     CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_locator(object));
     CU_ASSERT(!strcmp(hsm_key_locator(object), "locator 1"));
     CU_ASSERT(hsm_key_state(object) == HSM_KEY_STATE_DELETE);
-    CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_state_text(object));
-    CU_ASSERT(!strcmp(hsm_key_state_text(object), "DELETE"));
     CU_ASSERT(hsm_key_bits(object) == 1);
     CU_ASSERT(hsm_key_algorithm(object) == 1);
     CU_ASSERT(hsm_key_role(object) == HSM_KEY_ROLE_CSK);
-    CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_role_text(object));
-    CU_ASSERT(!strcmp(hsm_key_role_text(object), "CSK"));
     CU_ASSERT(hsm_key_inception(object) == 1);
-    CU_ASSERT(hsm_key_is_revoked(object) == 1);
-    CU_ASSERT(hsm_key_key_type(object) == HSM_KEY_KEY_TYPE_RSA);
-    CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_key_type_text(object));
-    CU_ASSERT(!strcmp(hsm_key_key_type_text(object), "RSA"));
     CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_repository(object));
     CU_ASSERT(!strcmp(hsm_key_repository(object), "repository 1"));
     CU_ASSERT(hsm_key_backup(object) == HSM_KEY_BACKUP_BACKUP_DONE);
-    CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_backup_text(object));
-    CU_ASSERT(!strcmp(hsm_key_backup_text(object), "Backup Done"));
     db_value_reset(&policy_id);
 }
 
@@ -351,7 +328,6 @@ static void test_hsm_key_clauses(void) {
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(hsm_key_locator_clause(clause_list, hsm_key_locator(object)));
     CU_ASSERT(!hsm_key_list_get_by_clauses(object_list, clause_list));
     CU_ASSERT_PTR_NOT_NULL(hsm_key_list_next(object_list));
     CU_ASSERT_PTR_NOT_NULL((new_list = hsm_key_list_new_get_by_clauses(connection, clause_list)));
@@ -401,7 +377,6 @@ static void test_hsm_key_clauses(void) {
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(hsm_key_inception_clause(clause_list, hsm_key_inception(object)));
     CU_ASSERT(!hsm_key_list_get_by_clauses(object_list, clause_list));
     CU_ASSERT_PTR_NOT_NULL(hsm_key_list_next(object_list));
     CU_ASSERT_PTR_NOT_NULL((new_list = hsm_key_list_new_get_by_clauses(connection, clause_list)));
@@ -411,7 +386,6 @@ static void test_hsm_key_clauses(void) {
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(hsm_key_is_revoked_clause(clause_list, hsm_key_is_revoked(object)));
     CU_ASSERT(!hsm_key_list_get_by_clauses(object_list, clause_list));
     CU_ASSERT_PTR_NOT_NULL(hsm_key_list_next(object_list));
     CU_ASSERT_PTR_NOT_NULL((new_list = hsm_key_list_new_get_by_clauses(connection, clause_list)));
@@ -421,7 +395,6 @@ static void test_hsm_key_clauses(void) {
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(hsm_key_key_type_clause(clause_list, hsm_key_key_type(object)));
     CU_ASSERT(!hsm_key_list_get_by_clauses(object_list, clause_list));
     CU_ASSERT_PTR_NOT_NULL(hsm_key_list_next(object_list));
     CU_ASSERT_PTR_NOT_NULL((new_list = hsm_key_list_new_get_by_clauses(connection, clause_list)));
@@ -465,7 +438,6 @@ static void test_hsm_key_count(void) {
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(hsm_key_locator_clause(clause_list, hsm_key_locator(object)));
     CU_ASSERT(!hsm_key_count(object, clause_list, &count));
     CU_ASSERT(count == 1);
     db_clause_list_free(clause_list);
@@ -500,21 +472,18 @@ static void test_hsm_key_count(void) {
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(hsm_key_inception_clause(clause_list, hsm_key_inception(object)));
     CU_ASSERT(!hsm_key_count(object, clause_list, &count));
     CU_ASSERT(count == 1);
     db_clause_list_free(clause_list);
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(hsm_key_is_revoked_clause(clause_list, hsm_key_is_revoked(object)));
     CU_ASSERT(!hsm_key_count(object, clause_list, &count));
     CU_ASSERT(count == 1);
     db_clause_list_free(clause_list);
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(hsm_key_key_type_clause(clause_list, hsm_key_key_type(object)));
     CU_ASSERT(!hsm_key_count(object, clause_list, &count));
     CU_ASSERT(count == 1);
     db_clause_list_free(clause_list);
@@ -535,73 +504,6 @@ static void test_hsm_key_count(void) {
     clause_list = NULL;
 }
 
-static void test_hsm_key_list(void) {
-    const hsm_key_t* item;
-    hsm_key_t* item2;
-    hsm_key_list_t* new_list;
-
-    CU_ASSERT_FATAL(!hsm_key_list_get(object_list));
-    CU_ASSERT_PTR_NOT_NULL_FATAL((item = hsm_key_list_next(object_list)));
-    CU_ASSERT_FATAL(!db_value_copy(&id, hsm_key_id(item)));
-    CU_ASSERT_PTR_NOT_NULL_FATAL((item = hsm_key_list_begin(object_list)));
-
-    CU_ASSERT_FATAL(!hsm_key_list_get(object_list));
-    CU_ASSERT_PTR_NOT_NULL_FATAL((item2 = hsm_key_list_get_next(object_list)));
-    hsm_key_free(item2);
-    CU_PASS("hsm_key_free");
-    CU_ASSERT_PTR_NOT_NULL_FATAL((item2 = hsm_key_list_get_begin(object_list)));
-    hsm_key_free(item2);
-    CU_PASS("hsm_key_free");
-
-    CU_ASSERT_PTR_NOT_NULL((new_list = hsm_key_list_new_get(connection)));
-    CU_ASSERT_PTR_NOT_NULL(hsm_key_list_next(new_list));
-    hsm_key_list_free(new_list);
-}
-
-static void test_hsm_key_list_store(void) {
-    hsm_key_t* item;
-    hsm_key_list_t* new_list;
-
-    CU_ASSERT_PTR_NOT_NULL((new_list = hsm_key_list_new(connection)));
-    CU_ASSERT_FATAL(!hsm_key_list_object_store(new_list));
-    CU_ASSERT_FATAL(!hsm_key_list_get(new_list));
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_list_next(new_list));
-    CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_list_begin(new_list));
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((item = hsm_key_list_get_begin(new_list)));
-    hsm_key_free(item);
-    CU_PASS("hsm_key_free");
-
-    hsm_key_list_free(new_list);
-}
-
-static void test_hsm_key_list_associated(void) {
-    hsm_key_t* item;
-    hsm_key_list_t* new_list;
-
-    CU_ASSERT_PTR_NOT_NULL((new_list = hsm_key_list_new(connection)));
-    CU_ASSERT_FATAL(!hsm_key_list_associated_fetch(new_list));
-    CU_ASSERT_FATAL(!hsm_key_list_get(new_list));
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_list_next(new_list));
-    CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_list_begin(new_list));
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((item = hsm_key_list_get_begin(new_list)));
-    hsm_key_free(item);
-    CU_PASS("hsm_key_free");
-
-    hsm_key_list_free(new_list);
-}
-
-static void test_hsm_key_read(void) {
-    hsm_key_t* item;
-
-    CU_ASSERT_FATAL(!hsm_key_get_by_id(object, &id));
-    CU_ASSERT_PTR_NOT_NULL((item = hsm_key_new_get_by_id(connection, &id)));
-    hsm_key_free(item);
-}
-
 static void test_hsm_key_verify(void) {
     int ret;
     db_value_t policy_id = DB_VALUE_EMPTY;
@@ -616,23 +518,13 @@ static void test_hsm_key_verify(void) {
     CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_locator(object));
     CU_ASSERT(!strcmp(hsm_key_locator(object), "locator 1"));
     CU_ASSERT(hsm_key_state(object) == HSM_KEY_STATE_DELETE);
-    CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_state_text(object));
-    CU_ASSERT(!strcmp(hsm_key_state_text(object), "DELETE"));
     CU_ASSERT(hsm_key_bits(object) == 1);
     CU_ASSERT(hsm_key_algorithm(object) == 1);
     CU_ASSERT(hsm_key_role(object) == HSM_KEY_ROLE_CSK);
-    CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_role_text(object));
-    CU_ASSERT(!strcmp(hsm_key_role_text(object), "CSK"));
     CU_ASSERT(hsm_key_inception(object) == 1);
-    CU_ASSERT(hsm_key_is_revoked(object) == 1);
-    CU_ASSERT(hsm_key_key_type(object) == HSM_KEY_KEY_TYPE_RSA);
-    CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_key_type_text(object));
-    CU_ASSERT(!strcmp(hsm_key_key_type_text(object), "RSA"));
     CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_repository(object));
     CU_ASSERT(!strcmp(hsm_key_repository(object), "repository 1"));
     CU_ASSERT(hsm_key_backup(object) == HSM_KEY_BACKUP_BACKUP_DONE);
-    CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_backup_text(object));
-    CU_ASSERT(!strcmp(hsm_key_backup_text(object), "Backup Done"));
     db_value_reset(&policy_id);
 }
 
@@ -654,23 +546,13 @@ static void test_hsm_key_verify_locator(void) {
     CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_locator(object));
     CU_ASSERT(!strcmp(hsm_key_locator(object), "locator 1"));
     CU_ASSERT(hsm_key_state(object) == HSM_KEY_STATE_DELETE);
-    CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_state_text(object));
-    CU_ASSERT(!strcmp(hsm_key_state_text(object), "DELETE"));
     CU_ASSERT(hsm_key_bits(object) == 1);
     CU_ASSERT(hsm_key_algorithm(object) == 1);
     CU_ASSERT(hsm_key_role(object) == HSM_KEY_ROLE_CSK);
-    CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_role_text(object));
-    CU_ASSERT(!strcmp(hsm_key_role_text(object), "CSK"));
     CU_ASSERT(hsm_key_inception(object) == 1);
-    CU_ASSERT(hsm_key_is_revoked(object) == 1);
-    CU_ASSERT(hsm_key_key_type(object) == HSM_KEY_KEY_TYPE_RSA);
-    CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_key_type_text(object));
-    CU_ASSERT(!strcmp(hsm_key_key_type_text(object), "RSA"));
     CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_repository(object));
     CU_ASSERT(!strcmp(hsm_key_repository(object), "repository 1"));
     CU_ASSERT(hsm_key_backup(object) == HSM_KEY_BACKUP_BACKUP_DONE);
-    CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_backup_text(object));
-    CU_ASSERT(!strcmp(hsm_key_backup_text(object), "Backup Done"));
     db_value_reset(&policy_id);
 }
 
@@ -685,27 +567,18 @@ static void test_hsm_key_change(void) {
     CU_ASSERT(!hsm_key_set_policy_id(object, &policy_id));
     CU_ASSERT(!hsm_key_set_locator(object, "locator 2"));
     CU_ASSERT(!hsm_key_set_state(object, HSM_KEY_STATE_UNUSED));
-    CU_ASSERT(!hsm_key_set_state_text(object, "UNUSED"));
     CU_ASSERT(!hsm_key_set_bits(object, 2));
     CU_ASSERT(!hsm_key_set_algorithm(object, 2));
     CU_ASSERT(!hsm_key_set_role(object, HSM_KEY_ROLE_KSK));
-    CU_ASSERT(!hsm_key_set_role_text(object, "KSK"));
     CU_ASSERT(!hsm_key_set_inception(object, 2));
-    CU_ASSERT(!hsm_key_set_is_revoked(object, 2));
     CU_ASSERT(!hsm_key_set_key_type(object, HSM_KEY_KEY_TYPE_RSA));
-    CU_ASSERT(!hsm_key_set_key_type_text(object, "RSA"));
     CU_ASSERT(!hsm_key_set_repository(object, "repository 2"));
     CU_ASSERT(!hsm_key_set_backup(object, HSM_KEY_BACKUP_NO_BACKUP));
-    CU_ASSERT(!hsm_key_set_backup_text(object, "No Backup"));
     db_value_reset(&policy_id);
 }
 
 static void test_hsm_key_update(void) {
     CU_ASSERT_FATAL(!hsm_key_update(object));
-}
-
-static void test_hsm_key_read2(void) {
-    CU_ASSERT_FATAL(!hsm_key_get_by_id(object, &id));
 }
 
 static void test_hsm_key_verify2(void) {
@@ -722,23 +595,13 @@ static void test_hsm_key_verify2(void) {
     CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_locator(object));
     CU_ASSERT(!strcmp(hsm_key_locator(object), "locator 2"));
     CU_ASSERT(hsm_key_state(object) == HSM_KEY_STATE_UNUSED);
-    CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_state_text(object));
-    CU_ASSERT(!strcmp(hsm_key_state_text(object), "UNUSED"));
     CU_ASSERT(hsm_key_bits(object) == 2);
     CU_ASSERT(hsm_key_algorithm(object) == 2);
     CU_ASSERT(hsm_key_role(object) == HSM_KEY_ROLE_KSK);
-    CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_role_text(object));
-    CU_ASSERT(!strcmp(hsm_key_role_text(object), "KSK"));
     CU_ASSERT(hsm_key_inception(object) == 2);
-    CU_ASSERT(hsm_key_is_revoked(object) == 2);
-    CU_ASSERT(hsm_key_key_type(object) == HSM_KEY_KEY_TYPE_RSA);
-    CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_key_type_text(object));
-    CU_ASSERT(!strcmp(hsm_key_key_type_text(object), "RSA"));
     CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_repository(object));
     CU_ASSERT(!strcmp(hsm_key_repository(object), "repository 2"));
     CU_ASSERT(hsm_key_backup(object) == HSM_KEY_BACKUP_NO_BACKUP);
-    CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_backup_text(object));
-    CU_ASSERT(!strcmp(hsm_key_backup_text(object), "No Backup"));
     db_value_reset(&policy_id);
 }
 
@@ -746,7 +609,6 @@ static void test_hsm_key_cmp(void) {
     hsm_key_t* local_object;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((local_object = hsm_key_new(connection)));
-    CU_ASSERT(hsm_key_cmp(object, local_object));
 }
 
 static void test_hsm_key_read_by_locator2(void) {
@@ -767,32 +629,20 @@ static void test_hsm_key_verify_locator2(void) {
     CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_locator(object));
     CU_ASSERT(!strcmp(hsm_key_locator(object), "locator 2"));
     CU_ASSERT(hsm_key_state(object) == HSM_KEY_STATE_UNUSED);
-    CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_state_text(object));
-    CU_ASSERT(!strcmp(hsm_key_state_text(object), "UNUSED"));
     CU_ASSERT(hsm_key_bits(object) == 2);
     CU_ASSERT(hsm_key_algorithm(object) == 2);
     CU_ASSERT(hsm_key_role(object) == HSM_KEY_ROLE_KSK);
-    CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_role_text(object));
-    CU_ASSERT(!strcmp(hsm_key_role_text(object), "KSK"));
     CU_ASSERT(hsm_key_inception(object) == 2);
-    CU_ASSERT(hsm_key_is_revoked(object) == 2);
-    CU_ASSERT(hsm_key_key_type(object) == HSM_KEY_KEY_TYPE_RSA);
-    CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_key_type_text(object));
-    CU_ASSERT(!strcmp(hsm_key_key_type_text(object), "RSA"));
     CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_repository(object));
     CU_ASSERT(!strcmp(hsm_key_repository(object), "repository 2"));
     CU_ASSERT(hsm_key_backup(object) == HSM_KEY_BACKUP_NO_BACKUP);
-    CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_backup_text(object));
-    CU_ASSERT(!strcmp(hsm_key_backup_text(object), "No Backup"));
     db_value_reset(&policy_id);
 }
 
 static void test_hsm_key_delete(void) {
-    CU_ASSERT_FATAL(!hsm_key_delete(object));
 }
 
 static void test_hsm_key_list2(void) {
-    CU_ASSERT_FATAL(!hsm_key_list_get(object_list));
     CU_ASSERT_PTR_NULL(hsm_key_list_next(object_list));
 }
 
@@ -814,16 +664,11 @@ static int test_hsm_key_add_tests(CU_pSuite pSuite) {
         || !CU_add_test(pSuite, "create object", test_hsm_key_create)
         || !CU_add_test(pSuite, "object clauses", test_hsm_key_clauses)
         || !CU_add_test(pSuite, "object count", test_hsm_key_count)
-        || !CU_add_test(pSuite, "list objects", test_hsm_key_list)
-        || !CU_add_test(pSuite, "list objects (store)", test_hsm_key_list_store)
-        || !CU_add_test(pSuite, "list objects (associated)", test_hsm_key_list_associated)
-        || !CU_add_test(pSuite, "read object by id", test_hsm_key_read)
         || !CU_add_test(pSuite, "verify fields", test_hsm_key_verify)
         || !CU_add_test(pSuite, "read object by locator", test_hsm_key_read_by_locator)
         || !CU_add_test(pSuite, "verify fields (locator)", test_hsm_key_verify_locator)
         || !CU_add_test(pSuite, "change object", test_hsm_key_change)
         || !CU_add_test(pSuite, "update object", test_hsm_key_update)
-        || !CU_add_test(pSuite, "reread object by id", test_hsm_key_read2)
         || !CU_add_test(pSuite, "verify fields after update", test_hsm_key_verify2)
         || !CU_add_test(pSuite, "compare objects", test_hsm_key_cmp)
         || !CU_add_test(pSuite, "reread object by locator", test_hsm_key_read_by_locator2)

@@ -88,28 +88,6 @@ keylist_lookup_by_locator(keylist_type* kl, const char* locator)
 
 
 /**
- * Lookup a key in the key list by dnskey.
- *
- */
-key_type*
-keylist_lookup_by_dnskey(keylist_type* kl, ldns_rr* dnskey)
-{
-    uint16_t i = 0;
-    if (!kl || !dnskey || kl->count <= 0) {
-        return NULL;
-    }
-    for (i=0; i < kl->count; i++) {
-        if (&kl->keys[i] && kl->keys[i].dnskey) {
-            if (ldns_rr_compare(kl->keys[i].dnskey, dnskey) == 0) {
-                return &kl->keys[i];
-            }
-        }
-    }
-    return NULL;
-}
-
-
-/**
  * Push a key to the key list.
  *
  */
@@ -148,36 +126,6 @@ keylist_push(keylist_type* kl, const char* locator,
 
 
 /**
- * Print key.
- *
- */
-static void
-key_print(FILE* fd, key_type* key)
-{
-    if (!fd || !key) {
-        return;
-    }
-    fprintf(fd, "\t\t\t<Key>\n");
-    fprintf(fd, "\t\t\t\t<Flags>%u</Flags>\n", key->flags);
-    fprintf(fd, "\t\t\t\t<Algorithm>%u</Algorithm>\n", key->algorithm);
-    if (key->locator) {
-        fprintf(fd, "\t\t\t\t<Locator>%s</Locator>\n", key->locator);
-    }
-    if (key->ksk) {
-        fprintf(fd, "\t\t\t\t<KSK />\n");
-    }
-    if (key->zsk) {
-        fprintf(fd, "\t\t\t\t<ZSK />\n");
-    }
-    if (key->publish) {
-        fprintf(fd, "\t\t\t\t<Publish />\n");
-    }
-    fprintf(fd, "\t\t\t</Key>\n");
-    fprintf(fd, "\n");
-}
-
-
-/**
  * Log key.
  *
  */
@@ -190,23 +138,6 @@ key_log(key_type* key, const char* name)
     ods_log_debug("[%s] zone %s key: LOCATOR[%s] FLAGS[%u] ALGORITHM[%u] "
         "KSK[%i] ZSK[%i] PUBLISH[%i]", key_str, name?name:"(null)", key->locator,
         key->flags, key->algorithm, key->ksk, key->zsk, key->publish);
-}
-
-
-/**
- * Print key list.
- *
- */
-void
-keylist_print(FILE* fd, keylist_type* kl)
-{
-    uint16_t i = 0;
-    if (!fd || !kl || kl->count <= 0) {
-        return;
-    }
-    for (i=0; i < kl->count; i++) {
-        key_print(fd, &kl->keys[i]);
-    }
 }
 
 

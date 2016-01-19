@@ -97,28 +97,6 @@ ods_fgetc(FILE* fd, unsigned int* line_nr)
 
 
 /**
- * Skip white space.
- *
- */
-int
-ods_skip_whitespace(FILE* fd, unsigned int* line_nr)
-{
-    int c;
-
-    ods_log_assert(fd);
-    ods_log_assert(line_nr);
-
-    while ((c=ods_fgetc(fd, line_nr)) != EOF) {
-        if (c == ' ' || c == '\t' || c == '\r') {
-            continue;
-        }
-        return c;
-    }
-    return EOF;
-}
-
-
-/**
  * Construct file name. (StrAppend?, snprintf?)
  *
  */
@@ -277,28 +255,6 @@ ods_writen(int fd, const void* vptr, size_t n)
         ptr += nwritten;
     }
     return n;
-}
-
-
-/**
- * Write to file descriptor with format
- *
- */
-static char* ods_printf_error = "error: vsnprintf buffer too small\n";
-void
-ods_printf(int fd, const char * format, ...)
-{
-    char buf[ODS_SE_MAXLINE];
-    int ok;
-	va_list ap;
-	va_start(ap, format);
-	ok = (vsnprintf(buf, ODS_SE_MAXLINE, format,ap) < ODS_SE_MAXLINE);
-	va_end(ap);
-	if (!ok) {
-		ods_log_error("[%s] vsnprintf buffer too small",file_str);
-		ods_writen(fd, ods_printf_error, sizeof(ods_printf_error));
-	}
-	ods_writen(fd, buf, strlen(buf));
 }
 
 

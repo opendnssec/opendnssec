@@ -32,12 +32,8 @@
 
 struct db_backend_handle;
 struct db_backend;
-struct db_backend_meta_data;
-struct db_backend_meta_data_list;
 typedef struct db_backend_handle db_backend_handle_t;
 typedef struct db_backend db_backend_t;
-typedef struct db_backend_meta_data db_backend_meta_data_t;
-typedef struct db_backend_meta_data_list db_backend_meta_data_list_t;
 
 #include "db_configuration.h"
 #include "db_result.h"
@@ -208,13 +204,6 @@ void db_backend_handle_free(db_backend_handle_t* backend_handle);
 int db_backend_handle_initialize(const db_backend_handle_t* backend_handle);
 
 /**
- * Shutdown the backend of a database backend.
- * \param[in] backend_handle a db_backend_handle_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int db_backend_handle_shutdown(const db_backend_handle_t* backend_handle);
-
-/**
  * Connect to the database of a database backend, the connection specific
  * configuration is given by `configuration_list`.
  * \param[in] backend_handle a db_backend_handle_t pointer.
@@ -222,13 +211,6 @@ int db_backend_handle_shutdown(const db_backend_handle_t* backend_handle);
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_backend_handle_connect(const db_backend_handle_t* backend_handle, const db_configuration_list_t* configuration_list);
-
-/**
- * Disconnect from the database in a database backend.
- * \param[in] backend_handle a db_backend_handle_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int db_backend_handle_disconnect(const db_backend_handle_t* backend_handle);
 
 /**
  * Create an object in the database. The `object` refer to the database object
@@ -283,34 +265,6 @@ int db_backend_handle_delete(const db_backend_handle_t* backend_handle, const db
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_backend_handle_count(const db_backend_handle_t* backend_handle, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list, size_t* count);
-
-/**
- * Begin a transaction for a database connection.
- * \param[in] backend_handle a db_backend_handle_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int db_backend_handle_transaction_begin(const db_backend_handle_t* backend_handle);
-
-/**
- * Commit a transaction for a database connection.
- * \param[in] backend_handle a db_backend_handle_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int db_backend_handle_transaction_commit(const db_backend_handle_t* backend_handle);
-
-/**
- * Roll back a transaction for a database connection.
- * \param[in] backend_handle a db_backend_handle_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int db_backend_handle_transaction_rollback(const db_backend_handle_t* backend_handle);
-
-/**
- * Get the backend specific data of a database backend handle.
- * \param[in] backend_handle a db_backend_handle_t pointer.
- * \return a void pointer.
- */
-const void* db_backend_handle_data(const db_backend_handle_t* backend_handle);
 
 /**
  * Set the initialize function of a database backend handle.
@@ -425,13 +379,6 @@ int db_backend_handle_set_transaction_rollback(db_backend_handle_t* backend_hand
 int db_backend_handle_set_data(db_backend_handle_t* backend_handle, void* data);
 
 /**
- * Check if the database backend handle is not empty.
- * \param[in] backend_handle a db_backend_handle_t pointer.
- * \return DB_ERROR_* if empty, otherwise DB_OK.
- */
-int db_backend_handle_not_empty(const db_backend_handle_t* backend_handle);
-
-/**
  * A database backend.
  */
 struct db_backend {
@@ -451,13 +398,6 @@ db_backend_t* db_backend_new(void);
  * \param[in] backend a db_backend_t pointer.
  */
 void db_backend_free(db_backend_t* backend);
-
-/**
- * Get the name of a database backend.
- * \param[in] backend a db_backend_t pointer.
- * \return a character pointer or NULL on error or if no name has been set.
- */
-const char* db_backend_name(const db_backend_t* backend);
 
 /**
  * Get the database backend handle of a database backend.
@@ -485,25 +425,11 @@ int db_backend_set_name(db_backend_t* backend, const char* name);
 int db_backend_set_handle(db_backend_t* backend, db_backend_handle_t* handle);
 
 /**
- * Check if a database backend is not empty.
- * \param[in] backend a db_backend_t pointer.
- * \return DB_ERROR_* if empty, otherwise DB_OK.
- */
-int db_backend_not_empty(const db_backend_t* backend);
-
-/**
  * Initiate the backend of a database backend.
  * \param[in] backend a db_backend_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_backend_initialize(const db_backend_t* backend);
-
-/**
- * Shutdown the backend of a database backend.
- * \param[in] backend a db_backend_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int db_backend_shutdown(const db_backend_t* backend);
 
 /**
  * Connect to the database of a database backend, the connection specific
@@ -513,13 +439,6 @@ int db_backend_shutdown(const db_backend_t* backend);
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_backend_connect(const db_backend_t* backend, const db_configuration_list_t* configuration_list);
-
-/**
- * Disconnect from the database in a database backend.
- * \param[in] backend a db_backend_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int db_backend_disconnect(const db_backend_t* backend);
 
 /**
  * Create an object in the database. The `object` refer to the database object
@@ -576,170 +495,11 @@ int db_backend_delete(const db_backend_t* backend, const db_object_t* object, co
 int db_backend_count(const db_backend_t* backend, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list, size_t* count);
 
 /**
- * Begin a transaction for a database connection.
- * \param[in] backend a db_backend_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int db_backend_transaction_begin(const db_backend_t* backend);
-
-/**
- * Commit a transaction for a database connection.
- * \param[in] backend a db_backend_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int db_backend_transaction_commit(const db_backend_t* backend);
-
-/**
- * Roll back a transaction for a database connection.
- * \param[in] backend a db_backend_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int db_backend_transaction_rollback(const db_backend_t* backend);
-
-/**
  * Get a new database backend by the name supplied in `name`.
  * \param[in] name a character pointer.
  * \return a db_backend_t pointer or NULL on error or if the database backend
  * does not exist.
  */
 db_backend_t* db_backend_factory_get_backend(const char* name);
-
-/**
- * Shutdown the database backends created by the factory.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int db_backend_factory_shutdown(void);
-
-/**
- * A database backend meta data that may be used by backends to store backend
- * specific data about objects and results.
- */
-struct db_backend_meta_data {
-    db_backend_meta_data_t* next;
-    char* name;
-    db_value_t* value;
-};
-
-/**
- * Create a new database backend meta data.
- * \return a db_backend_meta_data_t pointer or NULL on error.
- */
-db_backend_meta_data_t* db_backend_meta_data_new(void);
-
-/**
- * Create a new database backend meta data that is a copy of another.
- * \param[in] from_backend_meta_data a db_backend_meta_data_t pointer.
- * \return a db_backend_meta_data_t pointer or NULL on error.
- */
-db_backend_meta_data_t* db_backend_meta_data_new_copy(const db_backend_meta_data_t* from_backend_meta_data);
-
-/**
- * Delete a database backend meta data.
- * \param[in] backend_meta_data a db_backend_meta_data_t pointer.
- */
-void db_backend_meta_data_free(db_backend_meta_data_t* backend_meta_data);
-
-/**
- * Copy a database backend meta data.
- * \param[in] backend_meta_data a db_backend_meta_data_t pointer.
- * \param[in] from_backend_meta_data a db_backend_meta_data_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int db_backend_meta_data_copy(db_backend_meta_data_t* backend_meta_data, const db_backend_meta_data_t* from_backend_meta_data);
-
-/**
- * Get the name of a database backend meta data.
- * \param[in] backend_meta_data a db_backend_meta_data_t pointer.
- * \return a character pointer or NULL on error or if no name has been set.
- */
-const char* db_backend_meta_data_name(const db_backend_meta_data_t* backend_meta_data);
-
-/**
- * Get the database value of a database backend meta data.
- * \param[in] backend_meta_data a db_backend_meta_data_t pointer.
- * \return a db_value_t pointer or NULL on error or if no database value has
- * been set.
- */
-const db_value_t* db_backend_meta_data_value(const db_backend_meta_data_t* backend_meta_data);
-
-/**
- * Set the name of a database backend meta data.
- * \param[in] backend_meta_data a db_backend_meta_data_t pointer.
- * \param[in] name a character pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int db_backend_meta_data_set_name(db_backend_meta_data_t* backend_meta_data, const char* name);
-
-/**
- * Set the database value of a database backend meta data, this takes over the
- * ownership of the database value.
- * \param[in] backend_meta_data a db_backend_meta_data_t pointer.
- * \param[in] value a db_value_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int db_backend_meta_data_set_value(db_backend_meta_data_t* backend_meta_data, db_value_t* value);
-
-/**
- * Check if the database meta data is not empty.
- * \param[in] backend_meta_data a db_backend_meta_data_t pointer.
- * \return DB_ERROR_* if empty, otherwise DB_OK.
- */
-int db_backend_meta_data_not_empty(const db_backend_meta_data_t* backend_meta_data);
-
-/**
- * A list of database backend meta data that may be used by backends to store
- * backend specific data about objects and results.
- */
-struct db_backend_meta_data_list {
-    db_backend_meta_data_t* begin;
-    db_backend_meta_data_t* end;
-};
-
-/**
- * Create a new database backend meta data list.
- * \return a db_backend_meta_data_list_t pointer or NULL on error.
- */
-db_backend_meta_data_list_t* db_backend_meta_data_list_new(void);
-
-/**
- * Create a new database backend meta data list that is a copy of another.
- * \param[in] from_backend_meta_data_list a db_backend_meta_data_list_t pointer.
- * \return a db_backend_meta_data_list_t pointer or NULL on error.
- */
-db_backend_meta_data_list_t* db_backend_meta_data_list_new_copy(const db_backend_meta_data_list_t* from_backend_meta_data_list);
-
-/**
- * Delete a database backend meta data list and all database backend meta data
- * in the list.
- * \param[in] backend_meta_data_list a db_backend_meta_data_list_t pointer.
- */
-void db_backend_meta_data_list_free(db_backend_meta_data_list_t* backend_meta_data_list);
-
-/**
- * Copy a database backend meta data list.
- * \param[in] backend_meta_data_list a db_backend_meta_data_list_t pointer.
- * \param[in] from_backend_meta_data_list a db_backend_meta_data_list_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int db_backend_meta_data_list_copy(db_backend_meta_data_list_t* backend_meta_data_list, const db_backend_meta_data_list_t* from_backend_meta_data_list);
-
-/**
- * Add a database backend meta data to a database backend meta data list, this
- * takes over the ownership of the database backend meta data.
- * \param[in] backend_meta_data_list a db_backend_meta_data_list_t pointer.
- * \param[in] backend_meta_data a db_backend_meta_data_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int db_backend_meta_data_list_add(db_backend_meta_data_list_t* backend_meta_data_list, db_backend_meta_data_t* backend_meta_data);
-
-/**
- * Find a database backend meta data by name in a database backend meta data
- * list.
- * \param[in] backend_meta_data_list a db_backend_meta_data_list_t pointer.
- * \param[in] name a character pointer.
- * \return a db_backend_meta_data_t pointer or NULL on error or if the database
- * backend meta data does not exist.
- */
-const db_backend_meta_data_t* db_backend_meta_data_list_find(const db_backend_meta_data_list_t* backend_meta_data_list, const char* name);
 
 #endif

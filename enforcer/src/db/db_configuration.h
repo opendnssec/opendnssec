@@ -57,14 +57,6 @@ db_configuration_t* db_configuration_new(void);
 void db_configuration_free(db_configuration_t* configuration);
 
 /**
- * Get the name of a database configuration.
- * \param[in] configuration a db_configuration_t pointer.
- * \return a character pointer or NULL on error or if no database configuration
- * name has been set.
- */
-const char* db_configuration_name(const db_configuration_t* configuration);
-
-/**
  * Get the value of a database configuration.
  * \param[in] configuration a db_configuration_t pointer.
  * \return a character pointer or NULL on error or if no database configuration

@@ -99,17 +99,6 @@ int db_connection_connect(const db_connection_t* connection) {
     return db_backend_connect(connection->backend, connection->configuration_list);
 }
 
-int db_connection_disconnect(const db_connection_t* connection) {
-    if (!connection) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!connection->backend) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    return db_backend_disconnect(connection->backend);
-}
-
 int db_connection_create(const db_connection_t* connection, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set) {
     if (!connection) {
         return DB_ERROR_UNKNOWN;
@@ -193,37 +182,4 @@ int db_connection_count(const db_connection_t* connection, const db_object_t* ob
     }
 
     return db_backend_count(connection->backend, object, join_list, clause_list, count);
-}
-
-int db_connection_transaction_begin(const db_connection_t* connection) {
-    if (!connection) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!connection->backend) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    return db_backend_transaction_begin(connection->backend);
-}
-
-int db_connection_transaction_commit(const db_connection_t* connection) {
-    if (!connection) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!connection->backend) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    return db_backend_transaction_commit(connection->backend);
-}
-
-int db_connection_transaction_rollback(const db_connection_t* connection) {
-    if (!connection) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!connection->backend) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    return db_backend_transaction_rollback(connection->backend);
 }

@@ -77,63 +77,6 @@ util_serial_gt(uint32_t serial_new, uint32_t serial_old)
 
 
 /**
- * Compare SOA RDATAs.
- *
- */
-int
-util_soa_compare_rdata(ldns_rr* rr1, ldns_rr* rr2)
-{
-    size_t i = 0;
-    size_t rdata_count = SE_SOA_RDATA_MINIMUM;
-    for (i = 0; i <= rdata_count; i++) {
-        if (i != SE_SOA_RDATA_SERIAL &&
-            ldns_rdf_compare(ldns_rr_rdf(rr1, i), ldns_rr_rdf(rr2, i)) != 0) {
-                return 1;
-        }
-    }
-    return 0;
-}
-
-
-/**
- * Compare SOA RRs.
- *
- */
-int
-util_soa_compare(ldns_rr* rr1, ldns_rr* rr2)
-{
-    size_t rr1_len = 0;
-    size_t rr2_len = 0;
-    size_t offset = 0;
-    if (!rr1 || !rr2) {
-        return 1;
-    }
-    rr1_len = ldns_rr_uncompressed_size(rr1);
-    rr2_len = ldns_rr_uncompressed_size(rr2);
-    if (ldns_dname_compare(ldns_rr_owner(rr1), ldns_rr_owner(rr2)) != 0) {
-        return 1;
-    }
-    if (ldns_rr_get_class(rr1) != ldns_rr_get_class(rr2)) {
-        return 1;
-    }
-    if (ldns_rr_get_type(rr1) != LDNS_RR_TYPE_SOA) {
-        return 1;
-    }
-    if (ldns_rr_get_type(rr1) != ldns_rr_get_type(rr2)) {
-        return 1;
-    }
-    if (offset > rr1_len || offset > rr2_len) {
-        if (rr1_len == rr2_len) {
-            return util_soa_compare_rdata(rr1, rr2);
-        }
-        return 1;
-    }
-    return util_soa_compare_rdata(rr1, rr2);
-}
-
-
-
-/**
  * Compare RRs only on RDATA.
  *
  */
@@ -171,72 +114,6 @@ util_dnssec_rrs_compare(ldns_rr* rr1, ldns_rr* rr2, int* cmp)
     *cmp = ldns_rr_compare_wire(rr1_buf, rr2_buf);
     ldns_buffer_free(rr1_buf);
     ldns_buffer_free(rr2_buf);
-    return LDNS_STATUS_OK;
-}
-
-
-/**
- * A more efficient ldns_dnssec_rrs_add_rr(), get rid of ldns_rr_compare().
- *
- */
-ldns_status
-util_dnssec_rrs_add_rr(ldns_dnssec_rrs *rrs, ldns_rr *rr)
-{
-    int cmp = 0;
-    ldns_dnssec_rrs *new_rrs = NULL;
-    ldns_status status = LDNS_STATUS_OK;
-    uint32_t rr_ttl = 0;
-    uint32_t default_ttl = 0;
-
-    if (!rrs || !rrs->rr || !rr) {
-        return LDNS_STATUS_ERR;
-    }
-
-    rr_ttl = ldns_rr_ttl(rr);
-    status = util_dnssec_rrs_compare(rrs->rr, rr, &cmp);
-    if (status != LDNS_STATUS_OK) {
-        /* critical */
-        return status;
-    }
-
-    if (cmp < 0) {
-        if (rrs->next) {
-            return util_dnssec_rrs_add_rr(rrs->next, rr);
-        } else {
-            new_rrs = ldns_dnssec_rrs_new();
-            new_rrs->rr = rr;
-            rrs->next = new_rrs;
-            default_ttl = ldns_rr_ttl(rrs->rr);
-            if (rr_ttl < default_ttl) {
-                ldns_rr_set_ttl(rrs->rr, rr_ttl);
-            } else {
-                ldns_rr_set_ttl(new_rrs->rr, default_ttl);
-            }
-            return LDNS_STATUS_OK;
-        }
-    } else if (cmp > 0) {
-        /* put the current old rr in the new next, put the new
-           rr in the current container */
-        new_rrs = ldns_dnssec_rrs_new();
-        new_rrs->rr = rrs->rr;
-        new_rrs->next = rrs->next;
-
-        rrs->rr = rr;
-        rrs->next = new_rrs;
-
-        default_ttl = ldns_rr_ttl(new_rrs->rr);
-        if (rr_ttl < default_ttl) {
-            ldns_rr_set_ttl(new_rrs->rr, rr_ttl);
-        } else {
-            ldns_rr_set_ttl(rrs->rr, default_ttl);
-        }
-
-        return LDNS_STATUS_OK;
-    } else {
-        /* should we error on equal? or free memory of rr */
-        ods_log_warning("[%s] adding duplicate RR?", util_str);
-        return LDNS_STATUS_NO_DATA;
-    }
     return LDNS_STATUS_OK;
 }
 

@@ -108,12 +108,12 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	client_printf(sockfd, "There %s %i %s scheduled.\n",
 		(count==1)?"is":"are", (int) count, (count==1)?"task":"tasks");
 	now = time_now();
-	strftime(strtime, sizeof(strtime), "%c (%s seconds since epoch)\n", localtime_r(&now, &strtime_struct));
-	client_printf(sockfd, "It is now %s", strtime[0]?strtime:"(null)\n");
+	strftime(strtime, sizeof(strtime), "%c", localtime_r(&now, &strtime_struct));
+	client_printf(sockfd, "It is now %s (%ld seconds since epoch)\n", (strtime[0]?strtime:"(null)"), (long)now);
 	nextFireTime = schedule_time_first(engine->taskq);
         if (nextFireTime > 0) {
-                strftime(strtime, sizeof(strtime), "%c (%s seconds since epoch)\n", localtime_r(&nextFireTime, &strtime_struct));
-                client_printf(sockfd, "Next task scheduled %s", strtime);
+                strftime(strtime, sizeof(strtime), "%c", localtime_r(&nextFireTime, &strtime_struct));
+                client_printf(sockfd, "Next task scheduled %s (%ld seconds since epoch)\n", strtime, (long)nextFireTime);
         } else if (nextFireTime == 0) {
                 client_printf(sockfd, "Next task scheduled immediately\n");
         }

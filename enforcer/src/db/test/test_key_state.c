@@ -267,23 +267,14 @@ static void test_key_state_set(void) {
     }
     CU_ASSERT(!key_state_set_key_data_id(object, &key_data_id));
     CU_ASSERT(!key_state_set_type(object, KEY_STATE_TYPE_DS));
-    CU_ASSERT(!key_state_set_type_text(object, "DS"));
     CU_ASSERT(!key_state_set_type(object, KEY_STATE_TYPE_RRSIG));
-    CU_ASSERT(!key_state_set_type_text(object, "RRSIG"));
     CU_ASSERT(!key_state_set_type(object, KEY_STATE_TYPE_DNSKEY));
-    CU_ASSERT(!key_state_set_type_text(object, "DNSKEY"));
     CU_ASSERT(!key_state_set_type(object, KEY_STATE_TYPE_RRSIGDNSKEY));
-    CU_ASSERT(!key_state_set_type_text(object, "RRSIGDNSKEY"));
     CU_ASSERT(!key_state_set_state(object, KEY_STATE_STATE_HIDDEN));
-    CU_ASSERT(!key_state_set_state_text(object, "hidden"));
     CU_ASSERT(!key_state_set_state(object, KEY_STATE_STATE_RUMOURED));
-    CU_ASSERT(!key_state_set_state_text(object, "rumoured"));
     CU_ASSERT(!key_state_set_state(object, KEY_STATE_STATE_OMNIPRESENT));
-    CU_ASSERT(!key_state_set_state_text(object, "omnipresent"));
     CU_ASSERT(!key_state_set_state(object, KEY_STATE_STATE_UNRETENTIVE));
-    CU_ASSERT(!key_state_set_state_text(object, "unretentive"));
     CU_ASSERT(!key_state_set_state(object, KEY_STATE_STATE_NA));
-    CU_ASSERT(!key_state_set_state_text(object, "NA"));
     CU_ASSERT(!key_state_set_last_change(object, 1));
     CU_ASSERT(!key_state_set_minimize(object, 1));
     CU_ASSERT(!key_state_set_ttl(object, 1));
@@ -318,183 +309,12 @@ static void test_key_state_create(void) {
 }
 
 static void test_key_state_clauses(void) {
-    key_state_list_t* new_list;
-
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
     CU_ASSERT_PTR_NOT_NULL(key_state_key_data_id_clause(clause_list, key_state_key_data_id(object)));
     CU_ASSERT(!key_state_list_get_by_clauses(object_list, clause_list));
     CU_ASSERT_PTR_NOT_NULL(key_state_list_next(object_list));
-    CU_ASSERT_PTR_NOT_NULL((new_list = key_state_list_new_get_by_clauses(connection, clause_list)));
-    CU_ASSERT_PTR_NOT_NULL(key_state_list_next(new_list));
-    key_state_list_free(new_list);
     db_clause_list_free(clause_list);
     clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(key_state_type_clause(clause_list, key_state_type(object)));
-    CU_ASSERT(!key_state_list_get_by_clauses(object_list, clause_list));
-    CU_ASSERT_PTR_NOT_NULL(key_state_list_next(object_list));
-    CU_ASSERT_PTR_NOT_NULL((new_list = key_state_list_new_get_by_clauses(connection, clause_list)));
-    CU_ASSERT_PTR_NOT_NULL(key_state_list_next(new_list));
-    key_state_list_free(new_list);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(key_state_state_clause(clause_list, key_state_state(object)));
-    CU_ASSERT(!key_state_list_get_by_clauses(object_list, clause_list));
-    CU_ASSERT_PTR_NOT_NULL(key_state_list_next(object_list));
-    CU_ASSERT_PTR_NOT_NULL((new_list = key_state_list_new_get_by_clauses(connection, clause_list)));
-    CU_ASSERT_PTR_NOT_NULL(key_state_list_next(new_list));
-    key_state_list_free(new_list);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(key_state_last_change_clause(clause_list, key_state_last_change(object)));
-    CU_ASSERT(!key_state_list_get_by_clauses(object_list, clause_list));
-    CU_ASSERT_PTR_NOT_NULL(key_state_list_next(object_list));
-    CU_ASSERT_PTR_NOT_NULL((new_list = key_state_list_new_get_by_clauses(connection, clause_list)));
-    CU_ASSERT_PTR_NOT_NULL(key_state_list_next(new_list));
-    key_state_list_free(new_list);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(key_state_minimize_clause(clause_list, key_state_minimize(object)));
-    CU_ASSERT(!key_state_list_get_by_clauses(object_list, clause_list));
-    CU_ASSERT_PTR_NOT_NULL(key_state_list_next(object_list));
-    CU_ASSERT_PTR_NOT_NULL((new_list = key_state_list_new_get_by_clauses(connection, clause_list)));
-    CU_ASSERT_PTR_NOT_NULL(key_state_list_next(new_list));
-    key_state_list_free(new_list);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(key_state_ttl_clause(clause_list, key_state_ttl(object)));
-    CU_ASSERT(!key_state_list_get_by_clauses(object_list, clause_list));
-    CU_ASSERT_PTR_NOT_NULL(key_state_list_next(object_list));
-    CU_ASSERT_PTR_NOT_NULL((new_list = key_state_list_new_get_by_clauses(connection, clause_list)));
-    CU_ASSERT_PTR_NOT_NULL(key_state_list_next(new_list));
-    key_state_list_free(new_list);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-}
-
-static void test_key_state_count(void) {
-    size_t count;
-
-    CU_ASSERT(!key_state_count(object, NULL, &count));
-    CU_ASSERT(count == 1);
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(key_state_key_data_id_clause(clause_list, key_state_key_data_id(object)));
-    CU_ASSERT(!key_state_count(object, clause_list, &count));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(key_state_type_clause(clause_list, key_state_type(object)));
-    CU_ASSERT(!key_state_count(object, clause_list, &count));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(key_state_state_clause(clause_list, key_state_state(object)));
-    CU_ASSERT(!key_state_count(object, clause_list, &count));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(key_state_last_change_clause(clause_list, key_state_last_change(object)));
-    CU_ASSERT(!key_state_count(object, clause_list, &count));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(key_state_minimize_clause(clause_list, key_state_minimize(object)));
-    CU_ASSERT(!key_state_count(object, clause_list, &count));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(key_state_ttl_clause(clause_list, key_state_ttl(object)));
-    CU_ASSERT(!key_state_count(object, clause_list, &count));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-}
-
-static void test_key_state_list(void) {
-    const key_state_t* item;
-    key_state_t* item2;
-    key_state_list_t* new_list;
-
-    CU_ASSERT_FATAL(!key_state_list_get(object_list));
-    CU_ASSERT_PTR_NOT_NULL_FATAL((item = key_state_list_next(object_list)));
-    CU_ASSERT_FATAL(!db_value_copy(&id, key_state_id(item)));
-    CU_ASSERT_PTR_NOT_NULL_FATAL((item = key_state_list_begin(object_list)));
-
-    CU_ASSERT_FATAL(!key_state_list_get(object_list));
-    CU_ASSERT_PTR_NOT_NULL_FATAL((item2 = key_state_list_get_next(object_list)));
-    key_state_free(item2);
-    CU_PASS("key_state_free");
-    CU_ASSERT_PTR_NOT_NULL_FATAL((item2 = key_state_list_get_begin(object_list)));
-    key_state_free(item2);
-    CU_PASS("key_state_free");
-
-    CU_ASSERT_PTR_NOT_NULL((new_list = key_state_list_new_get(connection)));
-    CU_ASSERT_PTR_NOT_NULL(key_state_list_next(new_list));
-    key_state_list_free(new_list);
-}
-
-static void test_key_state_list_store(void) {
-    key_state_t* item;
-    key_state_list_t* new_list;
-
-    CU_ASSERT_PTR_NOT_NULL((new_list = key_state_list_new(connection)));
-    CU_ASSERT_FATAL(!key_state_list_object_store(new_list));
-    CU_ASSERT_FATAL(!key_state_list_get(new_list));
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL(key_state_list_next(new_list));
-    CU_ASSERT_PTR_NOT_NULL_FATAL(key_state_list_begin(new_list));
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((item = key_state_list_get_begin(new_list)));
-    key_state_free(item);
-    CU_PASS("key_state_free");
-
-    key_state_list_free(new_list);
-}
-
-static void test_key_state_list_associated(void) {
-    key_state_t* item;
-    key_state_list_t* new_list;
-
-    CU_ASSERT_PTR_NOT_NULL((new_list = key_state_list_new(connection)));
-    CU_ASSERT_FATAL(!key_state_list_associated_fetch(new_list));
-    CU_ASSERT_FATAL(!key_state_list_get(new_list));
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL(key_state_list_next(new_list));
-    CU_ASSERT_PTR_NOT_NULL_FATAL(key_state_list_begin(new_list));
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((item = key_state_list_get_begin(new_list)));
-    key_state_free(item);
-    CU_PASS("key_state_free");
-
-    key_state_list_free(new_list);
-}
-
-static void test_key_state_read(void) {
-    key_state_t* item;
-
-    CU_ASSERT_FATAL(!key_state_get_by_id(object, &id));
-    CU_ASSERT_PTR_NOT_NULL((item = key_state_new_get_by_id(connection, &id)));
-    key_state_free(item);
 }
 
 static void test_key_state_verify(void) {
@@ -530,9 +350,7 @@ static void test_key_state_change(void) {
     }
     CU_ASSERT(!key_state_set_key_data_id(object, &key_data_id));
     CU_ASSERT(!key_state_set_type(object, KEY_STATE_TYPE_DS));
-    CU_ASSERT(!key_state_set_type_text(object, "DS"));
     CU_ASSERT(!key_state_set_state(object, KEY_STATE_STATE_HIDDEN));
-    CU_ASSERT(!key_state_set_state_text(object, "hidden"));
     CU_ASSERT(!key_state_set_last_change(object, 2));
     CU_ASSERT(!key_state_set_minimize(object, 2));
     CU_ASSERT(!key_state_set_ttl(object, 2));
@@ -543,7 +361,25 @@ static void test_key_state_update(void) {
     CU_ASSERT_FATAL(!key_state_update(object));
 }
 
+static void test_key_state_read(void) {
+    db_value_t id = DB_VALUE_EMPTY;
+    if (db_sqlite) {
+        CU_ASSERT(!db_value_from_int32(&id, 1));
+    }
+    if (db_mysql) {
+        CU_ASSERT(!db_value_from_uint64(&id, 1));
+    }
+    CU_ASSERT_FATAL(!key_state_get_by_id(object, &id));
+}
+
 static void test_key_state_read2(void) {
+    db_value_t id = DB_VALUE_EMPTY;
+    if (db_sqlite) {
+        CU_ASSERT(!db_value_from_int32(&id, 1));
+    }
+    if (db_mysql) {
+        CU_ASSERT(!db_value_from_uint64(&id, 1));
+    }
     CU_ASSERT_FATAL(!key_state_get_by_id(object, &id));
 }
 
@@ -570,20 +406,8 @@ static void test_key_state_verify2(void) {
     db_value_reset(&key_data_id);
 }
 
-static void test_key_state_cmp(void) {
-    key_state_t* local_object;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((local_object = key_state_new(connection)));
-    CU_ASSERT(key_state_cmp(object, local_object));
-}
-
 static void test_key_state_delete(void) {
     CU_ASSERT_FATAL(!key_state_delete(object));
-}
-
-static void test_key_state_list2(void) {
-    CU_ASSERT_FATAL(!key_state_list_get(object_list));
-    CU_ASSERT_PTR_NULL(key_state_list_next(object_list));
 }
 
 static void test_key_state_end(void) {
@@ -603,19 +427,13 @@ static int test_key_state_add_tests(CU_pSuite pSuite) {
         || !CU_add_test(pSuite, "get fields", test_key_state_get)
         || !CU_add_test(pSuite, "create object", test_key_state_create)
         || !CU_add_test(pSuite, "object clauses", test_key_state_clauses)
-        || !CU_add_test(pSuite, "object count", test_key_state_count)
-        || !CU_add_test(pSuite, "list objects", test_key_state_list)
-        || !CU_add_test(pSuite, "list objects (store)", test_key_state_list_store)
-        || !CU_add_test(pSuite, "list objects (associated)", test_key_state_list_associated)
         || !CU_add_test(pSuite, "read object by id", test_key_state_read)
         || !CU_add_test(pSuite, "verify fields", test_key_state_verify)
         || !CU_add_test(pSuite, "change object", test_key_state_change)
         || !CU_add_test(pSuite, "update object", test_key_state_update)
         || !CU_add_test(pSuite, "reread object by id", test_key_state_read2)
         || !CU_add_test(pSuite, "verify fields after update", test_key_state_verify2)
-        || !CU_add_test(pSuite, "compare objects", test_key_state_cmp)
         || !CU_add_test(pSuite, "delete object", test_key_state_delete)
-        || !CU_add_test(pSuite, "list objects to verify delete", test_key_state_list2)
         || !CU_add_test(pSuite, "end test", test_key_state_end))
     {
         return CU_get_error();

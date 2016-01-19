@@ -138,13 +138,6 @@ db_clause_t* db_clause_new(void);
 void db_clause_free(db_clause_t* clause);
 
 /**
- * Get the table name of a database clause.
- * \param[in] a db_clause_t pointer.
- * \return a character pointer or NULL on error or if no table name has been set.
- */
-const char* db_clause_table(const db_clause_t* clause);
-
-/**
  * Get the field name of a database clause.
  * \param[in] a db_clause_t pointer.
  * \return a character pointer or NULL on error or if no field name has been set.
@@ -182,14 +175,6 @@ db_clause_operator_t db_clause_operator(const db_clause_t* clause);
 const db_clause_list_t* db_clause_list(const db_clause_t* clause);
 
 /**
- * Set the table name of a database clause.
- * \param[in] a db_clause_t pointer.
- * \param[in] table a character pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int db_clause_set_table(db_clause_t* clause, const char* table);
-
-/**
  * Set the field name of a database clause.
  * \param[in] a db_clause_t pointer.
  * \param[in] field a character pointer.
@@ -212,15 +197,6 @@ int db_clause_set_type(db_clause_t* clause, db_clause_type_t type);
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_clause_set_operator(db_clause_t* clause, db_clause_operator_t clause_operator);
-
-/**
- * Set the database clause list of a database clause, this is used for nested
- * database clauses. The ownership of the database clause list it taken.
- * \param[in] a db_clause_t pointer.
- * \param[in] clause_list a db_clause_list_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int db_clause_set_list(db_clause_t* clause, db_clause_list_t* clause_list);
 
 /**
  * Check if the database clause is not empty.

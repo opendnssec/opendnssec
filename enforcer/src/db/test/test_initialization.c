@@ -122,6 +122,4 @@ void test_initialization_connection(void) {
     CU_ASSERT_FATAL(!db_connection_set_configuration_list(connection, configuration_list));
     CU_ASSERT_FATAL(!db_connection_setup(connection));
     CU_ASSERT_FATAL(!db_connection_connect(connection));
-
-    CU_ASSERT_FATAL(!db_connection_disconnect(connection));
 }

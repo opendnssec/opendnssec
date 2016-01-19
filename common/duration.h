@@ -110,32 +110,6 @@ int duration_set_time(duration_type* duration, time_t time);
 time_t ods_rand(time_t mod);
 
 /**
- * Return the shortest time.
- * \param[in] a one time
- * \param[in] b another time
- * \return time_t the shortest time
- *
- */
-time_t time_minimum(time_t a, time_t b);
-
-/**
- * Return the longest time.
- * \param[in] a one time
- * \param[in] b another time
- * \return time_t the shortest time
- *
- */
-time_t time_maximum(time_t a, time_t b);
-
-/**
- * Convert time into string.
- * \param[in] n time
- * \param[in] s string
- *
- */
-void time_itoa(time_t n, char* s);
-
-/**
  * Return time in datestamp.
  * \param[in] tt time
  * \param[in] format stamp format
