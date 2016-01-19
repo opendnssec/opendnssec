@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 source `dirname "$0"`/lib.sh && init || exit 1
 
+if [ -x `dirname "$0"`/make.sh ] ; then `dirname "$0"`/make.sh ; fi
 require softhsm2
 
 check_if_built opendnssec && exit 0
