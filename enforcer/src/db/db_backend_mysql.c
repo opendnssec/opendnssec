@@ -806,7 +806,7 @@ static int __db_backend_mysql_build_clause(const db_object_t* object, const db_c
         switch (db_clause_type(clause)) {
         case DB_CLAUSE_EQUAL:
             if ((ret = snprintf(*sqlp, *left, " %s.%s = ?",
-                (db_clause_table(clause) ? db_clause_table(clause) : db_object_table(object)),
+                db_object_table(object),
                 db_clause_field(clause))) >= *left)
             {
                 return DB_ERROR_UNKNOWN;
@@ -815,7 +815,7 @@ static int __db_backend_mysql_build_clause(const db_object_t* object, const db_c
 
         case DB_CLAUSE_NOT_EQUAL:
             if ((ret = snprintf(*sqlp, *left, " %s.%s != ?",
-                (db_clause_table(clause) ? db_clause_table(clause) : db_object_table(object)),
+                db_object_table(object),
                 db_clause_field(clause))) >= *left)
             {
                 return DB_ERROR_UNKNOWN;
@@ -824,7 +824,7 @@ static int __db_backend_mysql_build_clause(const db_object_t* object, const db_c
 
         case DB_CLAUSE_LESS_THEN:
             if ((ret = snprintf(*sqlp, *left, " %s.%s < ?",
-                (db_clause_table(clause) ? db_clause_table(clause) : db_object_table(object)),
+                db_object_table(object),
                 db_clause_field(clause))) >= *left)
             {
                 return DB_ERROR_UNKNOWN;
@@ -833,7 +833,7 @@ static int __db_backend_mysql_build_clause(const db_object_t* object, const db_c
 
         case DB_CLAUSE_LESS_OR_EQUAL:
             if ((ret = snprintf(*sqlp, *left, " %s.%s <= ?",
-                (db_clause_table(clause) ? db_clause_table(clause) : db_object_table(object)),
+                db_object_table(object),
                 db_clause_field(clause))) >= *left)
             {
                 return DB_ERROR_UNKNOWN;
@@ -842,7 +842,7 @@ static int __db_backend_mysql_build_clause(const db_object_t* object, const db_c
 
         case DB_CLAUSE_GREATER_OR_EQUAL:
             if ((ret = snprintf(*sqlp, *left, " %s.%s >= ?",
-                (db_clause_table(clause) ? db_clause_table(clause) : db_object_table(object)),
+                db_object_table(object),
                 db_clause_field(clause))) >= *left)
             {
                 return DB_ERROR_UNKNOWN;
@@ -851,7 +851,7 @@ static int __db_backend_mysql_build_clause(const db_object_t* object, const db_c
 
         case DB_CLAUSE_GREATER_THEN:
             if ((ret = snprintf(*sqlp, *left, " %s.%s > ?",
-                (db_clause_table(clause) ? db_clause_table(clause) : db_object_table(object)),
+                db_object_table(object),
                 db_clause_field(clause))) >= *left)
             {
                 return DB_ERROR_UNKNOWN;
@@ -860,7 +860,7 @@ static int __db_backend_mysql_build_clause(const db_object_t* object, const db_c
 
         case DB_CLAUSE_IS_NULL:
             if ((ret = snprintf(*sqlp, *left, " %s.%s IS NULL",
-                (db_clause_table(clause) ? db_clause_table(clause) : db_object_table(object)),
+                db_object_table(object),
                 db_clause_field(clause))) >= *left)
             {
                 return DB_ERROR_UNKNOWN;
@@ -869,7 +869,7 @@ static int __db_backend_mysql_build_clause(const db_object_t* object, const db_c
 
         case DB_CLAUSE_IS_NOT_NULL:
             if ((ret = snprintf(*sqlp, *left, " %s.%s IS NOT NULL",
-                (db_clause_table(clause) ? db_clause_table(clause) : db_object_table(object)),
+                db_object_table(object),
                 db_clause_field(clause))) >= *left)
             {
                 return DB_ERROR_UNKNOWN;

@@ -75,14 +75,6 @@ struct task_struct {
 task_type* task_create(task_id what, time_t when, void* zone);
 
 /**
- * Backup task.
- * \param[in] fd file descriptor
- * \param[in] task task
- *
- */
-void task_backup(FILE* fd, task_type* task);
-
-/**
  * Compare tasks.
  * \param[in] a one task
  * \param[in] b another task
@@ -114,14 +106,6 @@ const char* task_what2str(task_id what);
  * \return const char* string-format of who
  */
 const char* task_who2str(task_type* task);
-
-/**
- * Print task.
- * \param[in] out file descriptor
- * \param[in] task task
- *
- */
-void task_print(FILE* out, task_type* task);
 
 /**
  * Log task.

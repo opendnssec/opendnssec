@@ -92,22 +92,6 @@ buffer_create(size_t capacity)
 
 
 /**
- * Create a buffer with the specified data.
- *
- */
-void
-buffer_create_from(buffer_type* buffer, void* data, size_t size)
-{
-    ods_log_assert(buffer);
-    buffer->data = (uint8_t*) data;
-    buffer->position = 0;
-    buffer->limit = size;
-    buffer->capacity = size;
-    buffer->fixed = 1;
-}
-
-
-/**
  * Clear the buffer and make it ready for writing.
  *
  */
@@ -129,18 +113,6 @@ buffer_flip(buffer_type* buffer)
 {
     ods_log_assert(buffer);
     buffer->limit = buffer->position;
-    buffer->position = 0;
-}
-
-
-/**
- * Make the buffer ready for re-reading the data.
- *
- */
-void
-buffer_rewind(buffer_type* buffer)
-{
-    ods_log_assert(buffer);
     buffer->position = 0;
 }
 
@@ -455,18 +427,6 @@ buffer_begin(buffer_type* buffer)
 {
     ods_log_assert(buffer);
     return buffer_at(buffer, 0);
-}
-
-
-/**
- * Return a pointer to the data at the end of the buffer.
- *
- */
-uint8_t*
-buffer_end(buffer_type* buffer)
-{
-    ods_log_assert(buffer);
-    return buffer_at(buffer, buffer->limit);
 }
 
 
@@ -1174,46 +1134,6 @@ buffer_pkt_notify(buffer_type* buffer, ldns_rdf* qname, ldns_rr_class qclass)
 {
     buffer_pkt_new(buffer, qname, LDNS_RR_TYPE_SOA, qclass,
         LDNS_PACKET_NOTIFY);
-}
-
-
-/**
- * Make a new axfr.
- *
- */
-void
-buffer_pkt_axfr(buffer_type* buffer, ldns_rdf* qname, ldns_rr_class qclass)
-{
-    buffer_pkt_new(buffer, qname, LDNS_RR_TYPE_AXFR, qclass,
-        LDNS_PACKET_QUERY);
-    buffer_pkt_set_qr(buffer);
-}
-
-
-/**
- * Print packet buffer.
- *
- */
-void
-buffer_pkt_print(FILE* fd, buffer_type* buffer)
-{
-    ldns_status status = LDNS_STATUS_OK;
-    ldns_pkt* pkt = NULL;
-    ods_log_assert(fd);
-    ods_log_assert(buffer);
-    status = ldns_wire2pkt(&pkt, buffer_begin(buffer),
-        buffer_remaining(buffer));
-    if (status == LDNS_STATUS_OK) {
-        ods_log_assert(pkt);
-        ldns_pkt_print(fd, pkt);
-        ldns_pkt_free(pkt);
-    } else {
-        fprintf(fd, ";;\n");
-        fprintf(fd, ";; Bogus packet: %s\n", ldns_get_errorstr_by_id(status));
-        fprintf(fd, ";;\n");
-        fprintf(fd, ";;\n");
-        fprintf(fd, "\n");
-    }
 }
 
 

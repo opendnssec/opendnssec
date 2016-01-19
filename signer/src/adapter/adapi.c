@@ -85,20 +85,6 @@ adapi_get_origin(zone_type* zone)
 
 
 /**
- * Get class.
- *
- */
-ldns_rr_class
-adapi_get_class(zone_type* zone)
-{
-    if (!zone) {
-        return LDNS_RR_CLASS_IN;
-    }
-    return zone->klass;
-}
-
-
-/**
  * Get ttl.
  *
  */

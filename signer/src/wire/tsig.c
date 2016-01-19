@@ -63,17 +63,6 @@ struct tsig_algo_table_struct {
 static tsig_algo_table_type* tsig_algo_table = NULL;
 /** maximum algorithm digest size */
 static size_t max_algo_digest_size = 0;
-/** lookup algorithm table */
-tsig_lookup_table tsig_supported_algorithms[] = {
-        { TSIG_HMAC_MD5, "hmac-md5" },
-#ifdef HAVE_EVP_SHA1
-        { TSIG_HMAC_SHA1, "hmac-sha1" },
-#endif
-#ifdef HAVE_EVP_SHA256
-        { TSIG_HMAC_SHA256, "hmac-sha256" },
-#endif
-        { 0, NULL }
-};
 
 
 /**

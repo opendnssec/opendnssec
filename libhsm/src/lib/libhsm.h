@@ -314,24 +314,6 @@ hsm_list_keys_repository(hsm_ctx_t *context,
                          const char *repository);
 
 
-/*! Count all known keys in all attached HSMs
-
-\param context HSM context
-*/
-size_t
-hsm_count_keys(hsm_ctx_t *context);
-
-
-/*! Count all known keys in a HSM
-
-\param context HSM context
-\param repository repository in where to count the keys
-*/
-size_t
-hsm_count_keys_repository(hsm_ctx_t *context,
-                          const char *repository);
-
-
 
 /*! Find a key pair by CKA_ID (as hex string)
 
@@ -525,14 +507,6 @@ hsm_attach(const char *repository,
            const char *path,
            const char *pin,
            const hsm_config_t *config);
-
-/*! Detach a named HSM
-   This function changes the global state, and is not threadsafe
-\param token_name the token to detach
-\return 0 on success, -1 on error
-*/
-int
-hsm_detach(const char *repository);
 
 /*! Check whether a named token has been initialized in this context
 \param ctx HSM context

@@ -56,7 +56,6 @@ typedef db_result_t* (*db_result_list_next_t)(void* data, int finish);
 struct db_result {
     db_result_t* next;
     db_value_set_t* value_set;
-    db_backend_meta_data_list_t* backend_meta_data_list;
 };
 
 /**
@@ -95,29 +94,12 @@ int db_result_copy(db_result_t* result, const db_result_t* from_result);
 const db_value_set_t* db_result_value_set(const db_result_t* result);
 
 /**
- * Get the backend meta data list of a database result.
- * \param[in] result a db_result_t pointer.
- * \return a db_backend_meta_data_list_t pointer or NULL on error or if no
- * backend meta data list has been set.
- */
-const db_backend_meta_data_list_t* db_result_backend_meta_data_list(const db_result_t* result);
-
-/**
  * Set the value set of a database result.
  * \param[in] result a db_result_t pointer.
  * \param[in] value_set a db_value_set_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_result_set_value_set(db_result_t* result, db_value_set_t* value_set);
-
-/**
- * Set the backend meta data list of a database result, this takes over the
- * ownership of the backend meta data list.
- * \param[in] result a db_result_t pointer.
- * \param[in] backend_meta_data_list a db_backend_meta_data_list_t pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int db_result_set_backend_meta_data_list(db_result_t* result, db_backend_meta_data_list_t* backend_meta_data_list);
 
 /**
  * Check if a database result is not empty.

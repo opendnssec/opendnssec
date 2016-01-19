@@ -40,14 +40,6 @@
 #define SE_ADFILE_MAXLINE 65535
 
 /**
- * Lookup SOA RR.
- * \param[in] fd file descriptor
- * \return ldns_rr* SOA RR
- *
- */
-ldns_rr* adutil_lookup_soa_rr(FILE* fd);
-
-/**
  * Read one line from file.
  * \param[in] fd file descriptor of zonefile
  * \param[out] line the one line
