@@ -1,7 +1,12 @@
 #!/usr/bin/env bash
 source `dirname "$0"`/lib.sh && init || exit 1
 
-require softhsm
+if [ -x `dirname "$0"`/make.sh ] ; then
+  export INSTALL_TAG INSTALL_ROOT WORKSPACE_ROOT
+  `dirname "$0"`/make.sh
+fi
+
+require softhsm2
 
 check_if_built opendnssec && exit 0
 start_build opendnssec
