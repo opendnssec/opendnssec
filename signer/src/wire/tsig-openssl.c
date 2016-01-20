@@ -31,7 +31,7 @@
 
 #include "config.h"
 
-#ifdef HAVE_SSL
+#ifdef HAVE_OPENSSL
 #include "log.h"
 #include "wire/tsig.h"
 #include "wire/tsig-openssl.h"
@@ -192,4 +192,4 @@ tsig_handler_openssl_finalize(void)
     EVP_cleanup();
 }
 
-#endif /* HAVE_SSL */
+#endif /* HAVE_OPENSSL */
