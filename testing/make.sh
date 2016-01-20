@@ -28,6 +28,7 @@ if [ \! -f $INSTALL_ROOT/.softhsm2.ok ] ; then
               --disable-non-paged-memory \
               --with-migrate \
               --with-crypto-backend=botan \
+              --disable-ecc \
               --with-botan="$INSTALL_ROOT"
   make
   make install
