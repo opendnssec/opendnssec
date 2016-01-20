@@ -524,12 +524,6 @@ engine_setup(engine_type* engine)
     if (util_write_pidfile(engine->config->pid_filename, engine->pid) == -1) {
         return ODS_STATUS_WRITE_PIDFILE_ERR;
     }
-    /* set up hsm */ /* LEAK */
-    result = lhsm_open(engine->config->repositories);
-    if (result != HSM_OK) {
-        fprintf(stderr, "Fail to open hsm\n");
-        return ODS_STATUS_HSM_ERR;
-    }
     /* setup done */
     ods_log_verbose("[%s] running as pid %lu", engine_str,
         (unsigned long) engine->pid);
