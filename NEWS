@@ -8,7 +8,12 @@ Bugfixes:
  * Crash on shutdown. At all times join xfr and dns handler threads.
  * Make handling of notifies more consistent. Previous implementation would
    bounce between code paths.
- 
+
+Known Issues:
+ * When using SoftHSM2 compiled with OpenSSL, and libmysql with OpenSSL as 
+   database backend for OpenDNSSEC. "ods-ksmutil key list --verbose" crashes 
+   on exit. This is ultimately a bug in OpenSSL and not new for this particular 
+   release. Make sure you don't use this specific combination.
 
 OpenDNSSEC 1.4.8 - 2015-09-24
 
