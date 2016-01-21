@@ -1,4 +1,4 @@
-OpenDNSSEC 1.4.9 - 2016-01-04
+OpenDNSSEC 1.4.9 - 2016-01-21
 
 Bugfixes:
  * Add TCP waiting queue. Fix signer getting 'stuck' when adding many zones
