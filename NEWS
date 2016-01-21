@@ -1,3 +1,7 @@
+OpenDNSSEC 2.0.0a6
+
+* Upgrade to SoftHSM2
+
 OpenDNSSEC 2.0.0a5
 
 Project transfer to NLnetLabs, performing code drop as-is for evaluation
