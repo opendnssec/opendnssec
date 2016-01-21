@@ -3,9 +3,11 @@ source `dirname "$0"`/lib.sh && init || exit 1
 
 if [ -x `dirname "$0"`/make.sh ] ; then
   export INSTALL_TAG INSTALL_ROOT WORKSPACE_ROOT
-  LD_LIBRARY_PATH=$WORKSPACE/root/$INSTALL_TAG/lib
-  PATH=$WORKSPACE/root/$INSTALL_TAG/bin:$WORKSPACE/root/$INSTALL_TAG/sbin:$PATH
-  export LD_LIBRARY_PATH PATH
+  LD_LIBRARY_PATH=$INSTALL_ROOT/lib
+  # PATH=$WORKSPACE/root/$INSTALL_TAG/bin:$WORKSPACE/root/$INSTALL_TAG/sbin:$PATH
+  # export LD_LIBRARY_PATH PATH
+  echo $INSTALL_ROOT
+  echo $INSTALL_TAG
   echo $PATH
   echo $LD_LIBRARY_PATH
   `dirname "$0"`/make.sh
