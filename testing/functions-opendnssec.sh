@@ -173,17 +173,17 @@ ods_setup_conf ()
 		fi
 
 		if [ -n "$file" ]; then
-			if ! cp -- "$file" "$INSTALL_ROOT/etc/$conf_file" 2>/dev/null; then
+			if ! cp -- "$file" "$INSTALL_ROOT/etc/$conf_file" ; then
 				echo "ods_setup_conf: unable to copy/install test specific $file to $INSTALL_ROOT/etc/$conf_file" >&2
 				return 1
 			fi
 		elif [ -f "$conf_file" ]; then
-			if ! cp -- "$conf_file" "$INSTALL_ROOT/etc/$conf_file" 2>/dev/null; then
+			if ! cp -- "$conf_file" "$INSTALL_ROOT/etc/$conf_file" ; then
 				echo "ods_setup_conf: unable to copy/install test specific $conf_file to $INSTALL_ROOT/etc/$conf_file" >&2
 				return 1
 			fi
 		else
-			if ! cp -- "$INSTALL_ROOT/etc/$conf_file.build" "$INSTALL_ROOT/etc/$conf_file" 2>/dev/null; then
+			if ! cp -- "$INSTALL_ROOT/etc/$conf_file.build" "$INSTALL_ROOT/etc/$conf_file" ; then
 				echo "ods_setup_conf: unable to copy/install build default $INSTALL_ROOT/etc/$conf_file.build to $INSTALL_ROOT/etc/$conf_file" >&2
 				return 1
 			fi
