@@ -2,6 +2,7 @@ OpenDNSSEC 2.0.0a6
 
 * Upgrade to SoftHSM2
 
+
 OpenDNSSEC 2.0.0a5
 
 Project transfer to NLnetLabs, performing code drop as-is for evaluation
@@ -18,6 +19,7 @@ purposes only.
   --xml to the zone add command to update the zonelist.xml.  If updating
   the zonelist fails, the zone will still be added and not updated in
   the xml with future zone adds.
+
 
 OpenDNSSEC 2.0.0a4 (EnforcerNG branch) 
 
