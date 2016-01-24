@@ -31,7 +31,7 @@ ods_bind9_start &&
 ods_start_ods-control &&
 
 ## Send updates
-ods_bind9_dynupdate 100 10000 ods &&
+ods_bind9_dynupdate 100 3000 ods &&
 
 ## Stop
 ods_stop_ods-control &&
