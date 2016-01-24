@@ -69,55 +69,55 @@ ods_nuke_env ()
 	if [ -n "$kasp_files" ]; then
 		(
 			cd "$INSTALL_ROOT/var/opendnssec/" &&
-			rm -rf -- $kasp_files 2>/dev/null
+			rm -rf -- $kasp_files
 		)
 	fi &&
 	if [ -n "$tmp_files" ]; then
 		(
 			cd "$INSTALL_ROOT/var/opendnssec/signer/" &&
-			rm -rf -- $tmp_files 2>/dev/null
+			rm -rf -- $tmp_files
 		)
 	fi &&
 	if [ -n "$tmp_files2" ]; then
 		(
 			cd "$INSTALL_ROOT/var/opendnssec/tmp/" &&
-			rm -rf -- $tmp_files2 2>/dev/null
+			rm -rf -- $tmp_files2
 		)
 	fi &&
 	if [ -n "$tmp_files3" ]; then
 		(
 			cd "$INSTALL_ROOT/var/opendnssec/enforcer/" &&
-			rm -rf -- $tmp_files3 2>/dev/null
+			rm -rf -- $tmp_files3
 		)
 	fi &&
 	if [ -n "$unsigned_files" ]; then
 		(
 			cd "$INSTALL_ROOT/var/opendnssec/unsigned/" &&
-			rm -f -- $unsigned_files 2>/dev/null
+			rm -f -- $unsigned_files
 		)
 	fi &&
 	if [ -n "$signed_files" ]; then
 		(
 			cd "$INSTALL_ROOT/var/opendnssec/signed/" &&
-			rm -f -- $signed_files 2>/dev/null
+			rm -f -- $signed_files
 		)
 	fi &&
 	if [ -n "$signconf_files" ]; then
 		(
 			cd "$INSTALL_ROOT/var/opendnssec/signconf/" &&
-			rm -f -- $signconf_files 2>/dev/null
+			rm -f -- $signconf_files
 		)
 	fi &&
 	if [ -n "$softhsm_files" ]; then
 		(
 			cd "$INSTALL_ROOT/var/softhsm/" &&
-			rm -rf -- $softhsm_files 2>/dev/null
+			rm -rf -- $softhsm_files
 		)
 	fi &&
 	if [ -n "$softhsm_files2" ]; then
 		(
 			cd "$INSTALL_ROOT/var/lib/softhsm/" &&
-			rm -rf -- $softhsm_files2 2>/dev/null
+			rm -rf -- $softhsm_files2
 		)
 	fi &&
 	if [ \! -d "$INSTALL_ROOT/var/lib/softhsm/tokens" ]; then
@@ -178,17 +178,17 @@ ods_setup_conf ()
 		fi
 
 		if [ -n "$file" ]; then
-			if ! cp -- "$file" "$INSTALL_ROOT/etc/$conf_file" 2>/dev/null; then
+			if ! cp -- "$file" "$INSTALL_ROOT/etc/$conf_file" ; then
 				echo "ods_setup_conf: unable to copy/install test specific $file to $INSTALL_ROOT/etc/$conf_file" >&2
 				return 1
 			fi
 		elif [ -f "$conf_file" ]; then
-			if ! cp -- "$conf_file" "$INSTALL_ROOT/etc/$conf_file" 2>/dev/null; then
+			if ! cp -- "$conf_file" "$INSTALL_ROOT/etc/$conf_file" ; then
 				echo "ods_setup_conf: unable to copy/install test specific $conf_file to $INSTALL_ROOT/etc/$conf_file" >&2
 				return 1
 			fi
 		else
-			if ! cp -- "$INSTALL_ROOT/etc/$conf_file.build" "$INSTALL_ROOT/etc/$conf_file" 2>/dev/null; then
+			if ! cp -- "$INSTALL_ROOT/etc/$conf_file.build" "$INSTALL_ROOT/etc/$conf_file" ; then
 				echo "ods_setup_conf: unable to copy/install build default $INSTALL_ROOT/etc/$conf_file.build to $INSTALL_ROOT/etc/$conf_file" >&2
 				return 1
 			fi
@@ -205,17 +205,17 @@ ods_setup_conf ()
 		fi
 
 		if [ -n "$file" ]; then
-			if ! cp -- "$file" "$INSTALL_ROOT/etc/opendnssec/$conf_file" 2>/dev/null; then
+			if ! cp -- "$file" "$INSTALL_ROOT/etc/opendnssec/$conf_file" ; then
 				echo "ods_setup_conf: unable to copy/install test specific $file to $INSTALL_ROOT/etc/opendnssec/$conf_file" >&2
 				return 1
 			fi
 		elif [ -f "$conf_file" ]; then
-			if ! cp -- "$conf_file" "$INSTALL_ROOT/etc/opendnssec/$conf_file" 2>/dev/null; then
+			if ! cp -- "$conf_file" "$INSTALL_ROOT/etc/opendnssec/$conf_file" ; then
 				echo "ods_setup_conf: unable to copy/install test specific $conf_file to $INSTALL_ROOT/etc/opendnssec/$conf_file" >&2
 				return 1
 			fi
 		else
-			if ! cp -- "$INSTALL_ROOT/etc/opendnssec/$conf_file.build" "$INSTALL_ROOT/etc/opendnssec/$conf_file" 2>/dev/null; then
+			if ! cp -- "$INSTALL_ROOT/etc/opendnssec/$conf_file.build" "$INSTALL_ROOT/etc/opendnssec/$conf_file" ; then
 				echo "ods_setup_conf: unable to copy/install build default $INSTALL_ROOT/etc/opendnssec/$conf_file.build to $INSTALL_ROOT/etc/opendnssec/$conf_file" >&2
 				return 1
 			fi
@@ -239,7 +239,7 @@ ods_setup_zone ()
 	fi
 
 	if [ -n "$zone" ]; then
-		if ! cp -- "$zone" "$INSTALL_ROOT/var/opendnssec/unsigned/" 2>/dev/null; then
+		if ! cp -- "$zone" "$INSTALL_ROOT/var/opendnssec/unsigned/" ; then
 			echo "ods_setup_zone: unable to copy/install zone file $zone to $INSTALL_ROOT/var/opendnssec/unsigned/" >&2
 			return 1
 		fi
@@ -250,7 +250,7 @@ ods_setup_zone ()
 	if [ -d unsigned ]; then
 		ls -1 unsigned/ | while read zone; do
 			if [ -f "unsigned/$zone" ]; then
-				if ! cp -- "unsigned/$zone" "$INSTALL_ROOT/var/opendnssec/unsigned/" 2>/dev/null; then
+				if ! cp -- "unsigned/$zone" "$INSTALL_ROOT/var/opendnssec/unsigned/" ; then
 					echo "ods_setup_zone: unable to copy/install zone file $zone to $INSTALL_ROOT/var/opendnssec/unsigned/" >&2
 					return 1
 				fi
@@ -362,7 +362,7 @@ ods_setup_env ()
 # returns true if enforcer is running
 ods_is_enforcer_running ()
 {
-	if $PGREP -u `id -u` 'ods-enforcerd' >/dev/null 2>/dev/null; then
+	if $PGREP -u `id -u` 'ods-enforcerd' >/dev/null ; then
 		return 0
 	fi
 	return 1
@@ -371,7 +371,7 @@ ods_is_enforcer_running ()
 # returns true if signer is running
 ods_is_signer_running ()
 {
-	if $PGREP -u `id -u` 'ods-signerd' >/dev/null 2>/dev/null; then
+	if $PGREP -u `id -u` 'ods-signerd' >/dev/null ; then
 		return 0
 	fi
 	return 1
@@ -379,7 +379,7 @@ ods_is_signer_running ()
 
 ods_ods-control_enforcer_start ()
 {
-	if [ "$ODS_ENFORCER_WAIT_START" -lt 1 ] 2>/dev/null; then
+	if [ "$ODS_ENFORCER_WAIT_START" -lt 1 ] ; then
 		echo "ods_ods-control_enforcer_start: ODS_ENFORCER_WAIT_START not set" >&2
 		exit 1
 	fi
@@ -393,7 +393,7 @@ ods_ods-control_enforcer_start ()
 
 ods_ods-control_enforcer_stop ()
 {
-	if [ "$ODS_ENFORCER_WAIT_STOP" -lt 1 ] 2>/dev/null; then
+	if [ "$ODS_ENFORCER_WAIT_STOP" -lt 1 ] ; then
 		echo "ods_ods-control_enforcer_stop: ODS_ENFORCER_WAIT_STOP not set" >&2
 		exit 1
 	fi
