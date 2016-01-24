@@ -32,7 +32,7 @@
 #ifndef WIRE_TSIG_OPENSSL_H
 #define WIRE_TSIG_OPENSSL_H
 
-#ifdef HAVE_OPENSSL
+#ifdef HAVE_SSL
 
 #include "status.h"
 #include <openssl/hmac.h>
@@ -52,5 +52,5 @@ ods_status tsig_handler_openssl_init(void);
  */
 void tsig_handler_openssl_finalize(void);
 
-#endif /* HAVE_OPENSSL */
+#endif /* HAVE_SSL */
 #endif /* WIRE_TSIG_OPENSSL_H */

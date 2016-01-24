@@ -148,7 +148,7 @@ ACX_LDNS_NOT(1,6,15, [fail to create NSEC3 bitmap for empty non-terminals, see h
 ACX_PKCS11_MODULES
 ACX_RT
 ACX_LIBC
-AX_CHECK_OPENSSL
+ACX_SSL
 ACX_CUNIT
 
 # cunit

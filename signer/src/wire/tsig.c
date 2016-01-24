@@ -117,7 +117,7 @@ tsig_handler_init()
 {
     tsig_key_table = NULL;
     tsig_algo_table = NULL;
-#ifdef HAVE_OPENSSL
+#ifdef HAVE_SSL
     ods_log_debug("[%s] init openssl", tsig_str);
     return tsig_handler_openssl_init();
 #else
@@ -136,7 +136,7 @@ tsig_handler_cleanup(void)
 {
     tsig_algo_table_type* aentry = NULL, *anext = NULL;
     tsig_key_table_type* kentry = NULL, *knext = NULL;
-#ifdef HAVE_OPENSSL
+#ifdef HAVE_SSL
     tsig_handler_openssl_finalize();
 #endif
 
