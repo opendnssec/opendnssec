@@ -1990,6 +1990,11 @@ apply_parameter ()
 		sed 's%@'"$parameter_tag"'@%'"$parameter_value"'%g' "$file" > "$file.$$" &&
 		mv "$file.$$" "$file" ||
 		{
+			ps ux
+			sed 's%@'"$parameter_tag"'@%'"$parameter_value"'%g' "$file" >&2
+			echo $? >&2
+			ls -l "$file.$$" "$file" >&2
+			echo $? >&2
 			echo "apply_parameter: Unable to apply parameter $parameter_tag value $parameter_value to file $file" >&2
 			return 1
 		}
