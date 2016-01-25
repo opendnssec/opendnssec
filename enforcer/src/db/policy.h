@@ -72,6 +72,7 @@ struct policy {
     unsigned int signatures_inception_offset;
     unsigned int signatures_validity_default;
     unsigned int signatures_validity_denial;
+    unsigned int signatures_validity_keyset;
     unsigned int signatures_max_zone_ttl;
     policy_denial_type_t denial_type;
     unsigned int denial_optout;
@@ -206,6 +207,13 @@ unsigned int policy_signatures_validity_default(const policy_t* policy);
  * \return an unsigned integer.
  */
 unsigned int policy_signatures_validity_denial(const policy_t* policy);
+
+/**
+ * Get the signatures_validity_keyset of a policy object. Undefined behavior if `policy` is NULL.
+ * \param[in] policy a policy_t pointer.
+ * \return an unsigned integer.
+ */
+unsigned int policy_signatures_validity_keyset(const policy_t* policy);
 
 /**
  * Get the signatures_max_zone_ttl of a policy object. Undefined behavior if `policy` is NULL.
@@ -462,6 +470,14 @@ int policy_set_signatures_validity_default(policy_t* policy, unsigned int signat
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int policy_set_signatures_validity_denial(policy_t* policy, unsigned int signatures_validity_denial);
+
+/**
+ * Set the signatures_validity_keyset of a policy object.
+ * \param[in] policy a policy_t pointer.
+ * \param[in] signatures_validity_keyset an unsigned integer.
+ * \return DB_ERROR_* on failure, otherwise DB_OK.
+ */
+int policy_set_signatures_validity_keyset(policy_t* policy, unsigned int signatures_validity_keyset);
 
 /**
  * Set the signatures_max_zone_ttl of a policy object.

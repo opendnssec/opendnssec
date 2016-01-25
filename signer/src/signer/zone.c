@@ -221,7 +221,7 @@ zone_publish_dnskeys(zone_type* zone)
 {
     hsm_ctx_t* ctx = NULL;
     uint32_t ttl = 0;
-    int i;
+    unsigned int i;
     ods_status status = ODS_STATUS_OK;
     rrset_type* rrset = NULL;
     rr_type* dnskey = NULL;
@@ -854,6 +854,8 @@ zone_recover2(zone_type* zone)
             !backup_read_duration(fd, &zone->signconf->sig_validity_default) |
             !backup_read_check_str(fd, "denial") |
             !backup_read_duration(fd,&zone->signconf->sig_validity_denial) |
+            !backup_read_check_str(fd, "keyset") |
+            !backup_read_duration(fd,&zone->signconf->sig_validity_keyset) |
             !backup_read_check_str(fd, "jitter") |
             !backup_read_duration(fd, &zone->signconf->sig_jitter) |
             !backup_read_check_str(fd, "offset") |
