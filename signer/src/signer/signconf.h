@@ -47,6 +47,7 @@ struct signconf_struct {
     duration_type* sig_refresh_interval;
     duration_type* sig_validity_default;
     duration_type* sig_validity_denial;
+    duration_type* sig_validity_keyset;
     duration_type* sig_jitter;
     duration_type* sig_inception_offset;
     /* Denial of existence */

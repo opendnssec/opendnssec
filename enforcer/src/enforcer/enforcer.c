@@ -1780,8 +1780,8 @@ updateZone(db_connection_t *dbconn, policy_t* policy, zone_t* zone,
                 {
                     returntime_key = addtime(returntime_key,
                         policy_signatures_jitter(policy)
-                        + max(policy_signatures_validity_default(policy),
-                            policy_signatures_validity_denial(policy))
+                        + max(max(policy_signatures_validity_default(policy),
+                            policy_signatures_validity_denial(policy)), policy_signatures_validity_keyset(policy))
                         + policy_signatures_resign(policy)
                         - policy_signatures_refresh(policy));
                 }
