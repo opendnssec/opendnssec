@@ -1277,7 +1277,7 @@ ods_ldns_testns ()
 #   BIND9_NAMED_PORT
 ods_bind9_start ()
 {
-	local username=jenkins
+	local username=`whoami`
 	local named_pid
 	local exit_code
 
