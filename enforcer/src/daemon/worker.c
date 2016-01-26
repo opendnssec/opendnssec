@@ -38,8 +38,6 @@
 #include "util.h"
 #include "duration.h"
 
-#include <time.h> /* time() */
-
 /**
  * Create worker.
  *
@@ -59,7 +57,6 @@ worker_create(int num)
     worker->engine = NULL;
     worker->task = NULL;
     worker->need_to_exit = 0;
-    worker->clock_in = 0;
     worker->jobs_appointed = 0;
     worker->jobs_completed = 0;
     worker->jobs_failed = 0;
@@ -83,9 +80,9 @@ worker_perform_task(worker_type* worker)
     }
 
     task = (task_type*) worker->task;
-    ods_log_debug("[worker[%i]]: perform task [%s] for %s at %u",
+    ods_log_debug("[worker[%i]]: perform task [%s] for %s",
        worker->thread_num, task_what2str(task->what),
-       task_who2str(task->who), (uint32_t) worker->clock_in);
+       task_who2str(task->who));
 
     /* We temporarily assign the database connection to the task so
      * it is accessable from the task function */
@@ -111,7 +108,6 @@ worker_start(worker_type* worker)
         worker->task = schedule_pop_task(worker->engine->taskq);
         if (worker->task) {
             ods_log_debug("[worker[%i]] start working", worker->thread_num);
-            worker->clock_in = time(NULL);
             worker_perform_task(worker);
             ods_log_debug("[worker[%i]] finished working", worker->thread_num);
             if (worker->task) {

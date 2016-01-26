@@ -186,11 +186,11 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
             free(buf);
             return 1;
         }
-        strcat(signconf_del, zone_signconf_path(zone));
-        strcat(signconf_del, ".ZONE_DELETED");
-        rename(zone_signconf_path(zone), signconf_del);
-        free(signconf_del);
-        signconf_del = NULL;
+        strncpy(signconf_del, zone_signconf_path(zone), strlen(zone_signconf_path(zone)));
+        strncat(signconf_del, ".ZONE_DELETED", strlen(".ZONE_DELETED"));
+ 	    rename(zone_signconf_path(zone), signconf_del);
+ 	    free(signconf_del);
+ 	    signconf_del = NULL;
 
         ods_log_info("[%s] zone %s deleted", module_str, zone_name2);
         client_printf(sockfd, "Deleted zone %s successfully\n", zone_name2);
@@ -218,8 +218,8 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
                 free(buf);
                 return 1;
             }
-            strcat(signconf_del, zone_signconf_path(zone));
-            strcat(signconf_del, ".ZONE_DELETED");
+            strncpy(signconf_del, zone_signconf_path(zone), strlen(zone_signconf_path(zone)));
+            strncat(signconf_del, ".ZONE_DELETED", strlen(".ZONE_DELETED"));
             rename(zone_signconf_path(zone), signconf_del);
             free(signconf_del);
             signconf_del = NULL;

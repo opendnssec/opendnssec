@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 NLNet Labs. All rights reserved.
+ * Copyright (c) 2009-2016 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -57,9 +57,11 @@ parse_sc_keys(void* sc, const char* cfgfile)
     xmlChar* xexpr = NULL;
     key_type* new_key = NULL;
     keylist_type* kl = NULL;
-    char* locator = NULL;
-    char* flags = NULL;
-    char* algorithm = NULL;
+    char* resourcerecord;
+    char* locator;
+    char* flags;
+    char* algorithm;
+    int configerr;
     int ksk, zsk, publish, i;
 
     if (!cfgfile || !sc) {
@@ -95,12 +97,14 @@ parse_sc_keys(void* sc, const char* cfgfile)
     ods_log_assert(kl);
     if (xpathObj->nodesetval && xpathObj->nodesetval->nodeNr > 0) {
         for (i = 0; i < xpathObj->nodesetval->nodeNr; i++) {
+            resourcerecord = NULL;
             locator = NULL;
             flags = NULL;
             algorithm = NULL;
             ksk = 0;
             zsk = 0;
             publish = 0;
+            configerr = 0;
 
             curNode = xpathObj->nodesetval->nodeTab[i]->xmlChildrenNode;
             while (curNode) {
@@ -116,10 +120,18 @@ parse_sc_keys(void* sc, const char* cfgfile)
                     zsk = 1;
                 } else if (xmlStrEqual(curNode->name, (const xmlChar *)"Publish")) {
                     publish = 1;
+                } else if (xmlStrEqual(curNode->name, (const xmlChar *)"ResourceRecord")) {
+                    resourcerecord = (char *) xmlNodeGetContent(curNode);
                 }
                 curNode = curNode->next;
             }
-            if (locator && algorithm && flags) {
+            if (!algorithm)
+                configerr = 1;
+            if (!flags)
+                configerr = 1;
+            if (!locator && !resourcerecord)
+                configerr = 1;
+            if (!configerr) {
                 /* search for duplicates */
                 new_key = keylist_lookup_by_locator(kl, locator);
                 if (new_key &&
@@ -132,7 +144,7 @@ parse_sc_keys(void* sc, const char* cfgfile)
                     ods_log_warning("[%s] unable to push duplicate key %s "
                         "to keylist, skipping", parser_str, locator);
                 } else {
-                    (void) keylist_push(kl, locator,
+                    (void) keylist_push(kl, locator, resourcerecord,
                         (uint8_t) atoi(algorithm), (uint32_t) atoi(flags),
                         publish, ksk, zsk);
                 }
@@ -141,7 +153,6 @@ parse_sc_keys(void* sc, const char* cfgfile)
                     "is missing required elements, skipping",
                     parser_str);
             }
-            /* free((void*)locator); */
             free((void*)algorithm);
             free((void*)flags);
         }
@@ -269,6 +280,66 @@ parse_sc_dnskey_ttl(const char* cfgfile)
     free((void*)str);
     return duration;
 }
+
+
+const char**
+parse_sc_dnskey_sigrrs(const char* cfgfile)
+{
+    xmlDocPtr doc = NULL;
+    xmlXPathContextPtr xpathCtx = NULL;
+    xmlXPathObjectPtr xpathObj = NULL;
+    xmlNode* curNode = NULL;
+    xmlChar* xexpr = NULL;
+    const char **signatureresourcerecords;
+    int i;
+
+    if (!cfgfile) {
+        return NULL;
+    }
+    /* Load XML document */
+    doc = xmlParseFile(cfgfile);
+    if (doc == NULL) {
+        ods_log_error("[%s] unable to parse <Keys>: "
+            "xmlParseFile() failed", parser_str);
+        return NULL;
+    }
+    /* Create xpath evaluation context */
+    xpathCtx = xmlXPathNewContext(doc);
+    if(xpathCtx == NULL) {
+        xmlFreeDoc(doc);
+        ods_log_error("[%s] unable to parse <Keys>: "
+            "xmlXPathNewContext() failed", parser_str);
+        return NULL;
+    }
+    /* Evaluate xpath expression */
+    xexpr = (xmlChar*) "//SignerConfiguration/Zone/Keys/SignatureResourceRecord";
+    xpathObj = xmlXPathEvalExpression(xexpr, xpathCtx);
+    if(xpathObj == NULL) {
+        xmlXPathFreeContext(xpathCtx);
+        xmlFreeDoc(doc);
+        ods_log_error("[%s] unable to parse <Keys>: "
+            "xmlXPathEvalExpression() failed", parser_str);
+        return NULL;
+    }
+    /* Parse keys */
+    if (xpathObj->nodesetval && xpathObj->nodesetval->nodeNr > 0) {
+        signatureresourcerecords = malloc(sizeof(char*) * (xpathObj->nodesetval->nodeNr + 1));
+        for (i = 0; i < xpathObj->nodesetval->nodeNr; i++) {
+            curNode = xpathObj->nodesetval->nodeTab[i];
+            signatureresourcerecords[i] = (char *) xmlNodeGetContent(curNode);
+        }
+        signatureresourcerecords[i] = NULL;
+    } else {
+        signatureresourcerecords = NULL;
+    }
+    xmlXPathFreeObject(xpathObj);
+    xmlXPathFreeContext(xpathCtx);
+    if (doc) {
+        xmlFreeDoc(doc);
+    }
+    return signatureresourcerecords;
+}
+
 
 
 duration_type*

@@ -37,6 +37,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <ctype.h>
 
 static const char* duration_str = "duration";
 
@@ -423,7 +424,7 @@ static time_t time_now_set = 0;
 
 /**
  * Set the time_now to a new value.
- * As long as this value is later than the reakl time now 
+ * As long as this value is later than the real time now 
  * the overriden value is returned.
  *
  */
@@ -433,6 +434,33 @@ set_time_now(time_t now)
     time_now_set = now;
 }
 
+int
+set_time_now_str(char* time_arg)
+{
+    char* endptr;
+    time_t epoch;
+    struct tm tm;
+    if (time_arg == NULL) {
+        epoch = 0;
+    } else if (strptime(time_arg, "%Y-%m-%d-%H:%M:%S", &tm)) {
+        tm.tm_isdst = -1; /* OS handles daylight savings */
+        epoch = mktime(&tm);
+    } else {
+        while (isspace(*time_arg))
+            ++time_arg;
+        epoch = strtol(time_arg, &endptr, 0);
+        if (endptr != time_arg) {
+            while (isspace(*endptr))
+                ++endptr;
+            if (*endptr != '\0')
+                return -1;
+        } else
+            return -2;
+    }
+    set_time_now(epoch);
+    return 0;
+}
+
 /**
  * Return the time since Epoch, measured in seconds.
  *
@@ -440,9 +468,7 @@ set_time_now(time_t now)
 time_t
 time_now(void)
 {
-    time_t now;
-    now = time(NULL);
-    return now > time_now_set ? now : time_now_set;
+    return time_now_set ? time_now_set: time(NULL);
 }
 
 /**
