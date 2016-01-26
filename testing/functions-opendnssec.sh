@@ -1468,7 +1468,7 @@ ods_bind9_dynupdate ()
 	fi
 
 	# wait for last one, which should probably come in last and makes sure the other updates are likely to be in
-	waitfor_this "$INSTALL_ROOT/var/opendnssec/signed/$zone_name" 300 "test`$update_total - 1`\.$zone_name\..*7200.*IN.*NS.*ns1\.test$`$update_total - 1`\.$zone_name\."
+	waitfor_this "$INSTALL_ROOT/var/opendnssec/signed/$zone_name" 300 "test`expr $update_total - 1`\.$zone_name\..*7200.*IN.*NS.*ns1\.test$`expr $update_total - 1`\.$zone_name\."
 
 	update_iter=0
 	while [ "$update_iter" -lt "$update_total" ] 2>/dev/null; do
