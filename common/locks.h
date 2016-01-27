@@ -81,7 +81,7 @@ int ods_thread_create(pthread_t *thr, void *(*func)(void *), void *arg);
 int ods_thread_wait(cond_basic_type* cond, lock_basic_type* lock, time_t wait);
 
 #else /* !HAVE_PTHREAD */
-q
+
 /* we do not have PTHREADS */
 #define PTHREADS_DISABLED 1
 
