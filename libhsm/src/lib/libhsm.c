@@ -2411,11 +2411,10 @@ hsm_open2(hsm_repository_t* rlist,
     return result;
 }
 
-int
+void
 hsm_close()
 {
     hsm_ctx_close(_hsm_ctx, 1);
-    return 0;
 }
 
 hsm_ctx_t *

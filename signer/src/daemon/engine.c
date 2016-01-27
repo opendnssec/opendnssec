@@ -1000,16 +1000,23 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
         } else {
             ods_log_info("[%s] signer started (version %s), pid %u",
                 engine_str, PACKAGE_VERSION, engine->pid);
+            if (lhsm_open(engine->config->repositories) != HSM_OK) {
+                ods_log_error("[%s] lhsm_open() failed (for engine_recover)", engine_str);
+                break;
+            }
             zl_changed = engine_recover(engine);
+            hsm_close();
         }
         if (zl_changed == ODS_STATUS_OK ||
             zl_changed == ODS_STATUS_UNCHANGED) {
             engine_update_zones(engine, zl_changed);
         }
-        if (lhsm_open(engine->config->repositories) != HSM_OK)
+        if (lhsm_open(engine->config->repositories) != HSM_OK) {
+            ods_log_error("[%s] lhsm_open() failed (for engine run)", engine_str);
             break;
+        }
         engine_run(engine, single_run);
-        (void)hsm_close();
+        hsm_close();
     }
 
     /* shutdown */

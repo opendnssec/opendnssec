@@ -641,7 +641,7 @@ main (int argc, char *argv[])
         result = -1;
     }
 
-    (void) hsm_close();
+    hsm_close();
     if (config) free(config);
 
     closelog();

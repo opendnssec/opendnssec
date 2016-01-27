@@ -244,7 +244,7 @@ hsm_logout_pin(void);
     This cleans up all data for libhsm, and should be the last function
     called.
 */
-int
+void
 hsm_close(void);
 
 
