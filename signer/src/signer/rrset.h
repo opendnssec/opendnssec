@@ -176,6 +176,16 @@ void rrset_diff(rrset_type* rrset, unsigned is_ixfr, unsigned more_coming);
 ods_status rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime);
 
 /**
+ * Obtain a resource record (containing a signature of a dnskeyset or
+ * a dnskeyset, but that is not a hard requirement), from a raw string
+ * \param[out] dnskey the resulting resource record
+ * \param[in] resourcerecord the string representation of the resource record
+ * \param[in] ttl the time-to-live to use if non is specified
+ * \param[in] apex the owner domain is none can be determined from input string
+ */
+ods_status rrset_getliteralrr(ldns_rr** dnskey, const char *resourcerecord, uint32_t ttl, ldns_rdf* apex);
+
+/**
  * Print RRset.
  * \param[in] fd file descriptor
  * \param[in] rrset RRset to be printed

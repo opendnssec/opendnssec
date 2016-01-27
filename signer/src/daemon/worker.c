@@ -287,9 +287,9 @@ worker_perform_task(worker_type* worker)
     engine = worker->engine;
     task = (task_type*) worker->task;
     zone = (zone_type*) worker->task->zone;
-    ods_log_debug("[%s[%i]] perform task %s for zone %s at %u",
+    ods_log_debug("[%s[%i]] perform task %s for zone %s",
        worker2str(worker->type), worker->thread_num, task_what2str(task->what),
-       task_who2str(task), (uint32_t) worker->clock_in);
+       task_who2str(task));
     /* do what you have been told to do */
     switch (task->what) {
         case TASK_SIGNCONF:
@@ -581,7 +581,7 @@ worker_work(worker_type* worker)
             lock_basic_lock(&zone->zone_lock);
             ods_log_debug("[%s[%i]] start working on zone %s",
                 worker2str(worker->type), worker->thread_num, zone->name);
-            worker->clock_in = time(NULL);
+            worker->clock_in = time_now();
             worker_perform_task(worker);
             zone->task = worker->task;
             ods_log_debug("[%s[%i]] finished working on zone %s",
@@ -695,7 +695,7 @@ worker_drudge(worker_type* worker)
                 ods_log_assert(zone);
                 ods_log_assert(zone->apex);
                 ods_log_assert(zone->signconf);
-                worker->clock_in = time(NULL);
+                worker->clock_in = time_now();
                 status = rrset_sign(ctx, rrset, superior->clock_in);
                 lock_basic_lock(&superior->worker_lock);
                 if (status == ODS_STATUS_OK) {

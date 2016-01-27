@@ -343,7 +343,7 @@ ods_strcmp(const char* s1, const char* s2)
     } else if (!s1) {
         return -1;
     } else if (!s2) {
-        return -1;
+        return 1;
     } else if (strlen(s1) != strlen(s2)) {
         if (strncmp(s1, s2, strlen(s1)) == 0) {
             return strlen(s1) - strlen(s2);

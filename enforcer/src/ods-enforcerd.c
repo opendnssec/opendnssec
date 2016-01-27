@@ -36,7 +36,7 @@
 
 #include "daemon/engine.h"
 #include "log.h"
-
+#include "duration.h"
 #include "enforcer/autostart_cmd.h"
 
 #define AUTHOR_NAME "Matthijs Mekking, Yuri Schaeffer, René Post"
@@ -63,6 +63,8 @@ usage(FILE* out)
     fprintf(out, " -i | --info             Print configuration and exit.\n");
     fprintf(out, " -v | --verbose          Increase verbosity.\n");
     fprintf(out, " -V | --version          Show version and exit.\n");
+    fprintf(out, "      --set-time <time>  Start daemon at specific time. "
+        "Notation \"YYYY-MM-DD-HH:MM:SS\" or seconds since Unix epoch.\n");
     fprintf(out, "\nBSD licensed, see LICENSE in source package for "
             "details.\n");
     fprintf(out, "Version %s. Report bugs to <%s>.\n",
@@ -127,6 +129,7 @@ main(int argc, char* argv[])
     int single_run = 0;
     int daemonize = 1;
     int cmdline_verbosity = 0;
+    char *time_arg = NULL;
     const char* cfgfile = ODS_SE_CFGFILE;
     static struct option long_options[] = {
         {"single-run", no_argument, 0, '1'},
@@ -136,6 +139,7 @@ main(int argc, char* argv[])
         {"info", no_argument, 0, 'i'},
         {"verbose", no_argument, 0, 'v'},
         {"version", no_argument, 0, 'V'},
+        {"set-time", required_argument, 0, 256},
         { 0, 0, 0, 0}
     };
 
@@ -164,6 +168,9 @@ main(int argc, char* argv[])
             case 'V':
                 version(stdout);
                 exit(0);
+            case 256:
+                time_arg = optarg;
+                break;
             default:
                 usage(stderr);
                 exit(2);
@@ -174,6 +181,13 @@ main(int argc, char* argv[])
     if (argc != 0) {
         usage(stderr);
         exit(2);
+    }
+
+    if (time_arg) {
+        if(set_time_now_str(time_arg)) {
+            fprintf(stderr, "Error: Failed to interpret start time argument.  Daemon not started.\n");
+            return 1;
+        }
     }
 
     /* main stuff */

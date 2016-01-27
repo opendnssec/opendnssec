@@ -62,6 +62,7 @@ duration_type* parse_sc_sig_validity_denial(const char* cfgfile);
 duration_type* parse_sc_sig_jitter(const char* cfgfile);
 duration_type* parse_sc_sig_inception_offset(const char* cfgfile);
 duration_type* parse_sc_dnskey_ttl(const char* cfgfile);
+const char** parse_sc_dnskey_sigrrs(const char* cfgfile);
 duration_type* parse_sc_nsec3param_ttl(const char* cfgfile);
 duration_type* parse_sc_soa_ttl(const char* cfgfile);
 duration_type* parse_sc_soa_min(const char* cfgfile);

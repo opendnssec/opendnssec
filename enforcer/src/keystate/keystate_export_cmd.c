@@ -257,8 +257,8 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	const char *argv[NARGV];
 	int argc;
 	const char *zonename = NULL;
-	char* keytype = NULL;
-	char* keystate = NULL;
+	const char* keytype = NULL;
+	const char* keystate = NULL;
 	zone_t * zone = NULL;
 	int all = 0;
 	(void)engine;
