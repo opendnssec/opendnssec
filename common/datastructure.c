@@ -139,6 +139,7 @@ collection_destroy(collection_t* collection)
         (*collection)->method->member_destroy((*collection)->method->cargo,
                 (*collection)->array + (*collection)->size * i);
     }
+    free((*collection)->array);
     free(*collection);
     *collection = NULL;
 }
