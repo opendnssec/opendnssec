@@ -108,7 +108,7 @@ zone_create(char* name, ldns_rr_class klass)
         return NULL;
     }
     zone->stats = stats_create();
-    zone->rrstore = rrset_store_initialize(ods_build_path(zone->name, ".sigs", 0, 1));
+    zone->rrstore = rrset_store_initialize();
     lock_basic_init(&zone->zone_lock);
     lock_basic_init(&zone->xfr_lock);
     return zone;

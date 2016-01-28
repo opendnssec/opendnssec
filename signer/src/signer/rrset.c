@@ -245,13 +245,10 @@ rrset_create(zone_type* zone, ldns_rr_type type)
 }
 
 collection_class
-rrset_store_initialize(char* filename)
+rrset_store_initialize()
 {
     collection_class klass;
     collection_class_allocated(&klass, NULL, memberdestroy);
-    (void)filename;
-    (void)memberdispose;
-    (void)memberrestore;
     return klass;
 }
 
