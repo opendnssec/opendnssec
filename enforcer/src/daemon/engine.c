@@ -656,6 +656,6 @@ engine_run(engine_type* engine, start_cb_t start, int single_run)
     engine_stop_workers(engine);
     cmdhandler_stop(engine);
     schedule_purge(engine->taskq); /* Remove old tasks in queue */
-    (void) hsm_close();
+    hsm_close();
     return 0;
 }
