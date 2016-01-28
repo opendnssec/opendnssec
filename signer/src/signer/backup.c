@@ -456,6 +456,7 @@ backup_read_namedb(FILE* in, void* zone)
             goto backup_namedb_done;
         }
         rrset_add_rrsig(rrset, rr, locator, flags);
+        locator = NULL; /* Locator is owned by rrset now */
         rrset->needs_signing = 0;
     }
     if (result == ODS_STATUS_OK && status != LDNS_STATUS_OK) {
@@ -473,7 +474,6 @@ backup_namedb_done:
         ldns_rdf_deep_free(prev);
         prev = NULL;
     }
-    free(locator);
     return result;
 }
 
