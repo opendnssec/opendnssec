@@ -5,21 +5,21 @@
 		<Repository name="SoftHSM">
 			<Module>@SOFTHSM_MODULE@</Module>
 			<TokenLabel>OpenDNSSEC</TokenLabel>
-			<PIN>1234</PIN>		
-			<Capacity>100000</Capacity>
+			<PIN>1234</PIN>
 		</Repository>
 	</RepositoryList>
 	<Common>
 		<Logging>
+			<Verbosity>3</Verbosity>
 			<Syslog><Facility>local0</Facility></Syslog>
 		</Logging>
 		<PolicyFile>@INSTALL_ROOT@/etc/opendnssec/kasp.xml</PolicyFile>
 		<ZoneListFile>@INSTALL_ROOT@/etc/opendnssec/zonelist.xml</ZoneListFile>
 	</Common>
 	<Enforcer>
-		<Datastore><MySQL><Host>localhost</Host><Database>test</Database><Username>test</Username><Password>test</Password></MySQL></Datastore>
+		<Datastore><SQLite>@INSTALL_ROOT@/var/opendnssec/kasp.db</SQLite></Datastore>
 		<Interval>PT3600S</Interval>
-		<DelegationSignerSubmitCommand>@INSTALL_ROOT@/var/opendnssec/enforcer/dssub.pl --cka_id</DelegationSignerSubmitCommand>
+		<AutomaticKeyGenerationPeriod>PT3600S</AutomaticKeyGenerationPeriod>
 	</Enforcer>
 	<Signer>
 		<WorkingDirectory>@INSTALL_ROOT@/var/opendnssec/signer</WorkingDirectory>

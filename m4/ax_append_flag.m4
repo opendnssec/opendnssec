@@ -1,25 +1,31 @@
 # ===========================================================================
-#    http://www.gnu.org/software/autoconf-archive/ax_c___attribute__.html
+#      http://www.gnu.org/software/autoconf-archive/ax_append_flag.html
 # ===========================================================================
 #
 # SYNOPSIS
 #
-#   AX_C___ATTRIBUTE__
+#   AX_APPEND_FLAG(FLAG, [FLAGS-VARIABLE])
 #
 # DESCRIPTION
 #
-#   Provides a test for the compiler support of __attribute__ extensions.
-#   Defines HAVE___ATTRIBUTE__ if it is found.
+#   FLAG is appended to the FLAGS-VARIABLE shell variable, with a space
+#   added in between.
+#
+#   If FLAGS-VARIABLE is not specified, the current language's flags (e.g.
+#   CFLAGS) is used.  FLAGS-VARIABLE is not changed if it already contains
+#   FLAG.  If FLAGS-VARIABLE is unset in the shell, it is set to exactly
+#   FLAG.
+#
+#   NOTE: Implementation based on AX_CFLAGS_GCC_OPTION.
 #
 # LICENSE
 #
-#   Copyright (c) 2008 Stepan Kasal <skasal@redhat.com>
-#   Copyright (c) 2008 Christian Haggstrom
-#   Copyright (c) 2008 Ryan McCabe <ryan@numb.org>
+#   Copyright (c) 2008 Guido U. Draheim <guidod@gmx.de>
+#   Copyright (c) 2011 Maarten Bosmans <mkbosmans@gmail.com>
 #
-#   This program is free software; you can redistribute it and/or modify it
+#   This program is free software: you can redistribute it and/or modify it
 #   under the terms of the GNU General Public License as published by the
-#   Free Software Foundation; either version 2 of the License, or (at your
+#   Free Software Foundation, either version 3 of the License, or (at your
 #   option) any later version.
 #
 #   This program is distributed in the hope that it will be useful, but
@@ -43,24 +49,23 @@
 #   modified version of the Autoconf Macro, you may extend this special
 #   exception to the GPL to apply to your modified version as well.
 
-#serial 8
+#serial 6
 
-AC_DEFUN([AX_C___ATTRIBUTE__], [
-  AC_CACHE_CHECK([for __attribute__], [ax_cv___attribute__],
-    [AC_COMPILE_IFELSE(
-      [AC_LANG_PROGRAM(
-	[[#include <stdlib.h>
-	  static void foo(void) __attribute__ ((unused));
-	  static void
-	  foo(void) {
-	      exit(1);
-	  }
-        ]], [])],
-      [ax_cv___attribute__=yes],
-      [ax_cv___attribute__=no]
-    )
+AC_DEFUN([AX_APPEND_FLAG],
+[dnl
+AC_PREREQ(2.64)dnl for _AC_LANG_PREFIX and AS_VAR_SET_IF
+AS_VAR_PUSHDEF([FLAGS], [m4_default($2,_AC_LANG_PREFIX[FLAGS])])
+AS_VAR_SET_IF(FLAGS,[
+  AS_CASE([" AS_VAR_GET(FLAGS) "],
+    [*" $1 "*], [AC_RUN_LOG([: FLAGS already contains $1])],
+    [
+     AS_VAR_APPEND(FLAGS,[" $1"])
+     AC_RUN_LOG([: FLAGS="$FLAGS"])
+    ])
+  ],
+  [
+  AS_VAR_SET(FLAGS,[$1])
+  AC_RUN_LOG([: FLAGS="$FLAGS"])
   ])
-  if test "$ax_cv___attribute__" = "yes"; then
-    AC_DEFINE([HAVE___ATTRIBUTE__], 1, [define if your compiler has __attribute__])
-  fi
-])
+AS_VAR_POPDEF([FLAGS])dnl
+])dnl AX_APPEND_FLAG

@@ -9,11 +9,14 @@ start_build opendnssec
 build_ok=0
 case "$DISTRIBUTION" in
 	openbsd )
-		export AUTOCONF_VERSION="2.68"
+		export AUTOCONF_VERSION="2.69"
 		export AUTOMAKE_VERSION="1.11"
 		;;
 	netbsd | \
 	freebsd )
+		;;
+	redhat )
+		export PATH=/usr/local/src/autoconf-2.69/bin:$PATH
 		;;
 	opensuse )
 		append_ldflags "-lncurses -lpthread"

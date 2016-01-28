@@ -185,6 +185,7 @@ memberdestroy(void* dummy, void* member)
     sig->key_locator = NULL;
     /* The rrs may still be in use by IXFRs so cannot do ldns_rr_free(sig->rr); */
     sig->owner = NULL;
+    sig->rr = NULL;
     return 0;
 }
 

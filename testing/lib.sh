@@ -2028,8 +2028,8 @@ apply_parameter ()
 	done
 
 	for file in $files; do
-		sed 's%@'"$parameter_tag"'@%'"$parameter_value"'%g' "$file" > "$file.$$" 2>/dev/null &&
-		mv "$file.$$" "$file" 2>/dev/null ||
+		sed 's%@'"$parameter_tag"'@%'"$parameter_value"'%g' "$file" > "$file.$$" &&
+		mv "$file.$$" "$file" ||
 		{
 			echo "apply_parameter: Unable to apply parameter $parameter_tag value $parameter_value to file $file" >&2
 			return 1

@@ -30,10 +30,6 @@
 
 #include <stdint.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #define HSM_MAX_SESSIONS 100
 /* 
  * Note that currently the MySQL kasp schema limits the number of HSMs to 
@@ -244,7 +240,7 @@ hsm_logout_pin(void);
     This cleans up all data for libhsm, and should be the last function
     called.
 */
-int
+void
 hsm_close(void);
 
 
@@ -534,9 +530,5 @@ void hsm_print_ctx(hsm_ctx_t *gctx);
 void hsm_print_key(libhsm_key_t *key);
 void hsm_print_error(hsm_ctx_t *ctx);
 void hsm_print_tokeninfo(hsm_ctx_t *gctx);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* HSM_H */

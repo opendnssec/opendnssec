@@ -271,7 +271,7 @@ cmdhandler_type* cmdc)
             memcpy(data, buf+3, datalen);
             *pos -= datalen+3;
             memmove(buf, buf+datalen+3, *pos);
-            ods_str_trim(data,0);
+            ods_str_trim(data, 0);
 
             if (opc == CLIENT_OPC_STDIN) {
                 *exitcode = cmdhandler_perform_command(cmdc, data, strlen(data));
