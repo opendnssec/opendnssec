@@ -24,24 +24,24 @@ log_this 12 ods-enforcer policy import &&
 log_this 13 ods-enforcer zone add -z xx &&
 log_this 14 ods_enforcer_idle &&
 log_this 15 ods-enforcer time leap &&
-log_this 15 ods-enforcer time leap &&
-log_this 15 ods-enforcer time leap &&
-log_this 15 ods-enforcer time leap &&
+log_this 16 ods-enforcer time leap &&
+log_this 17 ods-enforcer time leap &&
+log_this 18 ods-enforcer time leap &&
 ( log_this 16 ods-enforcer signconf || echo "signconf unjustly failing" ) &&
-log_this 17 ods_enforcer_idle &&
-log_this 18 ods-enforcer stop &&
-log_this 19 ods-signerd --set-time 2017-01-01-00:00:00 &&
-log_this 20 sleep 5 &&
-ods-signer sign --all &&
-syslog_waitfor_count 90 1 'ods-signerd: .*\[STATS\] xx ' &&
-log_this 21 ods-signer stop &&
+log_this 19 ods_enforcer_idle &&
+log_this 20 ods-enforcer stop &&
+log_this 21 ods-signerd --set-time 2017-01-01-00:00:00 &&
+(syslog_waitfor_count 90 2 'ods-signerd: .*\[STATS\] xx ' ||
+ (ods-signer sign --all &&
+  syslog_waitfor_count 90 2 'ods-signerd: .*\[STATS\] xx ')) &&
+log_this 22 ods-signer stop &&
 sleep 15 &&
-log_this 22 perl sneakernet.pl $INSTALL_ROOT/var/opendnssec/signconf/xx.xml $INSTALL_ROOT/var/opendnssec/signer/xx.backup2 &&
-log_this 23 rm -f $INSTALL_ROOT/var/opendnssec/signer/* $INSTALL_ROOT/var/opendnssec/signed/* &&
-log_this 24 ods-signerd --set-time 2017-02-01-00:00:00 &&
-log_this 25 sleep 5 &&
-ods-signer sign --all &&
-syslog_waitfor_count 90 2 'ods-signerd: .*\[STATS\] xx ' &&
+log_this 23 perl sneakernet.pl $INSTALL_ROOT/var/opendnssec/signconf/xx.xml $INSTALL_ROOT/var/opendnssec/signer/xx.backup2 &&
+log_this 24 rm -f $INSTALL_ROOT/var/opendnssec/signer/* $INSTALL_ROOT/var/opendnssec/signed/* &&
+log_this 25 ods-signerd --set-time 2017-02-01-00:00:00 &&
+(syslog_waitfor_count 90 2 'ods-signerd: .*\[STATS\] xx ' ||
+ (ods-signer sign --all &&
+  syslog_waitfor_count 90 2 'ods-signerd: .*\[STATS\] xx ')) &&
 log_this 26 ods-signer stop &&
 sleep 15 &&
 
