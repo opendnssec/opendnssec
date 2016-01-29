@@ -17,7 +17,8 @@ log_grep ods-hsmutil-purge stderr 'Incorrect PIN for repository SoftHSM' &&
 syslog_waitfor 10 'ods-enforcerd: .*Incorrect PIN for repository SoftHSM' &&
 
 ! ods_start_signer &&
-syslog_waitfor 10 'ods-signerd: .*\[engine\].*setup failed: HSM error' &&
+syslog_waitfor 10 'ods-signerd: .*Incorrect PIN for repository SoftHSM' &&
+syslog_waitfor 10 'ods-signerd: \[engine\] lhsm_open() failed (for engine_recover)' &&
 
 ! pgrep -u `id -u` '(ods-enforcerd|ods-signerd)' >/dev/null 2>/dev/null &&
 return 0

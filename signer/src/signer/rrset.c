@@ -627,9 +627,19 @@ rrset_sigvalid_period(signconf_type* sc, ldns_rr_type rrtype, time_t signtime,
         random_jitter = ods_rand(jitter*2);
     }
     offset = duration2time(sc->sig_inception_offset);
-    if (rrtype == LDNS_RR_TYPE_NSEC || rrtype == LDNS_RR_TYPE_NSEC3) {
+    switch (rrtype) {
+        case LDNS_RR_TYPE_NSEC:
+        case LDNS_RR_TYPE_NSEC3:
             validity = duration2time(sc->sig_validity_denial);
+            break;
+        case LDNS_RR_TYPE_DNSKEY:
+            if (sc->sig_validity_keyset != NULL && duration2time(sc->sig_validity_keyset) > 0) {
+                validity = duration2time(sc->sig_validity_keyset);
             } else {
+                validity = duration2time(sc->sig_validity_default);
+            }
+            break;
+        default:
             validity = duration2time(sc->sig_validity_default);
     }
     *inception = signtime - offset;
