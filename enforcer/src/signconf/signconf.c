@@ -209,6 +209,12 @@ static int signconf_export(int sockfd, const policy_t* policy, zone_t* zone, int
         || !(node4 = xmlNewChild(node3, NULL, (xmlChar*)"Denial", (xmlChar*)duration_text))
         || __free(&duration_text)
         || !(error = 8)
+        || (policy_signatures_validity_keyset(policy) > 0 ?
+             duration_set_time(duration, policy_signatures_validity_keyset(policy))
+          || !(duration_text = duration2string(duration))
+          || !(node4 = xmlNewChild(node3, NULL, (xmlChar*)"Keyset", (xmlChar*)duration_text))
+          || __free(&duration_text)
+          || !(error = 100) : 0)
         || duration_set_time(duration, policy_signatures_jitter(policy))
         || !(duration_text = duration2string(duration))
         || !(node3 = xmlNewChild(node2, NULL, (xmlChar*)"Jitter", (xmlChar*)duration_text))
@@ -357,7 +363,6 @@ static int signconf_export(int sockfd, const policy_t* policy, zone_t* zone, int
     if (check_rng(path, OPENDNSSEC_SCHEMA_DIR "/signconf.rng", 0)) {
         ods_log_error("[signconf_export] Unable to validate the exported signconf XML for zone %s!", zone_name(zone));
         if (sockfd > -1) client_printf_err(sockfd, "Unable to validate the exported signconf XML for zone %s!\n", zone_name(zone));
-        unlink(path);
         return SIGNCONF_EXPORT_ERR_XML;
     }
 

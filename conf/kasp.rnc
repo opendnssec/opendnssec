@@ -53,7 +53,8 @@ start = element KASP {
 			# for how long should a signature be valid?
 			element Validity {
 				element Default { xsd:duration },
-				element Denial { xsd:duration }
+				element Denial { xsd:duration },
+				element Keyset { xsd:duration }?
 			},
 
 			# how much should we jitter the signature expiration time?
