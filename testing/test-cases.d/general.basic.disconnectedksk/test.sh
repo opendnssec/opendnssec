@@ -30,6 +30,7 @@ log_this 18 ods-enforcer time leap &&
 log_this 19 ods_enforcer_idle &&
 log_this 20 ods-enforcer stop &&
 log_this 21 ods-signerd --set-time 2017-01-01-00:00:00 &&
+sleep 10 &&
 ods-signer sign --all &&
 sleep 90 &&
 log_this 22 ods-signer stop &&
@@ -37,6 +38,7 @@ sleep 15 &&
 log_this 23 perl sneakernet.pl $INSTALL_ROOT/var/opendnssec/signconf/xx.xml $INSTALL_ROOT/var/opendnssec/signer/xx.backup2 &&
 log_this 24 rm -f $INSTALL_ROOT/var/opendnssec/signer/* $INSTALL_ROOT/var/opendnssec/signed/* &&
 log_this 25 ods-signerd --set-time 2017-02-01-00:00:00 &&
+sleep 10 &&
 ods-signer sign --all &&
 sleep 90 &&
 test -f $INSTALL_ROOT/var/opendnssec/signed/xx &&
