@@ -1938,7 +1938,6 @@ int policy_create(policy_t* policy) {
         return DB_ERROR_UNKNOWN;
     }
 
-    policy->signatures_validity_keyset = 0;
     if (db_value_from_text(db_value_set_get(value_set, 0), policy->name)
         || db_value_from_text(db_value_set_get(value_set, 1), policy->description)
         || db_value_from_uint32(db_value_set_get(value_set, 2), policy->signatures_resign)
@@ -2490,7 +2489,6 @@ int policy_update(policy_t* policy) {
         return DB_ERROR_UNKNOWN;
     }
 
-    policy->signatures_validity_keyset = 0;
     if (db_value_from_text(db_value_set_get(value_set, 0), policy->name)
         || db_value_from_text(db_value_set_get(value_set, 1), policy->description)
         || db_value_from_uint32(db_value_set_get(value_set, 2), policy->signatures_resign)
