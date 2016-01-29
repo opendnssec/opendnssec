@@ -633,7 +633,7 @@ rrset_sigvalid_period(signconf_type* sc, ldns_rr_type rrtype, time_t signtime,
             validity = duration2time(sc->sig_validity_denial);
             break;
         case LDNS_RR_TYPE_DNSKEY:
-            if (sc->sig_validity_keyset != NULL) {
+            if (sc->sig_validity_keyset != NULL && duration2time(sc->sig_validity_keyset) > 0) {
                 validity = duration2time(sc->sig_validity_keyset);
             } else {
                 validity = duration2time(sc->sig_validity_default);
