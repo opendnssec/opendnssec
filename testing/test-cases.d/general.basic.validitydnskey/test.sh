@@ -33,8 +33,7 @@ syslog_waitfor_count 60 1 'ods-signerd: .*\[STATS\] ods' &&
 ods-enforcer time leap &&
 syslog_waitfor_count 60 2 'ods-signerd: .*\[STATS\] ods' &&
 echo "  there should be no keyset entry in signconf" &&
-(! grep -q "<Keyset>.*</Keyset>" $INSTALL_ROOT/var/opendnssec/signconf/ods.xml ||
- grep -q "<Keyset>PT0S</Keyset>" $INSTALL_ROOT/var/opendnssec/signconf/ods.xml) &&
+! grep -q "<Keyset>.*</Keyset>" $INSTALL_ROOT/var/opendnssec/signconf/ods.xml &&
 echo "  validity of keyset signature should be around 8H (per per default validity)" &&
 testvalidity 28800 &&
 

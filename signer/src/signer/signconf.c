@@ -199,9 +199,9 @@ signconf_update(signconf_type** signconf, const char* scfile,
 static void
 signconf_backup_duration(FILE* fd, const char* opt, duration_type* duration)
 {
-    char* str = duration2string(duration);
-    fprintf(fd, "%s %s ", opt, str);
-    free((void*) str?str:"(null)");
+    char* str = (duration == NULL ? NULL : duration2string(duration));
+    fprintf(fd, "%s %s ", opt, (str?str:"0"));
+    free(str);
 }
 
 
