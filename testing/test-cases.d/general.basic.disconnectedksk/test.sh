@@ -39,8 +39,10 @@ sleep 15 &&
 log_this 22 perl sneakernet.pl $INSTALL_ROOT/var/opendnssec/signconf/xx.xml $INSTALL_ROOT/var/opendnssec/signer/xx.backup2 &&
 log_this 23 rm -f $INSTALL_ROOT/var/opendnssec/signer/* $INSTALL_ROOT/var/opendnssec/signed/* &&
 log_this 24 ods-signerd --set-time 2017-02-01-00:00:00 &&
+log_this 25 sleep 5 &&
+ods-signer sign --all &&
 syslog_waitfor_count 90 2 'ods-signerd: .*\[STATS\] xx ' &&
-log_this 25 ods-signer stop &&
+log_this 26 ods-signer stop &&
 sleep 15 &&
 
 return 0
