@@ -228,11 +228,12 @@ key_recover2(FILE* fd, keylist_type* kl)
     int publish = 0;
     int ksk = 0;
     int zsk = 0;
+    int keytag = 0; /* We are not actually interested but we must
+        parse it to continue correctly in the stream */
 
     ods_log_assert(fd);
 
     if (!backup_read_check_str(fd, "locator") ||
-        !backup_read_check_str(fd, "resourcerecord") ||
         !backup_read_str(fd, &locator) ||
         !backup_read_check_str(fd, "algorithm") ||
         !backup_read_uint8_t(fd, &algorithm) ||
@@ -243,7 +244,9 @@ key_recover2(FILE* fd, keylist_type* kl)
         !backup_read_check_str(fd, "ksk") ||
         !backup_read_int(fd, &ksk) ||
         !backup_read_check_str(fd, "zsk") ||
-        !backup_read_int(fd, &zsk)) {
+        !backup_read_int(fd, &zsk) ||
+        !backup_read_check_str(fd, "keytag") ||
+        !backup_read_int(fd, &keytag)) {
         if (locator) {
            free((void*)locator);
            locator = NULL;

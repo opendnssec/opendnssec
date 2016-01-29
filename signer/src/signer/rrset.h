@@ -211,6 +211,6 @@ void rrset_cleanup(rrset_type* rrset);
  */
 void rrset_backup2(FILE* fd, rrset_type* rrset);
 
-collection_class rrset_store_initialize(char* filename);
+collection_class rrset_store_initialize();
 
 #endif /* SIGNER_RRSET_H */

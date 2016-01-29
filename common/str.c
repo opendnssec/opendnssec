@@ -100,7 +100,7 @@ ods_str_trim(char *str, int keep_newline)
 {
     int has_newline = 0;
     char *start, *end;
-    if (!str) {
+    if (str) {
         end = str + strlen(str); /* points at \0 */
     
         for (start = str; start<end; start++) {

@@ -73,6 +73,7 @@ signal_handler(sig_atomic_t sig)
                 lock_basic_unlock(&signal_engine->signal_lock);
             }
             break;
+        case SIGINT:
         case SIGTERM:
             ods_log_debug("[%s] SIGTERM received", signal_str);
             signal_term_recvd++;

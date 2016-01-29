@@ -747,25 +747,13 @@ hsm_session_close(hsm_ctx_t *ctx, hsm_session_t *session, int unload)
 static void
 hsm_ctx_close(hsm_ctx_t *ctx, int unload)
 {
-    unsigned int i;
+    size_t i;
 
-    if (ctx) {
-        for (i = 0; i < ctx->session_count; i++) {
-            /* todo syslog? */
-            /*printf("close session %u (unload: %d)\n", i, unload);*/
-            /*hsm_print_ctx(ctx);*/
-            hsm_session_close(ctx, ctx->session[i], unload);
-            ctx->session[i] = NULL;
-            /* if this was the last session in the array, decrease
-             * the session counter of the context */
-            if (i == _hsm_ctx->session_count) {
-                while(ctx->session_count > 0 && !ctx->session[i]) {
-                    ctx->session_count--;
-                }
-            }
-        }
-        free(ctx);
+    if (!ctx) return;
+    for (i = 0; i < ctx->session_count; i++) {
+        hsm_session_close(ctx, ctx->session[i], unload);
     }
+    free(ctx);
 }
 
 
@@ -2411,11 +2399,11 @@ hsm_open2(hsm_repository_t* rlist,
     return result;
 }
 
-int
+void
 hsm_close()
 {
     hsm_ctx_close(_hsm_ctx, 1);
-    return 0;
+    _hsm_ctx = NULL;
 }
 
 hsm_ctx_t *

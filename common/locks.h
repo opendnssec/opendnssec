@@ -70,8 +70,6 @@ typedef pthread_cond_t cond_basic_type;
 #define lock_basic_broadcast(cond) LOCKRET(pthread_cond_broadcast(cond))
 #define lock_basic_off(cond) LOCKRET(pthread_cond_destroy(cond))
 
-int ods_thread_wait(cond_basic_type* cond, lock_basic_type* lock, time_t wait);
-
 /** thread creation */
 typedef pthread_t ods_thread_type;
 /** Pass where to store tread_t in thr. */
@@ -81,7 +79,6 @@ typedef pthread_t ods_thread_type;
 #define ods_thread_kill(thr, sig) LOCKRET(pthread_kill(thr, sig))
 int ods_thread_create(pthread_t *thr, void *(*func)(void *), void *arg);
 int ods_thread_wait(cond_basic_type* cond, lock_basic_type* lock, time_t wait);
-void ods_thread_blocksigs(void);
 
 #else /* !HAVE_PTHREAD */
 
