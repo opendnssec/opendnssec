@@ -30,7 +30,6 @@ log_this 18 ods-enforcer time leap &&
 log_this 19 ods_enforcer_idle &&
 log_this 20 ods-enforcer stop &&
 log_this 21 ods-signerd --set-time 2017-01-01-00:00:00 &&
-(syslog_waitfor_count 90 2 'ods-signerd: .*\[STATS\] xx ' ||
 ods-signer sign --all &&
 sleep 90 &&
 log_this 22 ods-signer stop &&
@@ -40,6 +39,7 @@ log_this 24 rm -f $INSTALL_ROOT/var/opendnssec/signer/* $INSTALL_ROOT/var/opendn
 log_this 25 ods-signerd --set-time 2017-02-01-00:00:00 &&
 ods-signer sign --all &&
 sleep 90 &&
+test -f $INSTALL_ROOT/var/opendnssec/signed/xx &&
 log_this 26 ods-signer stop &&
 sleep 15 &&
 
