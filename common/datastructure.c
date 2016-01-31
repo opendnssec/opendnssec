@@ -137,7 +137,7 @@ collection_destroy(collection_t* collection)
         return;
     for (i=0; i < (*collection)->count; i++) {
         (*collection)->method->member_destroy((*collection)->method->cargo,
-                (*collection)->array + (*collection)->size * i);
+                &(*collection)->array[(*collection)->size * i]);
     }
     if((*collection)->array)
         free((*collection)->array);
@@ -197,7 +197,7 @@ collection_iterator(collection_t collection)
     }
     collection->iterator -= 1;
     if(collection->iterator >= 0) {
-        return &collection->array[collection->iterator];
+        return &collection->array[collection->iterator * collection->size];
     } else {
         if(collection->method->store)
             swapout(collection);
