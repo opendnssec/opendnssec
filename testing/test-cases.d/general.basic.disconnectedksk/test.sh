@@ -31,7 +31,7 @@ log_this 18 ods-enforcer time leap &&
 log_this 19 ods_enforcer_idle &&
 log_this 20 ods-enforcer stop &&
 log_this 21 ods-signerd --set-time 2017-01-01-00:00:00 &&
-sleep 10 &&
+sleep 20 &&
 ods-signer sign --all &&
 sleep 90 &&
 log_this 22 ods-signer stop &&
@@ -45,7 +45,7 @@ log_this 28 apply_parameter "INSTALL_ROOT" "$INSTALL_ROOT" "$INSTALL_ROOT/etc/so
 log_this 29 apply_parameter "INSTALL_ROOT" "$INSTALL_ROOT" "$INSTALL_ROOT/etc/opendnssec/conf.xml" &&
 log_this 30 apply_parameter "SOFTHSM_MODULE" "$SOFTHSM_MODULE" "$INSTALL_ROOT/etc/opendnssec/conf.xml" &&
 log_this 31 ods-signerd --set-time 2017-02-01-00:00:00 &&
-sleep 10 &&
+sleep 20 &&
 ods-signer sign --all &&
 sleep 90 &&
 test -f $INSTALL_ROOT/var/opendnssec/signed/xx &&
