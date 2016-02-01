@@ -737,7 +737,6 @@ void
 worker_start(worker_type* worker)
 {
     ods_log_assert(worker);
-    sleep(15);
     switch (worker->type) {
         case WORKER_DRUDGER:
             worker_drudge(worker);
