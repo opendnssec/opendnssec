@@ -1,0 +1,12 @@
+#!/bin/bash
+
+## TODO take these as cmdline args if done testing
+DB_IN="/home/yuri/repo/opendnssec/enforcer/utils/1.4-2.0_db_convert/kasp14-keys.db"
+DB_OUT="kasp20.db"
+
+rm $DB_OUT
+## TODO take this schema from enforcer/util instead
+sqlite3 $DB_OUT < schema.sqlite 
+echo "attach '$DB_IN' as REMOTE;" |
+	cat - sqlite_convert.sql | sqlite3 $DB_OUT
+
