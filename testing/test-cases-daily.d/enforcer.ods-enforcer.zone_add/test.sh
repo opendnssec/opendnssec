@@ -94,7 +94,7 @@ log_grep ods-enforcer-zone_add_bad   stderr "Unable to find policy NonexistentPo
 
 #4. Test bad parameter
 ! log_this ods-enforcer-zone_add_bad   ods-enforcer zone &&
-log_grep ods-enforcer-zone_add_bad   stderr "Unknown command zone ." &&
+log_grep ods-enforcer-zone_add_bad   stderr "Unknown command zone." &&
 
 #5. Test none exist input file
 log_this ods-enforcer-zone_add_bad   ods-enforcer zone add --zone ods11 --input $INSTALL_ROOT/var/opendnssec/unsigned/ods11 --signerconf $INSTALL_ROOT/var/opendnssec/signconf/ods11.xml --xml &&
