@@ -178,6 +178,17 @@ static db_object_t* __policy_new_object(const db_connection_t* connection) {
     }
 
     if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "signaturesValidityKeyset")
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        db_object_free(object);
+        return NULL;
+    }
+
+    if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "signaturesMaxZoneTtl")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
@@ -661,6 +672,7 @@ int policy_copy(policy_t* policy, const policy_t* policy_copy) {
     policy->signatures_inception_offset = policy_copy->signatures_inception_offset;
     policy->signatures_validity_default = policy_copy->signatures_validity_default;
     policy->signatures_validity_denial = policy_copy->signatures_validity_denial;
+    policy->signatures_validity_keyset = policy_copy->signatures_validity_keyset;
     policy->signatures_max_zone_ttl = policy_copy->signatures_max_zone_ttl;
     policy->denial_type = policy_copy->denial_type;
     policy->denial_optout = policy_copy->denial_optout;
@@ -718,8 +730,9 @@ int policy_from_result(policy_t* policy, const db_result_t* result) {
         free(policy->denial_salt);
     }
     policy->denial_salt = NULL;
+    policy->signatures_validity_keyset = 0;
     if (!(value_set = db_result_value_set(result))
-        || db_value_set_size(value_set) != 35
+        || db_value_set_size(value_set) != 36
         || db_value_copy(&(policy->id), db_value_set_at(value_set, 0))
         || db_value_copy(&(policy->rev), db_value_set_at(value_set, 1))
         || db_value_to_text(db_value_set_at(value_set, 2), &(policy->name))
@@ -730,31 +743,32 @@ int policy_from_result(policy_t* policy, const db_result_t* result) {
         || db_value_to_uint32(db_value_set_at(value_set, 7), &(policy->signatures_inception_offset))
         || db_value_to_uint32(db_value_set_at(value_set, 8), &(policy->signatures_validity_default))
         || db_value_to_uint32(db_value_set_at(value_set, 9), &(policy->signatures_validity_denial))
-        || db_value_to_uint32(db_value_set_at(value_set, 10), &(policy->signatures_max_zone_ttl))
-        || db_value_to_enum_value(db_value_set_at(value_set, 11), &denial_type, policy_enum_set_denial_type)
-        || db_value_to_uint32(db_value_set_at(value_set, 12), &(policy->denial_optout))
-        || db_value_to_uint32(db_value_set_at(value_set, 13), &(policy->denial_ttl))
-        || db_value_to_uint32(db_value_set_at(value_set, 14), &(policy->denial_resalt))
-        || db_value_to_uint32(db_value_set_at(value_set, 15), &(policy->denial_algorithm))
-        || db_value_to_uint32(db_value_set_at(value_set, 16), &(policy->denial_iterations))
-        || db_value_to_uint32(db_value_set_at(value_set, 17), &(policy->denial_salt_length))
-        || db_value_to_text(db_value_set_at(value_set, 18), &(policy->denial_salt))
-        || db_value_to_uint32(db_value_set_at(value_set, 19), &(policy->denial_salt_last_change))
-        || db_value_to_uint32(db_value_set_at(value_set, 20), &(policy->keys_ttl))
-        || db_value_to_uint32(db_value_set_at(value_set, 21), &(policy->keys_retire_safety))
-        || db_value_to_uint32(db_value_set_at(value_set, 22), &(policy->keys_publish_safety))
-        || db_value_to_uint32(db_value_set_at(value_set, 23), &(policy->keys_shared))
-        || db_value_to_uint32(db_value_set_at(value_set, 24), &(policy->keys_purge_after))
-        || db_value_to_uint32(db_value_set_at(value_set, 25), &(policy->zone_propagation_delay))
-        || db_value_to_uint32(db_value_set_at(value_set, 26), &(policy->zone_soa_ttl))
-        || db_value_to_uint32(db_value_set_at(value_set, 27), &(policy->zone_soa_minimum))
-        || db_value_to_enum_value(db_value_set_at(value_set, 28), &zone_soa_serial, policy_enum_set_zone_soa_serial)
-        || db_value_to_uint32(db_value_set_at(value_set, 29), &(policy->parent_registration_delay))
-        || db_value_to_uint32(db_value_set_at(value_set, 30), &(policy->parent_propagation_delay))
-        || db_value_to_uint32(db_value_set_at(value_set, 31), &(policy->parent_ds_ttl))
-        || db_value_to_uint32(db_value_set_at(value_set, 32), &(policy->parent_soa_ttl))
-        || db_value_to_uint32(db_value_set_at(value_set, 33), &(policy->parent_soa_minimum))
-        || db_value_to_uint32(db_value_set_at(value_set, 34), &(policy->passthrough)))
+        || (db_value_to_uint32(db_value_set_at(value_set, 10), &(policy->signatures_validity_keyset)) && 0)
+        || db_value_to_uint32(db_value_set_at(value_set, 11), &(policy->signatures_max_zone_ttl))
+        || db_value_to_enum_value(db_value_set_at(value_set, 12), &denial_type, policy_enum_set_denial_type)
+        || db_value_to_uint32(db_value_set_at(value_set, 13), &(policy->denial_optout))
+        || db_value_to_uint32(db_value_set_at(value_set, 14), &(policy->denial_ttl))
+        || db_value_to_uint32(db_value_set_at(value_set, 15), &(policy->denial_resalt))
+        || db_value_to_uint32(db_value_set_at(value_set, 16), &(policy->denial_algorithm))
+        || db_value_to_uint32(db_value_set_at(value_set, 17), &(policy->denial_iterations))
+        || db_value_to_uint32(db_value_set_at(value_set, 18), &(policy->denial_salt_length))
+        || db_value_to_text(db_value_set_at(value_set, 19), &(policy->denial_salt))
+        || db_value_to_uint32(db_value_set_at(value_set, 20), &(policy->denial_salt_last_change))
+        || db_value_to_uint32(db_value_set_at(value_set, 21), &(policy->keys_ttl))
+        || db_value_to_uint32(db_value_set_at(value_set, 22), &(policy->keys_retire_safety))
+        || db_value_to_uint32(db_value_set_at(value_set, 23), &(policy->keys_publish_safety))
+        || db_value_to_uint32(db_value_set_at(value_set, 24), &(policy->keys_shared))
+        || db_value_to_uint32(db_value_set_at(value_set, 25), &(policy->keys_purge_after))
+        || db_value_to_uint32(db_value_set_at(value_set, 26), &(policy->zone_propagation_delay))
+        || db_value_to_uint32(db_value_set_at(value_set, 27), &(policy->zone_soa_ttl))
+        || db_value_to_uint32(db_value_set_at(value_set, 28), &(policy->zone_soa_minimum))
+        || db_value_to_enum_value(db_value_set_at(value_set, 29), &zone_soa_serial, policy_enum_set_zone_soa_serial)
+        || db_value_to_uint32(db_value_set_at(value_set, 30), &(policy->parent_registration_delay))
+        || db_value_to_uint32(db_value_set_at(value_set, 31), &(policy->parent_propagation_delay))
+        || db_value_to_uint32(db_value_set_at(value_set, 32), &(policy->parent_ds_ttl))
+        || db_value_to_uint32(db_value_set_at(value_set, 33), &(policy->parent_soa_ttl))
+        || db_value_to_uint32(db_value_set_at(value_set, 34), &(policy->parent_soa_minimum))
+        || db_value_to_uint32(db_value_set_at(value_set, 35), &(policy->passthrough)))
     {
         return DB_ERROR_UNKNOWN;
     }
@@ -858,6 +872,14 @@ unsigned int policy_signatures_validity_denial(const policy_t* policy) {
     }
 
     return policy->signatures_validity_denial;
+}
+
+unsigned int policy_signatures_validity_keyset(const policy_t* policy) {
+    if (!policy) {
+        return 0;
+    }
+
+    return policy->signatures_validity_keyset;
 }
 
 unsigned int policy_signatures_max_zone_ttl(const policy_t* policy) {
@@ -1217,6 +1239,16 @@ int policy_set_signatures_validity_denial(policy_t* policy, unsigned int signatu
     }
 
     policy->signatures_validity_denial = signatures_validity_denial;
+
+    return DB_OK;
+}
+
+int policy_set_signatures_validity_keyset(policy_t* policy, unsigned int signatures_validity_keyset) {
+    if (!policy) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    policy->signatures_validity_keyset = signatures_validity_keyset;
 
     return DB_OK;
 }
@@ -1640,6 +1672,16 @@ int policy_create(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "signaturesValidityKeyset")
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "signaturesMaxZoneTtl")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
@@ -1891,7 +1933,7 @@ int policy_create(policy_t* policy) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(value_set = db_value_set_new(33))) {
+    if (!(value_set = db_value_set_new(34))) {
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
@@ -1904,31 +1946,32 @@ int policy_create(policy_t* policy) {
         || db_value_from_uint32(db_value_set_get(value_set, 5), policy->signatures_inception_offset)
         || db_value_from_uint32(db_value_set_get(value_set, 6), policy->signatures_validity_default)
         || db_value_from_uint32(db_value_set_get(value_set, 7), policy->signatures_validity_denial)
-        || db_value_from_uint32(db_value_set_get(value_set, 8), policy->signatures_max_zone_ttl)
-        || db_value_from_enum_value(db_value_set_get(value_set, 9), policy->denial_type, policy_enum_set_denial_type)
-        || db_value_from_uint32(db_value_set_get(value_set, 10), policy->denial_optout)
-        || db_value_from_uint32(db_value_set_get(value_set, 11), policy->denial_ttl)
-        || db_value_from_uint32(db_value_set_get(value_set, 12), policy->denial_resalt)
-        || db_value_from_uint32(db_value_set_get(value_set, 13), policy->denial_algorithm)
-        || db_value_from_uint32(db_value_set_get(value_set, 14), policy->denial_iterations)
-        || db_value_from_uint32(db_value_set_get(value_set, 15), policy->denial_salt_length)
-        || db_value_from_text(db_value_set_get(value_set, 16), policy->denial_salt)
-        || db_value_from_uint32(db_value_set_get(value_set, 17), policy->denial_salt_last_change)
-        || db_value_from_uint32(db_value_set_get(value_set, 18), policy->keys_ttl)
-        || db_value_from_uint32(db_value_set_get(value_set, 19), policy->keys_retire_safety)
-        || db_value_from_uint32(db_value_set_get(value_set, 20), policy->keys_publish_safety)
-        || db_value_from_uint32(db_value_set_get(value_set, 21), policy->keys_shared)
-        || db_value_from_uint32(db_value_set_get(value_set, 22), policy->keys_purge_after)
-        || db_value_from_uint32(db_value_set_get(value_set, 23), policy->zone_propagation_delay)
-        || db_value_from_uint32(db_value_set_get(value_set, 24), policy->zone_soa_ttl)
-        || db_value_from_uint32(db_value_set_get(value_set, 25), policy->zone_soa_minimum)
-        || db_value_from_enum_value(db_value_set_get(value_set, 26), policy->zone_soa_serial, policy_enum_set_zone_soa_serial)
-        || db_value_from_uint32(db_value_set_get(value_set, 27), policy->parent_registration_delay)
-        || db_value_from_uint32(db_value_set_get(value_set, 28), policy->parent_propagation_delay)
-        || db_value_from_uint32(db_value_set_get(value_set, 29), policy->parent_ds_ttl)
-        || db_value_from_uint32(db_value_set_get(value_set, 30), policy->parent_soa_ttl)
-        || db_value_from_uint32(db_value_set_get(value_set, 31), policy->parent_soa_minimum)
-        || db_value_from_uint32(db_value_set_get(value_set, 32), policy->passthrough))
+        || (db_value_from_uint32(db_value_set_get(value_set, 8), policy->signatures_validity_keyset) && 0) /* not an error, the database layer cannot handle optional fields */
+        || db_value_from_uint32(db_value_set_get(value_set, 9), policy->signatures_max_zone_ttl)
+        || db_value_from_enum_value(db_value_set_get(value_set, 10), policy->denial_type, policy_enum_set_denial_type)
+        || db_value_from_uint32(db_value_set_get(value_set, 11), policy->denial_optout)
+        || db_value_from_uint32(db_value_set_get(value_set, 12), policy->denial_ttl)
+        || db_value_from_uint32(db_value_set_get(value_set, 13), policy->denial_resalt)
+        || db_value_from_uint32(db_value_set_get(value_set, 14), policy->denial_algorithm)
+        || db_value_from_uint32(db_value_set_get(value_set, 15), policy->denial_iterations)
+        || db_value_from_uint32(db_value_set_get(value_set, 16), policy->denial_salt_length)
+        || db_value_from_text(db_value_set_get(value_set, 17), policy->denial_salt)
+        || db_value_from_uint32(db_value_set_get(value_set, 18), policy->denial_salt_last_change)
+        || db_value_from_uint32(db_value_set_get(value_set, 19), policy->keys_ttl)
+        || db_value_from_uint32(db_value_set_get(value_set, 20), policy->keys_retire_safety)
+        || db_value_from_uint32(db_value_set_get(value_set, 21), policy->keys_publish_safety)
+        || db_value_from_uint32(db_value_set_get(value_set, 22), policy->keys_shared)
+        || db_value_from_uint32(db_value_set_get(value_set, 23), policy->keys_purge_after)
+        || db_value_from_uint32(db_value_set_get(value_set, 24), policy->zone_propagation_delay)
+        || db_value_from_uint32(db_value_set_get(value_set, 25), policy->zone_soa_ttl)
+        || db_value_from_uint32(db_value_set_get(value_set, 26), policy->zone_soa_minimum)
+        || db_value_from_enum_value(db_value_set_get(value_set, 27), policy->zone_soa_serial, policy_enum_set_zone_soa_serial)
+        || db_value_from_uint32(db_value_set_get(value_set, 28), policy->parent_registration_delay)
+        || db_value_from_uint32(db_value_set_get(value_set, 29), policy->parent_propagation_delay)
+        || db_value_from_uint32(db_value_set_get(value_set, 30), policy->parent_ds_ttl)
+        || db_value_from_uint32(db_value_set_get(value_set, 31), policy->parent_soa_ttl)
+        || db_value_from_uint32(db_value_set_get(value_set, 32), policy->parent_soa_minimum)
+        || db_value_from_uint32(db_value_set_get(value_set, 33), policy->passthrough))
     {
         db_value_set_free(value_set);
         db_object_field_list_free(object_field_list);
@@ -2180,6 +2223,16 @@ int policy_update(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "signaturesValidityKeyset")
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "signaturesMaxZoneTtl")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
@@ -2431,7 +2484,7 @@ int policy_update(policy_t* policy) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(value_set = db_value_set_new(33))) {
+    if (!(value_set = db_value_set_new(34))) {
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
@@ -2444,31 +2497,32 @@ int policy_update(policy_t* policy) {
         || db_value_from_uint32(db_value_set_get(value_set, 5), policy->signatures_inception_offset)
         || db_value_from_uint32(db_value_set_get(value_set, 6), policy->signatures_validity_default)
         || db_value_from_uint32(db_value_set_get(value_set, 7), policy->signatures_validity_denial)
-        || db_value_from_uint32(db_value_set_get(value_set, 8), policy->signatures_max_zone_ttl)
-        || db_value_from_enum_value(db_value_set_get(value_set, 9), policy->denial_type, policy_enum_set_denial_type)
-        || db_value_from_uint32(db_value_set_get(value_set, 10), policy->denial_optout)
-        || db_value_from_uint32(db_value_set_get(value_set, 11), policy->denial_ttl)
-        || db_value_from_uint32(db_value_set_get(value_set, 12), policy->denial_resalt)
-        || db_value_from_uint32(db_value_set_get(value_set, 13), policy->denial_algorithm)
-        || db_value_from_uint32(db_value_set_get(value_set, 14), policy->denial_iterations)
-        || db_value_from_uint32(db_value_set_get(value_set, 15), policy->denial_salt_length)
-        || db_value_from_text(db_value_set_get(value_set, 16), policy->denial_salt)
-        || db_value_from_uint32(db_value_set_get(value_set, 17), policy->denial_salt_last_change)
-        || db_value_from_uint32(db_value_set_get(value_set, 18), policy->keys_ttl)
-        || db_value_from_uint32(db_value_set_get(value_set, 19), policy->keys_retire_safety)
-        || db_value_from_uint32(db_value_set_get(value_set, 20), policy->keys_publish_safety)
-        || db_value_from_uint32(db_value_set_get(value_set, 21), policy->keys_shared)
-        || db_value_from_uint32(db_value_set_get(value_set, 22), policy->keys_purge_after)
-        || db_value_from_uint32(db_value_set_get(value_set, 23), policy->zone_propagation_delay)
-        || db_value_from_uint32(db_value_set_get(value_set, 24), policy->zone_soa_ttl)
-        || db_value_from_uint32(db_value_set_get(value_set, 25), policy->zone_soa_minimum)
-        || db_value_from_enum_value(db_value_set_get(value_set, 26), policy->zone_soa_serial, policy_enum_set_zone_soa_serial)
-        || db_value_from_uint32(db_value_set_get(value_set, 27), policy->parent_registration_delay)
-        || db_value_from_uint32(db_value_set_get(value_set, 28), policy->parent_propagation_delay)
-        || db_value_from_uint32(db_value_set_get(value_set, 29), policy->parent_ds_ttl)
-        || db_value_from_uint32(db_value_set_get(value_set, 30), policy->parent_soa_ttl)
-        || db_value_from_uint32(db_value_set_get(value_set, 31), policy->parent_soa_minimum)
-        || db_value_from_uint32(db_value_set_get(value_set, 32), policy->passthrough))
+        || (db_value_from_uint32(db_value_set_get(value_set, 8), policy->signatures_validity_keyset) && 0) /* the database layer cannot handle optional fields */
+        || db_value_from_uint32(db_value_set_get(value_set, 9), policy->signatures_max_zone_ttl)
+        || db_value_from_enum_value(db_value_set_get(value_set, 10), policy->denial_type, policy_enum_set_denial_type)
+        || db_value_from_uint32(db_value_set_get(value_set, 11), policy->denial_optout)
+        || db_value_from_uint32(db_value_set_get(value_set, 12), policy->denial_ttl)
+        || db_value_from_uint32(db_value_set_get(value_set, 13), policy->denial_resalt)
+        || db_value_from_uint32(db_value_set_get(value_set, 14), policy->denial_algorithm)
+        || db_value_from_uint32(db_value_set_get(value_set, 15), policy->denial_iterations)
+        || db_value_from_uint32(db_value_set_get(value_set, 16), policy->denial_salt_length)
+        || db_value_from_text(db_value_set_get(value_set, 17), policy->denial_salt)
+        || db_value_from_uint32(db_value_set_get(value_set, 18), policy->denial_salt_last_change)
+        || db_value_from_uint32(db_value_set_get(value_set, 19), policy->keys_ttl)
+        || db_value_from_uint32(db_value_set_get(value_set, 20), policy->keys_retire_safety)
+        || db_value_from_uint32(db_value_set_get(value_set, 21), policy->keys_publish_safety)
+        || db_value_from_uint32(db_value_set_get(value_set, 22), policy->keys_shared)
+        || db_value_from_uint32(db_value_set_get(value_set, 23), policy->keys_purge_after)
+        || db_value_from_uint32(db_value_set_get(value_set, 24), policy->zone_propagation_delay)
+        || db_value_from_uint32(db_value_set_get(value_set, 25), policy->zone_soa_ttl)
+        || db_value_from_uint32(db_value_set_get(value_set, 26), policy->zone_soa_minimum)
+        || db_value_from_enum_value(db_value_set_get(value_set, 27), policy->zone_soa_serial, policy_enum_set_zone_soa_serial)
+        || db_value_from_uint32(db_value_set_get(value_set, 28), policy->parent_registration_delay)
+        || db_value_from_uint32(db_value_set_get(value_set, 29), policy->parent_propagation_delay)
+        || db_value_from_uint32(db_value_set_get(value_set, 30), policy->parent_ds_ttl)
+        || db_value_from_uint32(db_value_set_get(value_set, 31), policy->parent_soa_ttl)
+        || db_value_from_uint32(db_value_set_get(value_set, 32), policy->parent_soa_minimum)
+        || db_value_from_uint32(db_value_set_get(value_set, 33), policy->passthrough))
     {
         db_value_set_free(value_set);
         db_object_field_list_free(object_field_list);

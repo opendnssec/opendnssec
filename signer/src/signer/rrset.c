@@ -185,6 +185,7 @@ memberdestroy(void* dummy, void* member)
     sig->key_locator = NULL;
     /* The rrs may still be in use by IXFRs so cannot do ldns_rr_free(sig->rr); */
     sig->owner = NULL;
+    sig->rr = NULL;
     return 0;
 }
 
@@ -244,13 +245,10 @@ rrset_create(zone_type* zone, ldns_rr_type type)
 }
 
 collection_class
-rrset_store_initialize(char* filename)
+rrset_store_initialize()
 {
     collection_class klass;
     collection_class_allocated(&klass, NULL, memberdestroy);
-    (void)filename;
-    (void)memberdispose;
-    (void)memberrestore;
     return klass;
 }
 
@@ -629,9 +627,19 @@ rrset_sigvalid_period(signconf_type* sc, ldns_rr_type rrtype, time_t signtime,
         random_jitter = ods_rand(jitter*2);
     }
     offset = duration2time(sc->sig_inception_offset);
-    if (rrtype == LDNS_RR_TYPE_NSEC || rrtype == LDNS_RR_TYPE_NSEC3) {
+    switch (rrtype) {
+        case LDNS_RR_TYPE_NSEC:
+        case LDNS_RR_TYPE_NSEC3:
             validity = duration2time(sc->sig_validity_denial);
+            break;
+        case LDNS_RR_TYPE_DNSKEY:
+            if (sc->sig_validity_keyset != NULL && duration2time(sc->sig_validity_keyset) > 0) {
+                validity = duration2time(sc->sig_validity_keyset);
             } else {
+                validity = duration2time(sc->sig_validity_default);
+            }
+            break;
+        default:
             validity = duration2time(sc->sig_validity_default);
     }
     *inception = signtime - offset;
@@ -835,14 +843,16 @@ rrset_print(FILE* fd, rrset_type* rrset, int skip_rrsigs,
             }
         }
         if (! skip_rrsigs) {
+            result = ODS_STATUS_OK;
             while((rrsig = collection_iterator(rrset->rrsigs))) {
-                result = util_rr_print(fd, rrsig->rr);
-                if (result != ODS_STATUS_OK) {
-                    zone_type* zone = rrset->zone;
-                    log_rrset(ldns_rr_owner(rrset->rrs[i].rr), rrset->rrtype,
-                        "error printing RRset", LOG_CRIT);
-                    zone->adoutbound->error = 1;
-                    break;
+                if (result == ODS_STATUS_OK) {
+                    result = util_rr_print(fd, rrsig->rr);
+                    if (result != ODS_STATUS_OK) {
+                        zone_type* zone = rrset->zone;
+                        log_rrset(ldns_rr_owner(rrset->rrs[i].rr), rrset->rrtype,
+                            "error printing RRset", LOG_CRIT);
+                        zone->adoutbound->error = 1;
+                    }
                 }
             }
         }

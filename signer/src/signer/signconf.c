@@ -55,6 +55,7 @@ signconf_create(void)
     sc->sig_refresh_interval = NULL;
     sc->sig_validity_default = NULL;
     sc->sig_validity_denial = NULL;
+    sc->sig_validity_keyset = NULL;
     sc->sig_jitter = NULL;
     sc->sig_inception_offset = NULL;
     /* Denial of existence */
@@ -109,6 +110,7 @@ signconf_read(signconf_type* signconf, const char* scfile)
         signconf->sig_refresh_interval = parse_sc_sig_refresh_interval(scfile);
         signconf->sig_validity_default = parse_sc_sig_validity_default(scfile);
         signconf->sig_validity_denial = parse_sc_sig_validity_denial(scfile);
+        signconf->sig_validity_keyset = parse_sc_sig_validity_keyset(scfile);
         signconf->sig_jitter = parse_sc_sig_jitter(scfile);
         signconf->sig_inception_offset = parse_sc_sig_inception_offset(scfile);
         signconf->nsec_type = parse_sc_nsec_type(scfile);
@@ -197,9 +199,9 @@ signconf_update(signconf_type** signconf, const char* scfile,
 static void
 signconf_backup_duration(FILE* fd, const char* opt, duration_type* duration)
 {
-    char* str = duration2string(duration);
-    fprintf(fd, "%s %s ", opt, str);
-    free((void*) str?str:"(null)");
+    char* str = (duration == NULL ? NULL : duration2string(duration));
+    fprintf(fd, "%s %s ", opt, (str?str:"0"));
+    free(str);
 }
 
 
@@ -224,6 +226,7 @@ signconf_backup(FILE* fd, signconf_type* sc, const char* version)
     signconf_backup_duration(fd, "refresh", sc->sig_refresh_interval);
     signconf_backup_duration(fd, "valid", sc->sig_validity_default);
     signconf_backup_duration(fd, "denial", sc->sig_validity_denial);
+    signconf_backup_duration(fd, "keyset", sc->sig_validity_keyset);
     signconf_backup_duration(fd, "jitter", sc->sig_jitter);
     signconf_backup_duration(fd, "offset", sc->sig_inception_offset);
     fprintf(fd, "nsec %u ", (unsigned) sc->nsec_type);
@@ -388,6 +391,7 @@ signconf_log(signconf_type* sc, const char* name)
     char* refresh = NULL;
     char* validity = NULL;
     char* denial = NULL;
+    char* keyset = NULL;
     char* jitter = NULL;
     char* offset = NULL;
     char* dnskeyttl = NULL;
@@ -400,6 +404,9 @@ signconf_log(signconf_type* sc, const char* name)
         refresh = duration2string(sc->sig_refresh_interval);
         validity = duration2string(sc->sig_validity_default);
         denial = duration2string(sc->sig_validity_denial);
+        if (sc->sig_validity_keyset) {
+            keyset = duration2string(sc->sig_validity_keyset);
+        }
         jitter = duration2string(sc->sig_jitter);
         offset = duration2string(sc->sig_inception_offset);
         dnskeyttl = duration2string(sc->dnskey_ttl);
@@ -408,7 +415,7 @@ signconf_log(signconf_type* sc, const char* name)
         soamin = duration2string(sc->soa_min);
         /* signconf */
         ods_log_info("[%s] zone %s signconf: RESIGN[%s] REFRESH[%s] "
-            "%sVALIDITY[%s] DENIAL[%s] JITTER[%s] OFFSET[%s] NSEC[%i] "
+            "%sVALIDITY[%s] DENIAL[%s] KEYSET[%s] JITTER[%s] OFFSET[%s] NSEC[%i] "
             "DNSKEYTTL[%s] SOATTL[%s] MINIMUM[%s] SERIAL[%s]",
             sc_str,
             name?name:"(null)",
@@ -417,6 +424,7 @@ signconf_log(signconf_type* sc, const char* name)
             sc->passthrough?"PASSTHROUGH ":"",
             validity?validity:"(null)",
             denial?denial:"(null)",
+            keyset?keyset:"(null)",
             jitter?jitter:"(null)",
             offset?offset:"(null)",
             (int) sc->nsec_type,
@@ -443,6 +451,7 @@ signconf_log(signconf_type* sc, const char* name)
         free((void*)refresh);
         free((void*)validity);
         free((void*)denial);
+        free((void*)keyset);
         free((void*)jitter);
         free((void*)offset);
         free((void*)dnskeyttl);
@@ -467,6 +476,7 @@ signconf_cleanup(signconf_type* sc)
     duration_cleanup(sc->sig_refresh_interval);
     duration_cleanup(sc->sig_validity_default);
     duration_cleanup(sc->sig_validity_denial);
+    duration_cleanup(sc->sig_validity_keyset);
     duration_cleanup(sc->sig_jitter);
     duration_cleanup(sc->sig_inception_offset);
     duration_cleanup(sc->dnskey_ttl);

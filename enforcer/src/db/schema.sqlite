@@ -123,6 +123,7 @@ CREATE TABLE policy (
     signaturesInceptionOffset UNSIGNED INT NOT NULL,
     signaturesValidityDefault UNSIGNED INT NOT NULL,
     signaturesValidityDenial UNSIGNED INT NOT NULL,
+    signaturesValidityKeyset UNSIGNED INT,
     signaturesMaxZoneTtl UNSIGNED INT NOT NULL,
     denialType INT NOT NULL,
     denialOptout UNSIGNED INT NOT NULL,

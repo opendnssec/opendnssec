@@ -5,7 +5,7 @@
 		<Repository name="SoftHSM">
 			<Module>@SOFTHSM_MODULE@</Module>
 			<TokenLabel>OpenDNSSEC</TokenLabel>
-			<PIN>1234</PIN>
+			<PIN>1234</PIN>		
 		</Repository>
 	</RepositoryList>
 	<Common>
@@ -16,7 +16,7 @@
 		<ZoneListFile>@INSTALL_ROOT@/etc/opendnssec/zonelist.xml</ZoneListFile>
 	</Common>
 	<Enforcer>
-		<Datastore><MySQL><Host Port="3306">www.opendnssec.org</Host><Database>test</Database><Username>test</Username><Password>test</Password></MySQL></Datastore>
+		<Datastore><SQLite>@INSTALL_ROOT@/var/opendnssec/kasp.db</SQLite></Datastore>
 		<Interval>PT3600S</Interval>
 	</Enforcer>
 	<Signer>

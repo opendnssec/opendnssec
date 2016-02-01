@@ -59,6 +59,7 @@ duration_type* parse_sc_sig_resign_interval(const char* cfgfile);
 duration_type* parse_sc_sig_refresh_interval(const char* cfgfile);
 duration_type* parse_sc_sig_validity_default(const char* cfgfile);
 duration_type* parse_sc_sig_validity_denial(const char* cfgfile);
+duration_type* parse_sc_sig_validity_keyset(const char* cfgfile);
 duration_type* parse_sc_sig_jitter(const char* cfgfile);
 duration_type* parse_sc_sig_inception_offset(const char* cfgfile);
 duration_type* parse_sc_dnskey_ttl(const char* cfgfile);

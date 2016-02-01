@@ -10,14 +10,16 @@
 	</RepositoryList>
 	<Common>
 		<Logging>
+			<Verbosity>3</Verbosity>
 			<Syslog><Facility>local0</Facility></Syslog>
 		</Logging>
 		<PolicyFile>@INSTALL_ROOT@/etc/opendnssec/kasp.xml</PolicyFile>
 		<ZoneListFile>@INSTALL_ROOT@/etc/opendnssec/zonelist.xml</ZoneListFile>
 	</Common>
 	<Enforcer>
-		<Datastore><MySQL><Host Port="3306">www.opendnssec.org</Host><Database>test</Database><Username>test</Username><Password>test</Password></MySQL></Datastore>
+		<Datastore><SQLite>@INSTALL_ROOT@/var/opendnssec/kasp.db</SQLite></Datastore>
 		<Interval>PT3600S</Interval>
+		<AutomaticKeyGenerationPeriod>PT3600S</AutomaticKeyGenerationPeriod>
 	</Enforcer>
 	<Signer>
 		<WorkingDirectory>@INSTALL_ROOT@/var/opendnssec/signer</WorkingDirectory>
