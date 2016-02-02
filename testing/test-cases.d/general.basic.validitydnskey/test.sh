@@ -4,6 +4,11 @@ if [ -n "$HAVE_MYSQL" ]; then
         ods_setup_conf conf.xml conf-mysql.xml
 fi &&
 
+if [ "$DISTRIBUTION" = "freebsd" ]; then
+	# Won't run on FreeBSD because of non-gnu option to date.
+	return 0
+fi
+
 testvalidity() {
 	local until
 	local starting

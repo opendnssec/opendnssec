@@ -843,14 +843,16 @@ rrset_print(FILE* fd, rrset_type* rrset, int skip_rrsigs,
             }
         }
         if (! skip_rrsigs) {
+            result = ODS_STATUS_OK;
             while((rrsig = collection_iterator(rrset->rrsigs))) {
-                result = util_rr_print(fd, rrsig->rr);
-                if (result != ODS_STATUS_OK) {
-                    zone_type* zone = rrset->zone;
-                    log_rrset(ldns_rr_owner(rrset->rrs[i].rr), rrset->rrtype,
-                        "error printing RRset", LOG_CRIT);
-                    zone->adoutbound->error = 1;
-                    break;
+                if (result == ODS_STATUS_OK) {
+                    result = util_rr_print(fd, rrsig->rr);
+                    if (result != ODS_STATUS_OK) {
+                        zone_type* zone = rrset->zone;
+                        log_rrset(ldns_rr_owner(rrset->rrs[i].rr), rrset->rrtype,
+                            "error printing RRset", LOG_CRIT);
+                        zone->adoutbound->error = 1;
+                    }
                 }
             }
         }
