@@ -165,3 +165,11 @@ edns_rr_reserved_space(edns_rr_type* err)
     return err->status == EDNS_NOT_PRESENT ? 0 : (OPT_LEN + OPT_RDATA);
 }
 
+
+void
+edns_rr_cleanup(edns_rr_type* err)
+{
+    if (!err)
+	return;
+    free(err);
+}
