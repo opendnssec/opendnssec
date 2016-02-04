@@ -243,7 +243,37 @@ my @dsseenkeys;
 my $key;
 
 if($#ARGV == 0 && $ARGV[0] eq "update") {
-    die "Not implemented.\n";
+    $currenttime = time();
+    undef $timenow;
+    undef $targettime;
+    PLAY: foreach $timenext (@sequences) {
+        if($timenext > $currenttime) {
+            $targettime = $timenext;
+            last PLAY;
+        }
+        $timenow = $timenext;
+        print "Updated configuration to " . (strftime('%Y-%m-%d-%H:%M:%S',localtime($timenow))) . "\n";
+        if(-f "var/opendnssec/sequences/" . $timenow . "-kasp.db", "var/opendnssec/kasp.db") {
+            copy("var/opendnssec/sequences/" . $timenow . "-kasp.db", "var/opendnssec/kasp.db") or die "Unable to update enforcer configuration: $!\n";
+            unlink("var/opendnssec/sequences/" . $timenow . "-kasp.db", "var/opendnssec/kasp.db");
+        }
+        copy("var/opendnssec/sequences/" . $timenow . "-" . $ZONE_NAME . ".xml",
+             "var/opendnssec/signconf/" . $ZONE_NAME . ".xml") or die "Unable to update signer configuration\n";
+        unlink("var/opendnssec/sequences/" . $timenow . "-" . $ZONE_NAME . ".xml");
+    }
+    if(defined($timenow)) {
+        print "Notifying signer\n";
+        system("./sbin/ods-signer update --all");
+    }
+    if(defined($targettime)) {
+        print "Next configuration update due " . (strftime('%Y-%m-%d-%H:%M:%S',localtime($targettime))) . ".\n"  if($verbose);
+    } else {
+        if(defined($timenow)) {
+            print "Last signer configuration update performed.\n";
+        } else {
+            die "No more signer configuration updates.\n";
+        }
+    }
 } elsif($#ARGV == 1 && $ARGV[0] eq "scenario") {
     $targettime = str2time($ARGV[1]);
     die "Unrecognized target time"  if(!defined $targettime);
