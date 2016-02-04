@@ -42,7 +42,7 @@ struct collection_class_struct {
 
 struct collection_instance_struct {
     struct collection_class_struct* method;
-    void* array; /** array with members */
+    char* array; /** array with members */
     size_t size; /** member size */
     int iterator;
     int count; /** number of members in array */
@@ -137,9 +137,10 @@ collection_destroy(collection_t* collection)
         return;
     for (i=0; i < (*collection)->count; i++) {
         (*collection)->method->member_destroy((*collection)->method->cargo,
-                (*collection)->array + (*collection)->size * i);
+                &(*collection)->array[(*collection)->size * i]);
     }
-    free((*collection)->array);
+    if((*collection)->array)
+        free((*collection)->array);
     free(*collection);
     *collection = NULL;
 }
@@ -166,9 +167,9 @@ collection_del_index(collection_t collection, int index)
         return;
     if(collection->method->store)
         swapin(collection);
-    collection->method->member_destroy(collection->method->cargo, collection->array + collection->size * index);
-    memmove(collection->array + collection->size * index, &collection->array + collection->size * (index + 1), (collection->count - index) * collection->size);
+    collection->method->member_destroy(collection->method->cargo, &collection->array[collection->size * index]);
     collection->count -= 1;
+    memmove(&collection->array[collection->size * index], &collection->array[collection->size * (index + 1)], (collection->count - index) * collection->size);
     if (collection->count > 0) {
         CHECKALLOC(ptr = realloc(collection->array, collection->count * collection->size));
         collection->array = ptr;
@@ -196,7 +197,7 @@ collection_iterator(collection_t collection)
     }
     collection->iterator -= 1;
     if(collection->iterator >= 0) {
-        return &collection->array[collection->iterator];
+        return &collection->array[collection->iterator * collection->size];
     } else {
         if(collection->method->store)
             swapout(collection);
