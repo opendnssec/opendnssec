@@ -1,3 +1,14 @@
+OpenDNSSEC 2.0.0a6
+
+First public release of OpenDNSSEC.  Initial pre-releases have been
+made to a smaller audience, this pre-release is explicitly made available
+to all.  At this moment, there are no known functional bugs.  There are
+naturally issues, especially to make working with OpenDNSSEC easier, however
+none should prevent you to use OpenDNSSEC in production for the average
+case, even though this pre-release is still marked alpha.  Which is because
+of the still limited documentation, lack of migration script and it not
+being run in production yet.
+
 OpenDNSSEC 2.0.0a5
 
 Project transfer to NLnetLabs, performing code drop as-is for evaluation
