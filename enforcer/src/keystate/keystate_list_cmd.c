@@ -36,7 +36,6 @@
 #include "str.h"
 #include "clientpipe.h"
 
-#include "db/key_data.h"
 #include "db/key_state.h"
 #include "db/hsm_key.h"
 #include "db/zone.h"
@@ -102,7 +101,7 @@ kskstate(key_data_t *key)
  * @param key: key to evaluate
  * @return: state as string
  **/
-static const char*
+const char*
 map_keystate(key_data_t *key)
 {
 	int z,k;
@@ -154,84 +153,33 @@ map_keytime(const zone_t *zone, const key_data_t *key)
 }
 
 static int
-perform_keystate_list_compat(int sockfd, db_connection_t *dbconn)
-{
-	const char* fmt = "%-31s %-8s %-9s %s\n";
-	key_data_list_t* key_list;
-	key_data_t* key;
-	int cmp;
-	zone_t *zone = NULL;
-	char* tchange;
-
-	if (!(key_list = key_data_list_new_get(dbconn))) {
-		client_printf_err(sockfd, "Unable to get list of keys, memory "
-			"allocation or database error!\n");
-		return 1;
-	}
-
-	client_printf(sockfd, "Keys:\n");
-	client_printf(sockfd, fmt, "Zone:", "Keytype:", "State:",
-		"Date of next transition:");
-
-	while ((key = key_data_list_get_next(key_list))) {
-	    if (zone
-	        && (db_value_cmp(zone_id(zone), key_data_zone_id(key), &cmp)
-	            || cmp))
-        {
-            zone_free(zone);
-            zone = NULL;
-        }
-	    if (!zone) {
-	        zone = key_data_get_zone(key);
-	    }
-        key_data_cache_key_states(key);
-		tchange = map_keytime(zone, key); /* allocs */
-		client_printf(sockfd,
-			fmt,
-			zone_name(zone),
-			key_data_role_text(key),
-			map_keystate(key),
-			tchange);
-		free(tchange);
-		key_data_free(key);
-	}
-	zone_free(zone);
-	key_data_list_free(key_list);
-	return 0;
-}
-
-static int
-perform_keystate_list_verbose(int sockfd, db_connection_t *dbconn,
-	bool parsable)
-{
-	const char* fmthdr = "%-31s %-8s %-9s %-24s %-5s %-10s %-32s %-11s %s\n";
-	const char* fmt    = "%-31s %-8s %-9s %-24s %-5d %-10d %-32s %-11s %d\n";
-	const char* pfmt   = "%s;%s;%s;%s;%d;%d;%s;%s;%d\n";
-	key_data_list_t* key_list;
-	key_data_t* key;
+perform_keystate_list(int sockfd, db_connection_t *dbconn,
+        const char* filterZone, char** filterKeytype, char** filterKeystate,
+        void (printheader)(int sockfd),
+        void (printkey)(int sockfd, zone_t* zone, key_data_t* key, char*tchange, hsm_key_t* hsmKey)) {
+    key_data_list_t* key_list;
+    key_data_t* key;
     zone_t *zone = NULL;
     char* tchange;
     hsm_key_t *hsmkey;
     int cmp;
+    int i, skipPrintKey;
 
-	if (!(key_list = key_data_list_new_get(dbconn))) {
-		client_printf_err(sockfd, "Unable to get list of keys, memory "
-			"allocation or database error!\n");
-		return 1;
-	}
+    if (!(key_list = key_data_list_new_get(dbconn))) {
+        client_printf_err(sockfd, "Unable to get list of keys, memory "
+                "allocation or database error!\n");
+        return 1;
+    }
 
-	if (!parsable) {
-		client_printf(sockfd, "Keys:\n");
-		client_printf(sockfd, fmthdr, "Zone:", "Keytype:", "State:",
-			"Date of next transition:", "Size:", "Algorithm:", "CKA_ID:",
-			"Repository:", "KeyTag:");
-	}
+    if (printheader) {
+        (*printheader)(sockfd);
+    }
 
-	while ((key = key_data_list_get_next(key_list))) {
+    while ((key = key_data_list_get_next(key_list))) {
+		/* only refetches zone if different from previous */
         if (zone
-            && (db_value_cmp(zone_id(zone), key_data_zone_id(key), &cmp)
-                || cmp))
-        {
+                && (db_value_cmp(zone_id(zone), key_data_zone_id(key), &cmp)
+                || cmp)) {
             zone_free(zone);
             zone = NULL;
         }
@@ -240,81 +188,32 @@ perform_keystate_list_verbose(int sockfd, db_connection_t *dbconn,
         }
         hsmkey = key_data_get_hsm_key(key);
         key_data_cache_key_states(key);
-		tchange = map_keytime(zone, key); /* allocs */
-		client_printf(sockfd,
-			parsable?pfmt:fmt,
-			zone_name(zone),
-			key_data_role_text(key),
-			map_keystate(key),
-			tchange,
-			hsm_key_bits(hsmkey),
-			hsm_key_algorithm(hsmkey),
-			hsm_key_locator(hsmkey),
-			hsm_key_repository(hsmkey),
-			key_data_keytag(key));
-		free(tchange);
-		hsm_key_free(hsmkey);
-		key_data_free(key);
-	}
-    zone_free(zone);
-	key_data_list_free(key_list);
-	return 0;
-}
-
-static int
-perform_keystate_list_debug(int sockfd, db_connection_t *dbconn,
-	bool parsable)
-{
-	const char *fmt  = "%-31s %-13s %-12s %-12s %-12s %-12s %d %4d    %s\n";
-	const char *pfmt = "%s;%s;%s;%s;%s;%s;%d;%d;%s\n";
-	key_data_list_t* key_list;
-	key_data_t* key;
-    zone_t *zone = NULL;
-    hsm_key_t *hsmkey;
-    int cmp;
-
-	if (!(key_list = key_data_list_new_get(dbconn))) {
-		client_printf_err(sockfd, "Unable to get list of keys, memory "
-			"allocation or database error!\n");
-		return 1;
-	}
-
-	if (!parsable) {
-		client_printf(sockfd,
-			"Keys:\nZone:                           Key role:     "
-			"DS:          DNSKEY:      RRSIGDNSKEY: RRSIG:       "
-			"Pub: Act: Id:\n");
-	}
-
-	while ((key = key_data_list_get_next(key_list))) {
-        if (zone
-            && (db_value_cmp(zone_id(zone), key_data_zone_id(key), &cmp)
-                || cmp))
-        {
-            zone_free(zone);
-            zone = NULL;
+        tchange = map_keytime(zone, key); /* allocs */
+        skipPrintKey = 0;
+        if(printkey == NULL)
+            skipPrintKey = 1;
+        if(filterZone != NULL && strcmp(zone_name(zone), filterZone))
+            skipPrintKey = 1;
+        for(i=0; filterKeytype && filterKeytype[i]; i++)
+            if(!strcasecmp(filterKeytype[i],key_data_role_text(key)))
+                break;
+        if(filterKeytype && filterKeytype[i] == NULL)
+            skipPrintKey = 1;
+        for(i=0; filterKeystate && filterKeystate[i]; i++)
+            if(!strcasecmp(filterKeystate[i],map_keystate(key)))
+                break;
+        if(filterKeystate && filterKeystate[i] == NULL)
+            skipPrintKey = 1;
+        if (!skipPrintKey) {
+            (*printkey)(sockfd, zone, key, tchange, hsmkey);
         }
-        if (!zone) {
-            zone = key_data_get_zone(key);
-        }
-	    key_data_cache_key_states(key);
-        hsmkey = key_data_get_hsm_key(key);
-		client_printf(sockfd,
-			parsable?pfmt:fmt,
-			zone_name(zone),
-			key_data_role_text(key),
-			key_state_state_text(key_data_cached_ds(key)),
-			key_state_state_text(key_data_cached_dnskey(key)),
-			key_state_state_text(key_data_cached_rrsigdnskey(key)),
-			key_state_state_text(key_data_cached_rrsig(key)),
-			key_data_publish(key),
-			key_data_active_ksk(key) | key_data_active_zsk(key),
-			hsm_key_locator(hsmkey));
+        free(tchange);
         hsm_key_free(hsmkey);
-		key_data_free(key);
-	}
-	key_data_list_free(key_list);
-	return 0;
+        key_data_free(key);
+    }
+    zone_free(zone);
+    key_data_list_free(key_list);
+    return 0;
 }
 
 static void
@@ -325,6 +224,9 @@ usage(int sockfd)
 		"      [--verbose]                (aka -v)  also show additional key parameters.\n"
 		"      [--debug]                  (aka -d)  print information about the keystate.\n"
 		"      [--parsable]               (aka -p)  output machine parsable list\n"
+		"      [--zone]                   (aka -z)  \n"
+		"      [--keystate]               (aka -k)  \n"
+		"      [--all]                    (aka -a)  \n"
 	);
 }
 
@@ -334,48 +236,245 @@ handles(const char *cmd, ssize_t n)
 	return ods_check_command(cmd, n, key_list_funcblock()->cmdname)?1:0;
 }
 
+static void
+printcompatheader(int sockfd) {
+    client_printf(sockfd, "Keys:\n");
+    client_printf(sockfd, "%-31s %-8s %-9s %s\n", "Zone:", "Keytype:", "State:",
+            "Date of next transition:");
+}
+
+static void
+printcompatkey(int sockfd, zone_t* zone, key_data_t* key, char*tchange, hsm_key_t* hsmkey) {
+    (void)hsmkey;
+    client_printf(sockfd,
+            "%-31s %-8s %-9s %s\n",
+            zone_name(zone),
+            key_data_role_text(key),
+            map_keystate(key),
+            tchange);
+}
+
+static void
+printverboseheader(int sockfd) {
+    client_printf(sockfd, "Keys:\n");
+    client_printf(sockfd, "%-31s %-8s %-9s %-24s %-5s %-10s %-32s %-11s %s\n", "Zone:", "Keytype:", "State:",
+            "Date of next transition:", "Size:", "Algorithm:", "CKA_ID:",
+            "Repository:", "KeyTag:");
+}
+
+static void
+printverbosekey(int sockfd, zone_t* zone, key_data_t* key, char* tchange, hsm_key_t* hsmkey) {
+    (void)tchange;
+    client_printf(sockfd,
+            "%-31s %-8s %-9s %-24s %-5d %-10d %-32s %-11s %d\n",
+            zone_name(zone),
+            key_data_role_text(key),
+            map_keystate(key),
+            tchange,
+            hsm_key_bits(hsmkey),
+            hsm_key_algorithm(hsmkey),
+            hsm_key_locator(hsmkey),
+            hsm_key_repository(hsmkey),
+            key_data_keytag(key));
+}
+
+static void
+printverboseparsablekey(int sockfd, zone_t* zone, key_data_t* key, char* tchange, hsm_key_t* hsmkey) {
+    client_printf(sockfd,
+            "%s;%s;%s;%s;%d;%d;%s;%s;%d\n",
+            zone_name(zone),
+            key_data_role_text(key),
+            map_keystate(key),
+            tchange,
+            hsm_key_bits(hsmkey),
+            hsm_key_algorithm(hsmkey),
+            hsm_key_locator(hsmkey),
+            hsm_key_repository(hsmkey),
+            key_data_keytag(key));
+}
+
+static void
+printdebugheader(int sockfd) {
+    client_printf(sockfd,
+            "Keys:\nZone:                           Key role:     "
+            "DS:          DNSKEY:      RRSIGDNSKEY: RRSIG:       "
+            "Pub: Act: Id:\n");
+}
+
+static void
+printdebugkey(int sockfd, zone_t* zone, key_data_t* key, char* tchange, hsm_key_t* hsmkey) {
+    (void)tchange;
+    client_printf(sockfd,
+            "%-31s %-13s %-12s %-12s %-12s %-12s %d %4d    %s\n",
+            zone_name(zone),
+            key_data_role_text(key),
+            key_state_state_text(key_data_cached_ds(key)),
+            key_state_state_text(key_data_cached_dnskey(key)),
+            key_state_state_text(key_data_cached_rrsigdnskey(key)),
+            key_state_state_text(key_data_cached_rrsig(key)),
+            key_data_publish(key),
+            key_data_active_ksk(key) | key_data_active_zsk(key),
+            hsm_key_locator(hsmkey));
+}
+
+static void
+printdebugparsablekey(int sockfd, zone_t* zone, key_data_t* key, char* tchange, hsm_key_t* hsmkey) {
+    (void)tchange;
+    client_printf(sockfd,
+            "%s;%s;%s;%s;%s;%s;%d;%d;%s\n",
+            zone_name(zone),
+            key_data_role_text(key),
+            key_state_state_text(key_data_cached_ds(key)),
+            key_state_state_text(key_data_cached_dnskey(key)),
+            key_state_state_text(key_data_cached_rrsigdnskey(key)),
+            key_state_state_text(key_data_cached_rrsig(key)),
+            key_data_publish(key),
+            key_data_active_ksk(key) | key_data_active_zsk(key),
+            hsm_key_locator(hsmkey));
+}
+
+static char **
+tokenizeparam(char *argument)
+{
+    char** tokenized;
+    char** newtokenized;
+    int argCount;
+    char* argString;
+    char* argSavePtr;
+    int argSize = 8;
+
+    if ((argString = strtok_r(argument, ",", &argSavePtr)) != NULL) {
+        if ((tokenized = malloc(sizeof (char*)*argSize)) == NULL) {
+            return NULL;
+        }
+        argCount = 0;
+        do {
+            if (strcmp(argString, "")) {
+                tokenized[argCount] = argString;
+                ++argCount;
+                if (argCount == argSize) {
+                    argSize *= 2;
+                    if ((newtokenized = realloc(tokenized, sizeof (char*)*argSize)) == NULL) {
+                        free(tokenized);
+                        return NULL;
+                    }
+                    tokenized = newtokenized;
+                }
+            }
+        } while (strtok_r(NULL, ",", &argSavePtr) != NULL);
+        tokenized[argCount] = NULL;
+    } else {
+        if ((tokenized = malloc(sizeof (char*)*2)) == NULL) {
+            return NULL;
+        }
+        tokenized[0] = argument;
+        tokenized[1] = NULL;
+    }
+    return tokenized;
+}
+
 static int
 run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
-	db_connection_t *dbconn)
-{
-	char buf[ODS_SE_MAXLINE];
-	#define NARGV 8
-	const char *argv[NARGV];
-	int argc, bVerbose, bDebug, bParsable;
-	(void)engine;
+	db_connection_t *dbconn) {
+    char buf[ODS_SE_MAXLINE];
+#define NARGV 12
+    const char *argv[NARGV];
+    int success, argIndex;
+    int argc, bVerbose, bDebug, bParsable, bAll;
+    char* keytypeParam;
+    char* keystateParam;
+    const char* filterZone; /* NULL if no filtering on zone, otherwise zone to match */
+    char** filterKeytype; /* NULL if no filtering on key type, NULL terminated list of key types to filter */
+    char** filterKeystate; /* NULL if no filtering on key state, NULL terminated list of key states to filter */
+    (void) engine;
 
-	ods_log_debug("[%s] %s command", module_str, key_list_funcblock()->cmdname);
+    ods_log_debug("[%s] %s command", module_str, key_list_funcblock()->cmdname);
 
-	cmd = ods_check_command(cmd, n, key_list_funcblock()->cmdname);
-	/* Use buf as an intermediate buffer for the command. */
-	strncpy(buf, cmd, sizeof(buf));
-	buf[sizeof(buf)-1] = '\0';
+    cmd = ods_check_command(cmd, n, key_list_funcblock()->cmdname);
+    /* Use buf as an intermediate buffer for the command. */
+    strncpy(buf, cmd, sizeof (buf));
+    buf[sizeof (buf) - 1] = '\0';
 
-	/* separate the arguments */
-	argc = ods_str_explode(buf, NARGV, argv);
-	if (argc > NARGV) {
-		ods_log_warning("[%s] too many arguments for %s command",
-						module_str,key_list_funcblock()->cmdname);
-		client_printf(sockfd,"too many arguments\n");
-		return -1;
-	}
+    /* separate the arguments */
+    argc = ods_str_explode(buf, NARGV, argv);
+    if (argc > NARGV) {
+        ods_log_warning("[%s] too many arguments for %s command",
+                module_str, key_list_funcblock()->cmdname);
+        client_printf(sockfd, "too many arguments\n");
+        return -1;
+    }
 
-	bVerbose = ods_find_arg(&argc,argv,"verbose","v") != -1;
-	bDebug = ods_find_arg(&argc,argv,"debug","d") != -1;
-	bParsable = ods_find_arg(&argc,argv,"parsable","p") != -1;
-	if (argc) {
-		ods_log_warning("[%s] unknown arguments for %s command",
-						module_str,key_list_funcblock()->cmdname);
-		client_printf(sockfd,"unknown arguments\n");
-		return -1;
-	}
+    bVerbose = ods_find_arg(&argc, argv, "verbose", "v") != -1;
+    bDebug = ods_find_arg(&argc, argv, "debug", "d") != -1;
+    bParsable = ods_find_arg(&argc, argv, "parsable", "p") != -1;
+    if ((argIndex = ods_find_arg_and_param(&argc, argv, "zone", "z", &filterZone)) == -1) {
+        filterZone = NULL;
+    }
+    if (ods_find_arg_and_param(&argc, argv, "keytype", "k", (const char **)&keytypeParam) == -1) {
+        keytypeParam = NULL;
+    }
+    if (ods_find_arg_and_param(&argc, argv, "keystate", "e", (const char **)&keystateParam) == -1) {
+        keystateParam = NULL;
+    }
 
-	if (bDebug)
-		return perform_keystate_list_debug(sockfd, dbconn, bParsable);
-	else if (bVerbose)
-		return perform_keystate_list_verbose(sockfd, dbconn, bParsable);
-	else
-		return perform_keystate_list_compat(sockfd, dbconn);
+    bAll = (ods_find_arg(&argc, argv, "all", "a") != -1);
+
+    if (keystateParam != NULL && bAll) {
+        client_printf(sockfd, "Error: --keystate and --all option cannot be given together\n");
+        return -1;
+    }
+
+    if (argc) {
+        ods_log_warning("[%s] unknown arguments for %s command", module_str, key_list_funcblock()->cmdname);
+        client_printf(sockfd, "unknown arguments\n");
+        return -1;
+    }
+
+    if (keytypeParam)
+        filterKeytype = tokenizeparam(keytypeParam);
+    else
+        filterKeytype = NULL;
+    if (keystateParam) {
+        filterKeystate = tokenizeparam(keystateParam);
+    } else
+        filterKeystate = NULL;
+    if (bAll) {
+        if (filterKeystate != NULL) {
+            free(filterKeystate);
+        }
+        filterKeystate = NULL;
+    } else if(filterKeystate == NULL) {
+        if ((filterKeystate = malloc(sizeof (char*) * 6))) {
+            filterKeystate[0] = "publish";
+            filterKeystate[1] = "ready";
+            filterKeystate[2] = "active";
+            filterKeystate[3] = "retire";
+            filterKeystate[4] = "mixed";
+            filterKeystate[5] = NULL;
+        } /* else emit error */
+    }
+
+    if (bDebug) {
+        if (bParsable) {
+            success = perform_keystate_list(sockfd, dbconn, filterZone, filterKeytype, filterKeystate, NULL, &printdebugparsablekey);
+        } else {
+            success = perform_keystate_list(sockfd, dbconn, filterZone, filterKeytype, filterKeystate, &printdebugheader, &printdebugkey);
+        }
+    } else if (bVerbose) {
+        if (bParsable) {
+            success = perform_keystate_list(sockfd, dbconn, filterZone, filterKeytype, filterKeystate, NULL, &printverboseparsablekey);
+        } else {
+            success = perform_keystate_list(sockfd, dbconn, filterZone, filterKeytype, filterKeystate, &printverboseheader, &printverbosekey);
+        }
+    } else {
+        success = perform_keystate_list(sockfd, dbconn, filterZone, filterKeytype, filterKeystate, &printcompatheader, &printcompatkey);
+    }
+
+    if (filterKeytype)
+        free(filterKeytype);
+    if (filterKeystate)
+        free(filterKeystate);
+    return success;
 }
 
 static struct cmd_func_block funcblock = {

@@ -33,7 +33,6 @@
 #define ADAPTER_ADDNS_H
 
 #include "config.h"
-#include "allocator.h"
 #include "status.h"
 #include "wire/acl.h"
 #include "wire/tsig.h"
@@ -48,7 +47,6 @@
  */
 typedef struct dnsin_struct dnsin_type;
 struct dnsin_struct {
-    allocator_type* allocator;
     acl_type* request_xfr;
     acl_type* allow_notify;
     tsig_type* tsig;
@@ -61,7 +59,6 @@ struct dnsin_struct {
  */
 typedef struct dnsout_struct dnsout_type;
 struct dnsout_struct {
-    allocator_type* allocator;
     acl_type* provide_xfr;
     acl_type* do_notify;
     tsig_type* tsig;

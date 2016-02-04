@@ -33,11 +33,14 @@
 #define WIRE_TCPSET_H
 
 #include "config.h"
-#include "allocator.h"
+#include <stdint.h>
+
+typedef struct tcp_conn_struct tcp_conn_type;
+typedef struct tcp_set_struct tcp_set_type;
+
+#include "status.h"
 #include "wire/buffer.h"
 #include "wire/xfrd.h"
-
-#include <stdint.h>
 
 #define TCPSET_MAX 50
 
@@ -45,7 +48,6 @@
  * tcp connection.
  *
  */
-typedef struct tcp_conn_struct tcp_conn_type;
 struct tcp_conn_struct {
    int fd;
    /* how many bytes have been read/written - total, incl. tcp length bytes */
@@ -62,7 +64,6 @@ struct tcp_conn_struct {
  * Set of tcp connections.
  *
  */
-typedef struct tcp_set_struct tcp_set_type;
 struct tcp_set_struct {
     tcp_conn_type* tcp_conn[TCPSET_MAX];
     xfrd_type* tcp_waiting_first;
@@ -76,7 +77,7 @@ struct tcp_set_struct {
  * \return tcp_conn_type* TCP connection.
  *
  */
-tcp_conn_type* tcp_conn_create(allocator_type* allocator);
+tcp_conn_type* tcp_conn_create(void);
 
 /**
  * Create a set of tcp connections.
@@ -84,7 +85,7 @@ tcp_conn_type* tcp_conn_create(allocator_type* allocator);
  * \return tcp_set_type* set of tcp connection.
  *
  */
-tcp_set_type* tcp_set_create(allocator_type* allocator);
+tcp_set_type* tcp_set_create(void);
 
 /**
  * Make tcp connection ready for reading.
@@ -123,6 +124,6 @@ int tcp_conn_write(tcp_conn_type* tcp);
  * \param[in] allocator memory allocator
  *
  */
-void tcp_set_cleanup(tcp_set_type* set, allocator_type* allocator);
+void tcp_set_cleanup(tcp_set_type* set);
 
 #endif /* WIRE_TCPSET_H */

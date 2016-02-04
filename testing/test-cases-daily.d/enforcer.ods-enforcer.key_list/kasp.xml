@@ -1,13 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- $Id: c_kasp.xml.in 3876 2010-09-03 07:07:36Z jakob $ -->
-
 <KASP>
-<Policy name="Policy1">
-	<Description>
-			Policy1 in ODS wiki BasicTest outline
-	</Description>
-		
+	<Policy name="default">
+		<Description>policy</Description>
 	<Signatures>
 		<Resign>PT4S</Resign>
 		<Refresh>PT5S</Refresh>
@@ -24,23 +19,21 @@
 	
 	<Keys>
 		<!-- Parameters for both KSK and ZSK -->
-		<TTL>PT20S</TTL>
-		<RetireSafety>PT15S</RetireSafety>
-		<PublishSafety>PT1S</PublishSafety>
-		<Purge>PT6M</Purge>
+		<TTL>PT15M</TTL>
+		<RetireSafety>PT30M</RetireSafety>
+		<PublishSafety>PT30M</PublishSafety>
+		<Purge>PT6H</Purge>
 		<!-- Parameters for KSK only -->
 		<KSK>
 			<Algorithm length="2048">5</Algorithm>
-			<Lifetime>PT2M</Lifetime>
-			<!-- @TODO@ Repository should be configured -->
+			<Lifetime>PT2H</Lifetime>
 			<Repository>SoftHSM</Repository>
 			<Standby>1</Standby>
 		</KSK>
 		<!-- Parameters for ZSK only -->
 		<ZSK>
 			<Algorithm length="2048">5</Algorithm>
-			<Lifetime>PT3M</Lifetime>
-			<!-- @TODO@ Repository should be configured -->
+			<Lifetime>PT3H</Lifetime>
 			<Repository>SoftHSM</Repository>
 			<Standby>1</Standby>
 		</ZSK>
@@ -67,4 +60,3 @@
 	</Parent>
 </Policy>
 </KASP>
-

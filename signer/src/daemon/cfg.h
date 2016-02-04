@@ -24,30 +24,25 @@
  *
  */
 
-/**
- * Signer engine configuration.
- *
- */
-
 #ifndef DAEMON_CONFIG_H
 #define DAEMON_CONFIG_H
 
 #include "config.h"
-#include "allocator.h"
+#include <stdio.h>
+
+typedef struct engineconfig_struct engineconfig_type;
+
+#include "status.h"
 #include "hsm.h"
 #include "locks.h"
 #include "status.h"
 #include "wire/listener.h"
 
-#include <stdio.h>
-
 /**
  * Engine configuration.
  *
  */
-typedef struct engineconfig_struct engineconfig_type;
 struct engineconfig_struct {
-    allocator_type* allocator;
     listener_type* interfaces;
     hsm_repository_t* repositories;
     const char* cfg_filename;
@@ -74,8 +69,8 @@ struct engineconfig_struct {
  * \return engineconfig_type* engine configuration
  *
  */
-engineconfig_type* engine_config(allocator_type* allocator,
-    const char* cfgfile, int cmdline_verbosity);
+engineconfig_type* 
+engine_config(const char* cfgfile, int cmdline_verbosity);
 
 /**
  * Check configuration.

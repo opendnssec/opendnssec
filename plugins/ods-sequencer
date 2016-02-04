@@ -1,0 +1,333 @@
+#!/bin/env perl
+##############################################################################
+#
+# These parameters intended to be changed
+#
+
+my $INSTALL_ROOT = "/";
+my $SYSTEM_LOG = "/var/log/messages";
+my $LOG_FILE = "/var/opendnssec/ods-sequencer.log";
+my $ZONE_NAME = "example.com";
+my $verbose = 0;
+
+##############################################################################
+#
+# The implementation below should not be needed to be changed.
+#
+
+use strict;
+use warnings;
+use MIME::Base64;
+use XML::LibXML qw( );
+use IO::Handle;
+use IO::Select;
+use Symbol qw(qualify_to_ref);
+use File::Copy qw(copy);
+use Date::Parse;
+use Cwd 'abs_path';
+use POSIX qw(strftime);
+
+sub sysreadline(*;$) {
+    my($handle, $timeout) = @_;
+    $handle = qualify_to_ref($handle, caller( ));
+    my $infinitely_patient = (@_ = 1 || $timeout < 0);
+    my $start_time = time( );
+    my $selector = IO::Select->new( );
+    $selector->add($handle);
+    my $line = "";
+SLEEP:
+    until (at_eol($line)) {
+        unless ($infinitely_patient) {
+            return $line if time( ) > ($start_time + $timeout);
+        }
+        # sleep only 1 second before checking again
+        next SLEEP unless $selector->can_read(1.0);
+INPUT_READY:
+        while ($selector->can_read(0.0)) {
+            my $was_blocking = $handle->blocking(0);
+CHAR:       while (sysread($handle, my $nextbyte, 1)) {
+                $line .= $nextbyte;
+                last CHAR if $nextbyte eq "\n";
+            }
+            $handle->blocking($was_blocking);
+            # if incomplete line, keep trying
+            next SLEEP unless at_eol($line);
+            last INPUT_READY;
+        }
+    }
+    return $line;
+}
+sub at_eol($) { $_[0] =~ /\n\z/ }
+
+my $matchmonitorlogfound;
+
+sub startmonitorlog() {
+    open(LOG, "tail -f " . $SYSTEM_LOG . " |");
+    $matchmonitorlogfound=0;
+}
+
+sub matchmonitorlog() {
+    my $line;
+    return 1 if($matchmonitorlogfound);
+    do {
+        $line = sysreadline(LOG, 0);
+        if($line =~ /STATS/) {
+            $matchmonitorlogfound = 1;
+            return 1;
+        }
+    } while(at_eol($line));
+    return 0;
+}
+
+sub endmonitorlog() {
+    close(LOG);
+}
+
+sub makeannotatedsignconf {
+    my $inputsignconf = $_[0];
+    my $backupfile = $_[1];
+    my $outputsignconf = $_[2];
+    # Read in zone file
+    my $parser = XML::LibXML->new();
+    my $document = XML::LibXML->load_xml(location => $inputsignconf);
+
+    # for each KSK key look up entry in backup file of Key field and
+    # actual DNSKEY field.  Then add ResourceRecord entity to KSK key entry
+    # of parsed signconf XML.
+    foreach my $keyNode ($document->findnodes('//SignerConfiguration/Zone/Keys/Key')) {
+        my $flagsValue = $keyNode->findvalue('Flags/text()');
+        if($flagsValue eq "257") {
+            my $locatorNode = $keyNode->find('Locator')->get_node(1);
+            my $locatorValue = $keyNode->findvalue('Locator/text()');
+            my $resourcerecord = "";
+            my $keytag = "skip";
+            open(FILE, $backupfile);
+            while(<FILE>) {
+                if(m/;;Key: locator $locatorValue algorithm \d+ flags 257 publish \d+ ksk \d+ zsk \d+ keytag (\d+)/) {
+                    $keytag=$1;
+                }
+                if(m/^(.*	.*	IN	DNSKEY	257 \d+ \d+ .*) ;{id = $keytag \(ksk\), size .*}$/) {
+                    $resourcerecord = encode_base64($1);
+                }
+            }
+            close(FILE);
+            foreach my $locatorNode ($keyNode->findnodes('Locator')) {
+                $keyNode->removeChild($locatorNode);
+            }
+            my $resourceNode = XML::LibXML::Element->new('ResourceRecord');
+            $resourceNode->appendText($resourcerecord);
+            $keyNode->appendChild($resourceNode);
+        }
+    }
+
+    # also retrieve any signatures over the DNSKEY entries and add a SignatureRecordRecord for them
+    my $resourcerecord = "";
+    open(FILE, $backupfile);
+    while(<FILE>) {
+            if(m/^(.*	.*	IN	RRSIG	DNSKEY \d+ \d+ \d+ \d+ \d+ \d+ .* .*); {locator .* flags 257}$/) {
+                my $resourceNode = XML::LibXML::Element->new('SignatureResourceRecord');
+                $resourceNode->appendText(encode_base64($1));
+                $document->find('//SignerConfiguration/Zone/Keys')->get_node(1)->appendChild($resourceNode);;
+            }
+    }
+    close(FILE);
+
+    # Output the signconf 
+    open(FILE, "| xmllint --format - > " . $outputsignconf);
+    print FILE $document->toString();
+    close(FILE);
+}
+
+sub enforcerinfo() {
+    my $busy;
+    my $timenow=0;
+    my $timenext=0;
+    my @dsseenkeys;
+
+    do {
+        $busy=0;
+        sleep(3);
+        open(FILE, "./sbin/ods-enforcer queue 2>>$LOG_FILE |");
+        while(<FILE>) {
+            $busy=1  if(m/^Next task scheduled immediately/);
+            $busy=1  if(m/^Working with/);
+            if(m/^It is now.*\(([0-9][0-9]*)[^)]*\).*$/) {
+                $timenow=$1;
+            }
+            if(m/^Next task scheduled.*\(([0-9][0-9]*)[^)]*\).*$/) {
+                $timenext=$1;
+            }
+        }
+        close(FILE);
+    } while($busy);
+
+    open(FILE, "./sbin/ods-enforcer 2>>$LOG_FILE key list --verbose |");
+    while(<FILE>) {
+        if(m/^(\S+).*\s+waiting for ds-seen\s+\d+\s+\d+\s+([0-9a-fA-F]+)\s*.*$/) {
+            push(@dsseenkeys, $2);
+        }
+    }
+    close(FILE);
+
+    return ($timenow, $timenext, @dsseenkeys);
+}
+
+sub enforceridle() {
+    my $busy;
+    do {
+        $busy=0;
+        sleep(3);
+        open(FILE, "./sbin/ods-enforcer queue 2>>$LOG_FILE |");
+        while(<FILE>) {
+            $busy=1  if(m/^Next task scheduled immediately/);
+            $busy=1  if(m/^Working with/);
+        }
+        close(FILE);
+    } while($busy);
+}
+
+sub makesignedzone {
+    my $timenow;
+    my $timenext;
+    my @dsseenkeys;
+    my $timecurrent = $_[0];
+    startmonitorlog();
+    print "  ..signing zone\n"  if($verbose);
+    system("./sbin/ods-signerd 2>>$LOG_FILE >>$LOG_FILE --set-time " . $timecurrent);
+    system("./sbin/ods-signer 2>>$LOG_FILE >>$LOG_FILE sign --all");
+    print "  ..waiting for signed zone\n"  if($verbose);
+    while(!matchmonitorlog()) {
+        sleep(1);
+    }
+    print "  ..stopping signer\n"   if($verbose);
+    system("./sbin/ods-signer 2>>$LOG_FILE >>$LOG_FILE stop");
+    print "  ..annotating signconf\n"   if($verbose);
+    makeannotatedsignconf("var/opendnssec/signconf/" . $ZONE_NAME . ".xml",
+                          "var/opendnssec/signer/" . $ZONE_NAME . ".backup2",
+                          "var/opendnssec/sequences/" . $timecurrent . "-" . $ZONE_NAME . ".xml");
+    unlink("var/opendnssec/signed/" . $ZONE_NAME);
+    unlink("var/opendnssec/signer/" . $ZONE_NAME . ".backup2");
+    copy("var/opendnssec/kasp.db",
+         "var/opendnssec/sequences/" . $timecurrent . "-kasp.db");
+    endmonitorlog();
+}
+
+sub makesequence {
+    my $currenttime = $_[0];
+    print "  ..generating sequence\n"   if($verbose);
+    system("./sbin/ods-enforcer 2>>$LOG_FILE >>$LOG_FILE signconf");
+    enforceridle();
+    system("./sbin/ods-enforcer 2>>$LOG_FILE >>$LOG_FILE stop");
+    makesignedzone($currenttime);
+    system("./sbin/ods-enforcerd 2>>$LOG_FILE >>$LOG_FILE --set-time " . $currenttime);
+}
+
+##############################################################################
+
+$LOG_FILE=abs_path($LOG_FILE);
+chdir $INSTALL_ROOT;
+die "Sequencing directory not set up or misconfigured.\n" unless -d "var/opendnssec/sequences";
+
+my @sequences;
+opendir DIR, "var/opendnssec/sequences" or die;
+@sequences = readdir(DIR) or die;
+closedir(DIR);
+@sequences = grep { s/^(\d+)-$ZONE_NAME.xml$/$1/ } @sequences;
+@sequences = sort { $a <=> $b } @sequences;
+
+my $targettime;
+my $currenttime;
+my $timenow;
+my $timenext;
+my @dsseenkeys;
+my $key;
+
+if($#ARGV == 0 && $ARGV[0] eq "update") {
+    $currenttime = time();
+    undef $timenow;
+    undef $targettime;
+    PLAY: foreach $timenext (@sequences) {
+        if($timenext > $currenttime) {
+            $targettime = $timenext;
+            last PLAY;
+        }
+        $timenow = $timenext;
+        print "Updated configuration to " . (strftime('%Y-%m-%d-%H:%M:%S',localtime($timenow))) . "\n";
+        if(-f "var/opendnssec/sequences/" . $timenow . "-kasp.db", "var/opendnssec/kasp.db") {
+            copy("var/opendnssec/sequences/" . $timenow . "-kasp.db", "var/opendnssec/kasp.db") or die "Unable to update enforcer configuration: $!\n";
+            unlink("var/opendnssec/sequences/" . $timenow . "-kasp.db", "var/opendnssec/kasp.db");
+        }
+        copy("var/opendnssec/sequences/" . $timenow . "-" . $ZONE_NAME . ".xml",
+             "var/opendnssec/signconf/" . $ZONE_NAME . ".xml") or die "Unable to update signer configuration\n";
+        unlink("var/opendnssec/sequences/" . $timenow . "-" . $ZONE_NAME . ".xml");
+    }
+    if(defined($timenow)) {
+        print "Notifying signer\n";
+        system("./sbin/ods-signer update --all");
+    }
+    if(defined($targettime)) {
+        print "Next configuration update due " . (strftime('%Y-%m-%d-%H:%M:%S',localtime($targettime))) . ".\n"  if($verbose);
+    } else {
+        if(defined($timenow)) {
+            print "Last signer configuration update performed.\n";
+        } else {
+            die "No more signer configuration updates.\n";
+        }
+    }
+} elsif($#ARGV == 1 && $ARGV[0] eq "scenario") {
+    $targettime = str2time($ARGV[1]);
+    die "Unrecognized target time"  if(!defined $targettime);
+    if($#sequences < 0) {
+        $currenttime = time();
+        print "generating sequences from scratch starting now at " . localtime($currenttime) . "\n";
+        system("./sbin/ods-enforcerd 2>>$LOG_FILE >>$LOG_FILE --set-time " . $currenttime);
+        print "  ..waiting for information and enforcer idle\n"   if($verbose);
+        ($timenow, $timenext, @dsseenkeys) = enforcerinfo();
+        makesequence($currenttime);
+    } else {
+        $currenttime = $sequences[$#sequences];
+        print "generating sequences picking up from " . localtime($currenttime) . "\n";
+        copy("var/opendnssec/sequences/" . $currenttime . "-kasp.db", "var/opendnssec/kasp.db");
+        system("./sbin/ods-enforcerd 2>>$LOG_FILE >>$LOG_FILE --set-time " . $currenttime);
+        ($timenow, $timenext, @dsseenkeys) = enforcerinfo();
+    }
+    while($currenttime <= $targettime) {
+        print "determining what to do on " . (strftime('%Y-%m-%d-%H:%M:%S',localtime($currenttime))) . "\n"   if($verbose);
+        if($#dsseenkeys < 0) {
+            if($timenext <= $targettime) {
+                print "  leaping to " . (strftime('%Y-%m-%d-%H:%M:%S',localtime($timenext))) . "\n"   if($verbose);
+                system("./sbin/ods-enforcer 2>>$LOG_FILE >>$LOG_FILE time leap --time " . (strftime('%Y-%m-%d-%H:%M:%S',localtime($timenext))));
+                enforceridle();
+                ($timenow, $timenext, @dsseenkeys) = enforcerinfo();
+                $currenttime = $timenow;
+                makesequence($currenttime);
+                print "signer configuration for " . (strftime('%Y-%m-%d-%H:%M:%S',localtime($currenttime))) . "\n";
+            } else {
+                $currenttime = $timenext;
+            }
+        } else {
+            print "  publishing ds keys " . $#dsseenkeys . "\t" . @dsseenkeys . "\n"   if($verbose);
+            foreach $key (@dsseenkeys) {
+                print "  ..publishing cka_id " . $key      if($verbose);
+                print "ds seen given for " . $key . "\n"   if(!$verbose);
+                system("./sbin/ods-enforcer 2>>$LOG_FILE >>$LOG_FILE key ds-seen --zone " . $ZONE_NAME . " --cka_id " . $key);
+            }
+            ($timenow, $timenext, @dsseenkeys) = enforcerinfo();
+            $currenttime = $timenow;
+            makesequence($currenttime);
+        }
+    }
+    system("./sbin/ods-enforcer 2>>$LOG_FILE >>$LOG_FILE stop");
+} else {
+    print "\n";
+    print "Usage: ods-sequencer update\n";
+    print "       Intended to be run periodically, updates an environment without\n";
+    print "       enforcer to a prerecorded enforcer scenario\n";
+    print "Or:    ods-sequencer scenario <runtime>\n";
+    print "       Record a sequence of signer configurations starting from the\n";
+    print "       latest recorded state towards the given runtime parameter\n";
+    print "\n";
+    die "Unrecognized usage.\n";
+}
+
+##############################################################################

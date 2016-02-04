@@ -81,7 +81,7 @@ get_dnskey(const char *id, const char *zone, int alg, uint32_t ttl)
 	/* Get the DNSKEY record */
 	dnskey_rr = hsm_get_dnskey(hsm_ctx, key, sign_params);
 
-	libhsm_key_free(key);
+	free(key);
 	hsm_sign_params_free(sign_params);
 	hsm_destroy_context(hsm_ctx);
 	
@@ -102,6 +102,8 @@ exec_dnskey_by_id(int sockfd, key_data_t *key, const char* ds_command,
 	char *rrstr, *chrptr;
 	zone_t* zone;
 	struct stat stat_ret;
+        int cka = 0;
+	char *pos = NULL;
 
 	assert(key);
 
@@ -111,8 +113,10 @@ exec_dnskey_by_id(int sockfd, key_data_t *key, const char* ds_command,
 	if (!locator) return 1;
 	/* This fetches the states from the DB, I'm only assuming they get
 	 * cleaned up when 'key' is cleaned(?) */
-	if (key_data_cache_key_states(key) != DB_OK)
+	if (key_data_cache_key_states(key) != DB_OK) {
+		zone_free(zone);
 		return 1;
+	}
 
 	ttl = key_state_ttl(key_data_cached_dnskey(key));
 
@@ -139,44 +143,58 @@ exec_dnskey_by_id(int sockfd, key_data_t *key, const char* ds_command,
 			"No \"DelegationSigner%sCommand\" "
 			"configured.", action);
 		status = 1;
-	} else if (stat(ds_command, &stat_ret) != 0) {
-		ods_log_error_and_printf(sockfd, module_str,
-			"Cannot stat file %s: %s", ds_command,
-			strerror(errno));
-		status = 2;
-	} else if (S_ISREG(stat_ret.st_mode) && 
-			!(stat_ret.st_mode & S_IXUSR || 
-			  stat_ret.st_mode & S_IXGRP || 
-			  stat_ret.st_mode & S_IXOTH)) {
-		/* Then see if it is a regular file, then if usr, grp or 
-		 * all have execute set */
-		status = 3;
-		ods_log_error_and_printf(sockfd, module_str,
-			"File %s is not executable", ds_command);
 	} else {
-		/* send records to the configured command */
-		FILE *fp = popen(ds_command, "w");
-		if (fp == NULL) {
-			status = 4;
+		pos = strstr(ds_command, " --cka_id");
+                if (pos){
+                        cka = 1;
+                        *pos = '\0';
+                        rrstr[strlen(rrstr)-1] = '\0';
+                        pos = NULL;
+                }
+
+		if (stat(ds_command, &stat_ret) != 0) {
 			ods_log_error_and_printf(sockfd, module_str,
-				"failed to run command: %s: %s",ds_command,
+				"Cannot stat file %s: %s", ds_command,
 				strerror(errno));
+			status = 2;
+		} else if (S_ISREG(stat_ret.st_mode) && 
+				!(stat_ret.st_mode & S_IXUSR || 
+				  stat_ret.st_mode & S_IXGRP || 
+				  stat_ret.st_mode & S_IXOTH)) {
+			/* Then see if it is a regular file, then if usr, grp or 
+			 * all have execute set */
+			status = 3;
+			ods_log_error_and_printf(sockfd, module_str,
+				"File %s is not executable", ds_command);
 		} else {
-			int bytes_written = fprintf(fp, "%s", rrstr);
-			if (bytes_written < 0) {
-				status = 5;
-				ods_log_error_and_printf(sockfd,  module_str,
-					 "[%s] Failed to write to %s: %s", ds_command,
-					 strerror(errno));
-			} else if (pclose(fp) == -1) {
-				status = 6;
+			/* send records to the configured command */
+			FILE *fp = popen(ds_command, "w");
+			if (fp == NULL) {
+				status = 4;
 				ods_log_error_and_printf(sockfd, module_str,
-					"failed to close %s: %s", ds_command,
+					"failed to run command: %s: %s",ds_command,
 					strerror(errno));
 			} else {
-				client_printf(sockfd, "key %sed to %s\n",
-					action, ds_command);
-				status = 0;
+				int bytes_written;
+				if (cka)
+					bytes_written = fprintf(fp, "%s; {cka_id = %s}\n", rrstr, locator);
+				else
+					bytes_written = fprintf(fp, "%s", rrstr);
+				if (bytes_written < 0) {
+					status = 5;
+					ods_log_error_and_printf(sockfd,  module_str,
+						 "[%s] Failed to write to %s: %s", ds_command,
+						 strerror(errno));
+				} else if (pclose(fp) == -1) {
+					status = 6;
+					ods_log_error_and_printf(sockfd, module_str,
+						"failed to close %s: %s", ds_command,
+						strerror(errno));
+				} else {
+					client_printf(sockfd, "key %sed to %s\n",
+						action, ds_command);
+					status = 0;
+				}
 			}
 		}
 	}
@@ -280,6 +298,36 @@ push_clauses(db_clause_list_t *clause_list, zone_t *zone,
 	return 0;
 }
 
+/** Update timestamp on DS of key to now */
+static int
+ds_changed(key_data_t *key)
+{
+	key_state_list_t* keystatelist;
+	key_state_t* keystate;
+
+	if(key_data_retrieve_key_state_list(key)) return 1;
+	keystatelist = key_data_key_state_list(key);
+	keystate = key_state_list_get_begin(keystatelist);
+	if (!keystate) return 1;
+
+	while (keystate) {
+		key_state_t* keystate_next;
+		if (keystate->type == KEY_STATE_TYPE_DS) {
+			keystate->last_change = time_now();
+			if(key_state_update(keystate)) {
+				key_state_free(keystate);
+				return 1;
+			}
+			key_state_free(keystate);
+			return 0;
+		}
+		keystate_next = key_state_list_get_next(keystatelist);
+		key_state_free(keystate);
+		keystate = keystate_next;
+	}
+	return 1;
+}
+
 /* Change DS state, when zonename not given do it for all zones!
  */
 int
@@ -338,8 +386,9 @@ change_keys_from_to(db_connection_t *dbconn, int sockfd,
 		{
 			(void)retract_dnskey_by_id(sockfd, key, engine);
 		}
+
 		if (key_data_set_ds_at_parent(key, state_to) ||
-			key_data_update(key))
+			key_data_update(key) || ds_changed(key) )
 		{
 			key_data_free(key);
 			ods_log_error("[%s] Error writing to database", module_str);
@@ -355,17 +404,20 @@ change_keys_from_to(db_connection_t *dbconn, int sockfd,
 	client_printf(sockfd, "%d KSK matches found.\n", key_match);
 	if (!key_match) status = 11;
 	client_printf(sockfd, "%d KSKs changed.\n", key_mod);
-
+	if (zone) {
+		zone->next_change = 0; /* asap */
+		(void)zone_update(zone);
+	}
 	zone_free(zone);
 	return status;
 }
 
 static int
-get_args(const char *cmd, ssize_t n, const char **zone,
-	const char **cka_id, int *keytag, char *buf)
+get_args(int sockfd, const char *cmd, ssize_t n, const char **zone,
+	const char **cka_id, int *keytag, int *all, char *buf)
 {
 
-	#define NARGV 16
+	#define NARGV 6
 	const char *argv[NARGV], *tag;
 	int argc;
 	(void)n;
@@ -381,18 +433,31 @@ get_args(const char *cmd, ssize_t n, const char **zone,
 	if (argc > NARGV) {
 		ods_log_warning("[%s] too many arguments for %s command",
 			module_str, cmd);
+                client_printf_err(sockfd, "too many arguments for %s command\n",
+                        cmd);
+                client_printf_err(sockfd, "expected --zone and either --cka_id or "
+                        "--keytag option.\n");
 		return 1;
 	}
 	
 	(void)ods_find_arg_and_param(&argc, argv, "zone", "z", zone);
 	(void)ods_find_arg_and_param(&argc, argv, "cka_id", "k", cka_id);
 	(void)ods_find_arg_and_param(&argc, argv, "keytag", "x", &tag);
+	*all = ods_find_arg(&argc, argv, "all", "a") > -1 ? 1 : 0;
+
+	if (argc > 2) {
+		client_printf_err(sockfd, "Unknown arguments\n");
+	        return 1;
+	}
 
 	if (tag) {
 		*keytag = atoi(tag);
 		if (*keytag < 0 || *keytag >= 65536) {
 			ods_log_warning("[%s] value \"%d\" for --keytag is invalid",
 				module_str, *keytag);
+                        client_printf(sockfd, "value \"%d\" for --keytag is invalid\n",
+                                *keytag);
+
 			return 1;
 		}
 	}
@@ -404,26 +469,49 @@ run_ds_cmd(int sockfd, const char *cmd, ssize_t n,
 	db_connection_t *dbconn, key_data_ds_at_parent_t state_from,
 	key_data_ds_at_parent_t state_to, engine_type *engine)
 {
-	const char *zone, *cka_id;
+	const char *zonename, *cka_id;
 	int keytag;
 	hsm_key_t* hsmkey = NULL;
 	int ret;
 	char buf[ODS_SE_MAXLINE];
+	zone_t* zone = NULL;
+	int all;
 
-	if (get_args(cmd, n, &zone, &cka_id, &keytag, buf)) {
-		client_printf(sockfd, "Error parsing arguments\n", keytag);
+	if (get_args(sockfd, cmd, n, &zonename, &cka_id, &keytag, &all, buf)) {
 		return -1;
 	}
-	
-	if (!zone && !cka_id && keytag == -1) {
+
+	if (!all && !zonename && !cka_id && keytag == -1) {
 		return ds_list_keys(dbconn, sockfd, state_from);
 	}
-	if (!(zone && ((cka_id && keytag == -1) || (!cka_id && keytag != -1))))
+
+	if (all && zonename) {
+		ods_log_warning ("[%s] Error: Unable to use --zone and --all together", module_str);
+		client_printf_err(sockfd, "Error: Unable to use --zone and --all together\n");
+		return -1;
+	}
+
+	if (zonename && (!(zone = zone_new(dbconn)) || zone_get_by_name(zone, zonename))) {
+		ods_log_warning ("[%s] Error: Unable to find a zone named \"%s\" in database\n", module_str, zonename);
+	        client_printf_err(sockfd, "Error: Unable to find a zone named \"%s\" in database\n", zonename);
+		zone_free(zone);
+		zone = NULL;
+        	return -1;
+	}
+	zone_free(zone);
+	zone = NULL;
+        if (!zonename && (keytag != -1 || cka_id)) {
+                ods_log_warning ("[%s] Error: expected --zone <zone>", module_str);
+                client_printf_err(sockfd, "Error: expected --zone <zone>\n");
+                return -1;
+        }
+
+	if (!(zonename && ((cka_id && keytag == -1) || (!cka_id && keytag != -1))) && !all)
 	{
 		ods_log_warning("[%s] expected --zone and either --cka_id or "
-			"--keytag option", module_str);
-		client_printf(sockfd, "expected --zone and either --cka_id or "
-			"--keytag option.\n");
+			"--keytag option or expected --all", module_str);
+		client_printf_err(sockfd, "expected --zone and either --cka_id or "
+			"--keytag option or expected --all.\n");
 		return -1;
 	}
 	
@@ -432,8 +520,7 @@ run_ds_cmd(int sockfd, const char *cmd, ssize_t n,
 			client_printf_err(sockfd, "CKA_ID %s can not be found!\n", cka_id);
 		}
 	}
-
-	ret = change_keys_from_to(dbconn, sockfd, zone, hsmkey, keytag,
+	ret = change_keys_from_to(dbconn, sockfd, zonename, hsmkey, keytag,
 		state_from, state_to, engine);
 	hsm_key_free(hsmkey);
 	return ret;

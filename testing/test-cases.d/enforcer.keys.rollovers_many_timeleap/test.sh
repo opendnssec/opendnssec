@@ -2,7 +2,6 @@
 #
 #TEST: Test to track key rollovers in real time from the enforcer side only. 
 #TEST: Configured with short key lifetimes and 1 min enforcer interval.
-#TEST: unlike parent test this uses TIMESHIFT to hopefully keep things deterministic
 #TEST: Checks the output of ods-enforcer key list and the signconf.xml contents
 #TEST: Takes about 10 mins and follows several KSK and ZKK rollovers.
 
@@ -46,10 +45,10 @@ ods_reset_env &&
 log_this ods-enforcer-output date &&
 ods_start_enforcer &&
 log_this ods-enforcer-output echo "------- Expect generate/publish" &&
-log_this ods-enforcer-output ods-enforcer key list --verbose &&
+log_this ods-enforcer-output ods-enforcer key list --verbose --all &&
 log_this ods-enforcer-output ods-enforcer rollover list &&
 
-log_this ods-enforcer-temp ods-enforcer key list --verbose &&
+log_this ods-enforcer-temp ods-enforcer key list --verbose --all &&
 log_grep ods-enforcer-temp stdout "ods1[[:space:]]*KSK[[:space:]]*generate" &&
 log_grep ods-enforcer-temp stdout "ods1[[:space:]]*ZSK[[:space:]]*publish" &&
 
@@ -362,7 +361,7 @@ log_this ods-enforcer-output_manual ods-enforcer key list --debug &&
 log_this ods-enforcer-output_manual ods-enforcer rollover list &&
 
 log_this ods-enforcer-temp ods-enforcer key list  --debug &&
-log_grep ods-enforcer-temp stdout "ods1[[:space:]]*KSK[[:space:]]*hidden[[:space:]]*unretentive[[:space:]]*unretentive.*$KSK1_CKA" &&
+log_grep ods-enforcer-temp stdout "ods1[[:space:]]*KSK[[:space:]]*unretentive[[:space:]]*unretentive[[:space:]]*unretentive.*$KSK1_CKA" &&
 log_grep ods-enforcer-temp stdout "ods1[[:space:]]*KSK[[:space:]]*omnipresent[[:space:]]*omnipresent[[:space:]]*omnipresent.*$KSK2_CKA" &&
 rm _log.$BUILD_TAG.ods-enforcer-temp.stdout &&
 
@@ -379,10 +378,23 @@ log_this ods-enforcer-output_manual ods-enforcer key list --debug &&
 log_this ods-enforcer-output_manual ods-enforcer rollover list &&
 
 log_this ods-enforcer-temp ods-enforcer key list  --debug &&
-log_grep ods-enforcer-temp stdout "ods1[[:space:]]*KSK[[:space:]]*hidden[[:space:]]*hidden[[:space:]]*hidden.*$KSK1_CKA" &&
+log_grep ods-enforcer-temp stdout "ods1[[:space:]]*KSK[[:space:]]*hidden[[:space:]]*unretentive[[:space:]]*unretentive.*$KSK1_CKA" &&
 log_grep ods-enforcer-temp stdout "ods1[[:space:]]*KSK[[:space:]]*omnipresent[[:space:]]*omnipresent[[:space:]]*omnipresent.*$KSK2_CKA" &&
 rm _log.$BUILD_TAG.ods-enforcer-temp.stdout &&
 
+#### TIME 12.5
+log_this ods-enforcer-output_manual echo "--------------- TIME LEAP 12.5 -----------------" &&
+log_this ods-enforcer-output_manual 'ods-enforcer time leap' && sleep 1 &&
+log_this ods-enforcer-output_manual echo "--------------------------------------------" &&
+
+log_this ods-enforcer-output_manual echo "----- Expect old ZSK has NOT been removed from the list " &&
+log_this ods-enforcer-output_manual ods-enforcer key list  --verbose &&
+log_this ods-enforcer-output_manual ods-enforcer key list --debug &&
+log_this ods-enforcer-output_manual ods-enforcer rollover list &&
+
+log_this ods-enforcer-temp ods-enforcer key list  --verbose &&
+log_grep ods-enforcer-temp stdout "ods1[[:space:]]*ZSK[[:space:]]*retire" &&
+rm _log.$BUILD_TAG.ods-enforcer-temp.stdout &&
 
 #### TIME 13
 log_this ods-enforcer-output_manual echo "--------------- TIME LEAP 13 -----------------" &&

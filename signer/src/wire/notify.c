@@ -89,7 +89,6 @@ notify_set_timer(notify_type* notify, time_t t)
     notify->handler.timeout = &notify->timeout;
     notify->timeout.tv_sec = t;
     notify->timeout.tv_nsec = 0;
-    return;
 }
 
 
@@ -98,33 +97,24 @@ notify_set_timer(notify_type* notify, time_t t)
  *
  */
 notify_type*
-notify_create(void* xfrhandler, void* zone)
+notify_create(xfrhandler_type* xfrhandler, zone_type* zone)
 {
     notify_type* notify = NULL;
-    allocator_type* allocator = NULL;
     if (!xfrhandler || !zone) {
         return NULL;
     }
-    allocator = allocator_create(malloc, free);
-    if (!allocator) {
-        ods_log_error("[%s] unable to create notify structure: "
-            "allocator_create() failed", notify_str);
-        return NULL;
-    }
-    notify = (notify_type*) allocator_alloc(allocator, sizeof(notify_type));
+    CHECKALLOC(notify = (notify_type*) malloc(sizeof(notify_type)));
     if (!notify) {
         ods_log_error("[%s] unable to create notify structure: "
             " allocator_alloc() failed", notify_str);
-        allocator_cleanup(allocator);
         return NULL;
     }
-    notify->allocator = allocator;
     notify->zone = zone;
     notify->xfrhandler = xfrhandler;
     notify->waiting_next = NULL;
     notify->secondary = NULL;
     notify->soa = NULL;
-    notify->tsig_rr = tsig_rr_create(allocator);
+    notify->tsig_rr = tsig_rr_create();
     if (!notify->tsig_rr) {
         notify_cleanup(notify);
         return NULL;
@@ -166,7 +156,6 @@ notify_setup(notify_type* notify)
     notify->secondary = dnsout->do_notify;
     ods_log_debug("[%s] setup notify for zone %s", notify_str, zone->name);
     notify_set_timer(notify, notify_time(notify));
-    return;
 }
 
 
@@ -212,7 +201,6 @@ notify_disable(notify_type* notify)
     }
     ods_log_debug("[%s] notify for zone %s disabled", notify_str, zone->name);
     xfrhandler->notify_udp_num--;
-    return;
 }
 
 
@@ -236,7 +224,6 @@ notify_next(notify_type* notify)
             notify_str, zone->name);
         notify_disable(notify);
     }
-    return;
 }
 
 
@@ -396,7 +383,6 @@ notify_tsig_sign(notify_type* notify, buffer_type* buffer)
     tsig_rr_append(notify->tsig_rr, buffer);
     buffer_pkt_set_arcount(buffer, buffer_pkt_arcount(buffer)+1);
     tsig_rr_prepare(notify->tsig_rr);
-    return;
 }
 
 
@@ -444,7 +430,6 @@ notify_send(notify_type* notify)
     }
     ods_log_verbose("[%s] notify retry %u for zone %s sent to %s", notify_str,
         notify->retry, zone->name, notify->secondary->address);
-    return;
 }
 
 
@@ -503,7 +488,6 @@ notify_handle_zone(netio_type* ATTR_UNUSED(netio),
             notify_send(notify);
         }
     }
-    return;
 }
 
 
@@ -521,7 +505,6 @@ notify_update_soa(notify_type* notify, ldns_rr* soa)
         ldns_rr_free(notify->soa);
     }
     notify->soa = soa;
-    return;
 }
 
 
@@ -578,7 +561,6 @@ notify_enable(notify_type* notify, ldns_rr* soa)
     notify->handler.timeout = NULL;
     ods_log_debug("[%s] zone %s notify on waiting list", notify_str,
         zone->name);
-    return;
 }
 
 
@@ -589,11 +571,9 @@ notify_enable(notify_type* notify, ldns_rr* soa)
 void
 notify_cleanup(notify_type* notify)
 {
-    allocator_type* allocator = NULL;
     if (!notify) {
         return;
     }
-    allocator = notify->allocator;
     if (notify->handler.fd != -1) {
         close(notify->handler.fd);
         notify->handler.fd = -1;
@@ -602,7 +582,5 @@ notify_cleanup(notify_type* notify)
         ldns_rr_free(notify->soa);
     }
     tsig_rr_cleanup(notify->tsig_rr);
-    allocator_deallocate(allocator, (void*) notify);
-    allocator_cleanup(allocator);
-    return;
+    free(notify);
 }

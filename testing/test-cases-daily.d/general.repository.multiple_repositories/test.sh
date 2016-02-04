@@ -13,7 +13,7 @@ ods_softhsm_init_token 3 "OpenDNSSEC4" "3333" "3333" &&
 
 ods_reset_env &&
 
-ods_start_ods-control &&
+ods_start_ods-control 360 &&
 
 syslog_waitfor 60 'ods-signerd: .*\[STATS\] ods' &&
 test -f "$INSTALL_ROOT/var/opendnssec/signed/ods" &&

@@ -67,7 +67,6 @@ adapi_set_serial(zone_type* zone, uint32_t serial)
         return;
     }
     zone->db->inbserial = serial;
-    return;
 }
 
 
@@ -82,20 +81,6 @@ adapi_get_origin(zone_type* zone)
         return NULL;
     }
     return zone->apex;
-}
-
-
-/**
- * Get class.
- *
- */
-ldns_rr_class
-adapi_get_class(zone_type* zone)
-{
-    if (!zone) {
-        return LDNS_RR_CLASS_IN;
-    }
-    return zone->klass;
 }
 
 
@@ -147,7 +132,6 @@ adapi_trans_full(zone_type* zone, unsigned more_coming)
         zone->stats->nsec_count = num_added;
         lock_basic_unlock(&zone->stats->stats_lock);
     }
-    return;
 }
 
 
@@ -185,7 +169,6 @@ adapi_trans_diff(zone_type* zone, unsigned more_coming)
         zone->stats->nsec_count = num_added;
         lock_basic_unlock(&zone->stats->stats_lock);
     }
-    return;
 }
 
 
@@ -283,7 +266,6 @@ adapi_process_dnskey(zone_type* zone, ldns_rr* rr)
     ods_log_verbose("[%s] zone %s set dnskey ttl to %u",
         adapi_str, zone->name, tmp);
     ldns_rr_set_ttl(rr, tmp);
-    return;
 }
 
 

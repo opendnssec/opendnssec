@@ -77,7 +77,6 @@ log_dname(ldns_rdf *rdf, const char* pre, int level)
         ods_log_deeebug("[%s] %s: %s", dname_str, pre?pre:"", str);
     }
     free((void*)str);
-    return;
 }
 
 
@@ -86,28 +85,21 @@ log_dname(ldns_rdf *rdf, const char* pre, int level)
  *
  */
 domain_type*
-domain_create(void* zoneptr, ldns_rdf* dname)
+domain_create(zone_type* zone, ldns_rdf* dname)
 {
     domain_type* domain = NULL;
-    zone_type* zone = (zone_type*) zoneptr;
-    if (!dname || !zoneptr) {
+    if (!dname || !zone) {
         return NULL;
     }
-    domain = (domain_type*) allocator_alloc(
-        zone->allocator, sizeof(domain_type));
-    if (!domain) {
-        ods_log_error("[%s] unable to create domain: allocator_alloc() "
-            "failed", dname_str);
-        return NULL;
-    }
+    CHECKALLOC(domain = (domain_type*) malloc(sizeof(domain_type)));
     domain->dname = ldns_rdf_clone(dname);
     if (!domain->dname) {
         ods_log_error("[%s] unable to create domain: ldns_rdf_clone() "
             "failed", dname_str);
-        allocator_deallocate(zone->allocator, domain);
+        free(domain);
         return NULL;
     }
-    domain->zone = zoneptr;
+    domain->zone = zone;
     domain->denial = NULL; /* no reference yet */
     domain->node = NULL; /* not in db yet */
     domain->rrsets = NULL;
@@ -115,27 +107,6 @@ domain_create(void* zoneptr, ldns_rdf* dname)
     domain->is_apex = 0;
     domain->is_new = 0;
     return domain;
-}
-
-
-/**
- * Count the number of RRsets at this domain.
- *
- */
-size_t
-domain_count_rrset(domain_type* domain)
-{
-    rrset_type* rrset = NULL;
-    size_t count = 0;
-    if (!domain) {
-        return 0;
-    }
-    rrset = domain->rrsets;
-    while (rrset) {
-        count++; /* rr_count may be zero */
-        rrset = rrset->next;
-    }
-    return count;
 }
 
 
@@ -208,66 +179,6 @@ domain_add_rrset(domain_type* domain, rrset_type* rrset)
         denial = (denial_type*) domain->denial;
         denial->bitmap_changed = 1;
     }
-    return;
-}
-
-
-/**
- * Delete RRset from domain.
- *
- */
-rrset_type*
-domain_del_rrset(domain_type* domain, ldns_rr_type rrtype)
-{
-    rrset_type* cur = NULL;
-    denial_type* denial = NULL;
-    if (!domain || !rrtype) {
-        return NULL;
-    }
-    if (!domain->rrsets) {
-        ods_log_error("[%s] unable to delete RRset: RRset with RRtype %s "
-            "does not exist", dname_str, rrset_type2str(rrtype));
-        return NULL;
-    }
-    if (domain->rrsets->rrtype == rrtype) {
-        cur = domain->rrsets;
-        domain->rrsets = cur->next;
-        cur->domain = NULL;
-        cur->next = NULL;
-        log_rrset(domain->dname, rrtype, "-RRSET", LOG_DEEEBUG);
-        if (domain->denial) {
-            denial = (denial_type*) domain->denial;
-            denial->bitmap_changed = 1;
-        }
-        return cur;
-    }
-    cur = domain->rrsets;
-    while (cur) {
-        if (!cur->next) {
-            ods_log_error("[%s] unable to delete RRset: RRset with RRtype %s "
-                "does not exist", dname_str, rrset_type2str(rrtype));
-            return NULL;
-        }
-        ods_log_assert(cur->next);
-        if (cur->next->rrtype != rrtype) {
-            cur = cur->next;
-        } else {
-            ods_log_assert(cur->next->rrtype == rrtype);
-            cur->next = cur->next->next;
-            cur = cur->next;
-            cur->domain = NULL;
-            cur->next = NULL;
-            log_rrset(domain->dname, rrtype, "-RRSET", LOG_DEEEBUG);
-            if (domain->denial) {
-                denial = (denial_type*) domain->denial;
-                denial->bitmap_changed = 1;
-            }
-            return cur;
-        }
-    }
-    ods_log_error("[%s] unable to delete RRset: RRset with RRtype %s "
-        "does not exist", dname_str, rrset_type2str(rrtype));
-    return NULL;
 }
 
 
@@ -319,7 +230,6 @@ domain_diff(domain_type* domain, unsigned is_ixfr, unsigned more_coming)
             rrset = rrset->next;
         }
     }
-    return;
 }
 
 
@@ -393,7 +303,6 @@ domain_rollback(domain_type* domain, int keepsc)
             rrset = rrset->next;
         }
     }
-    return;
 }
 
 
@@ -549,7 +458,6 @@ domain_print(FILE* fd, domain_type* domain, ods_status* status)
     if (domain->denial) {
         denial_print(fd, (denial_type*) domain->denial, status);
     }
-    return;
 }
 
 
@@ -560,15 +468,12 @@ domain_print(FILE* fd, domain_type* domain, ods_status* status)
 void
 domain_cleanup(domain_type* domain)
 {
-    zone_type* zone = NULL;
     if (!domain) {
         return;
     }
-    zone = (zone_type*) domain->zone;
     ldns_rdf_deep_free(domain->dname);
     rrset_cleanup(domain->rrsets);
-    allocator_deallocate(zone->allocator, (void*)domain);
-    return;
+    free(domain);
 }
 
 
@@ -606,5 +511,4 @@ domain_backup2(FILE* fd, domain_type* domain, int sigs)
         }
         rrset = rrset->next;
     }
-    return;
 }

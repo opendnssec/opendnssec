@@ -69,12 +69,6 @@ engine_config(const char* cfgfile,
     }
     ods_log_verbose("[%s] read cfgfile: %s", conf_str, cfgfile);
 
-    ecfg = malloc(sizeof(engineconfig_type));
-    if (!ecfg) {
-        ods_log_error("[%s] failed to read: malloc failed", conf_str);
-        return NULL;
-    }
-
     /* check syntax (slows down parsing configuration file) */
     if (parse_file_check(cfgfile, rngfile) != ODS_STATUS_OK) {
         ods_log_error("[%s] failed to read: unable to parse file %s",
@@ -85,6 +79,11 @@ engine_config(const char* cfgfile,
     /* open cfgfile */
     cfgfd = ods_fopen(cfgfile, NULL, "r");
     if (cfgfd) {
+        ecfg = malloc(sizeof(engineconfig_type));
+        if (!ecfg) {
+            ods_log_error("[%s] failed to read: malloc failed", conf_str);
+            return NULL;
+        }
         if (oldcfg) {
             /* This is a reload */
             ecfg->cfg_filename = strdup(oldcfg->cfg_filename);
@@ -266,7 +265,6 @@ engine_config_print(FILE* out, engineconfig_type* config)
            - clisock_filename
          */
     }
-    return;
 }
 
 void
@@ -313,6 +311,5 @@ engine_config_cleanup(engineconfig_type* config)
 	engine_config_freehsms(config->hsm);
 	config->hsm = NULL;
     free(config);
-    return;
 }
 

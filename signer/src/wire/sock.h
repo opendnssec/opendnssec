@@ -33,7 +33,6 @@
 #define WIRE_SOCK_H
 
 #include "config.h"
-#include "allocator.h"
 #include "status.h"
 #include "wire/listener.h"
 #include "wire/netio.h"
@@ -64,7 +63,7 @@ struct socklist_struct {
  *
  */
 struct udp_data {
-    void* engine;
+    engine_type* engine;
     sock_type* socket;
     query_type* query;
 };
@@ -74,7 +73,7 @@ struct udp_data {
  *
  */
 struct tcp_accept_data {
-    void* engine;
+    engine_type* engine;
     sock_type* socket;
     size_t tcp_accept_handler_count;
     netio_handler_type* tcp_accept_handlers;
@@ -85,8 +84,7 @@ struct tcp_accept_data {
  *
  */
 struct tcp_data {
-    allocator_type* allocator;
-    void* engine;
+    engine_type* engine;
     query_type* query;
     size_t tcp_accept_handler_count;
     netio_handler_type* tcp_accept_handlers;

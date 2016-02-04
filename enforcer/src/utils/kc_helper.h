@@ -78,10 +78,8 @@ int DtXMLIntervalSeconds(const char* text, int* interval);
 int StrStrtoi(const char* string, int* value);
 int StrStrtol(const char* string, long* value);
 char* StrStrdup(const char* string);
-void StrAppend(char** str1, const char* str2);
 void StrTrimR(char *text);
 char* StrTrimL(char* text);
 void* MemCalloc(size_t nmemb, size_t size);
-void* MemRealloc(void *ptr, size_t size);
 
 #endif /* KC_HELPER_H */

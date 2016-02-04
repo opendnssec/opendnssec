@@ -24,39 +24,30 @@
  *
  */
 
-/**
- * Signer configuration.
- *
- */
-
 #ifndef SIGNER_SIGNCONF_H
 #define SIGNER_SIGNCONF_H
-
-#include "scheduler/task.h"
-#include "allocator.h"
-#include "duration.h"
-#include "signer/keys.h"
-#include "signer/nsec3params.h"
 
 #include <ldns/ldns.h>
 #include <time.h>
 
-
-/**
- * Signer Configuration.
- *
- */
 typedef struct signconf_struct signconf_type;
+
+#include "scheduler/task.h"
+#include "status.h"
+#include "duration.h"
+#include "signer/keys.h"
+#include "signer/nsec3params.h"
+
 struct signconf_struct {
     /* Zone */
     const char* name;
-    allocator_type* allocator;
     int passthrough;
     /* Signatures */
     duration_type* sig_resign_interval;
     duration_type* sig_refresh_interval;
     duration_type* sig_validity_default;
     duration_type* sig_validity_denial;
+    duration_type* sig_validity_keyset;
     duration_type* sig_jitter;
     duration_type* sig_inception_offset;
     /* Denial of existence */
@@ -69,6 +60,7 @@ struct signconf_struct {
     nsec3params_type* nsec3params;
     /* Keys */
     duration_type* dnskey_ttl;
+    const char** dnskey_signature; /* may be NULL and must be NULL terminated */
     keylist_type* keys;
     /* Source of authority */
     duration_type* soa_ttl;
@@ -123,15 +115,6 @@ ods_status signconf_check(signconf_type* signconf);
  *
  */
 task_id signconf_compare_denial(signconf_type* a, signconf_type* b);
-
-/**
- * Print signer configuration.
- * \param[in] out file descriptor
- * \param[in] sc signconf to print
- * \param[in] name zone name
- *
- */
-void signconf_print(FILE* out, signconf_type* sc, const char* name);
 
 /**
  * Log signer configuration.

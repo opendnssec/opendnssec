@@ -178,6 +178,17 @@ static db_object_t* __policy_new_object(const db_connection_t* connection) {
     }
 
     if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "signaturesValidityKeyset")
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        db_object_free(object);
+        return NULL;
+    }
+
+    if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "signaturesMaxZoneTtl")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
@@ -533,67 +544,6 @@ void policy_free(policy_t* policy) {
     }
 }
 
-void policy_reset(policy_t* policy) {
-    if (policy) {
-        db_value_reset(&(policy->id));
-        db_value_reset(&(policy->rev));
-        if (policy->name) {
-            free(policy->name);
-            policy->name = NULL;
-        }
-        if (policy->description) {
-            free(policy->description);
-            policy->description = NULL;
-        }
-        policy->signatures_resign = 0;
-        policy->signatures_refresh = 0;
-        policy->signatures_jitter = 0;
-        policy->signatures_inception_offset = 0;
-        policy->signatures_validity_default = 0;
-        policy->signatures_validity_denial = 0;
-        policy->signatures_max_zone_ttl = 86400;
-        policy->denial_type = POLICY_DENIAL_TYPE_INVALID;
-        policy->denial_optout = 0;
-        policy->denial_ttl = 0;
-        policy->denial_resalt = 0;
-        policy->denial_algorithm = 0;
-        policy->denial_iterations = 0;
-        policy->denial_salt_length = 0;
-        if (policy->denial_salt) {
-            free(policy->denial_salt);
-        }
-        policy->denial_salt = strdup("");
-        policy->denial_salt_last_change = 0;
-        policy->keys_ttl = 0;
-        policy->keys_retire_safety = 0;
-        policy->keys_publish_safety = 0;
-        policy->keys_shared = 0;
-        policy->keys_purge_after = 0;
-        policy->zone_propagation_delay = 0;
-        policy->zone_soa_ttl = 0;
-        policy->zone_soa_minimum = 0;
-        policy->zone_soa_serial = POLICY_ZONE_SOA_SERIAL_INVALID;
-        policy->parent_registration_delay = 0;
-        policy->parent_propagation_delay = 0;
-        policy->parent_ds_ttl = 0;
-        policy->parent_soa_ttl = 0;
-        policy->parent_soa_minimum = 0;
-        policy->passthrough = 0;
-        if (policy->policy_key_list) {
-            policy_key_list_free(policy->policy_key_list);
-            policy->policy_key_list = NULL;
-        }
-        if (policy->zone_list) {
-            zone_list_free(policy->zone_list);
-            policy->zone_list = NULL;
-        }
-        if (policy->hsm_key_list) {
-            hsm_key_list_free(policy->hsm_key_list);
-            policy->hsm_key_list = NULL;
-        }
-    }
-}
-
 int policy_copy(policy_t* policy, const policy_t* policy_copy) {
     char* name_text = NULL;
     char* description_text = NULL;
@@ -722,6 +672,7 @@ int policy_copy(policy_t* policy, const policy_t* policy_copy) {
     policy->signatures_inception_offset = policy_copy->signatures_inception_offset;
     policy->signatures_validity_default = policy_copy->signatures_validity_default;
     policy->signatures_validity_denial = policy_copy->signatures_validity_denial;
+    policy->signatures_validity_keyset = policy_copy->signatures_validity_keyset;
     policy->signatures_max_zone_ttl = policy_copy->signatures_max_zone_ttl;
     policy->denial_type = policy_copy->denial_type;
     policy->denial_optout = policy_copy->denial_optout;
@@ -753,184 +704,6 @@ int policy_copy(policy_t* policy, const policy_t* policy_copy) {
     return DB_OK;
 }
 
-int policy_cmp(const policy_t* policy_a, const policy_t* policy_b) {
-    int ret;
-
-    if (!policy_a && !policy_b) {
-        return 0;
-    }
-    if (!policy_a && policy_b) {
-        return -1;
-    }
-    if (policy_a && !policy_b) {
-        return 1;
-    }
-
-    if (policy_a->name && policy_b->name) {
-        if ((ret = strcmp(policy_a->name, policy_b->name))) {
-            return ret;
-        }
-    }
-    else {
-        if (!policy_a->name && policy_b->name) {
-            return -1;
-        }
-        if (policy_a->name && !policy_b->name) {
-            return -1;
-        }
-    }
-
-    if (policy_a->description && policy_b->description) {
-        if ((ret = strcmp(policy_a->description, policy_b->description))) {
-            return ret;
-        }
-    }
-    else {
-        if (!policy_a->description && policy_b->description) {
-            return -1;
-        }
-        if (policy_a->description && !policy_b->description) {
-            return -1;
-        }
-    }
-
-    if (policy_a->signatures_resign != policy_b->signatures_resign) {
-        return policy_a->signatures_resign < policy_b->signatures_resign ? -1 : 1;
-    }
-
-    if (policy_a->signatures_refresh != policy_b->signatures_refresh) {
-        return policy_a->signatures_refresh < policy_b->signatures_refresh ? -1 : 1;
-    }
-
-    if (policy_a->signatures_jitter != policy_b->signatures_jitter) {
-        return policy_a->signatures_jitter < policy_b->signatures_jitter ? -1 : 1;
-    }
-
-    if (policy_a->signatures_inception_offset != policy_b->signatures_inception_offset) {
-        return policy_a->signatures_inception_offset < policy_b->signatures_inception_offset ? -1 : 1;
-    }
-
-    if (policy_a->signatures_validity_default != policy_b->signatures_validity_default) {
-        return policy_a->signatures_validity_default < policy_b->signatures_validity_default ? -1 : 1;
-    }
-
-    if (policy_a->signatures_validity_denial != policy_b->signatures_validity_denial) {
-        return policy_a->signatures_validity_denial < policy_b->signatures_validity_denial ? -1 : 1;
-    }
-
-    if (policy_a->signatures_max_zone_ttl != policy_b->signatures_max_zone_ttl) {
-        return policy_a->signatures_max_zone_ttl < policy_b->signatures_max_zone_ttl ? -1 : 1;
-    }
-
-    if (policy_a->denial_type != policy_b->denial_type) {
-        return policy_a->denial_type < policy_b->denial_type ? -1 : 1;
-    }
-
-    if (policy_a->denial_optout != policy_b->denial_optout) {
-        return policy_a->denial_optout < policy_b->denial_optout ? -1 : 1;
-    }
-
-    if (policy_a->denial_ttl != policy_b->denial_ttl) {
-        return policy_a->denial_ttl < policy_b->denial_ttl ? -1 : 1;
-    }
-
-    if (policy_a->denial_resalt != policy_b->denial_resalt) {
-        return policy_a->denial_resalt < policy_b->denial_resalt ? -1 : 1;
-    }
-
-    if (policy_a->denial_algorithm != policy_b->denial_algorithm) {
-        return policy_a->denial_algorithm < policy_b->denial_algorithm ? -1 : 1;
-    }
-
-    if (policy_a->denial_iterations != policy_b->denial_iterations) {
-        return policy_a->denial_iterations < policy_b->denial_iterations ? -1 : 1;
-    }
-
-    if (policy_a->denial_salt_length != policy_b->denial_salt_length) {
-        return policy_a->denial_salt_length < policy_b->denial_salt_length ? -1 : 1;
-    }
-
-    if (policy_a->denial_salt && policy_b->denial_salt) {
-        if ((ret = strcmp(policy_a->denial_salt, policy_b->denial_salt))) {
-            return ret;
-        }
-    }
-    else {
-        if (!policy_a->denial_salt && policy_b->denial_salt) {
-            return -1;
-        }
-        if (policy_a->denial_salt && !policy_b->denial_salt) {
-            return -1;
-        }
-    }
-
-    if (policy_a->denial_salt_last_change != policy_b->denial_salt_last_change) {
-        return policy_a->denial_salt_last_change < policy_b->denial_salt_last_change ? -1 : 1;
-    }
-
-    if (policy_a->keys_ttl != policy_b->keys_ttl) {
-        return policy_a->keys_ttl < policy_b->keys_ttl ? -1 : 1;
-    }
-
-    if (policy_a->keys_retire_safety != policy_b->keys_retire_safety) {
-        return policy_a->keys_retire_safety < policy_b->keys_retire_safety ? -1 : 1;
-    }
-
-    if (policy_a->keys_publish_safety != policy_b->keys_publish_safety) {
-        return policy_a->keys_publish_safety < policy_b->keys_publish_safety ? -1 : 1;
-    }
-
-    if (policy_a->keys_shared != policy_b->keys_shared) {
-        return policy_a->keys_shared < policy_b->keys_shared ? -1 : 1;
-    }
-
-    if (policy_a->keys_purge_after != policy_b->keys_purge_after) {
-        return policy_a->keys_purge_after < policy_b->keys_purge_after ? -1 : 1;
-    }
-
-    if (policy_a->zone_propagation_delay != policy_b->zone_propagation_delay) {
-        return policy_a->zone_propagation_delay < policy_b->zone_propagation_delay ? -1 : 1;
-    }
-
-    if (policy_a->zone_soa_ttl != policy_b->zone_soa_ttl) {
-        return policy_a->zone_soa_ttl < policy_b->zone_soa_ttl ? -1 : 1;
-    }
-
-    if (policy_a->zone_soa_minimum != policy_b->zone_soa_minimum) {
-        return policy_a->zone_soa_minimum < policy_b->zone_soa_minimum ? -1 : 1;
-    }
-
-    if (policy_a->zone_soa_serial != policy_b->zone_soa_serial) {
-        return policy_a->zone_soa_serial < policy_b->zone_soa_serial ? -1 : 1;
-    }
-
-    if (policy_a->parent_registration_delay != policy_b->parent_registration_delay) {
-        return policy_a->parent_registration_delay < policy_b->parent_registration_delay ? -1 : 1;
-    }
-
-    if (policy_a->parent_propagation_delay != policy_b->parent_propagation_delay) {
-        return policy_a->parent_propagation_delay < policy_b->parent_propagation_delay ? -1 : 1;
-    }
-
-    if (policy_a->parent_ds_ttl != policy_b->parent_ds_ttl) {
-        return policy_a->parent_ds_ttl < policy_b->parent_ds_ttl ? -1 : 1;
-    }
-
-    if (policy_a->parent_soa_ttl != policy_b->parent_soa_ttl) {
-        return policy_a->parent_soa_ttl < policy_b->parent_soa_ttl ? -1 : 1;
-    }
-
-    if (policy_a->parent_soa_minimum != policy_b->parent_soa_minimum) {
-        return policy_a->parent_soa_minimum < policy_b->parent_soa_minimum ? -1 : 1;
-    }
-
-    if (policy_a->passthrough != policy_b->passthrough) {
-        return policy_a->passthrough < policy_b->passthrough ? -1 : 1;
-    }
-    
-    return 0;
-}
-
 int policy_from_result(policy_t* policy, const db_result_t* result) {
     const db_value_set_t* value_set;
     int denial_type;
@@ -957,8 +730,9 @@ int policy_from_result(policy_t* policy, const db_result_t* result) {
         free(policy->denial_salt);
     }
     policy->denial_salt = NULL;
+    policy->signatures_validity_keyset = 0;
     if (!(value_set = db_result_value_set(result))
-        || db_value_set_size(value_set) != 35
+        || db_value_set_size(value_set) != 36
         || db_value_copy(&(policy->id), db_value_set_at(value_set, 0))
         || db_value_copy(&(policy->rev), db_value_set_at(value_set, 1))
         || db_value_to_text(db_value_set_at(value_set, 2), &(policy->name))
@@ -969,31 +743,32 @@ int policy_from_result(policy_t* policy, const db_result_t* result) {
         || db_value_to_uint32(db_value_set_at(value_set, 7), &(policy->signatures_inception_offset))
         || db_value_to_uint32(db_value_set_at(value_set, 8), &(policy->signatures_validity_default))
         || db_value_to_uint32(db_value_set_at(value_set, 9), &(policy->signatures_validity_denial))
-        || db_value_to_uint32(db_value_set_at(value_set, 10), &(policy->signatures_max_zone_ttl))
-        || db_value_to_enum_value(db_value_set_at(value_set, 11), &denial_type, policy_enum_set_denial_type)
-        || db_value_to_uint32(db_value_set_at(value_set, 12), &(policy->denial_optout))
-        || db_value_to_uint32(db_value_set_at(value_set, 13), &(policy->denial_ttl))
-        || db_value_to_uint32(db_value_set_at(value_set, 14), &(policy->denial_resalt))
-        || db_value_to_uint32(db_value_set_at(value_set, 15), &(policy->denial_algorithm))
-        || db_value_to_uint32(db_value_set_at(value_set, 16), &(policy->denial_iterations))
-        || db_value_to_uint32(db_value_set_at(value_set, 17), &(policy->denial_salt_length))
-        || db_value_to_text(db_value_set_at(value_set, 18), &(policy->denial_salt))
-        || db_value_to_uint32(db_value_set_at(value_set, 19), &(policy->denial_salt_last_change))
-        || db_value_to_uint32(db_value_set_at(value_set, 20), &(policy->keys_ttl))
-        || db_value_to_uint32(db_value_set_at(value_set, 21), &(policy->keys_retire_safety))
-        || db_value_to_uint32(db_value_set_at(value_set, 22), &(policy->keys_publish_safety))
-        || db_value_to_uint32(db_value_set_at(value_set, 23), &(policy->keys_shared))
-        || db_value_to_uint32(db_value_set_at(value_set, 24), &(policy->keys_purge_after))
-        || db_value_to_uint32(db_value_set_at(value_set, 25), &(policy->zone_propagation_delay))
-        || db_value_to_uint32(db_value_set_at(value_set, 26), &(policy->zone_soa_ttl))
-        || db_value_to_uint32(db_value_set_at(value_set, 27), &(policy->zone_soa_minimum))
-        || db_value_to_enum_value(db_value_set_at(value_set, 28), &zone_soa_serial, policy_enum_set_zone_soa_serial)
-        || db_value_to_uint32(db_value_set_at(value_set, 29), &(policy->parent_registration_delay))
-        || db_value_to_uint32(db_value_set_at(value_set, 30), &(policy->parent_propagation_delay))
-        || db_value_to_uint32(db_value_set_at(value_set, 31), &(policy->parent_ds_ttl))
-        || db_value_to_uint32(db_value_set_at(value_set, 32), &(policy->parent_soa_ttl))
-        || db_value_to_uint32(db_value_set_at(value_set, 33), &(policy->parent_soa_minimum))
-        || db_value_to_uint32(db_value_set_at(value_set, 34), &(policy->passthrough)))
+        || (db_value_to_uint32(db_value_set_at(value_set, 10), &(policy->signatures_validity_keyset)) && 0)
+        || db_value_to_uint32(db_value_set_at(value_set, 11), &(policy->signatures_max_zone_ttl))
+        || db_value_to_enum_value(db_value_set_at(value_set, 12), &denial_type, policy_enum_set_denial_type)
+        || db_value_to_uint32(db_value_set_at(value_set, 13), &(policy->denial_optout))
+        || db_value_to_uint32(db_value_set_at(value_set, 14), &(policy->denial_ttl))
+        || db_value_to_uint32(db_value_set_at(value_set, 15), &(policy->denial_resalt))
+        || db_value_to_uint32(db_value_set_at(value_set, 16), &(policy->denial_algorithm))
+        || db_value_to_uint32(db_value_set_at(value_set, 17), &(policy->denial_iterations))
+        || db_value_to_uint32(db_value_set_at(value_set, 18), &(policy->denial_salt_length))
+        || db_value_to_text(db_value_set_at(value_set, 19), &(policy->denial_salt))
+        || db_value_to_uint32(db_value_set_at(value_set, 20), &(policy->denial_salt_last_change))
+        || db_value_to_uint32(db_value_set_at(value_set, 21), &(policy->keys_ttl))
+        || db_value_to_uint32(db_value_set_at(value_set, 22), &(policy->keys_retire_safety))
+        || db_value_to_uint32(db_value_set_at(value_set, 23), &(policy->keys_publish_safety))
+        || db_value_to_uint32(db_value_set_at(value_set, 24), &(policy->keys_shared))
+        || db_value_to_uint32(db_value_set_at(value_set, 25), &(policy->keys_purge_after))
+        || db_value_to_uint32(db_value_set_at(value_set, 26), &(policy->zone_propagation_delay))
+        || db_value_to_uint32(db_value_set_at(value_set, 27), &(policy->zone_soa_ttl))
+        || db_value_to_uint32(db_value_set_at(value_set, 28), &(policy->zone_soa_minimum))
+        || db_value_to_enum_value(db_value_set_at(value_set, 29), &zone_soa_serial, policy_enum_set_zone_soa_serial)
+        || db_value_to_uint32(db_value_set_at(value_set, 30), &(policy->parent_registration_delay))
+        || db_value_to_uint32(db_value_set_at(value_set, 31), &(policy->parent_propagation_delay))
+        || db_value_to_uint32(db_value_set_at(value_set, 32), &(policy->parent_ds_ttl))
+        || db_value_to_uint32(db_value_set_at(value_set, 33), &(policy->parent_soa_ttl))
+        || db_value_to_uint32(db_value_set_at(value_set, 34), &(policy->parent_soa_minimum))
+        || db_value_to_uint32(db_value_set_at(value_set, 35), &(policy->passthrough)))
     {
         return DB_ERROR_UNKNOWN;
     }
@@ -1099,6 +874,14 @@ unsigned int policy_signatures_validity_denial(const policy_t* policy) {
     return policy->signatures_validity_denial;
 }
 
+unsigned int policy_signatures_validity_keyset(const policy_t* policy) {
+    if (!policy) {
+        return 0;
+    }
+
+    return policy->signatures_validity_keyset;
+}
+
 unsigned int policy_signatures_max_zone_ttl(const policy_t* policy) {
     if (!policy) {
         return 0;
@@ -1113,22 +896,6 @@ policy_denial_type_t policy_denial_type(const policy_t* policy) {
     }
 
     return policy->denial_type;
-}
-
-const char* policy_denial_type_text(const policy_t* policy) {
-    const db_enum_t* enum_set = policy_enum_set_denial_type;
-
-    if (!policy) {
-        return NULL;
-    }
-
-    while (enum_set->text) {
-        if (enum_set->value == policy->denial_type) {
-            return enum_set->text;
-        }
-        enum_set++;
-    }
-    return NULL;
 }
 
 unsigned int policy_denial_optout(const policy_t* policy) {
@@ -1259,14 +1026,6 @@ unsigned int policy_zone_soa_minimum(const policy_t* policy) {
     return policy->zone_soa_minimum;
 }
 
-policy_zone_soa_serial_t policy_zone_soa_serial(const policy_t* policy) {
-    if (!policy) {
-        return POLICY_ZONE_SOA_SERIAL_INVALID;
-    }
-
-    return policy->zone_soa_serial;
-}
-
 const char* policy_zone_soa_serial_text(const policy_t* policy) {
     const db_enum_t* enum_set = policy_enum_set_zone_soa_serial;
 
@@ -1331,55 +1090,6 @@ unsigned int policy_passthrough(const policy_t* policy) {
     return policy->passthrough;
 }
 
-policy_key_list_t* policy_policy_key_list(policy_t* policy) {
-
-    if (!policy) {
-        return NULL;
-    }
-    if (!policy->dbo) {
-        return NULL;
-    }
-
-    if (!policy->policy_key_list
-        && policy_retrieve_policy_key_list(policy))
-    {
-        return NULL;
-    }
-
-    return policy->policy_key_list;
-}
-
-int policy_retrieve_policy_key_list(policy_t* policy) {
-    db_clause_list_t* clause_list;
-
-    if (!policy) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!policy->dbo) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    if (policy->policy_key_list) {
-        policy_key_list_free(policy->policy_key_list);
-        policy->policy_key_list = NULL;
-    }
-
-    if (!(clause_list = db_clause_list_new())
-        || !policy_key_policy_id_clause(clause_list, policy_id(policy))
-        || !(policy->policy_key_list = policy_key_list_new(db_object_connection(policy->dbo)))
-        || policy_key_list_object_store(policy->policy_key_list)
-        || policy_key_list_get_by_clauses(policy->policy_key_list, clause_list))
-    {
-        policy_key_list_free(policy->policy_key_list);
-        policy->policy_key_list = NULL;
-        db_clause_list_free(clause_list);
-        return DB_ERROR_UNKNOWN;
-    }
-    db_clause_list_free(clause_list);
-
-    return DB_OK;
-}
-
 zone_list_t* policy_zone_list(policy_t* policy) {
 
     if (!policy) {
@@ -1421,55 +1131,6 @@ int policy_retrieve_zone_list(policy_t* policy) {
     {
         zone_list_free(policy->zone_list);
         policy->zone_list = NULL;
-        db_clause_list_free(clause_list);
-        return DB_ERROR_UNKNOWN;
-    }
-    db_clause_list_free(clause_list);
-
-    return DB_OK;
-}
-
-hsm_key_list_t* policy_hsm_key_list(policy_t* policy) {
-
-    if (!policy) {
-        return NULL;
-    }
-    if (!policy->dbo) {
-        return NULL;
-    }
-
-    if (!policy->hsm_key_list
-        && policy_retrieve_hsm_key_list(policy))
-    {
-        return NULL;
-    }
-
-    return policy->hsm_key_list;
-}
-
-int policy_retrieve_hsm_key_list(policy_t* policy) {
-    db_clause_list_t* clause_list;
-
-    if (!policy) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!policy->dbo) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    if (policy->hsm_key_list) {
-        hsm_key_list_free(policy->hsm_key_list);
-        policy->hsm_key_list = NULL;
-    }
-
-    if (!(clause_list = db_clause_list_new())
-        || !hsm_key_policy_id_clause(clause_list, policy_id(policy))
-        || !(policy->hsm_key_list = hsm_key_list_new(db_object_connection(policy->dbo)))
-        || hsm_key_list_object_store(policy->hsm_key_list)
-        || hsm_key_list_get_by_clauses(policy->hsm_key_list, clause_list))
-    {
-        hsm_key_list_free(policy->hsm_key_list);
-        policy->hsm_key_list = NULL;
         db_clause_list_free(clause_list);
         return DB_ERROR_UNKNOWN;
     }
@@ -1582,6 +1243,16 @@ int policy_set_signatures_validity_denial(policy_t* policy, unsigned int signatu
     return DB_OK;
 }
 
+int policy_set_signatures_validity_keyset(policy_t* policy, unsigned int signatures_validity_keyset) {
+    if (!policy) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    policy->signatures_validity_keyset = signatures_validity_keyset;
+
+    return DB_OK;
+}
+
 int policy_set_signatures_max_zone_ttl(policy_t* policy, unsigned int signatures_max_zone_ttl) {
     if (!policy) {
         return DB_ERROR_UNKNOWN;
@@ -1603,23 +1274,6 @@ int policy_set_denial_type(policy_t* policy, policy_denial_type_t denial_type) {
     policy->denial_type = denial_type;
 
     return DB_OK;
-}
-
-int policy_set_denial_type_text(policy_t* policy, const char* denial_type) {
-    const db_enum_t* enum_set = policy_enum_set_denial_type;
-
-    if (!policy) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    while (enum_set->text) {
-        if (!strcmp(enum_set->text, denial_type)) {
-            policy->denial_type = enum_set->value;
-            return DB_OK;
-        }
-        enum_set++;
-    }
-    return DB_ERROR_UNKNOWN;
 }
 
 int policy_set_denial_optout(policy_t* policy, unsigned int denial_optout) {
@@ -1806,19 +1460,6 @@ int policy_set_zone_soa_minimum(policy_t* policy, unsigned int zone_soa_minimum)
     return DB_OK;
 }
 
-int policy_set_zone_soa_serial(policy_t* policy, policy_zone_soa_serial_t zone_soa_serial) {
-    if (!policy) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (zone_soa_serial == POLICY_ZONE_SOA_SERIAL_INVALID) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    policy->zone_soa_serial = zone_soa_serial;
-
-    return DB_OK;
-}
-
 int policy_set_zone_soa_serial_text(policy_t* policy, const char* zone_soa_serial) {
     const db_enum_t* enum_set = policy_enum_set_zone_soa_serial;
 
@@ -1896,201 +1537,6 @@ int policy_set_passthrough(policy_t* policy, unsigned int passthrough) {
     return DB_OK;
 }
 
-db_clause_t* policy_name_clause(db_clause_list_t* clause_list, const char* name_text) {
-    db_clause_t* clause;
-
-    if (!clause_list) {
-        return NULL;
-    }
-    if (!name_text) {
-        return NULL;
-    }
-
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "name")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
-        || db_value_from_text(db_clause_get_value(clause), name_text)
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        return NULL;
-    }
-
-    return clause;
-}
-
-db_clause_t* policy_description_clause(db_clause_list_t* clause_list, const char* description_text) {
-    db_clause_t* clause;
-
-    if (!clause_list) {
-        return NULL;
-    }
-    if (!description_text) {
-        return NULL;
-    }
-
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "description")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
-        || db_value_from_text(db_clause_get_value(clause), description_text)
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        return NULL;
-    }
-
-    return clause;
-}
-
-db_clause_t* policy_signatures_resign_clause(db_clause_list_t* clause_list, unsigned int signatures_resign) {
-    db_clause_t* clause;
-
-    if (!clause_list) {
-        return NULL;
-    }
-
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "signaturesResign")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
-        || db_value_from_uint32(db_clause_get_value(clause), signatures_resign)
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        return NULL;
-    }
-
-    return clause;
-}
-
-db_clause_t* policy_signatures_refresh_clause(db_clause_list_t* clause_list, unsigned int signatures_refresh) {
-    db_clause_t* clause;
-
-    if (!clause_list) {
-        return NULL;
-    }
-
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "signaturesRefresh")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
-        || db_value_from_uint32(db_clause_get_value(clause), signatures_refresh)
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        return NULL;
-    }
-
-    return clause;
-}
-
-db_clause_t* policy_signatures_jitter_clause(db_clause_list_t* clause_list, unsigned int signatures_jitter) {
-    db_clause_t* clause;
-
-    if (!clause_list) {
-        return NULL;
-    }
-
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "signaturesJitter")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
-        || db_value_from_uint32(db_clause_get_value(clause), signatures_jitter)
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        return NULL;
-    }
-
-    return clause;
-}
-
-db_clause_t* policy_signatures_inception_offset_clause(db_clause_list_t* clause_list, unsigned int signatures_inception_offset) {
-    db_clause_t* clause;
-
-    if (!clause_list) {
-        return NULL;
-    }
-
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "signaturesInceptionOffset")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
-        || db_value_from_uint32(db_clause_get_value(clause), signatures_inception_offset)
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        return NULL;
-    }
-
-    return clause;
-}
-
-db_clause_t* policy_signatures_validity_default_clause(db_clause_list_t* clause_list, unsigned int signatures_validity_default) {
-    db_clause_t* clause;
-
-    if (!clause_list) {
-        return NULL;
-    }
-
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "signaturesValidityDefault")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
-        || db_value_from_uint32(db_clause_get_value(clause), signatures_validity_default)
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        return NULL;
-    }
-
-    return clause;
-}
-
-db_clause_t* policy_signatures_validity_denial_clause(db_clause_list_t* clause_list, unsigned int signatures_validity_denial) {
-    db_clause_t* clause;
-
-    if (!clause_list) {
-        return NULL;
-    }
-
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "signaturesValidityDenial")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
-        || db_value_from_uint32(db_clause_get_value(clause), signatures_validity_denial)
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        return NULL;
-    }
-
-    return clause;
-}
-
-db_clause_t* policy_signatures_max_zone_ttl_clause(db_clause_list_t* clause_list, unsigned int signatures_max_zone_ttl) {
-    db_clause_t* clause;
-
-    if (!clause_list) {
-        return NULL;
-    }
-
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "signaturesMaxZoneTtl")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
-        || db_value_from_uint32(db_clause_get_value(clause), signatures_max_zone_ttl)
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        return NULL;
-    }
-
-    return clause;
-}
-
 db_clause_t* policy_denial_type_clause(db_clause_list_t* clause_list, policy_denial_type_t denial_type) {
     db_clause_t* clause;
 
@@ -2103,492 +1549,6 @@ db_clause_t* policy_denial_type_clause(db_clause_list_t* clause_list, policy_den
         || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
         || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
         || db_value_from_enum_value(db_clause_get_value(clause), denial_type, policy_enum_set_denial_type)
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        return NULL;
-    }
-
-    return clause;
-}
-
-db_clause_t* policy_denial_optout_clause(db_clause_list_t* clause_list, unsigned int denial_optout) {
-    db_clause_t* clause;
-
-    if (!clause_list) {
-        return NULL;
-    }
-
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "denialOptout")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
-        || db_value_from_uint32(db_clause_get_value(clause), denial_optout)
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        return NULL;
-    }
-
-    return clause;
-}
-
-db_clause_t* policy_denial_ttl_clause(db_clause_list_t* clause_list, unsigned int denial_ttl) {
-    db_clause_t* clause;
-
-    if (!clause_list) {
-        return NULL;
-    }
-
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "denialTtl")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
-        || db_value_from_uint32(db_clause_get_value(clause), denial_ttl)
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        return NULL;
-    }
-
-    return clause;
-}
-
-db_clause_t* policy_denial_resalt_clause(db_clause_list_t* clause_list, unsigned int denial_resalt) {
-    db_clause_t* clause;
-
-    if (!clause_list) {
-        return NULL;
-    }
-
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "denialResalt")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
-        || db_value_from_uint32(db_clause_get_value(clause), denial_resalt)
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        return NULL;
-    }
-
-    return clause;
-}
-
-db_clause_t* policy_denial_algorithm_clause(db_clause_list_t* clause_list, unsigned int denial_algorithm) {
-    db_clause_t* clause;
-
-    if (!clause_list) {
-        return NULL;
-    }
-
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "denialAlgorithm")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
-        || db_value_from_uint32(db_clause_get_value(clause), denial_algorithm)
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        return NULL;
-    }
-
-    return clause;
-}
-
-db_clause_t* policy_denial_iterations_clause(db_clause_list_t* clause_list, unsigned int denial_iterations) {
-    db_clause_t* clause;
-
-    if (!clause_list) {
-        return NULL;
-    }
-
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "denialIterations")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
-        || db_value_from_uint32(db_clause_get_value(clause), denial_iterations)
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        return NULL;
-    }
-
-    return clause;
-}
-
-db_clause_t* policy_denial_salt_length_clause(db_clause_list_t* clause_list, unsigned int denial_salt_length) {
-    db_clause_t* clause;
-
-    if (!clause_list) {
-        return NULL;
-    }
-
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "denialSaltLength")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
-        || db_value_from_uint32(db_clause_get_value(clause), denial_salt_length)
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        return NULL;
-    }
-
-    return clause;
-}
-
-db_clause_t* policy_denial_salt_clause(db_clause_list_t* clause_list, const char* denial_salt_text) {
-    db_clause_t* clause;
-
-    if (!clause_list) {
-        return NULL;
-    }
-    if (!denial_salt_text) {
-        return NULL;
-    }
-
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "denialSalt")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
-        || db_value_from_text(db_clause_get_value(clause), denial_salt_text)
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        return NULL;
-    }
-
-    return clause;
-}
-
-db_clause_t* policy_denial_salt_last_change_clause(db_clause_list_t* clause_list, unsigned int denial_salt_last_change) {
-    db_clause_t* clause;
-
-    if (!clause_list) {
-        return NULL;
-    }
-
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "denialSaltLastChange")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
-        || db_value_from_uint32(db_clause_get_value(clause), denial_salt_last_change)
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        return NULL;
-    }
-
-    return clause;
-}
-
-db_clause_t* policy_keys_ttl_clause(db_clause_list_t* clause_list, unsigned int keys_ttl) {
-    db_clause_t* clause;
-
-    if (!clause_list) {
-        return NULL;
-    }
-
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "keysTtl")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
-        || db_value_from_uint32(db_clause_get_value(clause), keys_ttl)
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        return NULL;
-    }
-
-    return clause;
-}
-
-db_clause_t* policy_keys_retire_safety_clause(db_clause_list_t* clause_list, unsigned int keys_retire_safety) {
-    db_clause_t* clause;
-
-    if (!clause_list) {
-        return NULL;
-    }
-
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "keysRetireSafety")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
-        || db_value_from_uint32(db_clause_get_value(clause), keys_retire_safety)
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        return NULL;
-    }
-
-    return clause;
-}
-
-db_clause_t* policy_keys_publish_safety_clause(db_clause_list_t* clause_list, unsigned int keys_publish_safety) {
-    db_clause_t* clause;
-
-    if (!clause_list) {
-        return NULL;
-    }
-
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "keysPublishSafety")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
-        || db_value_from_uint32(db_clause_get_value(clause), keys_publish_safety)
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        return NULL;
-    }
-
-    return clause;
-}
-
-db_clause_t* policy_keys_shared_clause(db_clause_list_t* clause_list, unsigned int keys_shared) {
-    db_clause_t* clause;
-
-    if (!clause_list) {
-        return NULL;
-    }
-
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "keysShared")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
-        || db_value_from_uint32(db_clause_get_value(clause), keys_shared)
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        return NULL;
-    }
-
-    return clause;
-}
-
-db_clause_t* policy_keys_purge_after_clause(db_clause_list_t* clause_list, unsigned int keys_purge_after) {
-    db_clause_t* clause;
-
-    if (!clause_list) {
-        return NULL;
-    }
-
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "keysPurgeAfter")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
-        || db_value_from_uint32(db_clause_get_value(clause), keys_purge_after)
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        return NULL;
-    }
-
-    return clause;
-}
-
-db_clause_t* policy_zone_propagation_delay_clause(db_clause_list_t* clause_list, unsigned int zone_propagation_delay) {
-    db_clause_t* clause;
-
-    if (!clause_list) {
-        return NULL;
-    }
-
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "zonePropagationDelay")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
-        || db_value_from_uint32(db_clause_get_value(clause), zone_propagation_delay)
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        return NULL;
-    }
-
-    return clause;
-}
-
-db_clause_t* policy_zone_soa_ttl_clause(db_clause_list_t* clause_list, unsigned int zone_soa_ttl) {
-    db_clause_t* clause;
-
-    if (!clause_list) {
-        return NULL;
-    }
-
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "zoneSoaTtl")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
-        || db_value_from_uint32(db_clause_get_value(clause), zone_soa_ttl)
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        return NULL;
-    }
-
-    return clause;
-}
-
-db_clause_t* policy_zone_soa_minimum_clause(db_clause_list_t* clause_list, unsigned int zone_soa_minimum) {
-    db_clause_t* clause;
-
-    if (!clause_list) {
-        return NULL;
-    }
-
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "zoneSoaMinimum")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
-        || db_value_from_uint32(db_clause_get_value(clause), zone_soa_minimum)
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        return NULL;
-    }
-
-    return clause;
-}
-
-db_clause_t* policy_zone_soa_serial_clause(db_clause_list_t* clause_list, policy_zone_soa_serial_t zone_soa_serial) {
-    db_clause_t* clause;
-
-    if (!clause_list) {
-        return NULL;
-    }
-
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "zoneSoaSerial")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
-        || db_value_from_enum_value(db_clause_get_value(clause), zone_soa_serial, policy_enum_set_zone_soa_serial)
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        return NULL;
-    }
-
-    return clause;
-}
-
-db_clause_t* policy_parent_registration_delay_clause(db_clause_list_t* clause_list, unsigned int parent_registration_delay) {
-    db_clause_t* clause;
-
-    if (!clause_list) {
-        return NULL;
-    }
-
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "parentRegistrationDelay")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
-        || db_value_from_uint32(db_clause_get_value(clause), parent_registration_delay)
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        return NULL;
-    }
-
-    return clause;
-}
-
-db_clause_t* policy_parent_propagation_delay_clause(db_clause_list_t* clause_list, unsigned int parent_propagation_delay) {
-    db_clause_t* clause;
-
-    if (!clause_list) {
-        return NULL;
-    }
-
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "parentPropagationDelay")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
-        || db_value_from_uint32(db_clause_get_value(clause), parent_propagation_delay)
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        return NULL;
-    }
-
-    return clause;
-}
-
-db_clause_t* policy_parent_ds_ttl_clause(db_clause_list_t* clause_list, unsigned int parent_ds_ttl) {
-    db_clause_t* clause;
-
-    if (!clause_list) {
-        return NULL;
-    }
-
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "parentDsTtl")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
-        || db_value_from_uint32(db_clause_get_value(clause), parent_ds_ttl)
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        return NULL;
-    }
-
-    return clause;
-}
-
-db_clause_t* policy_parent_soa_ttl_clause(db_clause_list_t* clause_list, unsigned int parent_soa_ttl) {
-    db_clause_t* clause;
-
-    if (!clause_list) {
-        return NULL;
-    }
-
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "parentSoaTtl")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
-        || db_value_from_uint32(db_clause_get_value(clause), parent_soa_ttl)
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        return NULL;
-    }
-
-    return clause;
-}
-
-db_clause_t* policy_parent_soa_minimum_clause(db_clause_list_t* clause_list, unsigned int parent_soa_minimum) {
-    db_clause_t* clause;
-
-    if (!clause_list) {
-        return NULL;
-    }
-
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "parentSoaMinimum")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
-        || db_value_from_uint32(db_clause_get_value(clause), parent_soa_minimum)
-        || db_clause_list_add(clause_list, clause))
-    {
-        db_clause_free(clause);
-        return NULL;
-    }
-
-    return clause;
-}
-
-db_clause_t* policy_passthrough_clause(db_clause_list_t* clause_list, unsigned int passthrough) {
-    db_clause_t* clause;
-
-    if (!clause_list) {
-        return NULL;
-    }
-
-    if (!(clause = db_clause_new())
-        || db_clause_set_field(clause, "passthrough")
-        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
-        || db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND)
-        || db_value_from_uint32(db_clause_get_value(clause), passthrough)
         || db_clause_list_add(clause_list, clause))
     {
         db_clause_free(clause);
@@ -2703,6 +1663,16 @@ int policy_create(policy_t* policy) {
 
     if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "signaturesValidityDenial")
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "signaturesValidityKeyset")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
     {
@@ -2963,7 +1933,7 @@ int policy_create(policy_t* policy) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(value_set = db_value_set_new(33))) {
+    if (!(value_set = db_value_set_new(34))) {
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
@@ -2976,31 +1946,32 @@ int policy_create(policy_t* policy) {
         || db_value_from_uint32(db_value_set_get(value_set, 5), policy->signatures_inception_offset)
         || db_value_from_uint32(db_value_set_get(value_set, 6), policy->signatures_validity_default)
         || db_value_from_uint32(db_value_set_get(value_set, 7), policy->signatures_validity_denial)
-        || db_value_from_uint32(db_value_set_get(value_set, 8), policy->signatures_max_zone_ttl)
-        || db_value_from_enum_value(db_value_set_get(value_set, 9), policy->denial_type, policy_enum_set_denial_type)
-        || db_value_from_uint32(db_value_set_get(value_set, 10), policy->denial_optout)
-        || db_value_from_uint32(db_value_set_get(value_set, 11), policy->denial_ttl)
-        || db_value_from_uint32(db_value_set_get(value_set, 12), policy->denial_resalt)
-        || db_value_from_uint32(db_value_set_get(value_set, 13), policy->denial_algorithm)
-        || db_value_from_uint32(db_value_set_get(value_set, 14), policy->denial_iterations)
-        || db_value_from_uint32(db_value_set_get(value_set, 15), policy->denial_salt_length)
-        || db_value_from_text(db_value_set_get(value_set, 16), policy->denial_salt)
-        || db_value_from_uint32(db_value_set_get(value_set, 17), policy->denial_salt_last_change)
-        || db_value_from_uint32(db_value_set_get(value_set, 18), policy->keys_ttl)
-        || db_value_from_uint32(db_value_set_get(value_set, 19), policy->keys_retire_safety)
-        || db_value_from_uint32(db_value_set_get(value_set, 20), policy->keys_publish_safety)
-        || db_value_from_uint32(db_value_set_get(value_set, 21), policy->keys_shared)
-        || db_value_from_uint32(db_value_set_get(value_set, 22), policy->keys_purge_after)
-        || db_value_from_uint32(db_value_set_get(value_set, 23), policy->zone_propagation_delay)
-        || db_value_from_uint32(db_value_set_get(value_set, 24), policy->zone_soa_ttl)
-        || db_value_from_uint32(db_value_set_get(value_set, 25), policy->zone_soa_minimum)
-        || db_value_from_enum_value(db_value_set_get(value_set, 26), policy->zone_soa_serial, policy_enum_set_zone_soa_serial)
-        || db_value_from_uint32(db_value_set_get(value_set, 27), policy->parent_registration_delay)
-        || db_value_from_uint32(db_value_set_get(value_set, 28), policy->parent_propagation_delay)
-        || db_value_from_uint32(db_value_set_get(value_set, 29), policy->parent_ds_ttl)
-        || db_value_from_uint32(db_value_set_get(value_set, 30), policy->parent_soa_ttl)
-        || db_value_from_uint32(db_value_set_get(value_set, 31), policy->parent_soa_minimum)
-        || db_value_from_uint32(db_value_set_get(value_set, 32), policy->passthrough))
+        || (db_value_from_uint32(db_value_set_get(value_set, 8), policy->signatures_validity_keyset) && 0) /* not an error, the database layer cannot handle optional fields */
+        || db_value_from_uint32(db_value_set_get(value_set, 9), policy->signatures_max_zone_ttl)
+        || db_value_from_enum_value(db_value_set_get(value_set, 10), policy->denial_type, policy_enum_set_denial_type)
+        || db_value_from_uint32(db_value_set_get(value_set, 11), policy->denial_optout)
+        || db_value_from_uint32(db_value_set_get(value_set, 12), policy->denial_ttl)
+        || db_value_from_uint32(db_value_set_get(value_set, 13), policy->denial_resalt)
+        || db_value_from_uint32(db_value_set_get(value_set, 14), policy->denial_algorithm)
+        || db_value_from_uint32(db_value_set_get(value_set, 15), policy->denial_iterations)
+        || db_value_from_uint32(db_value_set_get(value_set, 16), policy->denial_salt_length)
+        || db_value_from_text(db_value_set_get(value_set, 17), policy->denial_salt)
+        || db_value_from_uint32(db_value_set_get(value_set, 18), policy->denial_salt_last_change)
+        || db_value_from_uint32(db_value_set_get(value_set, 19), policy->keys_ttl)
+        || db_value_from_uint32(db_value_set_get(value_set, 20), policy->keys_retire_safety)
+        || db_value_from_uint32(db_value_set_get(value_set, 21), policy->keys_publish_safety)
+        || db_value_from_uint32(db_value_set_get(value_set, 22), policy->keys_shared)
+        || db_value_from_uint32(db_value_set_get(value_set, 23), policy->keys_purge_after)
+        || db_value_from_uint32(db_value_set_get(value_set, 24), policy->zone_propagation_delay)
+        || db_value_from_uint32(db_value_set_get(value_set, 25), policy->zone_soa_ttl)
+        || db_value_from_uint32(db_value_set_get(value_set, 26), policy->zone_soa_minimum)
+        || db_value_from_enum_value(db_value_set_get(value_set, 27), policy->zone_soa_serial, policy_enum_set_zone_soa_serial)
+        || db_value_from_uint32(db_value_set_get(value_set, 28), policy->parent_registration_delay)
+        || db_value_from_uint32(db_value_set_get(value_set, 29), policy->parent_propagation_delay)
+        || db_value_from_uint32(db_value_set_get(value_set, 30), policy->parent_ds_ttl)
+        || db_value_from_uint32(db_value_set_get(value_set, 31), policy->parent_soa_ttl)
+        || db_value_from_uint32(db_value_set_get(value_set, 32), policy->parent_soa_minimum)
+        || db_value_from_uint32(db_value_set_get(value_set, 33), policy->passthrough))
     {
         db_value_set_free(value_set);
         db_object_field_list_free(object_field_list);
@@ -3064,29 +2035,6 @@ int policy_get_by_id(policy_t* policy, const db_value_t* id) {
 
     db_result_list_free(result_list);
     return DB_ERROR_UNKNOWN;
-}
-
-policy_t* policy_new_get_by_id(const db_connection_t* connection, const db_value_t* id) {
-    policy_t* policy;
-
-    if (!connection) {
-        return NULL;
-    }
-    if (!id) {
-        return NULL;
-    }
-    if (db_value_not_empty(id)) {
-        return NULL;
-    }
-
-    if (!(policy = policy_new(connection))
-        || policy_get_by_id(policy, id))
-    {
-        policy_free(policy);
-        return NULL;
-    }
-
-    return policy;
 }
 
 int policy_get_by_name(policy_t* policy, const char* name) {
@@ -3275,6 +2223,16 @@ int policy_update(policy_t* policy) {
     }
 
     if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "signaturesValidityKeyset")
+        || db_object_field_set_type(object_field, DB_TYPE_UINT32)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+        db_object_field_list_free(object_field_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(object_field = db_object_field_new())
         || db_object_field_set_name(object_field, "signaturesMaxZoneTtl")
         || db_object_field_set_type(object_field, DB_TYPE_UINT32)
         || db_object_field_list_add(object_field_list, object_field))
@@ -3526,7 +2484,7 @@ int policy_update(policy_t* policy) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(value_set = db_value_set_new(33))) {
+    if (!(value_set = db_value_set_new(34))) {
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
@@ -3539,31 +2497,32 @@ int policy_update(policy_t* policy) {
         || db_value_from_uint32(db_value_set_get(value_set, 5), policy->signatures_inception_offset)
         || db_value_from_uint32(db_value_set_get(value_set, 6), policy->signatures_validity_default)
         || db_value_from_uint32(db_value_set_get(value_set, 7), policy->signatures_validity_denial)
-        || db_value_from_uint32(db_value_set_get(value_set, 8), policy->signatures_max_zone_ttl)
-        || db_value_from_enum_value(db_value_set_get(value_set, 9), policy->denial_type, policy_enum_set_denial_type)
-        || db_value_from_uint32(db_value_set_get(value_set, 10), policy->denial_optout)
-        || db_value_from_uint32(db_value_set_get(value_set, 11), policy->denial_ttl)
-        || db_value_from_uint32(db_value_set_get(value_set, 12), policy->denial_resalt)
-        || db_value_from_uint32(db_value_set_get(value_set, 13), policy->denial_algorithm)
-        || db_value_from_uint32(db_value_set_get(value_set, 14), policy->denial_iterations)
-        || db_value_from_uint32(db_value_set_get(value_set, 15), policy->denial_salt_length)
-        || db_value_from_text(db_value_set_get(value_set, 16), policy->denial_salt)
-        || db_value_from_uint32(db_value_set_get(value_set, 17), policy->denial_salt_last_change)
-        || db_value_from_uint32(db_value_set_get(value_set, 18), policy->keys_ttl)
-        || db_value_from_uint32(db_value_set_get(value_set, 19), policy->keys_retire_safety)
-        || db_value_from_uint32(db_value_set_get(value_set, 20), policy->keys_publish_safety)
-        || db_value_from_uint32(db_value_set_get(value_set, 21), policy->keys_shared)
-        || db_value_from_uint32(db_value_set_get(value_set, 22), policy->keys_purge_after)
-        || db_value_from_uint32(db_value_set_get(value_set, 23), policy->zone_propagation_delay)
-        || db_value_from_uint32(db_value_set_get(value_set, 24), policy->zone_soa_ttl)
-        || db_value_from_uint32(db_value_set_get(value_set, 25), policy->zone_soa_minimum)
-        || db_value_from_enum_value(db_value_set_get(value_set, 26), policy->zone_soa_serial, policy_enum_set_zone_soa_serial)
-        || db_value_from_uint32(db_value_set_get(value_set, 27), policy->parent_registration_delay)
-        || db_value_from_uint32(db_value_set_get(value_set, 28), policy->parent_propagation_delay)
-        || db_value_from_uint32(db_value_set_get(value_set, 29), policy->parent_ds_ttl)
-        || db_value_from_uint32(db_value_set_get(value_set, 30), policy->parent_soa_ttl)
-        || db_value_from_uint32(db_value_set_get(value_set, 31), policy->parent_soa_minimum)
-        || db_value_from_uint32(db_value_set_get(value_set, 32), policy->passthrough))
+        || (db_value_from_uint32(db_value_set_get(value_set, 8), policy->signatures_validity_keyset) && 0) /* the database layer cannot handle optional fields */
+        || db_value_from_uint32(db_value_set_get(value_set, 9), policy->signatures_max_zone_ttl)
+        || db_value_from_enum_value(db_value_set_get(value_set, 10), policy->denial_type, policy_enum_set_denial_type)
+        || db_value_from_uint32(db_value_set_get(value_set, 11), policy->denial_optout)
+        || db_value_from_uint32(db_value_set_get(value_set, 12), policy->denial_ttl)
+        || db_value_from_uint32(db_value_set_get(value_set, 13), policy->denial_resalt)
+        || db_value_from_uint32(db_value_set_get(value_set, 14), policy->denial_algorithm)
+        || db_value_from_uint32(db_value_set_get(value_set, 15), policy->denial_iterations)
+        || db_value_from_uint32(db_value_set_get(value_set, 16), policy->denial_salt_length)
+        || db_value_from_text(db_value_set_get(value_set, 17), policy->denial_salt)
+        || db_value_from_uint32(db_value_set_get(value_set, 18), policy->denial_salt_last_change)
+        || db_value_from_uint32(db_value_set_get(value_set, 19), policy->keys_ttl)
+        || db_value_from_uint32(db_value_set_get(value_set, 20), policy->keys_retire_safety)
+        || db_value_from_uint32(db_value_set_get(value_set, 21), policy->keys_publish_safety)
+        || db_value_from_uint32(db_value_set_get(value_set, 22), policy->keys_shared)
+        || db_value_from_uint32(db_value_set_get(value_set, 23), policy->keys_purge_after)
+        || db_value_from_uint32(db_value_set_get(value_set, 24), policy->zone_propagation_delay)
+        || db_value_from_uint32(db_value_set_get(value_set, 25), policy->zone_soa_ttl)
+        || db_value_from_uint32(db_value_set_get(value_set, 26), policy->zone_soa_minimum)
+        || db_value_from_enum_value(db_value_set_get(value_set, 27), policy->zone_soa_serial, policy_enum_set_zone_soa_serial)
+        || db_value_from_uint32(db_value_set_get(value_set, 28), policy->parent_registration_delay)
+        || db_value_from_uint32(db_value_set_get(value_set, 29), policy->parent_propagation_delay)
+        || db_value_from_uint32(db_value_set_get(value_set, 30), policy->parent_ds_ttl)
+        || db_value_from_uint32(db_value_set_get(value_set, 31), policy->parent_soa_ttl)
+        || db_value_from_uint32(db_value_set_get(value_set, 32), policy->parent_soa_minimum)
+        || db_value_from_uint32(db_value_set_get(value_set, 33), policy->passthrough))
     {
         db_value_set_free(value_set);
         db_object_field_list_free(object_field_list);
@@ -3655,20 +2614,6 @@ int policy_delete(policy_t* policy) {
     return ret;
 }
 
-int policy_count(policy_t* policy, db_clause_list_t* clause_list, size_t* count) {
-    if (!policy) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!policy->dbo) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!count) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    return db_object_count(policy->dbo, NULL, clause_list, count);
-}
-
 /* POLICY LIST */
 
 
@@ -3712,17 +2657,6 @@ int policy_list_object_store(policy_list_t* policy_list) {
     }
 
     policy_list->object_store = 1;
-
-    return DB_OK;
-}
-
-int policy_list_associated_fetch(policy_list_t* policy_list) {
-    if (!policy_list) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    policy_list->object_store = 1;
-    policy_list->associated_fetch = 1;
 
     return DB_OK;
 }
@@ -4093,6 +3027,7 @@ static int policy_list_get_associated(policy_list_t* policy_list) {
         policy_list->object_list[i]->hsm_key_list->object_list_first = 1;
     }
     db_clause_list_free(clause_list);
+    hsm_key_list_free(hsm_key_list);
 
     policy_list->object_list_first = 1;
     return DB_OK;
@@ -4231,7 +3166,7 @@ const policy_t* policy_list_begin(policy_list_t* policy_list) {
             if (!db_result_list_size(policy_list->result_list)) {
                 return NULL;
             }
-            if (!(policy_list->object_list = (policy_t**)calloc(db_result_list_size(policy_list->result_list), sizeof(policy_t**)))) {
+            if (!(policy_list->object_list = (policy_t**)calloc(db_result_list_size(policy_list->result_list), sizeof(policy_t*)))) {
                 return NULL;
             }
             policy_list->object_list_size = db_result_list_size(policy_list->result_list);
@@ -4272,42 +3207,6 @@ const policy_t* policy_list_begin(policy_list_t* policy_list) {
     return policy_list->policy;
 }
 
-policy_t* policy_list_get_begin(policy_list_t* policy_list) {
-    const db_result_t* result;
-    policy_t* policy;
-
-    if (!policy_list) {
-        return NULL;
-    }
-
-    if (policy_list->object_store) {
-        if (!(policy = policy_new(db_object_connection(policy_list->dbo)))) {
-            return NULL;
-        }
-        if (policy_copy(policy, policy_list_begin(policy_list))) {
-            policy_free(policy);
-            return NULL;
-        }
-        return policy;
-    }
-
-    if (!policy_list->result_list) {
-        return NULL;
-    }
-
-    if (!(result = db_result_list_begin(policy_list->result_list))) {
-        return NULL;
-    }
-    if (!(policy = policy_new(db_object_connection(policy_list->dbo)))) {
-        return NULL;
-    }
-    if (policy_from_result(policy, result)) {
-        policy_free(policy);
-        return NULL;
-    }
-    return policy;
-}
-
 const policy_t* policy_list_next(policy_list_t* policy_list) {
     const db_result_t* result;
 
@@ -4323,7 +3222,7 @@ const policy_t* policy_list_next(policy_list_t* policy_list) {
             if (!db_result_list_size(policy_list->result_list)) {
                 return NULL;
             }
-            if (!(policy_list->object_list = (policy_t**)calloc(db_result_list_size(policy_list->result_list), sizeof(policy_t**)))) {
+            if (!(policy_list->object_list = (policy_t**)calloc(db_result_list_size(policy_list->result_list), sizeof(policy_t*)))) {
                 return NULL;
             }
             policy_list->object_list_size = db_result_list_size(policy_list->result_list);
@@ -4408,22 +3307,4 @@ policy_t* policy_list_get_next(policy_list_t* policy_list) {
         return NULL;
     }
     return policy;
-}
-
-size_t policy_list_size(policy_list_t* policy_list) {
-    if (!policy_list) {
-        return 0;
-    }
-
-    if (policy_list->object_store
-        && policy_list->object_list)
-    {
-        return policy_list->object_list_size;
-    }
-
-    if (!policy_list->result_list) {
-        return 0;
-    }
-
-    return db_result_list_size(policy_list->result_list);
 }

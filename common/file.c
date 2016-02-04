@@ -97,28 +97,6 @@ ods_fgetc(FILE* fd, unsigned int* line_nr)
 
 
 /**
- * Skip white space.
- *
- */
-int
-ods_skip_whitespace(FILE* fd, unsigned int* line_nr)
-{
-    int c;
-
-    ods_log_assert(fd);
-    ods_log_assert(line_nr);
-
-    while ((c=ods_fgetc(fd, line_nr)) != EOF) {
-        if (c == ' ' || c == '\t' || c == '\r') {
-            continue;
-        }
-        return c;
-    }
-    return EOF;
-}
-
-
-/**
  * Construct file name. (StrAppend?, snprintf?)
  *
  */
@@ -249,7 +227,6 @@ ods_fclose(FILE* fd)
         file_count--;
         fclose(fd);
     }
-    return;
 }
 
 
@@ -278,28 +255,6 @@ ods_writen(int fd, const void* vptr, size_t n)
         ptr += nwritten;
     }
     return n;
-}
-
-
-/**
- * Write to file descriptor with format
- *
- */
-static char* ods_printf_error = "error: vsnprintf buffer too small\n";
-void
-ods_printf(int fd, const char * format, ...)
-{
-    char buf[ODS_SE_MAXLINE];
-    int ok;
-	va_list ap;
-	va_start(ap, format);
-	ok = (vsnprintf(buf, ODS_SE_MAXLINE, format,ap) < ODS_SE_MAXLINE);
-	va_end(ap);
-	if (!ok) {
-		ods_log_error("[%s] vsnprintf buffer too small",file_str);
-		ods_writen(fd, ods_printf_error, sizeof(ods_printf_error));
-	}
-	ods_writen(fd, buf, strlen(buf));
 }
 
 
@@ -363,6 +318,7 @@ ods_file_lastmodified(const char* file)
         if (ret == -1) {
             ods_log_error("[%s] unable to stat file %s: %s", file_str,
                 file, strerror(errno));
+            ods_fclose(fd);
             return 0;
         }
         ods_fclose(fd);
@@ -387,7 +343,7 @@ ods_strcmp(const char* s1, const char* s2)
     } else if (!s1) {
         return -1;
     } else if (!s2) {
-        return -1;
+        return 1;
     } else if (strlen(s1) != strlen(s2)) {
         if (strncmp(s1, s2, strlen(s1)) == 0) {
             return strlen(s1) - strlen(s2);
@@ -514,6 +470,8 @@ ods_file_copy(const char* file1, const char* file2, long startpos, int append)
     }
     ods_log_debug("[%s] lseek file %s pos %ld", file_str, file1, startpos);
     if (lseek(fin, startpos, SEEK_SET) < 0) {
+        close(fin);
+        close(fout);
         return ODS_STATUS_FSEEK_ERR;
     }
     while (1) {
@@ -605,7 +563,6 @@ ods_chown(const char* file, uid_t uid, gid_t gid, int getdir)
     } else {
         ods_log_warning("[%s] use of relative path: %s", file_str, file);
     }
-    return;
 }
 
 
@@ -645,5 +602,4 @@ ods_str_list_add(char*** list, char* str)
         }
         (*list)[0] = str;
     }
-    return;
 }

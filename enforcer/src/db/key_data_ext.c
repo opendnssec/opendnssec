@@ -108,29 +108,3 @@ key_state_t* key_data_get_cached_rrsigdnskey(key_data_t* key_data) {
 const hsm_key_t* key_data_cached_hsm_key(const key_data_t* key_data) {
     return key_data_hsm_key(key_data);
 }
-
-hsm_key_t* key_data_get_cached_hsm_key(key_data_t* key_data) {
-    if (!key_data) {
-        return NULL;
-    }
-
-    return hsm_key_new_copy(key_data_hsm_key(key_data));
-}
-
-int key_data_is_ksk(const key_data_t* key_data) {
-    if (!key_data) {
-        return 0;
-    }
-
-    return key_data_role(key_data) == KEY_DATA_ROLE_KSK ||
-        key_data_role(key_data) == KEY_DATA_ROLE_CSK;
-}
-
-int key_data_is_zsk(const key_data_t* key_data) {
-    if (!key_data) {
-        return 0;
-    }
-
-    return key_data_role(key_data) == KEY_DATA_ROLE_ZSK ||
-        key_data_role(key_data) == KEY_DATA_ROLE_CSK;
-}

@@ -84,6 +84,8 @@ ods_enforcerd_SOURCES = \
 	keystate/keystate_ds.c keystate/keystate_ds.h \
 	keystate/keystate_ds_gone_cmd.c keystate/keystate_ds_gone_cmd.h \
 	keystate/keystate_rollover_cmd.c keystate/keystate_rollover_cmd.h \
+	keystate/key_purge_cmd.c keystate/key_purge_cmd.h \
+	keystate/key_purge.c keystate/key_purge.h \
 	keystate/zonelist_import.c keystate/zonelist_import.h \
 	keystate/zonelist_import_cmd.c keystate/zonelist_import_cmd.h \
 	keystate/zonelist_export.c keystate/zonelist_export.h \
@@ -98,6 +100,7 @@ ods_enforcerd_SOURCES = \
 	enforcer/enforce_task.c enforcer/enforce_task.h \
 	enforcer/enforcer.c enforcer/enforcer.h \
 	enforcer/update_repositorylist_cmd.c enforcer/update_repositorylist_cmd.h \
+	enforcer/repositorylist_cmd.c enforcer/repositorylist_cmd.h \
 	enforcer/update_all_cmd.c enforcer/update_all_cmd.h \
 	enforcer/update_conf_cmd.c enforcer/update_conf_cmd.h \
 	utils/kc_helper.c utils/kc_helper.h \

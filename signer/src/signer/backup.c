@@ -175,23 +175,6 @@ backup_read_int(FILE* in, int* v)
 
 
 /**
- * Read size type from backup file.
- *
- */
-int
-backup_read_size_t(FILE* in, size_t* v)
-{
-    char* p = backup_read_token(in);
-    if (!p) {
-        ods_log_debug("[%s] cannot read size_t", backup_str);
-       return 0;
-    }
-    *v=(size_t)atoi(p);
-    return 1;
-}
-
-
-/**
  * Read 8bit unsigned integer from backup file.
  *
  */
@@ -204,23 +187,6 @@ backup_read_uint8_t(FILE* in, uint8_t* v)
        return 0;
     }
     *v= (uint8_t)atoi(p);
-    return 1;
-}
-
-
-/**
- * Read 16bit unsigned integer from backup file.
- *
- */
-int
-backup_read_uint16_t(FILE* in, uint16_t* v)
-{
-    char* p = backup_read_token(in);
-    if (!p) {
-        ods_log_debug("[%s] cannot read uint16_t", backup_str);
-       return 0;
-    }
-    *v= (uint16_t)atoi(p);
     return 1;
 }
 
@@ -481,16 +447,17 @@ backup_read_namedb(FILE* in, void* zone)
         } else {
             rrset = zone_lookup_rrset(z, ldns_rr_owner(rr), type_covered);
         }
-        if (!rrset || !rrset_add_rrsig(rrset, rr, locator, flags)) {
+        if (!rrset) {
             ods_log_error("[%s] error restoring RRSIG #%i (%s): %s",
                 backup_str, l, ldns_get_errorstr_by_id(status), line);
             ldns_rr_free(rr);
             rr = NULL;
             result = ODS_STATUS_ERR;
             goto backup_namedb_done;
-        } else {
-            rrset->needs_signing = 0;
         }
+        rrset_add_rrsig(rrset, rr, locator, flags);
+        locator = NULL; /* Locator is owned by rrset now */
+        rrset->needs_signing = 0;
     }
     if (result == ODS_STATUS_OK && status != LDNS_STATUS_OK) {
         ods_log_error("[%s] error reading RRSIG #%i (%s): %s",

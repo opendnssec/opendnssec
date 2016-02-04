@@ -107,14 +107,6 @@ db_type_t db_object_field_type(const db_object_field_t* object_field) {
     return object_field->type;
 }
 
-const db_enum_t* db_object_field_enum_set(const db_object_field_t* object_field) {
-    if (!object_field) {
-        return NULL;
-    }
-
-    return object_field->enum_set;
-}
-
 int db_object_field_set_name(db_object_field_t* object_field, const char* name) {
     if (!object_field) {
         return DB_ERROR_UNKNOWN;
@@ -321,9 +313,6 @@ void db_object_free(db_object_t* object) {
         if (object->object_field_list) {
             db_object_field_list_free(object->object_field_list);
         }
-        if (object->backend_meta_data_list) {
-            db_backend_meta_data_list_free(object->backend_meta_data_list);
-        }
         free(object);
     }
 }
@@ -342,25 +331,11 @@ const char* db_object_table(const db_object_t* object) {
     return object->table;
 }
 
-const char* db_object_primary_key_name(const db_object_t* object) {
-    if (!object) {
-        return NULL;
-    }
-    return object->primary_key_name;
-}
-
 const db_object_field_list_t* db_object_object_field_list(const db_object_t* object) {
     if (!object) {
         return NULL;
     }
     return object->object_field_list;
-}
-
-const db_backend_meta_data_list_t* db_object_backend_meta_data_list(const db_object_t* object) {
-    if (!object) {
-        return NULL;
-    }
-    return object->backend_meta_data_list;
 }
 
 int db_object_set_connection(db_object_t* object, const db_connection_t* connection) {
@@ -420,22 +395,6 @@ int db_object_set_object_field_list(db_object_t* object, db_object_field_list_t*
     }
 
     object->object_field_list = object_field_list;
-    return DB_OK;
-}
-
-int db_object_set_backend_meta_data_list(db_object_t* object, db_backend_meta_data_list_t* backend_meta_data_list) {
-    if (!object) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!backend_meta_data_list) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    if (object->backend_meta_data_list) {
-        db_backend_meta_data_list_free(object->backend_meta_data_list);
-    }
-
-    object->backend_meta_data_list = backend_meta_data_list;
     return DB_OK;
 }
 

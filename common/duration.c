@@ -29,7 +29,7 @@
  * Durations.
  */
 
-#include "allocator.h"
+#include "status.h"
 #include "duration.h"
 #include "log.h"
 
@@ -37,6 +37,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <ctype.h>
 
 static const char* duration_str = "duration";
 
@@ -49,21 +50,8 @@ duration_type*
 duration_create(void)
 {
     duration_type* duration;
-    allocator_type* allocator = allocator_create(malloc, free);
-    if (!allocator) {
-        ods_log_error("[%s] cannot create: no allocator available",
-            duration_str);
-        return NULL;
-    }
 
-    duration = (duration_type*) allocator_alloc(allocator,
-        sizeof(duration_type));
-    if (!duration) {
-        ods_log_error("[%s] cannot create: allocator failed", duration_str);
-        allocator_cleanup(allocator);
-        return NULL;
-    }
-    duration->allocator = allocator;
+    CHECKALLOC(duration = (duration_type*) malloc(sizeof(duration_type)));
     duration->years = 0;
     duration->months = 0;
     duration->weeks = 0;
@@ -385,8 +373,6 @@ duration2time(duration_type* duration)
         if (duration->months || duration->years) {
             /* [TODO] calculate correct number of days in this month/year */
             dstr = duration2string(duration);
-            ods_log_warning("[%s] converting duration %s to approximate value",
-                duration_str, dstr?dstr:"(null)");
             free((void*) dstr);
         }
     }
@@ -419,27 +405,6 @@ int duration_set_time(duration_type* duration, time_t time) {
 }
 
 /**
- * Return the shortest time.
- *
- */
-time_t
-time_minimum(time_t a, time_t b)
-{
-    return (a < b ? a : b);
-}
-
-/**
- * Return the longest time.
- *
- */
-time_t
-time_maximum(time_t a, time_t b)
-{
-    return (a > b ? a : b);
-}
-
-
-/**
  * Return a random time.
  *
  */
@@ -455,83 +420,11 @@ ods_rand(time_t mod)
 #endif
 }
 
-
-/* Number of days per month (except for February in leap years). */
-static const int mdays[] = {
-    31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
-};
-
-
-static int
-is_leap_year(int year)
-{
-    return year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
-}
-
-
-static int
-leap_days(int y1, int y2)
-{
-    --y1;
-    --y2;
-    return (y2/4 - y1/4) - (y2/100 - y1/100) + (y2/400 - y1/400);
-}
-
-
-/*
- * Code taken from NSD 3.2.5, which is
- * code adapted from Python 2.4.1 sources (Lib/calendar.py).
- */
-static time_t
-mktime_from_utc(const struct tm *tm)
-{
-    int year = 1900 + tm->tm_year;
-    time_t days = 365 * ((time_t) (year - 1970)) +
-        ((time_t) leap_days(1970, year));
-    time_t hours;
-    time_t minutes;
-    time_t seconds;
-    int i;
-
-    for (i = 0; i < tm->tm_mon; ++i) {
-        days += mdays[i];
-    }
-    if (tm->tm_mon > 1 && is_leap_year(year)) {
-        ++days;
-    }
-    days += tm->tm_mday - 1;
-
-    hours = days * 24 + tm->tm_hour;
-    minutes = hours * 60 + tm->tm_min;
-    seconds = minutes * 60 + tm->tm_sec;
-
-    return seconds;
-}
-
-
-/**
- * Convert time in string format into seconds.
- *
- */
-static time_t
-timeshift2time(const char *time)
-{
-        /* convert a string in format YYMMDDHHMMSS to time_t */
-        struct tm tm;
-        time_t timeshift = 0;
-
-        /* Try to scan the time... */
-        if (strptime(time, "%Y%m%d%H%M%S", &tm)) {
-                timeshift = mktime_from_utc(&tm);
-        }
-        return timeshift;
-}
-
 static time_t time_now_set = 0;
 
 /**
  * Set the time_now to a new value.
- * As long as this value is later than the reakl time now 
+ * As long as this value is later than the real time now 
  * the overriden value is returned.
  *
  */
@@ -541,6 +434,33 @@ set_time_now(time_t now)
     time_now_set = now;
 }
 
+int
+set_time_now_str(char* time_arg)
+{
+    char* endptr;
+    time_t epoch;
+    struct tm tm;
+    if (time_arg == NULL) {
+        epoch = 0;
+    } else if (strptime(time_arg, "%Y-%m-%d-%H:%M:%S", &tm)) {
+        tm.tm_isdst = -1; /* OS handles daylight savings */
+        epoch = mktime(&tm);
+    } else {
+        while (isspace(*time_arg))
+            ++time_arg;
+        epoch = strtol(time_arg, &endptr, 0);
+        if (endptr != time_arg) {
+            while (isspace(*endptr))
+                ++endptr;
+            if (*endptr != '\0')
+                return -1;
+        } else
+            return -2;
+    }
+    set_time_now(epoch);
+    return 0;
+}
+
 /**
  * Return the time since Epoch, measured in seconds.
  *
@@ -548,18 +468,7 @@ set_time_now(time_t now)
 time_t
 time_now(void)
 {
-    time_t now;
-
-#ifdef ENFORCER_TIMESHIFT
-    const char* env = getenv("ENFORCER_TIMESHIFT");
-    if (env) {
-        return timeshift2time(env);
-    }
-#endif /* ENFORCER_TIMESHIFT */
-
-    (void) timeshift2time; /* Suppress build warnings */
-    now = time(NULL);
-    return now > time_now_set ? now : time_now_set;
+    return time_now_set ? time_now_set: time(NULL);
 }
 
 /**
@@ -599,39 +508,6 @@ time_datestamp(time_t tt, const char* format, char** str)
     return ut;
 }
 
-static void
-time_itoa_reverse(char* s)
-{
-    int i, j;
-    char c;
-
-    for (i = 0, j = strlen(s)-1; i<j; i++, j--) {
-        c = s[i];
-        s[i] = s[j];
-        s[j] = c;
-    }
-    return;
-}
-
-
-/**
- * Convert time into string.
- *
- */
-void
-time_itoa(time_t n, char* s)
-{
-    int i = 0;
-
-    do {       /* generate digits in reverse order */
-        s[i++] = n % 10 + '0';   /* get next digit */
-    } while ((n /= 10) > 0);     /* delete it */
-    s[i] = '\0';
-    time_itoa_reverse(s);
-    return;
-}
-
-
 /**
  * Clean up duration.
  *
@@ -639,13 +515,8 @@ time_itoa(time_t n, char* s)
 void
 duration_cleanup(duration_type* duration)
 {
-    allocator_type* allocator;
-
     if (!duration) {
         return;
     }
-    allocator = duration->allocator;
-    allocator_deallocate(allocator, (void*) duration);
-    allocator_cleanup(allocator);
-    return;
+    free(duration);
 }

@@ -32,10 +32,7 @@
 #ifndef DAEMON_WORKER_H
 #define DAEMON_WORKER_H
 
-#include "scheduler/task.h"
-#include "allocator.h"
-#include "locks.h"
-
+#include "config.h"
 #include <time.h>
 
 enum worker_enum {
@@ -46,11 +43,15 @@ enum worker_enum {
 typedef enum worker_enum worker_id;
 
 typedef struct worker_struct worker_type;
+
+#include "scheduler/task.h"
+#include "status.h"
+#include "locks.h"
+
 struct worker_struct {
-    allocator_type* allocator;
     int thread_num;
     ods_thread_type thread_id;
-    void* engine;
+    engine_type* engine;
     task_type* task;
     task_id working_with;
     worker_id type;
@@ -73,8 +74,7 @@ struct worker_struct {
  * \return worker_type* created worker
  *
  */
-worker_type* worker_create(allocator_type* allocator, int num,
-    worker_id type);
+worker_type* worker_create(int num, worker_id type);
 
 /**
  * Start working.
@@ -108,31 +108,6 @@ void worker_sleep_unless(worker_type* worker, time_t timeout);
  *
  */
 void worker_wakeup(worker_type* worker);
-
-/**
- * Let worker wait.
- * \param[in] lock lock to use
- * \param[in] condition condition to be met
- *
- */
-void worker_wait(lock_basic_type* lock, cond_basic_type* condition);
-
-/**
- * Let worker wait.
- * \param[in] lock lock to use
- * \param[in] condition condition to be met
- *
- */
-void worker_wait_timeout(lock_basic_type* lock, cond_basic_type* condition,
-    time_t timeout);
-
-/**
- * Notify a worker.
- * \param[in] lock lock to use
- * \param[in] condition condition that has been met
- *
- */
-void worker_notify(lock_basic_type* lock, cond_basic_type* condition);
 
 /**
  * Notify all workers.

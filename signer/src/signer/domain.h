@@ -24,21 +24,19 @@
  *
  */
 
-/**
- * Domain.
- *
- */
-
 #ifndef SIGNER_DOMAIN_H
 #define SIGNER_DOMAIN_H
 
 #include "config.h"
-#include "allocator.h"
-#include "status.h"
-#include "signer/rrset.h"
-
 #include <ldns/ldns.h>
 #include <time.h>
+
+
+typedef struct domain_struct domain_type;
+
+#include "status.h"
+#include "signer/rrset.h"
+#include "signer/signconf.h"
 
 #define SE_NSEC_RDATA_NXT          0
 #define SE_NSEC_RDATA_BITMAP       1
@@ -50,10 +48,9 @@
  * Domain.
  *
  */
-typedef struct domain_struct domain_type;
 struct domain_struct {
-    void* zone;
-    void* denial;
+    denial_type* denial;
+    zone_type* zone;
     ldns_rbnode_t* node;
     ldns_rdf* dname;
     domain_type* parent;
@@ -78,15 +75,7 @@ void log_dname(ldns_rdf* rdf, const char* pre, int level);
  * \return domain_type* domain
  *
  */
-domain_type* domain_create(void* zoneptr, ldns_rdf* dname);
-
-/**
- * Count the number of RRsets at this domain.
- * \param[in] domain domain
- * \return size_t number of RRsets
- *
- */
-size_t domain_count_rrset(domain_type* domain);
+domain_type* domain_create(zone_type* zone, ldns_rdf* dname);
 
 /**
  * Count the number of RRsets at this domain with RRs that have is_added.
@@ -112,15 +101,6 @@ rrset_type* domain_lookup_rrset(domain_type* domain, ldns_rr_type rrtype);
  *
  */
 void domain_add_rrset(domain_type* domain, rrset_type* rrset);
-
-/**
- * Delete RRset from domain.
- * \param[in] domain domain
- * \param[in] rrtype RRtype of RRset
- * \return rrset_type* deleted RRset
- *
- */
-rrset_type* domain_del_rrset(domain_type* domain, ldns_rr_type rrtype);
 
 /**
  * Apply differences at domain.

@@ -21,7 +21,7 @@ ods_start_ods-control &&
 
 # Check that we have 2 keys per zone
 # We don't care about the exact state it is in, as long as it is consistent.
-log_this ods-enforcer-key-list0 ods-enforcer key list -v &&
+log_this ods-enforcer-key-list0 ods-enforcer key list -v -a &&
 { ( log_grep ods-enforcer-key-list0 stdout 'non-share1                      KSK      ready' &&
     log_grep ods-enforcer-key-list0 stdout 'non-share1                      ZSK      active' ) &&
   nonshare1=1 ||
@@ -64,7 +64,7 @@ log_this ods-enforcer-key-list0 ods-enforcer key list -v &&
 
 
 # Grab the CKA_IDs of all the keys
-log_this ods-enforcer-cka_id1 ods-enforcer key list --verbose &&
+log_this ods-enforcer-cka_id1 ods-enforcer key list --verbose --all &&
 
 if [ $nonshare1 -eq 0 ]; then
 	KSK_CKA_ID_NON_1=`log_grep -o ods-enforcer-cka_id1 stdout "non-share1                      KSK      " | awk '{print $8}'`
@@ -123,9 +123,9 @@ echo "Testing shared ZSKs" &&
 echo "Make sure that there are no additional keys allocated" &&
 log_this hsmutil-list ods-hsmutil list &&
 echo "There are `ods-hsmutil list | grep ^SoftHSM | wc -l` keys and expecting 10" &&
-test `ods-hsmutil list | grep ^SoftHSM | wc -l` -eq 10 &&
+test `ods-hsmutil list | grep ^SoftHSM | wc -l` -eq 12 &&
 
-# YBS: The correct number is 8. In practice there are 10 because of
+# YBS: The correct number is 8. In practice there are 12 because of
 # a race condition. So YMMV. All three of the shared zones request
 # new keys simultainiously, starting too many key generation tasks.
 # One key of each type is never allocated. Normally these will be
@@ -138,9 +138,9 @@ test `ods-hsmutil list | grep ^SoftHSM | wc -l` -eq 10 &&
 # non shared policies.  This is clearly wrong as the shared should
 # use less keys.
 # Depending on the specification (!) of the implementation;
-# - 8 is corrent, when not pre-generating keys, 4 for KSKs, 4 for
+# - 8 is correct, when not pre-generating keys, 4 for KSKs, 4 for
 #   ZSKs, and per 4, 3 for the non-shared, and 1 for the shared policy.
-# - 12 is corrent, when pre-generating keys, 6 for KSKs, 6 for
+# - 12 is correct, when pre-generating keys, 6 for KSKs, 6 for
 #   ZSKs, and per 6, one for the shared plus one as reserve (ie.
 #   two for shared keys, and 3 for the non-shared policy zones plus
 #   one in reserve

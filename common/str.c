@@ -61,36 +61,6 @@ ods_str_explode(char *buf, int argc, const char *argv[])
 }
 
 /**
- * Join arguments together with a join character into a single string.
- *
- */
-char *
-ods_str_join(allocator_type* allocator, int argc, char *argv[], char cjoin)
-{
-    char* buf = NULL;
-    int c;
-    int options_size = 0;
-    for (c = 0; c < argc; ++c)
-		options_size += strlen(argv[c]) + 1;
-    if (options_size > 0) {
-        buf = (char*) allocator_alloc(allocator, (options_size+1) * sizeof(char));
-		/*	allocator_alloc will terminate on memory allocation
-		 *	problems, so buf is always assigned when we get here.
-		 */
-
-		options_size = 0;
-		for (c = 0; c < argc; ++c) {
-		    memcpy(&buf[options_size], argv[c], strlen(argv[c]));
-			options_size += strlen(argv[c])+1;
-			buf[options_size-1] = cjoin; /* put join character instead of 0 */
-		}
-		buf[options_size-1] = '\0'; /* replace join character with 0 */
-		buf[options_size] = '\0'; /* set last character in buf to 0 */
-    }
-	return buf;
-}
-
-/**
  * Concatenate characters without custom allocators.
  * 
  * Will always allocate at least 1 byte (when catting empty strings) so
@@ -130,7 +100,7 @@ ods_str_trim(char *str, int keep_newline)
 {
     int has_newline = 0;
     char *start, *end;
-    if (!str) {
+    if (str) {
         end = str + strlen(str); /* points at \0 */
     
         for (start = str; start<end; start++) {
@@ -254,3 +224,4 @@ int ods_find_arg_and_param(int *pargc, const char *argv[],
         argv[j] = argv[j+1];
     return i;
 }
+

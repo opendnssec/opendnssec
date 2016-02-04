@@ -24,17 +24,8 @@
  *
  */
 
-/**
- * Signing keys.
- *
- */
-
 #ifndef SIGNER_KEYS_H
 #define SIGNER_KEYS_H
-
-#include "allocator.h"
-#include "status.h"
-#include "libhsm.h"
 
 #ifdef HAVE_SYS_TYPES_H
 # include <sys/types.h>
@@ -43,19 +34,25 @@
 # include <unistd.h>
 #endif
 #include <ldns/ldns.h>
-#include <libhsmdns.h>
 
+typedef struct key_struct key_type;
+typedef struct keylist_struct keylist_type;
+
+#include "status.h"
+#include "libhsm.h"
+#include "libhsmdns.h"
+#include "signconf.h"
 
 /**
  * Key.
  *
  */
-typedef struct key_struct key_type;
 struct key_struct {
     ldns_rr* dnskey;
     libhsm_key_t* hsmkey;
     hsm_sign_params_t* params;
     const char* locator;
+    const char* resourcerecord;
     uint8_t algorithm;
     uint32_t flags;
     int publish;
@@ -67,9 +64,8 @@ struct key_struct {
  * Key list.
  *
  */
-typedef struct keylist_struct keylist_type;
 struct keylist_struct {
-    void* sc;
+    signconf_type* sc;
     key_type* keys;
     size_t count;
 };
@@ -80,7 +76,7 @@ struct keylist_struct {
  * \return keylist_type* key list
  *
  */
-keylist_type* keylist_create(void* sc);
+keylist_type* keylist_create(signconf_type* sc);
 
 /**
  * Lookup a key in the key list by locator.
@@ -90,15 +86,6 @@ keylist_type* keylist_create(void* sc);
  *
  */
 key_type* keylist_lookup_by_locator(keylist_type* kl, const char* locator);
-
-/**
- * Lookup a key in the key list by dnskey.
- * \param[in] kl key list
- * \param[in] dnskey dnskey
- * \return key_type* key if it exists, NULL otherwise
- *
- */
-key_type* keylist_lookup_by_dnskey(keylist_type* kl, ldns_rr* dnskey);
 
 /**
  * Push a key to the keylist.
@@ -112,16 +99,8 @@ key_type* keylist_lookup_by_dnskey(keylist_type* kl, ldns_rr* dnskey);
  * \return key_type* key
  *
  */
-key_type* keylist_push(keylist_type* kl, const char* locator,
+key_type* keylist_push(keylist_type* kl, const char* locator, const char* resourcerecord,
     uint8_t algorithm, uint32_t flags, int publish, int ksk, int zsk);
-
-/**
- * Print key list.
- * \param[in] fd file descriptor
- * \param[in] kl key list to print
- *
- */
-void keylist_print(FILE* fd, keylist_type* kl);
 
 /**
  * Log key list.

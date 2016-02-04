@@ -52,7 +52,7 @@
 #include <signal.h>
 
 #include "config.h"
-#include "allocator.h"
+#include "status.h"
 
 #ifndef PF_INET
 #define PF_INET AF_INET
@@ -136,7 +136,6 @@ struct netio_handler_struct {
  *
  */
 struct netio_struct {
-    allocator_type* allocator;
     netio_handler_list_type* handlers;
     netio_handler_list_type* deallocated;
     /*
@@ -163,7 +162,7 @@ struct netio_struct {
  * \return netio_type* netio instance
  *
  */
-netio_type* netio_create(allocator_type* allocator);
+netio_type* netio_create(void);
 
 /*
  * Add a new handler to netio.

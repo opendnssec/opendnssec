@@ -86,3 +86,7 @@ libtool
 /build/
 testing/junit.xml
 testing/test-cases.d/enforcer.timeleap.mongrel/base
+testing/test-cases.d/enforcer.ods-enforcer.zones_and_zonelist/zonelist.xml.import
+testing/test-cases.d/signer.zones.validate_many_zones/kasp.xml_orig
+nbproject
+

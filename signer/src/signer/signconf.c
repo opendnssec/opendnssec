@@ -47,20 +47,7 @@ signconf_type*
 signconf_create(void)
 {
     signconf_type* sc = NULL;
-    allocator_type* allocator = allocator_create(malloc, free);
-    if (!allocator) {
-        ods_log_error("[%s] unable to create signconf: allocator_create() "
-            " failed", sc_str);
-        return NULL;
-    }
-    sc = (signconf_type*) allocator_alloc(allocator, sizeof(signconf_type));
-    if (!sc) {
-        ods_log_error("[%s] unable to create signconf: allocator_alloc() "
-            " failed", sc_str);
-        allocator_cleanup(allocator);
-        return NULL;
-    }
-    sc->allocator = allocator;
+    CHECKALLOC(sc = (signconf_type*) malloc(sizeof(signconf_type)));
     sc->filename = NULL;
     sc->passthrough = 0;
     /* Signatures */
@@ -68,6 +55,7 @@ signconf_create(void)
     sc->sig_refresh_interval = NULL;
     sc->sig_validity_default = NULL;
     sc->sig_validity_denial = NULL;
+    sc->sig_validity_keyset = NULL;
     sc->sig_jitter = NULL;
     sc->sig_inception_offset = NULL;
     /* Denial of existence */
@@ -80,6 +68,7 @@ signconf_create(void)
     sc->nsec3params = NULL;
     /* Keys */
     sc->dnskey_ttl = NULL;
+    sc->dnskey_signature = NULL;
     sc->keys = NULL;
     /* Source of authority */
     sc->soa_ttl = NULL;
@@ -115,12 +104,13 @@ signconf_read(signconf_type* signconf, const char* scfile)
     }
     fd = ods_fopen(scfile, NULL, "r");
     if (fd) {
-        signconf->filename = allocator_strdup(signconf->allocator, scfile);
+        signconf->filename = strdup(scfile);
         signconf->passthrough = parse_sc_passthrough(scfile);
         signconf->sig_resign_interval = parse_sc_sig_resign_interval(scfile);
         signconf->sig_refresh_interval = parse_sc_sig_refresh_interval(scfile);
         signconf->sig_validity_default = parse_sc_sig_validity_default(scfile);
         signconf->sig_validity_denial = parse_sc_sig_validity_denial(scfile);
+        signconf->sig_validity_keyset = parse_sc_sig_validity_keyset(scfile);
         signconf->sig_jitter = parse_sc_sig_jitter(scfile);
         signconf->sig_inception_offset = parse_sc_sig_inception_offset(scfile);
         signconf->nsec_type = parse_sc_nsec_type(scfile);
@@ -129,8 +119,7 @@ signconf_read(signconf_type* signconf, const char* scfile)
             signconf->nsec3_optout = parse_sc_nsec3_optout(scfile);
             signconf->nsec3_algo = parse_sc_nsec3_algorithm(scfile);
             signconf->nsec3_iterations = parse_sc_nsec3_iterations(scfile);
-            signconf->nsec3_salt = parse_sc_nsec3_salt(signconf->allocator,
-                scfile);
+            signconf->nsec3_salt = parse_sc_nsec3_salt(scfile);
             signconf->nsec3params = nsec3params_create((void*) signconf,
             (uint8_t) signconf->nsec3_algo, (uint8_t) signconf->nsec3_optout,
             (uint16_t)signconf->nsec3_iterations, signconf->nsec3_salt);
@@ -143,10 +132,10 @@ signconf_read(signconf_type* signconf, const char* scfile)
         }
         signconf->keys = parse_sc_keys((void*) signconf, scfile);
         signconf->dnskey_ttl = parse_sc_dnskey_ttl(scfile);
+        signconf->dnskey_signature = parse_sc_dnskey_sigrrs(scfile);
         signconf->soa_ttl = parse_sc_soa_ttl(scfile);
         signconf->soa_min = parse_sc_soa_min(scfile);
-        signconf->soa_serial = parse_sc_soa_serial(signconf->allocator,
-            scfile);
+        signconf->soa_serial = parse_sc_soa_serial(scfile);
         signconf->max_zone_ttl = parse_sc_max_zone_ttl(scfile);
         ods_fclose(fd);
         return ODS_STATUS_OK;
@@ -210,10 +199,9 @@ signconf_update(signconf_type** signconf, const char* scfile,
 static void
 signconf_backup_duration(FILE* fd, const char* opt, duration_type* duration)
 {
-    char* str = duration2string(duration);
-    fprintf(fd, "%s %s ", opt, str);
-    free((void*) str?str:"(null)");
-    return;
+    char* str = (duration == NULL ? NULL : duration2string(duration));
+    fprintf(fd, "%s %s ", opt, (str?str:"0"));
+    free(str);
 }
 
 
@@ -238,6 +226,7 @@ signconf_backup(FILE* fd, signconf_type* sc, const char* version)
     signconf_backup_duration(fd, "refresh", sc->sig_refresh_interval);
     signconf_backup_duration(fd, "valid", sc->sig_validity_default);
     signconf_backup_duration(fd, "denial", sc->sig_validity_denial);
+    signconf_backup_duration(fd, "keyset", sc->sig_validity_keyset);
     signconf_backup_duration(fd, "jitter", sc->sig_jitter);
     signconf_backup_duration(fd, "offset", sc->sig_inception_offset);
     fprintf(fd, "nsec %u ", (unsigned) sc->nsec_type);
@@ -249,7 +238,6 @@ signconf_backup(FILE* fd, signconf_type* sc, const char* version)
         fprintf(fd, "audit 0");
     }
     fprintf(fd, "\n");
-    return;
 }
 
 
@@ -393,98 +381,6 @@ signconf_compare_denial(signconf_type* a, signconf_type* b)
 
 
 /**
- * Print sign configuration.
- *
- */
-void
-signconf_print(FILE* out, signconf_type* sc, const char* name)
-{
-    char* s = NULL;
-
-    fprintf(out, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
-    if (sc) {
-        fprintf(out, "<SignerConfiguration>\n");
-        fprintf(out, "\t<Zone name=\"%s\">\n", name?name:"(null)");
-        /* Signatures */
-        fprintf(out, "\t\t<Signatures>\n");
-        s = duration2string(sc->sig_resign_interval);
-        fprintf(out, "\t\t\t<Resign>%s</Resign>\n", s?s:"(null)");
-        free((void*)s);
-        s = duration2string(sc->sig_refresh_interval);
-        fprintf(out, "\t\t\t<Refresh>%s</Refresh>\n", s?s:"(null)");
-        free((void*)s);
-        fprintf(out, "\t\t\t<Validity>\n");
-        s = duration2string(sc->sig_validity_default);
-        fprintf(out, "\t\t\t\t<Default>%s</Default>\n", s?s:"(null)");
-        free((void*)s);
-        s = duration2string(sc->sig_validity_denial);
-        fprintf(out, "\t\t\t\t<Denial>%s</Denial>\n", s?s:"(null)");
-        free((void*)s);
-        fprintf(out, "\t\t\t</Validity>\n");
-        s = duration2string(sc->sig_jitter);
-        fprintf(out, "\t\t\t<Jitter>%s</Jitter>\n", s?s:"(null)");
-        free((void*)s);
-        s = duration2string(sc->sig_inception_offset);
-        fprintf(out, "\t\t\t<InceptionOffset>%s</InceptionOffset>\n",
-            s?s:"(null)");
-        free((void*)s);
-        fprintf(out, "\t\t</Signatures>\n");
-        fprintf(out, "\n");
-        /* Denial */
-        fprintf(out, "\t\t<Denial>\n");
-        if (sc->nsec_type == LDNS_RR_TYPE_NSEC) {
-            fprintf(out, "\t\t\t<NSEC />\n");
-        } else if (sc->nsec_type == LDNS_RR_TYPE_NSEC3) {
-            fprintf(out, "\t\t\t<NSEC3>\n");
-            if (sc->nsec3param_ttl) {
-                s = duration2string(sc->nsec3param_ttl);
-                fprintf(out, "\t\t\t\t<TTL>%s</TTL>\n", s?s:"(null)");
-                free((void*)s);
-            }
-            if (sc->nsec3_optout) {
-                fprintf(out, "\t\t\t\t<OptOut />\n");
-            }
-            fprintf(out, "\t\t\t\t<Hash>\n");
-            fprintf(out, "\t\t\t\t\t<Algorithm>%i</Algorithm>\n",
-                sc->nsec3_algo);
-            fprintf(out, "\t\t\t\t\t<Iterations>%i</Iterations>\n",
-                sc->nsec3_iterations);
-            fprintf(out, "\t\t\t\t\t<Salt>%s</Salt>\n",
-                sc->nsec3_salt?sc->nsec3_salt:"(null)");
-            fprintf(out, "\t\t\t\t</Hash>\n");
-            fprintf(out, "\t\t\t</NSEC3>\n");
-        }
-        fprintf(out, "\t\t</Denial>\n");
-        fprintf(out, "\n");
-        /* Keys */
-        fprintf(out, "\t\t<Keys>\n");
-        s = duration2string(sc->dnskey_ttl);
-        fprintf(out, "\t\t\t<TTL>%s</TTL>\n", s?s:"(null)");
-        free((void*)s);
-        fprintf(out, "\n");
-        keylist_print(out, sc->keys);
-        fprintf(out, "\t\t</Keys>\n");
-        fprintf(out, "\n");
-        /* SOA */
-        fprintf(out, "\t\t<SOA>\n");
-        s = duration2string(sc->soa_ttl);
-        fprintf(out, "\t\t\t<TTL>%s</TTL>\n", s?s:"(null)");
-        free((void*)s);
-        s = duration2string(sc->soa_min);
-        fprintf(out, "\t\t\t<Minimum>%s</Minimum>\n", s?s:"(null)");
-        free((void*)s);
-        fprintf(out, "\t\t\t<Serial>%s</Serial>\n",
-            sc->soa_serial?sc->soa_serial:"(null)");
-        fprintf(out, "\t\t</SOA>\n");
-        fprintf(out, "\n");
-        fprintf(out, "\t</Zone>\n");
-        fprintf(out, "</SignerConfiguration>\n");
-    }
-    return;
-}
-
-
-/**
  * Log sign configuration.
  *
  */
@@ -495,6 +391,7 @@ signconf_log(signconf_type* sc, const char* name)
     char* refresh = NULL;
     char* validity = NULL;
     char* denial = NULL;
+    char* keyset = NULL;
     char* jitter = NULL;
     char* offset = NULL;
     char* dnskeyttl = NULL;
@@ -507,6 +404,9 @@ signconf_log(signconf_type* sc, const char* name)
         refresh = duration2string(sc->sig_refresh_interval);
         validity = duration2string(sc->sig_validity_default);
         denial = duration2string(sc->sig_validity_denial);
+        if (sc->sig_validity_keyset) {
+            keyset = duration2string(sc->sig_validity_keyset);
+        }
         jitter = duration2string(sc->sig_jitter);
         offset = duration2string(sc->sig_inception_offset);
         dnskeyttl = duration2string(sc->dnskey_ttl);
@@ -515,7 +415,7 @@ signconf_log(signconf_type* sc, const char* name)
         soamin = duration2string(sc->soa_min);
         /* signconf */
         ods_log_info("[%s] zone %s signconf: RESIGN[%s] REFRESH[%s] "
-            "%sVALIDITY[%s] DENIAL[%s] JITTER[%s] OFFSET[%s] NSEC[%i] "
+            "%sVALIDITY[%s] DENIAL[%s] KEYSET[%s] JITTER[%s] OFFSET[%s] NSEC[%i] "
             "DNSKEYTTL[%s] SOATTL[%s] MINIMUM[%s] SERIAL[%s]",
             sc_str,
             name?name:"(null)",
@@ -524,6 +424,7 @@ signconf_log(signconf_type* sc, const char* name)
             sc->passthrough?"PASSTHROUGH ":"",
             validity?validity:"(null)",
             denial?denial:"(null)",
+            keyset?keyset:"(null)",
             jitter?jitter:"(null)",
             offset?offset:"(null)",
             (int) sc->nsec_type,
@@ -550,6 +451,7 @@ signconf_log(signconf_type* sc, const char* name)
         free((void*)refresh);
         free((void*)validity);
         free((void*)denial);
+        free((void*)keyset);
         free((void*)jitter);
         free((void*)offset);
         free((void*)dnskeyttl);
@@ -557,7 +459,6 @@ signconf_log(signconf_type* sc, const char* name)
         free((void*)soattl);
         free((void*)soamin);
     }
-    return;
 }
 
 
@@ -568,7 +469,6 @@ signconf_log(signconf_type* sc, const char* name)
 void
 signconf_cleanup(signconf_type* sc)
 {
-    allocator_type* allocator = NULL;
     if (!sc) {
         return;
     }
@@ -576,6 +476,7 @@ signconf_cleanup(signconf_type* sc)
     duration_cleanup(sc->sig_refresh_interval);
     duration_cleanup(sc->sig_validity_default);
     duration_cleanup(sc->sig_validity_denial);
+    duration_cleanup(sc->sig_validity_keyset);
     duration_cleanup(sc->sig_jitter);
     duration_cleanup(sc->sig_inception_offset);
     duration_cleanup(sc->dnskey_ttl);
@@ -584,11 +485,8 @@ signconf_cleanup(signconf_type* sc)
     duration_cleanup(sc->max_zone_ttl);
     keylist_cleanup(sc->keys);
     nsec3params_cleanup(sc->nsec3params);
-    allocator = sc->allocator;
-    allocator_deallocate(allocator, (void*) sc->filename);
-    allocator_deallocate(allocator, (void*) sc->nsec3_salt);
-    allocator_deallocate(allocator, (void*) sc->soa_serial);
-    allocator_deallocate(allocator, (void*) sc);
-    allocator_cleanup(allocator);
-    return;
+    free((void*)sc->filename);
+    free((void*)sc->nsec3_salt);
+    free((void*)sc->soa_serial);
+    free(sc);
 }

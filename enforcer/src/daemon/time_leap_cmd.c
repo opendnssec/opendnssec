@@ -39,7 +39,7 @@
 
 #include "daemon/time_leap_cmd.h"
 
-#define MAX_ARGS 16
+#define MAX_ARGS 5
 
 static const char *module_str = "time_leap_cmd";
 
@@ -109,13 +109,18 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 			client_printf(sockfd,
 				"Using %s parameter value as time to leap to\n", time);
 		} else {
-			client_printf(sockfd, 
+			client_printf_err(sockfd, 
 				"Time leap: Error - could not convert '%s' to a time. "
 				"Format is YYYY-MM-DD-HH:MM:SS \n", time);
 			return -1;
 		}
 	}
 	attach = ods_find_arg(&argc,argv,"attach","a") != -1;
+
+	if (argc > 2){
+		ods_log_error_and_printf(sockfd, module_str, "unknown arguments");
+		return -1;
+	}
 
 	ods_log_assert(engine);
 	if (!engine->taskq || !engine->taskq->tasks) {
@@ -125,10 +130,10 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 
 	/* how many tasks */
 	now = time_now();
-	strftime(strtime, sizeof(strtime), "%c (%s seconds since epoch)\n", localtime_r(&now, &strtime_struct));
+	strftime(strtime, sizeof(strtime), "%c", localtime_r(&now, &strtime_struct));
 	client_printf(sockfd, 
-		"There are %i tasks scheduled.\nIt is now       %s",
-		(int) schedule_taskcount(engine->taskq), strtime);
+		"There are %i tasks scheduled.\nIt is now       %s (%ld seconds since epoch)\n",
+		(int) schedule_taskcount(engine->taskq), strtime, (long)now);
 	cont = 1;
 	while (cont) {
 		if (! time)
@@ -136,10 +141,10 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 		if (time_leap < 0) break;
 
 		set_time_now(time_leap);
-		strftime(strtime, sizeof(strtime), "%c (%s seconds since epoch)", localtime_r(&time_leap, &strtime_struct));
+		strftime(strtime, sizeof(strtime), "%c", localtime_r(&time_leap, &strtime_struct));
 
-		client_printf(sockfd,  "Leaping to time %s\n", 
-			strtime[0]?strtime:"(null)");
+		client_printf(sockfd,  "Leaping to time %s (%ld seconds since epoch)\n", 
+			(strtime[0]?strtime:"(null)"), (long)time_leap);
 		ods_log_info("Time leap: Leaping to time %s\n", strtime);
 		/* Wake up all workers and let them reevaluate wether their
 		 tasks need to be executed */

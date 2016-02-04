@@ -31,7 +31,7 @@
 
 #include "config.h"
 #include "scheduler/task.h"
-#include "allocator.h"
+#include "status.h"
 #include "duration.h"
 #include "file.h"
 #include "log.h"
@@ -47,26 +47,12 @@ static const char* task_str = "task";
 task_type*
 task_create(task_id what, time_t when, void* zone)
 {
-    allocator_type* allocator = NULL;
     task_type* task = NULL;
 
     if (!zone) {
         return NULL;
     }
-    allocator = allocator_create(malloc, free);
-    if (!allocator) {
-        ods_log_error("[%s] unable to create task: allocator_create() failed",
-            task_str);
-        return NULL;
-    }
-    task = (task_type*) allocator_alloc(allocator, sizeof(task_type));
-    if (!task) {
-        ods_log_error("[%s] unable to create task: allocator_alloc() failed",
-            task_str);
-        allocator_cleanup(allocator);
-        return NULL;
-    }
-    task->allocator = allocator;
+    CHECKALLOC(task = (task_type*) malloc(sizeof(task_type)));
     task->what = what;
     task->interrupt = TASK_NONE;
     task->halted = TASK_NONE;
@@ -76,31 +62,6 @@ task_create(task_id what, time_t when, void* zone)
     task->flush = 0;
     task->zone = zone;
     return task;
-}
-
-
-/**
- * Backup task.
- *
- */
-void
-task_backup(FILE* fd, task_type* task)
-{
-    if (!fd || !task) {
-        return;
-    }
-    ods_log_assert(fd);
-    ods_log_assert(task);
-
-    fprintf(fd, ";;Task: when %u what %i interrupt %i halted %i backoff %i "
-        "flush %i\n",
-        (unsigned) task->when,
-        (int) task->what,
-        (int) task->interrupt,
-        (int) task->halted,
-        (unsigned) task->backoff,
-        task->flush);
-    return;
 }
 
 
@@ -224,28 +185,6 @@ task2str(task_type* task, char* buftask)
 
 
 /**
- * Print task.
- *
- */
-void
-task_print(FILE* out, task_type* task)
-{
-    char* strtime = NULL;
-
-    if (out && task) {
-        strtime = ctime(&task->when);
-        if (strtime) {
-            strtime[strlen(strtime)-1] = '\0';
-        }
-        fprintf(out, "%s %s I will %s zone %s\n",
-            task->flush?"Flush":"On", strtime?strtime:"(null)",
-            task_what2str(task->what), task_who2str(task));
-    }
-    return;
-}
-
-
-/**
  * Log task.
  *
  */
@@ -263,7 +202,6 @@ task_log(task_type* task)
             task->flush?"Flush":"On", strtime?strtime:"(null)",
             task_what2str(task->what), task_who2str(task));
     }
-    return;
 }
 
 
@@ -274,12 +212,8 @@ task_log(task_type* task)
 void
 task_cleanup(task_type* task)
 {
-    allocator_type* allocator;
     if (!task) {
         return;
     }
-    allocator = task->allocator;
-    allocator_deallocate(allocator, (void*) task);
-    allocator_cleanup(allocator);
-    return;
+    free(task);
 }

@@ -43,24 +43,18 @@ static const char* ixfr_str = "journal";
  *
  */
 static part_type*
-part_create(allocator_type* allocator)
+part_create()
 {
     part_type* part = NULL;
-    ods_log_assert(allocator);
 
-    part = (part_type*) allocator_alloc(allocator, sizeof(part_type));
-    if (!part) {
-        ods_log_error("[%s] unable to create ixfr part: "
-            "allocator_alloc() failed", ixfr_str);
-        return NULL;
-    }
+    CHECKALLOC(part = (part_type*) malloc(sizeof(part_type)));
     part->soaplus = NULL;
     part->soamin = NULL;
     part->plus = ldns_rr_list_new();
     if (!part->plus) {
         ods_log_error("[%s] unable to create ixfr part: "
             "ldns_rr_list_new() failed", ixfr_str);
-        allocator_deallocate(allocator, (void*) part);
+        free(part);
         return NULL;
     }
     part->min = ldns_rr_list_new();
@@ -68,7 +62,7 @@ part_create(allocator_type* allocator)
         ods_log_error("[%s] unable to create ixfr part: "
             "ldns_rr_list_new() failed", ixfr_str);
         ldns_rr_list_free(part->plus);
-        allocator_deallocate(allocator, (void*) part);
+        free(part);
         return NULL;
     }
     return part;
@@ -80,15 +74,14 @@ part_create(allocator_type* allocator)
  *
  */
 static void
-part_cleanup(allocator_type* allocator, part_type* part)
+part_cleanup(part_type* part)
 {
-    if (!part || !allocator) {
+    if (!part) {
         return;
     }
     ldns_rr_list_deep_free(part->min);
     ldns_rr_list_free(part->plus);
-    allocator_deallocate(allocator, (void*) part);
-    return;
+    free(part);
 }
 
 
@@ -97,20 +90,18 @@ part_cleanup(allocator_type* allocator, part_type* part)
  *
  */
 ixfr_type*
-ixfr_create(void* zone)
+ixfr_create(zone_type* zone)
 {
     size_t i = 0;
     ixfr_type* xfr = NULL;
-    zone_type* z = (zone_type*) zone;
 
-    ods_log_assert(z);
-    ods_log_assert(z->name);
-    ods_log_assert(z->allocator);
+    ods_log_assert(zone);
+    ods_log_assert(zone->name);
 
-    xfr = (ixfr_type*) allocator_alloc(z->allocator, sizeof(ixfr_type));
+    CHECKALLOC(xfr = (ixfr_type*) malloc(sizeof(ixfr_type)));
     if (!xfr) {
         ods_log_error("[%s] unable to create ixfr for zone %s: "
-            "allocator_alloc() failed", ixfr_str, z->name);
+            "allocator_alloc() failed", ixfr_str, zone->name);
         return NULL;
     }
     for (i=0; i < IXFR_MAX_PARTS; i++) {
@@ -149,7 +140,6 @@ ixfr_add_rr(ixfr_type* ixfr, ldns_rr* rr)
     if (ldns_rr_get_type(rr) == LDNS_RR_TYPE_SOA) {
         ixfr->part[0]->soaplus = rr;
     }
-    return;
 }
 
 
@@ -180,7 +170,6 @@ ixfr_del_rr(ixfr_type* ixfr, ldns_rr* rr)
     if (ldns_rr_get_type(rr) == LDNS_RR_TYPE_SOA) {
         ixfr->part[0]->soamin = rr;
     }
-    return;
 }
 
 
@@ -243,7 +232,6 @@ part_print(FILE* fd, ixfr_type* ixfr, size_t i)
     if (error) {
         zone->adoutbound->error = 1;
     }
-    return;
 }
 
 
@@ -263,7 +251,6 @@ ixfr_print(FILE* fd, ixfr_type* ixfr)
         ods_log_deeebug("[%s] print ixfr part #%d", ixfr_str, i);
         part_print(fd, ixfr, i);
     }
-    return;
 }
 
 
@@ -281,23 +268,21 @@ ixfr_purge(ixfr_type* ixfr)
     }
     zone = (zone_type*) ixfr->zone;
     ods_log_assert(zone);
-    ods_log_assert(zone->allocator);
     ods_log_debug("[%s] purge ixfr for zone %s", ixfr_str, zone->name);
     for (i = IXFR_MAX_PARTS - 1; i >= 0; i--) {
         if (i == (IXFR_MAX_PARTS - 1)) {
-            part_cleanup(zone->allocator, ixfr->part[i]);
+            part_cleanup(ixfr->part[i]);
             ixfr->part[i] = NULL;
         } else {
             ixfr->part[i+1] = ixfr->part[i];
             ixfr->part[i] = NULL;
         }
     }
-    ixfr->part[0] = part_create(zone->allocator);
+    ixfr->part[0] = part_create();
     if (!ixfr->part[0]) {
         ods_fatal_exit("[%s] fatal unable to purge ixfr for zone %s: "
             "part_create() failed", ixfr_str, zone->name);
     }
-    return;
 }
 
 
@@ -309,17 +294,14 @@ void
 ixfr_cleanup(ixfr_type* ixfr)
 {
     int i = 0;
-    zone_type* z = NULL;
     lock_basic_type ixfr_lock;
     if (!ixfr) {
         return;
     }
-    z = (zone_type*) ixfr->zone;
     ixfr_lock = ixfr->ixfr_lock;
     for (i = IXFR_MAX_PARTS - 1; i >= 0; i--) {
-        part_cleanup(z->allocator, ixfr->part[i]);
+        part_cleanup(ixfr->part[i]);
     }
-    allocator_deallocate(z->allocator, (void*) ixfr);
+    free(ixfr);
     lock_basic_destroy(&ixfr_lock);
-    return;
 }

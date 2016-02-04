@@ -33,7 +33,6 @@
 #define UTIL_DURATION_H
 
 #include "config.h"
-#include "allocator.h"
 
 #include <stdint.h>
 #include <time.h>
@@ -45,7 +44,6 @@
 typedef struct duration_struct duration_type;
 struct duration_struct
 {
-    allocator_type* allocator;
     time_t years;
     time_t months;
     time_t weeks;
@@ -112,32 +110,6 @@ int duration_set_time(duration_type* duration, time_t time);
 time_t ods_rand(time_t mod);
 
 /**
- * Return the shortest time.
- * \param[in] a one time
- * \param[in] b another time
- * \return time_t the shortest time
- *
- */
-time_t time_minimum(time_t a, time_t b);
-
-/**
- * Return the longest time.
- * \param[in] a one time
- * \param[in] b another time
- * \return time_t the shortest time
- *
- */
-time_t time_maximum(time_t a, time_t b);
-
-/**
- * Convert time into string.
- * \param[in] n time
- * \param[in] s string
- *
- */
-void time_itoa(time_t n, char* s);
-
-/**
  * Return time in datestamp.
  * \param[in] tt time
  * \param[in] format stamp format
@@ -157,9 +129,18 @@ uint32_t time_datestamp(time_t tt, const char* format, char** str);
 void set_time_now(time_t now);
 
 /**
+ * Set the time_now to a new value.
+ * As long as this new value is later than the real now time
+ * the overriden value is returned when time_now is called.
+ * \param[in] now override for time_now in either seconds since
+ * epoch, or the format YYYY-mm-DD-HH:MM.
+ *
+ */
+int set_time_now_str(char* now);
+
+/**
  * Return the time since Epoch, measured in seconds.
- * If the timeshift is enabled, return the environment variable.
- * \return time_t now (or timeshift).
+ * \return time_t now
  *
  */
 time_t time_now(void);

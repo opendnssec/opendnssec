@@ -54,13 +54,6 @@ int policy_create_from_xml(policy_t* policy, xmlNodePtr policy_node);
 int policy_update_from_xml(policy_t* policy, xmlNodePtr policy_node, int* updated);
 
 /**
- * Get the zones for a policy.
- * \param[in] policy a policy_t object.
- * \return a zone_list_t pointer or NULL on error.
- */
-zone_list_t* policy_get_zones(const policy_t* policy);
-
-/**
  * Get the policy keys for a policy.
  * \param[in] policy a policy_t object.
  * \return a policy_key_list_t pointer or NULL on error.

@@ -224,7 +224,6 @@ engine_start_workers(engine_type* engine)
         pthread_create(&engine->workers[i]->thread_id, NULL,
             worker_thread_start, engine->workers[i]);
     }
-    return;
 }
 
 void
@@ -246,7 +245,6 @@ engine_stop_workers(engine_type* engine)
         pthread_join(engine->workers[i]->thread_id, NULL);
         engine->workers[i]->engine = NULL;
     }
-    return;
 }
 
 /**
@@ -594,7 +592,7 @@ engine_init(engine_type* engine, int daemonize)
     engine->daemonize = daemonize;
     /* catch signals */
     signal_set_engine(engine);
-    action.sa_handler = signal_handler;
+    action.sa_handler = (void (*)(int))signal_handler;
     sigfillset(&action.sa_mask);
     action.sa_flags = 0;
     sigaction(SIGHUP, &action, NULL);
@@ -658,6 +656,6 @@ engine_run(engine_type* engine, start_cb_t start, int single_run)
     engine_stop_workers(engine);
     cmdhandler_stop(engine);
     schedule_purge(engine->taskq); /* Remove old tasks in queue */
-    (void) hsm_close();
+    hsm_close();
     return 0;
 }

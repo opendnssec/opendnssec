@@ -33,8 +33,6 @@
 #define SCHEDULER_TASK_H
 
 #include "config.h"
-#include "allocator.h"
-
 #include <ldns/ldns.h>
 
 enum task_id_enum {
@@ -47,12 +45,15 @@ enum task_id_enum {
 };
 typedef enum task_id_enum task_id;
 
+typedef struct task_struct task_type;
+
+#include "status.h"
+#include "signer/zone.h"
+
 /**
  * Task.
  */
-typedef struct task_struct task_type;
 struct task_struct {
-    allocator_type* allocator;
     task_id what;
     task_id interrupt;
     task_id halted;
@@ -60,7 +61,7 @@ struct task_struct {
     time_t halted_when;
     time_t backoff;
     int flush;
-    void* zone;
+    zone_type* zone;
 };
 
 /**
@@ -72,14 +73,6 @@ struct task_struct {
  *
  */
 task_type* task_create(task_id what, time_t when, void* zone);
-
-/**
- * Backup task.
- * \param[in] fd file descriptor
- * \param[in] task task
- *
- */
-void task_backup(FILE* fd, task_type* task);
 
 /**
  * Compare tasks.
@@ -113,14 +106,6 @@ const char* task_what2str(task_id what);
  * \return const char* string-format of who
  */
 const char* task_who2str(task_type* task);
-
-/**
- * Print task.
- * \param[in] out file descriptor
- * \param[in] task task
- *
- */
-void task_print(FILE* out, task_type* task);
 
 /**
  * Log task.

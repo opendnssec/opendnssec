@@ -53,7 +53,6 @@ test_LDADD = \
 	../../database_version.o ../../database_version_ext.o \
 	../../zone.o ../../zone_ext.o \
 	../../../../common/duration.o \
-	../../../../common/allocator.o \
 	$(BACKEND_LDADD_CUSTOM)
 
 test_LDFLAGS = -no-install \
@@ -71,10 +70,12 @@ if USE_SQLITE
 	rm -f test.db
 	sqlite3 test.db < $(srcdir)/test.sqlite
 	sqlite3 test.db < $(srcdir)/../schema.sqlite
+	sqlite3 test.db < $(srcdir)/../data.sqlite
 endif
 if USE_MYSQL
 	mysql -u "@ENFORCER_DB_USERNAME@" "-p@ENFORCER_DB_PASSWORD@" "@ENFORCER_DB_DATABASE@" < $(srcdir)/test.mysql
 	mysql -u "@ENFORCER_DB_USERNAME@" "-p@ENFORCER_DB_PASSWORD@" "@ENFORCER_DB_DATABASE@" < $(srcdir)/../drop.mysql
 	mysql -u "@ENFORCER_DB_USERNAME@" "-p@ENFORCER_DB_PASSWORD@" "@ENFORCER_DB_DATABASE@" < $(srcdir)/../schema.mysql
+	mysql -u "@ENFORCER_DB_USERNAME@" "-p@ENFORCER_DB_PASSWORD@" "@ENFORCER_DB_DATABASE@" < $(srcdir)/../data.mysql
 endif
 	./test

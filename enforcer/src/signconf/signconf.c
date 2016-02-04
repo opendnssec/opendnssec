@@ -115,48 +115,6 @@ int signconf_export_all(int sockfd, const db_connection_t* connection, int force
     return SIGNCONF_EXPORT_NO_CHANGE;
 }
 
-int signconf_export_policy(int sockfd, const db_connection_t* connection, const policy_t* policy, int force) {
-    zone_list_t* zone_list;
-    zone_t* zone;
-    int ret;
-    int change = 0;
-
-    if (!connection) {
-        return SIGNCONF_EXPORT_ERR_ARGS;
-    }
-    if (!policy) {
-        return SIGNCONF_EXPORT_ERR_ARGS;
-    }
-
-    if (!(zone_list = zone_list_new(connection))
-        || zone_list_get_by_policy_id(zone_list, policy_id(policy)))
-    {
-        if (zone_list) {
-            zone_list_free(zone_list);
-            return SIGNCONF_EXPORT_ERR_DATABASE;
-        }
-        return SIGNCONF_EXPORT_ERR_MEMORY;
-    }
-
-    while ((zone = zone_list_get_next(zone_list))) {
-        ret = signconf_export(sockfd, policy, zone, force);
-        zone_free(zone);
-        if (ret == SIGNCONF_EXPORT_OK) {
-            change = 1;
-        }
-        else if (ret != SIGNCONF_EXPORT_NO_CHANGE) {
-            zone_list_free(zone_list);
-            return ret;
-        }
-    }
-    zone_list_free(zone_list);
-
-    if (change) {
-        return SIGNCONF_EXPORT_OK;
-    }
-    return SIGNCONF_EXPORT_NO_CHANGE;
-}
-
 static int __free(char **p) {
     if (!p || !*p) {
         return 1;
@@ -251,6 +209,12 @@ static int signconf_export(int sockfd, const policy_t* policy, zone_t* zone, int
         || !(node4 = xmlNewChild(node3, NULL, (xmlChar*)"Denial", (xmlChar*)duration_text))
         || __free(&duration_text)
         || !(error = 8)
+        || (policy_signatures_validity_keyset(policy) > 0 ?
+             duration_set_time(duration, policy_signatures_validity_keyset(policy))
+          || !(duration_text = duration2string(duration))
+          || !(node4 = xmlNewChild(node3, NULL, (xmlChar*)"Keyset", (xmlChar*)duration_text))
+          || __free(&duration_text)
+          || !(error = 100) : 0)
         || duration_set_time(duration, policy_signatures_jitter(policy))
         || !(duration_text = duration2string(duration))
         || !(node3 = xmlNewChild(node2, NULL, (xmlChar*)"Jitter", (xmlChar*)duration_text))
@@ -399,7 +363,6 @@ static int signconf_export(int sockfd, const policy_t* policy, zone_t* zone, int
     if (check_rng(path, OPENDNSSEC_SCHEMA_DIR "/signconf.rng", 0)) {
         ods_log_error("[signconf_export] Unable to validate the exported signconf XML for zone %s!", zone_name(zone));
         if (sockfd > -1) client_printf_err(sockfd, "Unable to validate the exported signconf XML for zone %s!\n", zone_name(zone));
-        unlink(path);
         return SIGNCONF_EXPORT_ERR_XML;
     }
 

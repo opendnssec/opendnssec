@@ -33,7 +33,7 @@
 #define SCHEDULER_TASK_H
 
 #include "config.h"
-#include "allocator.h"
+#include "status.h"
 #include "db/db_connection.h"
 
 #include <ldns/ldns.h>
@@ -145,14 +145,6 @@ const char* task_what2str(int taskid);
  * \return const char* string-format of who
  */
 const char* task_who2str(const char* who);
-
-/**
- * Print task.
- * \param[in] out file descriptor
- * \param[in] task task
- *
- */
-void task_print(FILE* out, task_type* task);
 
 /**
  * Log task.

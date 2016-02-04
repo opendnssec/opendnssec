@@ -33,7 +33,7 @@
 #define WIRE_LISTENER_H
 
 #include "config.h"
-#include "allocator.h"
+#include "status.h"
 
 #include <arpa/inet.h>
 #include <netdb.h>
@@ -79,7 +79,6 @@ struct interface_struct {
  */
 typedef struct listener_struct listener_type;
 struct listener_struct {
-    allocator_type* allocator;
     interface_type* interfaces;
     size_t count;
 };
@@ -90,7 +89,7 @@ struct listener_struct {
  * \return listener_type* listener
  *
  */
-listener_type* listener_create(allocator_type* allocator);
+listener_type* listener_create(void);
 
 /**
  * Push an interface to the listener.
@@ -103,21 +102,6 @@ listener_type* listener_create(allocator_type* allocator);
  */
 interface_type* listener_push(listener_type* list, char* address, int family,
     char* port);
-
-/**
- * Print listener.
- * \param[in] fd file descriptor
- * \param[in] listener listener to print
- *
- */
-void listener_print(FILE* fd, listener_type* listener);
-
-/**
- * Log listener.
- * \param[in] listener listener
- *
- */
-void listener_log(listener_type* listener);
 
 /**
  * Clean up interface.

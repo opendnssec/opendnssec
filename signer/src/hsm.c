@@ -62,23 +62,6 @@ lhsm_open(hsm_repository_t* rlist)
 
 
 /**
- * Reopen HSM.
- *
- */
-int
-lhsm_reopen(hsm_repository_t* rlist)
-{
-    if (hsm_check_context(NULL) != HSM_OK) {
-        ods_log_warning("[%s] idle libhsm connection, trying to reopen",
-            hsm_str);
-        hsm_close();
-        return lhsm_open(rlist);
-    }
-    return HSM_OK;
-}
-
-
-/**
  * Clear key cache.
  *
  */
@@ -93,14 +76,13 @@ lhsm_clear_key_cache(key_type* key)
         key->dnskey = NULL;
     }
     if (key->hsmkey) {
-        libhsm_key_free(key->hsmkey);
+        free(key->hsmkey);
         key->hsmkey = NULL;
     }
     if (key->params) {
         hsm_sign_params_free(key->params);
         key->params = NULL;
     }
-    return;
 }
 
 
@@ -109,20 +91,18 @@ lhsm_clear_key_cache(key_type* key)
  *
  */
 void
-lhsm_check_connection(void* engine)
+lhsm_check_connection(engine_type* engine)
 {
-    engine_type* e = (engine_type*) engine;
     if (hsm_check_context(NULL) != HSM_OK) {
         ods_log_warning("[%s] idle libhsm connection, trying to reopen",
             hsm_str);
-        engine_stop_drudgers(e);
+        engine_stop_drudgers(engine);
         hsm_close();
-        (void)lhsm_open(e->config->repositories);
-        engine_start_drudgers((engine_type*) engine);
+        (void)lhsm_open(engine->config->repositories);
+        engine_start_drudgers(engine);
     } else {
         ods_log_debug("[%s] libhsm connection ok", hsm_str);
     }
-    return;
 }
 
 

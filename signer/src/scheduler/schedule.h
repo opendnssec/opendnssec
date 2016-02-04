@@ -33,11 +33,6 @@
 #define SCHEDULER_SCHEDULE_H
 
 #include "config.h"
-#include "scheduler/task.h"
-#include "allocator.h"
-#include "locks.h"
-#include "status.h"
-
 #include <stdio.h>
 #include <time.h>
 
@@ -50,13 +45,17 @@
 
 #include <ldns/ldns.h>
 
+typedef struct schedule_struct schedule_type;
+
+#include "scheduler/task.h"
+#include "locks.h"
+#include "status.h"
+#include "task.h"
 
 /**
  * Task schedule.
  */
-typedef struct schedule_struct schedule_type;
 struct schedule_struct {
-    allocator_type* allocator;
     ldns_rbtree_t* tasks;
     int flushcount;
     int loading; /* to determine backoff */
@@ -69,7 +68,7 @@ struct schedule_struct {
  * \return schedule_type* created schedule
  *
  */
-schedule_type* schedule_create(allocator_type* allocator);
+schedule_type* schedule_create(void);
 
 /**
  * Flush schedule.
@@ -106,18 +105,6 @@ ods_status schedule_task(schedule_type* schedule, task_type* task, int log);
  *
  */
 task_type* unschedule_task(schedule_type* schedule, task_type* task);
-
-/**
- * Reschedule task.
- * \param[in] schedule schedule
- * \param[in] task task to delete
- * \param[in] what new task
- * \param[in] when new time
- * \return ods_status status
- *
- */
-ods_status reschedule_task(schedule_type* schedule, task_type* task,
-    task_id what, time_t when);
 
 /**
  * Pop the first scheduled task.

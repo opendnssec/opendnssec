@@ -51,7 +51,6 @@ void
 signal_set_engine(void* engine)
 {
     signal_engine = (engine_type*) engine;
-    return;
 }
 
 
@@ -59,7 +58,7 @@ signal_set_engine(void* engine)
  * Handle signals.
  *
  */
-void
+void *
 signal_handler(sig_atomic_t sig)
 {
     switch (sig) {
@@ -74,6 +73,7 @@ signal_handler(sig_atomic_t sig)
                 lock_basic_unlock(&signal_engine->signal_lock);
             }
             break;
+        case SIGINT:
         case SIGTERM:
             ods_log_debug("[%s] SIGTERM received", signal_str);
             signal_term_recvd++;
@@ -88,7 +88,7 @@ signal_handler(sig_atomic_t sig)
         default:
             break;
     }
-    return;
+    return NULL;
 }
 
 

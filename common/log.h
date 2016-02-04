@@ -87,7 +87,7 @@ int ods_log_get_facility(const char* facility);
  * \return int log_level
  *
  */
-int ods_log_get_level();
+int ods_log_get_level(void);
 
 /**
  * Heavy debug loggin.

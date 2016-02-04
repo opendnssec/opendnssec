@@ -69,6 +69,7 @@ static void hsm_key_factory_init(void) {
             ods_log_error("[hsm_key_factory_init] mutex error");
             if (__hsm_key_factory_lock) {
                 pthread_mutex_destroy(__hsm_key_factory_lock);
+                free(__hsm_key_factory_lock);
                 __hsm_key_factory_lock = NULL;
             }
         }
@@ -177,7 +178,7 @@ void hsm_key_factory_generate(engine_type* engine, const db_connection_t* connec
      */
     duration = (duration ? duration : engine->config->automatic_keygen_duration);
     generate_keys = (ssize_t)ceil(duration / (double)policy_key_lifetime(policy_key));
-    if (num_zones == 0 || num_keys >= generate_keys) {
+    if (num_zones == 0 || (ssize_t)num_keys >= generate_keys) {
         pthread_mutex_unlock(__hsm_key_factory_lock);
         return;
     }
@@ -248,7 +249,7 @@ void hsm_key_factory_generate(engine_type* engine, const db_connection_t* connec
                 else {
                     ods_log_error("[hsm_key_factory_generate] unable to get the ID of the key generated");
                 }
-                libhsm_key_free(key);
+                free(key);
                 hsm_destroy_context(hsm_ctx);
                 pthread_mutex_unlock(__hsm_key_factory_lock);
                 return;
@@ -273,7 +274,7 @@ void hsm_key_factory_generate(engine_type* engine, const db_connection_t* connec
                 ods_log_error("[hsm_key_factory_generate] hsm key creation failed, database or memory error");
                 hsm_key_free(hsm_key);
                 free(key_id);
-                libhsm_key_free(key);
+                free(key);
                 hsm_destroy_context(hsm_ctx);
                 pthread_mutex_unlock(__hsm_key_factory_lock);
                 return;
@@ -283,7 +284,7 @@ void hsm_key_factory_generate(engine_type* engine, const db_connection_t* connec
 
             hsm_key_free(hsm_key);
             free(key_id);
-            libhsm_key_free(key);
+            free(key);
         }
         else {
             if ((hsm_err = hsm_get_error(hsm_ctx))) {

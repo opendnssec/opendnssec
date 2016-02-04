@@ -33,7 +33,6 @@
 #include "daemon/cfg.h"
 #include "daemon/engine.h"
 #include "daemon/signal.h"
-#include "allocator.h"
 #include "duration.h"
 #include "file.h"
 #include "str.h"
@@ -71,20 +70,7 @@ static engine_type*
 engine_create(void)
 {
     engine_type* engine;
-    allocator_type* allocator = allocator_create(malloc, free);
-    if (!allocator) {
-        ods_log_error("[%s] unable to create engine: allocator_create() "
-            "failed", engine_str);
-        return NULL;
-    }
-    engine = (engine_type*) allocator_alloc(allocator, sizeof(engine_type));
-    if (!engine) {
-        ods_log_error("[%s] unable to create engine: allocator_alloc() "
-            "failed", engine_str);
-        allocator_cleanup(allocator);
-        return NULL;
-    }
-    engine->allocator = allocator;
+    CHECKALLOC(engine = (engine_type*) malloc(sizeof(engine_type)));
     engine->config = NULL;
     engine->workers = NULL;
     engine->drudgers = NULL;
@@ -103,17 +89,17 @@ engine_create(void)
     lock_basic_lock(&engine->signal_lock);
     engine->signal = SIGNAL_INIT;
     lock_basic_unlock(&engine->signal_lock);
-    engine->zonelist = zonelist_create(engine->allocator);
+    engine->zonelist = zonelist_create();
     if (!engine->zonelist) {
         engine_cleanup(engine);
         return NULL;
     }
-    engine->taskq = schedule_create(engine->allocator);
+    engine->taskq = schedule_create();
     if (!engine->taskq) {
         engine_cleanup(engine);
         return NULL;
     }
-    engine->signq = fifoq_create(engine->allocator);
+    engine->signq = fifoq_create();
     if (!engine->signq) {
         engine_cleanup(engine);
         return NULL;
@@ -126,6 +112,7 @@ engine_create(void)
  * Start command handler.
  *
  */
+
 static void*
 cmdhandler_thread_start(void* arg)
 {
@@ -134,6 +121,7 @@ cmdhandler_thread_start(void* arg)
     cmdhandler_start(cmd);
     return NULL;
 }
+
 static void
 engine_start_cmdhandler(engine_type* engine)
 {
@@ -142,8 +130,8 @@ engine_start_cmdhandler(engine_type* engine)
     engine->cmdhandler->engine = engine;
     ods_thread_create(&engine->cmdhandler->thread_id,
         cmdhandler_thread_start, engine->cmdhandler);
-    return;
 }
+
 /**
  * Self pipe trick (see Unix Network Programming).
  *
@@ -189,7 +177,7 @@ static void
 engine_stop_cmdhandler(engine_type* engine)
 {
     ods_log_assert(engine);
-    if (!engine->cmdhandler) {
+    if (!engine->cmdhandler || engine->cmdhandler_done) {
         return;
     }
     ods_log_debug("[%s] stop command handler", engine_str);
@@ -204,7 +192,6 @@ engine_stop_cmdhandler(engine_type* engine)
         ods_log_error("[%s] command handler self pipe trick failed, "
             "unclean shutdown", engine_str);
     }
-    return;
 }
 
 
@@ -229,7 +216,6 @@ engine_start_dnshandler(engine_type* engine)
     engine->dnshandler->engine = engine;
     ods_thread_create(&engine->dnshandler->thread_id,
         dnshandler_thread_start, engine->dnshandler);
-    return;
 }
 static void
 engine_stop_dnshandler(engine_type* engine)
@@ -243,7 +229,6 @@ engine_stop_dnshandler(engine_type* engine)
     ods_log_debug("[%s] join dnshandler", engine_str);
     ods_thread_join(engine->dnshandler->thread_id);
     engine->dnshandler->engine = NULL;
-    return;
 }
 
 
@@ -273,7 +258,6 @@ engine_start_xfrhandler(engine_type* engine)
      * it has marked itself started
      */
     engine->xfrhandler->started = 1;
-    return;
 }
 static void
 engine_stop_xfrhandler(engine_type* engine)
@@ -290,7 +274,6 @@ engine_stop_xfrhandler(engine_type* engine)
     	engine->xfrhandler->started = 0;
     }
     engine->xfrhandler->engine = NULL;
-    return;
 }
 
 
@@ -340,14 +323,10 @@ engine_create_workers(engine_type* engine)
     size_t i = 0;
     ods_log_assert(engine);
     ods_log_assert(engine->config);
-    ods_log_assert(engine->allocator);
-    engine->workers = (worker_type**) allocator_alloc(engine->allocator,
-        ((size_t)engine->config->num_worker_threads) * sizeof(worker_type*));
+    CHECKALLOC(engine->workers = (worker_type**) malloc(((size_t)engine->config->num_worker_threads) * sizeof(worker_type*)));
     for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
-        engine->workers[i] = worker_create(engine->allocator, i,
-            WORKER_WORKER);
+        engine->workers[i] = worker_create(i, WORKER_WORKER);
     }
-    return;
 }
 static void
 engine_create_drudgers(engine_type* engine)
@@ -355,14 +334,10 @@ engine_create_drudgers(engine_type* engine)
     size_t i = 0;
     ods_log_assert(engine);
     ods_log_assert(engine->config);
-    ods_log_assert(engine->allocator);
-    engine->drudgers = (worker_type**) allocator_alloc(engine->allocator,
-        ((size_t)engine->config->num_signer_threads) * sizeof(worker_type*));
+    CHECKALLOC(engine->drudgers = (worker_type**) malloc(((size_t)engine->config->num_signer_threads) * sizeof(worker_type*)));
     for (i=0; i < (size_t) engine->config->num_signer_threads; i++) {
-        engine->drudgers[i] = worker_create(engine->allocator, i,
-            WORKER_DRUDGER);
+        engine->drudgers[i] = worker_create(i, WORKER_DRUDGER);
     }
-    return;
 }
 static void*
 worker_thread_start(void* arg)
@@ -385,7 +360,6 @@ engine_start_workers(engine_type* engine)
         ods_thread_create(&engine->workers[i]->thread_id, worker_thread_start,
             engine->workers[i]);
     }
-    return;
 }
 void
 engine_start_drudgers(engine_type* engine)
@@ -400,7 +374,6 @@ engine_start_drudgers(engine_type* engine)
         ods_thread_create(&engine->drudgers[i]->thread_id, worker_thread_start,
             engine->drudgers[i]);
     }
-    return;
 }
 static void
 engine_stop_workers(engine_type* engine)
@@ -422,7 +395,6 @@ engine_stop_workers(engine_type* engine)
         ods_thread_join(engine->workers[i]->thread_id);
         engine->workers[i]->engine = NULL;
     }
-    return;
 }
 void
 engine_stop_drudgers(engine_type* engine)
@@ -443,7 +415,6 @@ engine_stop_drudgers(engine_type* engine)
         ods_thread_join(engine->drudgers[i]->thread_id);
         engine->drudgers[i]->engine = NULL;
     }
-    return;
 }
 
 
@@ -462,7 +433,6 @@ engine_wakeup_workers(engine_type* engine)
     for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
         worker_wakeup(engine->workers[i]);
     }
-    return;
 }
 
 
@@ -475,7 +445,6 @@ engine_setup(engine_type* engine)
 {
     ods_status status = ODS_STATUS_OK;
     struct sigaction action;
-    int result = 0;
     int sockets[2] = {0,0};
 
     ods_log_debug("[%s] setup signer engine", engine_str);
@@ -486,14 +455,12 @@ engine_setup(engine_type* engine)
     edns_init(&engine->edns, EDNS_MAX_MESSAGE_LEN);
 
     /* create command handler (before chowning socket file) */
-    engine->cmdhandler = cmdhandler_create(engine->allocator,
-        engine->config->clisock_filename);
+    engine->cmdhandler = cmdhandler_create(engine->config->clisock_filename);
     if (!engine->cmdhandler) {
         return ODS_STATUS_CMDHANDLER_ERR;
     }
-    engine->dnshandler = dnshandler_create(engine->allocator,
-        engine->config->interfaces);
-    engine->xfrhandler = xfrhandler_create(engine->allocator);
+    engine->dnshandler = dnshandler_create(engine->config->interfaces);
+    engine->xfrhandler = xfrhandler_create();
     if (!engine->xfrhandler) {
         return ODS_STATUS_XFRHANDLER_ERR;
     }
@@ -529,12 +496,6 @@ engine_setup(engine_type* engine)
     if (engine_privdrop(engine) != ODS_STATUS_OK) {
         return ODS_STATUS_PRIVDROP_ERR;
     }
-    /* set up hsm */ /* LEAK */
-    result = lhsm_open(engine->config->repositories);
-    if (result != HSM_OK) {
-        fprintf(stderr, "Fail to open hsm\n");
-        return ODS_STATUS_HSM_ERR;
-    }
     /* daemonize */
     if (engine->daemonize) {
         switch ((engine->pid = fork())) {
@@ -553,7 +514,6 @@ engine_setup(engine_type* engine)
                 exit(0);
         }
         if (setsid() == -1) {
-            hsm_close();
             ods_log_error("[%s] setup: unable to setsid daemon (%s)",
                 engine_str, strerror(errno));
             return ODS_STATUS_SETSID_ERR;
@@ -562,7 +522,6 @@ engine_setup(engine_type* engine)
     engine->pid = getpid();
     /* write pidfile */
     if (util_write_pidfile(engine->config->pid_filename, engine->pid) == -1) {
-        hsm_close();
         return ODS_STATUS_WRITE_PIDFILE_ERR;
     }
     /* setup done */
@@ -570,7 +529,7 @@ engine_setup(engine_type* engine)
         (unsigned long) engine->pid);
     /* catch signals */
     signal_set_engine(engine);
-    action.sa_handler = signal_handler;
+    action.sa_handler = (void (*)(int))signal_handler;
     sigfillset(&action.sa_mask);
     action.sa_flags = 0;
     sigaction(SIGTERM, &action, NULL);
@@ -589,7 +548,7 @@ engine_setup(engine_type* engine)
     engine_start_cmdhandler(engine);
     engine_start_dnshandler(engine);
     engine_start_xfrhandler(engine);
-    tsig_handler_init(engine->allocator);
+    tsig_handler_init();
     return ODS_STATUS_OK;
 }
 
@@ -654,7 +613,7 @@ engine_run(engine_type* engine, int single_run)
                 break;
             default:
                 ods_log_warning("[%s] invalid signal %d captured, "
-                    "keep running", engine_str, engine->signal);
+                    "keep running", engine_str, (int)engine->signal);
                 engine->signal = SIGNAL_RUN;
                 break;
         }
@@ -673,8 +632,6 @@ engine_run(engine_type* engine, int single_run)
     ods_log_debug("[%s] signer halted", engine_str);
     engine_stop_drudgers(engine);
     engine_stop_workers(engine);
-    (void)lhsm_reopen(engine->config->repositories);
-    return;
 }
 
 
@@ -722,7 +679,6 @@ set_notify_ns(zone_type* zone, const char* cmd)
         ods_log_error("[%s] unable to set notify ns: replace zone failed",
             engine_str);
     }
-    return;
 }
 
 
@@ -902,7 +858,6 @@ engine_update_zones(engine_type* engine, ods_status zl_changed)
     if (wake_up) {
         engine_wakeup_workers(engine);
     }
-    return;
 }
 
 
@@ -988,30 +943,18 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
     int info, int single_run)
 {
     engine_type* engine = NULL;
-    int use_syslog = 0;
     ods_status zl_changed = ODS_STATUS_UNCHANGED;
     ods_status status = ODS_STATUS_OK;
-    int close_hsm = 0;
-    int ret = 1;
 
-    ods_log_assert(cfgfile);
-    ods_log_init("ods-signerd", use_syslog, NULL, cmdline_verbosity);
-    ods_log_verbose("[%s] starting signer", engine_str);
-
-    /* initialize */
-    xmlInitGlobals();
-    xmlInitParser();
-    xmlInitThreads();
     engine = engine_create();
     if (!engine) {
         ods_fatal_exit("[%s] create failed", engine_str);
-        return ret;
+        return 1;
     }
     engine->daemonize = daemonize;
 
     /* config */
-    engine->config = engine_config(engine->allocator, cfgfile,
-        cmdline_verbosity);
+    engine->config = engine_config(cfgfile, cmdline_verbosity);
     status = engine_config_check(engine->config);
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] cfgfile %s has errors", engine_str, cfgfile);
@@ -1026,9 +969,9 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
         exit(1);
     }
     /* open log */
-    ods_log_init("ods-signerd", engine->config->use_syslog, engine->config->log_filename, engine->config->verbosity);
+    ods_log_init("ods-signerd", engine->config->use_syslog,
+        engine->config->log_filename, engine->config->verbosity);
     /* setup */
-    tzset(); /* for portability */
     status = engine_setup(engine);
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] setup failed: %s", engine_str,
@@ -1038,10 +981,6 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
             engine->cmdhandler_done = 1;
         }
         goto earlyexit;
-    } else {
-        /* setup ok, mark hsm open */
-        ret = 1;
-        close_hsm = 1;
     }
 
     /* run */
@@ -1061,26 +1000,30 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
         } else {
             ods_log_info("[%s] signer started (version %s), pid %u",
                 engine_str, PACKAGE_VERSION, engine->pid);
+            if (lhsm_open(engine->config->repositories) != HSM_OK) {
+                ods_log_error("[%s] lhsm_open() failed (for engine_recover)", engine_str);
+                break;
+            }
             zl_changed = engine_recover(engine);
+            hsm_close();
         }
         if (zl_changed == ODS_STATUS_OK ||
             zl_changed == ODS_STATUS_UNCHANGED) {
             engine_update_zones(engine, zl_changed);
         }
+        if (lhsm_open(engine->config->repositories) != HSM_OK) {
+            ods_log_error("[%s] lhsm_open() failed (for engine run)", engine_str);
+            break;
+        }
         engine_run(engine, single_run);
+        hsm_close();
     }
 
     /* shutdown */
     ods_log_info("[%s] signer shutdown", engine_str);
-    if (close_hsm) {
-        ods_log_verbose("[%s] close hsm", engine_str);
-        hsm_close();
-    }
-    if (!engine->cmdhandler_done) {
-        engine_stop_xfrhandler(engine);
-        engine_stop_dnshandler(engine);
-        engine_stop_cmdhandler(engine);
-    }
+    engine_stop_cmdhandler(engine);
+    engine_stop_xfrhandler(engine);
+    engine_stop_dnshandler(engine);
 
 earlyexit:
     if (engine && engine->config) {
@@ -1094,11 +1037,8 @@ earlyexit:
     tsig_handler_cleanup();
     engine_cleanup(engine);
     engine = NULL;
-    ods_log_close();
-    xmlCleanupParser();
-    xmlCleanupGlobals();
-    xmlCleanupThreads();
-    return ret;
+
+    return 1;
 }
 
 
@@ -1110,26 +1050,24 @@ void
 engine_cleanup(engine_type* engine)
 {
     size_t i = 0;
-    allocator_type* allocator;
     cond_basic_type signal_cond;
     lock_basic_type signal_lock;
     if (!engine) {
         return;
     }
-    allocator = engine->allocator;
     signal_cond = engine->signal_cond;
     signal_lock = engine->signal_lock;
     if (engine->workers && engine->config) {
         for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
             worker_cleanup(engine->workers[i]);
         }
-        allocator_deallocate(allocator, (void*) engine->workers);
+        free(engine->workers);
     }
     if (engine->drudgers && engine->config) {
        for (i=0; i < (size_t) engine->config->num_signer_threads; i++) {
            worker_cleanup(engine->drudgers[i]);
        }
-        allocator_deallocate(allocator, (void*) engine->drudgers);
+       free(engine->drudgers);
     }
     zonelist_cleanup(engine->zonelist);
     schedule_cleanup(engine->taskq);
@@ -1138,9 +1076,7 @@ engine_cleanup(engine_type* engine)
     dnshandler_cleanup(engine->dnshandler);
     xfrhandler_cleanup(engine->xfrhandler);
     engine_config_cleanup(engine->config);
-    allocator_deallocate(allocator, (void*) engine);
+    free(engine);
     lock_basic_destroy(&signal_lock);
     lock_basic_off(&signal_cond);
-    allocator_cleanup(allocator);
-    return;
 }

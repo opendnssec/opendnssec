@@ -268,6 +268,37 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                             duration_cleanup(duration);
                             duration = NULL;
                         }
+                        else if (!strcmp((char*)node3->name, "Keyset")) {
+                            if (!(xml_text = xmlNodeGetContent(node3))) {
+                                return DB_ERROR_UNKNOWN;
+                            }
+                            ods_log_deeebug("[policy_*_from_xml] signature validity keyset %s", (char*)xml_text);
+                            if (!(duration = duration_create_from_string((char*)xml_text))) {
+                                if (xml_text) {
+                                    xmlFree(xml_text);
+                                }
+                                return DB_ERROR_UNKNOWN;
+                            }
+                            if (xml_text) {
+                                xmlFree(xml_text);
+                                xml_text = NULL;
+                            }
+                            if (check_if_updated) {
+                                update_this = 0;
+                                if (policy_signatures_validity_keyset(policy) != duration2time(duration)) {
+                                    *updated = 1;
+                                    update_this = 1;
+                                }
+                            }
+                            if (update_this) {
+                                if (policy_set_signatures_validity_keyset(policy, duration2time(duration))) {
+                                    duration_cleanup(duration);
+                                    return DB_ERROR_UNKNOWN;
+                                }
+                            }
+                            duration_cleanup(duration);
+                            duration = NULL;
+                        }
                         else {
                             ods_log_deeebug("[policy_*_from_xml] unknown %s", (char*)node3->name);
                             return DB_ERROR_UNKNOWN;
@@ -1216,21 +1247,6 @@ int policy_update_from_xml(policy_t* policy, xmlNodePtr policy_node, int* update
     }
 
     return __xmlNode2policy(policy, policy_node, updated);
-}
-
-zone_list_t* policy_get_zones(const policy_t* policy) {
-    if (!policy) {
-        return NULL;
-    }
-    if (!policy->dbo) {
-        return NULL;
-    }
-    if (db_value_not_empty(&(policy->id))) {
-        return NULL;
-    }
-
-    return zone_list_new_get_by_policy_id(db_object_connection(policy->dbo),
-        &(policy->id));
 }
 
 policy_key_list_t* policy_get_policy_keys(const policy_t* policy) {

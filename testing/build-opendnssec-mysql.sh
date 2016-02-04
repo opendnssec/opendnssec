@@ -9,12 +9,15 @@ start_build opendnssec-mysql
 build_ok=0
 case "$DISTRIBUTION" in
 	openbsd )
-		export AUTOCONF_VERSION="2.68"
+		export AUTOCONF_VERSION="2.69"
 		export AUTOMAKE_VERSION="1.11"
 		;;
 	netbsd | \
 	freebsd )
 		append_cflags "-std=c99"
+		;;
+	redhat )
+		export PATH=/usr/local/src/autoconf-2.69/bin:$PATH
 		;;
 	opensuse )
 		append_ldflags "-lncurses -lpthread"
@@ -49,8 +52,7 @@ case "$DISTRIBUTION" in
 				--with-enforcer-database-test-database=build \
 				--with-enforcer-database-test-host=localhost \
 				--with-enforcer-database-test-username=build \
-				--with-enforcer-database-test-password=build \
-				--enable-timeshift &&
+				--with-enforcer-database-test-password=build &&
 			$MAKE &&
 			$MAKE check &&
 			sed_inplace 's% -ge 5 % -ge 30 %g' tools/ods-control &&
@@ -75,8 +77,7 @@ case "$DISTRIBUTION" in
 				--with-enforcer-database-test-database=build \
 				--with-enforcer-database-test-host=localhost \
 				--with-enforcer-database-test-username=build \
-				--with-enforcer-database-test-password=build \
-				--enable-timeshift &&
+				--with-enforcer-database-test-password=build &&
 			$MAKE &&
 			$MAKE check &&
 			sed_inplace 's% -ge 5 % -ge 30 %g' tools/ods-control &&
@@ -101,8 +102,7 @@ case "$DISTRIBUTION" in
 				--with-enforcer-database-test-database=build \
 				--with-enforcer-database-test-host=localhost \
 				--with-enforcer-database-test-username=build \
-				--with-enforcer-database-test-password=build \
-				--enable-timeshift \
+				--with-enforcer-database-test-password=build &&
 				--with-sqlite3=/usr/pkg &&
 			$MAKE &&
 			$MAKE check &&
@@ -127,8 +127,7 @@ case "$DISTRIBUTION" in
 				--with-enforcer-database-test-database=build \
 				--with-enforcer-database-test-host=localhost \
 				--with-enforcer-database-test-username=build \
-				--with-enforcer-database-test-password=build \
-				--enable-timeshift &&
+				--with-enforcer-database-test-password=build &&
 			$MAKE &&
 			$MAKE check &&
 			sed_inplace 's% -ge 5 % -ge 30 %g' tools/ods-control &&

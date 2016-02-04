@@ -29,7 +29,7 @@
  *
  */
 
-#include "allocator.h"
+#include "status.h"
 #include "log.h"
 #include "util.h"
 #include "signer/backup.h"
@@ -104,15 +104,13 @@ nsec3params_create(void* sc, uint8_t algo, uint8_t flags, uint16_t iter,
     const char* salt)
 {
     nsec3params_type* nsec3params = NULL;
-    signconf_type* signconf = (signconf_type*) sc;
     uint8_t salt_len; /* calculate salt len */
     uint8_t* salt_data; /* calculate salt data */
 
     if (!sc) {
         return NULL;
     }
-    nsec3params = (nsec3params_type*) allocator_alloc(signconf->allocator,
-        sizeof(nsec3params_type));
+    CHECKALLOC(nsec3params = (nsec3params_type*) malloc(sizeof(nsec3params_type)));
     if (!nsec3params) {
         ods_log_error("[%s] unable to create: allocator_alloc() failed",
             nsec3_str);
@@ -125,7 +123,7 @@ nsec3params_create(void* sc, uint8_t algo, uint8_t flags, uint16_t iter,
     /* construct the salt from the string */
     if (nsec3params_create_salt(salt, &salt_len, &salt_data) != 0) {
         ods_log_error("[%s] unable to create: create salt failed", nsec3_str);
-        allocator_deallocate(signconf->allocator, (void*)nsec3params);
+        free(nsec3params);
         return NULL;
     }
     nsec3params->salt_len = salt_len;
@@ -156,47 +154,6 @@ nsec3params_backup(FILE* fd, uint8_t algo, uint8_t flags,
         fprintf(fd, ";;Nsec3done\n");
         fprintf(fd, ";;\n");
     }
-    return;
-}
-
-
-/**
- * Convert salt to string.
- *
- */
-const char*
-nsec3params_salt2str(nsec3params_type* nsec3params)
-{
-    uint8_t *data;
-    uint8_t salt_length = 0;
-    uint8_t salt_pos = 0;
-    int written = 0;
-    char* str = NULL;
-    ldns_buffer* buffer = NULL;
-
-    salt_length = nsec3params->salt_len;
-    data = nsec3params->salt_data;
-    /* from now there are variable length entries so remember pos */
-    if (salt_length == 0) {
-        buffer = ldns_buffer_new(2);
-        written = ldns_buffer_printf(buffer, "-");
-    } else {
-        buffer = ldns_buffer_new(salt_pos+1);
-        for (salt_pos = 0; salt_pos < salt_length; salt_pos++) {
-            written = ldns_buffer_printf(buffer, "%02x", data[salt_pos]);
-        }
-    }
-    if (ldns_buffer_status(buffer) == LDNS_STATUS_OK) {
-        str = ldns_buffer2str(buffer);
-    } else if (written) {
-        ods_log_error("[%s] unable to convert nsec3 salt to string: %s",
-            nsec3_str, ldns_get_errorstr_by_id(ldns_buffer_status(buffer)));
-    } else {
-        ods_log_error("[%s] unable to convert nsec3 salt to string: zero "
-            "bytes written", nsec3_str);
-    }
-    ldns_buffer_free(buffer);
-    return (const char*) str;
 }
 
 
@@ -207,12 +164,9 @@ nsec3params_salt2str(nsec3params_type* nsec3params)
 void
 nsec3params_cleanup(nsec3params_type* nsec3params)
 {
-    signconf_type* sc = NULL;
     if (!nsec3params) {
         return;
     }
-    sc = (signconf_type*) nsec3params->sc;
-    allocator_deallocate(sc->allocator, (void*) nsec3params->salt_data);
-    allocator_deallocate(sc->allocator, (void*) nsec3params);
-    return;
+    free(nsec3params->salt_data);
+    free(nsec3params);
 }

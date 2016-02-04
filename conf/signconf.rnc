@@ -1,4 +1,5 @@
 # Copyright (c) 2009 .SE (The Internet Infrastructure Foundation).
+# Copyright (c) 2015-2016 NLnet Labs.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -41,6 +42,7 @@ zone = element Zone {
 			& element Validity {
 				element Default { xsd:duration }
 				& element Denial { xsd:duration }
+				& element Keyset { xsd:duration }?
 			}
 			& element Jitter { xsd:duration }
 			& element InceptionOffset { xsd:duration }
@@ -65,7 +67,8 @@ zone = element Zone {
 				# The key locator is matched against the
 				# PKCS#11 CKA_ID and is specified as a string
 				# of hex characters.
-				& element Locator { xsd:hexBinary }
+				& element Locator { xsd:hexBinary }?
+				& element ResourceRecord { xsd:base64Binary }?
 
 				# sign all the DNSKEY RRsets with this key?
 				& element KSK { empty }?
@@ -79,6 +82,8 @@ zone = element Zone {
 				# deactivate this key (i.e. do not recycle any signatures)
 				& element Deactivate { empty }?
 			}*
+
+			& element SignatureResourceRecord { xsd:base64Binary }*
 		}
 
 		# What parameters to use for the SOA record

@@ -131,7 +131,6 @@ ods_log_init(const char *programname, int use_syslog, const char *targetname, in
     } else {
         logfile = stderr;
     }
-    return;
 }
 
 int

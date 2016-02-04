@@ -24,60 +24,46 @@
  *
  */
 
-/**
- * RRset.
- *
- */
-
 #ifndef SIGNER_RRSET_H
 #define SIGNER_RRSET_H
 
 #include "config.h"
+#include <ldns/ldns.h>
+
+typedef struct rrsig_struct rrsig_type;
+typedef struct rr_struct rr_type;
+typedef struct rrset_struct rrset_type;
+
 #include "status.h"
 #include "signer/stats.h"
 #include "libhsm.h"
+#include "domain.h"
+#include "zone.h"
+#include "datastructure.h"
 
-#include <ldns/ldns.h>
-
-/**
- * RRSIG.
- *
- */
-typedef struct rrsig_struct rrsig_type;
 struct rrsig_struct {
     ldns_rr* rr;
-    void* owner;
+    domain_type* owner;
     const char* key_locator;
     uint32_t key_flags;
 };
 
-/**
- * RR.
- *
- */
-typedef struct rr_struct rr_type;
 struct rr_struct {
     ldns_rr* rr;
-    void* owner;
+    domain_type* owner;
     unsigned exists : 1;
     unsigned is_added : 1;
     unsigned is_removed : 1;
 };
 
-/**
- * RRset.
- *
- */
-typedef struct rrset_struct rrset_type;
 struct rrset_struct {
     rrset_type* next;
-    void* zone;
-    void* domain;
+    zone_type* zone;
+    domain_type* domain;
     ldns_rr_type rrtype;
     rr_type* rrs;
-    rrsig_type* rrsigs;
     size_t rr_count;
-    size_t rrsig_count;
+    collection_t rrsigs;
     unsigned needs_signing : 1;
 };
 
@@ -115,7 +101,7 @@ const char* rrset_type2str(ldns_rr_type type);
  * \return rrset_type* RRset
  *
  */
-rrset_type* rrset_create(void* zoneptr, ldns_rr_type type);
+rrset_type* rrset_create(zone_type* zone, ldns_rr_type type);
 
 /**
  * Lookup RR in RRset.
@@ -157,19 +143,18 @@ void rrset_del_rr(rrset_type* rrset, uint16_t rrnum);
  * \param[in] rr RRSIG
  * \param[in] locator key locator
  * \param[in] flags key flags
- * \return rr_type* added RRSIG
  *
  */
-rrsig_type* rrset_add_rrsig(rrset_type* rrset, ldns_rr* rr,
+void rrset_add_rrsig(rrset_type* rrset, ldns_rr* rr,
     const char* locator, uint32_t flags);
 
 /**
- * Delete RRSIG from RRset.
+ * Delete all RRSIG from RRset and add then to the zone's outgoing IXFR as change.
  * \param[in] rrset RRset
  * \param[in] rrnum position of RRSIG
  *
  */
-void rrset_del_rrsig(rrset_type* rrset, uint16_t rrnum);
+void rrset_drop_rrsigs(zone_type* zone, rrset_type* rrset);
 
 /**
  * Apply differences at RRset.
@@ -189,6 +174,16 @@ void rrset_diff(rrset_type* rrset, unsigned is_ixfr, unsigned more_coming);
  *
  */
 ods_status rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime);
+
+/**
+ * Obtain a resource record (containing a signature of a dnskeyset or
+ * a dnskeyset, but that is not a hard requirement), from a raw string
+ * \param[out] dnskey the resulting resource record
+ * \param[in] resourcerecord the string representation of the resource record
+ * \param[in] ttl the time-to-live to use if non is specified
+ * \param[in] apex the owner domain is none can be determined from input string
+ */
+ods_status rrset_getliteralrr(ldns_rr** dnskey, const char *resourcerecord, uint32_t ttl, ldns_rdf* apex);
 
 /**
  * Print RRset.
@@ -215,5 +210,7 @@ void rrset_cleanup(rrset_type* rrset);
  *
  */
 void rrset_backup2(FILE* fd, rrset_type* rrset);
+
+collection_class rrset_store_initialize();
 
 #endif /* SIGNER_RRSET_H */

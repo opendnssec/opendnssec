@@ -24,11 +24,6 @@
  *
  */
 
-/**
- * Zone signing tools.
- *
- */
-
 #ifndef SIGNER_TOOLS_H
 #define SIGNER_TOOLS_H
 

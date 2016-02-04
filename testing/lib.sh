@@ -1076,11 +1076,6 @@ log_this_timeout ()
 		exit 1
 	fi
 
-	if [ "$timeout" -gt 3600 ] 2>/dev/null; then
-		echo "log_this_timeout: Too long timeout used, can't be over 3600 seconds!" >&2
-		exit 1
-	fi
-
 	time_stop=$(( time_start + timeout ))
 
 	touch "$log_stderr" "$log_stdout"
@@ -1339,11 +1334,6 @@ log_waitfor ()
 
 	if [ ! "$timeout" -gt 0 ] 2>/dev/null; then
 		echo "log_waitfor: Wrong timeout value or 0!" >&2
-		exit 1
-	fi
-
-	if [ "$timeout" -gt 3600 ] 2>/dev/null; then
-		echo "log_waitfor: Too long timeout used, can't be over 3600 seconds!" >&2
 		exit 1
 	fi
 
@@ -1627,6 +1617,8 @@ run_tests ()
 			test_failed=1
 			break
 		fi
+		killall -9 ods-signerd
+		killall -9 ods-enforcerd
 	done
 
 	if [ -n "$INTERRUPT_TEST" ]; then
@@ -1840,11 +1832,6 @@ syslog_waitfor ()
 		exit 1
 	fi
 
-	if [ "$timeout" -gt 3600 ] 2>/dev/null; then
-		echo "syslog_waitfor: Too long timeout used, can't be over 3600 seconds!" >&2
-		exit 1
-	fi
-
 	time_stop=$(( time_start + timeout ))
 
 	echo "syslog_waitfor: waiting for syslog to contain (timeout $timeout): $grep_string"
@@ -1893,11 +1880,6 @@ syslog_waitfor_count ()
 
 	if [ ! "$timeout" -gt 0 ] 2>/dev/null; then
 		echo "syslog_waitfor_count: Wrong timeout value or 0!" >&2
-		exit 1
-	fi
-
-	if [ "$timeout" -gt 3600 ] 2>/dev/null; then
-		echo "syslog_waitfor_count: Too long timeout used, can't be over 3600 seconds!" >&2
 		exit 1
 	fi
 
@@ -2046,8 +2028,8 @@ apply_parameter ()
 	done
 
 	for file in $files; do
-		sed 's%@'"$parameter_tag"'@%'"$parameter_value"'%g' "$file" > "$file.$$" 2>/dev/null &&
-		mv "$file.$$" "$file" 2>/dev/null ||
+		sed 's%@'"$parameter_tag"'@%'"$parameter_value"'%g' "$file" > "$file.$$" &&
+		mv "$file.$$" "$file" ||
 		{
 			echo "apply_parameter: Unable to apply parameter $parameter_tag value $parameter_value to file $file" >&2
 			return 1
@@ -2116,11 +2098,6 @@ try_run ()
 		exit 1
 	fi
 
-	if [ "$timeout" -gt 3600 ] 2>/dev/null; then
-		echo "try_run: Too long timeout used, can't be over 3600 seconds!" >&2
-		exit 1
-	fi
-
 	time_stop=$(( time_start + timeout ))
 
 	( $* ) &
@@ -2184,11 +2161,6 @@ waitfor_this ()
 		exit 1
 	fi
 
-	if [ "$timeout" -gt 3600 ] 2>/dev/null; then
-		echo "waitfor_this: Too long timeout used, can't be over 3600 seconds!" >&2
-		exit 1
-	fi
-
 	time_stop=$(( time_start + timeout ))
 
 	echo "waitfor_this: waiting for $file to contain (timeout $timeout): $grep_string"
@@ -2238,11 +2210,6 @@ waitfor_count_this ()
 
 	if [ ! "$timeout" -gt 0 ] 2>/dev/null; then
 		echo "waitfor_count_this: Wrong timeout value or 0!" >&2
-		exit 1
-	fi
-
-	if [ "$timeout" -gt 3600 ] 2>/dev/null; then
-		echo "waitfor_count_this: Too long timeout used, can't be over 3600 seconds!" >&2
 		exit 1
 	fi
 

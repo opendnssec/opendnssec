@@ -24,17 +24,10 @@
  *
  */
 
-/**
- * NSEC3 Parameters.
- *
- */
-
 #ifndef SIGNER_NSEC3PARAMS_H
 #define SIGNER_NSEC3PARAMS_H
 
 #include "config.h"
-#include "status.h"
-
 #include <ctype.h>
 #include <stdint.h>
 #ifdef HAVE_SYS_TYPES_H
@@ -46,18 +39,19 @@
 
 #include <ldns/ldns.h>
 
-/**
- * NSEC3 Parameters structure.
- */
 typedef struct nsec3params_struct nsec3params_type;
+
+#include "status.h"
+#include "signconf.h"
+
 struct nsec3params_struct {
-    void* sc;
-    uint8_t     algorithm;
-    uint8_t     flags;
-    uint16_t    iterations;
-    uint8_t     salt_len;
-    uint8_t*    salt_data;
-    ldns_rr*    rr;
+    signconf_type* sc;
+    uint8_t        algorithm;
+    uint8_t        flags;
+    uint16_t       iterations;
+    uint8_t        salt_len;
+    uint8_t*       salt_data;
+    ldns_rr*       rr;
 };
 
 /**
@@ -97,14 +91,6 @@ nsec3params_type* nsec3params_create(void* sc, uint8_t algo, uint8_t flags,
  */
 void nsec3params_backup(FILE* fd, uint8_t algo, uint8_t flags,
     uint16_t iter, const char* salt, ldns_rr* rr, const char* version);
-
-/**
- * Convert salt to string.
- * \param[in] nsec3params NSEC3 parameters
- * \return const char* str salt in string format
- *
- */
-const char* nsec3params_salt2str(nsec3params_type* nsec3params);
 
 /**
  * Clean up the NSEC3 parameters.

@@ -74,9 +74,7 @@ ods_thr_fork_create(ods_thread_type* thr, void* (*func)(void*), void* arg)
                 strerror(errno));
         default: /* main */
             *thr = (ods_thread_type)pid;
-            return;
     }
-    return;
 }
 
 
@@ -97,7 +95,6 @@ void ods_thr_fork_wait(ods_thread_type thread)
         ods_log_warning("[%s] process %d abnormal exit with status %d",
              lock_str, (int)thread, status);
     }
-    return;
 }
 #else /* defined(HAVE_PTHREAD) */
 
@@ -132,9 +129,6 @@ ods_thread_wait(cond_basic_type* cond, lock_basic_type* lock, time_t wait)
 {
     struct timespec ts;
     int ret = 0;
-
-    /* If timeshift is enabled, we don't care about threads. No need
-     * to take the timeshift into account here */
 
 #ifndef HAVE_CLOCK_GETTIME
     struct timeval tv;

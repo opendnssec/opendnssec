@@ -268,9 +268,7 @@ static void test_policy_set(void) {
     CU_ASSERT(!policy_set_signatures_validity_denial(object, 1));
     CU_ASSERT(!policy_set_signatures_max_zone_ttl(object, 1));
     CU_ASSERT(!policy_set_denial_type(object, POLICY_DENIAL_TYPE_NSEC));
-    CU_ASSERT(!policy_set_denial_type_text(object, "NSEC"));
     CU_ASSERT(!policy_set_denial_type(object, POLICY_DENIAL_TYPE_NSEC3));
-    CU_ASSERT(!policy_set_denial_type_text(object, "NSEC3"));
     CU_ASSERT(!policy_set_denial_optout(object, 1));
     CU_ASSERT(!policy_set_denial_ttl(object, 1));
     CU_ASSERT(!policy_set_denial_resalt(object, 1));
@@ -287,13 +285,9 @@ static void test_policy_set(void) {
     CU_ASSERT(!policy_set_zone_propagation_delay(object, 1));
     CU_ASSERT(!policy_set_zone_soa_ttl(object, 1));
     CU_ASSERT(!policy_set_zone_soa_minimum(object, 1));
-    CU_ASSERT(!policy_set_zone_soa_serial(object, POLICY_ZONE_SOA_SERIAL_COUNTER));
     CU_ASSERT(!policy_set_zone_soa_serial_text(object, "counter"));
-    CU_ASSERT(!policy_set_zone_soa_serial(object, POLICY_ZONE_SOA_SERIAL_DATECOUNTER));
     CU_ASSERT(!policy_set_zone_soa_serial_text(object, "datecounter"));
-    CU_ASSERT(!policy_set_zone_soa_serial(object, POLICY_ZONE_SOA_SERIAL_UNIXTIME));
     CU_ASSERT(!policy_set_zone_soa_serial_text(object, "unixtime"));
-    CU_ASSERT(!policy_set_zone_soa_serial(object, POLICY_ZONE_SOA_SERIAL_KEEP));
     CU_ASSERT(!policy_set_zone_soa_serial_text(object, "keep"));
     CU_ASSERT(!policy_set_parent_registration_delay(object, 1));
     CU_ASSERT(!policy_set_parent_propagation_delay(object, 1));
@@ -315,8 +309,6 @@ static void test_policy_get(void) {
     CU_ASSERT(policy_signatures_validity_denial(object) == 1);
     CU_ASSERT(policy_signatures_max_zone_ttl(object) == 1);
     CU_ASSERT(policy_denial_type(object) == POLICY_DENIAL_TYPE_NSEC3);
-    CU_ASSERT_PTR_NOT_NULL_FATAL(policy_denial_type_text(object));
-    CU_ASSERT(!strcmp(policy_denial_type_text(object), "NSEC3"));
     CU_ASSERT(policy_denial_optout(object) == 1);
     CU_ASSERT(policy_denial_ttl(object) == 1);
     CU_ASSERT(policy_denial_resalt(object) == 1);
@@ -334,7 +326,6 @@ static void test_policy_get(void) {
     CU_ASSERT(policy_zone_propagation_delay(object) == 1);
     CU_ASSERT(policy_zone_soa_ttl(object) == 1);
     CU_ASSERT(policy_zone_soa_minimum(object) == 1);
-    CU_ASSERT(policy_zone_soa_serial(object) == POLICY_ZONE_SOA_SERIAL_KEEP);
     CU_ASSERT_PTR_NOT_NULL_FATAL(policy_zone_soa_serial_text(object));
     CU_ASSERT(!strcmp(policy_zone_soa_serial_text(object), "keep"));
     CU_ASSERT(policy_parent_registration_delay(object) == 1);
@@ -352,7 +343,6 @@ static void test_policy_clauses(void) {
     policy_list_t* new_list;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_name_clause(clause_list, policy_name(object)));
     CU_ASSERT(!policy_list_get_by_clauses(object_list, clause_list));
     CU_ASSERT_PTR_NOT_NULL(policy_list_next(object_list));
     CU_ASSERT_PTR_NOT_NULL((new_list = policy_list_new_get_by_clauses(connection, clause_list)));
@@ -362,7 +352,6 @@ static void test_policy_clauses(void) {
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_description_clause(clause_list, policy_description(object)));
     CU_ASSERT(!policy_list_get_by_clauses(object_list, clause_list));
     CU_ASSERT_PTR_NOT_NULL(policy_list_next(object_list));
     CU_ASSERT_PTR_NOT_NULL((new_list = policy_list_new_get_by_clauses(connection, clause_list)));
@@ -372,7 +361,6 @@ static void test_policy_clauses(void) {
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_signatures_resign_clause(clause_list, policy_signatures_resign(object)));
     CU_ASSERT(!policy_list_get_by_clauses(object_list, clause_list));
     CU_ASSERT_PTR_NOT_NULL(policy_list_next(object_list));
     CU_ASSERT_PTR_NOT_NULL((new_list = policy_list_new_get_by_clauses(connection, clause_list)));
@@ -382,7 +370,6 @@ static void test_policy_clauses(void) {
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_signatures_refresh_clause(clause_list, policy_signatures_refresh(object)));
     CU_ASSERT(!policy_list_get_by_clauses(object_list, clause_list));
     CU_ASSERT_PTR_NOT_NULL(policy_list_next(object_list));
     CU_ASSERT_PTR_NOT_NULL((new_list = policy_list_new_get_by_clauses(connection, clause_list)));
@@ -392,7 +379,6 @@ static void test_policy_clauses(void) {
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_signatures_jitter_clause(clause_list, policy_signatures_jitter(object)));
     CU_ASSERT(!policy_list_get_by_clauses(object_list, clause_list));
     CU_ASSERT_PTR_NOT_NULL(policy_list_next(object_list));
     CU_ASSERT_PTR_NOT_NULL((new_list = policy_list_new_get_by_clauses(connection, clause_list)));
@@ -402,7 +388,6 @@ static void test_policy_clauses(void) {
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_signatures_inception_offset_clause(clause_list, policy_signatures_inception_offset(object)));
     CU_ASSERT(!policy_list_get_by_clauses(object_list, clause_list));
     CU_ASSERT_PTR_NOT_NULL(policy_list_next(object_list));
     CU_ASSERT_PTR_NOT_NULL((new_list = policy_list_new_get_by_clauses(connection, clause_list)));
@@ -412,7 +397,6 @@ static void test_policy_clauses(void) {
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_signatures_validity_default_clause(clause_list, policy_signatures_validity_default(object)));
     CU_ASSERT(!policy_list_get_by_clauses(object_list, clause_list));
     CU_ASSERT_PTR_NOT_NULL(policy_list_next(object_list));
     CU_ASSERT_PTR_NOT_NULL((new_list = policy_list_new_get_by_clauses(connection, clause_list)));
@@ -422,7 +406,6 @@ static void test_policy_clauses(void) {
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_signatures_validity_denial_clause(clause_list, policy_signatures_validity_denial(object)));
     CU_ASSERT(!policy_list_get_by_clauses(object_list, clause_list));
     CU_ASSERT_PTR_NOT_NULL(policy_list_next(object_list));
     CU_ASSERT_PTR_NOT_NULL((new_list = policy_list_new_get_by_clauses(connection, clause_list)));
@@ -432,7 +415,6 @@ static void test_policy_clauses(void) {
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_signatures_max_zone_ttl_clause(clause_list, policy_signatures_max_zone_ttl(object)));
     CU_ASSERT(!policy_list_get_by_clauses(object_list, clause_list));
     CU_ASSERT_PTR_NOT_NULL(policy_list_next(object_list));
     CU_ASSERT_PTR_NOT_NULL((new_list = policy_list_new_get_by_clauses(connection, clause_list)));
@@ -452,7 +434,6 @@ static void test_policy_clauses(void) {
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_denial_optout_clause(clause_list, policy_denial_optout(object)));
     CU_ASSERT(!policy_list_get_by_clauses(object_list, clause_list));
     CU_ASSERT_PTR_NOT_NULL(policy_list_next(object_list));
     CU_ASSERT_PTR_NOT_NULL((new_list = policy_list_new_get_by_clauses(connection, clause_list)));
@@ -462,7 +443,6 @@ static void test_policy_clauses(void) {
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_denial_ttl_clause(clause_list, policy_denial_ttl(object)));
     CU_ASSERT(!policy_list_get_by_clauses(object_list, clause_list));
     CU_ASSERT_PTR_NOT_NULL(policy_list_next(object_list));
     CU_ASSERT_PTR_NOT_NULL((new_list = policy_list_new_get_by_clauses(connection, clause_list)));
@@ -472,7 +452,6 @@ static void test_policy_clauses(void) {
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_denial_resalt_clause(clause_list, policy_denial_resalt(object)));
     CU_ASSERT(!policy_list_get_by_clauses(object_list, clause_list));
     CU_ASSERT_PTR_NOT_NULL(policy_list_next(object_list));
     CU_ASSERT_PTR_NOT_NULL((new_list = policy_list_new_get_by_clauses(connection, clause_list)));
@@ -482,7 +461,6 @@ static void test_policy_clauses(void) {
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_denial_algorithm_clause(clause_list, policy_denial_algorithm(object)));
     CU_ASSERT(!policy_list_get_by_clauses(object_list, clause_list));
     CU_ASSERT_PTR_NOT_NULL(policy_list_next(object_list));
     CU_ASSERT_PTR_NOT_NULL((new_list = policy_list_new_get_by_clauses(connection, clause_list)));
@@ -492,7 +470,6 @@ static void test_policy_clauses(void) {
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_denial_iterations_clause(clause_list, policy_denial_iterations(object)));
     CU_ASSERT(!policy_list_get_by_clauses(object_list, clause_list));
     CU_ASSERT_PTR_NOT_NULL(policy_list_next(object_list));
     CU_ASSERT_PTR_NOT_NULL((new_list = policy_list_new_get_by_clauses(connection, clause_list)));
@@ -502,7 +479,6 @@ static void test_policy_clauses(void) {
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_denial_salt_length_clause(clause_list, policy_denial_salt_length(object)));
     CU_ASSERT(!policy_list_get_by_clauses(object_list, clause_list));
     CU_ASSERT_PTR_NOT_NULL(policy_list_next(object_list));
     CU_ASSERT_PTR_NOT_NULL((new_list = policy_list_new_get_by_clauses(connection, clause_list)));
@@ -512,7 +488,6 @@ static void test_policy_clauses(void) {
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_denial_salt_clause(clause_list, policy_denial_salt(object)));
     CU_ASSERT(!policy_list_get_by_clauses(object_list, clause_list));
     CU_ASSERT_PTR_NOT_NULL(policy_list_next(object_list));
     CU_ASSERT_PTR_NOT_NULL((new_list = policy_list_new_get_by_clauses(connection, clause_list)));
@@ -522,7 +497,6 @@ static void test_policy_clauses(void) {
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_denial_salt_last_change_clause(clause_list, policy_denial_salt_last_change(object)));
     CU_ASSERT(!policy_list_get_by_clauses(object_list, clause_list));
     CU_ASSERT_PTR_NOT_NULL(policy_list_next(object_list));
     CU_ASSERT_PTR_NOT_NULL((new_list = policy_list_new_get_by_clauses(connection, clause_list)));
@@ -532,7 +506,6 @@ static void test_policy_clauses(void) {
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_keys_ttl_clause(clause_list, policy_keys_ttl(object)));
     CU_ASSERT(!policy_list_get_by_clauses(object_list, clause_list));
     CU_ASSERT_PTR_NOT_NULL(policy_list_next(object_list));
     CU_ASSERT_PTR_NOT_NULL((new_list = policy_list_new_get_by_clauses(connection, clause_list)));
@@ -542,7 +515,6 @@ static void test_policy_clauses(void) {
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_keys_retire_safety_clause(clause_list, policy_keys_retire_safety(object)));
     CU_ASSERT(!policy_list_get_by_clauses(object_list, clause_list));
     CU_ASSERT_PTR_NOT_NULL(policy_list_next(object_list));
     CU_ASSERT_PTR_NOT_NULL((new_list = policy_list_new_get_by_clauses(connection, clause_list)));
@@ -552,7 +524,6 @@ static void test_policy_clauses(void) {
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_keys_publish_safety_clause(clause_list, policy_keys_publish_safety(object)));
     CU_ASSERT(!policy_list_get_by_clauses(object_list, clause_list));
     CU_ASSERT_PTR_NOT_NULL(policy_list_next(object_list));
     CU_ASSERT_PTR_NOT_NULL((new_list = policy_list_new_get_by_clauses(connection, clause_list)));
@@ -562,7 +533,6 @@ static void test_policy_clauses(void) {
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_keys_shared_clause(clause_list, policy_keys_shared(object)));
     CU_ASSERT(!policy_list_get_by_clauses(object_list, clause_list));
     CU_ASSERT_PTR_NOT_NULL(policy_list_next(object_list));
     CU_ASSERT_PTR_NOT_NULL((new_list = policy_list_new_get_by_clauses(connection, clause_list)));
@@ -572,7 +542,6 @@ static void test_policy_clauses(void) {
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_keys_purge_after_clause(clause_list, policy_keys_purge_after(object)));
     CU_ASSERT(!policy_list_get_by_clauses(object_list, clause_list));
     CU_ASSERT_PTR_NOT_NULL(policy_list_next(object_list));
     CU_ASSERT_PTR_NOT_NULL((new_list = policy_list_new_get_by_clauses(connection, clause_list)));
@@ -582,7 +551,6 @@ static void test_policy_clauses(void) {
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_zone_propagation_delay_clause(clause_list, policy_zone_propagation_delay(object)));
     CU_ASSERT(!policy_list_get_by_clauses(object_list, clause_list));
     CU_ASSERT_PTR_NOT_NULL(policy_list_next(object_list));
     CU_ASSERT_PTR_NOT_NULL((new_list = policy_list_new_get_by_clauses(connection, clause_list)));
@@ -592,7 +560,6 @@ static void test_policy_clauses(void) {
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_zone_soa_ttl_clause(clause_list, policy_zone_soa_ttl(object)));
     CU_ASSERT(!policy_list_get_by_clauses(object_list, clause_list));
     CU_ASSERT_PTR_NOT_NULL(policy_list_next(object_list));
     CU_ASSERT_PTR_NOT_NULL((new_list = policy_list_new_get_by_clauses(connection, clause_list)));
@@ -602,7 +569,6 @@ static void test_policy_clauses(void) {
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_zone_soa_minimum_clause(clause_list, policy_zone_soa_minimum(object)));
     CU_ASSERT(!policy_list_get_by_clauses(object_list, clause_list));
     CU_ASSERT_PTR_NOT_NULL(policy_list_next(object_list));
     CU_ASSERT_PTR_NOT_NULL((new_list = policy_list_new_get_by_clauses(connection, clause_list)));
@@ -612,7 +578,6 @@ static void test_policy_clauses(void) {
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_zone_soa_serial_clause(clause_list, policy_zone_soa_serial(object)));
     CU_ASSERT(!policy_list_get_by_clauses(object_list, clause_list));
     CU_ASSERT_PTR_NOT_NULL(policy_list_next(object_list));
     CU_ASSERT_PTR_NOT_NULL((new_list = policy_list_new_get_by_clauses(connection, clause_list)));
@@ -622,7 +587,6 @@ static void test_policy_clauses(void) {
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_parent_registration_delay_clause(clause_list, policy_parent_registration_delay(object)));
     CU_ASSERT(!policy_list_get_by_clauses(object_list, clause_list));
     CU_ASSERT_PTR_NOT_NULL(policy_list_next(object_list));
     CU_ASSERT_PTR_NOT_NULL((new_list = policy_list_new_get_by_clauses(connection, clause_list)));
@@ -632,7 +596,6 @@ static void test_policy_clauses(void) {
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_parent_propagation_delay_clause(clause_list, policy_parent_propagation_delay(object)));
     CU_ASSERT(!policy_list_get_by_clauses(object_list, clause_list));
     CU_ASSERT_PTR_NOT_NULL(policy_list_next(object_list));
     CU_ASSERT_PTR_NOT_NULL((new_list = policy_list_new_get_by_clauses(connection, clause_list)));
@@ -642,7 +605,6 @@ static void test_policy_clauses(void) {
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_parent_ds_ttl_clause(clause_list, policy_parent_ds_ttl(object)));
     CU_ASSERT(!policy_list_get_by_clauses(object_list, clause_list));
     CU_ASSERT_PTR_NOT_NULL(policy_list_next(object_list));
     CU_ASSERT_PTR_NOT_NULL((new_list = policy_list_new_get_by_clauses(connection, clause_list)));
@@ -652,7 +614,6 @@ static void test_policy_clauses(void) {
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_parent_soa_ttl_clause(clause_list, policy_parent_soa_ttl(object)));
     CU_ASSERT(!policy_list_get_by_clauses(object_list, clause_list));
     CU_ASSERT_PTR_NOT_NULL(policy_list_next(object_list));
     CU_ASSERT_PTR_NOT_NULL((new_list = policy_list_new_get_by_clauses(connection, clause_list)));
@@ -662,243 +623,11 @@ static void test_policy_clauses(void) {
     clause_list = NULL;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_parent_soa_minimum_clause(clause_list, policy_parent_soa_minimum(object)));
     CU_ASSERT(!policy_list_get_by_clauses(object_list, clause_list));
     CU_ASSERT_PTR_NOT_NULL(policy_list_next(object_list));
     CU_ASSERT_PTR_NOT_NULL((new_list = policy_list_new_get_by_clauses(connection, clause_list)));
     CU_ASSERT_PTR_NOT_NULL(policy_list_next(new_list));
     policy_list_free(new_list);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-}
-
-static void test_policy_count(void) {
-    size_t count;
-
-    CU_ASSERT(!policy_count(object, NULL, &count));
-    CU_ASSERT(count == 1);
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_name_clause(clause_list, policy_name(object)));
-    CU_ASSERT(!policy_count(object, clause_list, &count));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_description_clause(clause_list, policy_description(object)));
-    CU_ASSERT(!policy_count(object, clause_list, &count));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_signatures_resign_clause(clause_list, policy_signatures_resign(object)));
-    CU_ASSERT(!policy_count(object, clause_list, &count));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_signatures_refresh_clause(clause_list, policy_signatures_refresh(object)));
-    CU_ASSERT(!policy_count(object, clause_list, &count));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_signatures_jitter_clause(clause_list, policy_signatures_jitter(object)));
-    CU_ASSERT(!policy_count(object, clause_list, &count));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_signatures_inception_offset_clause(clause_list, policy_signatures_inception_offset(object)));
-    CU_ASSERT(!policy_count(object, clause_list, &count));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_signatures_validity_default_clause(clause_list, policy_signatures_validity_default(object)));
-    CU_ASSERT(!policy_count(object, clause_list, &count));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_signatures_validity_denial_clause(clause_list, policy_signatures_validity_denial(object)));
-    CU_ASSERT(!policy_count(object, clause_list, &count));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_signatures_max_zone_ttl_clause(clause_list, policy_signatures_max_zone_ttl(object)));
-    CU_ASSERT(!policy_count(object, clause_list, &count));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_denial_type_clause(clause_list, policy_denial_type(object)));
-    CU_ASSERT(!policy_count(object, clause_list, &count));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_denial_optout_clause(clause_list, policy_denial_optout(object)));
-    CU_ASSERT(!policy_count(object, clause_list, &count));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_denial_ttl_clause(clause_list, policy_denial_ttl(object)));
-    CU_ASSERT(!policy_count(object, clause_list, &count));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_denial_resalt_clause(clause_list, policy_denial_resalt(object)));
-    CU_ASSERT(!policy_count(object, clause_list, &count));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_denial_algorithm_clause(clause_list, policy_denial_algorithm(object)));
-    CU_ASSERT(!policy_count(object, clause_list, &count));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_denial_iterations_clause(clause_list, policy_denial_iterations(object)));
-    CU_ASSERT(!policy_count(object, clause_list, &count));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_denial_salt_length_clause(clause_list, policy_denial_salt_length(object)));
-    CU_ASSERT(!policy_count(object, clause_list, &count));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_denial_salt_clause(clause_list, policy_denial_salt(object)));
-    CU_ASSERT(!policy_count(object, clause_list, &count));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_denial_salt_last_change_clause(clause_list, policy_denial_salt_last_change(object)));
-    CU_ASSERT(!policy_count(object, clause_list, &count));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_keys_ttl_clause(clause_list, policy_keys_ttl(object)));
-    CU_ASSERT(!policy_count(object, clause_list, &count));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_keys_retire_safety_clause(clause_list, policy_keys_retire_safety(object)));
-    CU_ASSERT(!policy_count(object, clause_list, &count));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_keys_publish_safety_clause(clause_list, policy_keys_publish_safety(object)));
-    CU_ASSERT(!policy_count(object, clause_list, &count));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_keys_shared_clause(clause_list, policy_keys_shared(object)));
-    CU_ASSERT(!policy_count(object, clause_list, &count));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_keys_purge_after_clause(clause_list, policy_keys_purge_after(object)));
-    CU_ASSERT(!policy_count(object, clause_list, &count));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_zone_propagation_delay_clause(clause_list, policy_zone_propagation_delay(object)));
-    CU_ASSERT(!policy_count(object, clause_list, &count));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_zone_soa_ttl_clause(clause_list, policy_zone_soa_ttl(object)));
-    CU_ASSERT(!policy_count(object, clause_list, &count));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_zone_soa_minimum_clause(clause_list, policy_zone_soa_minimum(object)));
-    CU_ASSERT(!policy_count(object, clause_list, &count));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_zone_soa_serial_clause(clause_list, policy_zone_soa_serial(object)));
-    CU_ASSERT(!policy_count(object, clause_list, &count));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_parent_registration_delay_clause(clause_list, policy_parent_registration_delay(object)));
-    CU_ASSERT(!policy_count(object, clause_list, &count));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_parent_propagation_delay_clause(clause_list, policy_parent_propagation_delay(object)));
-    CU_ASSERT(!policy_count(object, clause_list, &count));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_parent_ds_ttl_clause(clause_list, policy_parent_ds_ttl(object)));
-    CU_ASSERT(!policy_count(object, clause_list, &count));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_parent_soa_ttl_clause(clause_list, policy_parent_soa_ttl(object)));
-    CU_ASSERT(!policy_count(object, clause_list, &count));
-    CU_ASSERT(count == 1);
-    db_clause_list_free(clause_list);
-    clause_list = NULL;
-
-    CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
-    CU_ASSERT_PTR_NOT_NULL(policy_parent_soa_minimum_clause(clause_list, policy_parent_soa_minimum(object)));
-    CU_ASSERT(!policy_count(object, clause_list, &count));
-    CU_ASSERT(count == 1);
     db_clause_list_free(clause_list);
     clause_list = NULL;
 }
@@ -917,9 +646,6 @@ static void test_policy_list(void) {
     CU_ASSERT_PTR_NOT_NULL_FATAL((item2 = policy_list_get_next(object_list)));
     policy_free(item2);
     CU_PASS("policy_free");
-    CU_ASSERT_PTR_NOT_NULL_FATAL((item2 = policy_list_get_begin(object_list)));
-    policy_free(item2);
-    CU_PASS("policy_free");
 
     CU_ASSERT_PTR_NOT_NULL((new_list = policy_list_new_get(connection)));
     CU_ASSERT_PTR_NOT_NULL(policy_list_next(new_list));
@@ -927,7 +653,6 @@ static void test_policy_list(void) {
 }
 
 static void test_policy_list_store(void) {
-    policy_t* item;
     policy_list_t* new_list;
 
     CU_ASSERT_PTR_NOT_NULL((new_list = policy_list_new(connection)));
@@ -937,37 +662,27 @@ static void test_policy_list_store(void) {
     CU_ASSERT_PTR_NOT_NULL_FATAL(policy_list_next(new_list));
     CU_ASSERT_PTR_NOT_NULL_FATAL(policy_list_begin(new_list));
 
-    CU_ASSERT_PTR_NOT_NULL_FATAL((item = policy_list_get_begin(new_list)));
-    policy_free(item);
     CU_PASS("policy_free");
 
     policy_list_free(new_list);
 }
 
 static void test_policy_list_associated(void) {
-    policy_t* item;
     policy_list_t* new_list;
 
     CU_ASSERT_PTR_NOT_NULL((new_list = policy_list_new(connection)));
-    CU_ASSERT_FATAL(!policy_list_associated_fetch(new_list));
     CU_ASSERT_FATAL(!policy_list_get(new_list));
 
     CU_ASSERT_PTR_NOT_NULL_FATAL(policy_list_next(new_list));
     CU_ASSERT_PTR_NOT_NULL_FATAL(policy_list_begin(new_list));
 
-    CU_ASSERT_PTR_NOT_NULL_FATAL((item = policy_list_get_begin(new_list)));
-    policy_free(item);
     CU_PASS("policy_free");
 
     policy_list_free(new_list);
 }
 
 static void test_policy_read(void) {
-    policy_t* item;
-
     CU_ASSERT_FATAL(!policy_get_by_id(object, &id));
-    CU_ASSERT_PTR_NOT_NULL((item = policy_new_get_by_id(connection, &id)));
-    policy_free(item);
 }
 
 static void test_policy_verify(void) {
@@ -983,8 +698,6 @@ static void test_policy_verify(void) {
     CU_ASSERT(policy_signatures_validity_denial(object) == 1);
     CU_ASSERT(policy_signatures_max_zone_ttl(object) == 1);
     CU_ASSERT(policy_denial_type(object) == POLICY_DENIAL_TYPE_NSEC3);
-    CU_ASSERT_PTR_NOT_NULL_FATAL(policy_denial_type_text(object));
-    CU_ASSERT(!strcmp(policy_denial_type_text(object), "NSEC3"));
     CU_ASSERT(policy_denial_optout(object) == 1);
     CU_ASSERT(policy_denial_ttl(object) == 1);
     CU_ASSERT(policy_denial_resalt(object) == 1);
@@ -1002,7 +715,6 @@ static void test_policy_verify(void) {
     CU_ASSERT(policy_zone_propagation_delay(object) == 1);
     CU_ASSERT(policy_zone_soa_ttl(object) == 1);
     CU_ASSERT(policy_zone_soa_minimum(object) == 1);
-    CU_ASSERT(policy_zone_soa_serial(object) == POLICY_ZONE_SOA_SERIAL_KEEP);
     CU_ASSERT_PTR_NOT_NULL_FATAL(policy_zone_soa_serial_text(object));
     CU_ASSERT(!strcmp(policy_zone_soa_serial_text(object), "keep"));
     CU_ASSERT(policy_parent_registration_delay(object) == 1);
@@ -1029,8 +741,6 @@ static void test_policy_verify_name(void) {
     CU_ASSERT(policy_signatures_validity_denial(object) == 1);
     CU_ASSERT(policy_signatures_max_zone_ttl(object) == 1);
     CU_ASSERT(policy_denial_type(object) == POLICY_DENIAL_TYPE_NSEC3);
-    CU_ASSERT_PTR_NOT_NULL_FATAL(policy_denial_type_text(object));
-    CU_ASSERT(!strcmp(policy_denial_type_text(object), "NSEC3"));
     CU_ASSERT(policy_denial_optout(object) == 1);
     CU_ASSERT(policy_denial_ttl(object) == 1);
     CU_ASSERT(policy_denial_resalt(object) == 1);
@@ -1048,7 +758,6 @@ static void test_policy_verify_name(void) {
     CU_ASSERT(policy_zone_propagation_delay(object) == 1);
     CU_ASSERT(policy_zone_soa_ttl(object) == 1);
     CU_ASSERT(policy_zone_soa_minimum(object) == 1);
-    CU_ASSERT(policy_zone_soa_serial(object) == POLICY_ZONE_SOA_SERIAL_KEEP);
     CU_ASSERT_PTR_NOT_NULL_FATAL(policy_zone_soa_serial_text(object));
     CU_ASSERT(!strcmp(policy_zone_soa_serial_text(object), "keep"));
     CU_ASSERT(policy_parent_registration_delay(object) == 1);
@@ -1069,7 +778,6 @@ static void test_policy_change(void) {
     CU_ASSERT(!policy_set_signatures_validity_denial(object, 2));
     CU_ASSERT(!policy_set_signatures_max_zone_ttl(object, 2));
     CU_ASSERT(!policy_set_denial_type(object, POLICY_DENIAL_TYPE_NSEC));
-    CU_ASSERT(!policy_set_denial_type_text(object, "NSEC"));
     CU_ASSERT(!policy_set_denial_optout(object, 2));
     CU_ASSERT(!policy_set_denial_ttl(object, 2));
     CU_ASSERT(!policy_set_denial_resalt(object, 2));
@@ -1086,7 +794,6 @@ static void test_policy_change(void) {
     CU_ASSERT(!policy_set_zone_propagation_delay(object, 2));
     CU_ASSERT(!policy_set_zone_soa_ttl(object, 2));
     CU_ASSERT(!policy_set_zone_soa_minimum(object, 2));
-    CU_ASSERT(!policy_set_zone_soa_serial(object, POLICY_ZONE_SOA_SERIAL_COUNTER));
     CU_ASSERT(!policy_set_zone_soa_serial_text(object, "counter"));
     CU_ASSERT(!policy_set_parent_registration_delay(object, 2));
     CU_ASSERT(!policy_set_parent_propagation_delay(object, 2));
@@ -1116,8 +823,6 @@ static void test_policy_verify2(void) {
     CU_ASSERT(policy_signatures_validity_denial(object) == 2);
     CU_ASSERT(policy_signatures_max_zone_ttl(object) == 2);
     CU_ASSERT(policy_denial_type(object) == POLICY_DENIAL_TYPE_NSEC);
-    CU_ASSERT_PTR_NOT_NULL_FATAL(policy_denial_type_text(object));
-    CU_ASSERT(!strcmp(policy_denial_type_text(object), "NSEC"));
     CU_ASSERT(policy_denial_optout(object) == 2);
     CU_ASSERT(policy_denial_ttl(object) == 2);
     CU_ASSERT(policy_denial_resalt(object) == 2);
@@ -1135,7 +840,6 @@ static void test_policy_verify2(void) {
     CU_ASSERT(policy_zone_propagation_delay(object) == 2);
     CU_ASSERT(policy_zone_soa_ttl(object) == 2);
     CU_ASSERT(policy_zone_soa_minimum(object) == 2);
-    CU_ASSERT(policy_zone_soa_serial(object) == POLICY_ZONE_SOA_SERIAL_COUNTER);
     CU_ASSERT_PTR_NOT_NULL_FATAL(policy_zone_soa_serial_text(object));
     CU_ASSERT(!strcmp(policy_zone_soa_serial_text(object), "counter"));
     CU_ASSERT(policy_parent_registration_delay(object) == 2);
@@ -1149,7 +853,6 @@ static void test_policy_cmp(void) {
     policy_t* local_object;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((local_object = policy_new(connection)));
-    CU_ASSERT(policy_cmp(object, local_object));
 }
 
 static void test_policy_read_by_name2(void) {
@@ -1169,8 +872,6 @@ static void test_policy_verify_name2(void) {
     CU_ASSERT(policy_signatures_validity_denial(object) == 2);
     CU_ASSERT(policy_signatures_max_zone_ttl(object) == 2);
     CU_ASSERT(policy_denial_type(object) == POLICY_DENIAL_TYPE_NSEC);
-    CU_ASSERT_PTR_NOT_NULL_FATAL(policy_denial_type_text(object));
-    CU_ASSERT(!strcmp(policy_denial_type_text(object), "NSEC"));
     CU_ASSERT(policy_denial_optout(object) == 2);
     CU_ASSERT(policy_denial_ttl(object) == 2);
     CU_ASSERT(policy_denial_resalt(object) == 2);
@@ -1188,7 +889,6 @@ static void test_policy_verify_name2(void) {
     CU_ASSERT(policy_zone_propagation_delay(object) == 2);
     CU_ASSERT(policy_zone_soa_ttl(object) == 2);
     CU_ASSERT(policy_zone_soa_minimum(object) == 2);
-    CU_ASSERT(policy_zone_soa_serial(object) == POLICY_ZONE_SOA_SERIAL_COUNTER);
     CU_ASSERT_PTR_NOT_NULL_FATAL(policy_zone_soa_serial_text(object));
     CU_ASSERT(!strcmp(policy_zone_soa_serial_text(object), "counter"));
     CU_ASSERT(policy_parent_registration_delay(object) == 2);
@@ -1224,7 +924,6 @@ static int test_policy_add_tests(CU_pSuite pSuite) {
         || !CU_add_test(pSuite, "get fields", test_policy_get)
         || !CU_add_test(pSuite, "create object", test_policy_create)
         || !CU_add_test(pSuite, "object clauses", test_policy_clauses)
-        || !CU_add_test(pSuite, "object count", test_policy_count)
         || !CU_add_test(pSuite, "list objects", test_policy_list)
         || !CU_add_test(pSuite, "list objects (store)", test_policy_list_store)
         || !CU_add_test(pSuite, "list objects (associated)", test_policy_list_associated)

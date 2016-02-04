@@ -49,24 +49,15 @@ static void xfrhandler_handle_dns(netio_type* netio,
  *
  */
 xfrhandler_type*
-xfrhandler_create(allocator_type* allocator)
+xfrhandler_create()
 {
     xfrhandler_type* xfrh = NULL;
-    if (!allocator) {
-        return NULL;
-    }
-    xfrh = (xfrhandler_type*) allocator_alloc(allocator,
-        sizeof(xfrhandler_type));
-    if (!xfrh) {
-        ods_log_error("[%s] unable to create xfrhandler: "
-            "allocator_alloc() failed", xfrh_str);
-        return NULL;
-    }
-    xfrh->allocator = allocator;
+    CHECKALLOC(xfrh = (xfrhandler_type*) malloc(sizeof(xfrhandler_type)));
     xfrh->engine = NULL;
     xfrh->packet = NULL;
     xfrh->netio = NULL;
     xfrh->tcp_set = NULL;
+    xfrh->tcp_waiting_first = NULL;
     xfrh->udp_waiting_first = NULL;
     xfrh->udp_waiting_last = NULL;
     xfrh->udp_use_num = 0;
@@ -80,21 +71,21 @@ xfrhandler_create(allocator_type* allocator)
     xfrh->notify_waiting_last = NULL;
     xfrh->notify_udp_num = 0;
     /* setup */
-    xfrh->netio = netio_create(allocator);
+    xfrh->netio = netio_create();
     if (!xfrh->netio) {
         ods_log_error("[%s] unable to create xfrhandler: "
             "netio_create() failed", xfrh_str);
         xfrhandler_cleanup(xfrh);
         return NULL;
     }
-    xfrh->packet = buffer_create(allocator, PACKET_BUFFER_SIZE);
+    xfrh->packet = buffer_create(PACKET_BUFFER_SIZE);
     if (!xfrh->packet) {
         ods_log_error("[%s] unable to create xfrhandler: "
             "buffer_create() failed", xfrh_str);
         xfrhandler_cleanup(xfrh);
         return NULL;
     }
-    xfrh->tcp_set = tcp_set_create(allocator);
+    xfrh->tcp_set = tcp_set_create();
     if (!xfrh->tcp_set) {
         ods_log_error("[%s] unable to create xfrhandler: "
             "tcp_set_create() failed", xfrh_str);
@@ -138,13 +129,6 @@ xfrhandler_start(xfrhandler_type* xfrhandler)
     }
     /* shutdown */
     ods_log_debug("[%s] shutdown", xfrh_str);
-    return;
-
-/*
-    xfrd_write_state(xfrd);
-*/
-    /* close tcp sockets */
-    /* close udp sockets */
 }
 
 
@@ -176,7 +160,6 @@ xfrhandler_signal(xfrhandler_type* xfrhandler)
     if (xfrhandler && xfrhandler->started) {
         ods_thread_kill(xfrhandler->thread_id, SIGHUP);
     }
-    return;
 }
 
 
@@ -203,7 +186,6 @@ xfrhandler_handle_dns(netio_type* ATTR_UNUSED(netio),
         ods_log_error("[%s] unable to forward dns packet: %s", xfrh_str,
             strerror(errno));
     }
-    return;
 }
 
 
@@ -214,14 +196,11 @@ xfrhandler_handle_dns(netio_type* ATTR_UNUSED(netio),
 void
 xfrhandler_cleanup(xfrhandler_type* xfrhandler)
 {
-    allocator_type* allocator = NULL;
     if (!xfrhandler) {
         return;
     }
-    allocator = xfrhandler->allocator;
     netio_cleanup(xfrhandler->netio);
-    buffer_cleanup(xfrhandler->packet, allocator);
-    tcp_set_cleanup(xfrhandler->tcp_set, allocator);
-    allocator_deallocate(allocator, (void*) xfrhandler);
-    return;
+    buffer_cleanup(xfrhandler->packet);
+    tcp_set_cleanup(xfrhandler->tcp_set);
+    free(xfrhandler);
 }

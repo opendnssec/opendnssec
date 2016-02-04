@@ -16,7 +16,7 @@
 		<ZoneListFile>@INSTALL_ROOT@/etc/opendnssec/zonelist.xml</ZoneListFile>
 	</Common>
 	<Enforcer>
-		<Datastore><MySQL><Host port="3306">www.opendnssec.org</Host><Database>test</Database><Username>test</Username><Password>test</Password></MySQL></Datastore>
+		<Datastore><MySQL><Host Port="3306">www.opendnssec.org</Host><Database>test</Database><Username>test</Username><Password>test</Password></MySQL></Datastore>
 		<Interval>PT3600S</Interval>
 	</Enforcer>
 	<Signer>

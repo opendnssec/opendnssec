@@ -33,11 +33,6 @@
 #define ADAPTER_ADAPTER_H
 
 #include "config.h"
-#include "adapter/addns.h"
-#include "adapter/adfile.h"
-#include "allocator.h"
-#include "status.h"
-
 #include <stdio.h>
 
 /** Adapter mode. */
@@ -48,17 +43,22 @@ enum adapter_mode_enum
 };
 typedef enum adapter_mode_enum adapter_mode;
 
+typedef struct adapter_struct adapter_type;
+
+#include "adapter/addns.h"
+#include "adapter/adfile.h"
+#include "status.h"
+#include "signer/zone.h"
+
 /**
  * Adapter.
  *
  */
-typedef struct adapter_struct adapter_type;
 struct adapter_struct {
-    allocator_type* allocator;
     adapter_mode type;
     time_t config_last_modified;
     const char* configstr;
-    void* config;
+    void* config; /* TODO used either as dnsin_t* or dnsout_t* */
     unsigned inbound : 1;
     unsigned error : 1;
 };
@@ -96,7 +96,7 @@ int adapter_compare(adapter_type* a1, adapter_type* a2);
  * \return ods_status status
  *
  */
-ods_status adapter_read(void* zone);
+ods_status adapter_read(zone_type* zone);
 
 /**
  * Write zone to output adapter.
@@ -104,7 +104,7 @@ ods_status adapter_read(void* zone);
  * \return ods_status status
  *
  */
-ods_status adapter_write(void* zone);
+ods_status adapter_write(zone_type* zone);
 
 /**
  * Clean up adapter.
