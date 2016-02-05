@@ -20,10 +20,9 @@ SUBDIRS += enforcer
 endif
 
 EXTRA_DIST =	$(srcdir)/LICENSE \
-		$(srcdir)/KNOWN_ISSUES \
 		$(srcdir)/MIGRATION \
 		$(srcdir)/README.md \
-		$(srcdir)/README.enforcer_testers \
+		$(srcdir)/plugins/ods-sequencer \
 		$(srcdir)/plugins/simple-dnskey-mailer/simple-dnskey-mailer.sh
 
 
