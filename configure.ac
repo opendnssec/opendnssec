@@ -216,7 +216,6 @@ AC_CONFIG_FILES([
 	conf/zonelist.xml
 	enforcer/Makefile
 	enforcer/src/Makefile
-	enforcer/src/utils/Makefile
 	enforcer/man/Makefile
 	enforcer/src/db/test/Makefile
 	enforcer/man/ods-enforcer.8
