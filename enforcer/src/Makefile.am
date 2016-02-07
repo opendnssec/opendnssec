@@ -1,16 +1,13 @@
-LIBCOMPAT = ${top_builddir}/common/libcompat.a
-
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
-
-BUILT_SOURCES = 
 
 EXTRA_DIST = 
 
 CLEANFILES = $(BUILT_SOURCES)
 
 LIBHSM = ${top_builddir}/libhsm/src/lib/libhsm.a
+LIBCOMPAT = ${top_builddir}/common/libcompat.a
 
-SUBDIRS = utils db/test
+SUBDIRS = db/test
 
 AM_CFLAGS = \
 	-I$(top_srcdir)/common \
@@ -23,10 +20,10 @@ AM_CFLAGS = \
 
 enforcerdir =	@libdir@/opendnssec/enforcer
 
+bin_PROGRAMS = ods-kaspcheck
 sbin_PROGRAMS =	ods-enforcerd ods-enforcer ods-enforcer-db-setup
 # man8_MANS =	man/ods-enforcer.8 man/ods-enforcerd.8
-
-nodist_ods_enforcerd_SOURCES = $(BUILT_SOURCES)
+dist_man1_MANS = utils/ods-kaspcheck.1
 
 BACKEND_SOURCES_CUSTOM =
 BACKEND_LDFLAGS_CUSTOM = -lm
@@ -163,3 +160,8 @@ ods_enforcer_db_setup_LDADD = \
 
 ods_enforcer_db_setup_LDFLAGS = \
 	$(BACKEND_LDFLAGS_CUSTOM)
+
+ods_kaspcheck_SOURCES = utils/kaspcheck.c utils/kaspcheck.h utils/kc_helper.c utils/kc_helper.h
+
+ods_kaspcheck_LDADD = $(LIBHSM) $(LIBCOMPAT)
+ods_kaspcheck_LDADD += @XML2_LIBS@
