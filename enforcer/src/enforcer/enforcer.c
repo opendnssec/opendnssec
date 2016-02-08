@@ -1515,7 +1515,7 @@ updateZone(db_connection_t *dbconn, policy_t* policy, zone_t* zone,
 		else {
 			ttl = policy_keys_ttl(policy);
 		}
-		if (zone_set_ttl_end_dk(zone, ttl)) {
+		if (zone_set_ttl_end_dk(zone, addtime(now, ttl))) {
             ods_log_error("[%s] %s: zone_set_ttl_end_dk() failed", module_str, scmd);
             process = 0;
         }
