@@ -28,31 +28,31 @@ BACKEND_LDADD_CUSTOM =
 BACKEND_LDFLAGS_CUSTOM =
 
 if USE_SQLITE
-BACKEND_LDADD_CUSTOM += ../../db_backend_sqlite.o
+BACKEND_LDADD_CUSTOM += ../db_backend_sqlite.o
 endif
 
 if USE_MYSQL
-BACKEND_LDADD_CUSTOM += ../../db_backend_mysql.o
+BACKEND_LDADD_CUSTOM += ../db_backend_mysql.o
 endif
 
 test_LDADD = \
-	../../db_backend.o \
-	../../db_clause.o \
-	../../db_configuration.o \
-	../../db_connection.o \
-	../../db_join.o \
-	../../db_object.o \
-	../../db_result.o \
-	../../db_value.o \
-	../../hsm_key.o ../../hsm_key_ext.o \
-	../../key_data.o ../../key_data_ext.o \
-	../../key_state.o ../../key_state_ext.o \
-	../../key_dependency.o ../../key_dependency_ext.o \
-	../../policy.o ../../policy_ext.o \
-	../../policy_key.o ../../policy_key_ext.o \
-	../../database_version.o ../../database_version_ext.o \
-	../../zone.o ../../zone_ext.o \
-	../../../../common/duration.o \
+	../db_backend.o \
+	../db_clause.o \
+	../db_configuration.o \
+	../db_connection.o \
+	../db_join.o \
+	../db_object.o \
+	../db_result.o \
+	../db_value.o \
+	../hsm_key.o ../hsm_key_ext.o \
+	../key_data.o ../key_data_ext.o \
+	../key_state.o ../key_state_ext.o \
+	../key_dependency.o ../key_dependency_ext.o \
+	../policy.o ../policy_ext.o \
+	../policy_key.o ../policy_key_ext.o \
+	../database_version.o ../database_version_ext.o \
+	../zone.o ../zone_ext.o \
+	${top_builddir}/common/duration.o \
 	$(BACKEND_LDADD_CUSTOM)
 
 test_LDFLAGS = -no-install \
