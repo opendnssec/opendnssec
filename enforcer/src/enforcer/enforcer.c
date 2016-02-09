@@ -1127,7 +1127,7 @@ policyApproval(key_data_t** keylist, size_t keylist_size,
          * If we want to minimize the DS transitions make sure the DNSKEY is
          * fully propagated.
          */
-        if (key_state_minimize(key_data_cached_ds(future_key->key))
+        if (key_state_minimize(key_data_cached_ds(future_key->key))&0x4
             && key_state_state(key_data_cached_dnskey(future_key->key)) != OMNIPRESENT)
         {
             /*
@@ -1138,7 +1138,7 @@ policyApproval(key_data_t** keylist, size_t keylist_size,
         break;
 
     case KEY_STATE_TYPE_DNSKEY:
-        if (!key_state_minimize(key_data_cached_dnskey(future_key->key))) {
+        if (!(key_state_minimize(key_data_cached_dnskey(future_key->key))&0x2)) {
             /*
              * There are no restrictions for the DNSKEY transition so we can
              * just continue.
@@ -1197,7 +1197,7 @@ policyApproval(key_data_t** keylist, size_t keylist_size,
         break;
 
     case KEY_STATE_TYPE_RRSIG:
-        if (!key_state_minimize(key_data_cached_rrsig(future_key->key))) {
+        if (!(key_state_minimize(key_data_cached_rrsig(future_key->key))&0x1)) {
             /*
              * There are no restrictions for the RRSIG transition so we can
              * just continue.
