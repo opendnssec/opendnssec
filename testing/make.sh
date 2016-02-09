@@ -32,7 +32,7 @@ if [ \! -f $INSTALL_ROOT/.softhsm2.ok ] ; then
   #             --with-botan="$INSTALL_ROOT"
   ./configure --prefix="$INSTALL_ROOT" \
               --disable-non-paged-memory \
-              --with-migrate \
+              --with-migrate --disable-gost \
               --with-crypto-backend=openssl
   make
   make install
