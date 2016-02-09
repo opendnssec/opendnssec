@@ -3,11 +3,6 @@
 if [ -n "$HAVE_MYSQL" ]; then
 	return 0
 fi
-if [ "`uname -n`" = "ubuntu10-ods01" ]; then
-	# This test will fail on old, no longer in LTS Ubuntu 10 machines
-	# due to historic version of libbotan (1.8.2).
-	return 0
-fi
 
 PATH=$INSTALL_ROOT/bin:$INSTALL_ROOT/sbin:$PATH
 echo $PATH
