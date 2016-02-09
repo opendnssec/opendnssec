@@ -4,10 +4,8 @@ AC_PREREQ(2.61)
 AC_INIT([opendnssec], OPENDNSSEC_VERSION, [http://bugs.opendnssec.org/])
 AM_DEFAULT_VERBOSITY="0"
 AC_SUBST([AM_DEFAULT_VERBOSITY])
-
-AM_INIT_AUTOMAKE
+AM_INIT_AUTOMAKE([foreign subdir-objects])
 AC_CONFIG_MACRO_DIR([m4])
-AM_INIT_AUTOMAKE(foreign)
 ACX_PREFIXHACK
 
 OPENDNSSEC_COMMON
@@ -20,7 +18,6 @@ AC_PROG_CC
 AC_PROG_INSTALL
 AC_PROG_LIBTOOL
 AC_PROG_MAKE_SET
-AC_PROG_RANLIB
 AC_PROG_CXX
 
 # additional programs
@@ -219,7 +216,6 @@ AC_CONFIG_FILES([
 	conf/zonelist.xml
 	enforcer/Makefile
 	enforcer/src/Makefile
-	enforcer/src/utils/Makefile
 	enforcer/man/Makefile
 	enforcer/src/db/test/Makefile
 	enforcer/man/ods-enforcer.8
