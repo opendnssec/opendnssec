@@ -14,6 +14,7 @@ if [ -x `dirname "$0"`/make.sh ] ; then
     # version of libbotan (1.8.2) and pre 1.0 version of OpenSSL, where
     # SoftHSM requires at least one of them working.
     check_if_built opendnssec-mysql && exit 0
+    start_build opendnssec-mysql
     set_build_ok opendnssec-mysql || exit 1
     exit 0
   fi
