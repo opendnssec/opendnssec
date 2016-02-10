@@ -2179,73 +2179,6 @@ setnextroll(zone_t *zone, const policy_key_t *pkey, time_t t)
 	}
 }
 
-/** 
- * Calculate keytag
- * @param loc: Locator of keydata on HSM
- * @param alg: Algorithm of key
- * @param ksk: 0 for zsk, positive int for ksk|csk
- * @param[out] success: set if returned keytag is meaningfull.
- * return: keytag
- * */
-static uint16_t 
-keytag(const char *loc, int alg, int ksk, int *success)
-{
-	uint16_t tag;
-	hsm_ctx_t *hsm_ctx;
-	hsm_sign_params_t *sign_params;
-	libhsm_key_t *hsmkey;
-	ldns_rr *dnskey_rr;
-
-	if (!loc) {
-		return 0;
-	}
-	if (!success) {
-		return 0;
-	}
-
-	*success = 0;
-
-	if (!(hsm_ctx = hsm_create_context())) {
-		return 0;
-	}
-	if (!(sign_params = hsm_sign_params_new())) {
-		hsm_destroy_context(hsm_ctx);
-		return 0;
-	}
-
-	/* The owner name is not relevant for the keytag calculation.
-	 * However, a ldns_rdf_clone down the path will trip over it. */
-	sign_params->owner = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, "dummy");
-	sign_params->algorithm = (ldns_algorithm) alg;
-	sign_params->flags = LDNS_KEY_ZONE_KEY;
-	if (ksk)
-		sign_params->flags |= LDNS_KEY_SEP_KEY;
-
-	hsmkey = hsm_find_key_by_id(hsm_ctx, loc);
-	if (!hsmkey) {
-		hsm_sign_params_free(sign_params);
-		hsm_destroy_context(hsm_ctx);
-		return 0;
-	}
-
-	dnskey_rr = hsm_get_dnskey(hsm_ctx, hsmkey, sign_params);
-	if (!dnskey_rr) {
-		free(hsmkey);
-		hsm_sign_params_free(sign_params);
-		hsm_destroy_context(hsm_ctx);
-		return 0;
-	}
-
-	tag = ldns_calc_keytag(dnskey_rr);
-
-	ldns_rr_free(dnskey_rr);
-	free(hsmkey);
-	hsm_sign_params_free(sign_params);
-	hsm_destroy_context(hsm_ctx);
-	*success = 1;
-	return tag;
-}
-
 static int
 enforce_roll(const zone_t *zone, const policy_key_t *pkey)
 {
@@ -2582,12 +2515,12 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 		/*
 		 * Generate keytag for the new key and set it.
 		 */
-		tag = keytag(hsm_key_locator(hsmkey), hsm_key_algorithm(hsmkey),
+		success = hsm_keytag(hsm_key_locator(hsmkey), hsm_key_algorithm(hsmkey),
 			((hsm_key_role(hsmkey) == HSM_KEY_ROLE_KSK
 				|| hsm_key_role(hsmkey) == HSM_KEY_ROLE_CSK)
-				? 1 : 0), &success);
-		if (success || key_data_set_keytag(mutkey, tag))
->>>>>>> 1d48509... Implementing 'ods-enforcer key import' command
+				? 1 : 0),
+			&tag);
+		if (!success || key_data_set_keytag(mutkey, tag))
 		{
 			/* TODO: better log error */
 			ods_log_error("[%s] %s: error keytag", module_str, scmd);

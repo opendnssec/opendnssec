@@ -30,10 +30,6 @@
 
 #include <ldns/ldns.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /*! Extra information for signing rrsets (algorithm, expiration, etc) */
 typedef struct {
     /** The DNS signing algorithm identifier */
@@ -99,8 +95,14 @@ hsm_get_dnskey(hsm_ctx_t *ctx,
                const libhsm_key_t *key,
                const hsm_sign_params_t *sign_params);
 
-#ifdef __cplusplus
-}
-#endif
+/** 
+ * Calculate keytag
+ * @param loc: Locator of keydata on HSM
+ * @param alg: Algorithm of key
+ * @param ksk: 0 for zsk, positive int for ksk|csk
+ * @param[out] keytag: the calculated keytag
+ * return: non-zero in case of failure
+ */
+int hsm_keytag(const char* loc, int alg, int ksk, uint16_t* keytag);
 
 #endif /* HSMDNS_H */
