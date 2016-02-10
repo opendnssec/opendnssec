@@ -3136,6 +3136,62 @@ hsm_sign_rrset(hsm_ctx_t *ctx,
     return signature;
 }
 
+int
+hsm_keytag(const char* loc, int alg, int ksk, uint16_t* keytag)
+{
+	uint16_t tag;
+	hsm_ctx_t *hsm_ctx;
+	hsm_sign_params_t *sign_params;
+	libhsm_key_t *hsmkey;
+	ldns_rr *dnskey_rr;
+
+	if (!loc) {
+		return 1;
+	}
+
+	if (!(hsm_ctx = hsm_create_context())) {
+		return 1;
+	}
+	if (!(sign_params = hsm_sign_params_new())) {
+		hsm_destroy_context(hsm_ctx);
+		return 1;
+	}
+
+	/* The owner name is not relevant for the keytag calculation.
+	 * However, a ldns_rdf_clone down the path will trip over it. */
+	sign_params->owner = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, "dummy");
+	sign_params->algorithm = (ldns_algorithm) alg;
+	sign_params->flags = LDNS_KEY_ZONE_KEY;
+	if (ksk)
+		sign_params->flags |= LDNS_KEY_SEP_KEY;
+
+	hsmkey = hsm_find_key_by_id(hsm_ctx, loc);
+	if (!hsmkey) {
+		hsm_sign_params_free(sign_params);
+		hsm_destroy_context(hsm_ctx);
+		return 1;
+	}
+
+	dnskey_rr = hsm_get_dnskey(hsm_ctx, hsmkey, sign_params);
+	if (!dnskey_rr) {
+		free(hsmkey);
+		hsm_sign_params_free(sign_params);
+		hsm_destroy_context(hsm_ctx);
+		return 1;
+	}
+
+	tag = ldns_calc_keytag(dnskey_rr);
+
+	ldns_rr_free(dnskey_rr);
+	free(hsmkey);
+	hsm_sign_params_free(sign_params);
+	hsm_destroy_context(hsm_ctx);
+
+	if (keytag)
+            *keytag = tag;
+	return 0;
+}
+
 ldns_rr *
 hsm_get_dnskey(hsm_ctx_t *ctx,
                const libhsm_key_t *key,
