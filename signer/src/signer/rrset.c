@@ -177,10 +177,9 @@ rrset_type2str(ldns_rr_type type)
 }
 
 static int
-memberdestroy(void* dummy, void* member)
+memberdestroy(void* member)
 {
     rrsig_type* sig = (rrsig_type*) member;
-    (void)dummy;
     free((void*) sig->key_locator);
     sig->key_locator = NULL;
     /* The rrs may still be in use by IXFRs so cannot do ldns_rr_free(sig->rr); */
@@ -190,10 +189,9 @@ memberdestroy(void* dummy, void* member)
 }
 
 static int
-memberdispose(void* dummy, void* member, FILE* fp)
+memberdispose(void* member, FILE* fp)
 {
     rrsig_type* sig = (rrsig_type*) member;
-    (void)dummy;
     ldns_rr_print(fp, sig->rr);
     ldns_rr_free(sig->rr);
     sig->rr = NULL;
@@ -201,14 +199,13 @@ memberdispose(void* dummy, void* member, FILE* fp)
 }
 
 static int
-memberrestore(void* dummy, void* member, FILE* fp)
+memberrestore(void* member, FILE* fp)
 {
     ldns_status status;
     rrsig_type* sig = (rrsig_type*) member;
     ldns_rdf* prev = NULL;
     ldns_rdf* origin = NULL;
     uint32_t defaulttl = 0;
-    (void)dummy;
     if((status = ldns_rr_new_frm_fp(&sig->rr, fp, &defaulttl, &origin, &prev)) != LDNS_STATUS_OK) {
         ods_log_error("[%s] unable to recreate RRset: %s", rrset_str, ldns_get_errorstr_by_id(status));
         return 1;
@@ -245,10 +242,10 @@ rrset_create(zone_type* zone, ldns_rr_type type)
 }
 
 collection_class
-rrset_store_initialize()
+rrset_store_initialize(char* filename)
 {
     collection_class klass;
-    collection_class_allocated(&klass, NULL, memberdestroy);
+    collection_class_create(&klass, filename, memberdestroy, memberdispose, memberrestore);
     return klass;
 }
 

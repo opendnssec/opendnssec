@@ -11,8 +11,8 @@ if [ -n "$HAVE_MYSQL" ]; then
         ods_setup_conf conf.xml conf-mysql.xml
 fi &&
 
-rm -f $INSTALL_ROOT/var/opendnssec/unsigned/*
-rm -f $INSTALL_ROOT/var/opendnssec/tmp/*
+rm -f $INSTALL_ROOT/var/opendnssec/unsigned/* &&
+rm -f $INSTALL_ROOT/var/opendnssec/tmp/* &&
 ods_reset_env && 
 
 sleep 10 &&
