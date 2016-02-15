@@ -1,6 +1,23 @@
 Off-line KSK environments using ods-sequencer
 =============================================
 
+# Rationale
+
+There may be organizations which have strict guidelines on the security
+of key material.  Specifically, there may be a requirement that specifies
+that KSK private key material may only be present of a machine that is
+not connected to any other machine.
+
+The actual zone file needs frequent updates and signing and therefor
+needs to be interconnected.  This means the KSK RR and signed key set
+need to be integrated from the secured zone file.
+
+This solution still assumes this is in a single controlling organization.
+Other more complex solutions with exchange of signing requests are more
+applicable where multiple organizations are involved.
+
+# Introduction
+
 This tools allows you to run a signer instance that keeps a zone file
 signed even with key-roll overs by replaying signer configurations
 that have been pre-prepared earlier.  In this set-up, the function
@@ -23,6 +40,119 @@ operational side to be "played" out over the real passing of time.
 
 The main installation of the bunker and operational environments is the
 same as on a normal installation, there are only slight differences.
+
+# Description
+
+The set-up consist of two functional sites.
+
+The operational site, which role it is to:
+- keep a full zone file signed using an available ZSK key pair;
+- receiving updates on the zone file and sending out notifications when signed;
+- incorporating an already signed key set from the other functional site;
+
+The bunker, which role it is to:
+- produce key pairs (both KSK and ZSK);
+- sign key sets (a selection of public keys) using the KSK private key;
+- generate a script to perform key roll-overs for any selected period of time;
+
+The scripted scenario replaces the roll of the enforcer on the operational
+site.  The script describes a set of actions to be taken at specific times
+regarding the keys and key sets in use on the operational site.
+
+OpenDNSSEC is normally used in a re-active manner.  Performing actions when
+it sees fit according to described and observed propagation delays of its
+actions.  The enforcer of this key roll-over procedure does work according to
+a fixed schedule, but determines a next step time and time again.  This allow
+the operator to tune delays and even do a simultaneous roll-over even though
+a roll-over procedure is already happening.
+
+The enforcer will give out instructions on each step on how to perform a roll-
+over procedure (such as introducing a new key, or starting to use a key for
+signing purposes).  However the timing of these steps is not fixed due to the
+ability to change tactics in the roll-over as well as small variations in
+timings.
+
+Although not really a procedure, it is possible to capture these instructions
+from the enforcer and thus describe the steps to be taken and create a
+scripted scenario for this, if we would fast-forward the enforcer into time.
+
+This is already possible with the enforcer, and we can capture the transitions
+from the enforcer for a simulated future period of time.
+
+It is in principle also possible to restore the enforcer back from state and
+re-continue to make a script.  This might be handy in case parameters may need
+changing or an emergency roll-over would need to take place.  In such a case
+we want to break into a pre-recorded scenario and half-way a scenario re-record
+the steps to be taken with changed parameters.
+
+Note however that when resuming such a scenario, there might be small
+variations in the described steps to be made, as the enforcer might decide to
+swap tasks that could happen at the same time for instance.
+
+## Mode of operation in the bunker
+
+In the bunker there will not be a continuous process, but at occasions there
+will be a on user demand generation of a scripted scenario.
+This script is composed of a number of steps.  Each step is an input that the
+signer on the operational side should incorporate at a specific moment in time.
+
+The enforcer-tooling in the bunker can also use such a step to restore itself
+at a specific moment in time and re-generate a new script from that point of
+time.
+
+The tooling around the enforcer will then fast-forward the enforcer recording
+the changes and instructions made by the enforcer.  This tooling is just
+a relative simple control script to start the enforcer with the right options,
+performs time increments and at each time increment takes a snapshot of the
+enforcer state by copying the relevant database tables, description to signer
+and will export the keys from the HSM and places it in a proper bundled
+package such that it can be shipped to the operational side.
+
+## Mode of operation on the operational side
+
+On the operational side there is a signer running as usual for OpenDNSSEC,
+but instead of an enforcer, there will be a replacement tool that will
+take the shipped file from the bunder and unpacks and imports the right
+contents at the appropriate time.
+
+Note however that since there is no interaction between signer and enforcer,
+it is vital that the scenario is really played as is.
+The operator is responsible to make sure the right scenario file is in place
+and manual steps, like the ds-seen command in OpenDNSSEC is given within the
+time window allowed by the parameters in the kasp.xml.
+
+# Shortcomings
+
+- Current script integrates too tightly with internal format of signer
+  storage.  This is not a format that can be relied upon for future
+  usage and this scripting should get better integration in OpenDNSSEC.
+
+- The script currently only allows for a single zone file to be treated
+  in this manner, but there are no fundamental problems in extending
+  this.
+
+- It is assumed that publishing the DS record takes no time.  Normally
+  a delay is introduced by requiring the operator to validate the DS
+  record is seen in the parent zone (and giving a "ds seen" command).
+
+  This is now implicitly immediately performed as soon as OpenDNSSEC
+  allows for it.  There is still a TTL respected.  We assume this is not
+  a problem since with this set-up the DS records are in fact available
+  long in advance and can be submitted far earlier.
+
+- The validity of ZSK signatures must be set to be at least that of the
+  lifetime of the ZSKs themselves.
+
+  This set-up does not yet allow for re-signing keysets.  When setting
+  the validity of ZSK signatures so short, that access to the KSK is
+  needed before next signing instruction.
+  Note that this means that a ZSK never needs resigning, which is a
+  limitation.  However we probably would not want to set all signatures
+  to the same validity period in this case.  The signatures on ZSKs are
+  provided using the KSK, while those on normal records by ZSK which
+  have different strengths.
+  This is a change from the current OpenDNSSEC workings, where there is
+  no distinction between signatures generated using a KSK or ZSK.
 
 # Installation
 
