@@ -44,6 +44,8 @@ usage(void)
     fprintf(stderr, "%s [-h] [-v] [-c <alternate-configuration>]\n", argv0);
 }
 
+#ifdef HAVE_SQLITE3
+
 const char* listQueryStr = "select keyData.id,keyData.algorithm,keyData.role,keyData.keytag,hsmKey.locator from keyData join hsmKey on keyData.hsmKeyId = hsmKey.id";
 const char* updateQueryStr = "update keyData set keytag = ? where id = ?";
 
@@ -98,6 +100,8 @@ callback(void *cargo, int argc, char **argv, char **names)
     CHECKSQLITE(sqlite3_finalize(stmt));
     return SQLITE_OK;
 }
+
+#endif
 
 int
 main(int argc, char* argv[])
@@ -175,9 +179,11 @@ main(int argc, char* argv[])
         return 1;
     }
 
+#ifdef HAVE_SQLITE3
     CHECKSQLITE(sqlite3_open(cfg->datastore, &sqliteDatabase));
     CHECKSQLITE(sqlite3_exec(sqliteDatabase, listQueryStr, callback, NULL, &sqliteMessage));
     sqlite3_close(sqliteDatabase);
+#endif
 
     hsm_close();
 
