@@ -96,6 +96,7 @@ void collection_del_cursor(collection_t collection);
  * using collection_del_cursor.  Usage of collection_del_index is not permitted.
  * It is also mandatory to iterate over the entire list, and it is not possible to short cut
  * the iteration.
+ */
 void* collection_iterator(collection_t collection);
 
 #endif /* UTIL_DATASTRUCTURE_H */
