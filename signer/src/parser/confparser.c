@@ -222,6 +222,7 @@ parse_conf_repositories(const char* cfgfile)
             free((void*)name);
             free((void*)module);
             free((void*)tokenlabel);
+            free((void*)pin);
         }
     }
 
