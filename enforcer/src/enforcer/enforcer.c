@@ -2802,8 +2802,6 @@ update(engine_type *engine, db_connection_t *dbconn, zone_t *zone, policy_t *pol
     static const char *scmd = "update";
     int key_data_updated;
 
-	printf("now: %d\n", (int)now);
-
 	if (!engine) {
 		ods_log_error("[%s] no engine", module_str);
 		return now + 60;
@@ -2994,13 +2992,8 @@ update(engine_type *engine, db_connection_t *dbconn, zone_t *zone, policy_t *pol
     free(keylist);
     key_dependency_list_free(deplist);
 
-	printf("zone return: %d\n", (int)zone_return_time);
-	printf("poli return: %d\n", (int)policy_return_time);
-	printf("prge return: %d\n", (int)purge_return_time);
-
     return_time = zone_return_time;
     minTime(policy_return_time, &return_time);
     minTime(purge_return_time, &return_time);
-    printf("tota return: %d\n", (int)return_time);
     return return_time;
 }
