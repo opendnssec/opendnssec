@@ -575,20 +575,13 @@ dnsin_update(dnsin_type** addns, const char* filename, time_t* last_mod)
         return ODS_STATUS_UNCHANGED;
     }
     /* read the new signer configuration */
-    new_addns = dnsin_create();
-    if (!new_addns) {
-        ods_log_error("[%s] unable to update dnsin: dnsin_create() "
-            "failed", adapter_str);
-        return ODS_STATUS_ERR;
-    }
-    status = dnsin_read(new_addns, filename);
+    status = dnsin_read(*addns, filename);
     if (status == ODS_STATUS_OK) {
-        *addns = new_addns;
         *last_mod = st_mtime;
     } else {
         ods_log_error("[%s] unable to update dnsin: dnsin_read(%s) "
             "failed (%s)", adapter_str, filename, ods_status2str(status));
-        dnsin_cleanup(new_addns);
+        dnsin_cleanup(*addns);
     }
     return status;
 }
@@ -634,7 +627,6 @@ dnsout_read(dnsout_type* addns, const char* filename)
 ods_status
 dnsout_update(dnsout_type** addns, const char* filename, time_t* last_mod)
 {
-    dnsout_type* new_addns = NULL;
     time_t st_mtime = 0;
     ods_status status = ODS_STATUS_OK;
 
@@ -642,20 +634,13 @@ dnsout_update(dnsout_type** addns, const char* filename, time_t* last_mod)
         return ODS_STATUS_UNCHANGED;
     }
     /* read the new signer configuration */
-    new_addns = dnsout_create();
-    if (!new_addns) {
-        ods_log_error("[%s] unable to update dnsout: dnsout_create() "
-            "failed", adapter_str);
-        return ODS_STATUS_ERR;
-    }
-    status = dnsout_read(new_addns, filename);
+    status = dnsout_read(*addns, filename);
     if (status == ODS_STATUS_OK) {
-        *addns = new_addns;
         *last_mod = st_mtime;
     } else {
         ods_log_error("[%s] unable to update dnsout: dnsout_read(%s) "
             "failed (%s)", adapter_str, filename, ods_status2str(status));
-        dnsout_cleanup(new_addns);
+        dnsout_cleanup(*addns);
     }
     return status;
 }
