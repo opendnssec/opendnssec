@@ -546,7 +546,10 @@ WHERE policyKey.role = 2;
 INSERT INTO hsmKey
 SELECT REMOTE.keypairs.id, 1, REMOTE.keypairs.policy_id, 
 REMOTE.keypairs.HSMkey_id, 2, REMOTE.keypairs.size, 
-REMOTE.keypairs.algorithm,  (~(REMOTE.dnsseckeys.keytype)&1)+1, strftime('%s', REMOTE.keypairs.generate), 
+REMOTE.keypairs.algorithm,  (~(REMOTE.dnsseckeys.keytype)&1)+1, 
+CASE WHEN REMOTE.keypairs.generate IS NOT NULL THEN 
+	strftime('%s', REMOTE.keypairs.generate) 
+	ELSE strftime("%s", "now") END, 
 0, 
 1, --only RSA supported
  REMOTE.securitymodules.name, 
@@ -555,8 +558,7 @@ FROM REMOTE.keypairs
 JOIN REMOTE.dnsseckeys 
 	ON REMOTE.keypairs.id = REMOTE.dnsseckeys.keypair_id
 JOIN REMOTE.securitymodules 
-	ON REMOTE.securitymodules.id = REMOTE.keypairs.securitymodule_id
-WHERE REMOTE.keypairs.generate IS NOT NULL;
+	ON REMOTE.securitymodules.id = REMOTE.keypairs.securitymodule_id;
 
 -- For some policies put the keys in a shared state
 UPDATE hsmKey 
@@ -613,7 +615,10 @@ INSERT INTO keyData
 SELECT 
 	NULL, 1, REMOTE.dnsseckeys.zone_id,
 	REMOTE.dnsseckeys.keypair_id, REMOTE.keypairs.algorithm,
-	strftime('%s', REMOTE.dnsseckeys.publish), (~REMOTE.dnsseckeys.keytype&1)+1,
+	CASE WHEN REMOTE.dnsseckeys.publish IS NOT NULL THEN 
+		strftime('%s', REMOTE.dnsseckeys.publish) 
+		ELSE strftime("%s", "now") END, 
+	(~REMOTE.dnsseckeys.keytype&1)+1,
 	REMOTE.dnsseckeys.state <= 4, -- introducing
 	0, -- should revoke, not used
 	0, -- standby
@@ -627,8 +632,8 @@ FROM REMOTE.dnsseckeys
 JOIN REMOTE.keypairs 
 	ON REMOTE.dnsseckeys.keypair_id = REMOTE.keypairs.id
 JOIN mapping 
-	ON REMOTE.dnsseckeys.state = mapping.state
-WHERE REMOTE.keypairs.generate IS NOT NULL;
+	ON REMOTE.dnsseckeys.state = mapping.state;
+--WHERE REMOTE.keypairs.generate IS NOT NULL;
 
 DROP TABLE mapping;
 
