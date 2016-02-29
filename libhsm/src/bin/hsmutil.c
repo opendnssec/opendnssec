@@ -592,7 +592,7 @@ main (int argc, char *argv[])
         exit(cmd_logout());
     }
 
-    result = hsm_open(config, hsm_prompt_pin);
+    result = hsm_open2(config, hsm_prompt_pin);
     if (result) {
         hsm_print_error(NULL);
         exit(-1);

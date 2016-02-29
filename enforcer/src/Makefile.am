@@ -151,6 +151,7 @@ ods_enforcer_db_setup_SOURCES = \
 	$(BACKEND_SCHEMA_CUSTOM)
 
 ods_enforcer_db_setup_LDADD = \
+	$(LIBHSM) \
 	$(LIBCOMPAT) \
 	@LDNS_LIBS@ \
 	@XML2_LIBS@ \

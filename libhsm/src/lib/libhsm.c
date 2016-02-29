@@ -374,7 +374,7 @@ hsm_pkcs11_check_token_name(hsm_ctx_t *ctx,
 
 hsm_repository_t *
 hsm_repository_new(char* name, char* module, char* tokenlabel, char* pin,
-    uint8_t use_pubkey)
+    uint8_t use_pubkey, uint8_t require_backup)
 {
     hsm_repository_t* r;
 
@@ -400,6 +400,7 @@ hsm_repository_new(char* name, char* module, char* tokenlabel, char* pin,
         }
     }
     r->use_pubkey = use_pubkey;
+    r->require_backup = require_backup;
     return r;
 }
 
@@ -2186,160 +2187,6 @@ hsm_create_empty_rrsig(const ldns_rr_list *rrset,
  */
 
 int
-hsm_open(const char *config,
-         char *(pin_callback)(unsigned int, const char *, unsigned int))
-{
-    xmlDocPtr doc;
-    xmlXPathContextPtr xpath_ctx;
-    xmlXPathObjectPtr xpath_obj;
-    xmlNode *curNode;
-    xmlChar *xexpr;
-
-    int i;
-    char *config_file;
-    char *repository;
-    char *token_label;
-    char *module_path;
-    char *module_pin;
-    hsm_config_t module_config;
-    int result = HSM_OK;
-    int tries;
-    int repositories = 0;
-
-    /* create an internal context with an attached session for each
-     * configured HSM. */
-    _hsm_ctx = hsm_ctx_new();
-
-    if (config) {
-        config_file = strdup(config);
-    } else{
-        config_file = strdup(HSM_DEFAULT_CONFIG);
-    }
-
-    /* Load XML document */
-    doc = xmlParseFile(config_file);
-    free(config_file);
-    if (doc == NULL) {
-        return HSM_CONFIG_FILE_ERROR;
-    }
-
-    /* Create xpath evaluation context */
-    xpath_ctx = xmlXPathNewContext(doc);
-    if(xpath_ctx == NULL) {
-        xmlFreeDoc(doc);
-        hsm_ctx_free(_hsm_ctx);
-        _hsm_ctx = NULL;
-        return -1;
-    }
-
-    /* Evaluate xpath expression */
-    xexpr = (xmlChar *)"//Configuration/RepositoryList/Repository";
-    xpath_obj = xmlXPathEvalExpression(xexpr, xpath_ctx);
-    if(xpath_obj == NULL) {
-        xmlXPathFreeContext(xpath_ctx);
-        xmlFreeDoc(doc);
-        hsm_ctx_free(_hsm_ctx);
-        _hsm_ctx = NULL;
-        return -1;
-    }
-
-    if (xpath_obj->nodesetval) {
-        for (i = 0; i < xpath_obj->nodesetval->nodeNr; i++) {
-            /*module = hsm_module_new();*/
-            token_label = NULL;
-            module_path = NULL;
-            module_pin = NULL;
-            hsm_config_default(&module_config);
-
-            curNode = xpath_obj->nodesetval->nodeTab[i]->xmlChildrenNode;
-            repository = (char *) xmlGetProp(xpath_obj->nodesetval->nodeTab[i],
-                                             (const xmlChar *)"name");
-
-            while (curNode) {
-                if (xmlStrEqual(curNode->name, (const xmlChar *)"TokenLabel"))
-                    token_label = (char *) xmlNodeGetContent(curNode);
-                if (xmlStrEqual(curNode->name, (const xmlChar *)"Module"))
-                    module_path = (char *) xmlNodeGetContent(curNode);
-                if (xmlStrEqual(curNode->name, (const xmlChar *)"PIN"))
-                    module_pin = (char *) xmlNodeGetContent(curNode);
-                if (xmlStrEqual(curNode->name, (const xmlChar *)"SkipPublicKey"))
-                    module_config.use_pubkey = 0;
-                curNode = curNode->next;
-            }
-
-            if (repository && token_label && module_path) {
-                if (module_pin) {
-                    result = hsm_attach(repository,
-                                        token_label,
-                                        module_path,
-                                        module_pin,
-                                        &module_config);
-                    free(module_pin);
-                } else {
-                    if (pin_callback) {
-                        result = HSM_PIN_INCORRECT;
-                        tries = 0;
-                        while (result == HSM_PIN_INCORRECT &&
-                               tries < 3) {
-                            if (tries == 0) {
-                                module_pin = pin_callback(_hsm_ctx->session_count,
-                                                          repository,
-                                                          HSM_PIN_FIRST);
-                            } else {
-                                module_pin = pin_callback(_hsm_ctx->session_count,
-                                                          repository,
-                                                          HSM_PIN_RETRY);
-                            }
-
-                            if (module_pin == NULL) break;
-
-                            result = hsm_attach(repository,
-                                                token_label,
-                                                module_path,
-                                                module_pin,
-                                                &module_config);
-                            if (result == HSM_OK) {
-                                pin_callback(_hsm_ctx->session_count - 1,
-                                             repository,
-                                             HSM_PIN_SAVE);
-                            }
-                            memset(module_pin, 0, strlen(module_pin));
-                            tries++;
-                        }
-                    } else {
-                        /* no pin, no callback */
-                        hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_open()",
-                            "No pin or callback function");
-                        result = HSM_ERROR;
-                    }
-                }
-                free(repository);
-                free(token_label);
-                free(module_path);
-
-                if (result != HSM_OK) {
-                    break;
-                }
-
-                repositories++;
-            }
-        }
-    }
-
-    xmlXPathFreeObject(xpath_obj);
-    xmlXPathFreeContext(xpath_ctx);
-    xmlFreeDoc(doc);
-
-    if (result == HSM_OK && repositories == 0) {
-        hsm_ctx_set_error(_hsm_ctx, HSM_NO_REPOSITORIES, "hsm_open()",
-            "No repositories found");
-        return HSM_NO_REPOSITORIES;
-    }
-
-    return result;
-}
-
-int
 hsm_open2(hsm_repository_t* rlist,
          char *(pin_callback)(unsigned int, const char *, unsigned int))
 {
@@ -2379,7 +2226,7 @@ hsm_open2(hsm_repository_t* rlist,
                     }
                 } else {
                     /* no pin, no callback */
-                    hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_open()",
+                    hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_open2()",
                         "No pin or callback function");
                     result = HSM_ERROR;
                 }
@@ -2392,7 +2239,7 @@ hsm_open2(hsm_repository_t* rlist,
         repo = repo->next;
     }
     if (result == HSM_OK && repositories == 0) {
-        hsm_ctx_set_error(_hsm_ctx, HSM_NO_REPOSITORIES, "hsm_open()",
+        hsm_ctx_set_error(_hsm_ctx, HSM_NO_REPOSITORIES, "hsm_open2()",
             "No repositories found");
         return HSM_NO_REPOSITORIES;
     }

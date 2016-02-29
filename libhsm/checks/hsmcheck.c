@@ -110,7 +110,7 @@ main (int argc, char *argv[])
      * Open HSM library
      */
     fprintf(stdout, "Starting HSM lib test\n");
-    result = hsm_open(config, hsm_prompt_pin);
+    result = hsm_open2(parse_conf_repositories(config), hsm_prompt_pin);
     fprintf(stdout, "hsm_open result: %d\n", result);
 
     /*

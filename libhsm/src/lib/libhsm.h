@@ -119,6 +119,7 @@ struct hsm_repository_struct {
     char    *module;        /*!< PKCS#11 module */
     char    *tokenlabel;    /*!< PKCS#11 token label */
     char    *pin;           /*!< PKCS#11 login credentials */
+    uint8_t require_backup; /*!< require a backup of keys before using new keys */
     uint8_t use_pubkey;     /*!< use public keys in repository? */
 };
 
@@ -139,25 +140,6 @@ typedef struct {
     char error_message[HSM_ERROR_MSGSIZE];
 } hsm_ctx_t;
 
-
-/*! Open HSM library
-
-\param config path to OpenDNSSEC XML configuration file
-\param pin_callback This function will be called for tokens that have
-                    no PIN configured. The default hsm_prompt_pin() can
-                    be used. If this value is NULL, these tokens will
-                    be skipped.
-\return 0 if successful, !0 if failed
-
-Attaches all configured HSMs, querying for PINs (using the given
-callback function) if not known.
-Also creates initial sessions (not part of any context; every API
-function that takes a context can be passed NULL, in which case the
-global context will be used) and log into each HSM.
-*/
-int
-hsm_open(const char *config,
-         char *(pin_callback)(unsigned int, const char *, unsigned int));
 
 /*! Open HSM library
 
@@ -190,7 +172,7 @@ hsm_open2(hsm_repository_t* rlist,
 */
 hsm_repository_t *
 hsm_repository_new(char* name, char* module, char* tokenlabel, char* pin,
-    uint8_t use_pubkey);
+    uint8_t use_pubkey, uint8_t require_backup);
 
 /*! Free configured repositories.
 
