@@ -1364,7 +1364,7 @@ xfrd_tcp_open(xfrd_type* xfrd, tcp_set_type* set)
     }
     if (fcntl(fd, F_SETFL, O_NONBLOCK) == -1) {
         ods_log_error("[%s] zone %s cannot fcntl tcp socket to %s: %s",
-            xfrd_str, zone->name, xfrd->master->address, strerror(errno));
+            xfrd_str, zone->name, ((dnsin_type*)(xfrd->zone->adinbound->inbound))->request_xfr->address, strerror(errno));
         xfrd_set_timer_now(xfrd);
         xfrd_tcp_release(xfrd, set, 0);
         return 0;
