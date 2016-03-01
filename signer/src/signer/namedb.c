@@ -233,7 +233,7 @@ namedb_update_serial(namedb_type* db, const char* zone_name, const char* format,
         soa = (uint32_t) time_datestamp(0, "%Y%m%d", NULL) * 100;
         if (!util_serial_gt(soa, prev)) {
             if (!db->have_serial) {
-                ods_log_warning("[%s] zone %s unable to use datecounter as "
+                ods_log_info("[%s] zone %s unable to use datecounter as "
                     "serial: %u does not increase %u. Serial set to %u", db_str,
                     zone_name, soa, prev, (prev+1));
             }
