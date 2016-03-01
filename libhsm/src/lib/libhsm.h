@@ -508,9 +508,9 @@ hsm_get_error(hsm_ctx_t *gctx);
 
 /* a few debug functions for applications */
 void hsm_print_session(hsm_session_t *session);
-void hsm_print_ctx(hsm_ctx_t *gctx);
-void hsm_print_key(libhsm_key_t *key);
+void hsm_print_ctx(hsm_ctx_t *ctx);
+void hsm_print_key(hsm_ctx_t *ctx, libhsm_key_t *key);
 void hsm_print_error(hsm_ctx_t *ctx);
-void hsm_print_tokeninfo(hsm_ctx_t *gctx);
+void hsm_print_tokeninfo(hsm_ctx_t *ctx);
 
 #endif /* HSM_H */

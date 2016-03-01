@@ -41,6 +41,7 @@
 extern char *optarg;
 char *progname = NULL;
 unsigned int verbose = 0;
+hsm_ctx_t *ctx = NULL;
 
 
 void
@@ -102,10 +103,10 @@ cmd_list (int argc, char *argv[])
     size_t key_count = 0;
     size_t key_count_valid = 0;
     libhsm_key_t **keys;
-    hsm_ctx_t *ctx = NULL;
 
     const char *key_info_format = "%-20s  %-32s  %-10s\n";
 
+    ctx = hsm_create_context();
 
     if (argc) {
         repository = argv[0];
@@ -249,7 +250,7 @@ cmd_generate (int argc, char *argv[])
         printf("Key generation successful: %s\n",
             key_info ? key_info->id : "NULL");
         libhsm_key_info_free(key_info);
-        if (verbose) hsm_print_key(key);
+        if (verbose) hsm_print_key(ctx, key);
         free(key);
     } else {
         printf("Key generation failed.\n");
@@ -532,17 +533,17 @@ cmd_test (int argc, char *argv[])
 }
 
 int
-cmd_info ()
+cmd_info (hsm_ctx_t* ctx)
 {
-    hsm_print_tokeninfo(NULL);
+    hsm_print_tokeninfo(ctx);
 
     return 0;
 }
 
 int
-cmd_debug ()
+cmd_debug (hsm_ctx_t* ctx)
 {
-    hsm_print_ctx(NULL);
+    hsm_print_ctx(ctx);
 
     return 0;
 }
@@ -597,6 +598,7 @@ main (int argc, char *argv[])
         hsm_print_error(NULL);
         exit(-1);
     }
+    ctx = hsm_create_context();
 
     openlog("hsmutil", LOG_PID, LOG_USER);
 
@@ -631,16 +633,17 @@ main (int argc, char *argv[])
     } else if (!strcasecmp(argv[0], "info")) {
         argc --;
         argv ++;
-        result = cmd_info();
+        result = cmd_info(ctx);
     } else if (!strcasecmp(argv[0], "debug")) {
         argc --;
         argv ++;
-        result = cmd_debug();
+        result = cmd_debug(ctx);
     } else {
         usage();
         result = -1;
     }
 
+    hsm_destroy_context(ctx);
     hsm_close();
     if (config) free(config);
 

@@ -117,9 +117,6 @@ main (int argc, char *argv[])
      * Create HSM context
      */
     ctx = hsm_create_context();
-    printf("global: ");
-    hsm_print_ctx(NULL);
-    printf("my: ");
     hsm_print_ctx(ctx);
 
     /*
@@ -130,7 +127,7 @@ main (int argc, char *argv[])
 
         if (key) {
             printf("\nCreated key!\n");
-            hsm_print_key(key);
+            hsm_print_key(ctx,key);
             printf("\n");
         } else {
             printf("Error creating key, bad token name?\n");
@@ -144,7 +141,7 @@ main (int argc, char *argv[])
         /* let's just use the very first key we find and throw away the rest */
         for (i = 0; i < key_count && !key; i++) {
             printf("\nFound key!\n");
-            hsm_print_key(keys[i]);
+            hsm_print_key(ctx,keys[i]);
 
             id = hsm_get_key_id(ctx, keys[i]);
 
@@ -173,7 +170,7 @@ main (int argc, char *argv[])
      */
     if (do_sign) {
         printf("\nSigning with:\n");
-        hsm_print_key(key);
+        hsm_print_key(ctx,key);
         printf("\n");
 
         rrset = ldns_rr_list_new();
@@ -211,7 +208,7 @@ main (int argc, char *argv[])
      */
     if (do_delete) {
         printf("\nDelete key:\n");
-        hsm_print_key(key);
+        hsm_print_key(ctx, key);
         /* res = hsm_remove_key(ctx, key); */
         res = hsm_remove_key(ctx, key);
         printf("Deleted key. Result: %d\n", res);
