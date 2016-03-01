@@ -194,6 +194,7 @@ sub makesignedzone {
     startmonitorlog();
     print "  ..signing zone\n"  if($verbose);
     system("./sbin/ods-signerd 2>>$LOG_FILE >>$LOG_FILE --set-time " . $timecurrent);
+    sleep(10);
     system("./sbin/ods-signer 2>>$LOG_FILE >>$LOG_FILE sign --all");
     print "  ..waiting for signed zone\n"  if($verbose);
     while(!matchmonitorlog()) {
@@ -282,6 +283,7 @@ if($#ARGV == 0 && $ARGV[0] eq "update") {
         print "generating sequences from scratch starting now at " . localtime($currenttime) . "\n";
         system("./sbin/ods-enforcerd 2>>$LOG_FILE >>$LOG_FILE --set-time " . $currenttime);
         print "  ..waiting for information and enforcer idle\n"   if($verbose);
+        sleep(10);
         ($timenow, $timenext, @dsseenkeys) = enforcerinfo();
         makesequence($currenttime);
     } else {
@@ -289,6 +291,7 @@ if($#ARGV == 0 && $ARGV[0] eq "update") {
         print "generating sequences picking up from " . localtime($currenttime) . "\n";
         copy("var/opendnssec/sequences/" . $currenttime . "-kasp.db", "var/opendnssec/kasp.db");
         system("./sbin/ods-enforcerd 2>>$LOG_FILE >>$LOG_FILE --set-time " . $currenttime);
+        sleep(10);
         ($timenow, $timenext, @dsseenkeys) = enforcerinfo();
     }
     while($currenttime <= $targettime) {
@@ -297,6 +300,7 @@ if($#ARGV == 0 && $ARGV[0] eq "update") {
             if($timenext <= $targettime) {
                 print "  leaping to " . (strftime('%Y-%m-%d-%H:%M:%S',localtime($timenext))) . "\n"   if($verbose);
                 system("./sbin/ods-enforcer 2>>$LOG_FILE >>$LOG_FILE time leap --time " . (strftime('%Y-%m-%d-%H:%M:%S',localtime($timenext))));
+                sleep(10);
                 enforceridle();
                 ($timenow, $timenext, @dsseenkeys) = enforcerinfo();
                 $currenttime = $timenow;
