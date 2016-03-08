@@ -602,13 +602,13 @@ zone_add_rr(zone_type* zone, ldns_rr* rr, int do_stats)
         domain_add_rrset(domain, rrset);
     }
     record = rrset_lookup_rr(rrset, rr);
+
+    if (record && ldns_rr_ttl(rr) != ldns_rr_ttl(record->rr))
+        record = NULL;
+
     if (record) {
         record->is_added = 1; /* already exists, just mark added */
         record->is_removed = 0; /* unset is_removed */
-        if (ldns_rr_ttl(rr) != ldns_rr_ttl(record->rr)) {
-            ldns_rr_set_ttl(record->rr, ldns_rr_ttl(rr));
-            rrset->needs_signing = 1;
-        }
         return ODS_STATUS_UNCHANGED;
     } else {
         record = rrset_add_rr(rrset, rr);
