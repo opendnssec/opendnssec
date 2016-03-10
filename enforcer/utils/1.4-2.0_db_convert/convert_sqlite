@@ -1,0 +1,32 @@
+#!/bin/bash
+set -e
+
+DB_IN=""
+DB_OUT=""
+
+while getopts "i:o:" arg; do
+	case $arg in
+	i) DB_IN=$OPTARG ;;
+	o) DB_OUT=$OPTARG ;;
+	*)
+		echo "usage: "$0" -i <DATABASE_1.4> -o <DATABASE_2.0>"
+		exit 1
+	;;
+	esac
+done
+
+if [ -z $DB_IN ]; then
+	echo "ERROR: No input database specified"
+	exit 1
+fi
+
+if [ -z $DB_OUT ]; then
+	echo "ERROR: No output database specified"
+	exit 1
+fi
+ 
+rm $DB_OUT
+sqlite3 $DB_OUT < schema.sqlite 
+echo "attach '$DB_IN' as REMOTE;" |
+	cat - sqlite_convert.sql | sqlite3 $DB_OUT
+

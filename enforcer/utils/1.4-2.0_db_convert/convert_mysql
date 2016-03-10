@@ -1,0 +1,45 @@
+#!/bin/bash
+set -e
+
+DB_IN=""
+DB_OUT=""
+
+DB_HOST="localhost"
+DB_USR="test"
+DB_PWD="test"
+
+while getopts "i:o:h:u:p:" arg; do
+	case $arg in
+	i) DB_IN=$OPTARG ;;
+	o) DB_OUT=$OPTARG ;;
+	h) DB_HOST=$OPTARG ;;
+	u) DB_USR=$OPTARG ;;
+	p) DB_PWD=$OPTARG ;;
+	*)
+		echo "usage: "$0" -i DATABASE_1.4 -o DATABASE_2.0 [-h HOST] [-u USER] [-p PASSWORD]"
+		exit 1
+	;;
+	esac
+done
+
+if [ -z $DB_IN ]; then
+	echo "ERROR: No input database specified"
+	exit 1
+fi
+
+if [ -z $DB_OUT ]; then
+	echo "ERROR: No output database specified"
+	exit 1
+fi
+
+echo "Creating database $DB_OUT (as user $DB_USR)"
+echo "DROP DATABASE IF EXISTS $DB_OUT;CREATE DATABASE $DB_OUT;" | 
+	mysql -u $DB_USR -p$DB_PWD -h $DB_HOST
+
+echo "Creating tables in $DB_OUT (as user $DB_USR)"
+mysql -u $DB_USR -p$DB_PWD -h $DB_HOST $DB_OUT < schema.mysql
+
+echo "Converting database"
+sed "s/REMOTE/$DB_IN/g" mysql_convert.sql > TMP
+mysql -u $DB_USR -p$DB_PWD -h $DB_HOST $DB_OUT < TMP
+rm TMP
