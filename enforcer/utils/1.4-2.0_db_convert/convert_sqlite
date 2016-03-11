@@ -29,7 +29,7 @@ if [ -z $DB_OUT ]; then
 	exit 1
 fi
  
-rm $DB_OUT
+rm -f $DB_OUT
 sqlite3 $DB_OUT < $SCHEMA 
 echo "attach '$DB_IN' as REMOTE;" |
 	cat - sqlite_convert.sql | sqlite3 $DB_OUT
