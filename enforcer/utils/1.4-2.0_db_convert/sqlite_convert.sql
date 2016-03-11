@@ -100,7 +100,7 @@ SET denialType = (
 		AND REMOTE.parameters.name = 'version');
 
 -- I'm pretty sure this is not the correct way to do it. It is aweful but
--- I can't figure it out how it would work for sqlite. So FUCK IT.
+-- I can't figure it out how it would work for sqlite.
 UPDATE policy
 SET denialOptout = (
 	SELECT value
@@ -119,7 +119,6 @@ WHERE null !=  (
 		AND REMOTE.parameters.category_id = 2
 		AND REMOTE.parameters.name = 'optout');
 
--- FUCK IT
 UPDATE policy
 SET denialTtl = (
 	SELECT value
@@ -138,7 +137,6 @@ WHERE null != (
 		AND REMOTE.parameters.category_id = 2
 		AND REMOTE.parameters.name = 'ttl');
 
--- FUCK IT
 UPDATE policy
 SET denialResalt = (
 	SELECT value
@@ -157,7 +155,6 @@ WHERE null != (
 		AND REMOTE.parameters.category_id = 2
 		AND REMOTE.parameters.name = 'resalt');
 
--- FUCK IT
 UPDATE policy
 SET denialAlgorithm = (
 	SELECT value
@@ -176,7 +173,6 @@ WHERE null != (
 		AND REMOTE.parameters.category_id = 2
 		AND REMOTE.parameters.name = 'algorithm');
 
--- FUCK IT
 UPDATE policy
 SET denialIterations = (
 	SELECT value
@@ -195,7 +191,6 @@ WHERE null != (
 		AND REMOTE.parameters.category_id = 2
 		AND REMOTE.parameters.name = 'iterations');
 
--- FUCK IT
 UPDATE policy
 SET denialSaltLength = (
 	SELECT value
@@ -587,7 +582,7 @@ SELECT zones.id, 1, zones.policy_id,
 	FROM REMOTE.zones;
 
 -- ~ ************
--- ~ ** ketData table
+-- ~ ** keyData table
 -- ~ **
 -- ~ ** 
 -- ~ **
