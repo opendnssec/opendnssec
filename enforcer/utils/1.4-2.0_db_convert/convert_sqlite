@@ -1,6 +1,10 @@
 #!/bin/bash
 set -e
 
+# This scipt converts a ODS 1.4.9 Sqlite database to ODS 2.0.
+
+SCHEMA=../../src/db/schema.sqlite
+
 DB_IN=""
 DB_OUT=""
 
@@ -26,7 +30,7 @@ if [ -z $DB_OUT ]; then
 fi
  
 rm $DB_OUT
-sqlite3 $DB_OUT < schema.sqlite 
+sqlite3 $DB_OUT < $SCHEMA 
 echo "attach '$DB_IN' as REMOTE;" |
 	cat - sqlite_convert.sql | sqlite3 $DB_OUT
 
