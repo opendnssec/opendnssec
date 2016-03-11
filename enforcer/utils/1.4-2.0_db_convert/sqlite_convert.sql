@@ -11,7 +11,7 @@ INSERT INTO databaseVersion VALUES (NULL, 1, 1);
 INSERT INTO policy 
 SELECT id, 1, name, description,
 0, 0, 0,
-0, 0, 0,
+0, 0, 0, 0,
 86400, 0, 0,
 0, 0, 0,
 0, 0, 0,
