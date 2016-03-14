@@ -871,6 +871,7 @@ void
 rrset_cleanup(rrset_type* rrset)
 {
     uint16_t i = 0;
+    rrsig_type* rrsig;
     if (!rrset) {
        return;
     }
@@ -881,6 +882,8 @@ rrset_cleanup(rrset_type* rrset)
         ldns_rr_free(rrset->rrs[i].rr);
         rrset->rrs[i].owner = NULL;
     }
+    while (rrsig = collection_iterator(rrset->rrsigs))
+        ldns_rr_free(rrsig->rr);
     collection_destroy(&rrset->rrsigs);
     free(rrset->rrs);
     free(rrset);
