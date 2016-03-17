@@ -2204,6 +2204,7 @@ hsm_open2(hsm_repository_t* rlist,
 
     repo = rlist;
     while (repo) {
+        hsm_config_default(&module_config);
         if (repo->name && repo->module && repo->tokenlabel) {
             if (repo->pin) {
                 result = hsm_attach(repo->name, repo->tokenlabel,
