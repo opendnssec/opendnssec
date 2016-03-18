@@ -294,14 +294,12 @@ void
 ixfr_cleanup(ixfr_type* ixfr)
 {
     int i = 0;
-    lock_basic_type ixfr_lock;
     if (!ixfr) {
         return;
     }
-    ixfr_lock = ixfr->ixfr_lock;
     for (i = IXFR_MAX_PARTS - 1; i >= 0; i--) {
         part_cleanup(ixfr->part[i]);
     }
+    lock_basic_destroy(&ixfr->ixfr_lock);
     free(ixfr);
-    lock_basic_destroy(&ixfr_lock);
 }

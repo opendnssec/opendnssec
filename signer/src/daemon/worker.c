@@ -830,14 +830,10 @@ worker_notify_all(lock_basic_type* lock, cond_basic_type* condition)
 void
 worker_cleanup(worker_type* worker)
 {
-    cond_basic_type worker_cond;
-    lock_basic_type worker_lock;
     if (!worker) {
         return;
     }
-    worker_cond = worker->worker_alarm;
-    worker_lock = worker->worker_lock;
+    lock_basic_destroy(&worker->worker_lock);
+    lock_basic_off(&worker->worker_alarm);
     free(worker);
-    lock_basic_destroy(&worker_lock);
-    lock_basic_off(&worker_cond);
 }
