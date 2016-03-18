@@ -740,13 +740,9 @@ zone_merge(zone_type* z1, zone_type* z2)
 void
 zone_cleanup(zone_type* zone)
 {
-    lock_basic_type zone_lock;
-    lock_basic_type xfr_lock;
     if (!zone) {
         return;
     }
-    zone_lock = zone->zone_lock;
-    xfr_lock = zone->xfr_lock;
     ldns_rdf_deep_free(zone->apex);
     adapter_cleanup(zone->adinbound);
     adapter_cleanup(zone->adoutbound);
@@ -762,9 +758,9 @@ zone_cleanup(zone_type* zone)
     free((void*)zone->signconf_filename);
     free((void*)zone->name);
     collection_class_destroy(&zone->rrstore);
+    lock_basic_destroy(&zone->xfr_lock);
+    lock_basic_destroy(&zone->zone_lock);
     free(zone);
-    lock_basic_destroy(&xfr_lock);
-    lock_basic_destroy(&zone_lock);
 }
 
 
