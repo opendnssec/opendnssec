@@ -189,32 +189,6 @@ memberdestroy(void* dummy, void* member)
     return 0;
 }
 
-static int
-memberdispose(void* dummy, void* member, FILE* fp)
-{
-    rrsig_type* sig = (rrsig_type*) member;
-    (void)dummy;
-    ldns_rr_print(fp, sig->rr);
-    ldns_rr_free(sig->rr);
-    sig->rr = NULL;
-    return 0;
-}
-
-static int
-memberrestore(void* dummy, void* member, FILE* fp)
-{
-    ldns_status status;
-    rrsig_type* sig = (rrsig_type*) member;
-    ldns_rdf* prev = NULL;
-    ldns_rdf* origin = NULL;
-    uint32_t defaulttl = 0;
-    (void)dummy;
-    if((status = ldns_rr_new_frm_fp(&sig->rr, fp, &defaulttl, &origin, &prev)) != LDNS_STATUS_OK) {
-        ods_log_error("[%s] unable to recreate RRset: %s", rrset_str, ldns_get_errorstr_by_id(status));
-        return 1;
-    }
-    return 0;
-}
 
 /**
  * Create RRset.

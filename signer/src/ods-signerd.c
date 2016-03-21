@@ -81,7 +81,7 @@ version(FILE* out)
     exit(0);
 }
 
-void
+static void
 program_setup(int cmdline_verbosity)
 {
     ods_log_init("ods-signerd", 0, NULL, cmdline_verbosity);
@@ -95,7 +95,7 @@ program_setup(int cmdline_verbosity)
     tzset(); /* for portability */
 }
 
-void
+static void
 program_teardown()
 {
     xmlCleanupParser();

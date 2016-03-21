@@ -328,7 +328,7 @@ parse_addns_request_xfr(const char* filename,
     tsig_type* tsig)
 {
     return parse_addns_remote(filename, tsig,
-        "//Adapter/DNS/Inbound/RequestTransfer/Remote");
+        (char *)"//Adapter/DNS/Inbound/RequestTransfer/Remote");
 }
 
 
@@ -341,7 +341,7 @@ parse_addns_allow_notify(const char* filename,
     tsig_type* tsig)
 {
     return parse_addns_acl(filename, tsig,
-        "//Adapter/DNS/Inbound/AllowNotify/Peer");
+        (char *)"//Adapter/DNS/Inbound/AllowNotify/Peer");
 }
 
 
@@ -354,7 +354,7 @@ parse_addns_provide_xfr(const char* filename,
     tsig_type* tsig)
 {
     return parse_addns_acl(filename, tsig,
-        "//Adapter/DNS/Outbound/ProvideTransfer/Peer");
+        (char *)"//Adapter/DNS/Outbound/ProvideTransfer/Peer");
 }
 
 
@@ -367,7 +367,7 @@ parse_addns_do_notify(const char* filename,
     tsig_type* tsig)
 {
     return parse_addns_remote(filename, tsig,
-        "//Adapter/DNS/Outbound/Notify/Remote");
+        (char *)"//Adapter/DNS/Outbound/Notify/Remote");
 }
 
 
@@ -379,6 +379,6 @@ tsig_type*
 parse_addns_tsig(const char* filename)
 {
     return parse_addns_tsig_static(filename,
-        "//Adapter/DNS/TSIG");
+        (char *)"//Adapter/DNS/TSIG");
 }
 

@@ -445,11 +445,11 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
         filterKeystate = NULL;
     } else if(filterKeystate == NULL) {
         if ((filterKeystate = malloc(sizeof (char*) * 6))) {
-            filterKeystate[0] = "publish";
-            filterKeystate[1] = "ready";
-            filterKeystate[2] = "active";
-            filterKeystate[3] = "retire";
-            filterKeystate[4] = "mixed";
+            filterKeystate[0] = (char *)"publish";
+            filterKeystate[1] = (char *)"ready";
+            filterKeystate[2] = (char *)"active";
+            filterKeystate[3] = (char *)"retire";
+            filterKeystate[4] = (char *)"mixed";
             filterKeystate[5] = NULL;
         } /* else emit error */
     }

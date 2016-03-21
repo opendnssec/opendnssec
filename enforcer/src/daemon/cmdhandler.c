@@ -105,7 +105,7 @@
 #define SUN_LEN(su) (sizeof(*(su))-sizeof((su)->sun_path)+strlen((su)->sun_path))
 #endif
 
-static char* module_str = "cmdhandler";
+static char const * module_str = "cmdhandler";
 
 typedef struct cmd_func_block* (*fbgetfunctype)(void);
 
