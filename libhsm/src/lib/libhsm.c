@@ -54,7 +54,7 @@
 hsm_ctx_t *_hsm_ctx;
 
 /*! General PKCS11 helper functions */
-static char *
+static char const *
 ldns_pkcs11_rv_str(CK_RV rv)
 {
     switch (rv)
@@ -196,17 +196,6 @@ ldns_pkcs11_rv_str(CK_RV rv)
         }
 }
 
-/*! Set HSM Context Error
-
-If the ctx is given, and it's error value is still 0, the value will be
-set to 'error', and the error_message and error_action will be set to
-the given strings.   
-
-\param ctx      HSM context
-\param error    error code
-\param action   action for which the error occured
-\param message  error message format string
-*/
 void
 hsm_ctx_set_error(hsm_ctx_t *ctx, int error, const char *action,
                  const char *message, ...)
@@ -416,7 +405,7 @@ hsm_repository_free(hsm_repository_t *r)
     free(r);
 }
 
-int
+static int
 hsm_get_slot_id(hsm_ctx_t *ctx,
                 CK_FUNCTION_LIST_PTR pkcs11_functions,
                 const char *token_name, CK_SLOT_ID *slotId)
@@ -1430,7 +1419,7 @@ err:
  *
  * \return the list of keys
  */
-libhsm_key_t **
+static libhsm_key_t **
 hsm_list_keys_session(hsm_ctx_t *ctx, const hsm_session_t *session,
                       size_t *count)
 {

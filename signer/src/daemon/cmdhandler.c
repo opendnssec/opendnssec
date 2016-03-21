@@ -62,7 +62,7 @@
 #endif
 
 static int count = 0;
-static char* cmdh_str = "cmdhandler";
+static char const * cmdh_str = "cmdhandler";
 
 
 /**

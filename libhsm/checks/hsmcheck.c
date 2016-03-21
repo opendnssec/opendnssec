@@ -37,7 +37,7 @@
 extern char *optarg;
 char *progname = NULL;
 
-void
+static void
 usage ()
 {
     fprintf(stderr, "usage: %s [-c config] [-gsdr]\n", progname);

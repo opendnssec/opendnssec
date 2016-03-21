@@ -165,7 +165,7 @@ tsig_handler_cleanup(void)
  * Create new TSIG key.
  *
  */
-tsig_key_type*
+static tsig_key_type*
 tsig_key_create(tsig_type* tsig)
 {
     tsig_key_type* key = NULL;

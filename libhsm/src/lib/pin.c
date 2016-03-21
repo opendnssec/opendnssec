@@ -65,7 +65,7 @@ union semun {
 /* Remember PIN that we can save */
 static char pin[HSM_MAX_PIN_LENGTH+1];
 
-char *
+static char *
 prompt_pass(char *prompt)
 {
     int c, i = 0;
@@ -101,7 +101,7 @@ prompt_pass(char *prompt)
     return pass;
 }
 
-int
+static int
 hsm_sem_open()
 {
     int semid;
@@ -147,7 +147,7 @@ hsm_sem_open()
     return semid;
 }
 
-int
+static int
 hsm_sem_wait(int semid)
 {
     struct sembuf sb = { 0, -1, 0 };
@@ -161,7 +161,7 @@ hsm_sem_wait(int semid)
     return 0;
 }
 
-int
+static int
 hsm_sem_post(int semid)
 {
     struct sembuf sb = { 0, 1, 0 };
@@ -175,7 +175,7 @@ hsm_sem_post(int semid)
     return 0;
 }
 
-int
+static int
 hsm_shm_open()
 {
     int shmid;

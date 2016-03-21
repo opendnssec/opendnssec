@@ -86,7 +86,7 @@ version(FILE* out)
     exit(0);
 }
 
-void
+static void
 program_setup(int cmdline_verbosity)
 {
     /* for now just log to stderr */
@@ -102,7 +102,7 @@ program_setup(int cmdline_verbosity)
     tzset(); /* for portability */
 }
 
-void
+static void
 program_teardown()
 {
     ods_log_close();
