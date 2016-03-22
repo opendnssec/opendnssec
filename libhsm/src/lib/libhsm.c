@@ -2414,6 +2414,9 @@ hsm_check_context(hsm_ctx_t *ctx)
     if (ctx == NULL) {
         ctx = _hsm_ctx;
     }
+    if (ctx == NULL) {
+        return HSM_ERROR;
+    }
 
     for (i = 0; i < ctx->session_count; i++) {
         session = ctx->session[i];

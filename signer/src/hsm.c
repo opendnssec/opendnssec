@@ -60,6 +60,21 @@ lhsm_open(hsm_repository_t* rlist)
     return result;
 }
 
+/**
+ * Reopen HSM.
+ *
+ */
+int
+lhsm_reopen(hsm_repository_t* rlist)
+{
+    if (hsm_check_context(NULL) != HSM_OK) {
+        ods_log_warning("[%s] idle libhsm connection, trying to reopen",
+            hsm_str);
+        hsm_close();
+        return lhsm_open(rlist);
+    }
+    return HSM_OK;
+}
 
 /**
  * Clear key cache.
