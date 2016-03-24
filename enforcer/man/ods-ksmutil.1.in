@@ -1,0 +1,25 @@
+.TH "ods-ksmutil" "8" "October 2012" "OpenDNSSEC" "OpenDNSSEC ods-ksmutil"
+.\" $Id: ods-ksmutil.8.in 5470 2012-10-17 09:44:09Z vanrein $
+.SH "NAME"
+.B ods\-ksmutil 
+\- OpenDNSSEC enforcer Engine client
+.LP
+.SH "SYNOPSIS"
+.B ods\-ksmutil
+.I ...
+.LP
+.SH "DESCRIPTION"
+ods-ksmutil is a DEPRECATED command.  It was part of the OpenDNSSEC 1.x series,
+but is now replaced by ods\-enforcer.  Scripts or other users of this command
+will trigger a warning in logs and on stderr.  Please note that this temporary
+wrapper will be removed from OpenDNSSEC 2.1 onwards.
+.SH "SEE ALSO"
+.LP
+ods\-enforcer(8),
+.B http://www.opendnssec.org/
+.SH "AUTHORS"
+.LP
+.B ods\-enforcer
+was written by NLnet Labs as part of the OpenDNSSEC project.  The
+.B ods\-ksmutil
+wrapper was written by OpenFortress in the same context.
