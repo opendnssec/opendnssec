@@ -153,7 +153,7 @@ collection_add(collection_t collection, void *data)
         swapin(collection);
     CHECKALLOC(ptr = realloc(collection->array, (collection->count+1)*collection->size));
     collection->array = ptr;
-    memcpy(collection->array + collection->size * collection->count, data, collection->size);
+    memcpy(&collection->array[collection->size * collection->count], data, collection->size);
     collection->count += 1;
     if(collection->method->store)
         swapout(collection);

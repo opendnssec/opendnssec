@@ -430,4 +430,7 @@ policy_key_t* policy_key_list_get_next(policy_key_list_t* policy_key_list);
  */
 size_t policy_key_list_size(policy_key_list_t* policy_key_list);
 
+policy_key_t * policy_key_new_get_by_policyid_and_role (const db_connection_t* connection, const db_value_t* policyid, const policy_key_role_t role);
+
+int policy_key_get_by_policyid_and_role(policy_key_t* policy_key, const db_value_t* policyid , const policy_key_role_t role);
 #endif
