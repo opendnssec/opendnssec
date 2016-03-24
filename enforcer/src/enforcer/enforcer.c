@@ -2250,7 +2250,7 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 	int force_roll;
 	time_t t_ret;
 	key_data_role_t key_role;
-	int success;
+	int err;
 	uint16_t tag;
 	int ret;
 
@@ -2515,12 +2515,12 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 		/*
 		 * Generate keytag for the new key and set it.
 		 */
-		success = hsm_keytag(hsm_key_locator(hsmkey), hsm_key_algorithm(hsmkey),
+		err = hsm_keytag(hsm_key_locator(hsmkey), hsm_key_algorithm(hsmkey),
 			((hsm_key_role(hsmkey) == HSM_KEY_ROLE_KSK
 				|| hsm_key_role(hsmkey) == HSM_KEY_ROLE_CSK)
 				? 1 : 0),
 			&tag);
-		if (!success || key_data_set_keytag(mutkey, tag))
+		if (err || key_data_set_keytag(mutkey, tag))
 		{
 			/* TODO: better log error */
 			ods_log_error("[%s] %s: error keytag", module_str, scmd);
