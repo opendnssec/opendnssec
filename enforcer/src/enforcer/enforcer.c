@@ -2585,10 +2585,9 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 		tag = keytag(hsm_key_locator(hsmkey), hsm_key_algorithm(hsmkey),
 			((hsm_key_role(hsmkey) == HSM_KEY_ROLE_KSK
 				|| hsm_key_role(hsmkey) == HSM_KEY_ROLE_CSK)
-				? 1 : 0),
-			&success);
-		if (!success
-			|| key_data_set_keytag(mutkey, tag))
+				? 1 : 0), &success);
+		if (success || key_data_set_keytag(mutkey, tag))
+>>>>>>> 1d48509... Implementing 'ods-enforcer key import' command
 		{
 			/* TODO: better log error */
 			ods_log_error("[%s] %s: error keytag", module_str, scmd);
