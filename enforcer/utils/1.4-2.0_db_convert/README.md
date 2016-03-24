@@ -57,7 +57,7 @@ stores them in the database. Make sure that at this point conf.xml points to
 the new database. Then run `ods-migrate`.
 
 Now your new database is ready for use. At this point the signer will refuse to
-run because the file `/var/opendnssec/enforcer/zonelist.xml` does not exist
+run because the file `/var/opendnssec/enforcer/zones.xml` does not exist
 yet.  In ODS 1.4 `/etc/opendnssec/zonelist.xml` is always on par with the
 database contents (this is no longer true for 2.0) so it is safe to copy this
 file over to the missing file.
