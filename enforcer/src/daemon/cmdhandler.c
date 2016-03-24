@@ -86,6 +86,7 @@
 #include "keystate/keystate_ds_retract_cmd.h"
 #include "keystate/keystate_ds_gone_cmd.h"
 #include "keystate/keystate_export_cmd.h"
+#include "keystate/keystate_import_cmd.h"
 #include "keystate/keystate_list_cmd.h"
 #include "keystate/key_purge_cmd.h"
 #include "keystate/rollover_list_cmd.h"
@@ -134,6 +135,7 @@ cmd_funcs_avail(void)
 
         &key_list_funcblock,
         &key_export_funcblock,
+        &key_import_funcblock,
         &key_ds_submit_funcblock,
         &key_ds_seen_funcblock,
         &key_ds_retract_funcblock,

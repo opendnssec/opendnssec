@@ -2475,3 +2475,74 @@ size_t key_data_list_size(key_data_list_t* key_data_list) {
 
     return db_result_list_size(key_data_list->result_list);
 }
+
+int key_data_get_by_hsm_key_id(key_data_t * key_data, const db_value_t* hsm_key_id) {
+    db_clause_list_t* clause_list;
+    db_clause_t* clause;
+    db_result_list_t* result_list;
+    const db_result_t* result;
+
+    if (!key_data) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!key_data->dbo) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!hsm_key_id) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(clause_list = db_clause_list_new())) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "hsmKeyId")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_value_copy(db_clause_get_value(clause), hsm_key_id)
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        db_clause_list_free(clause_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    result_list = db_object_read(key_data->dbo, NULL, clause_list);
+    db_clause_list_free(clause_list);
+
+    if (result_list) {
+        result = db_result_list_next(result_list);
+        if (result) {
+            if (key_data_from_result(key_data, result)) {
+                db_result_list_free(result_list);
+                return DB_ERROR_UNKNOWN;
+            }
+
+            db_result_list_free(result_list);
+            return DB_OK;
+        }
+    }
+
+    db_result_list_free(result_list);
+    return DB_ERROR_UNKNOWN;
+}
+
+
+key_data_t* key_data_new_get_by_hsm_key_id(const db_connection_t* connection, const db_value_t * hsm_key_id) {
+    key_data_t* key_data;
+
+    if (!connection) {
+        return NULL;
+    }
+    if (!hsm_key_id) {
+        return NULL;
+    }
+
+    if (!(key_data = key_data_new(connection))
+        || key_data_get_by_hsm_key_id(key_data, hsm_key_id))
+    {
+        key_data_free(key_data);
+        return NULL;
+    }
+
+    return key_data;
+}
