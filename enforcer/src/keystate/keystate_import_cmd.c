@@ -70,18 +70,20 @@ perform_hsmkey_import(int sockfd, db_connection_t *dbconn,
     }
     if (!hsm_token_attached(hsm_ctx, rep)) {
         if ((hsm_err = hsm_get_error(hsm_ctx))) {
-            ods_log_error("[%s] Unable to check for the repository %s, HSM error: %s", module_str, rep, hsm_err);
+            ods_log_error("[%s] Error: Unable to check for the repository %s, HSM error: %s", module_str, rep, hsm_err);
+            client_printf_err(sockfd, "Unable to check for the repository %s, HSM error: %s\n", rep, hsm_err);
             free(hsm_err);
         }
         else {
-            ods_log_error("[%s] Unable to find repository %s in HSM", module_str, rep);
+            ods_log_error("[%s] Error: Unable to find repository %s in HSM", module_str, rep);
+            client_printf_err(sockfd, "Unable to find repository %s in HSM\n", rep);
         }
         hsm_destroy_context(hsm_ctx);
         return -1;
     }
 
     if (!hsm_find_key_by_id(hsm_ctx, ckaid)) {
-	ods_log_error("Unable to find the key with this locator: %s", ckaid);
+	ods_log_error("[%s] Error: Unable to find the key with this locator: %s", module_str, ckaid);
 	client_printf_err(sockfd, "Unable to find the key with this locator: %s\n", ckaid);
 	hsm_destroy_context(hsm_ctx);
 	return -1;
@@ -89,7 +91,7 @@ perform_hsmkey_import(int sockfd, db_connection_t *dbconn,
 
     hsm_key = hsm_key_new_get_by_locator(dbconn, ckaid);
     if (hsm_key) {
-        ods_log_error("[%s] Already used this key with this locator: %s", module_str, ckaid);
+        ods_log_error("[%s] Error: Already used this key with this locator: %s", module_str, ckaid);
         client_printf_err(sockfd, "Already used this key with this locator: %s\n", ckaid);
         return -1;
     }
@@ -116,62 +118,7 @@ perform_hsmkey_import(int sockfd, db_connection_t *dbconn,
     hsm_destroy_context(hsm_ctx);
     return 0;
 }
-/*
-int
-perform_policykey_import(int sockfd, db_connection_t *dbconn,
-        const char *ckaid, const char *rep, const char *zonename,
-        const char *bits, const char *alg, const char *keystate,
-        const char *keytype, const char *time) {
-    hsm_ctx_t *hsm_ctx;
-    policy_key_t *policy_key = NULL;
-    char *hsm_err;
 
-    if (!(hsm_ctx = hsm_create_context())) {
-        return;
-    }
-    if (!hsm_token_attached(hsm_ctx, rep)) {
-        if ((hsm_err = hsm_get_error(hsm_ctx))) {
-            ods_log_error("[%s] unable to check for repository %s, HSM error: %s", module_str, rep, hsm_err);
-            free(hsm_err);
-        }
-        else {
-            ods_log_error("[%s] unable to find repository %s in HSM", module_str, rep);
-        }
-        hsm_destroy_context(hsm_ctx);
-        return;
-    }
-
-    if (!hsm_find_key_by_id(hsm_ctx, ckaid)) {
-        ods_log_error("Unable to find the key with this locator: %s", ckaid);
-        hsm_destroy_context(hsm_ctx);
-        return;
-    }
-
-    int error = 0;
-
-
-	policy_t * policy;
-	int setmin;
-	int res;
-	unsigned int lft;
-	policy = policy_new(dbconn);
-	policy_get_by_id(policy, zone_policy_id(zone_new_get_by_name(dbconn, zonename)));
-    policy_key_list_t * policykeylist = policy_get_policy_keys(policy);
-
-	policy_key_t* pkey;
-	pkey = policy_key_list_begin(policykeylist);
-	for ( pkey = policy_key_list_begin(policykeylist);pkey; pkey = policy_key_list_next(policykeylist)) {
-		db_value_cmp(policy_key_policy_id(pkey) , zone_policy_id(zone_new_get_by_name(dbconn, zonename)), &res);
-		if (!res && strcmp(policy_key_role_text, keytype)) {
-			setmin = policy_key_minimize(pkey);
-			lft = policy_key_lifetime(pkey);
-			break;
-		}
-
-	}
-
-}
-*/
 int 
 perform_keydata_import(int sockfd, db_connection_t *dbconn,
         const char *ckaid, const char *rep, const char *zonename,
@@ -189,18 +136,21 @@ perform_keydata_import(int sockfd, db_connection_t *dbconn,
     }
     if (!hsm_token_attached(hsm_ctx, rep)) {
         if ((hsm_err = hsm_get_error(hsm_ctx))) {
-            ods_log_error("[%s] Unable to check for the repository %s, HSM error: %s", module_str, rep, hsm_err);
+            ods_log_error("[%s] Error: Unable to check for the repository %s, HSM error: %s", module_str, rep, hsm_err);
+            client_printf_err(sockfd, "Unable to check for the repository %s, HSM error: %s\n", rep, hsm_err);
             free(hsm_err);
         }
         else {
-            ods_log_error("[%s] Unable to find repository %s in HSM", module_str, rep);
+            ods_log_error("[%s] Error: Unable to find repository %s in HSM", module_str, rep);
+            client_printf_err(sockfd, "Unable to find repository %s in HSM\n", rep);
         }
         hsm_destroy_context(hsm_ctx);
         return -1;
     }
 
     if (!hsm_find_key_by_id(hsm_ctx, ckaid)) {
-        ods_log_error("Unable to find the key with this locator: %s", ckaid);
+        ods_log_error("[%s] Error: Unable to find the key with this locator: %s", module_str, ckaid);
+        client_printf_err(sockfd, "Unable to find the key with this locator: %s\n", ckaid);
         hsm_destroy_context(hsm_ctx);
         return -1;
     }
@@ -255,18 +205,21 @@ perform_keystate_import(int sockfd, db_connection_t *dbconn,
     }
     if (!hsm_token_attached(hsm_ctx, rep)) {
         if ((hsm_err = hsm_get_error(hsm_ctx))) {
-            ods_log_error("[%s] Unable to check for the repository %s, HSM error: %s", module_str, rep, hsm_err);
+            ods_log_error("[%s] Error: Unable to check for the repository %s, HSM error: %s", module_str, rep, hsm_err);
+            client_printf_err(sockfd, "Unable to check for the repository %s, HSM error: %s\n", rep, hsm_err);
             free(hsm_err);
         }
         else {
-            ods_log_error("[%s] Unable to find repository %s in HSM", module_str, rep);
+            ods_log_error("[%s] Error: Unable to find repository %s in HSM", module_str, rep);
+            client_printf_err(sockfd, "Unable to find repository %s in HSM\n", rep);
         }
         hsm_destroy_context(hsm_ctx);
         return -1;
     }
 
     if (!hsm_find_key_by_id(hsm_ctx, ckaid)) {
-        ods_log_error("Unable to find the key with this locator: %s", ckaid);
+        ods_log_error("[%s] Error: Unable to find the key with this locator: %s", module_str, ckaid);
+        client_printf(sockfd, "Unable to find the key with this locator: %s\n", ckaid);
         hsm_destroy_context(hsm_ctx);
         return -1;
     }
@@ -493,13 +446,13 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     if (perform_hsmkey_import(sockfd, dbconn, ckaid, repository, zonename, atoi(bits), atoi(algorithm), type, (unsigned int)inception)
         || perform_keydata_import(sockfd, dbconn, ckaid, repository, zonename, atoi(algorithm), state, type, (unsigned int)inception, setmin, hsmkey_id)
         || perform_keystate_import(sockfd, dbconn, ckaid, repository, zonename, state, type, (unsigned int)inception, hsmkey_id)) {
-        ods_log_error("[%s] Unable to add key to the database", module_str);
+        ods_log_error("[%s] Error: Unable to add key to the database", module_str);
         db_value_free((void*)hsmkey_id);
         return -1;
     } 
     db_value_free((void*)hsmkey_id);
+    client_printf(sockfd, "Key imported into zone %s\n", zonename);
     return 0;
-    
 }
 
 static struct cmd_func_block funcblock = {
