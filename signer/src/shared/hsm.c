@@ -35,6 +35,7 @@
 
 static const char* hsm_str = "hsm";
 
+pthread_mutex_t check_connection_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /**
  * Open HSM.
@@ -104,7 +105,6 @@ lhsm_clear_key_cache(key_type* key)
 }
 
 
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 /**
  * Check the HSM connection, reload engine if necessary.
  *
@@ -113,8 +113,8 @@ void
 lhsm_check_connection(void* engine)
 {
     engine_type* e = (engine_type*) engine;
-    pthread_mutex_lock(&mutex);
-    if (hsm_check_context(NULL) != HSM_OK) {
+    pthread_mutex_lock(&check_connection_mutex);
+    if (hsm_check_context() != HSM_OK) {
         ods_log_warning("[%s] idle libhsm connection, trying to reopen",
             hsm_str);
         engine_stop_drudgers(e);
@@ -124,7 +124,7 @@ lhsm_check_connection(void* engine)
     } else {
         ods_log_debug("[%s] libhsm connection ok", hsm_str);
     }
-    pthread_mutex_unlock(&mutex);
+    pthread_mutex_unlock(&check_connection_mutex);
 }
 
 

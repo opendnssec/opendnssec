@@ -45,12 +45,14 @@
 #include "compat.h"
 
 #include <pkcs11.h>
+#include <pthread.h>
 
 /*! Fixed length from PKCS#11 specification */
 #define HSM_TOKEN_LABEL_LENGTH 32
 
-/*! Global (initial) context */
+/*! Global (initial) context, with mutex to serialize access to it */
 hsm_ctx_t *_hsm_ctx;
+pthread_mutex_t _hsm_ctx_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /*! General PKCS11 helper functions */
 static char *
@@ -2005,6 +2007,7 @@ hsm_open(const char *config,
     int tries;
     int repositories = 0;
 
+    pthread_mutex_lock(&_hsm_ctx_mutex);
     /* create an internal context with an attached session for each
      * configured HSM. */
     _hsm_ctx = hsm_ctx_new();
@@ -2134,8 +2137,10 @@ hsm_open(const char *config,
     if (result == HSM_OK && repositories == 0) {
         hsm_ctx_set_error(_hsm_ctx, HSM_NO_REPOSITORIES, "hsm_open()",
             "No repositories found");
-        return HSM_NO_REPOSITORIES;
+        result = HSM_NO_REPOSITORIES;
     }
+
+    pthread_mutex_unlock(&_hsm_ctx_mutex);
 
     return result;
 }
@@ -2143,28 +2148,34 @@ hsm_open(const char *config,
 int
 hsm_close()
 {
+    pthread_mutex_lock(&_hsm_ctx_mutex);
     hsm_ctx_close(_hsm_ctx, 1);
-    return 0;
+    _hsm_ctx = NULL;
+    pthread_mutex_unlock(&_hsm_ctx_mutex);
 }
 
 hsm_ctx_t *
 hsm_create_context()
 {
-    return hsm_ctx_clone(_hsm_ctx);
+    hsm_ctx_t* newctx;
+    pthread_mutex_lock(&_hsm_ctx_mutex);
+    newctx = hsm_ctx_clone(_hsm_ctx);
+    pthread_mutex_unlock(&_hsm_ctx_mutex);
+    return newctx;
 }
 
 int
-hsm_check_context(hsm_ctx_t *ctx)
+hsm_check_context()
 {
     unsigned int i;
     hsm_session_t *session;
     CK_SESSION_INFO info;
     CK_RV rv;
     CK_SESSION_HANDLE session_handle;
+    hsm_ctx_t *ctx;
 
-    if (ctx == NULL) {
-        ctx = _hsm_ctx;
-    }
+    pthread_mutex_lock(&_hsm_ctx_mutex);
+    ctx = _hsm_ctx;
 
     for (i = 0; i < ctx->session_count; i++) {
         session = ctx->session[i];
@@ -2175,6 +2186,7 @@ hsm_check_context(hsm_ctx_t *ctx)
                                         session->session,
                                         &info);
         if (hsm_pkcs11_check_error(ctx, rv, "get session info")) {
+            pthread_mutex_unlock(&_hsm_ctx_mutex);
             return HSM_ERROR;
         }
 
@@ -2182,6 +2194,7 @@ hsm_check_context(hsm_ctx_t *ctx)
         if (info.state != CKS_RW_USER_FUNCTIONS) {
             hsm_ctx_set_error(ctx, HSM_ERROR, "hsm_check_context()",
                               "Session not logged in");
+            pthread_mutex_unlock(&_hsm_ctx_mutex);
             return HSM_ERROR;
         }
 
@@ -2192,14 +2205,17 @@ hsm_check_context(hsm_ctx_t *ctx)
                                         NULL,
                                         &session_handle);
         if (hsm_pkcs11_check_error(ctx, rv, "test open session")) {
+            pthread_mutex_unlock(&_hsm_ctx_mutex);
             return HSM_ERROR;
         }
         rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_CloseSession(session_handle);
         if (hsm_pkcs11_check_error(ctx, rv, "test close session")) {
+            pthread_mutex_unlock(&_hsm_ctx_mutex);
             return HSM_ERROR;
         }
     }
 
+    pthread_mutex_unlock(&_hsm_ctx_mutex);
     return HSM_OK;
 }
 
@@ -3133,10 +3149,9 @@ int hsm_attach(const char *repository,
                               pin,
                               config);
     if (result == HSM_OK) {
-        return hsm_ctx_add_session(_hsm_ctx, session);
-    } else {
-        return result;
+        result = hsm_ctx_add_session(_hsm_ctx, session);
     }
+    return result;
 }
 
 /*! Detach a named HSM */

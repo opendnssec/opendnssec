@@ -210,7 +210,7 @@ If they are not alive, then try re-open libhsm.
 \return 0 if successful, !0 if failed
 */
 int
-hsm_check_context(hsm_ctx_t *context);
+hsm_check_context();
 
 
 /*! Destroy HSM context
