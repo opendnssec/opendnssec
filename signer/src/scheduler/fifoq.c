@@ -150,17 +150,11 @@ fifoq_push(fifoq_type* q, void* item, worker_type* worker, int* tries)
 void
 fifoq_cleanup(fifoq_type* q)
 {
-    lock_basic_type q_lock;
-    cond_basic_type q_threshold;
-    cond_basic_type q_nonfull;
     if (!q) {
         return;
     }
-    q_lock = q->q_lock;
-    q_threshold = q->q_threshold;
-    q_nonfull = q->q_nonfull;
+    lock_basic_off(&q->q_threshold);
+    lock_basic_off(&q->q_nonfull);
+    lock_basic_destroy(&q->q_lock);
     free(q);
-    lock_basic_off(&q_threshold);
-    lock_basic_off(&q_nonfull);
-    lock_basic_destroy(&q_lock);
 }

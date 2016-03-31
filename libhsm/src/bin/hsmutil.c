@@ -43,14 +43,14 @@ char *progname = NULL;
 unsigned int verbose = 0;
 
 
-void
+static void
 version ()
 {
     fprintf(stderr, "%s (%s) version %s\n",
         progname, PACKAGE_NAME, PACKAGE_VERSION);
 }
 
-void
+static void
 usage ()
 {
     fprintf(stderr,
@@ -71,7 +71,7 @@ usage ()
 #endif
 }
 
-int
+static int
 cmd_login ()
 {
     printf("The tokens are now logged in.\n");
@@ -79,7 +79,7 @@ cmd_login ()
     return 0;
 }
 
-int
+static int
 cmd_logout ()
 {
     if (hsm_logout_pin() != HSM_OK) {
@@ -93,7 +93,9 @@ cmd_logout ()
     return 0;
 }
 
-int
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
+static int
 cmd_list (int argc, char *argv[])
 {
     size_t i;
@@ -140,7 +142,7 @@ cmd_list (int argc, char *argv[])
         libhsm_key_info_t *key_info;
         libhsm_key_t *key = NULL;
         char key_type[HSM_MAX_ALGONAME + 8];
-        char *key_id = NULL;
+        char const * key_id = NULL;
 
         key = keys[i];
         if (key == NULL) {
@@ -177,8 +179,9 @@ cmd_list (int argc, char *argv[])
 
     return 0;
 }
+#pragma GCC diagnostic pop
 
-int
+static int
 cmd_generate (int argc, char *argv[])
 {
     const char *repository = NULL;
@@ -259,7 +262,7 @@ cmd_generate (int argc, char *argv[])
     return 0;
 }
 
-int
+static int
 cmd_remove (int argc, char *argv[])
 {
     char *id;
@@ -294,7 +297,7 @@ cmd_remove (int argc, char *argv[])
     return result;
 }
 
-int
+static int
 cmd_purge (int argc, char *argv[])
 {
     int result;
@@ -374,7 +377,7 @@ cmd_purge (int argc, char *argv[])
     return final_result;
 }
 
-int
+static int
 cmd_dnskey (int argc, char *argv[])
 {
     char *id;
@@ -510,7 +513,7 @@ cmd_dnskey (int argc, char *argv[])
     return 0;
 }
 
-int
+static int
 cmd_test (int argc, char *argv[])
 {
     char *repository = NULL;
@@ -531,7 +534,7 @@ cmd_test (int argc, char *argv[])
     return 0;
 }
 
-int
+static int
 cmd_info ()
 {
     hsm_print_tokeninfo(NULL);
@@ -539,7 +542,7 @@ cmd_info ()
     return 0;
 }
 
-int
+static int
 cmd_debug ()
 {
     hsm_print_ctx(NULL);

@@ -301,9 +301,9 @@ parse_conf_listener(const char* cfgfile)
                 interface = listener_push(listener, address,
                     acl_parse_family(address), port);
             } else {
-                interface = listener_push(listener, "", AF_INET, port);
+                interface = listener_push(listener, (char *)"", AF_INET, port);
                 if (interface) {
-                    interface = listener_push(listener, "", AF_INET6, port);
+                    interface = listener_push(listener, (char *)"", AF_INET6, port);
                 }
             }
             if (!interface) {

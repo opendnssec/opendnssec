@@ -140,6 +140,21 @@ typedef struct {
 } hsm_ctx_t;
 
 
+/*! Set HSM Context Error
+
+If the ctx is given, and it's error value is still 0, the value will be
+set to 'error', and the error_message and error_action will be set to
+the given strings.
+
+\param ctx      HSM context
+\param error    error code
+\param action   action for which the error occured
+\param message  error message format string
+*/
+void
+hsm_ctx_set_error(hsm_ctx_t *ctx, int error, const char *action,
+                 const char *message, ...);
+
 /*! Open HSM library
 
 \param config path to OpenDNSSEC XML configuration file

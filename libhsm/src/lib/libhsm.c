@@ -54,7 +54,7 @@
 hsm_ctx_t *_hsm_ctx;
 
 /*! General PKCS11 helper functions */
-static char *
+static char const *
 ldns_pkcs11_rv_str(CK_RV rv)
 {
     switch (rv)
@@ -196,17 +196,6 @@ ldns_pkcs11_rv_str(CK_RV rv)
         }
 }
 
-/*! Set HSM Context Error
-
-If the ctx is given, and it's error value is still 0, the value will be
-set to 'error', and the error_message and error_action will be set to
-the given strings.   
-
-\param ctx      HSM context
-\param error    error code
-\param action   action for which the error occured
-\param message  error message format string
-*/
 void
 hsm_ctx_set_error(hsm_ctx_t *ctx, int error, const char *action,
                  const char *message, ...)
@@ -416,7 +405,7 @@ hsm_repository_free(hsm_repository_t *r)
     free(r);
 }
 
-int
+static int
 hsm_get_slot_id(hsm_ctx_t *ctx,
                 CK_FUNCTION_LIST_PTR pkcs11_functions,
                 const char *token_name, CK_SLOT_ID *slotId)
@@ -1430,7 +1419,7 @@ err:
  *
  * \return the list of keys
  */
-libhsm_key_t **
+static libhsm_key_t **
 hsm_list_keys_session(hsm_ctx_t *ctx, const hsm_session_t *session,
                       size_t *count)
 {
@@ -2356,6 +2345,7 @@ hsm_open2(hsm_repository_t* rlist,
 
     repo = rlist;
     while (repo) {
+        hsm_config_default(&module_config);
         if (repo->name && repo->module && repo->tokenlabel) {
             if (repo->pin) {
                 result = hsm_attach(repo->name, repo->tokenlabel,
@@ -2423,6 +2413,9 @@ hsm_check_context(hsm_ctx_t *ctx)
 
     if (ctx == NULL) {
         ctx = _hsm_ctx;
+    }
+    if (ctx == NULL) {
+        return HSM_ERROR;
     }
 
     for (i = 0; i < ctx->session_count; i++) {
@@ -3134,6 +3127,62 @@ hsm_sign_rrset(hsm_ctx_t *ctx,
     ldns_rr_rrsig_set_sig(signature, b64_rdf);
 
     return signature;
+}
+
+int
+hsm_keytag(const char* loc, int alg, int ksk, uint16_t* keytag)
+{
+	uint16_t tag;
+	hsm_ctx_t *hsm_ctx;
+	hsm_sign_params_t *sign_params;
+	libhsm_key_t *hsmkey;
+	ldns_rr *dnskey_rr;
+
+	if (!loc) {
+		return 1;
+	}
+
+	if (!(hsm_ctx = hsm_create_context())) {
+		return 1;
+	}
+	if (!(sign_params = hsm_sign_params_new())) {
+		hsm_destroy_context(hsm_ctx);
+		return 1;
+	}
+
+	/* The owner name is not relevant for the keytag calculation.
+	 * However, a ldns_rdf_clone down the path will trip over it. */
+	sign_params->owner = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, "dummy");
+	sign_params->algorithm = (ldns_algorithm) alg;
+	sign_params->flags = LDNS_KEY_ZONE_KEY;
+	if (ksk)
+		sign_params->flags |= LDNS_KEY_SEP_KEY;
+
+	hsmkey = hsm_find_key_by_id(hsm_ctx, loc);
+	if (!hsmkey) {
+		hsm_sign_params_free(sign_params);
+		hsm_destroy_context(hsm_ctx);
+		return 1;
+	}
+
+	dnskey_rr = hsm_get_dnskey(hsm_ctx, hsmkey, sign_params);
+	if (!dnskey_rr) {
+		free(hsmkey);
+		hsm_sign_params_free(sign_params);
+		hsm_destroy_context(hsm_ctx);
+		return 1;
+	}
+
+	tag = ldns_calc_keytag(dnskey_rr);
+
+	ldns_rr_free(dnskey_rr);
+	free(hsmkey);
+	hsm_sign_params_free(sign_params);
+	hsm_destroy_context(hsm_ctx);
+
+	if (keytag)
+            *keytag = tag;
+	return 0;
 }
 
 ldns_rr *
