@@ -37,6 +37,14 @@ if [ -z $DB_OUT ]; then
 	exit 1
 fi
 
+# Look for zones without an active key.
+Z=`mysql -u $DB_USR -p$DB_PWD -h $DB_HOST $DB_IN < find_problematic_zones.sql`	
+if [[ $Z = *[![:space:]]* ]]; then
+	echo "Found zones without an active KSK but with a ready KSK waiting for ds-seen. This can cause problem after the conversion if the DS was actually already uploaded. You are adviced to submit these DS records and issue a ds-seen command before continueing. If you know better, disable this check to continue."
+	       echo "Zones: $Z"
+	exit 2
+fi
+
 echo "Creating database $DB_OUT (as user $DB_USR)"
 echo "DROP DATABASE IF EXISTS $DB_OUT;CREATE DATABASE $DB_OUT;" | 
 	mysql -u $DB_USR -p$DB_PWD -h $DB_HOST
