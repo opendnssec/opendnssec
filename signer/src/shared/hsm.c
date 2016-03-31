@@ -36,23 +36,6 @@
 static const char* hsm_str = "hsm";
 
 /**
- * Reopen HSM.
- *
- */
-int
-lhsm_reopen(const char* filename)
-{
-    if (hsm_check_context(NULL) != HSM_OK) {
-        ods_log_warning("[%s] idle libhsm connection, trying to reopen",
-            hsm_str);
-        hsm_close();
-        return lhsm_open(filename);
-    }
-    return HSM_OK;
-}
-
-
-/**
  * Clear key cache.
  *
  */
@@ -74,7 +57,6 @@ lhsm_clear_key_cache(key_type* key)
         hsm_sign_params_free(key->params);
         key->params = NULL;
     }
-    return;
 }
 
 
