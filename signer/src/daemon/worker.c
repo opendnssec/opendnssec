@@ -331,8 +331,12 @@ worker_perform_task(worker_type* worker)
                     task_who2str(task));
                 status = ODS_STATUS_ERR;
             } else {
-                lhsm_check_connection(engine);
-                status = tools_input(zone);
+                if (hsm_check_context()) {
+                    engine->need_to_reload = 1;
+                    status = ODS_STATUS_ERR;
+                } else {
+                    status = tools_input(zone);
+                }
             }
 
             if (status == ODS_STATUS_UNCHANGED) {
@@ -389,7 +393,10 @@ worker_perform_task(worker_type* worker)
                 lock_basic_unlock(&zone->stats->stats_lock);
             }
             /* check the HSM connection before queuing sign operations */
-            lhsm_check_connection(engine);
+            if (hsm_check_context()) {
+                engine->need_to_reload = 1;
+                goto task_perform_fail;
+            }
             /* prepare keys */
             status = zone_prepare_keys(zone);
             if (status == ODS_STATUS_OK) {
@@ -715,12 +722,6 @@ worker_drudge(worker_type* worker)
             rrset = NULL;
         }
         /* done work */
-    }
-    /* wake up superior */
-    if (superior && superior->sleeping) {
-        ods_log_deeebug("[%s[%i]] wake up superior[%u], i am exiting",
-            worker2str(worker->type), worker->thread_num, superior->thread_num);
-         worker_wakeup(superior);
     }
     /* cleanup open HSM sessions */
     if (ctx) {
