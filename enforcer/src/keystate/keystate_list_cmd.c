@@ -62,8 +62,11 @@ const char* statenames[] = {"generate", "publish", "ready",
  * @return: state in 1.x speak
  **/
 static int
-keystate(int p, int c, int introducing, int dsseen)
+keystate(int p, int c, int introducing, key_data_ds_at_parent_t dsstate)
 {
+	int dsseen    = (dsstate == KEY_DATA_DS_AT_PARENT_SEEN);
+	int dsretract = (dsstate == KEY_DATA_DS_AT_PARENT_RETRACT);
+
 	if (introducing) {
 		if (p == HID && c == HID) return KS_GEN;
 		if (p == HID || c == HID) return KS_PUB;
@@ -74,6 +77,9 @@ keystate(int p, int c, int introducing, int dsseen)
 	} else {
 		/* retire conforms better to 1.4 terminology than dead. */
 		if (p == HID && c == HID) return KS_RET; /* dead */
+		/* This happens when a key is dsseen but not in OMN yet and
+		 * then rolls over */
+		if (p == UNR && dsretract && c == OMN) return KS_ACT;
 		if (p == UNR || c == UNR) return KS_RET;
 		if (p == OMN && c == OMN) return KS_ACT;
 		return KS_RET;
@@ -85,7 +91,7 @@ zskstate(key_data_t *key)
 {
 	return keystate(key_state_state(key_data_cached_dnskey(key)),
 		key_state_state(key_data_cached_rrsig(key)),
-		key_data_introducing(key), 0);
+		key_data_introducing(key), KEY_DATA_DS_AT_PARENT_INVALID);
 }
 
 static int
@@ -94,7 +100,7 @@ kskstate(key_data_t *key)
 	return keystate(key_state_state(key_data_cached_ds(key)),
 		key_state_state(key_data_cached_dnskey(key)),
 		key_data_introducing(key),
-		key_data_ds_at_parent(key) == KEY_DATA_DS_AT_PARENT_SEEN);
+		key_data_ds_at_parent(key));
 }
 
 /** Human readable keystate in 1.x speak
