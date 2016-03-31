@@ -35,33 +35,6 @@
 
 static const char* hsm_str = "hsm";
 
-pthread_mutex_t check_connection_mutex = PTHREAD_MUTEX_INITIALIZER;
-
-/**
- * Open HSM.
- *
- */
-int
-lhsm_open(hsm_repository_t* rlist)
-{
-    int result = hsm_open2(rlist, hsm_check_pin);
-    if (result != HSM_OK) {
-        char* error =  hsm_get_error(NULL);
-        if (error != NULL) {
-            ods_log_error("[%s] %s", hsm_str, error);
-            free(error);
-        } else {
-            ods_log_crit("[%s] error opening libhsm (errno %i)", hsm_str,
-                result);
-        }
-        /* exit? */
-    } else {
-        ods_log_info("[%s] libhsm connection opened succesfully", hsm_str);
-    }
-    return result;
-}
-
-
 /**
  * Clear key cache.
  *
@@ -85,29 +58,6 @@ lhsm_clear_key_cache(key_type* key)
         key->params = NULL;
     }
 }
-
-
-/**
- * Check the HSM connection, reload engine if necessary.
- *
- */
-void
-lhsm_check_connection(engine_type* engine)
-{
-    pthread_mutex_lock(&check_connection_mutex);
-    if (hsm_check_context() != HSM_OK) {
-        ods_log_warning("[%s] idle libhsm connection, trying to reopen",
-            hsm_str);
-        engine_stop_drudgers(engine);
-        hsm_close();
-        (void)lhsm_open(engine->config->repositories);
-        engine_start_drudgers(engine);
-    } else {
-        ods_log_debug("[%s] libhsm connection ok", hsm_str);
-    }
-    pthread_mutex_unlock(&check_connection_mutex);
-}
-
 
 /**
  * Get key from one of the HSMs.
