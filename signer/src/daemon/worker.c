@@ -332,6 +332,7 @@ worker_perform_task(worker_type* worker)
                 status = ODS_STATUS_ERR;
             } else {
                 if (hsm_check_context()) {
+                    ods_log_error("signer instructed to reload due to hsm reset in read task");
                     engine->need_to_reload = 1;
                     status = ODS_STATUS_ERR;
                 } else {
@@ -394,6 +395,7 @@ worker_perform_task(worker_type* worker)
             }
             /* check the HSM connection before queuing sign operations */
             if (hsm_check_context()) {
+                ods_log_error("signer instructed to reload due to hsm reset in sign task");
                 engine->need_to_reload = 1;
                 goto task_perform_fail;
             }
@@ -689,6 +691,7 @@ worker_drudge(worker_type* worker)
                 ods_log_crit("[%s[%i]] error creating libhsm context",
                     worker2str(worker->type), worker->thread_num);
                 engine->need_to_reload = 1;
+                ods_log_error("signer instructed to reload due to hsm reset while signing");
                 lock_basic_lock(&superior->worker_lock);
                 superior->jobs_failed++;
                 lock_basic_unlock(&superior->worker_lock);

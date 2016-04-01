@@ -606,6 +606,7 @@ engine_run(engine_type* engine, int single_run)
                 ods_log_assert(1);
                 break;
             case SIGNAL_RELOAD:
+                ods_log_error("signer instructed to reload due to explicit signal");
                 engine->need_to_reload = 1;
                 break;
             case SIGNAL_SHUTDOWN:
