@@ -1,3 +1,9 @@
+OpenDNSSEC 1.4.x - 2016-xx-xx
+
+Bugfixes:
+ * After a resalt the signer would fail to remove the old NSEC3PARAM RR until
+   a manual resign or incoming transfer.
+
 OpenDNSSEC 1.4.9 - 2016-01-21
 
 Bugfixes:
