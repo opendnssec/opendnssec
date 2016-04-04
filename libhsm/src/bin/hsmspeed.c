@@ -191,7 +191,7 @@ main (int argc, char *argv[])
 
     /* Open HSM library */
     fprintf(stderr, "Opening HSM Library...\n");
-    result = hsm_open(config, hsm_prompt_pin);
+    result = hsm_open(config?config:HSM_DEFAULT_CONFIG, hsm_prompt_pin);
     if (result) {
         fprintf(stderr, "hsm_open() returned %d\n", result);
         exit(-1);
