@@ -114,6 +114,13 @@ main (int argc, char *argv[])
      */
     fprintf(stdout, "Starting HSM lib test\n");
     result = hsm_open2(parse_conf_repositories(config), hsm_prompt_pin);
+    if (result != HSM_OK) {
+        char* error =  hsm_get_error(NULL);
+        if (error != NULL) {
+            fprintf(stderr,"%s\n", error);
+            free(error);
+        }
+    }
     fprintf(stdout, "hsm_open result: %d\n", result);
 
     /*

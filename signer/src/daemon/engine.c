@@ -1003,6 +1003,11 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
             ods_log_info("[%s] signer started (version %s), pid %u",
                 engine_str, PACKAGE_VERSION, engine->pid);
             if (hsm_open2(engine->config->repositories, hsm_check_pin) != HSM_OK) {
+                char* error =  hsm_get_error(NULL);
+                if (error != NULL) {
+                    ods_log_error("[%s] %s", "hsm", error);
+                    free(error);
+                }
                 ods_log_error("[%s] opening hsm failed (for engine recover)", engine_str);
                 break;
             }
@@ -1014,6 +1019,11 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
             engine_update_zones(engine, zl_changed);
         }
         if (hsm_open2(engine->config->repositories, hsm_check_pin) != HSM_OK) {
+            char* error =  hsm_get_error(NULL);
+            if (error != NULL) {
+                ods_log_error("[%s] %s", "hsm", error);
+                free(error);
+            }
             ods_log_error("[%s] opening hsm failed (for engine run)", engine_str);
             break;
         }
