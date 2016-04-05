@@ -159,6 +159,7 @@ worker_queue_rrset(worker_type* worker, fifoq_type* q, rrset_type* rrset)
     ods_status status = ODS_STATUS_UNCHANGED;
     int tries = 0;
     ods_log_assert(worker);
+    ods_log_assert(worker->task);
     ods_log_assert(q);
     ods_log_assert(rrset);
 
@@ -696,7 +697,8 @@ worker_drudge(worker_type* worker)
              */
             lock_basic_sleep(&engine->signq->q_threshold,
                 &engine->signq->q_lock, 0);
-            rrset = (rrset_type*) fifoq_pop(engine->signq, &superior);
+            if(worker->need_to_exit == 0)
+                rrset = (rrset_type*) fifoq_pop(engine->signq, &superior);
         }
         lock_basic_unlock(&engine->signq->q_lock);
         /* do some work */
