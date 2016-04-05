@@ -470,8 +470,12 @@ main (int argc, char *argv[])
     }
 
     result = hsm_open(config?config:HSM_DEFAULT_CONFIG, hsm_prompt_pin);
-    if (result) {
-        hsm_print_error(ctx);
+    if (result != HSM_OK) {
+        char* error =  hsm_get_error(NULL);
+        if (error != NULL) {
+            fprintf(stderr,"%s\n", error);
+            free(error);
+        }
         exit(-1);
     }
     ctx = hsm_create_context();

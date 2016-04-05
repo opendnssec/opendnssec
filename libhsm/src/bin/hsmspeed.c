@@ -192,8 +192,12 @@ main (int argc, char *argv[])
     /* Open HSM library */
     fprintf(stderr, "Opening HSM Library...\n");
     result = hsm_open(config?config:HSM_DEFAULT_CONFIG, hsm_prompt_pin);
-    if (result) {
-        fprintf(stderr, "hsm_open() returned %d\n", result);
+    if (result != HSM_OK) {
+        char* error =  hsm_get_error(NULL);
+        if (error != NULL) {
+            fprintf(stderr,"%s\n", error);
+            free(error);
+        }
         exit(-1);
     }
 
