@@ -997,6 +997,7 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
         /* start/reload */
         if (engine->need_to_reload) {
             ods_log_info("[%s] signer reloading", engine_str);
+            fifoq_wipe(engine->signq);
             engine->need_to_reload = 0;
         } else {
             ods_log_info("[%s] signer started (version %s), pid %u",
