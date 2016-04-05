@@ -151,7 +151,7 @@ cmd_list (int argc, char *argv[])
         key_count_valid++;
 
         key_info = hsm_get_key_info(ctx, key);
-        
+
         if (key_info) {
             snprintf(key_type, sizeof(key_type), "%s/%lu",
                 key_info->algorithm_name, key_info->keysize);
