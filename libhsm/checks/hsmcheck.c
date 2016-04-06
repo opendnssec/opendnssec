@@ -245,8 +245,8 @@ main (int argc, char *argv[])
     /*
      * Close HSM library
      */
-    result = hsm_close();
-    fprintf(stdout, "all done! hsm_close result: %d\n", result);
+    hsm_close();
+    fprintf(stdout, "all done!\n");
 
     if (config) free(config);
     

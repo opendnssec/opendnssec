@@ -7694,8 +7694,8 @@ int cmd_genkeys()
 		if (ctx) {
 			hsm_destroy_context(ctx);
 		}
-		status = hsm_close();
-		printf("all done! hsm_close result: %d\n", status);
+		hsm_close();
+		printf("all done!\n");
         db_disconnect(lock_fd);
         KsmPolicyFree(policy);
 		return(status);		
@@ -7712,8 +7712,8 @@ int cmd_genkeys()
 			if (ctx) {
 				hsm_destroy_context(ctx);
 			}
-			status = hsm_close();
-			printf("all done! hsm_close result: %d\n", status);
+			hsm_close();
+			printf("all done!\n");
 	        db_disconnect(lock_fd);
 	        KsmPolicyFree(policy);
 			return(status);
@@ -7832,8 +7832,8 @@ int cmd_genkeys()
     if (ctx) {
         hsm_destroy_context(ctx);
     }
-    status = hsm_close();
-    printf("all done! hsm_close result: %d\n", status);
+    hsm_close();
+    printf("all done!\n");
 
     KsmPolicyFree(policy);
     

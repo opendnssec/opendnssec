@@ -325,8 +325,8 @@ server_main(DAEMONCONFIG *config)
         hsm_destroy_context(ctx);
     }
 
-    result = hsm_close();
-    log_msg(config, LOG_INFO, "all done! hsm_close result: %d", result);
+    hsm_close();
+    log_msg(config, LOG_INFO, "all done!");
 
     KsmPolicyFree(policy);
 
@@ -1984,7 +1984,7 @@ void check_hsm_connection(hsm_ctx_t **ctx, DAEMONCONFIG *config)
 			*ctx = NULL;
 		}
 
-		result = hsm_close();
+		hsm_close();
 
 		if (config->configfile != NULL) {
 			result = hsm_open(config->configfile, hsm_check_pin);

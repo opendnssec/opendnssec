@@ -771,7 +771,7 @@ hsm_key_new()
 {
     hsm_key_t *key;
     key = malloc(sizeof(hsm_key_t));
-    key->module = NULL;
+    key->modulename = NULL;
     key->private_key = 0;
     key->public_key = 0;
     return key;
@@ -783,9 +783,9 @@ static hsm_session_t *
 hsm_find_key_session(hsm_ctx_t *ctx, const hsm_key_t *key)
 {
     unsigned int i;
-    if (!key || !key->module) return NULL;
+    if (!key || !key->modulename) return NULL;
     for (i = 0; i < ctx->session_count; i++) {
-        if (ctx->session[i] && ctx->session[i]->module == key->module) {
+        if (ctx->session[i] && !strcmp(ctx->session[i]->module->name, key->modulename)) {
             return ctx->session[i];
         }
     }
@@ -1122,7 +1122,7 @@ hsm_key_new_privkey_object_handle(hsm_ctx_t *ctx,
     if (!id) return NULL;
 
     key = hsm_key_new();
-    key->module = session->module;
+    key->modulename = strdup(session->module->name);
     key->private_key = object;
     
     if (session->module->config->use_pubkey) {
@@ -2145,7 +2145,7 @@ hsm_open(const char *config,
     return result;
 }
 
-int
+void
 hsm_close()
 {
     pthread_mutex_lock(&_hsm_ctx_mutex);
@@ -2425,7 +2425,7 @@ hsm_generate_rsa_key(hsm_ctx_t *ctx,
     }
 
     new_key = hsm_key_new();
-    new_key->module = session->module;
+    new_key->modulename = strdup(session->module->name);
 
     if (session->module->config->use_pubkey) {
         new_key->public_key = publicKey;
@@ -2563,8 +2563,8 @@ hsm_generate_dsa_key(hsm_ctx_t *ctx,
     }
 
     new_key = hsm_key_new();
-    new_key->module = session->module;
-    new_key->public_key = publicKey;        
+    new_key->modulename = strdup(session->module->name);
+    new_key->public_key = publicKey;
     new_key->private_key = privateKey;
 
     return new_key;
@@ -2660,8 +2660,8 @@ hsm_generate_gost_key(hsm_ctx_t *ctx,
     }
 
     new_key = hsm_key_new();
-    new_key->module = session->module;
-    new_key->public_key = publicKey;        
+    new_key->modulename = strdup(session->module->name);
+    new_key->public_key = publicKey;
     new_key->private_key = privateKey;
 
     return new_key;
@@ -2709,6 +2709,7 @@ hsm_key_list_free(hsm_key_t **key_list, size_t count)
 {
     size_t i;
     for (i = 0; i < count; i++) {
+        free(key_list[i]->modulename);
         hsm_key_free(key_list[i]);
     }
     free(key_list);
@@ -3277,14 +3278,8 @@ hsm_print_key(hsm_ctx_t *ctx, hsm_key_t *key) {
         key_info = hsm_get_key_info(ctx, key);
         if (key_info) {
             printf("key:\n");
-            printf("\tmodule: %p\n", (void *) key->module);
             printf("\tprivkey handle: %u\n", (unsigned int) key->private_key);
-            if (key->module->config->use_pubkey) {
-                printf("\tpubkey handle: %u\n", (unsigned int) key->public_key);
-            } else {
-                printf("\tpubkey handle: %s\n", "NULL");
-            }
-            printf("\trepository: %s\n", key->module->name);
+            printf("\trepository: %s\n", key->modulename);
             printf("\talgorithm: %s\n", key_info->algorithm_name);
             printf("\tsize: %lu\n", key_info->keysize);
             printf("\tid: %s\n", key_info->id);

@@ -280,7 +280,7 @@ main (int argc, char *argv[])
 
     /* Clean up */
     hsm_destroy_context(ctx);
-    (void) hsm_close();
+    hsm_close();
     if (config) free(config);
 
     return 0;

@@ -161,7 +161,7 @@ cmd_list (int argc, char *argv[])
             key_id = "UNKNOWN";
         }
 
-        printf(key_info_format, key->module->name, key_id, key_type);
+        printf(key_info_format, key->modulename, key_id, key_type);
 
         hsm_key_info_free(key_info);
     }
