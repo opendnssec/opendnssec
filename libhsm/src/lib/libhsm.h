@@ -98,7 +98,7 @@ typedef struct {
 
 /*! HSM Key Pair */
 typedef struct {
-    const hsm_module_t *module;      /*!< pointer to module */
+    const char *       modulename;   /*!< name of the module, as in hsm_session_t.module.name */
     unsigned long      private_key;  /*!< private key within module */
     unsigned long      public_key;   /*!< public key within module */
 } libhsm_key_t;
