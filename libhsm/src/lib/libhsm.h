@@ -98,7 +98,7 @@ typedef struct {
 
 /*! HSM Key Pair */
 typedef struct {
-    const hsm_module_t *module;      /*!< pointer to module */
+    const char *       modulename;   /*!< name of the module, as in hsm_session_t.module.name */
     unsigned long      private_key;  /*!< private key within module */
     unsigned long      public_key;   /*!< public key within module */
 } libhsm_key_t;
@@ -119,6 +119,7 @@ struct hsm_repository_struct {
     char    *module;        /*!< PKCS#11 module */
     char    *tokenlabel;    /*!< PKCS#11 token label */
     char    *pin;           /*!< PKCS#11 login credentials */
+    uint8_t require_backup; /*!< require a backup of keys before using new keys */
     uint8_t use_pubkey;     /*!< use public keys in repository? */
 };
 
@@ -139,25 +140,6 @@ typedef struct {
     char error_message[HSM_ERROR_MSGSIZE];
 } hsm_ctx_t;
 
-
-/*! Open HSM library
-
-\param config path to OpenDNSSEC XML configuration file
-\param pin_callback This function will be called for tokens that have
-                    no PIN configured. The default hsm_prompt_pin() can
-                    be used. If this value is NULL, these tokens will
-                    be skipped.
-\return 0 if successful, !0 if failed
-
-Attaches all configured HSMs, querying for PINs (using the given
-callback function) if not known.
-Also creates initial sessions (not part of any context; every API
-function that takes a context can be passed NULL, in which case the
-global context will be used) and log into each HSM.
-*/
-int
-hsm_open(const char *config,
-         char *(pin_callback)(unsigned int, const char *, unsigned int));
 
 /*! Open HSM library
 
@@ -190,7 +172,7 @@ hsm_open2(hsm_repository_t* rlist,
 */
 hsm_repository_t *
 hsm_repository_new(char* name, char* module, char* tokenlabel, char* pin,
-    uint8_t use_pubkey);
+    uint8_t use_pubkey, uint8_t require_backup);
 
 /*! Free configured repositories.
 
@@ -262,7 +244,7 @@ If they are not alive, then try re-open libhsm.
 \return 0 if successful, !0 if failed
 */
 int
-hsm_check_context(hsm_ctx_t *context);
+hsm_check_context();
 
 
 /*! Destroy HSM context
@@ -526,9 +508,9 @@ hsm_get_error(hsm_ctx_t *gctx);
 
 /* a few debug functions for applications */
 void hsm_print_session(hsm_session_t *session);
-void hsm_print_ctx(hsm_ctx_t *gctx);
-void hsm_print_key(libhsm_key_t *key);
+void hsm_print_ctx(hsm_ctx_t *ctx);
+void hsm_print_key(hsm_ctx_t *ctx, libhsm_key_t *key);
 void hsm_print_error(hsm_ctx_t *ctx);
-void hsm_print_tokeninfo(hsm_ctx_t *gctx);
+void hsm_print_tokeninfo(hsm_ctx_t *ctx);
 
 #endif /* HSM_H */

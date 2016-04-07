@@ -95,7 +95,7 @@ void hsm_key_factory_generate(engine_type* engine, const db_connection_t* connec
     libhsm_key_t *key = NULL;
     hsm_ctx_t *hsm_ctx;
     char* key_id;
-    struct engineconfig_repository* hsm;
+    hsm_repository_t* hsm;
     char* hsm_err;
 
     if (!engine) {
@@ -223,7 +223,7 @@ void hsm_key_factory_generate(engine_type* engine, const db_connection_t* connec
         /*
          * Find the HSM repository to get the backup configuration
          */
-        hsm = engine->config->hsm;
+        hsm = engine->config->repositories;
         while (hsm) {
             if (!strcmp(hsm->name, policy_key_repository(policy_key))) {
                 break;

@@ -218,7 +218,7 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
     int xml_error = 0;
     char **repositories = NULL;
     int repository_count = 0;
-    struct engineconfig_repository* hsm;
+    hsm_repository_t* hsm;
     int i;
     struct __policy_import_policy* policies = NULL;
     struct __policy_import_policy* policy2;
@@ -274,14 +274,14 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
     /*
      * Get HSM Repositories
      */
-    if (engine->config->hsm) {
-        for (hsm = engine->config->hsm; hsm; hsm = hsm->next, repository_count++)
+    if (engine->config->repositories) {
+        for (hsm = engine->config->repositories; hsm; hsm = hsm->next, repository_count++)
             ;
         if (!(repositories = calloc(repository_count, sizeof(char*)))) {
             __policy_import_cleanup(&policy_keys_db, &policy_keys_xml, &policies);
             return POLICY_IMPORT_ERR_MEMORY;
         }
-        for (i = 0, hsm = engine->config->hsm; hsm && i<repository_count; hsm = hsm->next, i++)
+        for (i = 0, hsm = engine->config->repositories; hsm && i<repository_count; hsm = hsm->next, i++)
             repositories[i] = hsm->name;
     }
 

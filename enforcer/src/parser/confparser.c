@@ -197,83 +197,114 @@ parse_conf_string(const char* cfgfile, const char* expr, int required)
 }
 
 /**
- * Parse elements from the configuration file.
+ * Parse the repositories.
  *
  */
- 
-struct engineconfig_repository*
+hsm_repository_t*
 parse_conf_repositories(const char* cfgfile)
 {
-	int required = 0, i;
     xmlDocPtr doc = NULL;
     xmlXPathContextPtr xpathCtx = NULL;
     xmlXPathObjectPtr xpathObj = NULL;
-    xmlNode *curNode;
-    xmlChar *xexpr = (unsigned char *) "//Configuration/RepositoryList/Repository";
-    struct engineconfig_repository *head, *cur, *prev;
+    xmlNode* curNode = NULL;
+    xmlChar* xexpr = NULL;
 
-    ods_log_assert(xexpr);
-    ods_log_assert(cfgfile);
+    int i;
+    char* name;
+    char* module;
+    char* tokenlabel;
+    char* pin;
+    uint8_t use_pubkey;
+    int require_backup;
+    hsm_repository_t* rlist = NULL;
+    hsm_repository_t* repo  = NULL;
 
     /* Load XML document */
     doc = xmlParseFile(cfgfile);
     if (doc == NULL) {
-		ods_log_error("[%s] unable to parse cfgile %s", parser_str, cfgfile);
+        ods_log_error("[%s] could not parse <RepositoryList>: "
+            "xmlParseFile() failed", parser_str);
         return NULL;
     }
     /* Create xpath evaluation context */
     xpathCtx = xmlXPathNewContext(doc);
-    if (xpathCtx == NULL) {
-        ods_log_error("[%s] unable to create new XPath context for cfgile "
-            "%s expr %s", parser_str, cfgfile, (char*) xexpr);
+    if(xpathCtx == NULL) {
         xmlFreeDoc(doc);
+        ods_log_error("[%s] could not parse <RepositoryList>: "
+            "xmlXPathNewContext() failed", parser_str);
         return NULL;
     }
+    /* Evaluate xpath expression */
+    xexpr = (xmlChar*) "//Configuration/RepositoryList/Repository";
     xpathObj = xmlXPathEvalExpression(xexpr, xpathCtx);
-    if (xpathObj == NULL || xpathObj->nodesetval == NULL ||
-        xpathObj->nodesetval->nodeNr <= 0) {
-        ods_log_error("[%s] unable to find element %s in cfgfile %s", parser_str, (char*) xexpr, cfgfile);
-        if (required) {
-            ods_log_error("[%s] unable to evaluate required element %s in "
-                "cfgfile %s", parser_str, (char*) xexpr, cfgfile);
-        }
+    if(xpathObj == NULL) {
         xmlXPathFreeContext(xpathCtx);
-        if (xpathObj) {
-            xmlXPathFreeObject(xpathObj);
-        }
         xmlFreeDoc(doc);
+        ods_log_error("[%s] could not parse <RepositoryList>: "
+            "xmlXPathEvalExpression failed", parser_str);
         return NULL;
     }
-
-	prev = NULL;
-	head = NULL;
-    if (xpathObj->nodesetval) {
+    /* Parse repositories */
+    if (xpathObj->nodesetval && xpathObj->nodesetval->nodeNr > 0) {
         for (i = 0; i < xpathObj->nodesetval->nodeNr; i++) {
-            cur = (struct engineconfig_repository*) malloc(sizeof(struct engineconfig_repository));
-            if (prev)
-				prev->next = cur;
-			else
-				head = cur;
+            repo = NULL;
+            name = NULL;
+            module = NULL;
+            tokenlabel = NULL;
+            pin = NULL;
+            use_pubkey = 1;
+            require_backup = 0;
+
             curNode = xpathObj->nodesetval->nodeTab[i]->xmlChildrenNode;
-            cur->require_backup = 0;
-            cur->next = NULL;
-            cur->name = (char *) xmlGetProp(
-				xpathObj->nodesetval->nodeTab[i], (const xmlChar *)"name");
-            
+            name = (char *) xmlGetProp(xpathObj->nodesetval->nodeTab[i],
+                                             (const xmlChar *)"name");
             while (curNode) {
                 if (xmlStrEqual(curNode->name, (const xmlChar *)"RequireBackup"))
-                    cur->require_backup = 1;            
+                    require_backup = 1;
+                if (xmlStrEqual(curNode->name, (const xmlChar *)"Module"))
+                    module = (char *) xmlNodeGetContent(curNode);
+                if (xmlStrEqual(curNode->name, (const xmlChar *)"TokenLabel"))
+                    tokenlabel = (char *) xmlNodeGetContent(curNode);
+                if (xmlStrEqual(curNode->name, (const xmlChar *)"PIN"))
+                    pin = (char *) xmlNodeGetContent(curNode);
+                if (xmlStrEqual(curNode->name, (const xmlChar *)"SkipPublicKey"))
+                    use_pubkey = 0;
+
                 curNode = curNode->next;
             }
-            prev = cur;
-		}
-	}
-	xmlXPathFreeContext(xpathCtx);
-	xmlXPathFreeObject(xpathObj);
-	xmlFreeDoc(doc);
-	return head;
+            if (name && module && tokenlabel) {
+                repo = hsm_repository_new(name, module, tokenlabel, pin,
+                    use_pubkey, require_backup);
+            }
+            if (!repo) {
+               ods_log_error("[%s] unable to add %s repository: "
+                   "hsm_repository_new() failed", parser_str, name?name:"-");
+            } else {
+               repo->next = rlist;
+               rlist = repo;
+               ods_log_debug("[%s] added %s repository to repositorylist",
+                   parser_str, name);
+            }
+            free((void*)name);
+            free((void*)module);
+            free((void*)tokenlabel);
+        }
+    }
+
+    xmlXPathFreeObject(xpathObj);
+    xmlXPathFreeContext(xpathCtx);
+    if (doc) {
+        xmlFreeDoc(doc);
+    }
+    return rlist;
 }
 
+
+/**
+ * Parse elements from the configuration file.
+ *
+ */
+ 
 const char*
 parse_conf_policy_filename(const char* cfgfile)
 {
