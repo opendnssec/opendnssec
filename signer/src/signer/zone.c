@@ -373,6 +373,10 @@ zone_publish_nsec3param(zone_type* zone)
         ldns_set_bit(ldns_rdf_data(ldns_rr_rdf(rr, 1)), 7, 0);
         zone->signconf->nsec3params->rr = rr;
     }
+
+    /* Delete all nsec3param rrs. */
+    (void) zone_del_nsec3params(zone);
+
     ods_log_assert(zone->signconf->nsec3params->rr);
     status = zone_add_rr(zone, zone->signconf->nsec3params->rr, 0);
     if (status == ODS_STATUS_UNCHANGED) {
@@ -669,6 +673,39 @@ zone_del_rr(zone_type* zone, ldns_rr* rr, int do_stats)
     return ODS_STATUS_OK;
 }
 
+/**
+ * Delete NSEC3PARAM RRs.
+ *
+ */
+ods_status
+zone_del_nsec3params(zone_type* zone)
+{
+    domain_type* domain = NULL;
+    rrset_type* rrset = NULL;
+
+    ods_log_assert(zone);
+    ods_log_assert(zone->name);
+    ods_log_assert(zone->db);
+
+    domain = namedb_lookup_domain(zone->db, zone->apex);
+    if (!domain) {
+        ods_log_warning("[%s] unable to delete RR from zone %s: "
+            "domain not found", zone_str, zone->name);
+        return ODS_STATUS_UNCHANGED;
+    }
+
+    rrset = domain_lookup_rrset(domain, LDNS_RR_TYPE_NSEC3PARAMS);
+    if (!rrset) {
+        ods_log_warning("[%s] unable to delete RR from zone %s: "
+            "RRset not found", zone_str, zone->name);
+        return ODS_STATUS_UNCHANGED;
+    }
+
+    while(rrset->rr_count) {
+        rrset_del_rr(rrset, 0);
+    }
+    return ODS_STATUS_OK;
+}
 
 /**
  * Merge zones.
