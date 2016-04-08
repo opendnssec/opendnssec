@@ -1,7 +1,5 @@
 /*
- * Copyright (c) 2016 Surfnet 
- * Copyright (c) 2016 .SE (The Internet Infrastructure Foundation).
- * Copyright (c) 2016 OpenDNSSEC AB (svb)
+ * Copyright (c) 2016 NLNet Labs
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without

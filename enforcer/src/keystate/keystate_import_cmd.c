@@ -1,7 +1,5 @@
 /*
- * Copyright (c) 2016 Surfnet 
- * Copyright (c) 2016 .SE (The Internet Infrastructure Foundation).
- * Copyright (c) 2016 OpenDNSSEC AB (svb)
+ * Copyright (c) 2016 NLNet Labs
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -45,7 +43,10 @@
 #include "keystate/keystate_list_cmd.h"
 
 static const char *module_str = "keystate_import_cmd";
-
+/* 5 states are: generate, publish, ready, active and retire */
+/* For every state we should specify the values of DS, DNSKEY, RRSIGDNSKEY 
+   and RRSIG. These values can be HIDDEN(0),    RUMOURED(1), OMNIPRESENT(2), 
+   UNRETENTIVE(3), NA(4)*/
 const int ksk_mapping[5][4] = {{0,0,0,4},{0,1,1,4},{1,2,2,4},{1,2,2,4},{3,2,2,4}};
 const int zsk_mapping[5][4] = {{4,0,4,0},{4,1,4,0},{4,2,4,1},{4,2,4,2},{4,2,4,3}};
 const int ds_at_parent [5] = {0,0,1,3,5};
@@ -63,6 +64,7 @@ perform_hsmkey_import(int sockfd, db_connection_t *dbconn,
     hsm_ctx_t *hsm_ctx;
     hsm_key_t *hsm_key = NULL;
     char *hsm_err;
+    libhsm_key_t *libhsmkey;
 	
   /* Create an HSM context and check that the repository exists  */
     if (!(hsm_ctx = hsm_create_context())) {
@@ -82,17 +84,19 @@ perform_hsmkey_import(int sockfd, db_connection_t *dbconn,
         return -1;
     }
 
-    if (!hsm_find_key_by_id(hsm_ctx, ckaid)) {
+    if (!(libhsmkey = hsm_find_key_by_id(hsm_ctx, ckaid))) {
 	ods_log_error("[%s] Error: Unable to find the key with this locator: %s", module_str, ckaid);
 	client_printf_err(sockfd, "Unable to find the key with this locator: %s\n", ckaid);
 	hsm_destroy_context(hsm_ctx);
 	return -1;
     }
-
+    free(libhsmkey);
     hsm_key = hsm_key_new_get_by_locator(dbconn, ckaid);
     if (hsm_key) {
         ods_log_error("[%s] Error: Already used this key with this locator: %s", module_str, ckaid);
         client_printf_err(sockfd, "Already used this key with this locator: %s\n", ckaid);
+        hsm_key_free(hsm_key);
+        hsm_destroy_context(hsm_ctx);
         return -1;
     }
 
@@ -129,6 +133,7 @@ perform_keydata_import(int sockfd, db_connection_t *dbconn,
     char *hsm_err;
     uint16_t tag;
     hsm_key_t * hsmkey;
+    libhsm_key_t *libhsmkey;
 
     /* Create a HSM context and check that the repository exists  */
     if (!(hsm_ctx = hsm_create_context())) {
@@ -148,15 +153,21 @@ perform_keydata_import(int sockfd, db_connection_t *dbconn,
         return -1;
     }
 
-    if (!hsm_find_key_by_id(hsm_ctx, ckaid)) {
+    if (!(libhsmkey = hsm_find_key_by_id(hsm_ctx, ckaid))) {
         ods_log_error("[%s] Error: Unable to find the key with this locator: %s", module_str, ckaid);
         client_printf_err(sockfd, "Unable to find the key with this locator: %s\n", ckaid);
         hsm_destroy_context(hsm_ctx);
         return -1;
     }
-
-    hsmkey = hsm_key_new_get_by_locator(dbconn, ckaid);
-    hsm_keytag(ckaid, alg, keytype == 1 ? 1 : 0, &tag);
+    free(libhsmkey);
+    if (!(hsmkey = hsm_key_new_get_by_locator(dbconn, ckaid))) {
+        ods_log_error("[%s] Error: Cannot get hsmkey %s from database, databae error", module_str, ckaid);
+        hsm_destroy_context(hsm_ctx);
+        return -1;
+    }
+    if (hsm_keytag(ckaid, alg, keytype == 1 ? 1 : 0, &tag)) {
+        ods_log_error("[%s] Error: Keytag for this key %s is not correct", module_str, ckaid);
+    }
 
     if (!(key_data = key_data_new(dbconn))
                 || key_data_set_zone_id(key_data, zone_id(zone_new_get_by_name(dbconn, zonename)))
@@ -174,15 +185,16 @@ perform_keydata_import(int sockfd, db_connection_t *dbconn,
                 || key_data_create(key_data))
     {
         ods_log_error("[%s] key data creation failed, database or memory error", module_str);
+        hsm_key_free(hsmkey);
         key_data_free(key_data);
         hsm_destroy_context(hsm_ctx);
         return -1;
     }
     ods_log_debug("[%s] key data with this locator %s is created successfully", module_str, ckaid);
+    hsm_key_free(hsmkey);
     key_data_free(key_data);
     hsm_destroy_context(hsm_ctx);
     db_value_copy (hsmkey_id, hsm_key_id(hsmkey));
-    hsm_key_free(hsmkey);
     return 0;
 }
 
@@ -198,6 +210,7 @@ perform_keystate_import(int sockfd, db_connection_t *dbconn,
     key_data_t* key;
     const db_value_t* keydataid;
     policy_t* policy;
+    libhsm_key_t *libhsmkey;
 
     /* Create a HSM context and check that the repository exists  */
     if (!(hsm_ctx = hsm_create_context())) {
@@ -217,12 +230,13 @@ perform_keystate_import(int sockfd, db_connection_t *dbconn,
         return -1;
     }
 
-    if (!hsm_find_key_by_id(hsm_ctx, ckaid)) {
+    if (!(libhsmkey = hsm_find_key_by_id(hsm_ctx, ckaid))) {
         ods_log_error("[%s] Error: Unable to find the key with this locator: %s", module_str, ckaid);
         client_printf(sockfd, "Unable to find the key with this locator: %s\n", ckaid);
         hsm_destroy_context(hsm_ctx);
         return -1;
     }
+    free(libhsmkey);
     key = key_data_new_get_by_hsm_key_id(dbconn, hsmkeyid);
     keydataid = key_data_id(key);
 
@@ -239,11 +253,13 @@ perform_keystate_import(int sockfd, db_connection_t *dbconn,
                 || key_state_create(key_state))
     {
         ods_log_error("[%s] key state creation for DS failed, database or memory error", module_str);
+        key_data_free(key);
+        policy_free(policy);
         key_state_free(key_state);
         hsm_destroy_context(hsm_ctx);
         return -1;
     }
-
+    key_state_free(key_state);
 
     if (!(key_state = key_state_new(dbconn))
                 || key_state_set_key_data_id(key_state, keydataid)
@@ -255,10 +271,13 @@ perform_keystate_import(int sockfd, db_connection_t *dbconn,
                 || key_state_create(key_state))
     {
         ods_log_error("[%s] key state creation for DNSKEY failed, database or memory error", module_str);
+        key_data_free(key);
+        policy_free(policy);
         key_state_free(key_state);
         hsm_destroy_context(hsm_ctx);
         return -1;
     }
+    key_state_free(key_state);
 
     if (!(key_state = key_state_new(dbconn))
                 || key_state_set_key_data_id(key_state, keydataid)
@@ -269,10 +288,13 @@ perform_keystate_import(int sockfd, db_connection_t *dbconn,
                 || key_state_create(key_state))
     {
         ods_log_error("[%s] key state creation for RRSIGDNSKEY failed, database or memory error", module_str);
+        key_data_free(key);
+        policy_free(policy);
         key_state_free(key_state);
         hsm_destroy_context(hsm_ctx);
         return -1;
     }
+    key_state_free(key_state);
 
     ttl = max(min(policy_zone_soa_ttl(policy), policy_zone_soa_minimum(policy)),
             (policy_denial_type(policy) == POLICY_DENIAL_TYPE_NSEC3
@@ -292,16 +314,19 @@ perform_keystate_import(int sockfd, db_connection_t *dbconn,
                 || key_state_create(key_state))
     {
         ods_log_error("[%s] key state creation for RRSIG failed, database or memory error", module_str);
+        key_data_free(key);
+        policy_free(policy);
         key_state_free(key_state);
         hsm_destroy_context(hsm_ctx);
         return -1;
     }
     ods_log_debug("[%s] key state with this locator %s is created successfully", module_str, ckaid);
 
-    key_state_free(key_state);
     key_data_free(key);
-    hsm_destroy_context(hsm_ctx);
     policy_free(policy);
+    key_state_free(key_state);
+    hsm_destroy_context(hsm_ctx);
+
     return 0;
 }
 
