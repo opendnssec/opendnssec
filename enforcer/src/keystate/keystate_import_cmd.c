@@ -344,7 +344,7 @@ usage(int sockfd)
 		"      --algorithm <algorithm>		(aka -g) algorithm \n"
 		"      --keystate <state>		(aka -e) keystate\n"
 		"      --keytype <type>			(aka -t) keytype\n"
-		"      --time <time>			(aka -w) time\n"
+		"      --inception_time <time>		(aka -w) inception time\n"
 	);
 }
 
@@ -399,7 +399,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     (void)ods_find_arg_and_param(&argc,argv,"zone","z",&zonename);
     (void)ods_find_arg_and_param(&argc, argv, "keytype", "t", &keytype);
     (void)ods_find_arg_and_param(&argc, argv, "keystate", "e", &keystate);
-    (void)ods_find_arg_and_param(&argc,argv, "time","w",&time);
+    (void)ods_find_arg_and_param(&argc,argv, "inception_time","w",&time);
 
     if (keytype) {
         if (strcasecmp(keytype, "KSK") && strcasecmp(keytype, "ZSK") && strcasecmp(keytype, "CSK")) {
