@@ -44,29 +44,6 @@
 #include <libhsmdns.h>
 
 /**
- * Open HSM.
- * \param[in] rlist repository list
- * \return int hsm status
- *
- */
-int lhsm_open(hsm_repository_t* rlist);
-
-/**
- * Reopen HSM.
- * \param[in] rlist repository list
- * \return int hsm status
- *
- */
-int lhsm_reopen(hsm_repository_t* rlist);
-
-/**
- * Check the HSM connection, reload engine if necessary.
- * \param[in] engine signer engine.
- *
- */
-void lhsm_check_connection(engine_type* engine);
-
-/**
  * Get key from one of the HSMs, store the DNSKEY and HSM key.
  * \param[in] ctx HSM context
  * \param[in] owner the zone owner name

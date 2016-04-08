@@ -1084,5 +1084,6 @@ query_cleanup(query_type* q)
     }
     buffer_cleanup(q->buffer);
     tsig_rr_cleanup(q->tsig_rr);
+    edns_rr_cleanup(q->edns_rr);
     free(q);
 }

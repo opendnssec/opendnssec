@@ -205,6 +205,12 @@ ods_status zone_add_rr(zone_type* zone, ldns_rr* rr, int do_stats);
 ods_status zone_del_rr(zone_type* zone, ldns_rr* rr, int do_stats);
 
 /**
+ * Remove all NSEC3PARAM RRs from the zone
+ * \return ODS_STATUS_UNCHANGED or ODS_STATUS_OK
+ */ 
+ods_status zone_del_nsec3params(zone_type* zone);
+
+/**
  * Merge zones. Values that are merged:
  * - policy name
  * - signconf filename

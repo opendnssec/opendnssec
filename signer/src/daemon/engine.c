@@ -606,6 +606,7 @@ engine_run(engine_type* engine, int single_run)
                 ods_log_assert(1);
                 break;
             case SIGNAL_RELOAD:
+                ods_log_error("signer instructed to reload due to explicit signal");
                 engine->need_to_reload = 1;
                 break;
             case SIGNAL_SHUTDOWN:
@@ -996,12 +997,18 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
         /* start/reload */
         if (engine->need_to_reload) {
             ods_log_info("[%s] signer reloading", engine_str);
+            fifoq_wipe(engine->signq);
             engine->need_to_reload = 0;
         } else {
             ods_log_info("[%s] signer started (version %s), pid %u",
                 engine_str, PACKAGE_VERSION, engine->pid);
-            if (lhsm_open(engine->config->repositories) != HSM_OK) {
-                ods_log_error("[%s] lhsm_open() failed (for engine_recover)", engine_str);
+            if (hsm_open2(engine->config->repositories, hsm_check_pin) != HSM_OK) {
+                char* error =  hsm_get_error(NULL);
+                if (error != NULL) {
+                    ods_log_error("[%s] %s", "hsm", error);
+                    free(error);
+                }
+                ods_log_error("[%s] opening hsm failed (for engine recover)", engine_str);
                 break;
             }
             zl_changed = engine_recover(engine);
@@ -1011,8 +1018,13 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
             zl_changed == ODS_STATUS_UNCHANGED) {
             engine_update_zones(engine, zl_changed);
         }
-        if (lhsm_open(engine->config->repositories) != HSM_OK) {
-            ods_log_error("[%s] lhsm_open() failed (for engine run)", engine_str);
+        if (hsm_open2(engine->config->repositories, hsm_check_pin) != HSM_OK) {
+            char* error =  hsm_get_error(NULL);
+            if (error != NULL) {
+                ods_log_error("[%s] %s", "hsm", error);
+                free(error);
+            }
+            ods_log_error("[%s] opening hsm failed (for engine run)", engine_str);
             break;
         }
         engine_run(engine, single_run);
