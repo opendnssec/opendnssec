@@ -77,9 +77,6 @@ keystate(int p, int c, int introducing, key_data_ds_at_parent_t dsstate)
 	} else {
 		/* retire conforms better to 1.4 terminology than dead. */
 		if (p == HID && c == HID) return KS_RET; /* dead */
-		/* This happens when a key is dsseen but not in OMN yet and
-		 * then rolls over */
-		if (p == UNR && dsretract && c == OMN) return KS_ACT;
 		if (p == UNR || c == UNR) return KS_RET;
 		if (p == OMN && c == OMN) return KS_ACT;
 		return KS_RET;
