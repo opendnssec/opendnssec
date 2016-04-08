@@ -166,7 +166,9 @@ main(int argc, char* argv[])
         /* config->db_host config->db_port config->db_port config->db_username config->db_password */
     }
 
-    status = hsm_open(cfgfile, hsm_prompt_pin);
+    /*status = hsm_open(cfgfile, hsm_prompt_pin);*/
+    fprintf(stderr, "TODO hsm_open2() ABORT ABORT!!");
+    status = !HSM_OK;
     if (status != HSM_OK) {
         char* errorstr =  hsm_get_error(NULL);
         if (errorstr != NULL) {
