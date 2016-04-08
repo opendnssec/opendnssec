@@ -27,13 +27,21 @@
 #include "config.h"
 
 #include <getopt.h>
+#include <dlfcn.h>
 #include <libxml/parser.h>
+
+#ifdef HAVE_SQLITE3
 #include <sqlite3.h>
+#endif
+#ifdef HAVE_MYSQL
+#include <mysql/mysql.h>
+#endif
 
 #include "log.h"
 #include "libhsm.h"
 #include "daemon/cfg.h"
 #include "libhsmdns.h"
+extern hsm_repository_t* parse_conf_repositories(const char* cfgfile);
 
 int verbosity;
 char* argv0;
@@ -44,46 +52,85 @@ usage(void)
     fprintf(stderr, "%s [-h] [-v] [-c <alternate-configuration>]\n", argv0);
 }
 
+typedef void (*functioncast_t)(void);
+extern functioncast_t functioncast(void*generic);
+
+functioncast_t
+functioncast(void*generic) {
+    functioncast_t* function = (functioncast_t*)&generic;
+    return *function;
+}
+
+/****************************************************************************/
+
+struct dblayer_struct {
+    void (*foreach)(const char* listQueryStr, const char* updateQueryStr, int (*compute)(char**,int*,uint16_t*));
+    void (*close)(void);
+} dblayer;
+
 #ifdef HAVE_SQLITE3
 
-const char* listQueryStr = "select keyData.id,keyData.algorithm,keyData.role,keyData.keytag,hsmKey.locator from keyData join hsmKey on keyData.hsmKeyId = hsmKey.id";
-const char* updateQueryStr = "update keyData set keytag = ? where id = ?";
+#define CHECKSQLITE(EX) do { dblayer_sqlite3.message = NULL; if((dblayer_sqlite3.status = (EX)) != SQLITE_OK) { fprintf(stderr, "%s: sql error: %s (%d)\n%s:%d: %s\n",argv0,(dblayer_sqlite3.message?dblayer_sqlite3.message:dblayer_sqlite3.sqlite3_errmsg(dblayer_sqlite3.handle)),dblayer_sqlite3.status,__FILE__,__LINE__,#EX); if(dblayer_sqlite3.message) dblayer_sqlite3.sqlite3_free(dblayer_sqlite3.message); } } while(0)
 
-sqlite3 *sqliteDatabase;
-int sqliteStatus;
-char* sqliteMessage;
+struct dblayer_sqlite3_struct {
+    int status;
+    char* message;
+    void* library;
+    sqlite3* handle;
+    int (*sqlite3_prepare_v2)(sqlite3 *, const char *, int , sqlite3_stmt **, const char **);
+    int (*sqlite3_reset)(sqlite3_stmt *pStmt);
+    int (*sqlite3_bind_int)(sqlite3_stmt*, int, int);
+    int (*sqlite3_finalize)(sqlite3_stmt *pStmt);
+    int (*sqlite3_open)(const char *filename, sqlite3 **ppDb);
+    int (*sqlite3_exec)(sqlite3*, const char *sql, int (*callback)(void*, int, char**, char**), void *, char **errmsg);
+    int (*sqlite3_step)(sqlite3_stmt*);
+    int (*sqlite3_close)(sqlite3*);
+    const char* (*sqlite3_errmsg)(sqlite3*);
+    int (*sqlite3_free)(void*);
+};
+struct dblayer_sqlite3_struct dblayer_sqlite3;
 
-#define CHECKSQLITE(EX) do { sqliteMessage = NULL; if((sqliteStatus = (EX)) != SQLITE_OK) { fprintf(stderr, "%s: sql error: %s (%d)\n%s:%d: %s\n",argv0,(sqliteMessage?sqliteMessage:sqlite3_errmsg(sqliteDatabase)),sqliteStatus,__FILE__,__LINE__,#EX); if(sqliteMessage) sqlite3_free(sqliteMessage); } } while(0)
+static void
+dblayer_sqlite3_initialize(void)
+{
+    dblayer_sqlite3.sqlite3_prepare_v2 = (int(*)(sqlite3*, const char*, int, sqlite3_stmt**, const char **))functioncast(dlsym(NULL, "sqlite3_prepare_v2"));
+    dblayer_sqlite3.sqlite3_reset = (int(*)(sqlite3_stmt*)) functioncast(dlsym(NULL, "sqlite3_reset"));
+    dblayer_sqlite3.sqlite3_bind_int = (int(*)(sqlite3_stmt*, int, int))functioncast(dlsym(NULL, "sqlite3_bind_int"));
+    dblayer_sqlite3.sqlite3_finalize = (int(*)(sqlite3_stmt*))functioncast(dlsym(NULL, "sqlite3_finalize"));
+    dblayer_sqlite3.sqlite3_open = (int(*)(const char*, sqlite3**)) functioncast(dlsym(NULL, "sqlite3_open"));
+    dblayer_sqlite3.sqlite3_exec = (int(*)(sqlite3*, const char*, int(*)(void*, int, char**, char**), void*, char **)) functioncast(dlsym(NULL, "sqlite3_exec"));
+    dblayer_sqlite3.sqlite3_step = (int(*)(sqlite3_stmt*)) functioncast(dlsym(NULL, "sqlite3_step"));
+    dblayer_sqlite3.sqlite3_close = (int(*)(sqlite3*)) functioncast(dlsym(NULL, "sqlite3_close"));
+    dblayer_sqlite3.sqlite3_errmsg = (const char*(*)(sqlite3*)) functioncast(dlsym(NULL, "sqlite3_errmsg"));
+    dblayer_sqlite3.sqlite3_free = (int(*)(void*)) functioncast(dlsym(NULL, "sqlite3_free"));
+}
+
+static void
+dblayer_sqlite3_close(void)
+{
+    dblayer_sqlite3.sqlite3_close(dblayer_sqlite3.handle);
+}
+
+struct callbackoperation {
+    int (*compute)(char **argv, int* id, uint16_t *keytag);
+    sqlite3_stmt* updateStmt;
+};
 
 static int
 callback(void *cargo, int argc, char **argv, char **names)
 {
     int status;
     int id;
-    char *locator;
-    int algorithm;
-    int ksk;
     uint16_t keytag;
-    sqlite3_stmt* stmt;
-    const char* queryEnd;
+    struct callbackoperation* operation = (struct callbackoperation*) cargo;
 
-    (void)names;
-    (void)cargo;
-    (void)argc;
+    operation->compute(argv, &id, &keytag);
     
-    id = atoi(argv[0]);
-    algorithm = atoi(argv[1]);
-    ksk = (atoi(argv[2]) == 1);
-    keytag = atoi(argv[3]);
-    locator = argv[4];
-    hsm_keytag(locator, algorithm, ksk, &keytag);
-    printf("computed %d for %d\n",(int)keytag,id);
-    CHECKSQLITE(sqlite3_prepare_v2(sqliteDatabase, updateQueryStr, strlen(updateQueryStr)+1, &stmt, &queryEnd));
-    CHECKSQLITE(sqlite3_reset(stmt));
-    CHECKSQLITE(sqlite3_bind_int(stmt, 1, keytag));
-    CHECKSQLITE(sqlite3_bind_int(stmt, 2, id));
+    CHECKSQLITE(dblayer_sqlite3.sqlite3_reset(operation->updateStmt));
+    CHECKSQLITE(dblayer_sqlite3.sqlite3_bind_int(operation->updateStmt, 1, keytag));
+    CHECKSQLITE(dblayer_sqlite3.sqlite3_bind_int(operation->updateStmt, 2, id));
     do {
-        switch ((status = sqlite3_step(stmt))) {
+        switch ((status = dblayer_sqlite3.sqlite3_step(operation->updateStmt))) {
             case SQLITE_ROW:
                 break;
             case SQLITE_DONE:
@@ -93,15 +140,165 @@ callback(void *cargo, int argc, char **argv, char **names)
                 break;
             case SQLITE_ERROR:
             case SQLITE_MISUSE:
-                fprintf(stderr, "%s: sql error: %s\n",argv0,sqlite3_errmsg(sqliteDatabase));
+            default:
+                fprintf(stderr, "%s: sql error: %s\n", argv0, dblayer_sqlite3.sqlite3_errmsg(dblayer_sqlite3.handle));
                 break;
         }
     } while(status == SQLITE_BUSY);
-    CHECKSQLITE(sqlite3_finalize(stmt));
     return SQLITE_OK;
 }
 
+static void
+dblayer_sqlite3_foreach(const char* listQueryStr, const char* updateQueryStr, int (*compute)(char**,int*,uint16_t*))
+{
+    struct callbackoperation operation;
+    const char* queryEnd;
+    operation.compute = compute;
+    CHECKSQLITE(dblayer_sqlite3.sqlite3_prepare_v2(dblayer_sqlite3.handle, updateQueryStr, strlen(updateQueryStr)+1, &operation.updateStmt, &queryEnd));
+    CHECKSQLITE(dblayer_sqlite3.sqlite3_exec(dblayer_sqlite3.handle, listQueryStr, callback, &operation, &dblayer_sqlite3.message));
+    CHECKSQLITE(dblayer_sqlite3.sqlite3_finalize(operation.updateStmt));
+    dblayer_sqlite3.sqlite3_close(dblayer_sqlite3.handle);
+}
+
+static void
+dblayer_sqlite3_open(const char *datastore) {
+    CHECKSQLITE(dblayer_sqlite3.sqlite3_open(datastore, &dblayer_sqlite3.handle));
+    dblayer.close = &dblayer_sqlite3_close;
+    dblayer.foreach = &dblayer_sqlite3_foreach;
+}
+
 #endif
+
+/****************************************************************************/
+
+#ifdef HAVE_MYSQL
+
+struct dblayer_mysql_struct {
+    MYSQL* handle;
+};
+extern struct dblayer_mysql_struct dblayer_mysql;
+struct dblayer_mysql_struct dblayer_mysql;
+
+
+static void
+dblayer_mysql_initialize(void) {
+    if (mysql_library_init(0, NULL, NULL)) {
+        fprintf(stderr, "could not initialize MySQL library\n");
+        exit(1);
+    }
+}
+
+static void
+dblayer_mysql_close(void)
+{
+    if (dblayer_mysql.handle) {
+        mysql_close(dblayer_mysql.handle);
+        dblayer_mysql.handle = NULL;
+    }
+}
+
+static void
+dblayer_mysql_foreach(const char* listQueryStr, const char* updateQueryStr, int (*compute)(char**,int*,uint16_t*))
+{
+    int id;
+    uint16_t keytag;
+    MYSQL_BIND bind[2];
+    MYSQL_STMT *updateStmt;
+    MYSQL_RES* res;
+    MYSQL_ROW row;
+    updateStmt = mysql_stmt_init(dblayer_mysql.handle);
+    mysql_stmt_prepare(updateStmt, updateQueryStr, strlen(updateQueryStr) + 1);
+    mysql_query(dblayer_mysql.handle, listQueryStr);
+    res = mysql_store_result(dblayer_mysql.handle);
+    mysql_num_fields(res);
+    while ((row = mysql_fetch_row(res))) {
+    printf("BERRY#1\n");
+        compute(row, &id, &keytag);
+    printf("BERRY#2 %d %d\n",(int)id,(int)keytag);
+        memset(bind, 0, sizeof (bind));
+        bind[0].buffer = &keytag;
+        bind[0].buffer_length = sizeof(keytag);
+        bind[0].buffer_type = MYSQL_TYPE_SHORT;
+        bind[0].is_unsigned = 1;
+        bind[1].buffer = &id;
+        bind[1].buffer_length = sizeof(id);
+        bind[1].buffer_type = MYSQL_TYPE_LONG;
+        mysql_stmt_bind_param(updateStmt, bind);
+        mysql_stmt_execute(updateStmt);
+        mysql_stmt_affected_rows(updateStmt);
+    printf("BERRY#4 %d\n",mysql_stmt_affected_rows(updateStmt));
+    }
+    mysql_free_result(res);
+    mysql_stmt_close(updateStmt);
+}
+
+static void
+dblayer_mysql_open(const char* host, const char* user, const char* pass,
+        const char *rsrc, unsigned int port, const char *unix_socket)
+{
+    MYSQL* database;
+    dblayer_mysql.handle = mysql_init(NULL);
+    database = mysql_real_connect(dblayer_mysql.handle, host, user, pass, rsrc, port, NULL, 0);
+    (void)database;
+    dblayer.close = &dblayer_mysql_close;
+    dblayer.foreach = &dblayer_mysql_foreach;
+
+}
+
+#endif
+
+/****************************************************************************/
+
+static void
+dblayer_initialize(void)
+{
+#ifdef HAVE_SQLITE3
+    dblayer_sqlite3_initialize();
+#endif
+#ifdef HAVE_MYSQL
+    dblayer_mysql_initialize();
+#endif
+}
+
+static void
+dblayer_close(void) {
+    dblayer.close();
+}
+
+static void
+dblayer_finalize(void) {
+#ifdef HAVE_MYSQL
+    mysql_library_end();
+#endif
+}
+
+static void
+dblayer_foreach(const char* listQueryStr, const char* updateQueryStr, int (*compute)(char**,int*,uint16_t*))
+{
+    dblayer.foreach(listQueryStr, updateQueryStr, compute);
+}
+
+/****************************************************************************/
+
+const char* listQueryStr = "select keyData.id,keyData.algorithm,keyData.role,keyData.keytag,hsmKey.locator from keyData join hsmKey on keyData.hsmKeyId = hsmKey.id";
+const char* updateQueryStr = "update keyData set keytag = ? where id = ?";
+
+static int
+compute(char **argv, int* id, uint16_t* keytag)
+{
+    char *locator;
+    int algorithm;
+    int ksk;
+
+    *id = atoi(argv[0]);
+    algorithm = atoi(argv[1]);
+    ksk = (atoi(argv[2]) == 1);
+    *keytag = atoi(argv[3]);
+    locator = argv[4];
+    hsm_keytag(locator, algorithm, ksk, keytag);
+    
+    return 0;
+}
 
 int
 main(int argc, char* argv[])
@@ -160,13 +357,7 @@ main(int argc, char* argv[])
         abort(); /* TODO give some error, abort */
     }
 
-    if (cfg->db_type == ENFORCER_DATABASE_TYPE_SQLITE) {
-        /* config->datastore config->db_port*/
-    } else if (cfg->db_type == ENFORCER_DATABASE_TYPE_MYSQL) {
-        /* config->db_host config->db_port config->db_port config->db_username config->db_password */
-    }
-
-    status = hsm_open(cfgfile, hsm_prompt_pin);
+    status = hsm_open2(parse_conf_repositories(cfgfile), hsm_prompt_pin);
     if (status != HSM_OK) {
         char* errorstr =  hsm_get_error(NULL);
         if (errorstr != NULL) {
@@ -178,17 +369,35 @@ main(int argc, char* argv[])
         }
         return 1;
     }
+    dblayer_initialize();
 
+    switch (cfg->db_type) {
+        case ENFORCER_DATABASE_TYPE_SQLITE:
 #ifdef HAVE_SQLITE3
-    CHECKSQLITE(sqlite3_open(cfg->datastore, &sqliteDatabase));
-    CHECKSQLITE(sqlite3_exec(sqliteDatabase, listQueryStr, callback, NULL, &sqliteMessage));
-    sqlite3_close(sqliteDatabase);
+            dblayer_sqlite3_open(cfg->datastore);
+#else
+            fprintf(stderr, "Database SQLite3 not available during compile-time.\n");
 #endif
+            break;
+        case ENFORCER_DATABASE_TYPE_MYSQL:
+#ifdef HAVE_MYSQL
+            dblayer_mysql_open(cfg->db_host, cfg->db_username, cfg->db_password, cfg->datastore, cfg->db_port, NULL);
+#else
+    fprintf(stderr, "Database MySQL not available during compile-time.\n");
+#endif
+            break;
+        case ENFORCER_DATABASE_TYPE_NONE:
+        default:
+            fprintf(stderr, "No database defined\n");
+    }
 
+    dblayer_foreach(listQueryStr, updateQueryStr, &compute);
+    
     hsm_close();
 
     engine_config_cleanup(cfg);
-
+    dblayer_close();
+    dblayer_finalize();
     ods_log_close();
 
     xmlCleanupParser();
