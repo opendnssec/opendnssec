@@ -604,7 +604,7 @@ zone_add_rr(zone_type* zone, ldns_rr* rr, int do_stats)
         domain_add_rrset(domain, rrset);
     }
     record = rrset_lookup_rr(rrset, rr);
-    if (record && ldns_rr_tt(rr) != ldns_rr_ttl(record->rr))
+    if (record && ldns_rr_ttl(rr) != ldns_rr_ttl(record->rr))
         record = NULL;
 
     if (record) {
