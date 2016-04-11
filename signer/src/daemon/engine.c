@@ -251,13 +251,13 @@ engine_start_xfrhandler(engine_type* engine)
     }
     ods_log_debug("[%s] start xfrhandler", engine_str);
     engine->xfrhandler->engine = engine;
-    ods_thread_create(&engine->xfrhandler->thread_id,
-        xfrhandler_thread_start, engine->xfrhandler);
     /* This might be the wrong place to mark the xfrhandler started but
      * if its isn't done here we might try to shutdown and stop it before
      * it has marked itself started
      */
     engine->xfrhandler->started = 1;
+    ods_thread_create(&engine->xfrhandler->thread_id,
+        xfrhandler_thread_start, engine->xfrhandler);
 }
 static void
 engine_stop_xfrhandler(engine_type* engine)
@@ -1062,13 +1062,10 @@ void
 engine_cleanup(engine_type* engine)
 {
     size_t i = 0;
-    cond_basic_type signal_cond;
-    lock_basic_type signal_lock;
+
     if (!engine) {
         return;
     }
-    signal_cond = engine->signal_cond;
-    signal_lock = engine->signal_lock;
     if (engine->workers && engine->config) {
         for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
             worker_cleanup(engine->workers[i]);
@@ -1088,7 +1085,7 @@ engine_cleanup(engine_type* engine)
     dnshandler_cleanup(engine->dnshandler);
     xfrhandler_cleanup(engine->xfrhandler);
     engine_config_cleanup(engine->config);
+    lock_basic_destroy(&engine->signal_lock);
+    lock_basic_off(&engine->signal_cond);
     free(engine);
-    lock_basic_destroy(&signal_lock);
-    lock_basic_off(&signal_cond);
 }

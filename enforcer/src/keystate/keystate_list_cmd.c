@@ -62,8 +62,11 @@ const char* statenames[] = {"generate", "publish", "ready",
  * @return: state in 1.x speak
  **/
 static int
-keystate(int p, int c, int introducing, int dsseen)
+keystate(int p, int c, int introducing, key_data_ds_at_parent_t dsstate)
 {
+	int dsseen    = (dsstate == KEY_DATA_DS_AT_PARENT_SEEN);
+	int dsretract = (dsstate == KEY_DATA_DS_AT_PARENT_RETRACT);
+
 	if (introducing) {
 		if (p == HID && c == HID) return KS_GEN;
 		if (p == HID || c == HID) return KS_PUB;
@@ -85,7 +88,7 @@ zskstate(key_data_t *key)
 {
 	return keystate(key_state_state(key_data_cached_dnskey(key)),
 		key_state_state(key_data_cached_rrsig(key)),
-		key_data_introducing(key), 0);
+		key_data_introducing(key), KEY_DATA_DS_AT_PARENT_INVALID);
 }
 
 static int
@@ -94,7 +97,7 @@ kskstate(key_data_t *key)
 	return keystate(key_state_state(key_data_cached_ds(key)),
 		key_state_state(key_data_cached_dnskey(key)),
 		key_data_introducing(key),
-		key_data_ds_at_parent(key) == KEY_DATA_DS_AT_PARENT_SEEN);
+		key_data_ds_at_parent(key));
 }
 
 /** Human readable keystate in 1.x speak
@@ -445,11 +448,11 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
         filterKeystate = NULL;
     } else if(filterKeystate == NULL) {
         if ((filterKeystate = malloc(sizeof (char*) * 6))) {
-            filterKeystate[0] = "publish";
-            filterKeystate[1] = "ready";
-            filterKeystate[2] = "active";
-            filterKeystate[3] = "retire";
-            filterKeystate[4] = "mixed";
+            filterKeystate[0] = (char *)"publish";
+            filterKeystate[1] = (char *)"ready";
+            filterKeystate[2] = (char *)"active";
+            filterKeystate[3] = (char *)"retire";
+            filterKeystate[4] = (char *)"mixed";
             filterKeystate[5] = NULL;
         } /* else emit error */
     }

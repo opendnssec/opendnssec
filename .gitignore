@@ -45,8 +45,10 @@ conf/signconf.xml
 conf/zonelist.xml
 enforcer/man/ods-enforcer.8
 enforcer/man/ods-enforcerd.8
+enforcer/man/ods-migrate.8
 enforcer/src/ods-enforcer
 enforcer/src/ods-enforcerd
+enforcer/src/ods-migrate
 enforcer/src/ods-enforcer-db-setup
 enforcer/src/ods-kaspcheck
 libhsm/checks/conf-aepkeyper.xml

@@ -219,7 +219,7 @@ tools_output(zone_type* zone, engine_type* engine)
     lock_basic_unlock(&zone->ixfr->ixfr_lock);
     /* kick the nameserver */
     if (zone->notify_ns) {
-        int status;
+	int pid_status;
         pid_t pid, wpid;
         ods_log_verbose("[%s] notify nameserver: %s", tools_str,
             zone->notify_ns);
@@ -243,7 +243,7 @@ tools_output(zone_type* zone, engine_type* engine)
                 ods_log_debug("[%s] notify nameserver process forked",
                     tools_str);
                 /** wait for completion  */
-                while((wpid = waitpid(pid, &status, 0)) <= 0) {
+                while((wpid = waitpid(pid, &pid_status, 0)) <= 0) {
                     if (errno != EINTR) {
                         break;
                     }
@@ -251,7 +251,7 @@ tools_output(zone_type* zone, engine_type* engine)
                 if (wpid == -1) {
                     ods_log_error("[%s] notify nameserver failed: waitpid() "
                         "failed (%s)", tools_str, strerror(errno));
-                } else if (!WIFEXITED(status)) {
+                } else if (!WIFEXITED(pid_status)) {
                     ods_log_error("[%s] notify nameserver failed: notify "
                         "command did not terminate normally", tools_str);
                 } else {

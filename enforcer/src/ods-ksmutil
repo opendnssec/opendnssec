@@ -1,0 +1,17 @@
+#!/bin/sh
+#
+# This is a wrapper command for the DEPRECATED ods-ksmutil command
+# that was present in OpenDNSSEC 1.x series.  This wrapper makes a
+# temporary translation but will only be included in 2.0, where it
+# will shout loudly whenever it is invoked.  It logs the parent
+# process, so scripts using ods-ksmutil could easily be traced.
+#
+# From: Rick van Rein <rick@openfortress.nl>
+
+
+PARENT=`ps --no-heading --pid $PPID -o cmd`
+
+logger -s -t ods-ksmutil -- The ODS-KSMUTIL command is DEPRECATED and should be replaced by ods-enforcer in the caller with pid $PPID: $PARENT
+
+ods-enforcer "$@"
+
