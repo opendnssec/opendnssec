@@ -1,3 +1,7 @@
+OpenDNSSEC 2.0b1
+
+* Plugins directory renamed to contrib.
+
 OpenDNSSEC 2.0.0a6
 
 First public release of OpenDNSSEC.  Initial pre-releases have been

@@ -122,4 +122,7 @@ int edns_rr_parse(edns_rr_type* err, buffer_type* buffer);
  */
 size_t edns_rr_reserved_space(edns_rr_type* err);
 
+void edns_rr_cleanup(edns_rr_type* err);
+
+
 #endif /* WIRE_EDNS_H */

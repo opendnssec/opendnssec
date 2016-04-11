@@ -38,11 +38,7 @@
 #include <stdio.h>
 #include <time.h>
 
-struct engineconfig_repository {
-    struct engineconfig_repository* next;
-    char* name;
-    int require_backup;
-};
+#include "libhsm.h"
 
 typedef enum {
     ENFORCER_DATABASE_TYPE_NONE,
@@ -79,7 +75,7 @@ struct engineconfig_struct {
     int verbosity;
     int db_port; /* Datastore/MySQL/Host/@Port */
     time_t automatic_keygen_duration;
-    struct engineconfig_repository* hsm;
+    hsm_repository_t* repositories;
     engineconfig_database_type_t db_type;
 };
 
@@ -109,12 +105,6 @@ ods_status engine_config_check(engineconfig_type* config);
  *
  */
 void engine_config_print(FILE* out, engineconfig_type* config);
-
-/**
- * Free linked list of hsms 
- */
-void
-engine_config_freehsms(struct engineconfig_repository* hsm);
 
 /**
  * Clean up config.

@@ -95,8 +95,8 @@ perform_update_repositorylist(int sockfd, engine_type* engine)
 			client_printf(sockfd, "Could not load new repositories. Will continue with old.\n");
 		} else {
 			/* succes */
-			engine_config_freehsms(engine->config->hsm);
-			engine->config->hsm = new_reps;
+            hsm_repository_free(engine->config->repositories);
+			engine->config->repositories = new_reps;
 			engine->need_to_reload = 1;
 			client_printf(sockfd, "new repositories parsed successful.\n");
 			client_printf(sockfd, "Notifying enforcer of new respositories.\n");
