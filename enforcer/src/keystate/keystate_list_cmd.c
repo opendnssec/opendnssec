@@ -75,6 +75,7 @@ keystate(int p, int c, int introducing, int dsseen)
 		/* retire conforms better to 1.4 terminology than dead. */
 		if (p == HID && c == HID) return KS_RET; /* dead */
 		if (p == UNR || c == UNR) return KS_RET;
+		if (p == RUM && dsseen && c == OMN) return KS_ACT;              
 		if (p == OMN && c == OMN) return KS_ACT;
 		return KS_RET;
 	}
