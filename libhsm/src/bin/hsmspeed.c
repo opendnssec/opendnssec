@@ -51,7 +51,7 @@ typedef struct {
     unsigned int iterations;
 } sign_arg_t;
 
-void
+static void
 usage ()
 {
     fprintf(stderr,
@@ -60,7 +60,7 @@ usage ()
         progname);
 }
 
-void *
+static void *
 sign (void *arg)
 {
     hsm_ctx_t *ctx = NULL;

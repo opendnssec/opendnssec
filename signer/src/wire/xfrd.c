@@ -2158,8 +2158,6 @@ xfrd_unlink(xfrd_type* xfrd)
 void
 xfrd_cleanup(xfrd_type* xfrd, int backup)
 {
-    lock_basic_type serial_lock;
-    lock_basic_type rw_lock;
     if (!xfrd) {
         return;
     }
@@ -2170,10 +2168,8 @@ xfrd_cleanup(xfrd_type* xfrd, int backup)
         xfrd_unlink(xfrd);
     }
 
-    serial_lock = xfrd->serial_lock;
-    rw_lock = xfrd->rw_lock;
     tsig_rr_cleanup(xfrd->tsig_rr);
+    lock_basic_destroy(&xfrd->serial_lock);
+    lock_basic_destroy(&xfrd->rw_lock);
     free(xfrd);
-    lock_basic_destroy(&serial_lock);
-    lock_basic_destroy(&rw_lock);
 }

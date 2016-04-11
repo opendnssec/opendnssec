@@ -40,7 +40,7 @@ char *progname = NULL;
 extern hsm_repository_t* parse_conf_repositories(const char* cfgfile);
 
 
-void
+static void
 usage ()
 {
     fprintf(stderr, "usage: %s [-c config] [-gsdr]\n", progname);

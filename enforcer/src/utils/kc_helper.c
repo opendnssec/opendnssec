@@ -54,6 +54,8 @@ void log_init(int facility, const char *program_name)
 }
 
 /* As far as possible we send messages both to syslog and STDOUT */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
 void dual_log(const char *format, ...) {
 
 	/* If the variable arg list is bad then random errors can occur */ 
@@ -80,6 +82,7 @@ void dual_log(const char *format, ...) {
 	va_end(args);
 	va_end(args2);
 }
+#pragma GCC diagnostic pop
 
 /* Check an XML file against its rng */
 int check_rng(const char *filename, const char *rngfilename, int verbose)
