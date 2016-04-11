@@ -333,3 +333,24 @@ And it will have picked up the first signing configuration for your zone.
 Now periodically run:
     ods-sequencer update
 in order to keep the signing configuration up to date.
+
+# Getting clear indication when to submit DS records
+
+Since this setup prepares a list of future scenarios, this also includes
+the assumption that you submit the proper DS record in time to the parent
+zone.  Not doing so will get your zone to become invalid (bogus).
+
+By adding a delegation signer submit command to the OpenDNSSEC conf.xml
+configuration, you can get a proper listing after running ods-sequencer
+scenario command when you will have to submit the DS records to the
+parent zone.
+
+You can add the following item to the Enforcer section of the conf.xml:
+
+    <DelegationSignerSubmitCommand>/sbin/ods-sequencer-submit.sh --cka_id</DelegationSignerSubmitCommand>
+
+Make sure the path to the ods-sequencer-submit.sh is correct.  A sample
+ods-sequencer-submit.sh is included.
+
+After running ods-sequencer scenario you will get a listing of the DS
+records that need to be submitted when.

@@ -161,6 +161,8 @@ sub enforcerinfo() {
         close(FILE);
     } while($busy);
 
+    die "ERROR: enforcer not running properly\n"  if($timenow==0);
+
     open(FILE, "./sbin/ods-enforcer 2>>$LOG_FILE key list --verbose |");
     while(<FILE>) {
         if(m/^(\S+).*\s+waiting for ds-seen\s+\d+\s+\d+\s+([0-9a-fA-F]+)\s*.*$/) {
@@ -229,7 +231,9 @@ $LOG_FILE=abs_path($LOG_FILE);
 chdir $INSTALL_ROOT;
 die "Sequencing directory not set up or misconfigured.\n" unless -d "var/opendnssec/sequences";
 
+my $sequence;
 my @sequences;
+
 opendir DIR, "var/opendnssec/sequences" or die;
 @sequences = readdir(DIR) or die;
 closedir(DIR);
@@ -242,6 +246,8 @@ my $timenow;
 my $timenext;
 my @dsseenkeys;
 my $key;
+my @dssubmitfiles;
+my $dssubmitfile;
 
 if($#ARGV == 0 && $ARGV[0] eq "update") {
     $currenttime = time();
@@ -322,6 +328,17 @@ if($#ARGV == 0 && $ARGV[0] eq "update") {
         }
     }
     system("./sbin/ods-enforcer 2>>$LOG_FILE >>$LOG_FILE stop");
+
+    # As a reminder to the operator, at the end write out the DS records
+    # that need to be explicitly submitted to the parent zone
+    opendir DIR, "var/opendnssec/sequences" or die;
+    @sequences = readdir(DIR) or die;
+    closedir(DIR);
+    @sequences = grep { s/^(\d+)-dssubmit$/$1/ } @sequences;
+    @sequences = sort { $a <=> $b } @sequences;
+    foreach $sequence (@sequences) {
+      print "On " . strftime('%Y-%m-%d-%H:%M:%S',localtime($sequence)) . " submit " . $sequence . "-dssubmit\n";
+    }
 } else {
     print "\n";
     print "Usage: ods-sequencer update\n";
