@@ -735,7 +735,7 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
         ixfr_add_rr(zone->ixfr, rrsig);
         lock_basic_unlock(&zone->ixfr->ixfr_lock);
     }
-    if(zone->signconf->dnskey_signature) {
+    if(rrset->rrtype == LDNS_RR_TYPE_DNSKEY && zone->signconf->dnskey_signature) {
         for(i=0; zone->signconf->dnskey_signature[i]; i++) {
             rrsig = NULL;
             if ((status = rrset_getliteralrr(&rrsig, zone->signconf->dnskey_signature[i], duration2time(zone->signconf->dnskey_ttl), zone->apex)) != ODS_STATUS_OK) {
