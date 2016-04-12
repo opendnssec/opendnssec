@@ -482,6 +482,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     }
 
     setmin = policy_key_minimize(policy_key);
+    policy_key_free(policy_key);
 
     /* perform task immediately */
     if (perform_hsmkey_import(sockfd, dbconn, ckaid, repository, zonename, atoi(bits), atoi(algorithm), type, (unsigned int)inception)
