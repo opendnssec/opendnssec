@@ -20,8 +20,9 @@ AM_CFLAGS = \
 
 enforcerdir =	@libdir@/opendnssec/enforcer
 
+bin_SCRIPTS = ods-ksmutil
 bin_PROGRAMS = ods-kaspcheck
-sbin_PROGRAMS =	ods-enforcerd ods-enforcer ods-enforcer-db-setup
+sbin_PROGRAMS =	ods-enforcerd ods-enforcer ods-enforcer-db-setup ods-migrate
 # man8_MANS =	man/ods-enforcer.8 man/ods-enforcerd.8
 dist_man1_MANS = utils/ods-kaspcheck.1
 
@@ -132,6 +133,23 @@ ods_enforcerd_LDADD = \
 	@RT_LIBS@ \
 	@ENFORCER_DB_LIBS@
 
+ods_migrate_SOURCES = \
+	ods-migrate.c \
+	daemon/cfg.c daemon/cfg.h \
+	daemon/engine.h \
+	daemon/signal.c daemon/signal.h \
+	parser/confparser.c parser/confparser.h \
+	utils/kc_helper.c utils/kc_helper.h
+
+ods_migrate_LDADD = \
+	$(LIBHSM) \
+	$(LIBCOMPAT) \
+	@LDNS_LIBS@ \
+	@XML2_LIBS@ \
+	@PTHREAD_LIBS@ \
+	@RT_LIBS@ \
+	@ENFORCER_DB_LIBS@
+
 ods_enforcerd_LDFLAGS = \
 	$(BACKEND_LDFLAGS_CUSTOM)
 
@@ -152,6 +170,7 @@ ods_enforcer_db_setup_SOURCES = \
 	$(BACKEND_SCHEMA_CUSTOM)
 
 ods_enforcer_db_setup_LDADD = \
+	$(LIBHSM) \
 	$(LIBCOMPAT) \
 	@LDNS_LIBS@ \
 	@XML2_LIBS@ \

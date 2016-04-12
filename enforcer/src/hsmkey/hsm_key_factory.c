@@ -95,7 +95,7 @@ void hsm_key_factory_generate(engine_type* engine, const db_connection_t* connec
     libhsm_key_t *key = NULL;
     hsm_ctx_t *hsm_ctx;
     char* key_id;
-    struct engineconfig_repository* hsm;
+    hsm_repository_t* hsm;
     char* hsm_err;
 
     if (!engine) {
@@ -129,7 +129,7 @@ void hsm_key_factory_generate(engine_type* engine, const db_connection_t* connec
         || !hsm_key_state_clause(clause_list, HSM_KEY_STATE_UNUSED)
         || !hsm_key_bits_clause(clause_list, policy_key_bits(policy_key))
         || !hsm_key_algorithm_clause(clause_list, policy_key_algorithm(policy_key))
-        || !hsm_key_role_clause(clause_list, policy_key_role(policy_key))
+        || !hsm_key_role_clause(clause_list, (hsm_key_role_t)policy_key_role(policy_key))
         || !hsm_key_is_revoked_clause(clause_list, 0)
         || !hsm_key_key_type_clause(clause_list, HSM_KEY_KEY_TYPE_RSA)
         || !hsm_key_repository_clause(clause_list, policy_key_repository(policy_key))
@@ -189,7 +189,7 @@ void hsm_key_factory_generate(engine_type* engine, const db_connection_t* connec
         ods_log_info("%lu zone(s) found on policy <unknown>", num_zones);
     }
     ods_log_info("[hsm_key_factory_generate] %lu keys needed for %lu "
-        "zones govering %lu seconds, generating %lu keys for policy %s",
+        "zones covering %lu seconds, generating %lu keys for policy %s",
         generate_keys, num_zones, duration,
         (unsigned long)(generate_keys-num_keys), /* This is safe because we checked num_keys < generate_keys */
         policy_name(policy));
@@ -223,7 +223,7 @@ void hsm_key_factory_generate(engine_type* engine, const db_connection_t* connec
         /*
          * Find the HSM repository to get the backup configuration
          */
-        hsm = engine->config->hsm;
+        hsm = engine->config->repositories;
         while (hsm) {
             if (!strcmp(hsm->name, policy_key_repository(policy_key))) {
                 break;
@@ -267,7 +267,7 @@ void hsm_key_factory_generate(engine_type* engine, const db_connection_t* connec
                 || hsm_key_set_locator(hsm_key, key_id)
                 || hsm_key_set_policy_id(hsm_key, policy_key_policy_id(policy_key))
                 || hsm_key_set_repository(hsm_key, policy_key_repository(policy_key))
-                || hsm_key_set_role(hsm_key, policy_key_role(policy_key))
+                || hsm_key_set_role(hsm_key, (hsm_key_role_t)policy_key_role(policy_key))
                 || hsm_key_set_state(hsm_key, HSM_KEY_STATE_UNUSED)
                 || hsm_key_create(hsm_key))
             {
@@ -636,7 +636,7 @@ hsm_key_t* hsm_key_factory_get_key(engine_type* engine,
         || !hsm_key_state_clause(clause_list, HSM_KEY_STATE_UNUSED)
         || !hsm_key_bits_clause(clause_list, policy_key_bits(policy_key))
         || !hsm_key_algorithm_clause(clause_list, policy_key_algorithm(policy_key))
-        || !hsm_key_role_clause(clause_list, policy_key_role(policy_key))
+        || !hsm_key_role_clause(clause_list, (hsm_key_role_t)policy_key_role(policy_key))
         || !hsm_key_is_revoked_clause(clause_list, 0)
         || !hsm_key_key_type_clause(clause_list, HSM_KEY_KEY_TYPE_RSA)
         || !hsm_key_repository_clause(clause_list, policy_key_repository(policy_key))

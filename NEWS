@@ -1,6 +1,7 @@
 OpenDNSSEC 2.0b1
 
 * Plugins directory renamed to contrib.
+* Configure option --with-database-backend renamed --with-enforcer-database
 
 OpenDNSSEC 2.0.0a6
 

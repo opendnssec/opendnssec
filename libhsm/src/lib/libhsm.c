@@ -46,15 +46,17 @@
 #include "duration.h"
 
 #include <pkcs11.h>
+#include <pthread.h>
 
 /*! Fixed length from PKCS#11 specification */
 #define HSM_TOKEN_LABEL_LENGTH 32
 
-/*! Global (initial) context */
+/*! Global (initial) context, with mutex to serialize access to it */
 hsm_ctx_t *_hsm_ctx;
+pthread_mutex_t _hsm_ctx_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /*! General PKCS11 helper functions */
-static char *
+static char const *
 ldns_pkcs11_rv_str(CK_RV rv)
 {
     switch (rv)
@@ -196,17 +198,6 @@ ldns_pkcs11_rv_str(CK_RV rv)
         }
 }
 
-/*! Set HSM Context Error
-
-If the ctx is given, and it's error value is still 0, the value will be
-set to 'error', and the error_message and error_action will be set to
-the given strings.   
-
-\param ctx      HSM context
-\param error    error code
-\param action   action for which the error occured
-\param message  error message format string
-*/
 void
 hsm_ctx_set_error(hsm_ctx_t *ctx, int error, const char *action,
                  const char *message, ...)
@@ -374,7 +365,7 @@ hsm_pkcs11_check_token_name(hsm_ctx_t *ctx,
 
 hsm_repository_t *
 hsm_repository_new(char* name, char* module, char* tokenlabel, char* pin,
-    uint8_t use_pubkey)
+    uint8_t use_pubkey, uint8_t require_backup)
 {
     hsm_repository_t* r;
 
@@ -400,6 +391,7 @@ hsm_repository_new(char* name, char* module, char* tokenlabel, char* pin,
         }
     }
     r->use_pubkey = use_pubkey;
+    r->require_backup = require_backup;
     return r;
 }
 
@@ -416,7 +408,7 @@ hsm_repository_free(hsm_repository_t *r)
     free(r);
 }
 
-int
+static int
 hsm_get_slot_id(hsm_ctx_t *ctx,
                 CK_FUNCTION_LIST_PTR pkcs11_functions,
                 const char *token_name, CK_SLOT_ID *slotId)
@@ -802,7 +794,7 @@ libhsm_key_new()
 {
     libhsm_key_t *key;
     key = malloc(sizeof(libhsm_key_t));
-    key->module = NULL;
+    key->modulename = NULL;
     key->private_key = 0;
     key->public_key = 0;
     return key;
@@ -814,10 +806,9 @@ static hsm_session_t *
 hsm_find_key_session(hsm_ctx_t *ctx, const libhsm_key_t *key)
 {
     unsigned int i;
-    if (!key || !key->module) return NULL;
-    if (!ctx) ctx = _hsm_ctx;
+    if (!key || !key->modulename) return NULL;
     for (i = 0; i < ctx->session_count; i++) {
-        if (ctx->session[i] && ctx->session[i]->module == key->module) {
+        if (ctx->session[i] && !strcmp(ctx->session[i]->module->name, key->modulename)) {
             return ctx->session[i];
         }
     }
@@ -1297,7 +1288,7 @@ libhsm_key_new_privkey_object_handle(hsm_ctx_t *ctx,
     if (!id) return NULL;
 
     key = libhsm_key_new();
-    key->module = session->module;
+    key->modulename = strdup(session->module->name);
     key->private_key = object;
 
     key->public_key = hsm_find_object_handle_for_id(
@@ -1430,7 +1421,7 @@ err:
  *
  * \return the list of keys
  */
-libhsm_key_t **
+static libhsm_key_t **
 hsm_list_keys_session(hsm_ctx_t *ctx, const hsm_session_t *session,
                       size_t *count)
 {
@@ -1480,7 +1471,6 @@ hsm_find_key_by_id_bin(hsm_ctx_t *ctx,
     libhsm_key_t *key;
     unsigned int i;
 
-    if (!ctx) ctx = _hsm_ctx;
     if (!id) return NULL;
 
     for (i = 0; i < ctx->session_count; i++) {
@@ -2186,160 +2176,6 @@ hsm_create_empty_rrsig(const ldns_rr_list *rrset,
  */
 
 int
-hsm_open(const char *config,
-         char *(pin_callback)(unsigned int, const char *, unsigned int))
-{
-    xmlDocPtr doc;
-    xmlXPathContextPtr xpath_ctx;
-    xmlXPathObjectPtr xpath_obj;
-    xmlNode *curNode;
-    xmlChar *xexpr;
-
-    int i;
-    char *config_file;
-    char *repository;
-    char *token_label;
-    char *module_path;
-    char *module_pin;
-    hsm_config_t module_config;
-    int result = HSM_OK;
-    int tries;
-    int repositories = 0;
-
-    /* create an internal context with an attached session for each
-     * configured HSM. */
-    _hsm_ctx = hsm_ctx_new();
-
-    if (config) {
-        config_file = strdup(config);
-    } else{
-        config_file = strdup(HSM_DEFAULT_CONFIG);
-    }
-
-    /* Load XML document */
-    doc = xmlParseFile(config_file);
-    free(config_file);
-    if (doc == NULL) {
-        return HSM_CONFIG_FILE_ERROR;
-    }
-
-    /* Create xpath evaluation context */
-    xpath_ctx = xmlXPathNewContext(doc);
-    if(xpath_ctx == NULL) {
-        xmlFreeDoc(doc);
-        hsm_ctx_free(_hsm_ctx);
-        _hsm_ctx = NULL;
-        return -1;
-    }
-
-    /* Evaluate xpath expression */
-    xexpr = (xmlChar *)"//Configuration/RepositoryList/Repository";
-    xpath_obj = xmlXPathEvalExpression(xexpr, xpath_ctx);
-    if(xpath_obj == NULL) {
-        xmlXPathFreeContext(xpath_ctx);
-        xmlFreeDoc(doc);
-        hsm_ctx_free(_hsm_ctx);
-        _hsm_ctx = NULL;
-        return -1;
-    }
-
-    if (xpath_obj->nodesetval) {
-        for (i = 0; i < xpath_obj->nodesetval->nodeNr; i++) {
-            /*module = hsm_module_new();*/
-            token_label = NULL;
-            module_path = NULL;
-            module_pin = NULL;
-            hsm_config_default(&module_config);
-
-            curNode = xpath_obj->nodesetval->nodeTab[i]->xmlChildrenNode;
-            repository = (char *) xmlGetProp(xpath_obj->nodesetval->nodeTab[i],
-                                             (const xmlChar *)"name");
-
-            while (curNode) {
-                if (xmlStrEqual(curNode->name, (const xmlChar *)"TokenLabel"))
-                    token_label = (char *) xmlNodeGetContent(curNode);
-                if (xmlStrEqual(curNode->name, (const xmlChar *)"Module"))
-                    module_path = (char *) xmlNodeGetContent(curNode);
-                if (xmlStrEqual(curNode->name, (const xmlChar *)"PIN"))
-                    module_pin = (char *) xmlNodeGetContent(curNode);
-                if (xmlStrEqual(curNode->name, (const xmlChar *)"SkipPublicKey"))
-                    module_config.use_pubkey = 0;
-                curNode = curNode->next;
-            }
-
-            if (repository && token_label && module_path) {
-                if (module_pin) {
-                    result = hsm_attach(repository,
-                                        token_label,
-                                        module_path,
-                                        module_pin,
-                                        &module_config);
-                    free(module_pin);
-                } else {
-                    if (pin_callback) {
-                        result = HSM_PIN_INCORRECT;
-                        tries = 0;
-                        while (result == HSM_PIN_INCORRECT &&
-                               tries < 3) {
-                            if (tries == 0) {
-                                module_pin = pin_callback(_hsm_ctx->session_count,
-                                                          repository,
-                                                          HSM_PIN_FIRST);
-                            } else {
-                                module_pin = pin_callback(_hsm_ctx->session_count,
-                                                          repository,
-                                                          HSM_PIN_RETRY);
-                            }
-
-                            if (module_pin == NULL) break;
-
-                            result = hsm_attach(repository,
-                                                token_label,
-                                                module_path,
-                                                module_pin,
-                                                &module_config);
-                            if (result == HSM_OK) {
-                                pin_callback(_hsm_ctx->session_count - 1,
-                                             repository,
-                                             HSM_PIN_SAVE);
-                            }
-                            memset(module_pin, 0, strlen(module_pin));
-                            tries++;
-                        }
-                    } else {
-                        /* no pin, no callback */
-                        hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_open()",
-                            "No pin or callback function");
-                        result = HSM_ERROR;
-                    }
-                }
-                free(repository);
-                free(token_label);
-                free(module_path);
-
-                if (result != HSM_OK) {
-                    break;
-                }
-
-                repositories++;
-            }
-        }
-    }
-
-    xmlXPathFreeObject(xpath_obj);
-    xmlXPathFreeContext(xpath_ctx);
-    xmlFreeDoc(doc);
-
-    if (result == HSM_OK && repositories == 0) {
-        hsm_ctx_set_error(_hsm_ctx, HSM_NO_REPOSITORIES, "hsm_open()",
-            "No repositories found");
-        return HSM_NO_REPOSITORIES;
-    }
-
-    return result;
-}
-
-int
 hsm_open2(hsm_repository_t* rlist,
          char *(pin_callback)(unsigned int, const char *, unsigned int))
 {
@@ -2350,12 +2186,14 @@ hsm_open2(hsm_repository_t* rlist,
     int tries;
     int repositories = 0;
 
+    pthread_mutex_lock(&_hsm_ctx_mutex);
     /* create an internal context with an attached session for each
      * configured HSM. */
     _hsm_ctx = hsm_ctx_new();
 
     repo = rlist;
     while (repo) {
+        hsm_config_default(&module_config);
         if (repo->name && repo->module && repo->tokenlabel) {
             if (repo->pin) {
                 result = hsm_attach(repo->name, repo->tokenlabel,
@@ -2379,7 +2217,7 @@ hsm_open2(hsm_repository_t* rlist,
                     }
                 } else {
                     /* no pin, no callback */
-                    hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_open()",
+                    hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_open2()",
                         "No pin or callback function");
                     result = HSM_ERROR;
                 }
@@ -2392,38 +2230,45 @@ hsm_open2(hsm_repository_t* rlist,
         repo = repo->next;
     }
     if (result == HSM_OK && repositories == 0) {
-        hsm_ctx_set_error(_hsm_ctx, HSM_NO_REPOSITORIES, "hsm_open()",
+        hsm_ctx_set_error(_hsm_ctx, HSM_NO_REPOSITORIES, "hsm_open2()",
             "No repositories found");
-        return HSM_NO_REPOSITORIES;
+        result = HSM_NO_REPOSITORIES;
     }
+    pthread_mutex_unlock(&_hsm_ctx_mutex);
     return result;
 }
 
 void
 hsm_close()
 {
+    pthread_mutex_lock(&_hsm_ctx_mutex);
     hsm_ctx_close(_hsm_ctx, 1);
     _hsm_ctx = NULL;
+    pthread_mutex_unlock(&_hsm_ctx_mutex);
 }
 
 hsm_ctx_t *
 hsm_create_context()
 {
-    return hsm_ctx_clone(_hsm_ctx);
+    hsm_ctx_t* newctx;
+    pthread_mutex_lock(&_hsm_ctx_mutex);
+    newctx = hsm_ctx_clone(_hsm_ctx);
+    pthread_mutex_unlock(&_hsm_ctx_mutex);
+    return newctx;
 }
 
 int
-hsm_check_context(hsm_ctx_t *ctx)
+hsm_check_context()
 {
     unsigned int i;
     hsm_session_t *session;
     CK_SESSION_INFO info;
     CK_RV rv;
     CK_SESSION_HANDLE session_handle;
+    hsm_ctx_t *ctx;
 
-    if (ctx == NULL) {
-        ctx = _hsm_ctx;
-    }
+    pthread_mutex_lock(&_hsm_ctx_mutex);
+    ctx = _hsm_ctx;
 
     for (i = 0; i < ctx->session_count; i++) {
         session = ctx->session[i];
@@ -2434,6 +2279,7 @@ hsm_check_context(hsm_ctx_t *ctx)
                                         session->session,
                                         &info);
         if (hsm_pkcs11_check_error(ctx, rv, "get session info")) {
+            pthread_mutex_unlock(&_hsm_ctx_mutex);
             return HSM_ERROR;
         }
 
@@ -2441,6 +2287,7 @@ hsm_check_context(hsm_ctx_t *ctx)
         if (info.state != CKS_RW_USER_FUNCTIONS) {
             hsm_ctx_set_error(ctx, HSM_ERROR, "hsm_check_context()",
                               "Session not logged in");
+            pthread_mutex_unlock(&_hsm_ctx_mutex);
             return HSM_ERROR;
         }
 
@@ -2451,14 +2298,17 @@ hsm_check_context(hsm_ctx_t *ctx)
                                         NULL,
                                         &session_handle);
         if (hsm_pkcs11_check_error(ctx, rv, "test open session")) {
+            pthread_mutex_unlock(&_hsm_ctx_mutex);
             return HSM_ERROR;
         }
         rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_CloseSession(session_handle);
         if (hsm_pkcs11_check_error(ctx, rv, "test close session")) {
+            pthread_mutex_unlock(&_hsm_ctx_mutex);
             return HSM_ERROR;
         }
     }
 
+    pthread_mutex_unlock(&_hsm_ctx_mutex);
     return HSM_OK;
 }
 
@@ -2506,10 +2356,6 @@ hsm_list_keys(hsm_ctx_t *ctx, size_t *count)
     libhsm_key_t **session_keys;
     unsigned int i, j;
 
-    if (!ctx) {
-        ctx = _hsm_ctx;
-    }
-
     for (i = 0; i < ctx->session_count; i++) {
         session_keys = hsm_list_keys_session(ctx, ctx->session[i],
                                              &cur_key_count);
@@ -2535,7 +2381,6 @@ hsm_list_keys_repository(hsm_ctx_t *ctx,
     hsm_session_t *session;
 
     if (!repository) return NULL;
-    if (!ctx) ctx = _hsm_ctx;
 
     session = hsm_find_repository_session(ctx, repository);
     if (!session) {
@@ -2583,7 +2428,6 @@ hsm_generate_rsa_key(hsm_ctx_t *ctx,
     CK_BBOOL cfalse = CK_FALSE;
     CK_BBOOL ctoken = CK_TRUE;
 
-    if (!ctx) ctx = _hsm_ctx;
     session = hsm_find_repository_session(ctx, repository);
     if (!session) return NULL;
 
@@ -2635,7 +2479,7 @@ hsm_generate_rsa_key(hsm_ctx_t *ctx,
     }
 
     new_key = libhsm_key_new();
-    new_key->module = session->module;
+    new_key->modulename = strdup(session->module->name);
 
     if (session->module->config->use_pubkey) {
         new_key->public_key = publicKey;
@@ -2667,7 +2511,6 @@ hsm_generate_dsa_key(hsm_ctx_t *ctx,
     /* that's 33 bytes in string (16*2 + 1 for \0) */
     char id_str[33];
 
-    if (!ctx) ctx = _hsm_ctx;
     session = hsm_find_repository_session(ctx, repository);
     if (!session) return NULL;
 
@@ -2757,7 +2600,7 @@ hsm_generate_dsa_key(hsm_ctx_t *ctx,
     }
 
     new_key = libhsm_key_new();
-    new_key->module = session->module;
+    new_key->modulename = strdup(session->module->name);
     new_key->public_key = publicKey;
     new_key->private_key = privateKey;
 
@@ -2780,7 +2623,6 @@ hsm_generate_gost_key(hsm_ctx_t *ctx,
     /* that's 33 bytes in string (16*2 + 1 for \0) */
     char id_str[33];
 
-    if (!ctx) ctx = _hsm_ctx;
     session = hsm_find_repository_session(ctx, repository);
     if (!session) return NULL;
 
@@ -2839,7 +2681,7 @@ hsm_generate_gost_key(hsm_ctx_t *ctx,
     }
 
     new_key = libhsm_key_new();
-    new_key->module = session->module;
+    new_key->modulename = strdup(session->module->name);
     new_key->public_key = publicKey;
     new_key->private_key = privateKey;
 
@@ -2863,7 +2705,6 @@ hsm_generate_ecdsa_key(hsm_ctx_t *ctx,
     /* that's 33 bytes in string (16*2 + 1 for \0) */
     char id_str[33];
 
-    if (!ctx) ctx = _hsm_ctx;
     session = hsm_find_repository_session(ctx, repository);
     if (!session) return NULL;
 
@@ -2937,7 +2778,7 @@ hsm_generate_ecdsa_key(hsm_ctx_t *ctx,
     }
 
     new_key = libhsm_key_new();
-    new_key->module = session->module;
+    new_key->modulename = strdup(session->module->name);
     new_key->public_key = publicKey;
     new_key->private_key = privateKey;
 
@@ -2949,7 +2790,6 @@ hsm_remove_key(hsm_ctx_t *ctx, libhsm_key_t *key)
 {
     CK_RV rv;
     hsm_session_t *session;
-    if (!ctx) ctx = _hsm_ctx;
     if (!key) return -1;
 
     session = hsm_find_key_session(ctx, key);
@@ -2979,6 +2819,7 @@ libhsm_key_list_free(libhsm_key_t **key_list, size_t count)
 {
     size_t i;
     for (i = 0; i < count; i++) {
+        free(key_list[i]->modulename);
         free(key_list[i]);
     }
     free(key_list);
@@ -2992,7 +2833,6 @@ hsm_get_key_id(hsm_ctx_t *ctx, const libhsm_key_t *key)
     size_t len;
     hsm_session_t *session;
 
-    if (!ctx) ctx = _hsm_ctx;
     if (!key) return NULL;
 
     session = hsm_find_key_session(ctx, key);
@@ -3022,7 +2862,6 @@ hsm_get_key_info(hsm_ctx_t *ctx,
     libhsm_key_info_t *key_info;
     hsm_session_t *session;
 
-    if (!ctx) ctx = _hsm_ctx;
     session = hsm_find_key_session(ctx, key);
     if (!session) return NULL;
 
@@ -3091,7 +2930,6 @@ hsm_sign_rrset(hsm_ctx_t *ctx,
 
     if (!key) return NULL;
     if (!sign_params) return NULL;
-    if (!ctx) ctx = _hsm_ctx;
 
     signature = hsm_create_empty_rrsig((ldns_rr_list *)rrset,
                                        sign_params);
@@ -3202,7 +3040,6 @@ hsm_get_dnskey(hsm_ctx_t *ctx,
     hsm_session_t *session;
     ldns_rdf *rdata;
 
-    if (!ctx) ctx = _hsm_ctx;
     if (!key) {
         hsm_ctx_set_error(ctx, -1, "hsm_get_dnskey()", "Got NULL key");
         return NULL;
@@ -3248,7 +3085,6 @@ hsm_random_buffer(hsm_ctx_t *ctx,
     unsigned int i;
     hsm_session_t *session;
     if (!buffer) return -1;
-    if (!ctx) ctx = _hsm_ctx;
 
     /* just try every attached token. If one errors (be it NO_RNG, or
      * any other error, simply try the next */
@@ -3319,17 +3155,15 @@ int hsm_attach(const char *repository,
                               pin,
                               config);
     if (result == HSM_OK) {
-        return hsm_ctx_add_session(_hsm_ctx, session);
-    } else {
-        return result;
+        result = hsm_ctx_add_session(_hsm_ctx, session);
     }
+    return result;
 }
 
 int
 hsm_token_attached(hsm_ctx_t *ctx, const char *repository)
 {
     unsigned int i;
-    if (!ctx) ctx = _hsm_ctx;
     for (i = 0; i < ctx->session_count; i++) {
         if (ctx->session[i] &&
             strcmp(ctx->session[i]->module->name, repository) == 0) {
@@ -3385,14 +3219,8 @@ hsm_print_session(hsm_session_t *session)
 }
 
 void
-hsm_print_ctx(hsm_ctx_t *gctx) {
-    hsm_ctx_t *ctx;
+hsm_print_ctx(hsm_ctx_t *ctx) {
     unsigned int i;
-    if (!gctx) {
-        ctx = _hsm_ctx;
-    } else {
-        ctx = gctx;
-    }
     printf("CTX Sessions: %lu\n",
            (long unsigned int) ctx->session_count);
     for (i = 0; i < ctx->session_count; i++) {
@@ -3402,20 +3230,19 @@ hsm_print_ctx(hsm_ctx_t *gctx) {
 }
 
 void
-hsm_print_key(libhsm_key_t *key) {
+hsm_print_key(hsm_ctx_t *ctx, libhsm_key_t *key) {
     libhsm_key_info_t *key_info;
     if (key) {
-        key_info = hsm_get_key_info(NULL, key);
+        key_info = hsm_get_key_info(ctx, key);
         if (key_info) {
             printf("key:\n");
-            printf("\tmodule: %p\n", (void *) key->module);
             printf("\tprivkey handle: %u\n", (unsigned int) key->private_key);
             if (key->public_key) {
                 printf("\tpubkey handle: %u\n", (unsigned int) key->public_key);
             } else {
                 printf("\tpubkey handle: %s\n", "NULL");
             }
-            printf("\trepository: %s\n", key->module->name);
+            printf("\trepository: %s\n", key->modulename);
             printf("\talgorithm: %s\n", key_info->algorithm_name);
             printf("\tsize: %lu\n", key_info->keysize);
             printf("\tid: %s\n", key_info->id);
@@ -3444,21 +3271,14 @@ hsm_print_error(hsm_ctx_t *gctx)
 }
 
 void
-hsm_print_tokeninfo(hsm_ctx_t *gctx)
+hsm_print_tokeninfo(hsm_ctx_t *ctx)
 {
     CK_RV rv;
     CK_SLOT_ID slot_id;
     CK_TOKEN_INFO token_info;
-    hsm_ctx_t *ctx;
     unsigned int i;
     hsm_session_t *session;
     int result;
-
-    if (!gctx) {
-        ctx = _hsm_ctx;
-    } else {
-        ctx = gctx;
-    }
 
     for (i = 0; i < ctx->session_count; i++) {
         session = ctx->session[i];

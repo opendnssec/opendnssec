@@ -202,7 +202,7 @@ static int db_do(const char *sql, size_t size) {
 #endif
 }
 
-int db_do2(const char** strs) {
+static int db_do2(const char** strs) {
     char sql[4096];
     char *sqlp;
     int ret, left, i;
