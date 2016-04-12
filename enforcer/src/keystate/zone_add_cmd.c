@@ -61,6 +61,7 @@ usage(int sockfd)
 		"      [--out-type <type>]        (aka -q)  output adapter type.\n"
 		"      [--output <path>]          (aka -o)  output adapter zone or config file.\n"
 		"      [--xml]                    (aka -u)  update the zonelist.xml file.\n"
+		"      [--suspend]                (aka -n)  suspend this zone until running enforce command.\n"
 	);
 }
 
@@ -83,7 +84,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	db_connection_t *dbconn)
 {
     char* buf;
-    const char* argv[17];
+    const char* argv[18];
     int argc;
     const char *zone_name = NULL;
     const char *policy_name = NULL;
@@ -97,6 +98,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     policy_t* policy;
     zone_t* zone;
     int ret = 0;
+    int suspend;
     (void)engine;
 
 	ods_log_debug("[%s] %s command", module_str, zone_add_funcblock()->cmdname);
@@ -107,7 +109,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
         return -1;
     }
 
-    argc = ods_str_explode(buf, 17, argv);
+    argc = ods_str_explode(buf, 18, argv);
     if (argc > 17) {
         client_printf_err(sockfd, "too many arguments\n");
         free(buf);
@@ -122,6 +124,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     ods_find_arg_and_param(&argc, argv, "in-type", "j", &input_type);
     ods_find_arg_and_param(&argc, argv, "out-type", "q", &output_type);
     write_xml = ods_find_arg(&argc, argv, "xml", "u") > -1 ? 1 : 0;
+    suspend = ods_find_arg(&argc, argv, "suspend", "n") > -1 ? 1 : 0;
 
     if (argc) {
         client_printf_err(sockfd, "unknown arguments\n");
@@ -242,6 +245,11 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
         {
             client_printf_err(sockfd, "Unable to add zone, failed to set signconf!\n");
         }
+    }
+    if (suspend) {
+        if (zone_set_next_change(zone, -1))
+            ods_log_error("[%s] Cannot suspend zone %s, database error!", module_str, zone_name);
+            client_printf_err(sockfd, "Cannot suspend zone %s, database error!", zone_name);
     }
 
     if (zone_create(zone)) {
