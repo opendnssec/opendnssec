@@ -370,12 +370,13 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     const char* keytype = NULL;
     const char* keystate = NULL;
     const char *time = NULL;
-    zone_t * zone = NULL;
+    zone_t *zone = NULL;
     time_t inception = 0;
     struct tm tm;
     (void)engine;
     int setmin;
-    db_value_t* hsmkey_id;
+    db_value_t *hsmkey_id;
+    policy_key_t *policy_key;
 	
     ods_log_debug("[%s] %s command", module_str, key_import_funcblock()->cmdname);
     cmd = ods_check_command(cmd, n, key_import_funcblock()->cmdname);
@@ -465,7 +466,22 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
         type = 3;
 
     hsmkey_id = db_value_new();
-    setmin = policy_key_minimize(policy_key_new_get_by_policyid_and_role(dbconn, zone_policy_id(zone_new_get_by_name(dbconn, zonename)), type));
+    policy_key = policy_key_new_get_by_policyid_and_role(dbconn, zone_policy_id(zone_new_get_by_name(dbconn, zonename)), type);
+    if (!policy_key) {
+        ods_log_error("Unable to get policyKey, database error!");
+        client_printf_err(sockfd, "Unable to get policyKey, database error!\n");
+        db_value_free((void*)hsmkey_id);
+        return -1;
+    }
+    if (atoi(algorithm) != policy_key_algorithm(policy_key)) {
+        ods_log_error("Error: the given algorithm in import command doesn't match the algorithm in kasp");
+        client_printf_err(sockfd, "The given algorithm doesn't match the algorithm in kasp\n");
+        db_value_free((void*)hsmkey_id);
+        policy_key_free(policy_key);
+        return -1;
+    }
+
+    setmin = policy_key_minimize(policy_key);
 
     /* perform task immediately */
     if (perform_hsmkey_import(sockfd, dbconn, ckaid, repository, zonename, atoi(bits), atoi(algorithm), type, (unsigned int)inception)
