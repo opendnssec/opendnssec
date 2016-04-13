@@ -61,38 +61,24 @@ AC_DEFUN([AX_COMPILER_FLAGS_CFLAGS],[
         AX_APPEND_COMPILE_FLAGS([ dnl
             -Wall dnl
             -Wextra dnl
-            -Wundef dnl
-            -Wnested-externs dnl
             -Wwrite-strings dnl
             -Wpointer-arith dnl
-            -Wmissing-declarations dnl
-            -Wmissing-prototypes dnl
-            -Wstrict-prototypes dnl
-            -Wredundant-decls dnl
             -Wno-unused-parameter dnl
             -Wno-missing-field-initializers dnl
-            -Wdeclaration-after-statement dnl
             -Wformat=2 dnl
-            -Wold-style-definition dnl
             -Wcast-align dnl
-            -Wformat-nonliteral dnl
             -Wformat-security dnl
-            -Wsign-compare dnl
             -Wstrict-aliasing dnl
-            -Wshadow dnl
-            -Winline dnl
             -Wpacked dnl
-            -Wmissing-format-attribute dnl
-            -Wmissing-noreturn dnl
             -Winit-self dnl
-            -Wredundant-decls dnl
             -Wmissing-include-dirs dnl
-            -Wunused-but-set-variable dnl
             -Warray-bounds dnl
-            -Wimplicit-function-declaration dnl
             -Wreturn-type dnl
-            -Wswitch-enum dnl
-            -Wswitch-default dnl
+            -Wno-format-nonliteral dnl
+            -Wno-format-y2k dnl
+            -Wno-unused-function dnl
+            -Wno-unused-variable dnl
+            -Wno-sign-compare dnl
             $4 dnl
             $5 dnl
             $6 dnl
