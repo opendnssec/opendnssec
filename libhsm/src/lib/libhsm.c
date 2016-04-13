@@ -2819,7 +2819,7 @@ libhsm_key_list_free(libhsm_key_t **key_list, size_t count)
 {
     size_t i;
     for (i = 0; i < count; i++) {
-        free(key_list[i]->modulename);
+        free((char*)key_list[i]->modulename);
         free(key_list[i]);
     }
     free(key_list);

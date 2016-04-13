@@ -52,6 +52,7 @@
 #include <stdlib.h>
 
 #include "policy/policy_resalt_task.h"
+#include "signconf/signconf_task.h"
 
 static const char *module_str = "policy_resalt_task";
 static const time_t TIME_INF = ((time_t)-1);

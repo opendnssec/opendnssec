@@ -656,4 +656,4 @@ main (int argc, char *argv[])
     closelog();
 
     exit(result);
-};
+}
