@@ -33,4 +33,5 @@ Some heads-up when trying it out after being used to 1.4:
   automatically anymore;
 - to start using OpenDNSSEC, use ods-enforcer policy import instead
   of update kasp to update your policies;
-- Getting started at: http://...
+- Getting started at:
+  https://wiki.opendnssec.org/display/DOCS20/Quick+start+guide
