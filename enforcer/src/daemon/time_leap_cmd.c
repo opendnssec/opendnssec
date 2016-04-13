@@ -47,11 +47,9 @@ static void
 usage(int sockfd)
 {
 	client_printf(sockfd,
-		"time leap              Simulate progression of time by leaping to the time of\n"
-		"                       the earliest scheduled task.\n"
-		"    --time <time>      -t for short, leap to this exact time.\n"
-		"    --attach           -a for short. Perform 1 task and stay "
-				"attached, use only when workerthreads=0.\n"
+		"time leap\n"
+		"	--time <time>				aka -t \n"
+		"	--attach				aka -a\n"
 	);
 }
 
@@ -59,13 +57,15 @@ static void
 help(int sockfd)
 {
 	client_printf(sockfd,
-		"*WARNING* time leap is a debugging/testing tool, it should "
-		"NEVER be used in production! Without arguments the daemon "
-		"inspects the first task in the schedule and sets its internal "
-		"time to the time of the task. This allows for a quick replay "
-		"of a test scenario. With the --time or -t switch the daemon "
+		"*WARNING* time leap is a debugging/testing tool, it should NEVER be used\n" 
+		"in production! Without arguments the daemon inspects the first task in the\n" 
+		"schedule and sets its internal time to the time of the task. This allows for\n"
+		"a quick replay of a test scenario. With the --time or -t switch the daemon\n"
 		"sets its time to the argument given as: \"YYYY-MM-DD-HH:MM:SS\"."
 		"\n"
+		"\nOptions:\n"
+		"time		leap to this exact time\n"
+		"attach		Perform 1 task and stay attached, use only when workerthreads=0\n\n"
 	);
 }
 

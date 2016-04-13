@@ -52,7 +52,7 @@ static void
 usage(int sockfd)
 {
     client_printf(sockfd,
-        "policy import          Import policies from kasp.xml into the enforcer.\n"
+        "policy import\n"
     );
 }
 
@@ -60,7 +60,7 @@ static void
 help(int sockfd)
 {
     client_printf(sockfd,
-        "Import policies from kasp.xml into the enforcer\n"
+        "Import policies from kasp.xml into the enforcer.\n\n"
     );
 }
 

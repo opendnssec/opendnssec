@@ -43,9 +43,8 @@ static void
 usage(int sockfd)
 {
     client_printf(sockfd,
-        "policy export          Export policies in the kasp.xml format.\n"
-        "      --policy <policy>          (aka -p)  policy to export.\n"
-        "      --all                      (aka -a)  export all policies.\n"
+        "policy export\n"
+        "	--policy <policy> | --all		aka -p | -a \n"
     );
 }
 
@@ -54,6 +53,8 @@ help(int sockfd)
 {
     client_printf(sockfd,
         "Export policies in the kasp.xml format.\n"
+	"\nOptions:\n"
+        "policy|all	export a specified policy or all of them\n\n"
     );
 }
 

@@ -17,12 +17,8 @@ static void
 usage(int sockfd)
 {
 	client_printf(sockfd,
-		"key purge           Purge keys from database and HSM which"
-			" are dead.\n"
-		"	--policy <policy>     (aka -p) \n");
-	client_printf(sockfd,
-		"key purge  \n"
-		"	--zone <zone>         (aka -z) \n");
+		"key purge\n"
+		"	--policy <policy> | --zone <zone>	aka -p | -z\n");
 }
 
 static void
@@ -31,6 +27,9 @@ help(int sockfd)
 	client_printf(sockfd,
 		"This command will remove keys from the database and HSM that "
 		"are dead. Use with caution.\n"
+		"\nOptions:\n"
+		"policy		name of the policy\n"
+		"zone		name of the zone\n\n"
 	);
 }
 

@@ -50,18 +50,18 @@ static void
 usage(int sockfd)
 {
 	client_printf(sockfd,
-		"zone add               Add a new zone to the enforcer database.\n"
-		"      --zone <zone>              (aka -z)  zone.\n"
-		"      [--policy <policy>]        (aka -p)  policy.\n"
-		"      [--signerconf <path>]      (aka -s)  signer configuration file.\n"
-		"      [--in-type <type>]         (aka -j)  input adapter type.\n"
+		"zone add\n"
+		"	--zone <zone>				aka -z\n"
+		"	[--policy <policy>]			aka -p\n"
+		"	[--signerconf <path>]			aka -s\n"
+		"	[--in-type <type>]			aka -j\n"
     );
     client_printf(sockfd,
-		"      [--input <path>]           (aka -i)  input adapter zone or config file.\n"
-		"      [--out-type <type>]        (aka -q)  output adapter type.\n"
-		"      [--output <path>]          (aka -o)  output adapter zone or config file.\n"
-		"      [--xml]                    (aka -u)  update the zonelist.xml file.\n"
-		"      [--suspend]                (aka -n)  suspend this zone until running enforce command.\n"
+		"	[--input <path>]			aka -i\n"
+		"	[--out-type <type>]			aka -q\n"
+		"	[--output <path>]			aka -o\n"
+		"	[--xml]					aka -u\n"
+		"	[--suspend]				aka -n\n"
 	);
 }
 
@@ -70,6 +70,16 @@ help(int sockfd)
 {
     client_printf(sockfd,
         "Add a new zone to the enforcer database.\n"
+	"\nOptions:\n"
+        "zone		name of the zone\n"
+        "policy		name of the policy\n"
+        "signerconf	signer configuration file\n"
+        "in-type		input adapter type\n"
+        "input		input adapter zone or config file\n"
+        "out-type	output adapter type\n"
+        "output		output adapter zone or config file\n"
+        "xml		update the zonelist.xml file\n"
+        "suspend		suspend this zone until running enforce command\n\n"
     );
 }
 
@@ -249,7 +259,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     if (suspend) {
         if (zone_set_next_change(zone, -1))
             ods_log_error("[%s] Cannot suspend zone %s, database error!", module_str, zone_name);
-            client_printf_err(sockfd, "Cannot suspend zone %s, database error!", zone_name);
+            client_printf_err(sockfd, "Cannot suspend zone %s, database error!\n", zone_name);
     }
 
     if (zone_create(zone)) {
