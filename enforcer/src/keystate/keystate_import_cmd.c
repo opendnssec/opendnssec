@@ -161,7 +161,7 @@ perform_keydata_import(int sockfd, db_connection_t *dbconn,
     }
     free(libhsmkey);
     if (!(hsmkey = hsm_key_new_get_by_locator(dbconn, ckaid))) {
-        ods_log_error("[%s] Error: Cannot get hsmkey %s from database, databae error", module_str, ckaid);
+        ods_log_error("[%s] Error: Cannot get hsmkey %s from database, database error", module_str, ckaid);
         hsm_destroy_context(hsm_ctx);
         return -1;
     }
@@ -191,10 +191,10 @@ perform_keydata_import(int sockfd, db_connection_t *dbconn,
         return -1;
     }
     ods_log_debug("[%s] key data with this locator %s is created successfully", module_str, ckaid);
-    hsm_key_free(hsmkey);
     key_data_free(key_data);
     hsm_destroy_context(hsm_ctx);
     db_value_copy (hsmkey_id, hsm_key_id(hsmkey));
+    hsm_key_free(hsmkey);
     return 0;
 }
 
