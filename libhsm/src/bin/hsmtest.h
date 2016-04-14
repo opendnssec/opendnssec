@@ -28,6 +28,6 @@
 #define HSMTEST_H 1
 
 int
-hsm_test (const char *repository);
+hsm_test (const char *repository, hsm_ctx_t* ctx);
 
 #endif /* HSMTEST_H */

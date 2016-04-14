@@ -26,7 +26,6 @@
  */
 
 #include "config.h"
-#include "hsmtest.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -35,6 +34,8 @@
 #include <unistd.h>
 
 #include "libhsm.h"
+#include "hsmtest.h"
+
 #include <libhsmdns.h>
 
 extern hsm_repository_t* parse_conf_repositories(const char* cfgfile);
@@ -514,7 +515,7 @@ cmd_dnskey (int argc, char *argv[])
 }
 
 static int
-cmd_test (int argc, char *argv[])
+cmd_test (int argc, char *argv[], hsm_ctx_t* ctx)
 {
     char *repository = NULL;
 
@@ -524,7 +525,7 @@ cmd_test (int argc, char *argv[])
         argv++;
 
         printf("Testing repository: %s\n\n", repository);
-        int rv = hsm_test(repository);
+        int rv = hsm_test(repository, ctx);
         if (repository) free(repository);
         return rv;
     } else {
@@ -635,7 +636,7 @@ main (int argc, char *argv[])
     } else if (!strcasecmp(argv[0], "test")) {
         argc --;
         argv ++;
-        result = cmd_test(argc, argv);
+        result = cmd_test(argc, argv, ctx);
     } else if (!strcasecmp(argv[0], "info")) {
         argc --;
         argv ++;
