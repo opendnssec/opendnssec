@@ -86,6 +86,7 @@
 #include "keystate/keystate_ds_retract_cmd.h"
 #include "keystate/keystate_ds_gone_cmd.h"
 #include "keystate/keystate_export_cmd.h"
+#include "keystate/keystate_import_cmd.h"
 #include "keystate/keystate_list_cmd.h"
 #include "keystate/key_purge_cmd.h"
 #include "keystate/rollover_list_cmd.h"
@@ -105,7 +106,7 @@
 #define SUN_LEN(su) (sizeof(*(su))-sizeof((su)->sun_path)+strlen((su)->sun_path))
 #endif
 
-static char* module_str = "cmdhandler";
+static char const * module_str = "cmdhandler";
 
 typedef struct cmd_func_block* (*fbgetfunctype)(void);
 
@@ -134,6 +135,7 @@ cmd_funcs_avail(void)
 
         &key_list_funcblock,
         &key_export_funcblock,
+        &key_import_funcblock,
         &key_ds_submit_funcblock,
         &key_ds_seen_funcblock,
         &key_ds_retract_funcblock,
@@ -167,7 +169,8 @@ cmdhandler_get_usage(int sockfd)
     fbgetfunctype* fb = cmd_funcs_avail();
     int cmd_iter = 0;
     while (fb[cmd_iter]) {
-        (*fb[cmd_iter])()->usage(sockfd);
+        if (!fb[cmd_iter]()->handles("time leap", 10))
+		(*fb[cmd_iter])()->usage(sockfd);
         cmd_iter++;
     }
 }

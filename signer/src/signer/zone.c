@@ -370,6 +370,10 @@ zone_publish_nsec3param(zone_type* zone)
         ldns_set_bit(ldns_rdf_data(ldns_rr_rdf(rr, 1)), 7, 0);
         zone->signconf->nsec3params->rr = rr;
     }
+
+    /* Delete all nsec3param rrs. */
+    (void) zone_del_nsec3params(zone);
+
     ods_log_assert(zone->signconf->nsec3params->rr);
     status = zone_add_rr(zone, zone->signconf->nsec3params->rr, 0);
     if (status == ODS_STATUS_UNCHANGED) {
@@ -602,13 +606,13 @@ zone_add_rr(zone_type* zone, ldns_rr* rr, int do_stats)
         domain_add_rrset(domain, rrset);
     }
     record = rrset_lookup_rr(rrset, rr);
+
+    if (record && ldns_rr_ttl(rr) != ldns_rr_ttl(record->rr))
+        record = NULL;
+
     if (record) {
         record->is_added = 1; /* already exists, just mark added */
         record->is_removed = 0; /* unset is_removed */
-        if (ldns_rr_ttl(rr) != ldns_rr_ttl(record->rr)) {
-            ldns_rr_set_ttl(record->rr, ldns_rr_ttl(rr));
-            rrset->needs_signing = 1;
-        }
         return ODS_STATUS_UNCHANGED;
     } else {
         record = rrset_add_rr(rrset, rr);
@@ -667,6 +671,39 @@ zone_del_rr(zone_type* zone, ldns_rr* rr, int do_stats)
     return ODS_STATUS_OK;
 }
 
+/**
+ * Delete NSEC3PARAM RRs.
+ *
+ */
+ods_status
+zone_del_nsec3params(zone_type* zone)
+{
+    domain_type* domain = NULL;
+    rrset_type* rrset = NULL;
+
+    ods_log_assert(zone);
+    ods_log_assert(zone->name);
+    ods_log_assert(zone->db);
+
+    domain = namedb_lookup_domain(zone->db, zone->apex);
+    if (!domain) {
+        ods_log_warning("[%s] unable to delete RR from zone %s: "
+            "domain not found", zone_str, zone->name);
+        return ODS_STATUS_UNCHANGED;
+    }
+
+    rrset = domain_lookup_rrset(domain, LDNS_RR_TYPE_NSEC3PARAMS);
+    if (!rrset) {
+        ods_log_warning("[%s] unable to delete RR from zone %s: "
+            "RRset not found", zone_str, zone->name);
+        return ODS_STATUS_UNCHANGED;
+    }
+
+    while(rrset->rr_count) {
+        rrset_del_rr(rrset, 0);
+    }
+    return ODS_STATUS_OK;
+}
 
 /**
  * Merge zones.
@@ -740,13 +777,9 @@ zone_merge(zone_type* z1, zone_type* z2)
 void
 zone_cleanup(zone_type* zone)
 {
-    lock_basic_type zone_lock;
-    lock_basic_type xfr_lock;
     if (!zone) {
         return;
     }
-    zone_lock = zone->zone_lock;
-    xfr_lock = zone->xfr_lock;
     ldns_rdf_deep_free(zone->apex);
     adapter_cleanup(zone->adinbound);
     adapter_cleanup(zone->adoutbound);
@@ -762,9 +795,9 @@ zone_cleanup(zone_type* zone)
     free((void*)zone->signconf_filename);
     free((void*)zone->name);
     collection_class_destroy(&zone->rrstore);
+    lock_basic_destroy(&zone->xfr_lock);
+    lock_basic_destroy(&zone->zone_lock);
     free(zone);
-    lock_basic_destroy(&xfr_lock);
-    lock_basic_destroy(&zone_lock);
 }
 
 

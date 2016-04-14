@@ -49,7 +49,7 @@ static void
 usage(int sockfd)
 {
 	client_printf(sockfd,
-		"queue                  Show the current task queue.\n"
+		"queue\n"
 	);
 }
 
@@ -57,9 +57,9 @@ static void
 help(int sockfd)
 {
 	client_printf(sockfd,
-		"queue shows all scheduled tasks with their time of earliest "
-		"execution. As well as all tasks currently being processed."
-		"\n"
+		"queue shows all scheduled tasks with their time of earliest executions,\n"
+		"as well as all tasks currently being processed."
+		"\n\n"
 	);
 }
 
@@ -146,8 +146,15 @@ static void
 usage_flush(int sockfd)
 {
 	client_printf(sockfd,
-		"flush                  Execute all scheduled tasks immediately.\n"
+		"flush\n"
 	);
+}
+
+static void
+help_flush(int sockfd)
+{
+	client_printf(sockfd,
+		"Execute all scheduled tasks immediately.\n\n");
 }
 
 static int
@@ -173,7 +180,7 @@ run_flush(int sockfd, engine_type *engine, const char *cmd, ssize_t n,
 }
 
 static struct cmd_func_block funcblock_flush = {
-	"flush", &usage_flush, NULL, &handles_flush, &run_flush
+	"flush", &usage_flush, &help_flush, &handles_flush, &run_flush
 };
 
 struct cmd_func_block*

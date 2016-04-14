@@ -35,6 +35,8 @@
 #include "libhsm.h"
 #include <libhsmdns.h>
 
+extern hsm_repository_t* parse_conf_repositories(const char* cfgfile);
+
 #define HSMSPEED_THREADS_MAX 2048
 
 /* Algorithm identifier and name */
@@ -51,7 +53,7 @@ typedef struct {
     unsigned int iterations;
 } sign_arg_t;
 
-void
+static void
 usage ()
 {
     fprintf(stderr,
@@ -60,7 +62,7 @@ usage ()
         progname);
 }
 
-void *
+static void *
 sign (void *arg)
 {
     hsm_ctx_t *ctx = NULL;
@@ -191,9 +193,13 @@ main (int argc, char *argv[])
 
     /* Open HSM library */
     fprintf(stderr, "Opening HSM Library...\n");
-    result = hsm_open(config, hsm_prompt_pin);
-    if (result) {
-        hsm_print_error(NULL);
+    result = hsm_open2(parse_conf_repositories(config?config:HSM_DEFAULT_CONFIG), hsm_prompt_pin);
+    if (result != HSM_OK) {
+        char* error =  hsm_get_error(NULL);
+        if (error != NULL) {
+            fprintf(stderr,"%s\n", error);
+            free(error);
+        }
         exit(-1);
     }
 

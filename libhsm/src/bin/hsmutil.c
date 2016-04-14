@@ -26,7 +26,6 @@
  */
 
 #include "config.h"
-#include "hsmtest.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -35,22 +34,26 @@
 #include <unistd.h>
 
 #include "libhsm.h"
+#include "hsmtest.h"
+
 #include <libhsmdns.h>
 
+extern hsm_repository_t* parse_conf_repositories(const char* cfgfile);
 
 extern char *optarg;
 char *progname = NULL;
 unsigned int verbose = 0;
+hsm_ctx_t *ctx = NULL;
 
 
-void
+static void
 version ()
 {
     fprintf(stderr, "%s (%s) version %s\n",
         progname, PACKAGE_NAME, PACKAGE_VERSION);
 }
 
-void
+static void
 usage ()
 {
     fprintf(stderr,
@@ -71,7 +74,7 @@ usage ()
 #endif
 }
 
-int
+static int
 cmd_login ()
 {
     printf("The tokens are now logged in.\n");
@@ -79,7 +82,7 @@ cmd_login ()
     return 0;
 }
 
-int
+static int
 cmd_logout ()
 {
     if (hsm_logout_pin() != HSM_OK) {
@@ -93,7 +96,9 @@ cmd_logout ()
     return 0;
 }
 
-int
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
+static int
 cmd_list (int argc, char *argv[])
 {
     size_t i;
@@ -102,10 +107,10 @@ cmd_list (int argc, char *argv[])
     size_t key_count = 0;
     size_t key_count_valid = 0;
     libhsm_key_t **keys;
-    hsm_ctx_t *ctx = NULL;
 
     const char *key_info_format = "%-20s  %-32s  %-10s\n";
 
+    ctx = hsm_create_context();
 
     if (argc) {
         repository = argv[0];
@@ -119,10 +124,10 @@ cmd_list (int argc, char *argv[])
         }
 
         fprintf(stdout, "\nListing keys in repository: %s\n", repository);
-        keys = hsm_list_keys_repository(NULL, &key_count, repository);
+        keys = hsm_list_keys_repository(ctx, &key_count, repository);
     } else {
         fprintf(stdout, "\nListing keys in all repositories.\n");
-        keys = hsm_list_keys(NULL, &key_count);
+        keys = hsm_list_keys(ctx, &key_count);
     }
 
     fprintf(stdout, "%u %s found.\n\n", (unsigned int) key_count,
@@ -140,7 +145,7 @@ cmd_list (int argc, char *argv[])
         libhsm_key_info_t *key_info;
         libhsm_key_t *key = NULL;
         char key_type[HSM_MAX_ALGONAME + 8];
-        char *key_id = NULL;
+        char const * key_id = NULL;
 
         key = keys[i];
         if (key == NULL) {
@@ -150,7 +155,7 @@ cmd_list (int argc, char *argv[])
 
         key_count_valid++;
 
-        key_info = hsm_get_key_info(NULL, key);
+        key_info = hsm_get_key_info(ctx, key);
 
         if (key_info) {
             snprintf(key_type, sizeof(key_type), "%s/%lu",
@@ -161,7 +166,7 @@ cmd_list (int argc, char *argv[])
             key_id = "UNKNOWN";
         }
 
-        printf(key_info_format, key->module->name, key_id, key_type);
+        printf(key_info_format, key->modulename, key_id, key_type);
 
         libhsm_key_info_free(key_info);
     }
@@ -177,8 +182,9 @@ cmd_list (int argc, char *argv[])
 
     return 0;
 }
+#pragma GCC diagnostic pop
 
-int
+static int
 cmd_generate (int argc, char *argv[])
 {
     const char *repository = NULL;
@@ -186,7 +192,6 @@ cmd_generate (int argc, char *argv[])
     unsigned int keysize = 1024;
 
     libhsm_key_t *key = NULL;
-    hsm_ctx_t *ctx = NULL;
 
     if (argc < 2 || argc > 3) {
         usage();
@@ -210,28 +215,28 @@ cmd_generate (int argc, char *argv[])
         printf("Generating %d bit RSA key in repository: %s\n",
             keysize, repository);
 
-        key = hsm_generate_rsa_key(NULL, repository, keysize);
+        key = hsm_generate_rsa_key(ctx, repository, keysize);
     } else if (!strcasecmp(algorithm, "dsa")) {
         printf("Generating %d bit DSA key in repository: %s\n",
             keysize, repository);
 
-        key = hsm_generate_dsa_key(NULL, repository, keysize);
+        key = hsm_generate_dsa_key(ctx, repository, keysize);
     } else if (!strcasecmp(algorithm, "gost")) {
         printf("Generating 512 bit GOST key in repository: %s\n",
             repository);
 
-        key = hsm_generate_gost_key(NULL, repository);
+        key = hsm_generate_gost_key(ctx, repository);
     } else if (!strcasecmp(algorithm, "ecdsa")) {
         if (keysize == 256) {
             printf("Generating a P-256 ECDSA key in repository: %s\n",
                 repository);
 
-            key = hsm_generate_ecdsa_key(NULL, repository, "P-256");
+            key = hsm_generate_ecdsa_key(ctx, repository, "P-256");
         } else if (keysize == 384) {
             printf("Generating a P-384 ECDSA key in repository: %s\n",
                 repository);
 
-            key = hsm_generate_ecdsa_key(NULL, repository, "P-384");
+            key = hsm_generate_ecdsa_key(ctx, repository, "P-384");
         } else {
             printf("Invalid ECDSA key size: %d\n", keysize);
             printf("Expecting 256 or 384.\n");
@@ -245,11 +250,11 @@ cmd_generate (int argc, char *argv[])
     if (key) {
         libhsm_key_info_t *key_info;
 
-        key_info = hsm_get_key_info(NULL, key);
+        key_info = hsm_get_key_info(ctx, key);
         printf("Key generation successful: %s\n",
             key_info ? key_info->id : "NULL");
         libhsm_key_info_free(key_info);
-        if (verbose) hsm_print_key(key);
+        if (verbose) hsm_print_key(ctx, key);
         free(key);
     } else {
         printf("Key generation failed.\n");
@@ -259,7 +264,7 @@ cmd_generate (int argc, char *argv[])
     return 0;
 }
 
-int
+static int
 cmd_remove (int argc, char *argv[])
 {
     char *id;
@@ -274,14 +279,14 @@ cmd_remove (int argc, char *argv[])
 
     id = argv[0];
 
-    key = hsm_find_key_by_id(NULL, id);
+    key = hsm_find_key_by_id(ctx, id);
 
     if (!key) {
         printf("Key not found: %s\n", id);
         return -1;
     }
 
-    result = hsm_remove_key(NULL, key);
+    result = hsm_remove_key(ctx, key);
 
     if (!result) {
         printf("Key remove successful.\n");
@@ -294,7 +299,7 @@ cmd_remove (int argc, char *argv[])
     return result;
 }
 
-int
+static int
 cmd_purge (int argc, char *argv[])
 {
     int result;
@@ -307,7 +312,6 @@ cmd_purge (int argc, char *argv[])
 
     size_t key_count = 0;
     libhsm_key_t **keys;
-    hsm_ctx_t *ctx = NULL;
 
     if (argc != 1) {
         usage();
@@ -325,7 +329,7 @@ cmd_purge (int argc, char *argv[])
     }
 
     printf("Purging all keys from repository: %s\n", repository);
-    keys = hsm_list_keys_repository(NULL, &key_count, repository);
+    keys = hsm_list_keys_repository(ctx, &key_count, repository);
 
     printf("%u %s found.\n\n", (unsigned int) key_count,
         (key_count > 1 || key_count == 0 ? "keys" : "key"));
@@ -353,8 +357,8 @@ cmd_purge (int argc, char *argv[])
         libhsm_key_info_t *key_info;
         libhsm_key_t *key = keys[i];
 
-        key_info = hsm_get_key_info(NULL, key);
-        result = hsm_remove_key(NULL, key);
+        key_info = hsm_get_key_info(ctx, key);
+        result = hsm_remove_key(ctx, key);
 
         if (!result) {
             printf("Key remove successful: %s\n",
@@ -374,7 +378,7 @@ cmd_purge (int argc, char *argv[])
     return final_result;
 }
 
-int
+static int
 cmd_dnskey (int argc, char *argv[])
 {
     char *id;
@@ -396,7 +400,7 @@ cmd_dnskey (int argc, char *argv[])
     type = atoi(argv[2]);
     algo = atoi(argv[3]);
 
-    key = hsm_find_key_by_id(NULL, id);
+    key = hsm_find_key_by_id(ctx, id);
 
     if (!key) {
         printf("Key not found: %s\n", id);
@@ -414,7 +418,7 @@ cmd_dnskey (int argc, char *argv[])
         return -1;
     }
 
-    libhsm_key_info_t *key_info = hsm_get_key_info(NULL, key);
+    libhsm_key_info_t *key_info = hsm_get_key_info(ctx, key);
     switch (algo) {
         case LDNS_SIGN_RSAMD5:
         case LDNS_SIGN_RSASHA1:
@@ -496,7 +500,7 @@ cmd_dnskey (int argc, char *argv[])
     sign_params->algorithm = algo;
     sign_params->flags = type;
     sign_params->owner = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, name);
-    dnskey_rr = hsm_get_dnskey(NULL, key, sign_params);
+    dnskey_rr = hsm_get_dnskey(ctx, key, sign_params);
     sign_params->keytag = ldns_calc_keytag(dnskey_rr);
 
     ldns_rr_print(stdout, dnskey_rr);
@@ -510,8 +514,8 @@ cmd_dnskey (int argc, char *argv[])
     return 0;
 }
 
-int
-cmd_test (int argc, char *argv[])
+static int
+cmd_test (int argc, char *argv[], hsm_ctx_t* ctx)
 {
     char *repository = NULL;
 
@@ -521,7 +525,7 @@ cmd_test (int argc, char *argv[])
         argv++;
 
         printf("Testing repository: %s\n\n", repository);
-        int rv = hsm_test(repository);
+        int rv = hsm_test(repository, ctx);
         if (repository) free(repository);
         return rv;
     } else {
@@ -531,18 +535,18 @@ cmd_test (int argc, char *argv[])
     return 0;
 }
 
-int
-cmd_info ()
+static int
+cmd_info (hsm_ctx_t* ctx)
 {
-    hsm_print_tokeninfo(NULL);
+    hsm_print_tokeninfo(ctx);
 
     return 0;
 }
 
-int
-cmd_debug ()
+static int
+cmd_debug (hsm_ctx_t* ctx)
 {
-    hsm_print_ctx(NULL);
+    hsm_print_ctx(ctx);
 
     return 0;
 }
@@ -592,11 +596,16 @@ main (int argc, char *argv[])
         exit(cmd_logout());
     }
 
-    result = hsm_open(config, hsm_prompt_pin);
-    if (result) {
-        hsm_print_error(NULL);
+    result = hsm_open2(parse_conf_repositories(config?config:HSM_DEFAULT_CONFIG), hsm_prompt_pin);
+    if (result != HSM_OK) {
+        char* error =  hsm_get_error(NULL);
+        if (error != NULL) {
+            fprintf(stderr,"%s\n", error);
+            free(error);
+        }
         exit(-1);
     }
+    ctx = hsm_create_context();
 
     openlog("hsmutil", LOG_PID, LOG_USER);
 
@@ -627,20 +636,21 @@ main (int argc, char *argv[])
     } else if (!strcasecmp(argv[0], "test")) {
         argc --;
         argv ++;
-        result = cmd_test(argc, argv);
+        result = cmd_test(argc, argv, ctx);
     } else if (!strcasecmp(argv[0], "info")) {
         argc --;
         argv ++;
-        result = cmd_info();
+        result = cmd_info(ctx);
     } else if (!strcasecmp(argv[0], "debug")) {
         argc --;
         argv ++;
-        result = cmd_debug();
+        result = cmd_debug(ctx);
     } else {
         usage();
         result = -1;
     }
 
+    hsm_destroy_context(ctx);
     hsm_close();
     if (config) free(config);
 

@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-# ulimit -d 8388608
-
 size=$3
 if [ "$size" -eq "$size" ] 2>/dev/null; then
 	true
@@ -26,13 +24,13 @@ timestart=`date '+%s'` &&
 ods-enforcer zone add --zone z$size &&
 syslog_waitfor 20000 "ods-signerd: .*\[STATS\] z$size " &&
 timestop=`date '+%s'` &&
-( memusage=`ps -C ods-signerd -o vsz=` || true ) &&
+memusage=`ps -C ods-signerd -o vsz= || true` &&
 echo -n "STATISTICS	$size	$memusage	" &&
 expr $timestop - $timestart &&
 
 test -f "$INSTALL_ROOT/var/opendnssec/signed/z$size" &&
 
-ods_stop_ods-control 120 &&
+ods_stop_ods-control 1800 &&
 return 0
 
 ods_kill

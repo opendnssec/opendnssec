@@ -4,11 +4,6 @@ if [ -n "$HAVE_MYSQL" ]; then
         ods_setup_conf conf.xml conf-mysql.xml
 fi &&
 
-if [ "$DISTRIBUTION" = "freebsd" ]; then
-	# Won't run on FreeBSD because of non-gnu option to date.
-	return 0
-fi
-
 testvalidity() {
 	local until
 	local starting
@@ -16,15 +11,18 @@ testvalidity() {
 	starting=`awk < $INSTALL_ROOT/var/opendnssec/signed/ods '($4=="RRSIG"&&$5=="DNSKEY") {print $10;}'`
 	until=`echo $until       | sed 's/\(....\)\(..\)\(..\)\(..\)\(..\)\(..\)/\1-\2-\3 \4:\5/'`
 	starting=`echo $starting | sed 's/\(....\)\(..\)\(..\)\(..\)\(..\)\(..\)/\1-\2-\3 \4:\5/'`
-	until=`date -d "$until" +%s`
-	starting=`date -d "$starting" +%s`
-	if [ "`expr $until - $starting`" -lt "`expr $1 - 121`" ]; then
+	until=`date --date "$until" +%s`
+	starting=`date --date "$starting" +%s`
+	# Skip the real check if no GNU date command present that accepts --date option
+	if date 2>/dev/null >/dev/null --date 0 ; then
+	    if [ "`expr $until - $starting`" -lt "`expr $1 - 121`" ]; then
 		echo "`expr $1 - 121` <= `expr $until - $starting` <= `expr $1 + 121`"
 		return 1
-	fi
-	if [ "`expr $until - $starting`" -gt "`expr $1 + 121`" ]; then
+	    fi
+	    if [ "`expr $until - $starting`" -gt "`expr $1 + 121`" ]; then
 		echo "`expr $1 - 121` <= `expr $until - $starting` <= `expr $1 + 121`"
 		return 1
+	    fi
 	fi
 	return 0
 }

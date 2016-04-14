@@ -303,8 +303,6 @@ task_delfunc(ldns_rbnode_t* elem)
 void
 schedule_cleanup(schedule_type* schedule)
 {
-    lock_basic_type schedule_lock;
-
     if (!schedule) {
         return;
     }
@@ -314,7 +312,6 @@ schedule_cleanup(schedule_type* schedule)
         ldns_rbtree_free(schedule->tasks);
         schedule->tasks = NULL;
     }
-    schedule_lock = schedule->schedule_lock;
+    lock_basic_destroy(&schedule->schedule_lock);
     free(schedule);
-    lock_basic_destroy(&schedule_lock);
 }

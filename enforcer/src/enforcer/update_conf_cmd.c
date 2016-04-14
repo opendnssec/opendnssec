@@ -42,17 +42,15 @@ static const char *module_str = "update_conf_cmd";
 static void
 usage(int sockfd)
 {
-	client_printf(sockfd,
-		"update conf            Update the configuration from conf.xml and\n"
-	    "                       reload the Enforcer.\n"
-	);
+	client_printf(sockfd, 
+		"update conf\n");
 }
 
 static void
 help(int sockfd)
 {
     client_printf(sockfd,
-        "Update the configuration from conf.xml and reload the Enforcer.\n"
+        "Update the configuration from conf.xml and reload the Enforcer.\n\n"
     );
 }
 

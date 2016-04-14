@@ -46,11 +46,11 @@ static void
 usage(int sockfd)
 {
     client_printf(sockfd,
-        "zonelist import        Import zones from zonelist.xml into enforcer.\n"
-        "      [--remove-missing-zones]   (aka -r)  Remove any zones from database not in zonelist file.\n"
+        "zonelist import\n"
+        "	[--remove-missing-zones]		aka -r\n"
     /* We require the user to give an absolute path. The daemon
      * and the client might not have the same working directory. */
-        "      [--file <absolute path>]   (aka -f)  File to import, instead of zonelist file configured in conf.xml.\n"
+        "	[--file <absolute path>]		aka -f\n"
     );
 }
 
@@ -58,7 +58,10 @@ static void
 help(int sockfd)
 {
     client_printf(sockfd,
-        "Import zones from zonelist.xml into enforcer\n"
+        "Import zones from zonelist.xml into enforcer.\n"
+	"\nOptions:\n"
+        "remove-missing-zones	Remove any zones from database not in zonelist file\n"
+        "file			File to import, instead of zonelist file configured in conf.xml\n\n"
     );
 }
 

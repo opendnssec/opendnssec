@@ -114,7 +114,13 @@ static void
 usage(int sockfd)
 {
 	client_printf(sockfd,
-		"repository list            List repositories.\n");
+		"repository list\n");
+}
+
+static void
+help(int sockfd)
+{
+	client_printf(sockfd, "List repositories.\n\n");
 }
 
 static int
@@ -140,7 +146,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 }
 
 static struct cmd_func_block funcblock = {
-	"repository list", &usage, NULL, &handles, &run
+	"repository list", &usage, &help, &handles, &run
 };
 
 struct cmd_func_block*

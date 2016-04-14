@@ -1,5 +1,3 @@
-LIBCOMPAT = ${top_builddir}/common/libcompat.a
-
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 CLEANFILES = token.db othertoken.db
 
@@ -9,14 +7,16 @@ AM_CPPFLAGS = \
 		-I$(top_srcdir)/common \
 		-I$(top_builddir)/common \
 		-I$(srcdir)/../src/lib \
-		@LDNS_INCLUDES@
+		@LDNS_INCLUDES@ @XML2_INCLUDES@
 
 AM_CFLAGS =	-std=c99
+
 
 EXTRA_DIST =	*.xml $(srcdir)/softhsm.conf
 
 noinst_PROGRAMS = hsmcheck
  
+hsmcheck_SOURCES = hsmcheck.c confparser.c
 hsmcheck_LDADD = ../src/lib/libhsm.a @LDNS_LIBS@ @XML2_LIBS@ $(LIBCOMPAT)
 hsmcheck_LDFLAGS = -no-install
 

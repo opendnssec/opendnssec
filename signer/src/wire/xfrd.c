@@ -1363,8 +1363,8 @@ xfrd_tcp_open(xfrd_type* xfrd, tcp_set_type* set)
         return 0;
     }
     if (fcntl(fd, F_SETFL, O_NONBLOCK) == -1) {
-        ods_log_error("[%s] zone %s cannot fcntl tcp socket to %s: %s",
-            xfrd_str, zone->name, xfrd->master->address, strerror(errno));
+        ods_log_error("[%s] zone %s cannot fcntl tcp socket: %s",
+            xfrd_str, zone->name, strerror(errno));
         xfrd_set_timer_now(xfrd);
         xfrd_tcp_release(xfrd, set, 0);
         return 0;
@@ -2158,8 +2158,6 @@ xfrd_unlink(xfrd_type* xfrd)
 void
 xfrd_cleanup(xfrd_type* xfrd, int backup)
 {
-    lock_basic_type serial_lock;
-    lock_basic_type rw_lock;
     if (!xfrd) {
         return;
     }
@@ -2170,10 +2168,8 @@ xfrd_cleanup(xfrd_type* xfrd, int backup)
         xfrd_unlink(xfrd);
     }
 
-    serial_lock = xfrd->serial_lock;
-    rw_lock = xfrd->rw_lock;
     tsig_rr_cleanup(xfrd->tsig_rr);
+    lock_basic_destroy(&xfrd->serial_lock);
+    lock_basic_destroy(&xfrd->rw_lock);
     free(xfrd);
-    lock_basic_destroy(&serial_lock);
-    lock_basic_destroy(&rw_lock);
 }

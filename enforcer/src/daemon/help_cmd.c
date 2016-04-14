@@ -43,8 +43,8 @@ static void
 usage(int sockfd)
 {
 	client_printf(sockfd,
-		"help                   Show overview of available commands.\n"
-		"     [command]         Show help for command.\n"
+		"help\n"
+		"	[command]\n"
 	);
 }
 
@@ -52,10 +52,9 @@ static void
 help(int sockfd)
 {
 	client_printf(sockfd,
-		"Without arguments print an overview of available commands" 
-		" for the daemon and a short description of usage. "
-		"With [command] set, print usage information of command"
-		" and extended help if available.\n"
+		"Without arguments print an overview of available commands for the daemon\n"
+		"and a short description of usage. With [command] set, print usage information\n"
+		"of command and extended help if available.\n\n"
 	);
 }
 

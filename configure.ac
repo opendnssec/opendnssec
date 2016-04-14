@@ -18,7 +18,6 @@ AC_PROG_CC
 AC_PROG_INSTALL
 AC_PROG_LIBTOOL
 AC_PROG_MAKE_SET
-AC_PROG_RANLIB
 AC_PROG_CXX
 
 # additional programs
@@ -33,7 +32,6 @@ AC_PROG_CC_STDC
 #AC_PROG_CC_C99
 ACX_PEDANTIC
 AX_COMPILER_FLAGS_CFLAGS
-AX_CFLAGS_STRICT_PROTOTYPES
 AX_C___ATTRIBUTE__
 ACX_ARG_RPATH
 ACX_RUNTIME_PATH_ADD
@@ -217,11 +215,11 @@ AC_CONFIG_FILES([
 	conf/zonelist.xml
 	enforcer/Makefile
 	enforcer/src/Makefile
-	enforcer/src/utils/Makefile
 	enforcer/man/Makefile
 	enforcer/src/db/test/Makefile
 	enforcer/man/ods-enforcer.8
 	enforcer/man/ods-enforcerd.8
+	enforcer/man/ods-ksmutil.1
 	libhsm/Makefile
 	libhsm/src/Makefile
 	libhsm/src/bin/Makefile

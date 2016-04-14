@@ -1,5 +1,3 @@
-LIBCOMPAT = ${top_builddir}/common/libcompat.a
-
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
 LIBCOMPAT = ${top_builddir}/common/libcompat.a
@@ -16,8 +14,8 @@ bin_PROGRAMS = ods-hsmutil ods-hsmspeed
 
 man1_MANS = ods-hsmutil.1 ods-hsmspeed.1
 
-ods_hsmutil_SOURCES = hsmutil.c hsmtest.c hsmtest.h
+ods_hsmutil_SOURCES = hsmutil.c hsmtest.c hsmtest.h confparser.c
 ods_hsmutil_LDADD = ../lib/libhsm.a @LDNS_LIBS@ @XML2_LIBS@ $(LIBCOMPAT)
 
-ods_hsmspeed_SOURCES = hsmspeed.c
+ods_hsmspeed_SOURCES = hsmspeed.c confparser.c
 ods_hsmspeed_LDADD = ../lib/libhsm.a -lpthread @LDNS_LIBS@ @XML2_LIBS@ $(LIBCOMPAT)

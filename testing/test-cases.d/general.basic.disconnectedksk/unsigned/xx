@@ -1,3 +1,7 @@
 $ORIGIN xx.
 $TTL 86400
 xx.	600	IN	SOA	nic.xx. contact.nic.de. 2016010100 7200 7200 3600000 7200
+aap		IN	A	127.0.0.1
+noot		IN	A	127.0.0.2
+mies		IN	A	127.0.0.3
+vuur		IN	A	127.0.0.4

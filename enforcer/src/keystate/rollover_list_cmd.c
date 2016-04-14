@@ -50,7 +50,7 @@ static const char *module_str = "rollover_list_cmd";
 static char*
 map_keytime(const zone_t *zone, const key_data_t *key)
 {
-	time_t t;
+	time_t t = 0;
 	char ct[26];
 	struct tm srtm;
 
@@ -150,9 +150,18 @@ static void
 usage(int sockfd)
 {
 	client_printf(sockfd, 
-		"rollover list          List upcoming rollovers.\n"
-		"     [--zone <zone>]              (aka -z)  zone.\n"
+		"rollover list\n"
+		"	[--zone <zone>]				aka -z\n"
 	);
+}
+
+static void
+help(int sockfd)
+{
+	client_printf(sockfd,
+		"List upcoming rollovers.\n"
+		"\nOptions:\n"
+		"zone	name of the zone\n\n");
 }
 
 static int
@@ -199,7 +208,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 }
 
 static struct cmd_func_block funcblock = {
-	"rollover list", &usage, NULL, &handles, &run
+	"rollover list", &usage, &help, &handles, &run
 };
 
 struct cmd_func_block*

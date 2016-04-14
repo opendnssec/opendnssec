@@ -1,16 +1,13 @@
-LIBCOMPAT = ${top_builddir}/common/libcompat.a
-
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
-
-BUILT_SOURCES = 
 
 EXTRA_DIST = 
 
 CLEANFILES = $(BUILT_SOURCES)
 
 LIBHSM = ${top_builddir}/libhsm/src/lib/libhsm.a
+LIBCOMPAT = ${top_builddir}/common/libcompat.a
 
-SUBDIRS = utils db/test
+SUBDIRS = db/test
 
 AM_CFLAGS = \
 	-I$(top_srcdir)/common \
@@ -23,10 +20,11 @@ AM_CFLAGS = \
 
 enforcerdir =	@libdir@/opendnssec/enforcer
 
-sbin_PROGRAMS =	ods-enforcerd ods-enforcer ods-enforcer-db-setup
+dist_bin_SCRIPTS = ods-ksmutil
+bin_PROGRAMS = ods-kaspcheck
+sbin_PROGRAMS =	ods-enforcerd ods-enforcer ods-enforcer-db-setup ods-migrate
 # man8_MANS =	man/ods-enforcer.8 man/ods-enforcerd.8
-
-nodist_ods_enforcerd_SOURCES = $(BUILT_SOURCES)
+dist_man1_MANS = utils/ods-kaspcheck.1
 
 BACKEND_SOURCES_CUSTOM =
 BACKEND_LDFLAGS_CUSTOM = -lm
@@ -76,6 +74,7 @@ ods_enforcerd_SOURCES = \
 	keystate/keystate_list_cmd.c keystate/keystate_list_cmd.h \
 	keystate/rollover_list_cmd.c keystate/rollover_list_cmd.h \
 	keystate/keystate_export_cmd.c keystate/keystate_export_cmd.h \
+	keystate/keystate_import_cmd.c keystate/keystate_import_cmd.h \
 	keystate/keystate_ds_submit_cmd.c keystate/keystate_ds_submit_cmd.h \
 	keystate/keystate_ds_submit_task.c keystate/keystate_ds_submit_cmd.h \
 	keystate/keystate_ds_seen_cmd.c keystate/keystate_ds_seen_cmd.h \
@@ -134,6 +133,23 @@ ods_enforcerd_LDADD = \
 	@RT_LIBS@ \
 	@ENFORCER_DB_LIBS@
 
+ods_migrate_SOURCES = \
+	ods-migrate.c \
+	daemon/cfg.c daemon/cfg.h \
+	daemon/engine.h \
+	daemon/signal.c daemon/signal.h \
+	parser/confparser.c parser/confparser.h \
+	utils/kc_helper.c utils/kc_helper.h
+
+ods_migrate_LDADD = \
+	$(LIBHSM) \
+	$(LIBCOMPAT) \
+	@LDNS_LIBS@ \
+	@XML2_LIBS@ \
+	@PTHREAD_LIBS@ \
+	@RT_LIBS@ \
+	@ENFORCER_DB_LIBS@
+
 ods_enforcerd_LDFLAGS = \
 	$(BACKEND_LDFLAGS_CUSTOM)
 
@@ -154,6 +170,7 @@ ods_enforcer_db_setup_SOURCES = \
 	$(BACKEND_SCHEMA_CUSTOM)
 
 ods_enforcer_db_setup_LDADD = \
+	$(LIBHSM) \
 	$(LIBCOMPAT) \
 	@LDNS_LIBS@ \
 	@XML2_LIBS@ \
@@ -163,3 +180,8 @@ ods_enforcer_db_setup_LDADD = \
 
 ods_enforcer_db_setup_LDFLAGS = \
 	$(BACKEND_LDFLAGS_CUSTOM)
+
+ods_kaspcheck_SOURCES = utils/kaspcheck.c utils/kaspcheck.h utils/kc_helper.c utils/kc_helper.h
+
+ods_kaspcheck_LDADD = $(LIBHSM) $(LIBCOMPAT)
+ods_kaspcheck_LDADD += @XML2_LIBS@

@@ -43,9 +43,21 @@ static void
 usage(int sockfd)
 {
 	client_printf(sockfd,
-		"running                Returns acknowledgment that the engine is running.\n"
-		"reload                 Reload the engine.\n"
-		"stop                   Stop the engine and terminate the process.\n"
+		"start \n"
+		"running\n"
+		"reload \n"
+		"stop \n"
+	);
+}
+
+static void
+help(int sockfd)
+{
+	client_printf(sockfd,
+		"start		Starts the engine and the process. \n"
+		"running	Returns acknowledgment that the engine is running.\n"
+		"reload		Reload the engine.\n"
+		"stop		Stop the engine and terminate the process.\n\n"
 	);
 }
 
@@ -98,7 +110,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 }
 
 static struct cmd_func_block funcblock = {
-	"ctrl", &usage, NULL, &handles, &run
+	"ctrl", &usage, &help, &handles, &run
 };
 
 struct cmd_func_block*

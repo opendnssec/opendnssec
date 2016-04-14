@@ -205,7 +205,7 @@ dnshandler_start(dnshandler_type* dnshandler)
     }
     /* shutdown */
     ods_log_debug("[%s] shutdown", dnsh_str);
-    for (i=0; i < dnshandler->interfaces->count; i++) {
+ /*   for (i=0; i < dnshandler->interfaces->count; i++) {
         if (dnshandler->socklist->udp[i].s != -1) {
             close(dnshandler->socklist->udp[i].s);
             freeaddrinfo((void*)dnshandler->socklist->udp[i].addr);
@@ -214,7 +214,7 @@ dnshandler_start(dnshandler_type* dnshandler)
             close(dnshandler->socklist->tcp[i].s);
             freeaddrinfo((void*)dnshandler->socklist->tcp[i].addr);
         }
-    }
+    }*/
 }
 
 
@@ -284,11 +284,24 @@ dnshandler_handle_xfr(netio_type* ATTR_UNUSED(netio),
 void
 dnshandler_cleanup(dnshandler_type* dnshandler)
 {
+    size_t i = 0;
     if (!dnshandler) {
         return;
     }
     netio_cleanup(dnshandler->netio);
     query_cleanup(dnshandler->query);
+
+
+    for (i = 0; i < dnshandler->interfaces->count; i++) {
+        if (dnshandler->socklist->udp[i].s != -1) {
+            close(dnshandler->socklist->udp[i].s);
+            freeaddrinfo((void*)dnshandler->socklist->udp[i].addr);
+        }
+        if (dnshandler->socklist->tcp[i].s != -1) {
+            close(dnshandler->socklist->tcp[i].s);
+            freeaddrinfo((void*)dnshandler->socklist->tcp[i].addr);
+        }  
+    }
     free(dnshandler->socklist);
     free(dnshandler);
 }

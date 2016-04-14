@@ -52,6 +52,7 @@
 #include <stdlib.h>
 
 #include "policy/policy_resalt_task.h"
+#include "signconf/signconf_task.h"
 
 static const char *module_str = "policy_resalt_task";
 static const time_t TIME_INF = ((time_t)-1);
@@ -152,6 +153,8 @@ perform_policy_resalt(int sockfd, engine_type* engine,
 			}
 			resalt_time = now + policy_denial_resalt(policy);
 			ods_log_debug("[%s] policy %s resalted successfully", module_str, policy_name(policy));
+                        if (perform_signconf(sockfd, dbconn, 1))
+                            ods_log_error("[%s] signconf not updated: new salt cannot be written in signconf", module_str);
 		}
 		if ((resalt_time < schedule_time || schedule_time == TIME_INF) && policy_denial_resalt(policy) > 0)
 			schedule_time = resalt_time;
