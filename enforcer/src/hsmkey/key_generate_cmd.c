@@ -43,10 +43,10 @@ static void
 usage(int sockfd)
 {
     client_printf(sockfd,
-        "key generate           Pre-generate keys.\n"
-        "      --duration <duration>      (aka -d)  duration to generate keys for.\n"
-        "      --policy <policy>          (aka -p)  policy to generate keys for.\n"
-        "      --all                      (aka -a)  generate keys for all policies.\n"
+        "key generate\n"
+        "	--duration <duration>			aka -d\n"
+        "	--policy <policy>			aka -p \n"
+        "	--all					aka -a\n"
     );
 }
 
@@ -56,7 +56,9 @@ help(int sockfd)
     client_printf(sockfd,
         "Pre-generate keys for all or a given policy, the duration to pre-generate for\n"
         "can be specified or otherwise its taken from the conf.xml.\n"
-    );
+	"\nOptions:\n"
+	"duration	duration to generate keys for\n"
+	"policy|all	generate keys for a specified policy or for all of them \n\n");
 }
 
 static int

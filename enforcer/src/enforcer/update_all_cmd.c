@@ -49,8 +49,14 @@ static void
 usage(int sockfd)
 {
 	client_printf(sockfd,
-		"update all             Perform policy import, update zonelist, and update repositorylist.\n"
+		"update all\n"
 	);
+}
+
+static void
+help(int sockfd)
+{
+	client_printf(sockfd, "Perform policy import, update zonelist, and update repositorylist.\n\n");
 }
 
 static int
@@ -139,7 +145,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 }
 
 static struct cmd_func_block funcblock = {
-	"update all", &usage, NULL, &handles, &run
+	"update all", &usage, &help, &handles, &run
 };
 
 struct cmd_func_block*

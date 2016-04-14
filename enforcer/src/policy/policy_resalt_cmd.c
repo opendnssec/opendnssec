@@ -46,9 +46,14 @@ static void
 usage(int sockfd)
 {
 	client_printf(sockfd,
-		"policy resalt          Generate new NSEC3 salts for policies that have salts\n"
-		"                       older than the resalt duration.\n"
+		"policy resalt\n"
 	);
+}
+
+static void
+help(int sockfd)
+{
+	client_printf(sockfd, "Generate new NSEC3 salts for policies that have salts older than the resalt duration.\n\n");
 }
 
 static int
@@ -69,7 +74,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 }
 
 static struct cmd_func_block funcblock = {
-	"policy resalt", &usage, NULL, &handles, &run
+	"policy resalt", &usage, &help, &handles, &run
 };
 
 struct cmd_func_block*

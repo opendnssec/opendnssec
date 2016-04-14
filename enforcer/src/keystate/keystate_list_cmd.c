@@ -224,14 +224,28 @@ static void
 usage(int sockfd)
 {
 	client_printf(sockfd,
-		"key list               List the keys in the enforcer database.\n"
-		"      [--verbose]                (aka -v)  also show additional key parameters.\n"
-		"      [--debug]                  (aka -d)  print information about the keystate.\n"
-		"      [--parsable]               (aka -p)  output machine parsable list\n"
-		"      [--zone]                   (aka -z)  \n"
-		"      [--keystate]               (aka -k)  \n"
-		"      [--all]                    (aka -a)  \n"
+		"key list\n"
+		"	[--verbose]				aka -v\n"
+		"	[--debug]				aka -d\n"
+		"	[--parsable]				aka -p\n"
+		"	[--zone]				aka -z  \n"
+		"	[--keystate]				aka -k  \n"
+		"	[--all]					aka -a  \n"
 	);
+}
+
+static void
+help(int sockfd)
+{
+	client_printf(sockfd, 
+		"List the keys in the enforcer database.\n"
+		"\nOptions:\n"
+		"verbose		also show additional key parameters\n"
+		"debug		print information about the keystate\n"
+		"parsable	output machine parsable list\n"
+		"zone		name of the zone\n"
+		"keystate	state of the key\n"
+		"all		print all keys\n\n");
 }
 
 static int
@@ -482,7 +496,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 }
 
 static struct cmd_func_block funcblock = {
-	"key list", &usage, NULL, &handles, &run
+	"key list", &usage, &help, &handles, &run
 };
 
 struct cmd_func_block*

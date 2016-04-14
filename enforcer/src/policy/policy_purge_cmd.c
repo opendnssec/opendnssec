@@ -14,8 +14,7 @@ static void
 usage(int sockfd)
 {
 	client_printf(sockfd,
-		"policy purge           Purge policies from database which"
-			" have no associated zones.\n"
+		"policy purge\n"
 	);
 }
 
@@ -23,8 +22,8 @@ static void
 help(int sockfd)
 {
 	client_printf(sockfd,
-		"This command will remove any policy from the database that "
-		"have no zones using it. Use with caution.\n"
+		"This command will remove any policies from the database which have no\n"
+		"associated zones. Use with caution.\n\n"
 	);
 }
 

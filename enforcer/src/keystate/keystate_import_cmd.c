@@ -336,16 +336,32 @@ static void
 usage(int sockfd)
 {
     client_printf(sockfd,
-		"key import             Import DNSKEY(s) for a given zone to the database.\n"
-		"      --cka_id <CKA_ID>		(aka -k)  cka_id\n"
-		"      --repository <repository>	(aka -r) repository\n"
-		"      --zone <zone>			(aka -z)  zone \n"
-		"      --bits <size>			(aka -b) bits\n"
-		"      --algorithm <algorithm>		(aka -g) algorithm \n"
-		"      --keystate <state>		(aka -e) keystate\n"
-		"      --keytype <type>			(aka -t) keytype\n"
-		"      --inception_time <time>		(aka -w) inception time\n"
+		"key import\n"
+		"	--cka_id <CKA_ID>			aka -k\n"
+		"	--repository <repository>		aka -r\n"
+		"	--zone <zone>				aka -z\n"
+		"	--bits <size>				aka -b\n"
+		"	--algorithm <algorithm>			aka -g\n"
+		"	--keystate <state>			aka -e\n"
+		"	--keytype <type>			aka -t\n"
+		"	--inception_time <time>			aka -w\n"
 	);
+}
+
+static void
+help(int sockfd)
+{
+	client_printf(sockfd,
+		"Import DNSKEY(s) for a given zone to the database.\n"
+		"\nOptions:\n"
+		"cka_id		specify the locator of the key\n"
+		"repository	name of the repository\n"
+		"zone		name of the zone\n"
+		"bits		number of bits\n"
+		"algorithm	algorithm number \n"
+		"keystate	state of the key\n"
+		"keytype		type of the key, KSK, ZSK or CSK\n"
+		"inception_time	time of inception\n\n");
 }
 
 static int
@@ -498,7 +514,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 }
 
 static struct cmd_func_block funcblock = {
-    "key import", &usage, NULL, &handles, &run
+    "key import", &usage, &help, &handles, &run
 };
 
 struct cmd_func_block*

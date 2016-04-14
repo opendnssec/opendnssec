@@ -112,8 +112,14 @@ static void
 usage(int sockfd)
 {
 	client_printf(sockfd,
-		"update repositorylist  Import respositories from conf.xml "
-		"into the enforcer.\n");
+		"update repositorylist\n");
+}
+
+static void
+help(int sockfd)
+{
+	client_printf(sockfd,
+		"Import respositories from conf.xml into the enforcer.\n\n");
 }
 
 static int
@@ -139,7 +145,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 }
 
 static struct cmd_func_block funcblock = {
-	"update repositorylist", &usage, NULL, &handles, &run
+	"update repositorylist", &usage, &help, &handles, &run
 };
 
 struct cmd_func_block*

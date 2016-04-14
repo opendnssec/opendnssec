@@ -45,7 +45,7 @@ static void
 usage(int sockfd)
 {
 	client_printf(sockfd,
-		"signconf               Force write of signer configuration files for all zones.\n"
+		"signconf\n"
 	);
 }
 
@@ -53,7 +53,7 @@ static void
 help(int sockfd)
 {
     client_printf(sockfd,
-        "Force write of signer configuration files for all zones.\n"
+        "Force write of signer configuration files for all zones.\n\n"
     );
 }
 

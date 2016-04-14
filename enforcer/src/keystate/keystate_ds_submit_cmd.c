@@ -45,13 +45,23 @@ static void
 usage(int sockfd)
 {
 	client_printf(sockfd,
-		"key ds-submit          Issue a ds-submit to the enforcer for a KSK.\n"
-		"                       (This command with no parameters lists eligible keys.)\n"
-		"      --zone <zone>              (aka -z)  zone.\n"
-		"      --keytag <keytag> | --cka_id <CKA_ID>      (aka -x | -k)\n"
+		"key ds-submit\n"
+		"	--zone <zone>				aka -z\n"
+		"	--keytag <keytag> | --cka_id <CKA_ID>	aka -x | -k\n"
 /*		"      [--force]                  (aka -f)  force even if there is no configured\n"
 		"                                           DelegationSignerSubmitCommand.\n" */
 	);
+}
+
+static void
+help(int sockfd)
+{
+	client_printf(sockfd,
+		"Issue a ds-submit to the enforcer for a KSK.\n"
+		"(This command with no parameters lists eligible keys.)\n"
+		"\nOptions:\n"
+		"zone		name of the zone\n"
+		"keytag|cka_id	specify the key tag or the locator of the key\n\n");
 }
 
 static int
@@ -77,7 +87,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 }
 
 static struct cmd_func_block funcblock = {
-	"key ds-submit", &usage, NULL, &handles, &run
+	"key ds-submit", &usage, &help, &handles, &run
 };
 
 struct cmd_func_block*

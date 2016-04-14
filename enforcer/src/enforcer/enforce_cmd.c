@@ -49,7 +49,15 @@ static void
 usage(int sockfd)
 {
 	client_printf(sockfd,
-		"enforce                Force the enforcer to run once for every zone.\n"
+		"enforce\n"
+	);
+}
+
+static void
+help(int sockfd)
+{
+	client_printf(sockfd,
+		"Force the enforcer to run once for every zone.\n\n"
 	);
 }
 
@@ -94,7 +102,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 }
 
 static struct cmd_func_block funcblock = {
-	"enforce", &usage, NULL, &handles, &run
+	"enforce", &usage, &help, &handles, &run
 };
 
 struct cmd_func_block*
