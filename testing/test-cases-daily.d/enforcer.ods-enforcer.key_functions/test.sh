@@ -73,16 +73,16 @@ log_this ods-hsmutil-generate ods-hsmutil generate SoftHSM rsa 2048 &&
 log_grep ods-hsmutil-generate stdout "Key generation successful:.*" &&
 CKA_ID=`log_grep -o ods-hsmutil-generate stdout "Key.*" | sed 's/^.*\([0-9a-fA-F]\{32\}\).*$/\1/'` &&
 
-log_this ods-enforcer-key-import ods-enforcer key import --cka_id $CKA_ID --repository SoftHSM --bits 2048 --algorithm 5 --keystate ready --keytype ZSK  --zone ods --time "2016-08-29-14:17:28" &&
+log_this ods-enforcer-key-import ods-enforcer key import --cka_id $CKA_ID --repository SoftHSM --bits 2048 --algorithm 5 --keystate ready --keytype ZSK  --zone ods --inception_time "2016-08-29-14:17:28" &&
 log_grep ods-enforcer-key-import stdout "Key imported into zone" &&
 log_this ods-enforcer-check-1   ods-enforcer key list --all --verbose &&
 log_grep ods-enforcer-check-1   stdout "$CKA_ID" &&
 
 # You could also test a failure cases where you try to import a key that doesn't exist and where the parameters used in the command are wrong (e.g. )
-! log_this ods-enforcer-key-import ods-enforcer key import --cka_id 123456 --repository SoftHSM --bits 2048 --algorithm 5 --keystate ready --keytype ZSK  --zone ods --time "2016-08-29-14:17:28" &&
+! log_this ods-enforcer-key-import ods-enforcer key import --cka_id 123456 --repository SoftHSM --bits 2048 --algorithm 5 --keystate ready --keytype ZSK  --zone ods --inception_time "2016-08-29-14:17:28" &&
 log_grep ods-enforcer-key-import stderr "Unable to find the key with this locator: 123456" &&
 
-! log_this ods-enforcer-key-import ods-enforcer key import --cka_id 123 --repository SoftHSM_1 --bits 2048 --algorithm 5 --keystate ready --keytype ZSK  --zone ods --time "2016-08-29-14:17:28" &&
+! log_this ods-enforcer-key-import ods-enforcer key import --cka_id 123 --repository SoftHSM_1 --bits 2048 --algorithm 5 --keystate ready --keytype ZSK  --zone ods --inception_time "2016-08-29-14:17:28" &&
 log_grep ods-enforcer-key-import   stderr "Unable to check for the repository" &&
 log_grep ods-enforcer-key-import stderr "Can't find repository: SoftHSM_1" &&
 
