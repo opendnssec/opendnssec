@@ -74,7 +74,7 @@ perform_update_repositorylist(int sockfd, engine_type* engine)
 {
 	const char* cfgfile = ODS_SE_CFGFILE;
 	int status = 1;
-	struct engineconfig_repository *new_reps;
+	hsm_repository_t* new_reps;
 
 	if (validate_configfile(cfgfile)) {
 		ods_log_error_and_printf(sockfd, module_str,
