@@ -169,7 +169,8 @@ cmdhandler_get_usage(int sockfd)
     fbgetfunctype* fb = cmd_funcs_avail();
     int cmd_iter = 0;
     while (fb[cmd_iter]) {
-        (*fb[cmd_iter])()->usage(sockfd);
+        if (!fb[cmd_iter]()->handles("time leap", 10))
+		(*fb[cmd_iter])()->usage(sockfd);
         cmd_iter++;
     }
 }
