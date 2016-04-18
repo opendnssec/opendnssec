@@ -37,8 +37,6 @@
 extern char *optarg;
 char *progname = NULL;
 
-extern hsm_repository_t* parse_conf_repositories(const char* cfgfile);
-
 
 void
 usage ()
