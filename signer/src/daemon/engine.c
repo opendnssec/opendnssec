@@ -44,9 +44,9 @@
 #include "shared/util.h"
 #include "signer/zonelist.h"
 #include "wire/tsig.h"
+#include "libhsm.h"
 
 #include <errno.h>
-#include <libhsm.h>
 #include <libxml/parser.h>
 #include <signal.h>
 #include <stdio.h>
@@ -133,6 +133,7 @@ cmdhandler_thread_start(void* arg)
     cmdhandler_start(cmd);
     return NULL;
 }
+
 static void
 engine_start_cmdhandler(engine_type* engine)
 {
@@ -141,8 +142,8 @@ engine_start_cmdhandler(engine_type* engine)
     engine->cmdhandler->engine = engine;
     ods_thread_create(&engine->cmdhandler->thread_id,
         cmdhandler_thread_start, engine->cmdhandler);
-    return;
 }
+
 /**
  * Self pipe trick (see Unix Network Programming).
  *
@@ -227,7 +228,6 @@ engine_start_dnshandler(engine_type* engine)
     engine->dnshandler->engine = engine;
     ods_thread_create(&engine->dnshandler->thread_id,
         dnshandler_thread_start, engine->dnshandler);
-    return;
 }
 static void
 engine_stop_dnshandler(engine_type* engine)
@@ -241,7 +241,6 @@ engine_stop_dnshandler(engine_type* engine)
     ods_log_debug("[%s] join dnshandler", engine_str);
     ods_thread_join(engine->dnshandler->thread_id);
     engine->dnshandler->engine = NULL;
-    return;
 }
 
 
@@ -271,7 +270,6 @@ engine_start_xfrhandler(engine_type* engine)
      * it has marked itself started
      */
     engine->xfrhandler->started = 1;
-    return;
 }
 static void
 engine_stop_xfrhandler(engine_type* engine)
@@ -288,7 +286,6 @@ engine_stop_xfrhandler(engine_type* engine)
     	engine->xfrhandler->started = 0;
     }
     engine->xfrhandler->engine = NULL;
-    return;
 }
 
 
@@ -345,7 +342,6 @@ engine_create_workers(engine_type* engine)
         engine->workers[i] = worker_create(engine->allocator, i,
             WORKER_WORKER);
     }
-    return;
 }
 static void
 engine_create_drudgers(engine_type* engine)
@@ -360,7 +356,6 @@ engine_create_drudgers(engine_type* engine)
         engine->drudgers[i] = worker_create(engine->allocator, i,
             WORKER_DRUDGER);
     }
-    return;
 }
 static void*
 worker_thread_start(void* arg)
@@ -383,7 +378,6 @@ engine_start_workers(engine_type* engine)
         ods_thread_create(&engine->workers[i]->thread_id, worker_thread_start,
             engine->workers[i]);
     }
-    return;
 }
 void
 engine_start_drudgers(engine_type* engine)
@@ -398,50 +392,47 @@ engine_start_drudgers(engine_type* engine)
         ods_thread_create(&engine->drudgers[i]->thread_id, worker_thread_start,
             engine->drudgers[i]);
     }
-    return;
 }
 static void
 engine_stop_workers(engine_type* engine)
 {
-    size_t i = 0;
+    int i = 0;
     ods_log_assert(engine);
     ods_log_assert(engine->config);
     ods_log_debug("[%s] stop workers", engine_str);
     /* tell them to exit and wake up sleepyheads */
-    for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
+    for (i=0; i < engine->config->num_worker_threads; i++) {
         engine->workers[i]->need_to_exit = 1;
         worker_wakeup(engine->workers[i]);
     }
     ods_log_debug("[%s] notify workers", engine_str);
     worker_notify_all(&engine->signq->q_lock, &engine->signq->q_nonfull);
     /* head count */
-    for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
-        ods_log_debug("[%s] join worker %i", engine_str, i+1);
+    for (i=0; i < engine->config->num_worker_threads; i++) {
+        ods_log_debug("[%s] join worker %d", engine_str, i+1);
         ods_thread_join(engine->workers[i]->thread_id);
         engine->workers[i]->engine = NULL;
     }
-    return;
 }
 void
 engine_stop_drudgers(engine_type* engine)
 {
-    size_t i = 0;
+    int i = 0;
     ods_log_assert(engine);
     ods_log_assert(engine->config);
     ods_log_debug("[%s] stop drudgers", engine_str);
     /* tell them to exit and wake up sleepyheads */
-    for (i=0; i < (size_t) engine->config->num_signer_threads; i++) {
+    for (i=0; i < engine->config->num_signer_threads; i++) {
         engine->drudgers[i]->need_to_exit = 1;
     }
     ods_log_debug("[%s] notify drudgers", engine_str);
     worker_notify_all(&engine->signq->q_lock, &engine->signq->q_threshold);
     /* head count */
-    for (i=0; i < (size_t) engine->config->num_signer_threads; i++) {
-        ods_log_debug("[%s] join drudger %i", engine_str, i+1);
+    for (i=0; i < engine->config->num_signer_threads; i++) {
+        ods_log_debug("[%s] join drudger %d", engine_str, i+1);
         ods_thread_join(engine->drudgers[i]->thread_id);
         engine->drudgers[i]->engine = NULL;
     }
-    return;
 }
 
 
@@ -460,7 +451,6 @@ engine_wakeup_workers(engine_type* engine)
     for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
         worker_wakeup(engine->workers[i]);
     }
-    return;
 }
 
 
@@ -473,7 +463,6 @@ engine_setup(engine_type* engine)
 {
     ods_status status = ODS_STATUS_OK;
     struct sigaction action;
-    int result = 0;
     int sockets[2] = {0,0};
 
     ods_log_debug("[%s] setup signer engine", engine_str);
@@ -567,11 +556,6 @@ engine_setup(engine_type* engine)
     sigaction(SIGCHLD, &action, NULL);
     action.sa_handler = SIG_IGN;
     sigaction(SIGPIPE, &action, NULL);
-    /* set up hsm */ /* LEAK */
-    result = lhsm_open(engine->config->cfg_filename);
-    if (result != HSM_OK) {
-        return ODS_STATUS_HSM_ERR;
-    }
     /* create workers/drudgers */
     engine_create_workers(engine);
     engine_create_drudgers(engine);
@@ -643,6 +627,7 @@ engine_run(engine_type* engine, int single_run)
                 ods_log_assert(1);
                 break;
             case SIGNAL_RELOAD:
+                ods_log_error("signer instructed to reload due to explicit signal");
                 engine->need_to_reload = 1;
                 break;
             case SIGNAL_SHUTDOWN:
@@ -650,7 +635,7 @@ engine_run(engine_type* engine, int single_run)
                 break;
             default:
                 ods_log_warning("[%s] invalid signal %d captured, "
-                    "keep running", engine_str, signal);
+                    "keep running", engine_str, (int)engine->signal);
                 engine->signal = SIGNAL_RUN;
                 break;
         }
@@ -669,8 +654,6 @@ engine_run(engine_type* engine, int single_run)
     ods_log_debug("[%s] signer halted", engine_str);
     engine_stop_drudgers(engine);
     engine_stop_workers(engine);
-    (void)lhsm_reopen(engine->config->cfg_filename);
-    return;
 }
 
 
@@ -718,7 +701,6 @@ set_notify_ns(zone_type* zone, const char* cmd)
         ods_log_error("[%s] unable to set notify ns: replace zone failed",
             engine_str);
     }
-    return;
 }
 
 
@@ -898,7 +880,6 @@ engine_update_zones(engine_type* engine, ods_status zl_changed)
     if (wake_up) {
         engine_wakeup_workers(engine);
     }
-    return;
 }
 
 
@@ -987,7 +968,6 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
     int use_syslog = 0;
     ods_status zl_changed = ODS_STATUS_UNCHANGED;
     ods_status status = ODS_STATUS_OK;
-    int close_hsm = 0;
 
     ods_log_assert(cfgfile);
     ods_log_init(NULL, use_syslog, cmdline_verbosity);
@@ -1029,14 +1009,11 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] setup failed: %s", engine_str,
             ods_status2str(status));
-        engine->need_to_exit = 1;
         if (status != ODS_STATUS_WRITE_PIDFILE_ERR) {
             /* command handler had not yet been started */
             engine->cmdhandler_done = 1;
         }
-    } else {
-        /* setup ok, mark hsm open */
-        close_hsm = 1;
+        goto earlyexit;
     }
 
     /* run */
@@ -1052,33 +1029,42 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
         /* start/reload */
         if (engine->need_to_reload) {
             ods_log_info("[%s] signer reloading", engine_str);
+            fifoq_wipe(engine->signq);
             engine->need_to_reload = 0;
         } else {
             ods_log_info("[%s] signer started (version %s), pid %u",
                 engine_str, PACKAGE_VERSION, engine->pid);
-            if (hsm_open2(engine->config->repositories, hsm_check_pin) != HSM_OK) {
+            if (hsm_open(engine->config->cfg_filename, hsm_check_pin) != HSM_OK) {
+                char* error =  hsm_get_error(NULL);
+                if (error != NULL) {
+                    ods_log_error("[%s] %s", "hsm", error);
+                    free(error);
+                }
                 ods_log_error("[%s] opening hsm failed (for engine recover)", engine_str);
                 break;
             }
             zl_changed = engine_recover(engine);
+            hsm_close();
         }
         if (zl_changed == ODS_STATUS_OK ||
             zl_changed == ODS_STATUS_UNCHANGED) {
             engine_update_zones(engine, zl_changed);
         }
-        if (hsm_open2(engine->config->repositories, hsm_check_pin) != HSM_OK) {
+        if (hsm_open(engine->config->cfg_filename, hsm_check_pin) != HSM_OK) {
+            char* error =  hsm_get_error(NULL);
+            if (error != NULL) {
+                ods_log_error("[%s] %s", "hsm", error);
+                free(error);
+            }
             ods_log_error("[%s] opening hsm failed (for engine run)", engine_str);
             break;
         }
         engine_run(engine, single_run);
+        hsm_close();
     }
 
     /* shutdown */
     ods_log_info("[%s] signer shutdown", engine_str);
-    if (close_hsm) {
-        ods_log_verbose("[%s] close hsm", engine_str);
-        hsm_close();
-    }
     engine_stop_cmdhandler(engine);
     engine_stop_xfrhandler(engine);
     engine_stop_dnshandler(engine);
@@ -1099,7 +1085,6 @@ earlyexit:
     xmlCleanupParser();
     xmlCleanupGlobals();
     xmlCleanupThreads();
-    return;
 }
 
 
@@ -1143,5 +1128,4 @@ engine_cleanup(engine_type* engine)
     lock_basic_destroy(&signal_lock);
     lock_basic_off(&signal_cond);
     allocator_cleanup(allocator);
-    return;
 }
