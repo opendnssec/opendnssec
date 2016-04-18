@@ -39,6 +39,8 @@ case "$DISTRIBUTION" in
 	openbsd | \
 	sunos | \
 	opensuse | \
+	slackware | \
+    UNKNOWN | \
 	suse )
 		(
 			sh autogen.sh &&

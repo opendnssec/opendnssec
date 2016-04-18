@@ -17,6 +17,8 @@ exit ()
 			freebsd | \
 			netbsd | \
 			openbsd | \
+			slackware | \
+			UNKNOWN | \
 			sunos )
 				kill -TERM "$_SYSLOG_TRACE_PID" 2>/dev/null &&
 				{
@@ -410,6 +412,8 @@ find_tail ()
 		sl | \
 		opensuse | \
 		suse | \
+			slackware | \
+			UNKNOWN | \
 		sunos )
 			tail_follow="$tail --follow=name -n 0"
 			;;
@@ -1730,6 +1734,10 @@ syslog_trace ()
 		openbsd )
 			syslog_file="/var/log/messages"
 			;;
+			slackware | \
+			UNKNOWN)
+			syslog_fail="/var/log/opendnssec"
+			;;
 		sunos )
 			syslog_file="/var/adm/messages"
 			;;
@@ -2311,3 +2319,4 @@ grep_count_this2 ()
 	echo "$count_found"
 	return 0
 }
+
