@@ -734,18 +734,18 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 	for (curkey = firstkey; curkey; curkey = curkey->next) {
 		if ((curkey->type & KSK) && ds_ttl + ttl >= curkey->life) {
 			dual_log("ERROR: KSK/Lifetime (%d seconds) for policy '%s' "
-				"is shorter than the DNSKEY record TTL (%d seconds) plus "
-				"the DS record TTL (%d seconds). This would mean replacing "
-				"keys before they'd be able to reach the ready state.",
+				"must be greater than the DNSKEY record TTL (%d seconds) plus "
+				"the DS record TTL (%d seconds). This time is needed to pass for the "
+				"KSK to be able to reach the ready state.",
 				curkey->life, policy_name, ttl, ds_ttl);
 			status++;
 		}
 
 		if ((curkey->type & ZSK) && maxzone_ttl + ttl >= curkey->life) {
 			dual_log("ERROR: ZSK/Lifetime (%d seconds) for policy '%s' "
-				"is shorter than the DNSKEY record TTL (%d seconds) plus "
-				"the MaxZoneTTL (%d seconds). This would mean replacing "
-				"keys before they'd be able to reach the ready state.",
+				"must be greater than the DNSKEY record TTL (%d seconds) plus "
+				"the MaxZoneTTL (%d seconds). This time is needed to pass for the "
+				"ZSK to be able to reach the ready state.",
 				curkey->life, policy_name, ttl, maxzone_ttl);
 			status++;
 		}
