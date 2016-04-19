@@ -412,7 +412,7 @@ parse_sc_max_zone_ttl(const char* cfgfile)
     duration_type* duration = NULL;
     const char* str = parse_conf_string(cfgfile,
         "//SignerConfiguration/Zone/Signatures/MaxZoneTTL",
-        1);
+        0);
     if (!str) {
         return NULL;
     }
