@@ -26,7 +26,6 @@
  */
 
 #include "config.h"
-#include "hsmtest.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -36,11 +35,12 @@
 
 #include <libhsm.h>
 #include <libhsmdns.h>
+#include "hsmtest.h"
 
 extern char *optarg;
 char *progname = NULL;
 unsigned int verbose = 0;
-hsm_ctx_t *ctx = NULL;
+hsm_ctx_t *ctx;
 
 
 void
@@ -399,7 +399,7 @@ cmd_test (int argc, char *argv[])
         argv++;
 
         printf("Testing repository: %s\n\n", repository);
-        return hsm_test(repository);
+        return hsm_test(ctx, repository);
     } else {
         usage();
     }

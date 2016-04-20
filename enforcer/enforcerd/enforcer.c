@@ -243,7 +243,7 @@ server_main(DAEMONCONFIG *config)
 
                 /* Purge dead keys if we are asked to in this policy */
                 if (policy->keys->purge != -1) {
-                    status = do_purge(policy->keys->purge, policy->id);
+                    status = do_purge(ctx, policy->keys->purge, policy->id);
                 }
 
                 /* get next policy */
@@ -260,7 +260,7 @@ server_main(DAEMONCONFIG *config)
 		/* If config->policy is NULL then we were not passed a policy on the cmd line and all the policies 
 		   should be processed. However if we have a specific policy, then the 'policy' parameter will be 
 		   already set to that when we call do_communiciation and only that policy will be processed. */
-        do_communication(config, policy, (config->policy == NULL));
+        do_communication(ctx, config, policy, (config->policy == NULL));
 		KsmParameterCollectionCache(0);
         
         DbFreeResult(handle);
@@ -579,7 +579,7 @@ int do_keygen(DAEMONCONFIG *config, KSM_POLICY* policy, hsm_ctx_t *ctx)
     return status;
 }
 
-int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy, bool all_policies)
+int do_communication(hsm_ctx_t* ctx, DAEMONCONFIG *config, KSM_POLICY* policy, bool all_policies)
 {
     int status = 0;
     int status2 = 0;
@@ -778,7 +778,7 @@ int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy, bool all_policies
                 }
 
                 /* turn this zone and policy into a file */
-                status2 = commGenSignConf(zone_name, zone_id, current_filename, policy, &signer_flag, config->interval, config->manualKeyGeneration, config->DSSubmitCmd, config->DSSubCKA_ID);
+                status2 = commGenSignConf(ctx, zone_name, zone_id, current_filename, policy, &signer_flag, config->interval, config->manualKeyGeneration, config->DSSubmitCmd, config->DSSubCKA_ID);
                 if (status2 == -2) {
                     log_msg(config, LOG_ERR, "Signconf not written for %s", zone_name);
                     /* Don't return? try to parse the rest of the zones? */
@@ -859,7 +859,7 @@ int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy, bool all_policies
  *  returns 0 on success and -1 if something went wrong
  *                           -2 if the RequestKeys call failed
  */
-int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_POLICY *policy, int* signer_flag, int run_interval, int man_key_gen, const char* DSSubmitCmd, int DSSubCKA_ID)
+int commGenSignConf(hsm_ctx_t* ctx, char* zone_name, int zone_id, char* current_filename, KSM_POLICY *policy, int* signer_flag, int run_interval, int man_key_gen, const char* DSSubmitCmd, int DSSubCKA_ID)
 {
     int status = 0;
     int status2 = 0;
@@ -1169,7 +1169,7 @@ int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_PO
     /* If the DS set changed then log/do something about it */
     if (NewDS == 1) {
         log_msg(NULL, LOG_INFO, "DSChanged");
-        status = NewDSSet(zone_id, zone_name, DSSubmitCmd, DSSubCKA_ID);
+        status = NewDSSet(ctx, zone_id, zone_name, DSSubmitCmd, DSSubCKA_ID);
     }
 
     StrFree(old_filename);
@@ -1474,7 +1474,7 @@ int read_zonelist_filename(const char* filename, char** zone_list_filename)
  *                          other on fail
  */
 
-int do_purge(int interval, int policy_id)
+int do_purge(hsm_ctx_t* ctx, int interval, int policy_id)
 {
     char*       sql = NULL;     /* SQL query */
     char*       sql1 = NULL;     /* SQL query */
@@ -1596,7 +1596,7 @@ int do_purge(int interval, int policy_id)
                 }
 
                 /* Delete from the HSM */
-                key = hsm_find_key_by_id(NULL, temp_loc);
+                key = hsm_find_key_by_id(ctx, temp_loc);
 
                 if (!key) {
                     log_msg(NULL, LOG_ERR, "Key not found: %s\n", temp_loc);
@@ -1645,7 +1645,7 @@ int do_purge(int interval, int policy_id)
     return status;
 }
 
-int NewDSSet(int zone_id, const char* zone_name, const char* DSSubmitCmd, int DSSubCKA_ID) {
+int NewDSSet(hsm_ctx_t* ctx, int zone_id, const char* zone_name, const char* DSSubmitCmd, int DSSubCKA_ID) {
     int     where = 0;		/* for the SELECT statement */
     char*   sql = NULL;     /* SQL statement (when verifying) */
     char*   sql2 = NULL;    /* SQL statement (if getting DS) */
@@ -1837,7 +1837,7 @@ int NewDSSet(int zone_id, const char* zone_name, const char* DSSubmitCmd, int DS
         while (status == 0) {
 
             /* Code to output the DNSKEY record  (stolen from hsmutil) */
-            key = hsm_find_key_by_id(NULL, data3.location);
+            key = hsm_find_key_by_id(ctx, data3.location);
 
             if (!key) {
                 log_msg(NULL, LOG_ERR, "Key %s in DB but not repository.", data3.location);
@@ -1853,7 +1853,7 @@ int NewDSSet(int zone_id, const char* zone_name, const char* DSSubmitCmd, int DS
             sign_params->algorithm = data3.algorithm;
             sign_params->flags = LDNS_KEY_ZONE_KEY;
             sign_params->flags += LDNS_KEY_SEP_KEY;
-            dnskey_rr = hsm_get_dnskey(NULL, key, sign_params);
+            dnskey_rr = hsm_get_dnskey(ctx, key, sign_params);
 
 			/* Set TTL if we can find it; else leave it as the default */
 			/* We need a policy id */
