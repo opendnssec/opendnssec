@@ -33,6 +33,7 @@ ods_start_ods-control &&
 echo "verifying without keyset validity set" &&
 ods-enforcer zone add -z ods -p plainkeysetvalidity &&
 syslog_waitfor_count 60 1 'ods-signerd: .*\[STATS\] ods' &&
+sleep 3 &&
 ods-enforcer time leap &&
 syslog_waitfor_count 60 2 'ods-signerd: .*\[STATS\] ods' &&
 echo "  there should be no keyset entry in signconf" &&
@@ -46,6 +47,7 @@ rm -f "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
 echo "verifying with keyset validity explicitly set" &&
 ods-enforcer zone add -z ods -p explicitkeysetvalidity &&
 syslog_waitfor_count 60 3 'ods-signerd: .*\[STATS\] ods' &&
+sleep 3 &&
 ods-enforcer time leap &&
 syslog_waitfor_count 60 4 'ods-signerd: .*\[STATS\] ods' &&
 echo "  there should be a keyset entry in signconf" &&
