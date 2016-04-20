@@ -1607,7 +1607,7 @@ int do_purge(hsm_ctx_t* ctx, int interval, int policy_id)
                     return -1;
                 }
 
-                status = hsm_remove_key(NULL, key);
+                status = hsm_remove_key(ctx, key);
 
                 hsm_key_free(key);
 
