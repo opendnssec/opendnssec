@@ -55,7 +55,7 @@ will log all the problems via stderr.
 .SH "SEE ALSO"
 .LP
 ods\-control(8), ods\-enforcerd(8), ods\-hsmspeed(1),
-ods\-hsmutil(1), ods\-kaspcheck(1), ods\-ksmutil(1), 
+ods\-hsmutil(1), ods\-kaspcheck(1), ods\-ksmutil(1),
 ods\-signerd(8), ods\-timing(5), opendnssec(7),
 .B http://www.opendnssec.org/
 .SH "AUTHORS"

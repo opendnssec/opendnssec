@@ -1,0 +1,263 @@
+.TH "ods-kasp" "5" "April 2016" OpenDNSSEC "OpenDNSSEC KASP"
+.SH "NAME"
+.LP
+.B ods-kasp
+\- OpenDNSSEC kasp specification
+.SH "SYNOPSIS"
+.LP
+.B @OPENDNSSEC_CONFIG_DIR@/kasp.xml
+.SH "DESCRIPTION"
+.LP
+The kasp file describes the parameters of the DNSSEC Key and Signing Policy 
+(KASP), the policy used to sign zones. Each policy comprises a series of 
+parameters that define the way the zone is signed.
+.TP
+.B KASP Parameters
+A policy has a set of common parameters to identify the policy.
+.TP
+.B Policy Name
+The name is used to link a policy to a zone that needs to be signed. Each 
+policy must have a unique name. The policy named "default" is special, as 
+it is associated with all zones that do not have a policy explicitly associated 
+with them.
+.TP
+.B Policy Description
+A policy can have a description associated with it.
+.TP
+.B Signatures Parameters
+This section lists the parameters for the signatures created using the policy.
+.TP
+.B Signature Resign Interval
+This is the interval between runs of the signer. For example, a zone that 
+has a Re-sign Interval of PT2H (2 hours) is handled by the signer every 
+2 hours.
+.TP
+.B Signature Refresh Interval
+The Refresh Interval is describing when a signature should be refreshed. 
+As signatures are typically valid for much longer than the interval between 
+runs of the signer, there is no need to regenerate the signatures each time 
+the signer is running. This means that the Re-sign Interval must be smaller 
+than the Refresh Interval.
+In order to make refreshing signatures possible, the Re-sign Interval should 
+be at least half of the Refresh Interval. In the case a signer runs and detects 
+that there is no change to the data being signed, signatures may be refreshed. 
+A signature will be refreshed when the time until the signature expiration is 
+closer than the Refresh Interval.
+.TP
+.B Signature Validity
+The Signature Validity describes how long the signatures are valid for. 
+This parameter groups two elements of information. The Default Signature 
+Validity is the validity interval for all RRSIG records except those related 
+to NSEC or NSEC3 records. For these records, the validity period is given by 
+the value of the Denial Signature Validity.
+.TP
+.B Signature Jitter
+The Signature Jitter (j) is the value added to or subtracted from the expiration 
+time of signatures to ensure that not all signatures expire at the same time. 
+The actual value of the jitter is a random value, uniformly ranging between 
+Minus Signature Jitter and Signature Jitter [-j...j]. This value is added to 
+Signature Validity to determine the signature expiration time.
+.TP
+.B Signature Inception Offset
+This is a duration subtracted from the time at which a record is signed to give 
+the inception time of the RRSIG record. This is required to allow for clock skew 
+between the signing system and the system on which the signature is checked. Without 
+it, the possibility exists that the checking system could retrieve a signature 
+whose start time is later than the current time. The relationship between these 
+elements is shown below in Figure 1.
+
+ Inception             Signing                             Expiration
+    time                  time                                time
+    |                     |                           |       |       |
+    |---------------------|---------------------------|.......|.......|
+    |                     |                           |       |       |
+                                                      [  +/- Jitter   ]
+
+    |  Inception offset   |                                   |
+    |<------------------->|        Validity Interval          |
+    |                     |<--------------------------------->|
+
+
+ Inception             Signing reuse   reuse   new         Expiration
+    time                  time                    signature   time
+    |                     |       |       |       |           |
+    |---------------------|-----------------------------------|
+    |                     |       |       |       |           |
+                           <-----> <-----> <----->
+                             Re-sign Interval
+
+                                             |Refresh Interval|
+                                             |<-------------->|
+                                             |                |
+
+
+                   Figure 1: Signature Timing Parameters
+
+.TP
+.B Authenticated Denial of Existence Parameters
+Authenticated denial of existence - proving that domain names do not exist in the zone 
+- is discussed in this section.  Below, the list of the parameters is given for creating 
+NSEC or NSEC3 records using the policy. 
+.TP
+.B NSEC or NSEC3
+If the NSEC scheme is used to implement authenticated denial of existence, there are no 
+record elements we can tune. If NSEC3 [RFC5155] is used, there are some more options.
+.TP
+.B NSEC3 Opt-Out
+Whether to enable or disable "opt-out". This is an optimisation that means that NSEC3 
+records are only created for authoritative data or for secure delegations; insecure 
+delegations have no NSEC3 records. For zones where a majority of the entries are 
+delegations that are not signed - typically TLDs during the take-up phase of DNSSEC - 
+this reduces the number of DNSSEC records in the zone.
+.TP
+.B NSEC3 Re-salt Interval
+The is the interval between generating new salt values for the hashing algorithm.
+.TP
+.B NSEC3 Hash Parameters
+The NSEC3 Hash Parameters tells parameters related to NSEC3.
+.TP
+.B NSEC3 Hash Algorithm
+The NSEC3 Hash Algorithm tells what hashing algorithm should be used to create the 
+NSEC3 records.
+.TP
+.B NSEC3 Hash Iterations
+The NSEC3 Hash Iterations shows how many iterations of the hash function should be performed 
+over the original owner name.
+.TP
+.B NSEC3 Hash Salt Length
+The NSEC3 Hash Salt Length provides the length of the salt value to be generated.
+.TP
+.B Key Parameters
+This section covers parameters related to keys.
+There are a number of parameters relating to both zone-signing keys (ZSK) and key-signing 
+keys (KSK).
+.TP
+.B DNSKEY TTL
+This is the time-to-live value for the DNSKEY resource records.
+.TP
+.B Key Retire Safety
+The Key Retire Safety is the retire safety margin for the keys. This interval is a safety 
+margin added to calculated timing values to ensure that keys are retired without there being 
+a chance of signatures created with the keys being considered invalid.
+.TP
+.B Key Publish Safety
+The Key Publish is the publish safety margins for the keys. This interval is the safety 
+margin added to calculated timing values to ensure that keys are published and without
+there being a chance of signatures created with the keys being considered invalid.
+.TP
+.B Key Sharing
+If multiple zones are associated with a policy, a key may be shared between zones. For 
+example, if you have 100 zones then you will only use one set of keys instead of 100 sets. 
+This will safe space in your HSM.
+.TP
+.B Key Purging Interval
+Key Purging is the event where keys marked as dead (as defined by draft-ietf-dnsop-dnssec-
+key-timing [key-timing]) will be automatically purged from the key database. The Key Purging 
+Interval is the interval of when Key Purging is done.
+.TP
+.B KSK Parameters
+There are parameters specific for the KSK.
+.TP 
+.B KSK Algorithm
+The KSK Algorithm determines the algorithm used for KSKs.
+.TP
+.B KSK Lifetime
+The KSK Lifetime determines how long the KSK is used for before it is must be rolled.
+.TP
+.B KSK Repository
+The KSK Repository determines the location of the KSKs.
+.TP
+.B Manual KSK Rollover
+It may be desirable to force that a key rollover will only be initiated on the command by the 
+operator. Note that if KSK rollover is done automatically, there is currently still a step for 
+the KSK that needs manual intervention, where the corresponding DS record for the key needs to 
+be published to the parent before the rollover is completed.
+.TP
+.B ZSK Parameters
+The same parameters for the KSK are available for the ZSK. The split between the series of 
+parameters is that with a ZSK/KSK Split Signing Scheme, the values for the parameters may be 
+different.
+.TP
+.B ZSK Algorithm
+The ZSK Algorithm determines the algorithm used for ZSKs.
+.TP
+.B ZSK Lifetime
+The ZSK Lifetime determines how long the ZSK is used for before it is must be rolled.
+.TP
+.B ZSK Repository
+The ZSK Repository determines the location of the ZSKs.
+.TP
+.B Manual ZSK Rollover
+The ZSK rollover will be fully automatic if Manual ZSK Rollover is disabled.
+.TP
+.B Zone Parameters
+General information concerning the zones is described here.
+.TP
+.B Propagation Delay
+The Propagation Delay is the amount of time needed for information changes at the master 
+server for the zone to work its way through to all the secondary nameservers.
+.TP
+.B SOA Parameters
+These parameters are necessary for maintaining the SOA record in the signed zone. 
+These values will override values set for the SOA record in the input zone.
+.TP
+.B SOA TTL
+This is the time-to-live of the SOA record.
+.TP
+.B SOA MINIUM
+This is value for the MINIMUM RDATA element in the SOA record.
+.TP
+.B SOA Serial
+This represents the format of the serial number in the signed zone.
+This is one of the following:
+  counter:   Use an increasing counter (but use the serial from the  unsigned zone 
+           if possible).
+
+  datecounter:   Use increasing counter in YYYYMMDDxx format (xx is the number of 
+                 increments within each day, starting at 00).
+
+  unixtime:   The serial number is set to the "Unix time" (seconds since 00:00 on 
+              1 January 1970 (UTC)) at which the signer is run.
+
+  keep:   Keep the serial from the unsigned zone (do not re-sign unless it has been 
+          incremented).  This way, no signed zone is created unless the zone operator 
+          explicitly initiated a zone update.
+.TP
+.B Parent Zone Parameters
+If a DNSSEC zone is in a chain of trust, digest information about the KSKs used in the 
+zone will be stored in DS records in the parent zone. To properly roll keys, timing 
+information about the parent zone must be configured.
+.TP
+.B Propagation Delay
+The Propagation Delay parameter related to the parent zone is the interval between the 
+time a new KSK is published in the zone and the time that the DS record appears in the 
+parent zone. In reality, this is a variable value. The value for the Propagation Delay 
+in the policy should be a estimate.
+.TP
+.B DS TTL
+This represents the DS time-to-live. The DS TTL should be set to the TTL of the DS record 
+in the parent zone.
+.TP
+.B SOA Parameters
+The SOA Parameters related to the parent zone gives information about the parent's SOA record. 
+These are necessary to calculate the timings in particular rollover scenarios.
+.TP
+.B SOA TTL
+This should be set to the time-to-live of the parent zone SOA record.
+.TP
+.B SOA MINIUM
+This should be set to the value of the MINIMUM RDATA element in the parent zone SOA record.
+
+.SH "SEE ALSO"
+.LP
+ods\-control(8), ods\-enforcerd(8), ods\-enforcer(8), 
+ods\-signerd(8), pds\-signer(8), ods\-ksmutil(1), 
+ods\-kaspcheck(1), ods\-timing(5), ods\-hsmutil(1),
+ods\-hsmspeed(1), opendnssec(7),
+ISO 8601,
+.B http://www.opendnssec.org/
+.SH "AUTHORS" 
+.LP
+.B OpenDNSSEC
+was written by NLnet Labs as part of the OpenDNSSEC project.
+.B http://www.opendnssec.org/

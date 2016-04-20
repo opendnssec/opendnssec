@@ -52,7 +52,7 @@ static void
 help(int sockfd)
 {
     client_printf(sockfd,
-        "Export policies in the kasp.xml format.\n"
+        "Export policies.\n"
 	"\nOptions:\n"
         "policy|all	export a specified policy or all of them\n\n"
     );

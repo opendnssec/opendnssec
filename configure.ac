@@ -245,6 +245,7 @@ AC_CONFIG_FILES([
 	tools/solaris/ods-enforcerd.init
 	tools/solaris/ods-signerd.init
 	tools/ods-timing.5
+	tools/ods-kasp.5
 	tools/opendnssec.7
 	tools/ods-control.8
 	tools/ods-kasp2html

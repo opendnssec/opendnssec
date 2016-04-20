@@ -55,7 +55,7 @@ help(int sockfd)
 {
 	client_printf(sockfd,
 		"start		Starts the engine and the process. \n"
-		"running	Returns acknowledgment that the engine is running.\n"
+		"running		Returns acknowledgment that the engine is running.\n"
 		"reload		Reload the engine.\n"
 		"stop		Stop the engine and terminate the process.\n\n"
 	);

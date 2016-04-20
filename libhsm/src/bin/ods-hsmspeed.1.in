@@ -58,9 +58,10 @@ Most HSMs will be utilized better with multiple threads.
 (defaults to 1 thread)
 .SH "SEE ALSO"
 .LP
-ods\-auditor(1), ods\-control(8), ods\-enforcerd(8),
+ods\-control(8), ods\-enforcerd(8), ods\-enforcer(8),
 ods\-hsmutil(1), ods\-kaspcheck(1), ods\-ksmutil(1), ods\-signer(8),
-ods\-signerd(8), ods\-timing(5), opendnssec(7),
+ods\-signerd(8), ods\-timing(5), ods\-kasp(5),
+ods\-hsmspeed(1), opendnssec(7),
 .B http://www.opendnssec.org/
 .SH "AUTHORS"
 .LP
