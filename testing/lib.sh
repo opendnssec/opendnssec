@@ -1734,9 +1734,9 @@ syslog_trace ()
 		openbsd )
 			syslog_file="/var/log/messages"
 			;;
-			slackware | \
-			UNKNOWN)
-			syslog_fail="/var/log/opendnssec"
+		slackware | \
+		UNKNOWN)
+			syslog_file="/var/log/opendnssec"
 			;;
 		sunos )
 			syslog_file="/var/adm/messages"
