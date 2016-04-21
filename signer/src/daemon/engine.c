@@ -505,6 +505,7 @@ engine_setup(engine_type* engine)
         if (status != ODS_STATUS_OK) {
             ods_log_error("[%s] setup: unable to listen to sockets (%s)",
                 engine_str, ods_status2str(status));
+            return ODS_STATUS_XFRHANDLER_ERR;
         }
     }
     /* privdrop */
