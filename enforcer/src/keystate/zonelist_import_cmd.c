@@ -58,9 +58,9 @@ static void
 help(int sockfd)
 {
     client_printf(sockfd,
-        "Import zones from zonelist.xml into enforcer.\n"
+        "Import zones from zonelist.xml into enforcer database.\n"
 	"\nOptions:\n"
-        "remove-missing-zones	Remove any zones from database not in zonelist file\n"
+        "remove-missing-zones	Remove any zones from database not existed in zonelist file\n"
         "file			File to import, instead of zonelist file configured in conf.xml\n\n"
     );
 }

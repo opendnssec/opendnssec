@@ -229,8 +229,7 @@ usage(int sockfd)
 		"	[--debug]				aka -d\n"
 		"	[--parsable]				aka -p\n"
 		"	[--zone]				aka -z  \n"
-		"	[--keystate]				aka -k  \n"
-		"	[--all]					aka -a  \n"
+		"	[--keystate | --all]				aka -k | -a  \n"
 	);
 }
 
@@ -243,9 +242,10 @@ help(int sockfd)
 		"verbose		also show additional key parameters\n"
 		"debug		print information about the keystate\n"
 		"parsable	output machine parsable list\n"
-		"zone		name of the zone\n"
-		"keystate	state of the key\n"
-		"all		print all keys\n\n");
+		"zone		limit the output to the specific zone\n"
+		"keytype	limit the output to the given type, can be ZSK, KSK, or CSK\n"
+		"keystate	limit the output to the given state\n"
+		"all		print keys in all states (including generate) \n\n");
 }
 
 static int

@@ -49,7 +49,7 @@ static void
 help(int sockfd)
 {
     client_printf(sockfd,
-        "Export zonelist from database to the zonelist.xml file.\n\n"
+        "Export list of zones from the database to the zonelist.xml file.\n\n"
     );
 }
 
