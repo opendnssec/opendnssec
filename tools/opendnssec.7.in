@@ -5,11 +5,9 @@
 \- making DNSSEC easy for DNS administrators
 .SH "SYNOPSIS"
 .LP
-.B ods-control start
+.B ods-control start | stop
 .LP
-.B ods-control stop
-.LP
-.B ods-ksmutil
+.B ods-enforcer
 .RB \fIsubcommand...\fB
 .LP
 .B ods-signer
@@ -82,8 +80,8 @@ and its parent, so this has to be done manually, or scripted around
 OpenDNSSEC.
 .SH "SEE ALSO"
 .LP
-ods\-control(8), ods\-enforcerd(8), ods\-hsmspeed(1),
-ods\-hsmutil(1), ods\-kaspcheck(1), ods\-ksmutil(1), ods\-signer(8),
+ods\-control(8), ods\-enforcerd(8), ods\-enforcer(8), ods\-hsmspeed(1),
+ods\-hsmutil(1), ods\-kaspcheck(1), ods\-kasp(5), ods\-ksmutil(1), ods\-signer(8),
 ods\-signerd(8), ods\-timing(5),
 .B http://www.opendnssec.org/
 .SH "AUTHORS"

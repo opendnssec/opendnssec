@@ -38,9 +38,10 @@ Will start the two daemons of OpenDNSSEC, ods\-enforcerd and ods\-signerd
 Will stop the two daemons of OpenDNSSEC, ods\-enforcerd and ods\-signerd
 .SH "SEE ALSO"
 .LP
-ods\-enforcer(8), ods\-enforcerd(8), ods\-hsmspeed(1),
-ods\-hsmutil(1), ods\-kaspcheck(1), ods\-signer(8),
-ods\-signerd(8), ods\-timing(5), opendnssec(7),
+ods\-enforcer(8), ods\-enforcerd(8), ods\-signer(8),
+ods\-signerd(8), ods\-ksmutil(1), ods\-kasp(5),
+ods\-kaspcheck(1), ods\-timing(5), ods\-hsmspeed(1),
+ods\-hsmutil(1), opendnssec(7),
 .B http://www.opendnssec.org/
 .SH "AUTHORS"
 .LP
