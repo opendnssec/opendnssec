@@ -618,4 +618,7 @@ key_data_t* key_data_list_get_next(key_data_list_t* key_data_list);
  */
 size_t key_data_list_size(key_data_list_t* key_data_list);
 
+key_data_t* key_data_new_get_by_hsm_key_id (const db_connection_t* connection, const db_value_t* hsm_key_id);
+
+int key_data_get_by_hsm_key_id (key_data_t* key_data, const db_value_t* hsm_key_id);
 #endif

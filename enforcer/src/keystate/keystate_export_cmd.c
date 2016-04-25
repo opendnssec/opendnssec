@@ -234,12 +234,24 @@ static void
 usage(int sockfd)
 {
 	client_printf(sockfd,
-		"key export             Export DNSKEY(s) for a given zone.\n"
-		"      --zone <zone>  | --all		(aka -z)  zone | (aka -a) all zones\n"
-		"      [--keystate <state>]		(aka -e) state\n"
-		"      [--keytype <type>]		(aka -t) type \n"
-		"      [--ds]				(aka -d)  export DS in BIND format.\n"
+		"key export\n"
+		"	--zone <zone> | --all			aka -z | -a \n"
+		"	[--keystate <state>]			aka -e\n"
+		"	[--keytype <type>]			aka -t \n"
+		"	[--ds]					aka -d\n"
 	);
+}
+
+static void
+help(int sockfd)
+{
+	client_printf(sockfd,
+		"Export DNSKEY(s) for a given zone or all of them from the database.\n"
+		"\nOptions:\n"
+		"zone|all	name of the zone or all of them\n"
+		"keystate	limit the output to a given state\n"
+		"keytype		limit the output to a given type, can be ZSK, KSK, or CSK\n"
+		"ds		export DS in BIND format which can be used for upload to a registry\n\n");
 }
 
 static int
@@ -337,7 +349,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 }
 
 static struct cmd_func_block funcblock = {
-	"key export", &usage, NULL, &handles, &run
+	"key export", &usage, &help, &handles, &run
 };
 
 struct cmd_func_block*

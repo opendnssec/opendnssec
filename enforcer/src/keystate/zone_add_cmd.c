@@ -50,17 +50,18 @@ static void
 usage(int sockfd)
 {
 	client_printf(sockfd,
-		"zone add               Add a new zone to the enforcer database.\n"
-		"      --zone <zone>              (aka -z)  zone.\n"
-		"      [--policy <policy>]        (aka -p)  policy.\n"
-		"      [--signerconf <path>]      (aka -s)  signer configuration file.\n"
-		"      [--in-type <type>]         (aka -j)  input adapter type.\n"
+		"zone add\n"
+		"	--zone <zone>				aka -z\n"
+		"	[--policy <policy>]			aka -p\n"
+		"	[--signerconf <path>]			aka -s\n"
+		"	[--in-type <type>]			aka -j\n"
     );
     client_printf(sockfd,
-		"      [--input <path>]           (aka -i)  input adapter zone or config file.\n"
-		"      [--out-type <type>]        (aka -q)  output adapter type.\n"
-		"      [--output <path>]          (aka -o)  output adapter zone or config file.\n"
-		"      [--xml]                    (aka -u)  update the zonelist.xml file.\n"
+		"	[--input <path>]			aka -i\n"
+		"	[--out-type <type>]			aka -q\n"
+		"	[--output <path>]			aka -o\n"
+		"	[--xml]					aka -u\n"
+		"	[--suspend]				aka -n\n"
 	);
 }
 
@@ -69,6 +70,16 @@ help(int sockfd)
 {
     client_printf(sockfd,
         "Add a new zone to the enforcer database.\n"
+	"\nOptions:\n"
+        "zone		name of the zone\n"
+        "policy		name of the policy, if not set the default policy is used\n"
+        "signerconf	specify a location for signer configuration file, default is /var/opendnssec/signconf/\n"
+        "in-type		specify the type of input, should be DNS or File, default is File \n"
+        "input		specify a location for the unsigned zone, this location is set in conf.xml, default for FileAdapter is /var/opendnssec/unsigned/ \n"
+        "out-type	specify the type of output, should be DNS or File, default is File\n"
+        "output		specify a location for the signed zone, this location is set in conf.xml, default path for File Adapter is /var/opendnssec/signed/ \n"
+        "xml		update the zonelist.xml file\n"
+        "suspend		suspend this zone until running enforce command\n\n"
     );
 }
 
@@ -83,7 +94,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	db_connection_t *dbconn)
 {
     char* buf;
-    const char* argv[17];
+    const char* argv[18];
     int argc;
     const char *zone_name = NULL;
     const char *policy_name = NULL;
@@ -97,6 +108,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     policy_t* policy;
     zone_t* zone;
     int ret = 0;
+    int suspend;
     (void)engine;
 
 	ods_log_debug("[%s] %s command", module_str, zone_add_funcblock()->cmdname);
@@ -107,7 +119,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
         return -1;
     }
 
-    argc = ods_str_explode(buf, 17, argv);
+    argc = ods_str_explode(buf, 18, argv);
     if (argc > 17) {
         client_printf_err(sockfd, "too many arguments\n");
         free(buf);
@@ -122,6 +134,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     ods_find_arg_and_param(&argc, argv, "in-type", "j", &input_type);
     ods_find_arg_and_param(&argc, argv, "out-type", "q", &output_type);
     write_xml = ods_find_arg(&argc, argv, "xml", "u") > -1 ? 1 : 0;
+    suspend = ods_find_arg(&argc, argv, "suspend", "n") > -1 ? 1 : 0;
 
     if (argc) {
         client_printf_err(sockfd, "unknown arguments\n");
@@ -242,6 +255,11 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
         {
             client_printf_err(sockfd, "Unable to add zone, failed to set signconf!\n");
         }
+    }
+    if (suspend) {
+        if (zone_set_next_change(zone, -1))
+            ods_log_error("[%s] Cannot suspend zone %s, database error!", module_str, zone_name);
+            client_printf_err(sockfd, "Cannot suspend zone %s, database error!\n", zone_name);
     }
 
     if (zone_create(zone)) {

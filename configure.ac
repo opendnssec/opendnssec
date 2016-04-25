@@ -32,7 +32,6 @@ AC_PROG_CC_STDC
 #AC_PROG_CC_C99
 ACX_PEDANTIC
 AX_COMPILER_FLAGS_CFLAGS
-AX_CFLAGS_STRICT_PROTOTYPES
 AX_C___ATTRIBUTE__
 ACX_ARG_RPATH
 ACX_RUNTIME_PATH_ADD
@@ -220,6 +219,7 @@ AC_CONFIG_FILES([
 	enforcer/src/db/test/Makefile
 	enforcer/man/ods-enforcer.8
 	enforcer/man/ods-enforcerd.8
+	enforcer/man/ods-ksmutil.1
 	libhsm/Makefile
 	libhsm/src/Makefile
 	libhsm/src/bin/Makefile
@@ -245,6 +245,7 @@ AC_CONFIG_FILES([
 	tools/solaris/ods-enforcerd.init
 	tools/solaris/ods-signerd.init
 	tools/ods-timing.5
+	tools/ods-kasp.5
 	tools/opendnssec.7
 	tools/ods-control.8
 	tools/ods-kasp2html

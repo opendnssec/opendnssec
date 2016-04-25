@@ -202,7 +202,7 @@ static int db_do(const char *sql, size_t size) {
 #endif
 }
 
-int db_do2(const char** strs) {
+static int db_do2(const char** strs) {
     char sql[4096];
     char *sqlp;
     int ret, left, i;
@@ -232,15 +232,17 @@ int main(int argc, char* argv[]) {
     static struct option long_options[] = {
         {"help", no_argument, 0, 'h'},
         {"version", no_argument, 0, 'V'},
+        {"force", no_argument, 0, 'f'},
         { 0, 0, 0, 0}
     };
     int user_certain;
+    int force = 0;
     engineconfig_type* cfg;
     const char* cfgfile = ODS_SE_CFGFILE;
 
     ods_log_init("ods-enforcerd", 0, NULL, 0);
 
-    while ((c=getopt_long(argc, argv, "hV",
+    while ((c=getopt_long(argc, argv, "hVf",
         long_options, &options_index)) != -1) {
         switch (c) {
             case 'h':
@@ -249,17 +251,22 @@ int main(int argc, char* argv[]) {
             case 'V':
                 version(stdout);
                 exit(0);
+	    case 'f':
+		force = 1;
+		break;
             default:
                 exit(100);
         }
     }
 
-    printf("*WARNING* This will erase all data in the database; are you sure? [y/N] ");
-
-    user_certain = getchar();
-    if (user_certain != 'y' && user_certain != 'Y') {
-        printf("Okay, quitting...\n");
-        return 0;
+    if (!force) {
+        printf("*WARNING* This will erase all data in the database; "
+	       "are you sure? [y/N] ");
+        user_certain = getchar();
+        if (user_certain != 'y' && user_certain != 'Y') {
+            printf("Okay, quitting...\n");
+            return 0;
+        }
     }
 
     cfg = engine_config(cfgfile, 0, NULL);

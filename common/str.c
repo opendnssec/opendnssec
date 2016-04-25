@@ -36,6 +36,7 @@
 #include <errno.h>
 #include <assert.h>
 #include <stdio.h> /* snprintf() */
+#include <stdlib.h>
 #include <string.h> /* strlen(), strcpy() */
 #include <ctype.h> /* isspace() */
 

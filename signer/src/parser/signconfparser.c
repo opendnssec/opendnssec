@@ -241,7 +241,7 @@ parse_sc_sig_validity_keyset(const char* cfgfile)
     const char* str = parse_conf_string(cfgfile,
         "//SignerConfiguration/Zone/Signatures/Validity/Keyset",
         0);
-    if (!str) {
+    if (!str || *str == 0 || *str == '0') {
         return NULL;
     }
     duration = duration_create_from_string(str);
@@ -412,7 +412,7 @@ parse_sc_max_zone_ttl(const char* cfgfile)
     duration_type* duration = NULL;
     const char* str = parse_conf_string(cfgfile,
         "//SignerConfiguration/Zone/Signatures/MaxZoneTTL",
-        1);
+        0);
     if (!str) {
         return NULL;
     }

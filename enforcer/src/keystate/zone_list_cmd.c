@@ -47,14 +47,14 @@ static void
 usage(int sockfd)
 {
 	client_printf(sockfd,
-		"zone list              List zones.\n");
+		"zone list\n");
 }
 
 static void
 help(int sockfd)
 {
     client_printf(sockfd,
-        "List all zones currently in the database.\n"
+        "List all zones currently in the database.\n\n"
     );
 }
 

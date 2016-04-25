@@ -167,6 +167,8 @@ extract_msg(char* buf, int *pos, int buflen, int *exitcode, int sockfd)
                         *exitcode = 300;
                         return 1;
                     }
+		default:
+			break;
             }
             continue;
         } else if (datalen+3 > buflen) {
@@ -350,7 +352,8 @@ int
 main(int argc, char* argv[])
 {
     char* argv0;
-    char* cmd = NULL, *socketfile = OPENDNSSEC_ENFORCER_SOCKETFILE;
+    char* cmd = NULL;
+    char const *socketfile = OPENDNSSEC_ENFORCER_SOCKETFILE;
     int error, c, options_index = 0;
     static struct option long_options[] = {
         {"help", no_argument, 0, 'h'},

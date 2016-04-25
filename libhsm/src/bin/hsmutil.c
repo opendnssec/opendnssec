@@ -26,7 +26,6 @@
  */
 
 #include "config.h"
-#include "hsmtest.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -35,6 +34,8 @@
 #include <unistd.h>
 
 #include "libhsm.h"
+#include "hsmtest.h"
+
 #include <libhsmdns.h>
 
 extern hsm_repository_t* parse_conf_repositories(const char* cfgfile);
@@ -45,19 +46,27 @@ unsigned int verbose = 0;
 hsm_ctx_t *ctx = NULL;
 
 
-void
+static void
 version ()
 {
     fprintf(stderr, "%s (%s) version %s\n",
         progname, PACKAGE_NAME, PACKAGE_VERSION);
 }
 
-void
+static void
 usage ()
 {
     fprintf(stderr,
-       "usage: %s [-c config] [-vV] command [options]\n",
+       "usage: %s [-c config] [-vVfh] [command [options]]\n",
         progname);
+
+    fprintf(stderr,"  -h        Print this usage information.\n");
+    fprintf(stderr,"  -v        Increase verbosity.\n");
+    fprintf(stderr,"  -V        Print version and exit.\n");
+    fprintf(stderr,"  -f        Force, Assume yes on all questions.\n");
+    fprintf(stderr,"  -c <cfg>  Use alternative conf.xml.\n");
+
+    fprintf(stderr,"commands\n");
 
     fprintf(stderr,"  login\n");
     fprintf(stderr,"  logout\n");
@@ -73,7 +82,7 @@ usage ()
 #endif
 }
 
-int
+static int
 cmd_login ()
 {
     printf("The tokens are now logged in.\n");
@@ -81,7 +90,7 @@ cmd_login ()
     return 0;
 }
 
-int
+static int
 cmd_logout ()
 {
     if (hsm_logout_pin() != HSM_OK) {
@@ -95,7 +104,9 @@ cmd_logout ()
     return 0;
 }
 
-int
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
+static int
 cmd_list (int argc, char *argv[])
 {
     size_t i;
@@ -142,7 +153,7 @@ cmd_list (int argc, char *argv[])
         libhsm_key_info_t *key_info;
         libhsm_key_t *key = NULL;
         char key_type[HSM_MAX_ALGONAME + 8];
-        char *key_id = NULL;
+        char const * key_id = NULL;
 
         key = keys[i];
         if (key == NULL) {
@@ -179,8 +190,9 @@ cmd_list (int argc, char *argv[])
 
     return 0;
 }
+#pragma GCC diagnostic pop
 
-int
+static int
 cmd_generate (int argc, char *argv[])
 {
     const char *repository = NULL;
@@ -260,7 +272,7 @@ cmd_generate (int argc, char *argv[])
     return 0;
 }
 
-int
+static int
 cmd_remove (int argc, char *argv[])
 {
     char *id;
@@ -295,8 +307,8 @@ cmd_remove (int argc, char *argv[])
     return result;
 }
 
-int
-cmd_purge (int argc, char *argv[])
+static int
+cmd_purge (int argc, char *argv[], int force)
 {
     int result;
     int final_result = 0;
@@ -339,15 +351,16 @@ cmd_purge (int argc, char *argv[])
         return -1;
     }
 
-    printf("Are you sure you want to remove ALL keys from repository %s ? (YES/NO) ", repository);
-    fresult = fgets(confirm, sizeof(confirm) - 1, stdin);
-    if (fresult == NULL || strncasecmp(confirm, "yes", 3) != 0) {
-        printf("\nPurge cancelled.\n");
-        libhsm_key_list_free(keys, key_count);
-        return -1;
-    } else {
-        printf("\nStarting purge...\n");
+    if (!force) {
+        printf("Are you sure you want to remove ALL keys from repository %s ? (YES/NO) ", repository);
+        fresult = fgets(confirm, sizeof(confirm) - 1, stdin);
+        if (fresult == NULL || strncasecmp(confirm, "yes", 3) != 0) {
+            printf("\npurge cancelled.\n");
+            libhsm_key_list_free(keys, key_count);
+            return -1;
+        }
     }
+    printf("\nStarting purge...\n");
 
     for (i = 0; i < key_count; i++) {
         libhsm_key_info_t *key_info;
@@ -374,7 +387,7 @@ cmd_purge (int argc, char *argv[])
     return final_result;
 }
 
-int
+static int
 cmd_dnskey (int argc, char *argv[])
 {
     char *id;
@@ -510,8 +523,8 @@ cmd_dnskey (int argc, char *argv[])
     return 0;
 }
 
-int
-cmd_test (int argc, char *argv[])
+static int
+cmd_test (int argc, char *argv[], hsm_ctx_t* ctx)
 {
     char *repository = NULL;
 
@@ -521,7 +534,7 @@ cmd_test (int argc, char *argv[])
         argv++;
 
         printf("Testing repository: %s\n\n", repository);
-        int rv = hsm_test(repository);
+        int rv = hsm_test(repository, ctx);
         if (repository) free(repository);
         return rv;
     } else {
@@ -531,7 +544,7 @@ cmd_test (int argc, char *argv[])
     return 0;
 }
 
-int
+static int
 cmd_info (hsm_ctx_t* ctx)
 {
     hsm_print_tokeninfo(ctx);
@@ -539,7 +552,7 @@ cmd_info (hsm_ctx_t* ctx)
     return 0;
 }
 
-int
+static int
 cmd_debug (hsm_ctx_t* ctx)
 {
     hsm_print_ctx(ctx);
@@ -555,13 +568,17 @@ main (int argc, char *argv[])
     char *config = NULL;
 
     int ch;
+    int force = 0;
     progname = argv[0];
 
-    while ((ch = getopt(argc, argv, "c:vVh")) != -1) {
+    while ((ch = getopt(argc, argv, "c:vVhf")) != -1) {
         switch (ch) {
         case 'c':
             config = strdup(optarg);
             break;
+	case 'f':
+	    force = 1;
+	    break;
         case 'v':
             verbose++;
             break;
@@ -624,7 +641,7 @@ main (int argc, char *argv[])
     } else if (!strcasecmp(argv[0], "purge")) {
         argc --;
         argv ++;
-        result = cmd_purge(argc, argv);
+        result = cmd_purge(argc, argv, force);
     } else if (!strcasecmp(argv[0], "dnskey")) {
         argc --;
         argv ++;
@@ -632,7 +649,7 @@ main (int argc, char *argv[])
     } else if (!strcasecmp(argv[0], "test")) {
         argc --;
         argv ++;
-        result = cmd_test(argc, argv);
+        result = cmd_test(argc, argv, ctx);
     } else if (!strcasecmp(argv[0], "info")) {
         argc --;
         argv ++;
@@ -653,4 +670,4 @@ main (int argc, char *argv[])
     closelog();
 
     exit(result);
-};
+}

@@ -137,16 +137,10 @@ static void
 usage(int sockfd)
 {
 	client_printf(sockfd,
-		"key rollover           Perform a manual key rollover.\n"
-		"      --zone <zone>              (aka -z)  zone.\n"
-		"      [--keytype <keytype>]      (aka -t)  KSK or ZSK (default all).\n"
+		"key rollover\n"
+		"	--zone <zone> | --policy <policy>	aka -z | -p \n"
+		"	[--keytype <keytype>]			aka -t\n"
 	);
-
-        client_printf(sockfd,
-                "key rollover           Perform a manual key rollover.\n"
-                "      --policy <policy>              (aka -p)  policy.\n"
-                "      [--keytype <keytype>]      (aka -t)  KSK or ZSK (default all).\n"
-        );
 
 }
 
@@ -158,6 +152,10 @@ help(int sockfd)
 		"as for the scheduled automated rollovers however it does not wait for\n"
 		"the keys lifetime to expire before rolling. The next rollover is due\n"
 		"after the newest key aged passed its lifetime.\n"
+		"\nOptions:\n"
+		"zone		limit the output to the given the zone\n"
+		"policy		limit the output to the given the policy\n"
+		"keytype		limit the output to the given type, can be KSK, ZSK or CSK (default is all)\n\n"
 	);
 }
 

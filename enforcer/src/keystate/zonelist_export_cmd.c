@@ -41,7 +41,7 @@ static void
 usage(int sockfd)
 {
     client_printf(sockfd,
-        "zonelist export        TODO.\n"
+        "zonelist export\n"
     );
 }
 
@@ -49,7 +49,7 @@ static void
 help(int sockfd)
 {
     client_printf(sockfd,
-        "TODO\n"
+        "Export list of zones from the database to the zonelist.xml file.\n\n"
     );
 }
 

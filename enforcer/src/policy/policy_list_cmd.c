@@ -44,14 +44,14 @@ static void
 usage(int sockfd)
 {
 	client_printf(sockfd,
-		"policy list            List policies.\n");
+		"policy list\n");
 }
 
 static void
 help(int sockfd)
 {
 	client_printf(sockfd,
-		"List all policies in the database\n"
+		"List all policies in the database.\n\n"
 	);
 }
 

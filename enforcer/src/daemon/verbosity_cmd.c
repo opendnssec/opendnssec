@@ -47,15 +47,14 @@ static void
 usage(int sockfd)
 {
 	client_printf(sockfd,
-		"verbosity <nr>         Set verbosity.\n"
+		"verbosity <nr>\n"
 	);
 }
 
 static void
 help(int sockfd)
 {
-	client_printf(sockfd, ""
-
+	client_printf(sockfd, "Set verbosity.\n\n"
 	);
 }
 

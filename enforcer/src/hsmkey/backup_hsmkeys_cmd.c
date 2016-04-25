@@ -144,19 +144,29 @@ static void
 usage(int sockfd)
 {
 	client_printf(sockfd,
-		"backup list            Enumerate backup status of keys.\n"
-		"      --repository <repository>  (aka -r)  Limit to this repository.\n");
+		"backup list\n"
+		"	--repository <repository>		aka -r\n");
 	client_printf(sockfd,
-		"backup prepare         Flag the keys found in all configured HSMs as to be \n"
-		"                       backed up.\n"
-		"      --repository <repository>  (aka -r)  Limit to this repository.\n");
+		"backup prepare \n"
+		"	--repository <repository>		aka -r\n");
 	client_printf(sockfd,
-		"backup commit          Mark flagged keys found in all configured HSMs as\n"
-		"                       backed up.\n"
-		"      --repository <repository>  (aka -r)  Limit to this repository.\n");
+		"backup commit\n"
+		"	--repository <repository>		aka -r  \n");
 	client_printf(sockfd,
-		"backup rollback        Cancel a 'backup prepare' action.\n"
-		"      --repository <repository>  (aka -r)  Limit to this repository.\n");
+		"backup rollback\n"
+		"	--repository <repository>		aka -r  \n");
+}
+
+static void
+help(int sockfd)
+{
+	client_printf(sockfd, 
+		"backup list  Enumerate backup status of keys.\n"
+		"backup prepare  Flag the keys found in all configured HSMs as to be backed up.\n"
+		"backup commit  Mark flagged keys found in all configured HSMs as backed up.\n"
+		"backup rollback  Cancel a 'backup prepare' action.\n"
+		"\nOptions:\n"
+		"repository	Limit to this repository\n\n");
 }
 
 static int
@@ -232,7 +242,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 }
 
 static struct cmd_func_block funcblock = {
-	"backup", &usage, NULL, &handles, &run
+	"backup", &usage, &help, &handles, &run
 };
 
 struct cmd_func_block*

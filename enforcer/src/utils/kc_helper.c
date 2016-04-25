@@ -54,6 +54,8 @@ void log_init(int facility, const char *program_name)
 }
 
 /* As far as possible we send messages both to syslog and STDOUT */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
 void dual_log(const char *format, ...) {
 
 	/* If the variable arg list is bad then random errors can occur */ 
@@ -80,6 +82,7 @@ void dual_log(const char *format, ...) {
 	va_end(args);
 	va_end(args2);
 }
+#pragma GCC diagnostic pop
 
 /* Check an XML file against its rng */
 int check_rng(const char *filename, const char *rngfilename, int verbose)
@@ -731,18 +734,18 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 	for (curkey = firstkey; curkey; curkey = curkey->next) {
 		if ((curkey->type & KSK) && ds_ttl + ttl >= curkey->life) {
 			dual_log("ERROR: KSK/Lifetime (%d seconds) for policy '%s' "
-				"is shorter than the DNSKEY record TTL (%d seconds) plus "
-				"the DS record TTL (%d seconds). This would mean replacing "
-				"keys before they'd be able to reach the ready state.",
+				"must be greater than the DNSKEY record TTL (%d seconds) plus "
+				"the DS record TTL (%d seconds). This time is needed to pass for the "
+				"KSK to be able to reach the ready state.",
 				curkey->life, policy_name, ttl, ds_ttl);
 			status++;
 		}
 
 		if ((curkey->type & ZSK) && maxzone_ttl + ttl >= curkey->life) {
 			dual_log("ERROR: ZSK/Lifetime (%d seconds) for policy '%s' "
-				"is shorter than the DNSKEY record TTL (%d seconds) plus "
-				"the MaxZoneTTL (%d seconds). This would mean replacing "
-				"keys before they'd be able to reach the ready state.",
+				"must be greater than the DNSKEY record TTL (%d seconds) plus "
+				"the MaxZoneTTL (%d seconds). This time is needed to pass for the "
+				"ZSK to be able to reach the ready state.",
 				curkey->life, policy_name, ttl, maxzone_ttl);
 			status++;
 		}

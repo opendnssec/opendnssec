@@ -22,8 +22,10 @@ endif
 EXTRA_DIST =	$(srcdir)/LICENSE \
 		$(srcdir)/MIGRATION \
 		$(srcdir)/README.md \
-		$(srcdir)/plugins/ods-sequencer \
-		$(srcdir)/plugins/simple-dnskey-mailer/simple-dnskey-mailer.sh
+		$(srcdir)/contrib/ods-sequencer/ods-sequencer \
+		$(srcdir)/contrib/ods-sequencer/ods-sequencer.md \
+		$(srcdir)/contrib/ods-sequencer/ods-sequencer-submit.sh \
+		$(srcdir)/contrib/simple-dnskey-mailer/simple-dnskey-mailer.sh
 
 
 install-data-hook:

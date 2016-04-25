@@ -434,7 +434,6 @@ node_delfunc(ldns_rbnode_t* elem)
 void
 zonelist_cleanup(zonelist_type* zl)
 {
-    lock_basic_type zl_lock;
     if (!zl) {
         return;
     }
@@ -444,9 +443,8 @@ zonelist_cleanup(zonelist_type* zl)
         ldns_rbtree_free(zl->zones);
         zl->zones = NULL;
     }
-    zl_lock = zl->zl_lock;
+    lock_basic_destroy(&zl->zl_lock);
     free(zl);
-    lock_basic_destroy(&zl_lock);
 }
 
 
@@ -457,7 +455,6 @@ zonelist_cleanup(zonelist_type* zl)
 void
 zonelist_free(zonelist_type* zl)
 {
-    lock_basic_type zl_lock;
     if (!zl) {
         return;
     }
@@ -466,7 +463,6 @@ zonelist_free(zonelist_type* zl)
         ldns_rbtree_free(zl->zones);
         zl->zones = NULL;
     }
-    zl_lock = zl->zl_lock;
+    lock_basic_destroy(&zl->zl_lock);
     free(zl);
-    lock_basic_destroy(&zl_lock);
 }

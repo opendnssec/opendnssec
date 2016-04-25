@@ -1,34 +1,40 @@
-OpenDNSSEC 2.0b1
+* OpenDNSSEC-99: Skip "are you sure" messages. Add --force and -f flag to
+  ods-enforcer-db-setup and hsmutil purge
+* OpenDNSSEC-771: Signer. Do not log warning on deleting a missing 
+  NSEC3PARAM RR.
 
-* Plugins directory renamed to contrib.
-
-OpenDNSSEC 2.0.0a6
+OpenDNSSEC 2.0b1 - 2016-04-14
 
 First public release of OpenDNSSEC.  Initial pre-releases have been
 made to a smaller audience, this pre-release is explicitly made available
 to all.  At this moment, there are no known functional bugs.  There are
 naturally issues, especially to make working with OpenDNSSEC easier, however
 none should prevent you to use OpenDNSSEC in production for the average
-case, even though this pre-release is still marked alpha.  Which is because
-of the still limited documentation, lack of migration script and it not
-being run in production yet.
-
-OpenDNSSEC 2.0.0a5
-
-Project transfer to NLnetLabs, performing code drop as-is for evaluation
-purposes only.
+case, even though this is a pre-release.  Which is because of the still
+limited documentation, and is not being run in production yet.
 
 * The enforcer can no longer be run on a single policy at a time
   anymore.  An enforce run will always process all zones.
 * The key generate method is at this time not available.
 * The key export method will not allow you to export keys for all zones
   at once (--all flag) or for a particular type of key (--keystate).
-  It will not export ZSK keys
+  It will not export ZSK keys.
 * The zonelist.xml in etc/opendnssec is no longer updated automatically,
   and by default works as if the --no-xml flag was specified.  Use
   --xml to the zone add command to update the zonelist.xml.  If updating
   the zonelist fails, the zone will still be added and not updated in
   the xml with future zone adds.
+* Plugins directory renamed to contrib.
+* Default signer working directory renamed from tmp to signer.
+* Configure option --with-database-backend renamed --with-enforcer-database
+* Zones on a manual rollover policy will not get a key assigned to them
+  immediately.
+
+OpenDNSSEC 2.0.0a5
+
+Project transfer to NLnetLabs, performing code drop as-is for evaluation
+purposes only.
+
 
 
 OpenDNSSEC 2.0.0a4 (EnforcerNG branch) 
