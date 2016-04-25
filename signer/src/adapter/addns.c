@@ -797,7 +797,9 @@ addns_write(void* zone)
         return status;
     }
 
-    if (z->db->is_initialized) {
+    if (z->db->is_initialized && z->ixfr->part[0] &&
+            z->ixfr->part[0]->soamin && z->ixfr->part[0]->soaplus)
+    {
         itmpfile = ods_build_path(z->name, ".ixfr.tmp", 0, 1);
         if (!itmpfile) {
             free((void*) atmpfile);
@@ -854,7 +856,9 @@ addns_write(void* zone)
     axfrfile = NULL;
     atmpfile = NULL;
 
-    if (z->db->is_initialized) {
+    if (z->db->is_initialized  && z->ixfr->part[0] &&
+            z->ixfr->part[0]->soamin && z->ixfr->part[0]->soaplus)
+    {
         ixfrfile = ods_build_path(z->name, ".ixfr", 0, 1);
         if (!ixfrfile) {
             free((void*) axfrfile);
