@@ -28,8 +28,8 @@ help(int sockfd)
 		"This command will remove keys from the database and HSM that "
 		"are dead. Use with caution.\n"
 		"\nOptions:\n"
-		"policy		name of the policy\n"
-		"zone		name of the zone\n\n"
+		"policy		limit the purge to the given policy\n"
+		"zone		limit the purge to the given zone\n\n"
 	);
 }
 

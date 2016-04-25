@@ -60,7 +60,7 @@ static void
 help(int sockfd)
 {
     client_printf(sockfd,
-        "Import policies from kasp.xml into the enforcer.\n\n"
+        "Import policies from kasp.xml into the enforcer database.\n\n"
     );
 }
 
