@@ -48,6 +48,8 @@ usage(int sockfd)
 		"key ds-seen\n"
 		"	--zone <zone>				aka -z \n"
 		"	--keytag <keytag> | --cka_id <CKA_ID>	aka -x | -k\n"
+		"key ds-seen\n"
+		"	--all					aka -a \n"
 	);
 }
 
@@ -55,11 +57,12 @@ static void
 help(int sockfd)
 {
 	client_printf(sockfd,
-		"Issue a ds-seen to the enforcer for a KSK.\n"
+		"Issue a ds-seen to the enforcer for a KSK/ or all 'ready for ds-seen' KSKs. This command indicates to OpenDNSSEC taht a submitted DS record has appreared in the parent zone, and thereby trigger the completion of KSK rollover.\n"
 		"(This command with no parameters lists eligible keys.)\n"
 		"\nOptions:\n"
 		"zone		name of the zone\n"
-		"keytag|cka_id	specify the keytag or the locator of the key\n\n");
+		"keytag|cka_id	specify the keytag or the locator of the key\n\n"
+		"all		for all 'ready for ds-seen' KSKs");
 }
 
 static int

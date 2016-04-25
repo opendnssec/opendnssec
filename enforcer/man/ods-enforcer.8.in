@@ -1,59 +1,228 @@
-.TH "ods-enforcer" "8" "October 2010" "OpenDNSSEC" "OpenDNSSEC ods-enforcer"
+.TH "ods-enforcer" "8" "April 2016" "OpenDNSSEC" "OpenDNSSEC ods-enforcer"
 .SH "NAME"
 .B ods\-enforcer 
 \- OpenDNSSEC enforcer Engine client
 .LP
 .SH "SYNOPSIS"
+.B ods\-enforcer 
+help 
+| start
+| stop
+| reload
+| running
+.br
 .B ods\-enforcer
-.RB [ \-h ]
-.I start
-|
-.I stop
-|
-.I reload
-|
-.I queue
-|
-.I flush
-|
-.I zones
-|
-.I verbosity
-.IR <number>
-|
-.I update
-|
-.I update
-.IR <zone>
-|
-.I sign 
-.IR <zone>
-|
-.I sign \-\-all 
-|
-.I clear 
-.IR <zone> 
+queue
+| flush
+| signconf
+| enforce
+| verbosity
+.R <number>
+.br
+.B ods\-enforcer update 
+conf | repositorylist | all
+.br
+.B ods\-enforcer policy 
+list | export | import | purge | resalt
+.br
+.B ods\-enforcer zone 
+list | add | delete
+.br
+.B ods\-enforcer zonelist 
+export | import
+.br
+.B ods\-enforcer key 
+list | export | import | ds-submit | ds-seen | ds-retract | ds-gone | generate | purge | rollover
+.br
+.B ods\-enforcer backup 
+list | prepare | commit | rollback
+.br
+.B ods\-enforcer rollover
+list
+.br
+.B ods\-enforcer repository
+list
+.br
+.B ods\-enforcer
+help [COMMAND]
+
 .LP
 .SH "DESCRIPTION"
 ods\-enforcer is part of the OpenDNSSEC software. With this tool, you can send
-commands to the enforcer engine daemon. For more information, go to
+commands to the enforcer engine daemon.
+ods-enforcer manages the operation of the KASP Enforcer, which is the part of OpenDNSSEC that triggers key generation and signing operations on domains based on policies with user-defined timing and security requirements. Among the functions of ods-enforcer are key management, import to the zone list and manually rolling keys to recover from exceptional situations like key loss. The following sections discuss the subcommands.
+
+For more information, go to
 .B http://www.opendnssec.org
 and visit the Documentation page.
 .LP
-.SH "OPTIONS"
+.SH "GENERIC OPTIONS"
 .LP
 .TP
-.B \-h
-Show this help.
+.B help
+Show a brief list of commands.
+.TP
+.B start
+Start the engine and the process.
+.TP
+.B stop
+Stop the engine and terminate the process.
+.TP
+.B reload
+Reload the engine.
+.TP
+.B running
+Return acknowledgment that the engine is running.
+.TP
+.B verbosity
+Set verbosity to the given number.
+.LP
+.SH "SCHEDULING OPTIONS"
+.LP
+.TP
+.B queue
+queue shows all scheduled tasks with their time of the earliest executions, as well as all tasks currently being processed.
+.TP
+.B flush
+Execute all scheduled tasks immediately.
+.TP
+.B enforce
+Force the enforcer to run once for every zone.
+.LP
+.SH "SIGNCONF AND UPDATE SUBCOMMANDS"
+.LP
+.TP
+.B signconf
+Force write of signer configuration files for all zones.
+.TP
+.B update conf  
+Update the configuration from conf.xml and reload the enforcer.
+.TP
+.B update repository list 
+List repositories.
+.TP
+.B  update all 
+Perform policy import, zonelist import, and update repository list.
+.LP
+.SH "POLICY ADMINISTRATION SUBCOMMNADS"
+.LP
+.TP
+.B policy list
+List all policies in the database.
+.TP
+.B policy export (--policy <policy> | --all)
+Export a specified policy or all of them from the database.
+.TP
+.B policy import
+Import policies from kasp.xml into the enforcer database.
+.TP
+.B policy purge
+This command will remove any policies from the database which have no associated zones. Use with caution.
+.TP
+.B policy resalt
+Generate new NSEC3 salts for policies that have salts older than the resalt duration.
+.LP
+.SH "ZONE MANAGEMENT SUBCOMMANDS"
+.LP
+.TP
+.B zone list
+List all zones currently in the database.
+.TP
+.B zone add --zone <zone> [--policy <policy>] [--signerconf <path>] [--in-type <type>] [--input <path>] [--out-type <type>] [--output <path>] [--xml] [--suspend] 
+Add a new zone to the enforcer database.
+.TP
+.B zone delete (--zone <zone> | --all [--xml])
+Delete a zone or all of zones from the enforcer database. 
+.TP
+.B zonelist export
+Export list of zones from the database to the zonelist.xml file.
+.TP
+.B zonelist import [--remove-missing-zones] [--file <absolute path>]
+Import zones from zonelist.xml into the enforcer database.
+.LP
+.SH "KEY MANAGEMENT SUBCOMMANDS"
+.LP
+.TP
+.B key list [--verbose] [--debug] [--parsable] [--zone] [--keystate] [--all]
+List information about keys in all zones, or in a particular zone from the database.
+.TP 
+.B key export (--zone <zone> | --all) [--keystate <state>] [--keytype <type>] [--ds]
+Export DNSKEY(s) for a given zone/all from the database. 
+.TP
+.B key import --cka_id <CKA_ID> --repository <repository> --zone <zone> --bits <size> --algorithm <algorithm> --keystate <state> --keytype <type> --inception_time <time>
+Add a key which was created outside of the OpenDNSSEC code into the enforcer database.
+.TP
+.B key ds-submit --zone <zone> (--keytag <keytag> | --cka_id <CKA_ID>)
+Issue a ds-submit to the enforcer for a KSK.
+.TP
+.B key ds-seen --zone <zone> (--keytag <keytag> | --cka_id <CKA_ID>)
+Issue a ds-seen to the enforcer for a KSK.
+.TP
+.B key ds-seen --all
+Issue a ds-seen for all ready (for ds-seen) KSKs. This command indicates to OpenDNSSEC that a submitted DS record has appeared in the parent zone, and thereby trigger the completion of a KSK rollover.
+.TP
+.B key ds-retract --zone <zone> (--keytag <keytag> | --cka_id <CKA_ID>)
+Issue a ds-retract to the enforcer for a KSK.
+.TP
+.B key ds-gone --zone <zone> (--keytag <keytag> | --cka_id <CKA_ID>)
+Issue a ds-gone to the enforcer for a KSK.
+.TP
+.B key generate --duration <duration> (--policy <policy> | --all)
+Pre-generate keys for all or a given policy, the duration to pre-generate for can be specified or otherwise its taken from the conf.xml. 
+.TP
+.B key purge (--policy <policy> | --zone <zone>)
+This command will remove keys from the database and HSM that are dead.
+.TP
+.B key rollover (--zone <zone> | --policy <policy>) [--keytype <keytype> | --all]
+Start a key rollover of the desired type *now* or all of them. The process is the same as for the scheduled automated rollovers however it does not wait for the keys lifetime to expire before rolling. The next rollover is due after the newest key aged passed its lifetime.
+.TP
+.B rollover list [--zone <zone>]
+List the expected dates and times of upcoming rollovers. This can be used to get an idea of upcoming works.
+.LP
+.SH "REPOSITORY AND BACKUP SUBCOMMANDS"
+.LP
+.TP 
+.B backup list --repository <repository>
+Enumerate backup status of keys.
+.TP
+.B backup prepare --repository <repository>
+Flag the keys found in all configured HSMs as to be backed up.
+.TP
+.B backup commit --repository <repository>
+Mark flagged keys found in all configured HSMs as backed up.
+.TP
+.B backup rollback --repository <repository>
+.TP
+.B repository list
+List repositories.
+.LP
+.SH "FILES"
+.LP
+.TP
+.B /etc/opendnssec/conf.xml
+The main configuration file for OpenDNSSEC.
+.TP
+.B /etc/opendnssec/zonelist.xml
+The list of zones as defined in conf.xml. This list is used during 'zonelist import'.
+.TP
+.B /etc/opendnssec/kasp.xml
+The configuration of policies that define timing and security, as defined in conf.xml.
+.TP
+.B /var/opendnssec/unsigned/
+The location that is usually configured in conf.xml which contains unsigned zones.
+.TP
+.B /var/opendnssec/signed/
+The location that is usually configured in conf.xml which contains signed zones.
 .P
 .SH "DIAGNOSTICS"
 .LP
 will log all the problems via stderr.
 .SH "SEE ALSO"
 .LP
-ods\-auditor(1), ods\-control(8), ods\-enforcerd(8), ods\-hsmspeed(1),
-ods\-hsmutil(1), ods\-kaspcheck(1), ods\-ksmutil(1), 
-ods\-enforcerd(8), ods\-timing(5), opendnssec(7),
+ods\-control(8), ods\-enforcerd(8), ods\-signerd(8),
+ods\-signer(8), ods\-ksmutil(1), ods\-kasp(5), 
+ods\-kaspcheck(1), ods\-timing(5), ods\-hsmspeed(1),
+ods\-hsmutil(1), opendnssec(7),
 .B http://www.opendnssec.org/
 .SH "AUTHORS"
 .LP

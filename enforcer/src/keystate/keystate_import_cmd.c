@@ -352,14 +352,14 @@ static void
 help(int sockfd)
 {
 	client_printf(sockfd,
-		"Import DNSKEY(s) for a given zone to the database.\n"
+		"Add a key which was created outside of the OpenDNSSEC into the enforcer database.\n"
 		"\nOptions:\n"
 		"cka_id		specify the locator of the key\n"
-		"repository	name of the repository\n"
-		"zone		name of the zone\n"
-		"bits		number of bits\n"
+		"repository	name of the repository which the key must be stored\n"
+		"zone		name of the zone for which this key is to be used\n"
+		"bits		key size in bits\n"
 		"algorithm	algorithm number \n"
-		"keystate	state of the key\n"
+		"keystate	state of the key in which the key will be after import\n"
 		"keytype		type of the key, KSK, ZSK or CSK\n"
 		"inception_time	time of inception\n\n");
 }

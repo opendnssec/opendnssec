@@ -674,12 +674,14 @@ zone_del_rr(zone_type* zone, ldns_rr* rr, int do_stats)
 /**
  * Delete NSEC3PARAM RRs.
  *
+ * Marks all NSEC3PARAM records as removed.
  */
 ods_status
 zone_del_nsec3params(zone_type* zone)
 {
     domain_type* domain = NULL;
     rrset_type* rrset = NULL;
+    int i;
 
     ods_log_assert(zone);
     ods_log_assert(zone->name);
@@ -694,13 +696,17 @@ zone_del_nsec3params(zone_type* zone)
 
     rrset = domain_lookup_rrset(domain, LDNS_RR_TYPE_NSEC3PARAMS);
     if (!rrset) {
-        ods_log_warning("[%s] unable to delete RR from zone %s: "
-            "RRset not found", zone_str, zone->name);
+        ods_log_verbose("[%s] NSEC3PARAM in zone %s not found: "
+            "skipping delete", zone_str, zone->name);
         return ODS_STATUS_UNCHANGED;
     }
 
-    while(rrset->rr_count) {
-        rrset_del_rr(rrset, 0);
+    /* We don't actually delete the record as we still need the
+     * information in the IXFR. Just set it as removed. The code
+     * inserting the new record may flip this flag when the record
+     * hasn't changed. */
+    for (i=0; i < rrset->rr_count; i++) {
+        rrset->rrs[i].is_removed = 1;
     }
     return ODS_STATUS_OK;
 }

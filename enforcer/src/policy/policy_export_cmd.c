@@ -52,9 +52,9 @@ static void
 help(int sockfd)
 {
     client_printf(sockfd,
-        "Export policies.\n"
+        "Export a specified policy or all of them from the database.\n"
 	"\nOptions:\n"
-        "policy|all	export a specified policy or all of them\n\n"
+        "policy|all	limit the operation to a specified policy or all of them\n\n"
     );
 }
 

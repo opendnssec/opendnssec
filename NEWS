@@ -1,3 +1,8 @@
+* OpenDNSSEC-99: Skip "are you sure" messages. Add --force and -f flag to
+  ods-enforcer-db-setup and hsmutil purge
+* OpenDNSSEC-771: Signer. Do not log warning on deleting a missing 
+  NSEC3PARAM RR.
+
 OpenDNSSEC 2.0b1 - 2016-04-14
 
 First public release of OpenDNSSEC.  Initial pre-releases have been
