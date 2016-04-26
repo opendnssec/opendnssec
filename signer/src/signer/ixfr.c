@@ -222,7 +222,7 @@ part_print(FILE* fd, ixfr_type* ixfr, size_t i)
     }
     zone = (zone_type*) ixfr->zone;
     part = ixfr->part[i];
-    if (!part) {
+    if (!part || !part->soamin || !part->soaplus) {
         return;
     }
     ods_log_assert(part->min);
