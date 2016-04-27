@@ -175,6 +175,8 @@ getkey2(hsm_ctx_t* ctx, const char* locator)
     while (ptr) {
         if(!strcmp(locator, ptr->id)) {
             return ptr->cached;
+        } else {
+            ptr = ptr->next;
         }
     }
     
