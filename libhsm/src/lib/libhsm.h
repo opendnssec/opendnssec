@@ -124,12 +124,6 @@ struct hsm_repository_struct {
     uint8_t use_pubkey;     /*!< use public keys in repository? */
 };
 
-struct keycache_struct {
-    struct keycache_struct* next;
-    const char* id;
-    libhsm_key_t* cached;
-};
-
 /*! HSM context to keep track of sessions */
 typedef struct {
     hsm_session_t *session[HSM_MAX_SESSIONS];  /*!< HSM sessions */
