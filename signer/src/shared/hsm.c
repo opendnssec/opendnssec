@@ -32,8 +32,11 @@
 #include "daemon/engine.h"
 #include "shared/hsm.h"
 #include "shared/log.h"
+#include "cryptoki_compat/pkcs11.h"
 
 static const char* hsm_str = "hsm";
+
+extern libhsm_key_t* getkey2(hsm_ctx_t* ctx, const char* locator);
 
 /**
  * Clear key cache.
@@ -48,10 +51,6 @@ lhsm_clear_key_cache(key_type* key)
     if (key->dnskey) {
         /* DNSKEY still exists in zone */
         key->dnskey = NULL;
-    }
-    if (key->hsmkey) {
-        hsm_key_free(key->hsmkey);
-        key->hsmkey = NULL;
     }
     if (key->params) {
         hsm_sign_params_free(key->params);
@@ -101,28 +100,9 @@ lhsm_key_start:
             return ODS_STATUS_ERR;
         }
     }
-    /* lookup key */
-    if (!key_id->hsmkey) {
-        key_id->hsmkey = hsm_find_key_by_id(ctx, key_id->locator);
-    }
-    if (!key_id->hsmkey) {
-        error = hsm_get_error(ctx);
-        if (error) {
-            ods_log_error("[%s] %s", hsm_str, error);
-            free((void*)error);
-        } else if (!retries) {
-            lhsm_clear_key_cache(key_id);
-            retries++;
-            goto lhsm_key_start;
-        }
-        /* could not find key */
-        ods_log_error("[%s] unable to get key: key %s not found", hsm_str,
-            key_id->locator?key_id->locator:"(null)");
-        return ODS_STATUS_ERR;
-    }
     /* get dnskey */
     if (!key_id->dnskey) {
-        key_id->dnskey = hsm_get_dnskey(ctx, key_id->hsmkey, key_id->params);
+        key_id->dnskey = hsm_get_dnskey(ctx, getkey2(ctx, key_id->locator), key_id->params);
     }
     if (!key_id->dnskey) {
         error = hsm_get_error(ctx);
@@ -161,7 +141,6 @@ lhsm_sign(hsm_ctx_t* ctx, ldns_rr_list* rrset, key_type* key_id,
         return NULL;
     }
     ods_log_assert(key_id->dnskey);
-    ods_log_assert(key_id->hsmkey);
     ods_log_assert(key_id->params);
     /* adjust parameters */
     params = hsm_sign_params_new();
@@ -174,7 +153,7 @@ lhsm_sign(hsm_ctx_t* ctx, ldns_rr_list* rrset, key_type* key_id,
     ods_log_deeebug("[%s] sign RRset[%i] with key %s tag %u", hsm_str,
         ldns_rr_get_type(ldns_rr_list_rr(rrset, 0)),
         key_id->locator?key_id->locator:"(null)", params->keytag);
-    result = hsm_sign_rrset(ctx, rrset, key_id->hsmkey, params);
+    result = hsm_sign_rrset(ctx, rrset, getkey2(ctx, key_id->locator), params);
     hsm_sign_params_free(params);
     if (!result) {
         error = hsm_get_error(ctx);
@@ -185,4 +164,39 @@ lhsm_sign(hsm_ctx_t* ctx, ldns_rr_list* rrset, key_type* key_id,
         ods_log_crit("[%s] error signing rrset with libhsm", hsm_str);
     }
     return result;
+}
+
+libhsm_key_t*
+getkey2(hsm_ctx_t* ctx, const char* locator)
+{
+    libhsm_key_t* key;
+    struct keycache_struct* ptr;
+    
+    ptr = ctx->keycache;
+    while (ptr) {
+        if(!strcmp(locator, ptr->id)) {
+            return ptr->cached;
+        } else {
+            ptr = ptr->next;
+        }
+    }
+    
+    if((key = hsm_find_key_by_id(ctx, locator)) == NULL) {
+        char* error = hsm_get_error(ctx);
+        if (error) {
+            ods_log_error("[%s] %s", hsm_str, error);
+            free((void*)error);
+        }
+        /* could not find key */
+        ods_log_error("[%s] unable to get key: key %s not found", hsm_str, locator);
+        return NULL;
+    }
+    
+    ptr = malloc(sizeof(struct keycache_struct));
+    ptr->id = strdup(locator);
+    ptr->cached = key;
+    ptr->next = ctx->keycache;
+    ctx->keycache = ptr;
+
+    return key;
 }

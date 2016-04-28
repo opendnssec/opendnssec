@@ -110,6 +110,12 @@ typedef struct {
   unsigned long keysize;         /*!< key size */
 } hsm_key_info_t;
 
+struct keycache_struct {
+    struct keycache_struct* next;
+    const char* id;
+    libhsm_key_t* cached;
+};
+
 /*! HSM context to keep track of sessions */
 typedef struct {
     hsm_session_t *session[HSM_MAX_SESSIONS];  /*!< HSM sessions */
@@ -124,6 +130,8 @@ typedef struct {
 
     /*!< static string describing the first error */
     char error_message[HSM_ERROR_MSGSIZE];
+    
+    struct keycache_struct* keycache;
 } hsm_ctx_t;
 
 

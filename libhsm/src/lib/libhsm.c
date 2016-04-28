@@ -643,6 +643,7 @@ hsm_ctx_new()
     memset(ctx->session, 0, HSM_MAX_SESSIONS);
     ctx->session_count = 0;
     ctx->error = 0;
+    ctx->keycache = NULL;
     return ctx;
 }
 
@@ -650,12 +651,20 @@ hsm_ctx_new()
 static void
 hsm_ctx_free(hsm_ctx_t *ctx)
 {
+    struct keycache_struct* next;
     unsigned int i;
     if (ctx) {
         for (i = 0; i < ctx->session_count; i++) {
             hsm_session_free(ctx->session[i]);
         }
         free(ctx);
+    }
+    
+    while(ctx->keycache != NULL) {
+        next = ctx->keycache->next;
+        free((void*)ctx->keycache->id);
+        free((void*)ctx->keycache);
+        ctx->keycache = next;
     }
 }
 
