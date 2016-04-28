@@ -3351,17 +3351,20 @@ keycache_lookup(hsm_ctx_t* ctx, const char* locator)
     ldns_rbnode_t* node;
 
     node = ldns_rbtree_search(ctx->keycache, locator);
-    if (node == NULL) {
+    if (node == LDNS_RBTREE_NULL || node == NULL) {
         libhsm_key_t* key;
         if ((key = hsm_find_key_by_id(ctx, locator)) == NULL) {
-            return NULL;
+            node = NULL;
+        } else {
+            node = malloc(sizeof(ldns_rbnode_t));
+            node->key = strdup(locator);
+            node->data = key;
+            node = ldns_rbtree_insert(ctx->keycache, node);
         }
-
-        node = malloc(sizeof(ldns_rbnode_t));
-        node->key = strdup(locator);
-        node->data = key;
-        ldns_rbtree_insert(ctx->keycache, node);
     }  
 
-    return node->key;
+    if (node == LDNS_RBTREE_NULL)
+        return NULL;
+    else
+        return node->data;
 }
