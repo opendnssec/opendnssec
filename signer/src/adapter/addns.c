@@ -640,7 +640,10 @@ dnsout_update(dnsout_type** addns, const char* filename, time_t* last_mod)
     } else {
         ods_log_error("[%s] unable to update dnsout: dnsout_read(%s) "
             "failed (%s)", adapter_str, filename, ods_status2str(status));
-        dnsout_cleanup(*addns);
+        /* Don't do this cleanup. Signer will crash on exit and will
+         * access the wrong memory runtime. Leak is only once per badly
+         * configured adapter. */
+        /* dnsout_cleanup(*addns); */
     }
     return status;
 }
