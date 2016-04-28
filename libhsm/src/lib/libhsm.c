@@ -652,7 +652,6 @@ hsm_ctx_new()
 static void
 hsm_ctx_free(hsm_ctx_t *ctx)
 {
-    struct keycache_struct* next;
     unsigned int i;
     if (ctx) {
         for (i = 0; i < ctx->session_count; i++) {
@@ -2714,7 +2713,7 @@ hsm_key_list_free(hsm_key_t **key_list, size_t count)
 {
     size_t i;
     for (i = 0; i < count; i++) {
-        free(key_list[i]->modulename);
+        free((void*)key_list[i]->modulename);
         hsm_key_free(key_list[i]);
     }
     free(key_list);
@@ -3365,6 +3364,7 @@ keycache_cmpfunc(const void* a, const void* b)
 static void
 keycache_delfunc(ldns_rbnode_t* node, void* cargo)
 {
+    (void)cargo;
     free((void*)node->key);
     free((void*)node->data);
 }
