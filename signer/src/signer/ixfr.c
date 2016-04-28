@@ -222,7 +222,7 @@ part_print(FILE* fd, ixfr_type* ixfr, size_t i)
     }
     zone = (zone_type*) ixfr->zone;
     part = ixfr->part[i];
-    if (!part) {
+    if (!part || !part->soamin || !part->soaplus) {
         return;
     }
     ods_log_assert(part->min);
@@ -279,6 +279,17 @@ ixfr_purge(ixfr_type* ixfr)
     if (!ixfr) {
         return;
     }
+
+    if (ixfr->part[0] &&
+        (!ixfr->part[0]->soamin || !ixfr->part[0]->soaplus))
+    {
+        /* Somehow the signer does a double purge without having used
+         * this part. There is no need to create a new one. In fact,
+         * we should not. It would cause an assertion later on when
+         * printing to file */
+        return;
+    }
+
     zone = (zone_type*) ixfr->zone;
     ods_log_assert(zone);
     ods_log_assert(zone->allocator);

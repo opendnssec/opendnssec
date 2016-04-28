@@ -570,6 +570,8 @@ zone_add_rr(zone_type* zone, ldns_rr* rr, int do_stats)
     rrset_type* rrset = NULL;
     rr_type* record = NULL;
     ods_status status = ODS_STATUS_OK;
+    char* str = NULL;
+    int i;
 
     ods_log_assert(rr);
     ods_log_assert(zone);
@@ -619,6 +621,17 @@ zone_add_rr(zone_type* zone, ldns_rr* rr, int do_stats)
         ods_log_assert(record);
         ods_log_assert(record->rr);
         ods_log_assert(record->is_added);
+        if (ldns_rr_ttl(rr) != ldns_rr_ttl(rrset->rrs[0].rr)) {
+            str = ldns_rr2str(rr);
+            str[(strlen(str)) - 1] = '\0';
+            for (i = 0; i < strlen(str); i++) {
+                if (str[i] == '\t') {
+                    str[i] = ' ';
+                }
+            }
+            ods_log_error("In zone file %s: TTL for the record '%s' set to %d", zone->name, str, ldns_rr_ttl(rrset->rrs[0].rr));
+            LDNS_FREE(str);
+        }
     }
     /* update stats */
     if (do_stats && zone->stats) {

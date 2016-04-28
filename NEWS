@@ -3,6 +3,10 @@ OpenDNSSEC 1.4.x - 2016-xx-xx
 Bugfixes:
  * After a resalt the signer would fail to remove the old NSEC3PARAM RR until
    a manual resign or incoming transfer.
+ * OPENDNSSEC-725: Signer did not properly handle new update while still
+   distributing notifies to slaves.
+ * SUPPORT-171: Signer would sometimes hit an assertion using DNS output 
+   adapter when .ixfr was missing or corrupt but .backup file available.
 
 OpenDNSSEC 1.4.9 - 2016-01-21
 
