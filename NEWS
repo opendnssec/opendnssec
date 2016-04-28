@@ -1,4 +1,4 @@
-OpenDNSSEC 1.4.x - 2016-xx-xx
+OpenDNSSEC 1.4.10 - 2016-05-02
 
 Bugfixes:
  * After a resalt the signer would fail to remove the old NSEC3PARAM RR until
