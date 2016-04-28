@@ -249,3 +249,4 @@ tools/solaris/Makefile
 tools/solaris/Makefile.in
 tools/solaris/ods-enforcerd.init
 tools/solaris/ods-signerd.init
+/build/

@@ -41,14 +41,14 @@ int server_init(DAEMONCONFIG *config);
 void server_main(DAEMONCONFIG *config);
 
 int do_keygen(DAEMONCONFIG *config, KSM_POLICY* policy, hsm_ctx_t *ctx);
-int do_communication(DAEMONCONFIG *config, KSM_POLICY* policy, bool all_policies);
+int do_communication(hsm_ctx_t* ctx, DAEMONCONFIG *config, KSM_POLICY* policy, bool all_policies);
 
-int commGenSignConf(char* zone_name, int zone_id, char* current_filename, KSM_POLICY *policy, int* signer_flag, int run_interval, int man_key_gen, const char* DSSubmitCmd, int DSSubCKA_ID);
+int commGenSignConf(hsm_ctx_t* ctx, char* zone_name, int zone_id, char* current_filename, KSM_POLICY *policy, int* signer_flag, int run_interval, int man_key_gen, const char* DSSubmitCmd, int DSSubCKA_ID);
 int commKeyConfig(void* context, KSM_KEYDATA* key_data);
 int allocateKeysToZone(KSM_POLICY *policy, int key_type, int zone_id, uint16_t interval, const char* zone_name, int man_key_gen, int rollover_scheme);
 int read_zonelist_filename(const char* filename, char** zone_list_filename);
-int do_purge(int interval, int policy_id);
-int NewDSSet(int zone_id, const char* zone_name, const char* DSSubmitCmd, int DSSubCKA_ID);
+int do_purge(hsm_ctx_t* ctx, int interval, int policy_id);
+int NewDSSet(hsm_ctx_t* ctx, int zone_id, const char* zone_name, const char* DSSubmitCmd, int DSSubCKA_ID);
 void check_hsm_connection(hsm_ctx_t **ctx, DAEMONCONFIG *config);
 
 #endif /* ENFORCER_H */

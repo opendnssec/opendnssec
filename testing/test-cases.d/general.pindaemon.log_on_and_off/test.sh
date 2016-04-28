@@ -31,7 +31,7 @@ log_grep ods-hsmutil-login-fail stderr 'hsm_session_init(): Incorrect PIN for re
 syslog_waitfor 10 'ods-enforcerd: .*hsm_check_pin(): No PIN in shared memory. Please login with "ods-hsmutil login"' &&
 
 ! log_this_timeout ods-control-signer-start 60 ods-control signer start &&
-syslog_waitfor 10 'ods-signerd: .*\[hsm\].*hsm_check_pin(): No PIN in shared memory. Please login with "ods-hsmutil login"' &&
+syslog_waitfor 10 'ods-signerd: .*hsm_check_pin(): No PIN in shared memory. Please login with "ods-hsmutil login"' &&
 
 ! pgrep -u `id -u` '(ods-enforcerd|ods-signerd)' >/dev/null 2>/dev/null &&
 

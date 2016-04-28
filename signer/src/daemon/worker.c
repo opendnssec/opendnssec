@@ -159,6 +159,7 @@ worker_queue_rrset(worker_type* worker, fifoq_type* q, rrset_type* rrset)
     ods_status status = ODS_STATUS_UNCHANGED;
     int tries = 0;
     ods_log_assert(worker);
+    ods_log_assert(worker->task);
     ods_log_assert(q);
     ods_log_assert(rrset);
 
@@ -350,8 +351,13 @@ worker_perform_task(worker_type* worker)
                     task_who2str(task));
                 status = ODS_STATUS_ERR;
             } else {
-                lhsm_check_connection((void*)engine);
-                status = tools_input(zone);
+                if (hsm_check_context()) {
+                    ods_log_error("signer instructed to reload due to hsm reset in read task");
+                    engine->need_to_reload = 1;
+                    status = ODS_STATUS_ERR;
+                } else {
+                    status = tools_input(zone);
+                }
             }
 
             if (status == ODS_STATUS_UNCHANGED) {
@@ -408,7 +414,11 @@ worker_perform_task(worker_type* worker)
                 lock_basic_unlock(&zone->stats->stats_lock);
             }
             /* check the HSM connection before queuing sign operations */
-            lhsm_check_connection((void*)engine);
+            if (hsm_check_context()) {
+                ods_log_error("signer instructed to reload due to hsm reset in sign task");
+                engine->need_to_reload = 1;
+                goto task_perform_fail;
+            }
             /* prepare keys */
             status = zone_prepare_keys(zone);
             if (status == ODS_STATUS_OK) {
@@ -687,7 +697,8 @@ worker_drudge(worker_type* worker)
              */
             lock_basic_sleep(&engine->signq->q_threshold,
                 &engine->signq->q_lock, 0);
-            rrset = (rrset_type*) fifoq_pop(engine->signq, &superior);
+            if(worker->need_to_exit == 0)
+                rrset = (rrset_type*) fifoq_pop(engine->signq, &superior);
         }
         lock_basic_unlock(&engine->signq->q_lock);
         /* do some work */
@@ -702,6 +713,7 @@ worker_drudge(worker_type* worker)
                 ods_log_crit("[%s[%i]] error creating libhsm context",
                     worker2str(worker->type), worker->thread_num);
                 engine->need_to_reload = 1;
+                ods_log_error("signer instructed to reload due to hsm reset while signing");
                 lock_basic_lock(&superior->worker_lock);
                 superior->jobs_failed++;
                 lock_basic_unlock(&superior->worker_lock);

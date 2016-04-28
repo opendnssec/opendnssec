@@ -606,6 +606,7 @@ cmdhandler_handle_cmd_reload(int sockfd, cmdhandler_type* cmdc)
     ods_log_assert(cmdc);
     ods_log_assert(cmdc->engine);
     engine = (engine_type*) cmdc->engine;
+    ods_log_error("signer instructed to reload due to explicit command");
     engine->need_to_reload = 1;
     lock_basic_lock(&engine->signal_lock);
     lock_basic_alarm(&engine->signal_cond);

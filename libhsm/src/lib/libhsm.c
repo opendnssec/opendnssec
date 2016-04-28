@@ -45,12 +45,14 @@
 #include "compat.h"
 
 #include <pkcs11.h>
+#include <pthread.h>
 
 /*! Fixed length from PKCS#11 specification */
 #define HSM_TOKEN_LABEL_LENGTH 32
 
-/*! Global (initial) context */
+/*! Global (initial) context, with mutex to serialize access to it */
 hsm_ctx_t *_hsm_ctx;
+pthread_mutex_t _hsm_ctx_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /*! General PKCS11 helper functions */
 static char *
@@ -769,7 +771,7 @@ hsm_key_new()
 {
     hsm_key_t *key;
     key = malloc(sizeof(hsm_key_t));
-    key->module = NULL;
+    key->modulename = NULL;
     key->private_key = 0;
     key->public_key = 0;
     return key;
@@ -781,10 +783,9 @@ static hsm_session_t *
 hsm_find_key_session(hsm_ctx_t *ctx, const hsm_key_t *key)
 {
     unsigned int i;
-    if (!key || !key->module) return NULL;
-    if (!ctx) ctx = _hsm_ctx;
+    if (!key || !key->modulename) return NULL;
     for (i = 0; i < ctx->session_count; i++) {
-        if (ctx->session[i] && ctx->session[i]->module == key->module) {
+        if (ctx->session[i] && !strcmp(ctx->session[i]->module->name, key->modulename)) {
             return ctx->session[i];
         }
     }
@@ -1121,7 +1122,7 @@ hsm_key_new_privkey_object_handle(hsm_ctx_t *ctx,
     if (!id) return NULL;
 
     key = hsm_key_new();
-    key->module = session->module;
+    key->modulename = strdup(session->module->name);
     key->private_key = object;
     
     if (session->module->config->use_pubkey) {
@@ -1301,7 +1302,6 @@ hsm_find_key_by_id_bin(hsm_ctx_t *ctx,
     hsm_key_t *key;
     unsigned int i;
 
-    if (!ctx) ctx = _hsm_ctx;
     if (!id) return NULL;
 
     for (i = 0; i < ctx->session_count; i++) {
@@ -2007,6 +2007,7 @@ hsm_open(const char *config,
     int tries;
     int repositories = 0;
 
+    pthread_mutex_lock(&_hsm_ctx_mutex);
     /* create an internal context with an attached session for each
      * configured HSM. */
     _hsm_ctx = hsm_ctx_new();
@@ -2136,37 +2137,45 @@ hsm_open(const char *config,
     if (result == HSM_OK && repositories == 0) {
         hsm_ctx_set_error(_hsm_ctx, HSM_NO_REPOSITORIES, "hsm_open()",
             "No repositories found");
-        return HSM_NO_REPOSITORIES;
+        result = HSM_NO_REPOSITORIES;
     }
+
+    pthread_mutex_unlock(&_hsm_ctx_mutex);
 
     return result;
 }
 
-int
+void
 hsm_close()
 {
+    pthread_mutex_lock(&_hsm_ctx_mutex);
     hsm_ctx_close(_hsm_ctx, 1);
-    return 0;
+    _hsm_ctx = NULL;
+    pthread_mutex_unlock(&_hsm_ctx_mutex);
 }
 
 hsm_ctx_t *
 hsm_create_context()
 {
-    return hsm_ctx_clone(_hsm_ctx);
+    hsm_ctx_t* newctx;
+    pthread_mutex_lock(&_hsm_ctx_mutex);
+    newctx = hsm_ctx_clone(_hsm_ctx);
+    pthread_mutex_unlock(&_hsm_ctx_mutex);
+    return newctx;
 }
 
 int
-hsm_check_context(hsm_ctx_t *ctx)
+hsm_check_context()
 {
     unsigned int i;
     hsm_session_t *session;
     CK_SESSION_INFO info;
     CK_RV rv;
     CK_SESSION_HANDLE session_handle;
+    hsm_ctx_t *ctx;
 
-    if (ctx == NULL) {
-        ctx = _hsm_ctx;
-    }
+    pthread_mutex_lock(&_hsm_ctx_mutex);
+    ctx = _hsm_ctx;
 
     for (i = 0; i < ctx->session_count; i++) {
         session = ctx->session[i];
@@ -2177,6 +2186,7 @@ hsm_check_context(hsm_ctx_t *ctx)
                                         session->session,
                                         &info);
         if (hsm_pkcs11_check_error(ctx, rv, "get session info")) {
+            pthread_mutex_unlock(&_hsm_ctx_mutex);
             return HSM_ERROR;
         }
 
@@ -2184,6 +2194,7 @@ hsm_check_context(hsm_ctx_t *ctx)
         if (info.state != CKS_RW_USER_FUNCTIONS) {
             hsm_ctx_set_error(ctx, HSM_ERROR, "hsm_check_context()",
                               "Session not logged in");
+            pthread_mutex_unlock(&_hsm_ctx_mutex);
             return HSM_ERROR;
         }
 
@@ -2194,14 +2205,17 @@ hsm_check_context(hsm_ctx_t *ctx)
                                         NULL,
                                         &session_handle);
         if (hsm_pkcs11_check_error(ctx, rv, "test open session")) {
+            pthread_mutex_unlock(&_hsm_ctx_mutex);
             return HSM_ERROR;
         }
         rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_CloseSession(session_handle);
         if (hsm_pkcs11_check_error(ctx, rv, "test close session")) {
+            pthread_mutex_unlock(&_hsm_ctx_mutex);
             return HSM_ERROR;
         }
     }
 
+    pthread_mutex_unlock(&_hsm_ctx_mutex);
     return HSM_OK;
 }
 
@@ -2249,10 +2263,6 @@ hsm_list_keys(hsm_ctx_t *ctx, size_t *count)
     hsm_key_t **session_keys;
     unsigned int i, j;
 
-    if (!ctx) {
-        ctx = _hsm_ctx;
-    }
-
     for (i = 0; i < ctx->session_count; i++) {
         session_keys = hsm_list_keys_session(ctx, ctx->session[i],
                                              &cur_key_count);
@@ -2284,7 +2294,6 @@ hsm_list_keys_repository(hsm_ctx_t *ctx,
     hsm_session_t *session;
 
     if (!repository) return NULL;
-    if (!ctx) ctx = _hsm_ctx;
 
     session = hsm_find_repository_session(ctx, repository);
     if (!session) {
@@ -2362,7 +2371,6 @@ hsm_generate_rsa_key(hsm_ctx_t *ctx,
     CK_BBOOL ctoken = CK_TRUE;
     CK_BBOOL cextractable = CK_FALSE;
 
-    if (!ctx) ctx = _hsm_ctx;
     session = hsm_find_repository_session(ctx, repository);
     if (!session) return NULL;
     cextractable = session->module->config->allow_extract ? CK_TRUE : CK_FALSE;
@@ -2417,7 +2425,7 @@ hsm_generate_rsa_key(hsm_ctx_t *ctx,
     }
 
     new_key = hsm_key_new();
-    new_key->module = session->module;
+    new_key->modulename = strdup(session->module->name);
 
     if (session->module->config->use_pubkey) {
         new_key->public_key = publicKey;
@@ -2449,6 +2457,18 @@ hsm_generate_dsa_key(hsm_ctx_t *ctx,
     unsigned char id[16];
     /* that's 33 bytes in string (16*2 + 1 for \0) */
     char id_str[33];
+
+    session = hsm_find_repository_session(ctx, repository);
+    if (!session) return NULL;
+
+    /* check whether this key doesn't happen to exist already */
+    do {
+        hsm_random_buffer(ctx, id, 16);
+    } while (hsm_find_key_by_id_bin(ctx, id, 16));
+    /* the CKA_LABEL will contain a hexadecimal string representation
+     * of the id */
+    hsm_hex_unparse(id_str, id, 16);
+
 
     CK_KEY_TYPE keyType = CKK_DSA;
     CK_MECHANISM mechanism1 = {
@@ -2543,8 +2563,8 @@ hsm_generate_dsa_key(hsm_ctx_t *ctx,
     }
 
     new_key = hsm_key_new();
-    new_key->module = session->module;
-    new_key->public_key = publicKey;        
+    new_key->modulename = strdup(session->module->name);
+    new_key->public_key = publicKey;
     new_key->private_key = privateKey;
 
     return new_key;
@@ -2566,6 +2586,18 @@ hsm_generate_gost_key(hsm_ctx_t *ctx,
     unsigned char id[16];
     /* that's 33 bytes in string (16*2 + 1 for \0) */
     char id_str[33];
+
+    session = hsm_find_repository_session(ctx, repository);
+    if (!session) return NULL;
+
+    /* check whether this key doesn't happen to exist already */
+
+    do {
+        hsm_random_buffer(ctx, id, 16);
+    } while (hsm_find_key_by_id_bin(ctx, id, 16));
+    /* the CKA_LABEL will contain a hexadecimal string representation
+     * of the id */
+    hsm_hex_unparse(id_str, id, 16);
 
     CK_KEY_TYPE keyType = CKK_GOSTR3410;
     CK_MECHANISM mechanism = {
@@ -2600,7 +2632,6 @@ hsm_generate_gost_key(hsm_ctx_t *ctx,
         { CKA_EXTRACTABLE,         &cextractable,  sizeof (cextractable) }
     };
 
-    if (!ctx) ctx = _hsm_ctx;
     session = hsm_find_repository_session(ctx, repository);
     if (!session) return NULL;
     cextractable = session->module->config->allow_extract ? CK_TRUE : CK_FALSE;
@@ -2629,8 +2660,8 @@ hsm_generate_gost_key(hsm_ctx_t *ctx,
     }
 
     new_key = hsm_key_new();
-    new_key->module = session->module;
-    new_key->public_key = publicKey;        
+    new_key->modulename = strdup(session->module->name);
+    new_key->public_key = publicKey;
     new_key->private_key = privateKey;
 
     return new_key;
@@ -2641,7 +2672,6 @@ hsm_remove_key(hsm_ctx_t *ctx, hsm_key_t *key)
 {
     CK_RV rv;
     hsm_session_t *session;
-    if (!ctx) ctx = _hsm_ctx;
     if (!key) return -1;
 
     session = hsm_find_key_session(ctx, key);
@@ -2679,6 +2709,7 @@ hsm_key_list_free(hsm_key_t **key_list, size_t count)
 {
     size_t i;
     for (i = 0; i < count; i++) {
+        free(key_list[i]->modulename);
         hsm_key_free(key_list[i]);
     }
     free(key_list);
@@ -2692,7 +2723,6 @@ hsm_get_key_id(hsm_ctx_t *ctx, const hsm_key_t *key)
     size_t len;
     hsm_session_t *session;
 
-    if (!ctx) ctx = _hsm_ctx;
     if (!key) return NULL;
 
     session = hsm_find_key_session(ctx, key);
@@ -2722,7 +2752,6 @@ hsm_get_key_info(hsm_ctx_t *ctx,
     hsm_key_info_t *key_info;
     hsm_session_t *session;
 
-    if (!ctx) ctx = _hsm_ctx;
     session = hsm_find_key_session(ctx, key);
     if (!session) return NULL;
 
@@ -2789,7 +2818,6 @@ hsm_sign_rrset(hsm_ctx_t *ctx,
 
     if (!key) return NULL;
     if (!sign_params) return NULL;
-    if (!ctx) ctx = _hsm_ctx;
 
     signature = hsm_create_empty_rrsig((ldns_rr_list *)rrset,
                                        sign_params);
@@ -3007,7 +3035,6 @@ hsm_get_dnskey(hsm_ctx_t *ctx,
     hsm_session_t *session;
     ldns_rdf *rdata;
 
-    if (!ctx) ctx = _hsm_ctx;
     if (!key) {
         hsm_ctx_set_error(ctx, -1, "hsm_get_dnskey()", "Got NULL key");
         return NULL;
@@ -3053,7 +3080,6 @@ hsm_random_buffer(hsm_ctx_t *ctx,
     unsigned int i;
     hsm_session_t *session;
     if (!buffer) return -1;
-    if (!ctx) ctx = _hsm_ctx;
 
     /* just try every attached token. If one errors (be it NO_RNG, or
      * any other error, simply try the next */
@@ -3124,10 +3150,9 @@ int hsm_attach(const char *repository,
                               pin,
                               config);
     if (result == HSM_OK) {
-        return hsm_ctx_add_session(_hsm_ctx, session);
-    } else {
-        return result;
+        result = hsm_ctx_add_session(_hsm_ctx, session);
     }
+    return result;
 }
 
 /*! Detach a named HSM */
@@ -3158,7 +3183,6 @@ int
 hsm_token_attached(hsm_ctx_t *ctx, const char *repository)
 {
     unsigned int i;
-    if (!ctx) ctx = _hsm_ctx;
     for (i = 0; i < ctx->session_count; i++) {
         if (ctx->session[i] &&
             strcmp(ctx->session[i]->module->name, repository) == 0) {
@@ -3237,14 +3261,8 @@ hsm_print_session(hsm_session_t *session)
 }
 
 void
-hsm_print_ctx(hsm_ctx_t *gctx) {
-    hsm_ctx_t *ctx;
+hsm_print_ctx(hsm_ctx_t *ctx) {
     unsigned int i;
-    if (!gctx) {
-        ctx = _hsm_ctx;
-    } else {
-        ctx = gctx;
-    }
     printf("CTX Sessions: %lu\n",
            (long unsigned int) ctx->session_count);
     for (i = 0; i < ctx->session_count; i++) {
@@ -3254,20 +3272,14 @@ hsm_print_ctx(hsm_ctx_t *gctx) {
 }
 
 void
-hsm_print_key(hsm_key_t *key) {
+hsm_print_key(hsm_ctx_t *ctx, hsm_key_t *key) {
     hsm_key_info_t *key_info;
     if (key) {
-        key_info = hsm_get_key_info(NULL, key);
+        key_info = hsm_get_key_info(ctx, key);
         if (key_info) {
             printf("key:\n");
-            printf("\tmodule: %p\n", (void *) key->module);
             printf("\tprivkey handle: %u\n", (unsigned int) key->private_key);
-            if (key->module->config->use_pubkey) {
-                printf("\tpubkey handle: %u\n", (unsigned int) key->public_key);
-            } else {
-                printf("\tpubkey handle: %s\n", "NULL");
-            }
-            printf("\trepository: %s\n", key->module->name);
+            printf("\trepository: %s\n", key->modulename);
             printf("\talgorithm: %s\n", key_info->algorithm_name);
             printf("\tsize: %lu\n", key_info->keysize);
             printf("\tid: %s\n", key_info->id);
@@ -3296,21 +3308,14 @@ hsm_print_error(hsm_ctx_t *gctx)
 }
 
 void
-hsm_print_tokeninfo(hsm_ctx_t *gctx)
+hsm_print_tokeninfo(hsm_ctx_t *ctx)
 {
     CK_RV rv;
     CK_SLOT_ID slot_id;
     CK_TOKEN_INFO token_info;
-    hsm_ctx_t *ctx;
     unsigned int i;
     hsm_session_t *session;
     int result;
-
-    if (!gctx) {
-        ctx = _hsm_ctx;
-    } else {
-        ctx = gctx;
-    }
 
     for (i = 0; i < ctx->session_count; i++) {
         session = ctx->session[i];

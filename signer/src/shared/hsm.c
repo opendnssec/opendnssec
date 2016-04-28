@@ -35,49 +35,6 @@
 
 static const char* hsm_str = "hsm";
 
-
-/**
- * Open HSM.
- *
- */
-int
-lhsm_open(const char* filename)
-{
-    int result = hsm_open(filename, hsm_check_pin);
-    if (result != HSM_OK) {
-        char* error =  hsm_get_error(NULL);
-        if (error != NULL) {
-            ods_log_error("[%s] %s", hsm_str, error);
-            free(error);
-        } else {
-            ods_log_crit("[%s] error opening libhsm (errno %i)", hsm_str,
-                result);
-        }
-        /* exit? */
-    } else {
-        ods_log_info("[%s] libhsm connection opened succesfully", hsm_str);
-    }
-    return result;
-}
-
-
-/**
- * Reopen HSM.
- *
- */
-int
-lhsm_reopen(const char* filename)
-{
-    if (hsm_check_context(NULL) != HSM_OK) {
-        ods_log_warning("[%s] idle libhsm connection, trying to reopen",
-            hsm_str);
-        hsm_close();
-        return lhsm_open(filename);
-    }
-    return HSM_OK;
-}
-
-
 /**
  * Clear key cache.
  *
@@ -100,29 +57,6 @@ lhsm_clear_key_cache(key_type* key)
         hsm_sign_params_free(key->params);
         key->params = NULL;
     }
-    return;
-}
-
-
-/**
- * Check the HSM connection, reload engine if necessary.
- *
- */
-void
-lhsm_check_connection(void* engine)
-{
-    engine_type* e = (engine_type*) engine;
-    if (hsm_check_context(NULL) != HSM_OK) {
-        ods_log_warning("[%s] idle libhsm connection, trying to reopen",
-            hsm_str);
-        engine_stop_drudgers(e);
-        hsm_close();
-        (void)lhsm_open(e->config->cfg_filename);
-        engine_start_drudgers((engine_type*) engine);
-    } else {
-        ods_log_debug("[%s] libhsm connection ok", hsm_str);
-    }
-    return;
 }
 
 
