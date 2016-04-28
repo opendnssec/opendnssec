@@ -29,6 +29,7 @@
 #define HSM_H 1
 
 #include <stdint.h>
+#include <ldns/rbtree.h>
 
 #define HSM_MAX_SESSIONS 100
 /* 
@@ -144,7 +145,7 @@ typedef struct {
     /*!< static string describing the first error */
     char error_message[HSM_ERROR_MSGSIZE];
     
-    struct keycache_struct* keycache;
+    ldns_rbtree_t* keycache;
 } hsm_ctx_t;
 
 
@@ -534,5 +535,12 @@ void hsm_print_ctx(hsm_ctx_t *ctx);
 void hsm_print_key(hsm_ctx_t *ctx, libhsm_key_t *key);
 void hsm_print_error(hsm_ctx_t *ctx);
 void hsm_print_tokeninfo(hsm_ctx_t *ctx);
+
+/* implementation of a key cache per context, needs changing see
+ * OPENDNSSEC-799.
+ */
+extern void keycache_create(hsm_ctx_t* ctx);
+extern void keycache_destroy(hsm_ctx_t* ctx);
+extern const libhsm_key_t* keycache_lookup(hsm_ctx_t* ctx, const char* locator);
 
 #endif /* HSM_H */
