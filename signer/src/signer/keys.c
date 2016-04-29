@@ -118,7 +118,6 @@ keylist_push(keylist_type* kl, const char* locator, const char* resourcerecord,
     kl->keys[kl->count -1].ksk = ksk;
     kl->keys[kl->count -1].zsk = zsk;
     kl->keys[kl->count -1].dnskey = NULL;
-    kl->keys[kl->count -1].hsmkey = NULL;
     kl->keys[kl->count -1].params = NULL;
     return &kl->keys[kl->count -1];
 }
@@ -168,7 +167,6 @@ key_delfunc(key_type* key)
         return;
     }
     /* ldns_rr_free(key->dnskey); */
-    free(key->hsmkey);
     hsm_sign_params_free(key->params);
     free((void*) key->locator);
 }

@@ -454,7 +454,6 @@ zone_prepare_keys(zone_type* zone)
             break;
         }
         ods_log_assert(zone->signconf->keys->keys[i].dnskey);
-        ods_log_assert(zone->signconf->keys->keys[i].hsmkey);
         ods_log_assert(zone->signconf->keys->keys[i].params);
     }
     /* done */
