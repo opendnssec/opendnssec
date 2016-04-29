@@ -49,7 +49,6 @@ typedef struct keylist_struct keylist_type;
  */
 struct key_struct {
     ldns_rr* dnskey;
-    libhsm_key_t* hsmkey;
     hsm_sign_params_t* params;
     const char* locator;
     const char* resourcerecord;
