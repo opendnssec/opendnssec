@@ -1,4 +1,4 @@
-OpenDNSSEC 1.4.x - 2016-xx-xx
+OpenDNSSEC 1.4.10 - 2016-05-02
 
 Bugfixes:
  * After a resalt the signer would fail to remove the old NSEC3PARAM RR until
@@ -7,6 +7,8 @@ Bugfixes:
    distributing notifies to slaves.
  * SUPPORT-171: Signer would sometimes hit an assertion using DNS output 
    adapter when .ixfr was missing or corrupt but .backup file available.
+ * OPENDNSSEC-798: Improper use of key handles across hsm reopen, causing
+   keys not to be available after a re-open.
 
 OpenDNSSEC 1.4.9 - 2016-01-21
 

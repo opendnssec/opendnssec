@@ -33,6 +33,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <dlfcn.h>
+#include <ldns/ldns.h>
 
 #include <libxml/tree.h>
 #include <libxml/parser.h>
@@ -643,6 +644,7 @@ hsm_ctx_new()
     memset(ctx->session, 0, HSM_MAX_SESSIONS);
     ctx->session_count = 0;
     ctx->error = 0;
+    keycache_create(ctx);
     return ctx;
 }
 
@@ -657,6 +659,8 @@ hsm_ctx_free(hsm_ctx_t *ctx)
         }
         free(ctx);
     }
+
+    keycache_destroy(ctx);
 }
 
 /* close the session, and free the allocated data
@@ -2709,7 +2713,7 @@ hsm_key_list_free(hsm_key_t **key_list, size_t count)
 {
     size_t i;
     for (i = 0; i < count; i++) {
-        free(key_list[i]->modulename);
+        free((void*)key_list[i]->modulename);
         hsm_key_free(key_list[i]);
     }
     free(key_list);
@@ -3347,4 +3351,57 @@ hsm_print_tokeninfo(hsm_ctx_t *ctx)
         if (i + 1 != ctx->session_count)
             printf("\n");
     }
+}
+
+static int
+keycache_cmpfunc(const void* a, const void* b)
+{
+    const char* x = (const char*)a;
+    const char* y = (const char*)b;
+    return strcmp(x, y);
+}
+
+static void
+keycache_delfunc(ldns_rbnode_t* node, void* cargo)
+{
+    (void)cargo;
+    free((void*)node->key);
+    free((void*)node->data);
+}
+
+void
+keycache_create(hsm_ctx_t* ctx)
+{
+    ctx->keycache = ldns_rbtree_create(keycache_cmpfunc);
+}
+
+void
+keycache_destroy(hsm_ctx_t* ctx)
+{
+    ldns_traverse_postorder(ctx->keycache, keycache_delfunc, NULL);
+    ldns_rbtree_free(ctx->keycache);
+}
+
+const hsm_key_t*
+keycache_lookup(hsm_ctx_t* ctx, const char* locator)
+{
+    ldns_rbnode_t* node;
+
+    node = ldns_rbtree_search(ctx->keycache, locator);
+    if (node == LDNS_RBTREE_NULL || node == NULL) {
+        hsm_key_t* key;
+        if ((key = hsm_find_key_by_id(ctx, locator)) == NULL) {
+            node = NULL;
+        } else {
+            node = malloc(sizeof(ldns_rbnode_t));
+            node->key = strdup(locator);
+            node->data = key;
+            node = ldns_rbtree_insert(ctx->keycache, node);
+        }
+    }  
+
+    if (node == LDNS_RBTREE_NULL)
+        return NULL;
+    else
+        return node->data;
 }
