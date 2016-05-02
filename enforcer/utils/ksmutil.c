@@ -1579,6 +1579,7 @@ cmd_exportkeys ()
     char    buffer[256];    /* For constructing part of the command */
 
 	int done_something = 0; /* Have we exported any keys? */
+    hsm_ctx_t* ctx;
 
     /* See what arguments we were passed (if any) otherwise set the defaults */
     /* Check keystate, can be state or keytype */
@@ -1669,6 +1670,7 @@ cmd_exportkeys ()
         hsm_print_error(NULL);
         exit(-1);
     }
+    ctx = hsm_create_context();
 
     sql = DqsSpecifyInit("KEYDATA_VIEW", DB_KEYDATA_FIELDS);
     if (state_id != -1) {
@@ -1679,6 +1681,7 @@ cmd_exportkeys ()
                 KSM_STATE_DSPUBLISH, KSM_STATE_DSREADY, KSM_STATE_KEYPUBLISH);
         if (nchar >= sizeof(buffer)) {
             status = -1;
+                        hsm_destroy_context(ctx);
 			hsm_close();
             return status;
         }
@@ -1716,10 +1719,11 @@ cmd_exportkeys ()
 			}
 
             /* Code to output the DNSKEY record  (stolen from hsmutil) */
-            key = hsm_find_key_by_id(NULL, data.location);
+            key = hsm_find_key_by_id(ctx, data.location);
 
             if (!key) {
                 printf("Key %s in DB but not repository\n", data.location);
+                                hsm_destroy_context(ctx);
 				hsm_close();
                 return -1;
             }
@@ -1731,6 +1735,7 @@ cmd_exportkeys ()
                 if (status != 0) {
                     printf("Error: unable to find zone name for id %d\n", zone_id);
                     hsm_sign_params_free(sign_params);
+                                        hsm_destroy_context(ctx);
 					hsm_close();
                     return(status);
                 }
@@ -1746,7 +1751,7 @@ cmd_exportkeys ()
             if (keytype_id == KSM_TYPE_KSK) {
                 sign_params->flags += LDNS_KEY_SEP_KEY;
             }
-            dnskey_rr = hsm_get_dnskey(NULL, key, sign_params);
+            dnskey_rr = hsm_get_dnskey(ctx, key, sign_params);
             sign_params->keytag = ldns_calc_keytag(dnskey_rr);
 
             if (ds_flag == 0) {
@@ -1834,6 +1839,7 @@ cmd_exportkeys ()
         ldns_rr_free(ds_sha256_rr);
     }
 
+        hsm_destroy_context(ctx);
 	hsm_close();
     DbDisconnect(dbhandle);
 
@@ -3418,6 +3424,7 @@ cmd_import ()
     int user_certain;           /* Continue ? */
 
 	hsm_key_t *key = NULL;
+        hsm_ctx_t* ctx;
 
     /* Chech that we got all arguments. */
 
@@ -3460,7 +3467,9 @@ cmd_import ()
 		hsm_print_error(NULL);
 		return(1);
 	}
-	key = hsm_find_key_by_id(NULL, o_cka_id);
+        ctx = hsm_create_context();
+	key = hsm_find_key_by_id(ctx, o_cka_id);
+        hsm_destroy_context(ctx);
 	hsm_close();
 	if (!key) {
 		if(check_repository_flag){
@@ -6869,10 +6878,12 @@ int ListKeys(int zone_id)
     hsm_key_t *key = NULL;
     ldns_rr *dnskey_rr = NULL;
     hsm_sign_params_t *sign_params = NULL;
+    hsm_ctx_t* ctx;
 
     if (verbose_flag) {
         /* connect to the HSM */
         status = hsm_open(config, hsm_prompt_pin);
+        ctx = hsm_create_context();
         if (status) {
             hsm_print_error(NULL);
             return(-1);
@@ -7096,7 +7107,7 @@ int ListKeys(int zone_id)
 
             if (done_row == 1 && verbose_flag == 1) {
 				printf("%-7d %-12d", temp_size, temp_alg);
-                key = hsm_find_key_by_id(NULL, temp_loc);
+                key = hsm_find_key_by_id(ctx, temp_loc);
                 if (!key) {
                     printf("%-33s %s NOT IN repository\n", temp_loc, temp_hsm);
                 } else if (bool_temp_zone == true){
@@ -7110,7 +7121,7 @@ int ListKeys(int zone_id)
                         sign_params->flags += LDNS_KEY_SEP_KEY;
                         if (temp_revoked) sign_params->flags |= 1<<7;
                     }
-                    dnskey_rr = hsm_get_dnskey(NULL, key, sign_params);
+                    dnskey_rr = hsm_get_dnskey(ctx, key, sign_params);
                     sign_params->keytag = ldns_calc_keytag(dnskey_rr);
 
                     printf("%-33s %-33s %d\n", temp_loc, temp_hsm, sign_params->keytag);
@@ -7152,6 +7163,7 @@ int ListKeys(int zone_id)
     }
 
     if (verbose_flag) {
+                hsm_destroy_context(ctx);
 		hsm_close();
     }
 
@@ -7197,6 +7209,7 @@ int PurgeKeys(int zone_id, int policy_id)
 
     /* Key information */
     hsm_key_t *key = NULL;
+    hsm_ctx_t* ctx;
 
     if ((zone_id == -1 && policy_id == -1) || 
             (zone_id != -1 && policy_id != -1)){
@@ -7211,6 +7224,7 @@ int PurgeKeys(int zone_id, int policy_id)
         hsm_print_error(NULL);
         return(-1);
     }
+    ctx = hsm_create_context();
 
     /* Select rows */
     StrAppend(&sql, "select distinct id, location from KEYDATA_VIEW where state = 6 ");
@@ -7248,6 +7262,7 @@ int PurgeKeys(int zone_id, int policy_id)
                 DbStringFree(temp_loc);
                 DbFreeRow(row);
 				DusFree(sql);
+                                hsm_destroy_context(ctx);
 				hsm_close();
                 return status;
             }
@@ -7270,6 +7285,7 @@ int PurgeKeys(int zone_id, int policy_id)
                     DbStringFree(temp_loc);
                     DbFreeRow(row);
 					DusFree(sql);
+                                        hsm_destroy_context(ctx);
 					hsm_close();
                     return status;
                 }
@@ -7287,23 +7303,25 @@ int PurgeKeys(int zone_id, int policy_id)
                     DbStringFree(temp_loc);
                     DbFreeRow(row);
 					DusFree(sql);
+                                        hsm_destroy_context(ctx);
 					hsm_close();
                     return status;
                 }
 
                 /* Delete from the HSM */
-                key = hsm_find_key_by_id(NULL, temp_loc);
+                key = hsm_find_key_by_id(ctx, temp_loc);
 
                 if (!key) {
                     printf("Key not found: %s\n", temp_loc);
                     DbStringFree(temp_loc);
                     DbFreeRow(row);
 					DusFree(sql);
+                                        hsm_destroy_context(ctx);
 					hsm_close();
                     return -1;
                 }
 
-                status = hsm_remove_key(NULL, key);
+                status = hsm_remove_key(ctx, key);
 
                 hsm_key_free(key);
 
@@ -7314,6 +7332,7 @@ int PurgeKeys(int zone_id, int policy_id)
                     DbStringFree(temp_loc);
                     DbFreeRow(row);
 					DusFree(sql);
+                                        hsm_destroy_context(ctx);
 					hsm_close();
                     return -1;
                 }
@@ -7341,6 +7360,7 @@ int PurgeKeys(int zone_id, int policy_id)
 
     DbStringFree(temp_loc);
 
+        hsm_destroy_context(ctx);
 	hsm_close();
 
     return status;
@@ -7353,7 +7373,7 @@ int cmd_genkeys()
     int interval = -1;
 
     KSM_POLICY* policy;
-    hsm_ctx_t *ctx = NULL;
+    hsm_ctx_t *ctx;
 
     char *rightnow;
     int i = 0;
@@ -7465,7 +7485,7 @@ int cmd_genkeys()
     /* Connect to the hsm */
     status = hsm_open(config, hsm_prompt_pin);
     if (status) {
-        hsm_error_message = hsm_get_error(ctx);
+        hsm_error_message = hsm_get_error(NULL);
         if (hsm_error_message) {
             printf("%s\n", hsm_error_message);
             free(hsm_error_message);
@@ -7506,6 +7526,7 @@ int cmd_genkeys()
         printf("Couldn't turn \"now\" into a date, quitting...\n");
         db_disconnect(lock_fd);
         KsmPolicyFree(policy);
+                hsm_destroy_context(ctx);
 		hsm_close();
         exit(1);
     }
@@ -7526,9 +7547,7 @@ int cmd_genkeys()
     if (status != 0) {
         printf("Could not count zones on policy %s\n", policy->name);
         db_disconnect(lock_fd);
-		if (ctx) {
-			hsm_destroy_context(ctx);
-		}
+                hsm_destroy_context(ctx);
 		hsm_close();
 		KsmPolicyFree(policy);
         return status; 
@@ -7545,6 +7564,7 @@ int cmd_genkeys()
             printf("Error: Unable to convert zonetotal \"%s\"; to an integer\n", o_zonetotal);
             db_disconnect(lock_fd);
             KsmPolicyFree(policy);
+                        hsm_destroy_context(ctx);
 			hsm_close();
             exit(1);
         }
@@ -7552,6 +7572,7 @@ int cmd_genkeys()
           printf("Error: zonetotal \"%s\"; should be numeric only\n", o_zonetotal);
           db_disconnect(lock_fd);
           KsmPolicyFree(policy);
+                  hsm_destroy_context(ctx);
 		  hsm_close();
           exit(1);
       }
@@ -7560,6 +7581,7 @@ int cmd_genkeys()
           printf("Error: zonetotal parameter value of %d is invalid - the value must be greater than 0\n", zone_count);
 	      db_disconnect(lock_fd);
           KsmPolicyFree(policy);
+                  hsm_destroy_context(ctx);
 		  hsm_close();
           exit(1); 
       }
@@ -7570,9 +7592,7 @@ int cmd_genkeys()
         if (zone_count == 0) { 
             printf("No zones on policy %s, skipping...\n", policy->name);
 	    	db_disconnect(lock_fd);
-		    if (ctx) {
-			    hsm_destroy_context(ctx);
-		    }
+                    hsm_destroy_context(ctx);
 		    hsm_close();
             KsmPolicyFree(policy);
             return status; 
@@ -7583,6 +7603,7 @@ int cmd_genkeys()
     status = KsmKeyPredict(policy->id, KSM_TYPE_KSK, policy->shared_keys, interval, &ksks_needed, policy->ksk->rollover_scheme, zone_count);
     if (status != 0) {
         printf("Could not predict ksk requirement for next interval for %s\n", policy->name);
+                hsm_destroy_context(ctx);
 		hsm_close();
         db_disconnect(lock_fd);
         KsmPolicyFree(policy);
@@ -7592,6 +7613,7 @@ int cmd_genkeys()
     status = KsmKeyCountStillGood(policy->id, policy->ksk->sm, policy->ksk->bits, policy->ksk->algorithm, interval, rightnow, &ksks_in_queue, KSM_TYPE_KSK);
     if (status != 0) {
         printf("Could not count current ksk numbers for policy %s\n", policy->name);
+                hsm_destroy_context(ctx);
 		hsm_close();
         db_disconnect(lock_fd);
         KsmPolicyFree(policy);
@@ -7607,6 +7629,7 @@ int cmd_genkeys()
     status = KsmKeyPredict(policy->id, KSM_TYPE_ZSK, policy->shared_keys, interval, &zsks_needed, 0, zone_count);
     if (status != 0) {
         printf("Could not predict zsk requirement for next interval for %s\n", policy->name);
+                hsm_destroy_context(ctx);
 		hsm_close();
         db_disconnect(lock_fd);
         KsmPolicyFree(policy);
@@ -7616,6 +7639,7 @@ int cmd_genkeys()
     status = KsmKeyCountStillGood(policy->id, policy->zsk->sm, policy->zsk->bits, policy->zsk->algorithm, interval, rightnow, &zsks_in_queue, KSM_TYPE_ZSK);
     if (status != 0) {
         printf("Could not count current zsk numbers for policy %s\n", policy->name);
+                hsm_destroy_context(ctx);
 		hsm_close();
         db_disconnect(lock_fd);
         KsmPolicyFree(policy);
@@ -7691,11 +7715,9 @@ int cmd_genkeys()
 	if (new_ksks <= 0 && new_zsks <= 0) {
 		printf("No keys need to be created, quitting...\n");
     
-		if (ctx) {
-			hsm_destroy_context(ctx);
-		}
-		status = hsm_close();
-		printf("all done! hsm_close result: %d\n", status);
+		hsm_destroy_context(ctx);
+		hsm_close();
+		printf("all done!\n");
         db_disconnect(lock_fd);
         KsmPolicyFree(policy);
 		return(status);		
@@ -7709,11 +7731,9 @@ int cmd_genkeys()
 		if (user_certain != 'y' && user_certain != 'Y') {
 			printf("Okay, quitting...\n");
 			
-			if (ctx) {
-				hsm_destroy_context(ctx);
-			}
-			status = hsm_close();
-			printf("all done! hsm_close result: %d\n", status);
+			hsm_destroy_context(ctx);
+			hsm_close();
+			printf("all done!\n");
 	        db_disconnect(lock_fd);
 	        KsmPolicyFree(policy);
 			return(status);
@@ -7738,7 +7758,8 @@ int cmd_genkeys()
                 }
                 db_disconnect(lock_fd);
                 KsmPolicyFree(policy);
-				hsm_close();
+                hsm_destroy_context(ctx);
+		hsm_close();
                 exit(1);
             }
             id = hsm_get_key_id(ctx, key);
@@ -7753,6 +7774,7 @@ int cmd_genkeys()
                 }
                 db_disconnect(lock_fd);
                 KsmPolicyFree(policy);
+                                hsm_destroy_context(ctx);
 				hsm_close();
                 exit(1);
             }
@@ -7763,6 +7785,7 @@ int cmd_genkeys()
             printf("Key algorithm %d unsupported by libhsm.\n", policy->ksk->algorithm);
             db_disconnect(lock_fd);
             KsmPolicyFree(policy);
+                        hsm_destroy_context(ctx);
 			hsm_close();
             exit(1);
         }
@@ -7787,6 +7810,7 @@ int cmd_genkeys()
                 }
                 db_disconnect(lock_fd);
                 KsmPolicyFree(policy);
+                                hsm_destroy_context(ctx);
 				hsm_close();
                 exit(1);
             }
@@ -7802,6 +7826,7 @@ int cmd_genkeys()
                 }
                 db_disconnect(lock_fd);
                 KsmPolicyFree(policy);
+                                hsm_destroy_context(ctx);
 				hsm_close();
                 exit(1);
             }
@@ -7812,6 +7837,7 @@ int cmd_genkeys()
             printf("Key algorithm %d unsupported by libhsm.\n", policy->zsk->algorithm);
             db_disconnect(lock_fd);
             KsmPolicyFree(policy);
+                        hsm_destroy_context(ctx);
 			hsm_close();
             exit(1);
         }
@@ -7829,11 +7855,9 @@ int cmd_genkeys()
     /*
      * Destroy HSM context
      */
-    if (ctx) {
-        hsm_destroy_context(ctx);
-    }
-    status = hsm_close();
-    printf("all done! hsm_close result: %d\n", status);
+    hsm_destroy_context(ctx);
+    hsm_close();
+    printf("all done!\n");
 
     KsmPolicyFree(policy);
     
@@ -7858,6 +7882,7 @@ int cmd_delkey()
 
     /* Key information */
     hsm_key_t *key = NULL;
+    hsm_ctx_t* ctx;
 
 	/* Check that we have either a keytag or a cka_id */
     if (o_cka_id == NULL) {
@@ -7935,19 +7960,22 @@ int cmd_delkey()
 			hsm_print_error(NULL);
 			return(-1);
 		}
+                ctx = hsm_create_context();
 
 		/* Delete from the HSM */
-		key = hsm_find_key_by_id(NULL, o_cka_id);
+		key = hsm_find_key_by_id(ctx, o_cka_id);
 
 		if (!key) {
 			printf("Key not found in HSM: %s\n", o_cka_id);
+                        hsm_destroy_context(ctx);
 			hsm_close();
 			return -1;
 		}
 
-		status = hsm_remove_key(NULL, key);
+		status = hsm_remove_key(ctx, key);
 
 		hsm_key_free(key);
+                hsm_destroy_context(ctx);
 		hsm_close();
 	}
 
@@ -8200,6 +8228,7 @@ int CountKeys(int *zone_id, int keytag, const char *cka_id, int *key_count, char
     hsm_key_t *key = NULL;
     ldns_rr *dnskey_rr = NULL;
     hsm_sign_params_t *sign_params = NULL;
+    hsm_ctx_t* ctx;
 
     /* connect to the HSM */
     status = hsm_open(config, hsm_prompt_pin);
@@ -8207,12 +8236,14 @@ int CountKeys(int *zone_id, int keytag, const char *cka_id, int *key_count, char
         hsm_print_error(NULL);
         return(-1);
     }
+    ctx = hsm_create_context();
 
     /* Select rows */
     nchar = snprintf(buffer, sizeof(buffer), "(%d, %d, %d, %d)",
         KSM_STATE_READY, KSM_STATE_ACTIVE, KSM_STATE_DSSUB, KSM_STATE_RETIRE);
     if (nchar >= sizeof(buffer)) {
         printf("Error: Overran buffer in CountKeys\n");
+                hsm_destroy_context(ctx);
 		hsm_close();
         return(-1);
     }
@@ -8260,7 +8291,7 @@ int CountKeys(int *zone_id, int keytag, const char *cka_id, int *key_count, char
                 *temp_key_state = temp_state;
             }
 
-            key = hsm_find_key_by_id(NULL, temp_loc);
+            key = hsm_find_key_by_id(ctx, temp_loc);
             if (!key) {
                 printf("cka_id %-33s in DB but NOT IN repository\n", temp_loc);
             } else if (keytag != -1) {
@@ -8270,7 +8301,7 @@ int CountKeys(int *zone_id, int keytag, const char *cka_id, int *key_count, char
                 sign_params->flags = LDNS_KEY_ZONE_KEY;
                 sign_params->flags += LDNS_KEY_SEP_KEY;
 
-                dnskey_rr = hsm_get_dnskey(NULL, key, sign_params);
+                dnskey_rr = hsm_get_dnskey(ctx, key, sign_params);
                 sign_params->keytag = ldns_calc_keytag(dnskey_rr);
 
                 /* Have we matched our keytag? */
@@ -8327,6 +8358,7 @@ int CountKeys(int *zone_id, int keytag, const char *cka_id, int *key_count, char
         ldns_rr_free(dnskey_rr);
     }
 
+        hsm_destroy_context(ctx);
 	hsm_close();
 
     return status;
@@ -9840,6 +9872,7 @@ int ListDS(int zone_id) {
 
 	/* Output strings */
     char*   ds_buffer = NULL;   /* Contents of DS records */
+    hsm_ctx_t* ctx;
 
 	/* connect to the HSM */
 	status = hsm_open(config, hsm_prompt_pin);
@@ -9847,6 +9880,7 @@ int ListDS(int zone_id) {
 		hsm_print_error(NULL);
 		return(1);
 	}
+        ctx = hsm_create_context();
 
 	StrAppend(&sql,
 			"select name, kv.policy_id, location, algorithm from KEYDATA_VIEW kv, zones z where keytype = 257 and state in (3,7) and zone_id = z.id ");
@@ -9871,7 +9905,7 @@ int ListDS(int zone_id) {
             DbInt(row, 3, &temp_algo);
 
 			/* Code to output the DNSKEY record  (stolen from hsmutil) */
-			key = hsm_find_key_by_id(NULL, temp_location);
+			key = hsm_find_key_by_id(ctx, temp_location);
 
             if (!key) {
                 printf("Key %s in DB but not repository.", temp_location);
@@ -9879,6 +9913,7 @@ int ListDS(int zone_id) {
 				DbStringFree(temp_location);
 				DbStringFree(temp_zone);
                 StrFree(sql);
+                                hsm_destroy_context(ctx);
 				hsm_close();
                 return status;
             }
@@ -9890,7 +9925,7 @@ int ListDS(int zone_id) {
             sign_params->algorithm = temp_algo;
             sign_params->flags = LDNS_KEY_ZONE_KEY;
             sign_params->flags += LDNS_KEY_SEP_KEY;
-            dnskey_rr = hsm_get_dnskey(NULL, key, sign_params);
+            dnskey_rr = hsm_get_dnskey(ctx, key, sign_params);
 
 			/* Use this to get the TTL parameter value */
 			status = KsmParameterValue(KSM_PAR_KSKTTL_STRING, KSM_PAR_KSKTTL_CAT, &rrttl, temp_policy, &param_id);
@@ -9932,6 +9967,7 @@ int ListDS(int zone_id) {
 
 	DbFreeRow(row);
     StrFree(sql);
+        hsm_destroy_context(ctx);
 	hsm_close();
 
 	return status;

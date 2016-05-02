@@ -42,7 +42,7 @@ add_zones 1 10 5 &&
 echo "y" | log_this ods-ksmutil-generate_1   ods-ksmutil key generate --interval PT100M --policy  Policy5 &&
 log_grep ods-ksmutil-generate_1   stdout "Info: 10 zone(s) found on policy \"Policy5\"" &&
 log_grep ods-ksmutil-generate_1   stdout "This will create 3 KSKs (2048 bits) and 5 ZSKs (2048 bits)" &&
-log_grep ods-ksmutil-generate_1   stdout "all done! " &&
+log_grep ods-ksmutil-generate_1   stdout "all done!" &&
 log_this ods-ksmutil-keylist_hms_1   ods-hsmutil list &&
 log_grep ods-ksmutil-keylist_hms_1   stdout "8 keys found." && 
 
@@ -76,7 +76,7 @@ log_grep enforcer-keylist_2   stdout "ods_10  .*KSK           ready" &&
 echo "y" | log_this ods-ksmutil-generate_2   ods-ksmutil key generate --interval PT80M --policy  Policy5 &&
 log_grep ods-ksmutil-generate_2   stdout "Info: 10 zone(s) found on policy \"Policy5\"" &&
 log_grep ods-ksmutil-generate_2   stdout "No keys need to be created, quitting..."  &&
-log_grep ods-ksmutil-generate_2   stdout "all done! " &&
+log_grep ods-ksmutil-generate_2   stdout "all done!" &&
 log_this ods-ksmutil-keylist_2   ods-hsmutil list &&
 log_grep ods-ksmutil-keylist_2   stdout "8 keys found." &&
 
@@ -84,7 +84,7 @@ log_grep ods-ksmutil-keylist_2   stdout "8 keys found." &&
 echo "y" | log_this ods-ksmutil-generate_3   ods-ksmutil key generate --interval PT180M --policy  Policy5 &&
 log_grep ods-ksmutil-generate_3   stdout "Info: 10 zone(s) found on policy \"Policy5\"" &&
 log_grep ods-ksmutil-generate_3   stdout "This will create 0 KSKs (2048 bits) and 6 ZSKs (2048 bits)" &&
-log_grep ods-ksmutil-generate_3   stdout "all done! " &&
+log_grep ods-ksmutil-generate_3   stdout "all done!" &&
 log_this ods-ksmutil-keylist_3   ods-hsmutil list &&
 log_grep ods-ksmutil-keylist_3   stdout "14 keys found." &&
 
@@ -134,7 +134,7 @@ add_zones 1 10 6 &&
 echo "y" | log_this ods-ksmutil1-generate_1   ods-ksmutil key generate --interval PT100M --policy  Policy6 &&
 log_grep ods-ksmutil1-generate_1   stdout "Info: 10 zone(s) found on policy \"Policy6\"" &&
 log_grep ods-ksmutil1-generate_1   stdout "This will create 3 KSKs (1024 bits) and 5 ZSKs (2048 bits)"  &&
-log_grep ods-ksmutil1-generate_1   stdout "all done! " &&
+log_grep ods-ksmutil1-generate_1   stdout "all done!" &&
 log_this ods-ksmutil1-keylist_hms_1   ods-hsmutil list &&
 log_grep ods-ksmutil1-keylist_hms_1   stdout "8 keys found." && 
 
@@ -168,7 +168,7 @@ log_grep enforcer1-keylist_2   stdout "ods_10  .*KSK           ready" &&
 echo "y" | log_this ods-ksmutil1-generate_2   ods-ksmutil key generate --interval PT80M --policy  Policy6 &&
 log_grep ods-ksmutil1-generate_2   stdout "Info: 10 zone(s) found on policy \"Policy6\"" &&
 log_grep ods-ksmutil1-generate_2   stdout "No keys need to be created, quitting..."  &&
-log_grep ods-ksmutil1-generate_2   stdout "all done! " &&
+log_grep ods-ksmutil1-generate_2   stdout "all done!" &&
 log_this ods-ksmutil1-keylist_2   ods-hsmutil list &&
 log_grep ods-ksmutil1-keylist_2   stdout "8 keys found." &&
 
@@ -176,7 +176,7 @@ log_grep ods-ksmutil1-keylist_2   stdout "8 keys found." &&
 echo "y" | log_this ods-ksmutil1-generate_3   ods-ksmutil key generate --interval PT180M --policy  Policy6 &&
 log_grep ods-ksmutil1-generate_3   stdout "Info: 10 zone(s) found on policy \"Policy6\"" &&
 log_grep ods-ksmutil1-generate_3   stdout "This will create 2 KSKs (1024 bits) and 4 ZSKs (2048 bits)" &&
-log_grep ods-ksmutil1-generate_3   stdout "all done! " &&
+log_grep ods-ksmutil1-generate_3   stdout "all done!" &&
 log_this ods-ksmutil1-keylist_3   ods-hsmutil list &&
 log_grep ods-ksmutil1-keylist_3   stdout "14 keys found." &&
 
@@ -226,7 +226,7 @@ add_zones 1 10 1 &&
 echo "y" | log_this ods-ksmutil2-generate_1   ods-ksmutil key generate --interval PT100M --policy  Policy1 &&
 log_grep ods-ksmutil2-generate_1   stdout "Info: 10 zone(s) found on policy \"Policy1\"" &&
 log_grep ods-ksmutil2-generate_1   stdout "This will create 30 KSKs (1024 bits) and 50 ZSKs (2048 bits)" &&
-log_grep ods-ksmutil2-generate_1   stdout "all done! " &&
+log_grep ods-ksmutil2-generate_1   stdout "all done!" &&
 log_this ods-ksmutil2-keylist_hms_1   ods-hsmutil list &&
 log_grep ods-ksmutil2-keylist_hms_1   stdout "80 keys found." && 
 
@@ -260,7 +260,7 @@ log_grep enforcer2-keylist_2   stdout "ods_10  .*KSK           ready" &&
 echo "y" | log_this ods-ksmutil2-generate_2   ods-ksmutil key generate --interval PT80M --policy  Policy1 &&
 log_grep ods-ksmutil2-generate_2   stdout "Info: 10 zone(s) found on policy \"Policy1\"" &&
 log_grep ods-ksmutil2-generate_2   stdout "No keys need to be created, quitting..."  &&
-log_grep ods-ksmutil2-generate_2   stdout "all done! " &&
+log_grep ods-ksmutil2-generate_2   stdout "all done!" &&
 log_this ods-ksmutil2-keylist_2   ods-hsmutil list &&
 log_grep ods-ksmutil2-keylist_2   stdout "80 keys found." &&
 
@@ -268,7 +268,7 @@ log_grep ods-ksmutil2-keylist_2   stdout "80 keys found." &&
 echo "y" | log_this ods-ksmutil2-generate_3   ods-ksmutil key generate --interval PT180M --policy  Policy1 &&
 log_grep ods-ksmutil2-generate_3   stdout "Info: 10 zone(s) found on policy \"Policy1\"" &&
 log_grep ods-ksmutil2-generate_3   stdout "This will create 20 KSKs (1024 bits) and 40 ZSKs (2048 bits)" &&
-log_grep ods-ksmutil2-generate_3   stdout "all done! " &&
+log_grep ods-ksmutil2-generate_3   stdout "all done!" &&
 log_this ods-ksmutil2-keylist_3   ods-hsmutil list &&
 log_grep ods-ksmutil2-keylist_3   stdout "140 keys found." &&
 

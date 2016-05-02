@@ -29,6 +29,7 @@
 #define HSM_H 1
 
 #include <stdint.h>
+#include <ldns/rbtree.h>
 
 /* Note that currently the MySQL kasp schema limits the number of HSMs to
  * 127; so to increase it beyond that requires some database changes similar
@@ -97,7 +98,7 @@ typedef struct {
 
 /*! HSM Key Pair */
 typedef struct {
-    const hsm_module_t *module;      /*!< pointer to module */
+    const char *       modulename;   /*!< name of the module, as in hsm_session_t.module.name */
     unsigned long      private_key;  /*!< private key within module */
     unsigned long      public_key;   /*!< public key within module */
 } hsm_key_t;
@@ -124,6 +125,8 @@ typedef struct {
 
     /*!< static string describing the first error */
     char error_message[HSM_ERROR_MSGSIZE];
+    
+    ldns_rbtree_t* keycache;
 } hsm_ctx_t;
 
 
@@ -188,7 +191,7 @@ hsm_logout_pin();
     This cleans up all data for libhsm, and should be the last function
     called.
 */
-int
+void
 hsm_close();
 
 
@@ -210,7 +213,7 @@ If they are not alive, then try re-open libhsm.
 \return 0 if successful, !0 if failed
 */
 int
-hsm_check_context(hsm_ctx_t *context);
+hsm_check_context();
 
 
 /*! Destroy HSM context
@@ -491,9 +494,16 @@ hsm_get_error(hsm_ctx_t *gctx);
 
 /* a few debug functions for applications */
 void hsm_print_session(hsm_session_t *session);
-void hsm_print_ctx(hsm_ctx_t *gctx);
-void hsm_print_key(hsm_key_t *key);
+void hsm_print_ctx(hsm_ctx_t *ctx);
+void hsm_print_key(hsm_ctx_t *ctx, hsm_key_t *key);
 void hsm_print_error(hsm_ctx_t *ctx);
-void hsm_print_tokeninfo(hsm_ctx_t *gctx);
+void hsm_print_tokeninfo(hsm_ctx_t *ctx);
+
+/* implementation of a key cache per context, needs changing see
+ * OPENDNSSEC-799.
+ */
+extern void keycache_create(hsm_ctx_t* ctx);
+extern void keycache_destroy(hsm_ctx_t* ctx);
+extern const hsm_key_t* keycache_lookup(hsm_ctx_t* ctx, const char* locator);
 
 #endif /* HSM_H */

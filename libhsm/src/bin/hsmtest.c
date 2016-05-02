@@ -25,7 +25,6 @@
  */
 
 #include "config.h"
-#include "hsmtest.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -34,7 +33,7 @@
 
 #include <libhsm.h>
 #include <libhsmdns.h>
-
+#include "hsmtest.h"
 
 static int
 hsm_test_sign (hsm_ctx_t *ctx, hsm_key_t *key, ldns_algorithm alg)
@@ -107,14 +106,13 @@ hsm_test_random()
 }
 
 int
-hsm_test (const char *repository)
+hsm_test (hsm_ctx_t *ctx, const char *repository)
 {
     int result;
     const unsigned int rsa_keysizes[] = { 512, 768, 1024, 1536, 2048, 4096 };
     const unsigned int dsa_keysizes[] = { 512, 768, 1024 };
     unsigned int keysize;
 
-    hsm_ctx_t *ctx = NULL;
     hsm_key_t *key = NULL;
     char *id;
     int errors = 0;

@@ -32,51 +32,9 @@
 #include "daemon/engine.h"
 #include "shared/hsm.h"
 #include "shared/log.h"
+#include "cryptoki_compat/pkcs11.h"
 
 static const char* hsm_str = "hsm";
-
-
-/**
- * Open HSM.
- *
- */
-int
-lhsm_open(const char* filename)
-{
-    int result = hsm_open(filename, hsm_check_pin);
-    if (result != HSM_OK) {
-        char* error =  hsm_get_error(NULL);
-        if (error != NULL) {
-            ods_log_error("[%s] %s", hsm_str, error);
-            free(error);
-        } else {
-            ods_log_crit("[%s] error opening libhsm (errno %i)", hsm_str,
-                result);
-        }
-        /* exit? */
-    } else {
-        ods_log_info("[%s] libhsm connection opened succesfully", hsm_str);
-    }
-    return result;
-}
-
-
-/**
- * Reopen HSM.
- *
- */
-int
-lhsm_reopen(const char* filename)
-{
-    if (hsm_check_context(NULL) != HSM_OK) {
-        ods_log_warning("[%s] idle libhsm connection, trying to reopen",
-            hsm_str);
-        hsm_close();
-        return lhsm_open(filename);
-    }
-    return HSM_OK;
-}
-
 
 /**
  * Clear key cache.
@@ -92,37 +50,27 @@ lhsm_clear_key_cache(key_type* key)
         /* DNSKEY still exists in zone */
         key->dnskey = NULL;
     }
-    if (key->hsmkey) {
-        hsm_key_free(key->hsmkey);
-        key->hsmkey = NULL;
-    }
     if (key->params) {
         hsm_sign_params_free(key->params);
         key->params = NULL;
     }
-    return;
 }
 
-
-/**
- * Check the HSM connection, reload engine if necessary.
- *
- */
-void
-lhsm_check_connection(void* engine)
+static const hsm_key_t*
+keylookup(hsm_ctx_t* ctx, const char* locator)
 {
-    engine_type* e = (engine_type*) engine;
-    if (hsm_check_context(NULL) != HSM_OK) {
-        ods_log_warning("[%s] idle libhsm connection, trying to reopen",
-            hsm_str);
-        engine_stop_drudgers(e);
-        hsm_close();
-        (void)lhsm_open(e->config->cfg_filename);
-        engine_start_drudgers((engine_type*) engine);
-    } else {
-        ods_log_debug("[%s] libhsm connection ok", hsm_str);
+    const hsm_key_t* key;
+    key = keycache_lookup(ctx, locator);
+    if (key == NULL) {
+        char* error = hsm_get_error(ctx);
+            if (error) {
+                ods_log_error("[%s] %s", hsm_str, error);
+                free((void*)error);
+            }
+            /* could not find key */
+            ods_log_error("[%s] unable to get key: key %s not found", hsm_str, locator);
     }
-    return;
+    return key;
 }
 
 
@@ -167,28 +115,9 @@ lhsm_key_start:
             return ODS_STATUS_ERR;
         }
     }
-    /* lookup key */
-    if (!key_id->hsmkey) {
-        key_id->hsmkey = hsm_find_key_by_id(ctx, key_id->locator);
-    }
-    if (!key_id->hsmkey) {
-        error = hsm_get_error(ctx);
-        if (error) {
-            ods_log_error("[%s] %s", hsm_str, error);
-            free((void*)error);
-        } else if (!retries) {
-            lhsm_clear_key_cache(key_id);
-            retries++;
-            goto lhsm_key_start;
-        }
-        /* could not find key */
-        ods_log_error("[%s] unable to get key: key %s not found", hsm_str,
-            key_id->locator?key_id->locator:"(null)");
-        return ODS_STATUS_ERR;
-    }
     /* get dnskey */
     if (!key_id->dnskey) {
-        key_id->dnskey = hsm_get_dnskey(ctx, key_id->hsmkey, key_id->params);
+        key_id->dnskey = hsm_get_dnskey(ctx, keylookup(ctx, key_id->locator), key_id->params);
     }
     if (!key_id->dnskey) {
         error = hsm_get_error(ctx);
@@ -227,7 +156,6 @@ lhsm_sign(hsm_ctx_t* ctx, ldns_rr_list* rrset, key_type* key_id,
         return NULL;
     }
     ods_log_assert(key_id->dnskey);
-    ods_log_assert(key_id->hsmkey);
     ods_log_assert(key_id->params);
     /* adjust parameters */
     params = hsm_sign_params_new();
@@ -240,7 +168,7 @@ lhsm_sign(hsm_ctx_t* ctx, ldns_rr_list* rrset, key_type* key_id,
     ods_log_deeebug("[%s] sign RRset[%i] with key %s tag %u", hsm_str,
         ldns_rr_get_type(ldns_rr_list_rr(rrset, 0)),
         key_id->locator?key_id->locator:"(null)", params->keytag);
-    result = hsm_sign_rrset(ctx, rrset, key_id->hsmkey, params);
+    result = hsm_sign_rrset(ctx, rrset, keylookup(ctx, key_id->locator), params);
     hsm_sign_params_free(params);
     if (!result) {
         error = hsm_get_error(ctx);

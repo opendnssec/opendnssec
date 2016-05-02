@@ -373,6 +373,10 @@ zone_publish_nsec3param(zone_type* zone)
         ldns_set_bit(ldns_rdf_data(ldns_rr_rdf(rr, 1)), 7, 0);
         zone->signconf->nsec3params->rr = rr;
     }
+
+    /* Delete all nsec3param rrs. */
+    (void) zone_del_nsec3params(zone);
+
     ods_log_assert(zone->signconf->nsec3params->rr);
     status = zone_add_rr(zone, zone->signconf->nsec3params->rr, 0);
     if (status == ODS_STATUS_UNCHANGED) {
@@ -452,7 +456,6 @@ zone_prepare_keys(zone_type* zone)
             break;
         }
         ods_log_assert(zone->signconf->keys->keys[i].dnskey);
-        ods_log_assert(zone->signconf->keys->keys[i].hsmkey);
         ods_log_assert(zone->signconf->keys->keys[i].params);
     }
     /* done */
@@ -567,6 +570,8 @@ zone_add_rr(zone_type* zone, ldns_rr* rr, int do_stats)
     rrset_type* rrset = NULL;
     rr_type* record = NULL;
     ods_status status = ODS_STATUS_OK;
+    char* str = NULL;
+    int i;
 
     ods_log_assert(rr);
     ods_log_assert(zone);
@@ -604,19 +609,29 @@ zone_add_rr(zone_type* zone, ldns_rr* rr, int do_stats)
         domain_add_rrset(domain, rrset);
     }
     record = rrset_lookup_rr(rrset, rr);
+    if (record && ldns_rr_ttl(rr) != ldns_rr_ttl(record->rr))
+        record = NULL;
+
     if (record) {
         record->is_added = 1; /* already exists, just mark added */
         record->is_removed = 0; /* unset is_removed */
-        if (ldns_rr_ttl(rr) != ldns_rr_ttl(record->rr)) {
-            ldns_rr_set_ttl(record->rr, ldns_rr_ttl(rr));
-            rrset->needs_signing = 1;
-        }
         return ODS_STATUS_UNCHANGED;
     } else {
         record = rrset_add_rr(rrset, rr);
         ods_log_assert(record);
         ods_log_assert(record->rr);
         ods_log_assert(record->is_added);
+        if (ldns_rr_ttl(rr) != ldns_rr_ttl(rrset->rrs[0].rr)) {
+            str = ldns_rr2str(rr);
+            str[(strlen(str)) - 1] = '\0';
+            for (i = 0; i < strlen(str); i++) {
+                if (str[i] == '\t') {
+                    str[i] = ' ';
+                }
+            }
+            ods_log_error("In zone file %s: TTL for the record '%s' set to %d", zone->name, str, ldns_rr_ttl(rrset->rrs[0].rr));
+            LDNS_FREE(str);
+        }
     }
     /* update stats */
     if (do_stats && zone->stats) {
@@ -669,6 +684,45 @@ zone_del_rr(zone_type* zone, ldns_rr* rr, int do_stats)
     return ODS_STATUS_OK;
 }
 
+/**
+ * Delete NSEC3PARAM RRs.
+ *
+ * Marks all NSEC3PARAM records as removed.
+ */
+ods_status
+zone_del_nsec3params(zone_type* zone)
+{
+    domain_type* domain = NULL;
+    rrset_type* rrset = NULL;
+    int i;
+
+    ods_log_assert(zone);
+    ods_log_assert(zone->name);
+    ods_log_assert(zone->db);
+
+    domain = namedb_lookup_domain(zone->db, zone->apex);
+    if (!domain) {
+        ods_log_warning("[%s] unable to delete RR from zone %s: "
+            "domain not found", zone_str, zone->name);
+        return ODS_STATUS_UNCHANGED;
+    }
+
+    rrset = domain_lookup_rrset(domain, LDNS_RR_TYPE_NSEC3PARAMS);
+    if (!rrset) {
+        ods_log_warning("[%s] unable to delete RR from zone %s: "
+            "RRset not found", zone_str, zone->name);
+        return ODS_STATUS_UNCHANGED;
+    }
+
+    /* We don't actually delete the record as we still need the
+     * information in the IXFR. Just set it as removed. The code
+     * inserting the new record may flip this flag when the record
+     * hasn't changed. */
+    for (i=0; i < rrset->rr_count; i++) {
+        rrset->rrs[i].is_removed = 1;
+    }
+    return ODS_STATUS_OK;
+}
 
 /**
  * Merge zones.
