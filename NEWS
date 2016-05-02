@@ -1,31 +1,48 @@
 OpenDNSSEC 1.4.10 - 2016-05-02
 
-Bugfixes:
- * After a resalt the signer would fail to remove the old NSEC3PARAM RR until
-   a manual resign or incoming transfer.
- * OPENDNSSEC-725: Signer did not properly handle new update while still
-   distributing notifies to slaves.
- * SUPPORT-171: Signer would sometimes hit an assertion using DNS output 
-   adapter when .ixfr was missing or corrupt but .backup file available.
- * OPENDNSSEC-798: Improper use of key handles across hsm reopen, causing
-   keys not to be available after a re-open.
+Fixes::
+* SUPPORT-156 OPENDNSSEC-771: Multiple NSEC3PARAM records in signed zone.
+  After a resalt the signer would fail to remove the old NSEC3PARAM RR until
+  a manual resign or incoming transfer.
+  Old NSEC3PARAMS are removed when inserting a new record, even if they
+  look the same.
+* OPENDNSSEC-725: Signer did not properly handle new update while still
+  distributing notifies to slaves.  An AXFR disconnect looked not to
+  be handled gracefully.
+* SUPPORT-171: Signer would sometimes hit an assertion using DNS output 
+  adapter when .ixfr was missing or corrupt but .backup file available.
+* Above two issues also in part addresses problems with seemingly corrected
+  backup files (SOA serial).  Also an crash on badly configured DNS output
+  adapters is averted.
+* The signer daemon will now refuse to start when failed to open a listen
+  socket for DNS handling.
+* OPENDNSSEC-478 OPENDNSSEC-750 OPENDNSSEC-581 OPENDNSSEC-582 SUPPORT-88:
+  Segmentation fault in signer daemon when opening and closing hsm multiple
+  times.  Also addresses other concurrency access by avoiding a common
+  context to the HSM (a.k.a. NULL context).
+* OPENDNSSEC-798: Improper use of key handles across hsm reopen, causing
+  keys not to be available after a re-open.
+* SUPPORT-186: IXFR disregards TTL changes, when only TTL of an RR is changed.
+  TTL changes should be treated like any other changes to records.
+* When OpenDNSSEC now overrides a TTL value, this is now reported in the log
+  files.
 
 OpenDNSSEC 1.4.9 - 2016-01-21
 
 Bugfixes:
- * Add TCP waiting queue. Fix signer getting 'stuck' when adding many zones
-   at once. Thanks to Havard Eidnes to bringing this to our attention.
- * OPENDNSSEC-723: received SOA serial reported as on disk.
- * Fix potential locking issue on SOA serial.
- * Crash on shutdown. At all times join xfr and dns handler threads.
- * Make handling of notifies more consistent. Previous implementation would
-   bounce between code paths.
+* Add TCP waiting queue. Fix signer getting 'stuck' when adding many zones
+  at once. Thanks to Havard Eidnes to bringing this to our attention.
+* OPENDNSSEC-723: received SOA serial reported as on disk.
+* Fix potential locking issue on SOA serial.
+* Crash on shutdown. At all times join xfr and dns handler threads.
+* Make handling of notifies more consistent. Previous implementation would
+  bounce between code paths.
 
 Known Issues:
- * When using SoftHSM2 compiled with OpenSSL, and libmysql with OpenSSL as 
-   database backend for OpenDNSSEC. "ods-ksmutil key list --verbose" crashes 
-   on exit. This is ultimately a bug in OpenSSL and not new for this particular 
-   release. Make sure you don't use this specific combination.
+* When using SoftHSM2 compiled with OpenSSL, and libmysql with OpenSSL as 
+  database backend for OpenDNSSEC. "ods-ksmutil key list --verbose" crashes 
+  on exit. This is ultimately a bug in OpenSSL and not new for this particular 
+  release. Make sure you don't use this specific combination.
 
 OpenDNSSEC 1.4.8 - 2015-09-24
 
