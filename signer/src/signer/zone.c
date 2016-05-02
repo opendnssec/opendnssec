@@ -709,8 +709,8 @@ zone_del_nsec3params(zone_type* zone)
 
     rrset = domain_lookup_rrset(domain, LDNS_RR_TYPE_NSEC3PARAMS);
     if (!rrset) {
-        ods_log_warning("[%s] unable to delete RR from zone %s: "
-            "RRset not found", zone_str, zone->name);
+        ods_log_verbose("[%s] NSEC3PARAM in zone %s not found: "
+            "skipping delete", zone_str, zone->name);
         return ODS_STATUS_UNCHANGED;
     }
 
