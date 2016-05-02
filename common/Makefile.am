@@ -4,6 +4,7 @@ AM_CPPFLAGS = \
 	@LDNS_INCLUDES@
 
 noinst_LIBRARIES = libcompat.a
+noinst_PROGRAMS = debugtest
 
 libcompat_a_SOURCES = \
 	b64_ntop.c b64_pton.c \
@@ -19,3 +20,4 @@ libcompat_a_SOURCES = \
 	str.c str.h strlcat.c strlcpy.c \
 	util.c util.h \
 	datastructure.c datastructure.h
+debugtest_SOURCES = debug.c debugtest.c
