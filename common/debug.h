@@ -32,4 +32,22 @@ extern int installcrashhandler(char* argv0);
 
 /* void alert(char *format, ...) */
 
+extern void log_message(int level, const char* file, int line, const char* func, const char* format, ...);
+#define log_FATAL (1)
+#define log_ERROR (2)
+#define log_WARN  (3)
+#define log_INFO  (4)
+#define log_DEBUG (5)
+#define log_TRACE (6)
+#define LOG(LEVEL, FORMAT,...) log_message(int level, __FILE__,__LINE__,__FUNCTION__,FORMAT,__VA_ARGS__)
+#define log_fatal(FORMAT,...)  log_message(log_FATAL, __FILE__,__LINE__,__FUNCTION__,FORMAT,__VA_ARGS__)
+#define log_error(FORMAT,...)  log_message(log_ERROR, __FILE__,__LINE__,__FUNCTION__,FORMAT,__VA_ARGS__)
+#define log_warn(FORMAT,...)   log_message(log_WARN,  __FILE__,__LINE__,__FUNCTION__,FORMAT,__VA_ARGS__)
+#define log_info(FORMAT,...)   log_message(log_INFO,  __FILE__,__LINE__,__FUNCTION__,FORMAT,__VA_ARGS__)
+#define log_debug(FORMAT,...)  log_message(log_DEBUG, __FILE__,__LINE__,__FUNCTION__,FORMAT,__VA_ARGS__)
+#define log_trace(FORMAT,...)  log_message(log_TRACE, __FILE__,__LINE__,__FUNCTION__,FORMAT,__VA_ARGS__)
+
+extern void fail(const char* file, int line, const char* func, const char* expr, int stat);
+#define CHECKFAIL(EX) do { int CHECKFAIL; if((CHECKFAIL = (EX))) { fail(__FILE__,__LINE__,__FUNCTION__,#EX,CHECKFAIL); goto fail; } } while(0)
+
 #endif

@@ -8,9 +8,22 @@
 
 #include "debug.h"
 
+void
+b(void)
+{
+    abort();
+}
+
+void
+a(void)
+{
+    b();
+}
+
 int
 main(int argc, char* argv[])
 {
     installcrashhandler(argv[0]);
+    a();
     return 0;
 }

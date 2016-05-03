@@ -43,7 +43,7 @@
 #include <sys/resource.h>
 #include <dlfcn.h>
 #ifdef HAVE_BACKTRACE_FULL
-#include <backtrace.h>
+#include <libbacktrace/backtrace.h>
 #endif
 #ifdef HAVE_BACKTRACE
 #include <execinfo.h>
@@ -54,8 +54,10 @@
 
 #include "debug.h"
 
+static char* alertbuffer[1024];
+
 static void alertinteger(long value);
-void alert(char *format, ...);
+void alert(const char *format, ...);
 
 static struct sigaction original_abrt_action;
 static struct sigaction original_segv_action;
@@ -77,11 +79,11 @@ static void alertinteger(long value) {
     write(2, s, 1);
 }
 
-void alert(char *format, ...) {
+void alert(const char *format, ...) {
     va_list args;
     va_start(args, format);
     int startidx, currentidx, len;
-    char* stringarg;
+    const char* stringarg;
     int integerarg;
     long longarg;
     startidx = 0;
@@ -136,6 +138,32 @@ void alert(char *format, ...) {
     va_end(args);
 }
 
+void
+fail(const char* file, int line, const char* func, const char* expr, int stat)
+{
+    alert("Failure %d in %s at %s:%d of %s\n",stat,func,file,line,expr);
+}
+
+void
+log_message(int level, const char* file, int line, const char* func, const char* format, ...)
+{
+    va_list args;
+    const char* levelmsg;
+    va_start(args, format);
+    switch(level) {
+        case log_FATAL: levelmsg = "fatal";   break;
+        case log_ERROR: levelmsg = "error";   break;
+        case log_WARN:  levelmsg = "warning"; break;
+        case log_INFO:  levelmsg = "info";    break;
+        case log_DEBUG: levelmsg = "debug";   break;
+        case log_TRACE: levelmsg = "trace";   break;
+        default:        levelmsg = "unknown";
+    }
+    fprintf(stderr, "%s:%d %s() %s:", file, line, func, levelmsg);
+    vfprintf(stderr, format, args);
+    fprintf(stderr, "\n");
+}
+
 #ifdef HAVE_BACKTRACE_FULL
 static struct backtrace_state *state;
 
@@ -162,7 +190,7 @@ static void errorhandler(void* data, const char *msg, int errno) {
 
 static void
 handlesignal(int signal, siginfo_t* info, void* data) {
-    char* signalname;
+    const char* signalname;
     Dl_info btinfo;
     (void)signal;
     (void)data;
@@ -249,8 +277,8 @@ installcrashhandler(char* argv0) {
     struct sigaction newsigaction;
 
 #ifdef HAVE_BACKTRACE_FULL
-    if ((state = backstrace_create_state(argv0, 0, &errorhandler, NULL)) == NULL)
-        printf("bad boy\n");
+    if ((state = backtrace_create_state(argv0, 0, &errorhandler, NULL)) == NULL)
+        return -1;
 #else
     (void)argv0;
 #endif
@@ -259,24 +287,24 @@ installcrashhandler(char* argv0) {
     ss.ss_size = SIGSTKSZ;
     ss.ss_flags = 0;
     if (sigaltstack(&ss, NULL) == -1)
-        write(2, "BAD\n", 4);
+        return -2;
 
     sigfillset(&mask);
     newsigaction.sa_sigaction = handlesignal;
     newsigaction.sa_flags = SA_SIGINFO | SA_ONSTACK;
     newsigaction.sa_mask = mask;
     if (sigaction(SIGABRT, &newsigaction, &original_abrt_action))
-        write(2, "1\n", 2);
+        return -3;
     if (sigaction(SIGSEGV, &newsigaction, &original_segv_action))
-        write(2, "2\n", 2);
+        return -4;
     if (sigaction(SIGFPE, &newsigaction, &original_fpe_action))
-        write(2, "2\n", 2);
+        return -5;
     if (sigaction(SIGILL, &newsigaction, &original_ill_action))
-        write(2, "2\n", 2);
+        return -6;
     if (sigaction(SIGBUS, &newsigaction, &original_bus_action))
-        write(2, "2\n", 2);
+        return -7;
     if (sigaction(SIGSYS, &newsigaction, &original_sys_action))
-        write(2, "2\n", 2);
+        return -8;
     return 0;
 }
 
@@ -286,8 +314,9 @@ installcoreprevent(void) {
     rlim.rlim_cur = 0;
     rlim.rlim_max = 0;
 
-    if (setrlimit(RLIMIT_CORE, &rlim))
-        write(2, "3\n", 3);
-
+    CHECKFAIL(setrlimit(RLIMIT_CORE, &rlim));
     return 0;
+
+fail:
+    return -1;
 }
