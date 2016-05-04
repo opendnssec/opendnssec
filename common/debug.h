@@ -29,6 +29,7 @@
 
 extern int installcoreprevent(void);
 extern int installcrashhandler(char* argv0);
+extern void installexit();
 
 /* void alert(char *format, ...) */
 
@@ -49,5 +50,12 @@ extern void log_message(int level, const char* file, int line, const char* func,
 
 extern void fail(const char* file, int line, const char* func, const char* expr, int stat);
 #define CHECKFAIL(EX) do { int CHECKFAIL; if((CHECKFAIL = (EX))) { fail(__FILE__,__LINE__,__FUNCTION__,#EX,CHECKFAIL); goto fail; } } while(0)
+
+struct thread_struct;
+typedef struct thread_struct* thread_t;
+
+void createthread(thread_t* thread, void*(*func)(void*),void*data);
+void startthread(thread_t thread);
+void dumpthreads(void);
 
 #endif

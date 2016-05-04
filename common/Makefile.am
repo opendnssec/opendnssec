@@ -21,3 +21,4 @@ libcompat_a_SOURCES = \
 	util.c util.h \
 	datastructure.c datastructure.h
 debugtest_SOURCES = debug.c debugtest.c
+debugtest_CFLAGS = -fno-inline-small-functions -fno-inline-functions

@@ -42,8 +42,9 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <dlfcn.h>
+#include <pthread.h>
 #ifdef HAVE_BACKTRACE_FULL
-#include <libbacktrace/backtrace.h>
+#include <backtrace.h>
 #endif
 #ifdef HAVE_BACKTRACE
 #include <execinfo.h>
@@ -54,11 +55,15 @@
 
 #include "debug.h"
 
+#undef HAVE_BACKTRACE_FULL
+#undef HAVE_BACKTRACE
+
 static char* alertbuffer[1024];
 
 static void alertinteger(long value);
 void alert(const char *format, ...);
 
+static struct sigaction original_usr1_action;
 static struct sigaction original_abrt_action;
 static struct sigaction original_segv_action;
 static struct sigaction original_fpe_action;
@@ -164,6 +169,136 @@ log_message(int level, const char* file, int line, const char* func, const char*
     fprintf(stderr, "\n");
 }
 
+struct thread_struct {
+    struct thread_struct* next;
+    struct thread_struct* prev;
+    pthread_t thread;
+    void* (*runfunc)(void*);
+    void* rundata;
+    int isstarted;
+    pthread_barrier_t startbarrier;
+};
+static pthread_mutex_t threadlock = PTHREAD_MUTEX_INITIALIZER;
+static struct thread_struct *threadlist = NULL;
+static pthread_once_t threadlocatorinitializeonce = PTHREAD_ONCE_INIT;
+static pthread_key_t threadlocator;
+
+void
+uninstallthread(struct thread_struct* info)
+{
+    pthread_mutex_lock(&threadlock);
+    if(threadlist != NULL) {
+        info->next->prev = info->prev;
+        info->prev->next = info->next;
+        if(threadlist == info) {
+            if(info->next == info) {
+                threadlist = NULL;
+            } else {
+                threadlist = info->next;
+            }
+        }
+        info->next = info->prev = NULL;
+        free(info);
+        pthread_barrier_destroy(&info->startbarrier);
+    }
+    pthread_mutex_unlock(&threadlock);
+}
+
+static void*
+runthread(void* data)
+{
+    struct thread_struct* info;
+    info = (struct thread_struct*) data;
+    pthread_barrier_wait(&info->startbarrier);
+    data = info->runfunc(info->rundata);
+    uninstallthread(info);
+    return data;
+}
+
+static void
+threadlocatorinitialize(void)
+{
+    pthread_key_create(&threadlocator, NULL);
+}
+
+void
+createthread(thread_t* thread, void*(*func)(void*),void*data)
+{
+    struct thread_struct* info;
+    info = malloc(sizeof(struct thread_struct));
+    info->runfunc = func;
+    info->rundata = data;
+    info->isstarted = 0;
+    pthread_barrier_init(&info->startbarrier, NULL, 2);
+    pthread_create(&info->thread, NULL, runthread, info);
+    pthread_mutex_lock(&threadlock);
+    pthread_once(&threadlocatorinitializeonce, threadlocatorinitialize);
+    pthread_setspecific(threadlocator, info);
+    if(threadlist != NULL) {
+        info->next = threadlist;
+        info->prev = threadlist->prev;
+        threadlist->next->prev = info;
+        threadlist->next = info;
+    } else {
+        info->next = info->prev = info;
+    }
+    threadlist = info;
+    pthread_mutex_unlock(&threadlock);
+    *thread = info;
+}
+
+void
+startthread(thread_t thread)
+{
+    int isstarted;
+    pthread_mutex_lock(&threadlock);
+    isstarted = thread->isstarted;
+    thread->isstarted = 1;
+    pthread_mutex_unlock(&threadlock);
+    if(!isstarted) {
+        pthread_barrier_wait(&thread->startbarrier);
+    }
+}
+
+static void
+exitfunction(void)
+{
+    struct thread_struct* list;
+    pthread_mutex_lock(&threadlock);
+    list = threadlist;
+    threadlist = NULL;
+    pthread_mutex_unlock(&threadlock);
+    if(list)
+        list->prev->next = NULL;
+    while(list) {
+        pthread_kill(list->thread, SIGUSR2);
+        /* pthread_join(list->thread, NULL); */
+        /* deliberate no free of list structure, memory may be corrupted */
+        list = list->next;
+    }
+}
+
+void
+dumpthreads(void)
+{
+    struct thread_struct* list;
+    pthread_mutex_lock(&threadlock);
+    list = threadlist;
+    if(list) {
+        do {
+            pthread_kill(list->thread, SIGUSR2);
+            list = list->next;
+        } while(list != threadlist);
+    }
+    pthread_mutex_unlock(&threadlock);
+}
+
+void
+installexit()
+{
+    atexit(exitfunction);
+}
+
 #ifdef HAVE_BACKTRACE_FULL
 static struct backtrace_state *state;
 
@@ -185,6 +320,7 @@ static int callback(void* data, uintptr_t pc, const char *filename, int lineno, 
 static void errorhandler(void* data, const char *msg, int errno) {
     int len = strlen(msg);
     write(2, msg, len);
+    write(2, "\n", 1);
 }
 #endif
 
@@ -207,6 +343,9 @@ handlesignal(int signal, siginfo_t* info, void* data) {
     unw_word_t offset;
 #endif
     switch (info->si_signo) {
+        case SIGUSR2:
+            signalname = "Interrupted";
+            break;
         case SIGABRT:
             sigaction(info->si_signo, &original_abrt_action, NULL);
             signalname = "Aborted";
@@ -235,13 +374,15 @@ handlesignal(int signal, siginfo_t* info, void* data) {
             signalname = "Unknown error";
     }
     if (dladdr(info->si_addr, &btinfo) != 0)
-        alert("%s in %s\n", signalname, btinfo.dli_sname);
+        alert("%s in %s", signalname, btinfo.dli_sname);
     else
-        alert("%s\n", signalname);
+        alert("%s", signalname);
 #ifdef HAVE_BACKTRACE_FULL
+    alert(":\n");
     backtrace_full(state, 2, callback, errorhandler, NULL);
 #else
 #ifdef HAVE_BACKTRACE
+    alert(":\n");
     count = backtrace(bt, sizeof (bt) / sizeof (void*));
     for (i = 2; i < count; i++) {
         dladdr(bt[i], &btinfo);
@@ -254,6 +395,7 @@ handlesignal(int signal, siginfo_t* info, void* data) {
     }
 #else
 #ifdef HAVE_LIBUNWIND
+    alert(":\n");
     unw_getcontext(&ctx);
     unw_init_local(&cursor, &ctx);
     if (unw_step(&cursor)) {
@@ -265,6 +407,8 @@ handlesignal(int signal, siginfo_t* info, void* data) {
                 break;
         }
     }
+#else
+    alert("\n");
 #endif
 #endif
 #endif
@@ -277,8 +421,7 @@ installcrashhandler(char* argv0) {
     struct sigaction newsigaction;
 
 #ifdef HAVE_BACKTRACE_FULL
-    if ((state = backtrace_create_state(argv0, 0, &errorhandler, NULL)) == NULL)
-        return -1;
+    CHECKFAIL((state = backtrace_create_state(argv0, 0, &errorhandler, NULL)) == NULL);
 #else
     (void)argv0;
 #endif
@@ -286,26 +429,22 @@ installcrashhandler(char* argv0) {
     ss.ss_sp = malloc(SIGSTKSZ);
     ss.ss_size = SIGSTKSZ;
     ss.ss_flags = 0;
-    if (sigaltstack(&ss, NULL) == -1)
-        return -2;
+    CHECKFAIL(sigaltstack(&ss, NULL) == -1);
 
     sigfillset(&mask);
     newsigaction.sa_sigaction = handlesignal;
     newsigaction.sa_flags = SA_SIGINFO | SA_ONSTACK;
     newsigaction.sa_mask = mask;
-    if (sigaction(SIGABRT, &newsigaction, &original_abrt_action))
-        return -3;
-    if (sigaction(SIGSEGV, &newsigaction, &original_segv_action))
-        return -4;
-    if (sigaction(SIGFPE, &newsigaction, &original_fpe_action))
-        return -5;
-    if (sigaction(SIGILL, &newsigaction, &original_ill_action))
-        return -6;
-    if (sigaction(SIGBUS, &newsigaction, &original_bus_action))
-        return -7;
-    if (sigaction(SIGSYS, &newsigaction, &original_sys_action))
-        return -8;
+    CHECKFAIL(sigaction(SIGUSR2, &newsigaction, &original_usr1_action));
+    CHECKFAIL(sigaction(SIGABRT, &newsigaction, &original_abrt_action));
+    CHECKFAIL(sigaction(SIGSEGV, &newsigaction, &original_segv_action));
+    CHECKFAIL(sigaction(SIGFPE, &newsigaction, &original_fpe_action));
+    CHECKFAIL(sigaction(SIGILL, &newsigaction, &original_ill_action));
+    CHECKFAIL(sigaction(SIGBUS, &newsigaction, &original_bus_action));
+    CHECKFAIL(sigaction(SIGSYS, &newsigaction, &original_sys_action));
     return 0;
+fail:
+    return -1;
 }
 
 int
