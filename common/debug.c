@@ -299,6 +299,7 @@ dumpthreads(void)
                 list = list->next;
                 threadcount += 1;
             }
+            list = list->next;
         } while(list != threadlist);
                 alert("wait now for %d\n",threadcount);
         if(threadcount > 0) {
