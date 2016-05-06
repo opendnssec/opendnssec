@@ -286,7 +286,7 @@ dumpthreads(void)
     struct thread_struct* info;
     struct thread_struct* list;
     threadcount = 0;
-    alert("dumpthreads");
+    alert("dumpthreads\n");
     pthread_mutex_lock(&threadlock);
     info = pthread_getspecific(threadlocator);
     list = threadlist;
@@ -294,14 +294,17 @@ dumpthreads(void)
         threadcount = 0;
         do {
             if(list != info) {
+                alert("signal a thread\n");
                 pthread_kill(list->thread, SIGUSR2);
                 list = list->next;
                 threadcount += 1;
             }
         } while(list != threadlist);
+                alert("wait now for %d\n",threadcount);
         if(threadcount > 0) {
             pthread_cond_wait(&threadblock, &threadlock);
         }
+                alert("waited\n");
     }
     pthread_mutex_unlock(&threadlock);
 }
@@ -426,14 +429,16 @@ handlesignal(int signal, siginfo_t* info, void* data) {
 #endif
 #endif
 #endif
-    uninstallthread(pthread_getspecific(threadlocator));
     if (info->si_signo == SIGUSR2) {
+        alert("now looking %d\n",threadcount);
         pthread_mutex_lock(&threadlock);
         if(--threadcount <= 0) {
             pthread_cond_signal(&threadblock);
         }
         pthread_mutex_unlock(&threadlock);
+        alert("now looking next\n");
     } else {
+        uninstallthread(pthread_getspecific(threadlocator));
         dumpthreads();
     }
 }
