@@ -44,7 +44,7 @@
 #include <dlfcn.h>
 #include <pthread.h>
 #ifdef HAVE_BACKTRACE_FULL
-#include <libbacktrace/backtrace.h>
+#include <backtrace.h>
 #endif
 #ifdef HAVE_BACKTRACE
 #include <execinfo.h>
@@ -54,9 +54,6 @@
 #endif
 
 #include "debug.h"
-
-#undef HAVE_BACKTRACE_FULL
-#undef HAVE_BACKTRACE
 
 static char* alertbuffer[1024];
 
@@ -278,8 +275,6 @@ exitfunction(void)
     if(list)
         list->prev->next = NULL;
     while(list) {
-        pthread_kill(list->thread, SIGUSR2);
-        /* pthread_join(list->thread, NULL); */
         /* deliberate no free of list structure, memory may be corrupted */
         list = list->next;
     }
