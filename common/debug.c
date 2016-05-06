@@ -44,7 +44,7 @@
 #include <dlfcn.h>
 #include <pthread.h>
 #ifdef HAVE_BACKTRACE_FULL
-#include <backtrace.h>
+#include <libbacktrace/backtrace.h>
 #endif
 #ifdef HAVE_BACKTRACE
 #include <execinfo.h>
@@ -182,10 +182,14 @@ static pthread_mutex_t threadlock = PTHREAD_MUTEX_INITIALIZER;
 static struct thread_struct *threadlist = NULL;
 static pthread_once_t threadlocatorinitializeonce = PTHREAD_ONCE_INIT;
 static pthread_key_t threadlocator;
+static int threadcount;
+static pthread_cond_t threadblock = PTHREAD_COND_INITIALIZER;
 
 void
 uninstallthread(struct thread_struct* info)
 {
+    if(info == NULL)
+        return;
     pthread_mutex_lock(&threadlock);
     if(threadlist != NULL) {
         info->next->prev = info->prev;
@@ -200,6 +204,9 @@ uninstallthread(struct thread_struct* info)
         info->next = info->prev = NULL;
         free(info);
         pthread_barrier_destroy(&info->startbarrier);
+        if(--threadcount <= 0) {
+            pthread_cond_signal(&threadblock);
+        }
     }
     pthread_mutex_unlock(&threadlock);
 }
@@ -281,14 +288,25 @@ exitfunction(void)
 void
 dumpthreads(void)
 {
+    struct thread_struct* info;
     struct thread_struct* list;
+    threadcount = 0;
+    alert("dumpthreads");
     pthread_mutex_lock(&threadlock);
+    info = pthread_getspecific(threadlocator);
     list = threadlist;
     if(list) {
+        threadcount = 0;
         do {
-            pthread_kill(list->thread, SIGUSR2);
-            list = list->next;
+            if(list != info) {
+                pthread_kill(list->thread, SIGUSR2);
+                list = list->next;
+                threadcount += 1;
+            }
         } while(list != threadlist);
+        if(threadcount > 0) {
+            pthread_cond_wait(&threadblock, &threadlock);
+        }
     }
     pthread_mutex_unlock(&threadlock);
 }
@@ -328,6 +346,7 @@ static void
 handlesignal(int signal, siginfo_t* info, void* data) {
     const char* signalname;
     Dl_info btinfo;
+    thread_t thrinfo;
     (void)signal;
     (void)data;
 #ifndef HAVE_BACKTRACE_FULL
@@ -412,6 +431,16 @@ handlesignal(int signal, siginfo_t* info, void* data) {
 #endif
 #endif
 #endif
+    uninstallthread(pthread_getspecific(threadlocator));
+    if (info->si_signo == SIGUSR2) {
+        pthread_mutex_lock(&threadlock);
+        if(--threadcount <= 0) {
+            pthread_cond_signal(&threadblock);
+        }
+        pthread_mutex_unlock(&threadlock);
+    } else {
+        dumpthreads();
+    }
 }
 
 int
