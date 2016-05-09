@@ -57,7 +57,7 @@
 
 static char* alertbuffer[1024];
 
-static void alertinteger(long value);
+static void alertinteger(long value, int base);
 void alert(const char *format, ...);
 
 static struct sigaction original_usr1_action;
