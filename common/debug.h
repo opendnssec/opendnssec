@@ -54,8 +54,9 @@ extern void fail(const char* file, int line, const char* func, const char* expr,
 struct thread_struct;
 typedef struct thread_struct* thread_t;
 
-void createthread(thread_t* thread, void*(*func)(void*),void*data);
-void startthread(thread_t thread);
+extern void createthread(thread_t* thread, void*(*func)(void*),void*data);
+extern void startthread(thread_t thread);
+extern void* jointhread(thread_t thread);
 void dumpthreads(void);
 
 #endif

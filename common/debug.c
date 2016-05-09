@@ -264,6 +264,12 @@ startthread(thread_t thread)
     }
 }
 
+void*
+jointhread(thread_t thread)
+{
+    return pthread_join(thread->thread);
+}
+
 static void
 exitfunction(void)
 {
