@@ -109,8 +109,8 @@ void alert(const char *format, ...) {
                     pointerarg = va_arg(args, void*);
                     if (pointerarg == NULL)
                         pointerarg = "(null)";
-                    len = strlen(stringarg);
-                    (void)write(2, stringarg, len);
+                    (void)write(2,"0x",2);
+                    alertinteger((unsigned long)pointerarg, 16);
                     currentidx += 2;
                     break;
                 case 'l':
@@ -309,7 +309,7 @@ dumpthreads(void)
         threadcount = 0;
         do {
             if(list != info) {
-                alert("signal a thread %p %p\n",list,info);
+                alert("signal a thread well: %p %p\n",list,info);
                 pthread_kill(list->thread, SIGUSR2);
                 list = list->next;
                 threadcount += 1;
