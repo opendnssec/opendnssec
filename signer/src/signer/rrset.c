@@ -706,7 +706,9 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
             continue;
         }
         if (rrset->rrtype != LDNS_RR_TYPE_DNSKEY &&
-	    rrset_sigalgo(rrset, zone->signconf->keys->keys[i].algorithm)) {
+	    rrset_sigalgo(rrset, zone->signconf->keys->keys[i].algorithm) && 
+            (zone->signconf->keys->keys[i].publish == 0 || 
+            (zone->signconf->keys->keys[i].zsk == 0 && zone->signconf->keys->keys[i].ksk == 0))) {
             continue;
         }
         /* If key has no locator, and should be pre-signed dnskey RR, skip */
