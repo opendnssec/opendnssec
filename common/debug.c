@@ -68,17 +68,12 @@ static struct sigaction original_ill_action;
 static struct sigaction original_bus_action;
 static struct sigaction original_sys_action;
 
-static void alertinteger(long value) {
-    char s[1];
-    s[0] = '0';
-    if (value < 0) {
-        (void)write(2, "-", 1);
-        value = -value;
-    }
-    if (value > 9)
-        alertinteger(value / 10);
-    *s += value % 10;
-    (void)write(2, s, 1);
+static void alertinteger(unsigned long value, int base) {
+    char ch;
+    if (value > base - 1)
+        alertinteger(value / base);
+    ch += "0123456789abcdef"[value % base];
+    (void)write(2, &ch, 1);
 }
 
 void alert(const char *format, ...) {
@@ -86,6 +81,7 @@ void alert(const char *format, ...) {
     va_start(args, format);
     int startidx, currentidx, len;
     const char* stringarg;
+    void* pointerarg;
     int integerarg;
     long longarg;
     startidx = 0;
@@ -109,10 +105,23 @@ void alert(const char *format, ...) {
                     (void)write(2, stringarg, len);
                     currentidx += 2;
                     break;
+                case 'p':
+                    pointerarg = va_arg(args, void*);
+                    if (pointerarg == NULL)
+                        pointerarg = "(null)";
+                    len = strlen(stringarg);
+                    (void)write(2, stringarg, len);
+                    currentidx += 2;
+                    break;
                 case 'l':
                     switch (format[currentidx + 2]) {
                         case 'd':
                             longarg = va_arg(args, long);
+                            if(longarg < 0) {
+                                (void)write(2,"-",1);
+                                alertinteger(1UL + ~((unsigned long)longarg), 10);
+                            } else
+                                alertinteger(longarg, 10);
                             alertinteger(longarg);
                             currentidx += 3;
                             break;
@@ -123,7 +132,7 @@ void alert(const char *format, ...) {
                     break;
                 case 'd':
                     integerarg = va_arg(args, int);
-                    alertinteger((long) integerarg);
+                    alertinteger((long) integerarg, 10);
                     currentidx += 2;
                     break;
                 case '\0':
@@ -300,7 +309,7 @@ dumpthreads(void)
         threadcount = 0;
         do {
             if(list != info) {
-                alert("signal a thread\n");
+                alert("signal a thread %p %p\n",list,info);
                 pthread_kill(list->thread, SIGUSR2);
                 list = list->next;
                 threadcount += 1;
