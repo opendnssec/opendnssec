@@ -56,7 +56,7 @@ typedef struct thread_struct* thread_t;
 
 extern void createthread(thread_t* thread, void*(*func)(void*),void*data);
 extern void startthread(thread_t thread);
-extern void* jointhread(thread_t thread);
+extern void jointhread(thread_t thread, void* data);
 void dumpthreads(void);
 
 #endif

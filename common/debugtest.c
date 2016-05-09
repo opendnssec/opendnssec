@@ -75,15 +75,15 @@ main(int argc, char* argv[])
     installcrashhandler(argv[0]);
     
     createthread(&thr1, fn1, NULL);
-    createthread(&thr2, fn2, NULL);/*
-    createthread(&thr3, fn3, NULL);*/
+    createthread(&thr2, fn2, NULL);
+    createthread(&thr3, fn3, NULL);
     startthread(thr1);
-    startthread(thr2);/*
-    startthread(thr3);*/
+    startthread(thr2);
+    startthread(thr3);
     sleep(8);
-    dumpthreads();
+    /* dumpthreads(); */
     sleep(8);
-    dumpthreads();
+    /* dumpthreads(); */
     sleep(8);
     fprintf(stderr,"will now try to exit\n");
     return 0;

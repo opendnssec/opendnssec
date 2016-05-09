@@ -72,13 +72,13 @@ static void alertinteger(long value) {
     char s[1];
     s[0] = '0';
     if (value < 0) {
-        write(2, "-", 1);
+        (void)write(2, "-", 1);
         value = -value;
     }
     if (value > 9)
         alertinteger(value / 10);
     *s += value % 10;
-    write(2, s, 1);
+    (void)write(2, s, 1);
 }
 
 void alert(const char *format, ...) {
@@ -94,11 +94,11 @@ void alert(const char *format, ...) {
         while (format[currentidx] && format[currentidx] != '%')
             ++currentidx;
         if (currentidx - startidx > 0)
-            write(2, &format[startidx], currentidx - startidx);
+            (void)write(2, &format[startidx], currentidx - startidx);
         if (format[currentidx] == '%') {
             switch (format[currentidx + 1]) {
                 case '%':
-                    write(2, "%", 1);
+                    (void)write(2, "%", 1);
                     currentidx += 2;
                     break;
                 case 's':
@@ -106,7 +106,7 @@ void alert(const char *format, ...) {
                     if (stringarg == NULL)
                         stringarg = "(null)";
                     len = strlen(stringarg);
-                    write(2, stringarg, len);
+                    (void)write(2, stringarg, len);
                     currentidx += 2;
                     break;
                 case 'l':
@@ -117,7 +117,7 @@ void alert(const char *format, ...) {
                             currentidx += 3;
                             break;
                         default:
-                            write(2, &format[startidx], 2);
+                            (void)write(2, &format[startidx], 2);
                             currentidx += 2;
                     }
                     break;
@@ -127,11 +127,11 @@ void alert(const char *format, ...) {
                     currentidx += 2;
                     break;
                 case '\0':
-                    write(2, "%", 1);
+                    (void)write(2, "%", 1);
                     currentidx += 1;
                     break;
                 default:
-                    write(2, &format[startidx], 2);
+                    (void)write(2, &format[startidx], 2);
                     currentidx += 2;
             }
         }
@@ -264,10 +264,10 @@ startthread(thread_t thread)
     }
 }
 
-void*
-jointhread(thread_t thread)
+void
+jointhread(thread_t thread, void* data)
 {
-    return pthread_join(thread->thread);
+    pthread_join(thread->thread, data);
 }
 
 static void
@@ -342,8 +342,8 @@ static int callback(void* data, uintptr_t pc, const char *filename, int lineno, 
 
 static void errorhandler(void* data, const char *msg, int errno) {
     int len = strlen(msg);
-    write(2, msg, len);
-    write(2, "\n", 1);
+    (void)(write(2, msg, len));
+    (void)(write(2, "\n", 1));
 }
 #endif
 
