@@ -71,7 +71,7 @@ static struct sigaction original_sys_action;
 static void alertinteger(unsigned long value, int base) {
     char ch;
     if (value > base - 1)
-        alertinteger(value / base);
+        alertinteger(value / base, base);
     ch += "0123456789abcdef"[value % base];
     (void)write(2, &ch, 1);
 }
@@ -122,7 +122,6 @@ void alert(const char *format, ...) {
                                 alertinteger(1UL + ~((unsigned long)longarg), 10);
                             } else
                                 alertinteger(longarg, 10);
-                            alertinteger(longarg);
                             currentidx += 3;
                             break;
                         default:
