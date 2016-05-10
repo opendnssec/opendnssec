@@ -27,11 +27,17 @@
 #ifndef DEBUG_H
 #define DEBUG_H
 
+struct thread_struct;
+typedef struct thread_struct* thread_t;
+
+extern void createthread(thread_t* thread, void*(*func)(void*),void*data);
+extern void startthread(thread_t thread);
+extern void jointhread(thread_t thread, void* data);
+
 extern int installcoreprevent(void);
 extern int installcrashhandler(char* argv0);
 extern void installexit();
-
-/* void alert(char *format, ...) */
+extern void alert(const char *format, ...);
 
 extern void log_message(int level, const char* file, int line, const char* func, const char* format, ...);
 #define log_FATAL (1)
@@ -50,13 +56,5 @@ extern void log_message(int level, const char* file, int line, const char* func,
 
 extern void fail(const char* file, int line, const char* func, const char* expr, int stat);
 #define CHECKFAIL(EX) do { int CHECKFAIL; if((CHECKFAIL = (EX))) { fail(__FILE__,__LINE__,__FUNCTION__,#EX,CHECKFAIL); goto fail; } } while(0)
-
-struct thread_struct;
-typedef struct thread_struct* thread_t;
-
-extern void createthread(thread_t* thread, void*(*func)(void*),void*data);
-extern void startthread(thread_t thread);
-extern void jointhread(thread_t thread, void* data);
-void dumpthreads(void);
 
 #endif

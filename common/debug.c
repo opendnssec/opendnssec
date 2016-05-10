@@ -60,7 +60,7 @@ static char* alertbuffer[1024];
 static void alertinteger(unsigned long value, int base);
 void alert(const char *format, ...);
 
-static struct sigaction original_usr1_action;
+static struct sigaction original_quit_action;
 static struct sigaction original_abrt_action;
 static struct sigaction original_segv_action;
 static struct sigaction original_fpe_action;
@@ -68,15 +68,19 @@ static struct sigaction original_ill_action;
 static struct sigaction original_bus_action;
 static struct sigaction original_sys_action;
 
-static void alertinteger(unsigned long value, int base) {
+static void
+alertinteger(unsigned long value, int base)
+{
     char ch;
     if (value > base - 1)
         alertinteger(value / base, base);
-    ch += "0123456789abcdef"[value % base];
-    (void)write(2, &ch, 1);
+    ch = "0123456789abcdef"[value % base];
+    (void) write(2, &ch, 1);
 }
 
-void alert(const char *format, ...) {
+void
+alert(const char *format, ...)
+{
     va_list args;
     va_start(args, format);
     int startidx, currentidx, len;
@@ -94,7 +98,7 @@ void alert(const char *format, ...) {
         if (format[currentidx] == '%') {
             switch (format[currentidx + 1]) {
                 case '%':
-                    (void)write(2, "%", 1);
+                    (void) write(2, "%", 1);
                     currentidx += 2;
                     break;
                 case 's':
@@ -102,30 +106,34 @@ void alert(const char *format, ...) {
                     if (stringarg == NULL)
                         stringarg = "(null)";
                     len = strlen(stringarg);
-                    (void)write(2, stringarg, len);
+                    (void) write(2, stringarg, len);
                     currentidx += 2;
                     break;
                 case 'p':
                     pointerarg = va_arg(args, void*);
-                    if (pointerarg == NULL)
-                        pointerarg = "(null)";
-                    (void)write(2,"0x",2);
-                    alertinteger((unsigned long)pointerarg, 16);
+                    if (pointerarg == NULL) {
+                        stringarg = "(null)";
+                        len = strlen(stringarg);
+                        (void) write(2, stringarg, len);
+                    } else {
+                        (void) write(2, "0x", 2);
+                        alertinteger((unsigned long) pointerarg, 16);
+                    }
                     currentidx += 2;
                     break;
                 case 'l':
                     switch (format[currentidx + 2]) {
                         case 'd':
                             longarg = va_arg(args, long);
-                            if(longarg < 0) {
-                                (void)write(2,"-",1);
-                                alertinteger(1UL + ~((unsigned long)longarg), 10);
+                            if (longarg < 0) {
+                                (void) write(2, "-", 1);
+                                alertinteger(1UL + ~((unsigned long) longarg), 10);
                             } else
                                 alertinteger(longarg, 10);
                             currentidx += 3;
                             break;
                         default:
-                            (void)write(2, &format[startidx], 2);
+                            (void) write(2, &format[startidx], 2);
                             currentidx += 2;
                     }
                     break;
@@ -135,11 +143,11 @@ void alert(const char *format, ...) {
                     currentidx += 2;
                     break;
                 case '\0':
-                    (void)write(2, "%", 1);
+                    (void) write(2, "%", 1);
                     currentidx += 1;
                     break;
                 default:
-                    (void)write(2, &format[startidx], 2);
+                    (void) write(2, &format[startidx], 2);
                     currentidx += 2;
             }
         }
@@ -151,7 +159,7 @@ void alert(const char *format, ...) {
 void
 fail(const char* file, int line, const char* func, const char* expr, int stat)
 {
-    alert("Failure %d in %s at %s:%d of %s\n",stat,func,file,line,expr);
+    alert("Failure %d in %s at %s:%d of %s\n", stat, func, file, line, expr);
 }
 
 void
@@ -160,14 +168,14 @@ log_message(int level, const char* file, int line, const char* func, const char*
     va_list args;
     const char* levelmsg;
     va_start(args, format);
-    switch(level) {
+    switch (level) {
         case log_FATAL: levelmsg = "fatal";   break;
         case log_ERROR: levelmsg = "error";   break;
         case log_WARN:  levelmsg = "warning"; break;
         case log_INFO:  levelmsg = "info";    break;
         case log_DEBUG: levelmsg = "debug";   break;
         case log_TRACE: levelmsg = "trace";   break;
-        default:        levelmsg = "unknown";
+        default: levelmsg = "unknown";
     }
     fprintf(stderr, "%s:%d %s() %s:", file, line, func, levelmsg);
     vfprintf(stderr, format, args);
@@ -187,20 +195,19 @@ static pthread_mutex_t threadlock = PTHREAD_MUTEX_INITIALIZER;
 static struct thread_struct *threadlist = NULL;
 static pthread_once_t threadlocatorinitializeonce = PTHREAD_ONCE_INIT;
 static pthread_key_t threadlocator;
-static int threadcount;
 static pthread_cond_t threadblock = PTHREAD_COND_INITIALIZER;
 
 void
 uninstallthread(struct thread_struct* info)
 {
-    if(info == NULL)
+    if (info == NULL)
         return;
     pthread_mutex_lock(&threadlock);
-    if(threadlist != NULL) {
+    if (threadlist != NULL) {
         info->next->prev = info->prev;
         info->prev->next = info->next;
-        if(threadlist == info) {
-            if(info->next == info) {
+        if (threadlist == info) {
+            if (info->next == info) {
                 threadlist = NULL;
             } else {
                 threadlist = info->next;
@@ -209,9 +216,7 @@ uninstallthread(struct thread_struct* info)
         info->next = info->prev = NULL;
         free(info);
         pthread_barrier_destroy(&info->startbarrier);
-        if(--threadcount <= 0) {
-            pthread_cond_signal(&threadblock);
-        }
+        pthread_cond_signal(&threadblock);
     }
     pthread_mutex_unlock(&threadlock);
 }
@@ -221,6 +226,7 @@ runthread(void* data)
 {
     struct thread_struct* info;
     info = (struct thread_struct*) data;
+    pthread_setspecific(threadlocator, info);
     pthread_barrier_wait(&info->startbarrier);
     data = info->runfunc(info->rundata);
     uninstallthread(info);
@@ -234,10 +240,10 @@ threadlocatorinitialize(void)
 }
 
 void
-createthread(thread_t* thread, void*(*func)(void*),void*data)
+createthread(thread_t* thread, void*(*func)(void*), void*data)
 {
     struct thread_struct* info;
-    info = malloc(sizeof(struct thread_struct));
+    info = malloc(sizeof (struct thread_struct));
     info->runfunc = func;
     info->rundata = data;
     info->isstarted = 0;
@@ -245,12 +251,11 @@ createthread(thread_t* thread, void*(*func)(void*),void*data)
     pthread_create(&info->thread, NULL, runthread, info);
     pthread_mutex_lock(&threadlock);
     pthread_once(&threadlocatorinitializeonce, threadlocatorinitialize);
-    pthread_setspecific(threadlocator, info);
-    if(threadlist != NULL) {
+    if (threadlist != NULL) {
         info->next = threadlist;
         info->prev = threadlist->prev;
-        threadlist->next->prev = info;
-        threadlist->next = info;
+        threadlist->prev->next = info;
+        threadlist->prev = info;
     } else {
         info->next = info->prev = info;
     }
@@ -267,7 +272,7 @@ startthread(thread_t thread)
     isstarted = thread->isstarted;
     thread->isstarted = 1;
     pthread_mutex_unlock(&threadlock);
-    if(!isstarted) {
+    if (!isstarted) {
         pthread_barrier_wait(&thread->startbarrier);
     }
 }
@@ -286,9 +291,9 @@ exitfunction(void)
     list = threadlist;
     threadlist = NULL;
     pthread_mutex_unlock(&threadlock);
-    if(list)
+    if (list)
         list->prev->next = NULL;
-    while(list) {
+    while (list) {
         /* deliberate no free of list structure, memory may be corrupted */
         list = list->next;
     }
@@ -299,27 +304,17 @@ dumpthreads(void)
 {
     struct thread_struct* info;
     struct thread_struct* list;
-    threadcount = 0;
-    alert("dumpthreads\n");
     pthread_mutex_lock(&threadlock);
     info = pthread_getspecific(threadlocator);
     list = threadlist;
-    if(list) {
-        threadcount = 0;
+    if (list) {
         do {
-            if(list != info) {
-                alert("signal a thread well: %p %p\n",list,info);
-                pthread_kill(list->thread, SIGUSR2);
-                list = list->next;
-                threadcount += 1;
+            if (list != info) {
+                pthread_kill(list->thread, SIGQUIT);
+                pthread_cond_wait(&threadblock, &threadlock);
             }
             list = list->next;
-        } while(list != threadlist);
-                alert("wait now for %d\n",threadcount);
-        if(threadcount > 0) {
-            pthread_cond_wait(&threadblock, &threadlock);
-        }
-                alert("waited\n");
+        } while (list != threadlist);
     }
     pthread_mutex_unlock(&threadlock);
 }
@@ -336,7 +331,9 @@ static struct backtrace_state *state;
 static int callback(void* data, uintptr_t pc, const char *filename, int lineno, const char *function);
 static void errorhandler(void* data, const char *msg, int errno);
 
-static int callback(void* data, uintptr_t pc, const char *filename, int lineno, const char *function) {
+static int
+callback(void* data, uintptr_t pc, const char *filename, int lineno, const char *function)
+{
     if (filename == NULL && lineno == 0 && function == NULL) {
         alert("\tinlined method\n");
     } else {
@@ -348,34 +345,38 @@ static int callback(void* data, uintptr_t pc, const char *filename, int lineno, 
         return 0;
 }
 
-static void errorhandler(void* data, const char *msg, int errno) {
+static void
+errorhandler(void* data, const char *msg, int errno)
+{
     int len = strlen(msg);
-    (void)(write(2, msg, len));
-    (void)(write(2, "\n", 1));
+    (void) (write(2, msg, len));
+    (void) (write(2, "\n", 1));
 }
 #endif
 
 static void
-handlesignal(int signal, siginfo_t* info, void* data) {
+handlesignal(int signal, siginfo_t* info, void* data)
+{
     const char* signalname;
     Dl_info btinfo;
     thread_t thrinfo;
-    (void)signal;
-    (void)data;
+    (void) signal;
+    (void) data;
 #ifndef HAVE_BACKTRACE_FULL
 #ifdef HAVE_BACKTRACE
     void *bt[20];
     int count, i;
-#endif
-#endif
+#else
 #ifdef HAVE_LIBUNWIND
     unw_context_t ctx;
     unw_cursor_t cursor;
     char symbol[256];
     unw_word_t offset;
 #endif
+#endif
+#endif
     switch (info->si_signo) {
-        case SIGUSR2:
+        case SIGQUIT:
             signalname = "Interrupted";
             break;
         case SIGABRT:
@@ -444,22 +445,19 @@ handlesignal(int signal, siginfo_t* info, void* data) {
 #endif
 #endif
 #endif
-    if (info->si_signo == SIGUSR2) {
-        alert("now looking %d\n",threadcount);
+    if (info->si_signo == SIGQUIT) {
         pthread_mutex_lock(&threadlock);
-        if(--threadcount <= 0) {
-            pthread_cond_signal(&threadblock);
-        }
+        pthread_cond_signal(&threadblock);
         pthread_mutex_unlock(&threadlock);
-        alert("now looking next\n");
     } else {
-        uninstallthread(pthread_getspecific(threadlocator));
+        /* uninstallthread(pthread_getspecific(threadlocator)); */
         dumpthreads();
     }
 }
 
 int
-installcrashhandler(char* argv0) {
+installcrashhandler(char* argv0)
+{
     sigset_t mask;
     stack_t ss;
     struct sigaction newsigaction;
@@ -467,7 +465,7 @@ installcrashhandler(char* argv0) {
 #ifdef HAVE_BACKTRACE_FULL
     CHECKFAIL((state = backtrace_create_state(argv0, 0, &errorhandler, NULL)) == NULL);
 #else
-    (void)argv0;
+    (void) argv0;
 #endif
 
     ss.ss_sp = malloc(SIGSTKSZ);
@@ -476,11 +474,11 @@ installcrashhandler(char* argv0) {
     CHECKFAIL(sigaltstack(&ss, NULL) == -1);
 
     sigfillset(&mask);
-    sigdelset(&mask, SIGUSR2);
+    sigdelset(&mask, SIGQUIT);
     newsigaction.sa_sigaction = handlesignal;
     newsigaction.sa_flags = SA_SIGINFO | SA_ONSTACK;
     newsigaction.sa_mask = mask;
-    CHECKFAIL(sigaction(SIGUSR2, &newsigaction, &original_usr1_action));
+    CHECKFAIL(sigaction(SIGQUIT, &newsigaction, &original_quit_action));
     CHECKFAIL(sigaction(SIGABRT, &newsigaction, &original_abrt_action));
     CHECKFAIL(sigaction(SIGSEGV, &newsigaction, &original_segv_action));
     CHECKFAIL(sigaction(SIGFPE, &newsigaction, &original_fpe_action));
@@ -493,7 +491,8 @@ fail:
 }
 
 int
-installcoreprevent(void) {
+installcoreprevent(void)
+{
     struct rlimit rlim;
     rlim.rlim_cur = 0;
     rlim.rlim_max = 0;

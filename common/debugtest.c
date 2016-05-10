@@ -9,8 +9,10 @@
 
 #include "debug.h"
 
+static int terminate;
+
 void
-b(void)
+crash(void)
 {
     char* p;
     p = NULL;
@@ -18,15 +20,15 @@ b(void)
 }
 
 void __attribute__ ((noinline))
-a(void) 
+recurse(void) 
 {
-    b();
+    crash();
 }
 
 void
 y(void)
 {
-    for(;;) {
+    while(!terminate) {
         printf("Hello World!\n");
         sleep(3);
     }
@@ -59,7 +61,7 @@ fn3(void *dummy)
 {
     (void)dummy;
     sleep(10);
-    a();
+    recurse();
     return NULL;
 }
 
@@ -71,20 +73,19 @@ main(int argc, char* argv[])
     thread_t thr2;
     thread_t thr3;
     installexit();
-    /*installcoreprevent();*/
+    installcoreprevent();
     installcrashhandler(argv[0]);
-    
+    terminate = 0;
     createthread(&thr1, fn1, NULL);
     createthread(&thr2, fn2, NULL);
     createthread(&thr3, fn3, NULL);
     startthread(thr1);
     startthread(thr2);
     startthread(thr3);
-    sleep(8);
-    /* dumpthreads(); */
-    sleep(8);
-    /* dumpthreads(); */
-    sleep(8);
-    fprintf(stderr,"will now try to exit\n");
+    sleep(16);
+    terminate = 1;
+    jointhread(thr1, NULL);
+    jointhread(thr2, NULL);
+    jointhread(thr3, NULL);
     return 0;
 }
