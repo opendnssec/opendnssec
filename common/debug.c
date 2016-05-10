@@ -476,7 +476,7 @@ installcrashhandler(char* argv0) {
     CHECKFAIL(sigaltstack(&ss, NULL) == -1);
 
     sigfillset(&mask);
-    sigdelset(&mask, &SIGUSR2);
+    sigdelset(&mask, SIGUSR2);
     newsigaction.sa_sigaction = handlesignal;
     newsigaction.sa_flags = SA_SIGINFO | SA_ONSTACK;
     newsigaction.sa_mask = mask;
