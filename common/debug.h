@@ -30,12 +30,12 @@
 struct thread_struct;
 typedef struct thread_struct* thread_t;
 
-extern void createthread(thread_t* thread, void*(*func)(void*),void*data);
-extern void startthread(thread_t thread);
-extern void jointhread(thread_t thread, void* data);
+extern void daemon_thread_create(thread_t* thread, void*(*func)(void*),void*data);
+extern void daemon_thread_start(thread_t thread);
+extern void daemon_thread_join(thread_t thread, void* data);
 
-extern int installcoreprevent(void);
-extern int installcrashhandler(char* argv0);
+extern int daemon_disablecoredump(void);
+extern int daemon_trapsignals(char* argv0);
 extern void installexit();
 extern void alert(const char *format, ...);
 

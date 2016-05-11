@@ -197,7 +197,7 @@ static pthread_once_t threadlocatorinitializeonce = PTHREAD_ONCE_INIT;
 static pthread_key_t threadlocator;
 static pthread_cond_t threadblock = PTHREAD_COND_INITIALIZER;
 
-void
+static void
 uninstallthread(struct thread_struct* info)
 {
     if (info == NULL)
@@ -240,7 +240,7 @@ threadlocatorinitialize(void)
 }
 
 void
-createthread(thread_t* thread, void*(*func)(void*), void*data)
+daemon_thread_create(thread_t* thread, void*(*func)(void*), void*data)
 {
     struct thread_struct* info;
     info = malloc(sizeof (struct thread_struct));
@@ -265,7 +265,7 @@ createthread(thread_t* thread, void*(*func)(void*), void*data)
 }
 
 void
-startthread(thread_t thread)
+daemon_thread_start(thread_t thread)
 {
     int isstarted;
     pthread_mutex_lock(&threadlock);
@@ -278,7 +278,7 @@ startthread(thread_t thread)
 }
 
 void
-jointhread(thread_t thread, void* data)
+daemon_thread_join(thread_t thread, void* data)
 {
     pthread_join(thread->thread, data);
 }
@@ -456,7 +456,7 @@ handlesignal(int signal, siginfo_t* info, void* data)
 }
 
 int
-installcrashhandler(char* argv0)
+daemon_trapsignals(char* argv0)
 {
     sigset_t mask;
     stack_t ss;
@@ -491,7 +491,7 @@ fail:
 }
 
 int
-installcoreprevent(void)
+daemon_disablecoredump(void)
 {
     struct rlimit rlim;
     rlim.rlim_cur = 0;
