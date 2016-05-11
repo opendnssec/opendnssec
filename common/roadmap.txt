@@ -1,0 +1,35 @@
+- aad, features 2.0, #414
+
+Version 2.2:
+- #49 Inventory and formal codes for all syslog messages [call,multi]
+- Key pooling (#103)
+
+Version 2.3 or higher:
+OPENDNSSEC-47 unified control program [discuss,review]
+
+
+discuss: need to make a plan in earlier releases
+review: after a plan, let community have their say
+call: early call on which parts are most needed
+multi: do in steps
+
+subjects
+a) compartimentization split signer (relates #134)
+b) event based workings == monitoring == hooking (relates #293, #335)
+c) testing framework
+d) scheduler
+e) database rewrite
+
+later subjects
+) command line retooling
+) left overs 2.0
+) performance and benchmarking
+) logging output
+---------------
+
+reconsiderations config 
+  files
+reconsiderations testing framework
+reconsiderations scheduler
+reconsiderations signer performance/architecture
+split xfr <> signer

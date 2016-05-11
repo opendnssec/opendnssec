@@ -23,26 +23,32 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  */
+#ifndef LOGGER_H
+#define	LOGGER_H
 
-#ifndef DEBUG_H
-#define DEBUG_H
+typedef int log_t;
+enum log_level { log_DEFAULT=0, log_FATAL, log_ERROR, log_WARN, log_INFO, log_DEBUG, log_TRACE };
 
-struct thread_struct;
-typedef struct thread_struct* thread_t;
+extern void log_initialize(char* argv0);
+extern log_t log_getlogger(char* loggingclass);
+extern void log_message(log_t logger, enum log_level level, const char* file, int line, const char* func, const char* format, ...);
+extern int log_isenabled(log_t logger, enum log_level level);
+#define LOG(LEVEL, FORMAT,...) log_message(level, __FILE__,__LINE__,__FUNCTION__,FORMAT,__VA_ARGS__)
+#define log_fatal(FORMAT,...)  log_message(log_FATAL, __FILE__,__LINE__,__FUNCTION__,FORMAT,__VA_ARGS__)
+#define log_error(FORMAT,...)  log_message(log_ERROR, __FILE__,__LINE__,__FUNCTION__,FORMAT,__VA_ARGS__)
+#define log_warn(FORMAT,...)   log_message(log_WARN,  __FILE__,__LINE__,__FUNCTION__,FORMAT,__VA_ARGS__)
+#define log_info(FORMAT,...)   log_message(log_INFO,  __FILE__,__LINE__,__FUNCTION__,FORMAT,__VA_ARGS__)
+#define log_debug(FORMAT,...)  log_message(log_DEBUG, __FILE__,__LINE__,__FUNCTION__,FORMAT,__VA_ARGS__)
+#define log_trace(FORMAT,...)  log_message(log_TRACE, __FILE__,__LINE__,__FUNCTION__,FORMAT,__VA_ARGS__)
 
-typedef void daemonutil_alertfn_t(const char *format, ...)
+extern void log_configure_delstderrtarget(void);
+extern void log_configure_addsyslogtarget(int facility);
+
+extern void
+alert(const char *format, ...)
 #ifdef HAVE___ATTRIBUTE__
      __attribute__ ((format (printf, 1, 2)))
 #endif
      ;
-
-extern void daemonutil_initialize(daemonutil_alertfn_t fatalalertfn, daemonutil_alertfn_t problemalertfn);
-
-extern void daemonutil_thread_create(thread_t* thread, void*(*func)(void*),void*data);
-extern void daemonutil_thread_start(thread_t thread);
-extern void daemonutil_thread_join(thread_t thread, void* data);
-
-extern int daemonutil_disablecoredump(void);
-extern int daemonutil_trapsignals(char* argv0);
 
 #endif

@@ -55,11 +55,6 @@
 
 #include "debug.h"
 
-static char* alertbuffer[1024];
-
-static void alertinteger(unsigned long value, int base);
-void alert(const char *format, ...);
-
 static struct sigaction original_quit_action;
 static struct sigaction original_abrt_action;
 static struct sigaction original_segv_action;
@@ -68,118 +63,23 @@ static struct sigaction original_ill_action;
 static struct sigaction original_bus_action;
 static struct sigaction original_sys_action;
 
+static daemonutil_alertfn_t alert;
+static daemonutil_alertfn_t report;
+
+static void fail(const char* file, int line, const char* func, const char* expr, int stat);
+#define CHECKFAIL(EX) do { int CHECKFAIL; if((CHECKFAIL = (EX))) { fail(__FILE__,__LINE__,__FUNCTION__,#EX,CHECKFAIL); goto fail; } } while(0)
+
 static void
-alertinteger(unsigned long value, int base)
-{
-    char ch;
-    if (value > base - 1)
-        alertinteger(value / base, base);
-    ch = "0123456789abcdef"[value % base];
-    (void) write(2, &ch, 1);
-}
-
-void
-alert(const char *format, ...)
-{
-    va_list args;
-    va_start(args, format);
-    int startidx, currentidx, len;
-    const char* stringarg;
-    void* pointerarg;
-    int integerarg;
-    long longarg;
-    startidx = 0;
-    while (format[startidx]) {
-        currentidx = startidx;
-        while (format[currentidx] && format[currentidx] != '%')
-            ++currentidx;
-        if (currentidx - startidx > 0)
-            (void)write(2, &format[startidx], currentidx - startidx);
-        if (format[currentidx] == '%') {
-            switch (format[currentidx + 1]) {
-                case '%':
-                    (void) write(2, "%", 1);
-                    currentidx += 2;
-                    break;
-                case 's':
-                    stringarg = va_arg(args, char*);
-                    if (stringarg == NULL)
-                        stringarg = "(null)";
-                    len = strlen(stringarg);
-                    (void) write(2, stringarg, len);
-                    currentidx += 2;
-                    break;
-                case 'p':
-                    pointerarg = va_arg(args, void*);
-                    if (pointerarg == NULL) {
-                        stringarg = "(null)";
-                        len = strlen(stringarg);
-                        (void) write(2, stringarg, len);
-                    } else {
-                        (void) write(2, "0x", 2);
-                        alertinteger((unsigned long) pointerarg, 16);
-                    }
-                    currentidx += 2;
-                    break;
-                case 'l':
-                    switch (format[currentidx + 2]) {
-                        case 'd':
-                            longarg = va_arg(args, long);
-                            if (longarg < 0) {
-                                (void) write(2, "-", 1);
-                                alertinteger(1UL + ~((unsigned long) longarg), 10);
-                            } else
-                                alertinteger(longarg, 10);
-                            currentidx += 3;
-                            break;
-                        default:
-                            (void) write(2, &format[startidx], 2);
-                            currentidx += 2;
-                    }
-                    break;
-                case 'd':
-                    integerarg = va_arg(args, int);
-                    alertinteger((long) integerarg, 10);
-                    currentidx += 2;
-                    break;
-                case '\0':
-                    (void) write(2, "%", 1);
-                    currentidx += 1;
-                    break;
-                default:
-                    (void) write(2, &format[startidx], 2);
-                    currentidx += 2;
-            }
-        }
-        startidx = currentidx;
-    }
-    va_end(args);
-}
-
-void
 fail(const char* file, int line, const char* func, const char* expr, int stat)
 {
-    alert("Failure %d in %s at %s:%d of %s\n", stat, func, file, line, expr);
+    report("Failure %d in %s at %s:%d of %s\n", stat, func, file, line, expr);
 }
 
 void
-log_message(int level, const char* file, int line, const char* func, const char* format, ...)
+daemonutil_initialize(daemonutil_alertfn_t alertfn, daemonutil_alertfn_t reportfn)
 {
-    va_list args;
-    const char* levelmsg;
-    va_start(args, format);
-    switch (level) {
-        case log_FATAL: levelmsg = "fatal";   break;
-        case log_ERROR: levelmsg = "error";   break;
-        case log_WARN:  levelmsg = "warning"; break;
-        case log_INFO:  levelmsg = "info";    break;
-        case log_DEBUG: levelmsg = "debug";   break;
-        case log_TRACE: levelmsg = "trace";   break;
-        default: levelmsg = "unknown";
-    }
-    fprintf(stderr, "%s:%d %s() %s:", file, line, func, levelmsg);
-    vfprintf(stderr, format, args);
-    fprintf(stderr, "\n");
+    report = reportfn;
+    alert = alertfn;
 }
 
 struct thread_struct {
@@ -240,7 +140,7 @@ threadlocatorinitialize(void)
 }
 
 void
-daemon_thread_create(thread_t* thread, void*(*func)(void*), void*data)
+daemonutil_thread_create(thread_t* thread, void*(*func)(void*), void*data)
 {
     struct thread_struct* info;
     info = malloc(sizeof (struct thread_struct));
@@ -265,7 +165,7 @@ daemon_thread_create(thread_t* thread, void*(*func)(void*), void*data)
 }
 
 void
-daemon_thread_start(thread_t thread)
+daemonutil_thread_start(thread_t thread)
 {
     int isstarted;
     pthread_mutex_lock(&threadlock);
@@ -278,7 +178,7 @@ daemon_thread_start(thread_t thread)
 }
 
 void
-daemon_thread_join(thread_t thread, void* data)
+daemonutil_thread_join(thread_t thread, void* data)
 {
     pthread_join(thread->thread, data);
 }
@@ -299,7 +199,7 @@ exitfunction(void)
     }
 }
 
-void
+static void
 dumpthreads(void)
 {
     struct thread_struct* info;
@@ -317,12 +217,6 @@ dumpthreads(void)
         } while (list != threadlist);
     }
     pthread_mutex_unlock(&threadlock);
-}
-
-void
-installexit()
-{
-    atexit(exitfunction);
 }
 
 #ifdef HAVE_BACKTRACE_FULL
@@ -349,7 +243,7 @@ static void
 errorhandler(void* data, const char *msg, int errno)
 {
     int len = strlen(msg);
-    (void) (write(2, msg, len));
+    (void) (write(2, msg, len)); /* TODO */
     (void) (write(2, "\n", 1));
 }
 #endif
@@ -450,13 +344,12 @@ handlesignal(int signal, siginfo_t* info, void* data)
         pthread_cond_signal(&threadblock);
         pthread_mutex_unlock(&threadlock);
     } else {
-        /* uninstallthread(pthread_getspecific(threadlocator)); */
         dumpthreads();
     }
 }
 
 int
-daemon_trapsignals(char* argv0)
+daemonutil_trapsignals(char* argv0)
 {
     sigset_t mask;
     stack_t ss;
@@ -491,7 +384,7 @@ fail:
 }
 
 int
-daemon_disablecoredump(void)
+daemonutil_disablecoredump(void)
 {
     struct rlimit rlim;
     rlim.rlim_cur = 0;
@@ -499,7 +392,6 @@ daemon_disablecoredump(void)
 
     CHECKFAIL(setrlimit(RLIMIT_CORE, &rlim));
     return 0;
-
 fail:
     return -1;
 }
