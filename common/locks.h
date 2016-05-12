@@ -34,6 +34,7 @@
 
 #include "config.h"
 #include "log.h"
+#include "crash.h"
 
 #include <errno.h>
 #include <stdlib.h>
@@ -71,7 +72,7 @@ typedef pthread_cond_t cond_basic_type;
 #define lock_basic_off(cond) LOCKRET(pthread_cond_destroy(cond))
 
 /** thread creation */
-typedef pthread_t ods_thread_type;
+typedef crash_thread_t ods_thread_type;
 /** Pass where to store tread_t in thr. */
 #define ods_thread_detach(thr) LOCKRET(pthread_detach(thr))
 #define ods_thread_self() pthread_self()

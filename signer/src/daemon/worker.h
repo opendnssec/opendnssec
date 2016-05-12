@@ -49,12 +49,11 @@ typedef struct worker_struct worker_type;
 #include "locks.h"
 
 struct worker_struct {
-    int thread_num;
+    char* name;
     ods_thread_type thread_id;
     engine_type* engine;
     task_type* task;
     task_id working_with;
-    worker_id type;
     time_t clock_in;
     size_t jobs_appointed;
     size_t jobs_completed;
@@ -74,7 +73,7 @@ struct worker_struct {
  * \return worker_type* created worker
  *
  */
-worker_type* worker_create(int num, worker_id type);
+worker_type* worker_create(char* name);
 
 /**
  * Start working.

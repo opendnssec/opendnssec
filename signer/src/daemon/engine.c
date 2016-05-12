@@ -128,8 +128,7 @@ engine_start_cmdhandler(engine_type* engine)
     ods_log_assert(engine);
     ods_log_debug("[%s] start command handler", engine_str);
     engine->cmdhandler->engine = engine;
-    ods_thread_create(&engine->cmdhandler->thread_id,
-        cmdhandler_thread_start, engine->cmdhandler);
+    crash_thread_createrunning(&engine->cmdhandler->thread_id, cmdhandler_thread_start, engine->cmdhandler);
 }
 
 /**
@@ -214,8 +213,7 @@ engine_start_dnshandler(engine_type* engine)
     }
     ods_log_debug("[%s] start dnshandler", engine_str);
     engine->dnshandler->engine = engine;
-    ods_thread_create(&engine->dnshandler->thread_id,
-        dnshandler_thread_start, engine->dnshandler);
+    crash_thread_createrunning(&engine->dnshandler->thread_id, dnshandler_thread_start, engine->dnshandler);
 }
 static void
 engine_stop_dnshandler(engine_type* engine)
@@ -227,7 +225,7 @@ engine_stop_dnshandler(engine_type* engine)
     engine->dnshandler->need_to_exit = 1;
     dnshandler_signal(engine->dnshandler);
     ods_log_debug("[%s] join dnshandler", engine_str);
-    ods_thread_join(engine->dnshandler->thread_id);
+    crash_thread_join(engine->dnshandler->thread_id, NULL);
     engine->dnshandler->engine = NULL;
 }
 
@@ -256,8 +254,7 @@ engine_start_xfrhandler(engine_type* engine)
      * it has marked itself started
      */
     engine->xfrhandler->started = 1;
-    ods_thread_create(&engine->xfrhandler->thread_id,
-        xfrhandler_thread_start, engine->xfrhandler);
+    crash_thread_createrunning(&engine->xfrhandler->thread_id, xfrhandler_thread_start, engine->xfrhandler);
 }
 static void
 engine_stop_xfrhandler(engine_type* engine)
@@ -270,7 +267,7 @@ engine_stop_xfrhandler(engine_type* engine)
     xfrhandler_signal(engine->xfrhandler);
     ods_log_debug("[%s] join xfrhandler", engine_str);
     if (engine->xfrhandler->started) {
-    	ods_thread_join(engine->xfrhandler->thread_id);
+    	crash_thread_join(engine->xfrhandler->thread_id, NULL);
     	engine->xfrhandler->started = 0;
     }
     engine->xfrhandler->engine = NULL;
@@ -320,25 +317,30 @@ engine_privdrop(engine_type* engine)
 static void
 engine_create_workers(engine_type* engine)
 {
+    char* name;
     size_t i = 0;
     ods_log_assert(engine);
     ods_log_assert(engine->config);
     CHECKALLOC(engine->workers = (worker_type**) malloc(((size_t)engine->config->num_worker_threads) * sizeof(worker_type*)));
     for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
-        engine->workers[i] = worker_create(i, WORKER_WORKER);
+        asprintf(&name, "worker[%i]", i+1);
+        engine->workers[i] = worker_create(name);
     }
 }
 static void
 engine_create_drudgers(engine_type* engine)
 {
+    char* name;
     size_t i = 0;
     ods_log_assert(engine);
     ods_log_assert(engine->config);
     CHECKALLOC(engine->drudgers = (worker_type**) malloc(((size_t)engine->config->num_signer_threads) * sizeof(worker_type*)));
     for (i=0; i < (size_t) engine->config->num_signer_threads; i++) {
-        engine->drudgers[i] = worker_create(i, WORKER_DRUDGER);
+        asprintf(&name, "drudger[%i]", i+1);
+        engine->drudgers[i] = worker_create(name);
     }
 }
+
 static void*
 worker_thread_start(void* arg)
 {
@@ -347,6 +349,7 @@ worker_thread_start(void* arg)
     worker_start(worker);
     return NULL;
 }
+
 static void
 engine_start_workers(engine_type* engine)
 {
@@ -357,8 +360,8 @@ engine_start_workers(engine_type* engine)
     for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
         engine->workers[i]->need_to_exit = 0;
         engine->workers[i]->engine = (void*) engine;
-        ods_thread_create(&engine->workers[i]->thread_id, worker_thread_start,
-            engine->workers[i]);
+        crash_thread_start(engine->workers[i]->thread_id);
+        crash_thread_createrunning(&engine->workers[i]->thread_id, worker_thread_start, engine->workers[i]);
     }
 }
 void
@@ -371,8 +374,8 @@ engine_start_drudgers(engine_type* engine)
     for (i=0; i < (size_t) engine->config->num_signer_threads; i++) {
         engine->drudgers[i]->need_to_exit = 0;
         engine->drudgers[i]->engine = (void*) engine;
-        ods_thread_create(&engine->drudgers[i]->thread_id, worker_thread_start,
-            engine->drudgers[i]);
+        crash_thread_start(engine->drudgers[i]->thread_id);
+        crash_thread_createrunning(&engine->drudgers[i]->thread_id, worker_thread_start, engine->drudgers[i]);
     }
 }
 static void
@@ -392,7 +395,7 @@ engine_stop_workers(engine_type* engine)
     /* head count */
     for (i=0; i < engine->config->num_worker_threads; i++) {
         ods_log_debug("[%s] join worker %d", engine_str, i+1);
-        ods_thread_join(engine->workers[i]->thread_id);
+        crash_thread_join(engine->workers[i]->thread_id, NULL);
         engine->workers[i]->engine = NULL;
     }
 }
@@ -412,7 +415,7 @@ engine_stop_drudgers(engine_type* engine)
     /* head count */
     for (i=0; i < engine->config->num_signer_threads; i++) {
         ods_log_debug("[%s] join drudger %d", engine_str, i+1);
-        ods_thread_join(engine->drudgers[i]->thread_id);
+        crash_thread_join(engine->drudgers[i]->thread_id, NULL);
         engine->drudgers[i]->engine = NULL;
     }
 }

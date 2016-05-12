@@ -1,8 +1,24 @@
-- aad, features 2.0, #414
+Epics
+- Testing framework
+  - remove need for sleep
+  - run enforcer-only and signer
+- Database rewrite
+- Signer restructure
+  - Rework to get three components which only on strict interfaces interact
+    XFR/DNS vs signing vs control
+  - Rework for signing to make explicit passes over signing
+- Event-based operations
+- 
+
+Version 2.1
+
+
+
 
 Version 2.2:
 - #49 Inventory and formal codes for all syslog messages [call,multi]
 - Key pooling (#103)
+- Database rewrite
 
 Version 2.3 or higher:
 OPENDNSSEC-47 unified control program [discuss,review]

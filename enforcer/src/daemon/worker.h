@@ -41,6 +41,7 @@ struct engine_struct;
 
 typedef struct worker_struct worker_type;
 struct worker_struct {
+    char* name;
     int thread_num;
     pthread_t thread_id;
     struct engine_struct* engine;

@@ -485,9 +485,7 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
         /* Opportunistic join threads LIFO. */
         for (i = thread_index-1; i>0; i--) {
             if (!cmdcs[i].stopped) break;
-            if (pthread_join(cmdcs[i].thread_id, NULL)) {
-                break;
-            }
+            crash_thread_join(cmdcs[i].thread_id, NULL);
             thread_index--;
         }
 
@@ -534,9 +532,7 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
             cmdc->listen_addr = cmdhandler->listen_addr;
             cmdc->engine = cmdhandler->engine;
             cmdc->need_to_exit = cmdhandler->need_to_exit;
-            if (!pthread_create(&(cmdcs[thread_index].thread_id), NULL, &cmdhandler_accept_client,
-                (void*) cmdc))
-            {
+            if (!crash_thread_createrunning(&(cmdcs[thread_index].thread_id), &cmdhandler_accept_client, (void*) cmdc)) {
                 thread_index++;
             }
             ods_log_debug("[%s] %lu clients in progress...", module_str, thread_index);
@@ -545,9 +541,7 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
 
     /* join threads LIFO. */
     for (i = thread_index-1; i>0; i--) {
-        if (pthread_join(cmdcs[i].thread_id, NULL)) {
-            break;
-        }
+        crash_thread_join(cmdcs[i].thread_id, NULL);
     }
 
     ods_log_debug("[%s] done", module_str);
@@ -613,5 +607,5 @@ cmdhandler_stop(struct engine_struct* engine)
         ods_log_error("[engine] command handler self pipe trick failed, "
             "unclean shutdown");
     }
-    (void) pthread_join(engine->cmdhandler->thread_id, NULL);
+    crash_thread_join(engine->cmdhandler->thread_id, NULL);
 }

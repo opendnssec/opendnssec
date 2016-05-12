@@ -6,7 +6,7 @@
 #include <unistd.h>
 #include <pthread.h>
 
-#include "debug.h"
+#include "crash.h"
 
 static int terminate;
 
@@ -68,23 +68,22 @@ int
 main(int argc, char* argv[])
 {
     int i;
-    thread_t thr1;
-    thread_t thr2;
-    thread_t thr3;
-    installexit();
-    daemonutil_disablecoredump();
-    daemonutil_trapsignals(argv[0]);
+    crash_thread_t thr1;
+    crash_thread_t thr2;
+    crash_thread_t thr3;
+    crash_disablecoredump();
+    crash_trapsignals(argv[0]);
     terminate = 0;
-    daemonutil_thread_create(&thr1, fn1, NULL);
-    daemonutil_thread_create(&thr2, fn2, NULL);
-    daemonutil_thread_create(&thr3, fn3, NULL);
-    daemonutil_thread_start(thr1);
-    daemonutil_thread_start(thr2);
-    daemonutil_thread_start(thr3);
+    crash_thread_create(&thr1, fn1, NULL);
+    crash_thread_create(&thr2, fn2, NULL);
+    crash_thread_create(&thr3, fn3, NULL);
+    crash_thread_start(thr1);
+    crash_thread_start(thr2);
+    crash_thread_start(thr3);
     sleep(16);
     terminate = 1;
-    daemonutil_thread_join(thr1, NULL);
-    daemonutil_thread_join(thr2, NULL);
-    daemonutil_thread_join(thr3, NULL);
+    crash_thread_join(thr1, NULL);
+    crash_thread_join(thr2, NULL);
+    crash_thread_join(thr3, NULL);
     return 0;
 }

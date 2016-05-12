@@ -27,22 +27,29 @@
 #ifndef DEBUG_H
 #define DEBUG_H
 
-struct thread_struct;
-typedef struct thread_struct* thread_t;
+#include <pthread.h>
 
-typedef void daemonutil_alertfn_t(const char *format, ...)
+struct crash_thread_struct;
+typedef struct crash_thread_struct* crash_thread_t;
+
+typedef void (*daemonutil_alertfn_t)(const char *format, ...)
 #ifdef HAVE___ATTRIBUTE__
      __attribute__ ((format (printf, 1, 2)))
 #endif
      ;
 
-extern void daemonutil_initialize(daemonutil_alertfn_t fatalalertfn, daemonutil_alertfn_t problemalertfn);
+extern void crash_initialize(daemonutil_alertfn_t fatalalertfn, daemonutil_alertfn_t problemalertfn);
 
-extern void daemonutil_thread_create(thread_t* thread, void*(*func)(void*),void*data);
-extern void daemonutil_thread_start(thread_t thread);
-extern void daemonutil_thread_join(thread_t thread, void* data);
+extern int  crash_thread_create(crash_thread_t* thread, void*(*func)(void*),void*data);
+extern void crash_thread_start(crash_thread_t thread);
+extern void crash_thread_join(crash_thread_t thread, void* data);
 
-extern int daemonutil_disablecoredump(void);
-extern int daemonutil_trapsignals(char* argv0);
+extern int crash_disablecoredump(void);
+extern int crash_trapsignals(char* argv0);
+
+extern int crash_thread_createrunning(crash_thread_t* thread,void*(*func)(void*),void*data);
+extern int crash_thread_createrunningdetached(crash_thread_t* thread,void*(*func)(void*),void*data);
+extern void crash_thread_detach(crash_thread_t thread);
+extern void crash_thread_signal(crash_thread_t thread);
 
 #endif

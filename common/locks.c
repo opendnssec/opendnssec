@@ -99,32 +99,6 @@ void ods_thr_fork_wait(ods_thread_type thread)
 #else /* defined(HAVE_PTHREAD) */
 
 int
-ods_thread_create(pthread_t *thr, void *(*func)(void *), void *arg)
-{
-    int ret, attr_set;
-    pthread_attr_t attr;
-    size_t stacksize;
-
-    attr_set = (
-           !pthread_attr_init(&attr)
-        && !pthread_attr_getstacksize(&attr, &stacksize)
-        && stacksize < ODS_MINIMUM_STACKSIZE
-        && !pthread_attr_setstacksize(&attr, ODS_MINIMUM_STACKSIZE)
-    );
-
-    ret = pthread_create(thr, attr_set?&attr:NULL, func, arg);
-    if (attr_set)
-        (void) pthread_attr_destroy(&attr);
-
-    if ( ret != 0) {
-        ods_log_error("%s at %d could not pthread_create(thr, &attr, func, arg): %s",
-        __FILE__, __LINE__, strerror(ret));
-    }
-
-    return ret;
-}
-
-int
 ods_thread_wait(cond_basic_type* cond, lock_basic_type* lock, time_t wait)
 {
     struct timespec ts;
@@ -171,6 +145,13 @@ ods_thread_blocksigs(void)
 #endif
     sigset_t sigset;
     sigfillset(&sigset);
+    sigdelset(&sigset, SIGQUIT);
+    sigdelset(&sigset, SIGABRT);
+    sigdelset(&sigset, SIGSEGV);
+    sigdelset(&sigset, SIGFPE);
+    sigdelset(&sigset, SIGILL);
+    sigdelset(&sigset, SIGBUS);
+    sigdelset(&sigset, SIGSYS);
 
 #ifndef HAVE_PTHREAD
     if((err=pthread_sigmask(SIG_SETMASK, &sigset, NULL)))

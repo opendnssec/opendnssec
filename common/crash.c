@@ -53,7 +53,7 @@
 #include <libunwind.h>
 #endif
 
-#include "debug.h"
+#include "crash.h"
 
 static struct sigaction original_quit_action;
 static struct sigaction original_abrt_action;
@@ -76,15 +76,15 @@ fail(const char* file, int line, const char* func, const char* expr, int stat)
 }
 
 void
-daemonutil_initialize(daemonutil_alertfn_t alertfn, daemonutil_alertfn_t reportfn)
+crash_initialize(daemonutil_alertfn_t alertfn, daemonutil_alertfn_t reportfn)
 {
     report = reportfn;
     alert = alertfn;
 }
 
-struct thread_struct {
-    struct thread_struct* next;
-    struct thread_struct* prev;
+struct crash_thread_struct {
+    struct crash_thread_struct* next;
+    struct crash_thread_struct* prev;
     pthread_t thread;
     void* (*runfunc)(void*);
     void* rundata;
@@ -92,13 +92,19 @@ struct thread_struct {
     pthread_barrier_t startbarrier;
 };
 static pthread_mutex_t threadlock = PTHREAD_MUTEX_INITIALIZER;
-static struct thread_struct *threadlist = NULL;
+static struct crash_thread_struct *threadlist = NULL;
 static pthread_once_t threadlocatorinitializeonce = PTHREAD_ONCE_INIT;
 static pthread_key_t threadlocator;
 static pthread_cond_t threadblock = PTHREAD_COND_INITIALIZER;
 
 static void
-uninstallthread(struct thread_struct* info)
+threadlocatorinitialize(void)
+{
+    pthread_key_create(&threadlocator, NULL);
+}
+
+void
+crash_thread_unregister(crash_thread_t info)
 {
     if (info == NULL)
         return;
@@ -121,34 +127,9 @@ uninstallthread(struct thread_struct* info)
     pthread_mutex_unlock(&threadlock);
 }
 
-static void*
-runthread(void* data)
-{
-    struct thread_struct* info;
-    info = (struct thread_struct*) data;
-    pthread_setspecific(threadlocator, info);
-    pthread_barrier_wait(&info->startbarrier);
-    data = info->runfunc(info->rundata);
-    uninstallthread(info);
-    return data;
-}
-
-static void
-threadlocatorinitialize(void)
-{
-    pthread_key_create(&threadlocator, NULL);
-}
-
 void
-daemonutil_thread_create(thread_t* thread, void*(*func)(void*), void*data)
+crash_thread_register(crash_thread_t info)
 {
-    struct thread_struct* info;
-    info = malloc(sizeof (struct thread_struct));
-    info->runfunc = func;
-    info->rundata = data;
-    info->isstarted = 0;
-    pthread_barrier_init(&info->startbarrier, NULL, 2);
-    pthread_create(&info->thread, NULL, runthread, info);
     pthread_mutex_lock(&threadlock);
     pthread_once(&threadlocatorinitializeonce, threadlocatorinitialize);
     if (threadlist != NULL) {
@@ -161,11 +142,105 @@ daemonutil_thread_create(thread_t* thread, void*(*func)(void*), void*data)
     }
     threadlist = info;
     pthread_mutex_unlock(&threadlock);
-    *thread = info;
 }
 
 void
-daemonutil_thread_start(thread_t thread)
+crash_thread_register_pthread(pthread_t thr)
+{
+    crash_thread_t info;
+    pthread_once(&threadlocatorinitializeonce, threadlocatorinitialize);
+    if (!(info = pthread_getspecific(threadlocator))) {
+        info = malloc(sizeof (struct crash_thread_struct));
+        info->runfunc = NULL;
+        info->rundata = NULL;
+        info->isstarted = 1;
+        pthread_barrier_init(&info->startbarrier, NULL, 1);
+    }
+    info->thread = thr;
+    crash_thread_register(info);
+}
+
+void
+crash_thread_unregister_pthread(void)
+{
+    crash_thread_t info;
+    pthread_once(&threadlocatorinitializeonce, threadlocatorinitialize);
+    if (!(info = pthread_getspecific(threadlocator))) {
+        crash_thread_unregister(info);
+    }
+}
+
+static void*
+runthread(void* data)
+{
+    struct crash_thread_struct* info;
+    info = (struct crash_thread_struct*) data;
+    pthread_setspecific(threadlocator, info);
+    pthread_barrier_wait(&info->startbarrier);
+    data = info->runfunc(info->rundata);
+    crash_thread_unregister(info);
+    return data;
+}
+
+int
+crash_thread_create(crash_thread_t* thread, void*(*func)(void*), void*data)
+{
+    struct crash_thread_struct* info;
+    info = malloc(sizeof (struct crash_thread_struct));
+    info->runfunc = func;
+    info->rundata = data;
+    info->isstarted = 0;
+    pthread_barrier_init(&info->startbarrier, NULL, 2);
+    pthread_create(&info->thread, NULL, runthread, info);
+    crash_thread_register(info);
+    *thread = info;
+    return 0;
+}
+
+int
+crash_thread_createrunning(crash_thread_t* thread, void*(*func)(void*), void*data)
+{
+    pthread_attr_t attrs;
+    struct crash_thread_struct* info;
+    info = malloc(sizeof (struct crash_thread_struct));
+    info->runfunc = func;
+    info->rundata = data;
+    info->isstarted = 1;
+    pthread_barrier_init(&info->startbarrier, NULL, 1);
+
+    size_t stacksize = 0;
+
+    pthread_attr_init(&attrs);
+    pthread_attr_getstacksize(&attrs, &stacksize);
+#ifdef NOTDEFINED
+    if (stacksize < ODS_MINIMUM_STACKSIZE) {
+        pthread_attr_setstacksize(&attr, ODS_MINIMUM_STACKSIZE);
+    }
+#endif
+    pthread_create(&info->thread, &attrs, runthread, info);
+    pthread_attr_destroy(&attrs);
+    crash_thread_register(info);
+    *thread = info;
+    return 0;
+}
+
+int
+crash_thread_createrunningdetached(crash_thread_t* thread, void*(*func)(void*), void*data)
+{
+#ifdef NOTDEFINED
+    ods_thread_blocksigs();
+#endif
+    return 0;
+}
+void crash_thread_detach(crash_thread_t thread)
+{
+}
+void crash_thread_signal(crash_thread_t thread)
+{
+}
+
+void
+crash_thread_start(crash_thread_t thread)
 {
     int isstarted;
     pthread_mutex_lock(&threadlock);
@@ -178,32 +253,16 @@ daemonutil_thread_start(thread_t thread)
 }
 
 void
-daemonutil_thread_join(thread_t thread, void* data)
+crash_thread_join(crash_thread_t thread, void* data)
 {
     pthread_join(thread->thread, data);
 }
 
 static void
-exitfunction(void)
-{
-    struct thread_struct* list;
-    pthread_mutex_lock(&threadlock);
-    list = threadlist;
-    threadlist = NULL;
-    pthread_mutex_unlock(&threadlock);
-    if (list)
-        list->prev->next = NULL;
-    while (list) {
-        /* deliberate no free of list structure, memory may be corrupted */
-        list = list->next;
-    }
-}
-
-static void
 dumpthreads(void)
 {
-    struct thread_struct* info;
-    struct thread_struct* list;
+    struct crash_thread_struct* info;
+    struct crash_thread_struct* list;
     pthread_mutex_lock(&threadlock);
     info = pthread_getspecific(threadlocator);
     list = threadlist;
@@ -253,7 +312,7 @@ handlesignal(int signal, siginfo_t* info, void* data)
 {
     const char* signalname;
     Dl_info btinfo;
-    thread_t thrinfo;
+    crash_thread_t thrinfo;
     (void) signal;
     (void) data;
 #ifndef HAVE_BACKTRACE_FULL
@@ -349,7 +408,7 @@ handlesignal(int signal, siginfo_t* info, void* data)
 }
 
 int
-daemonutil_trapsignals(char* argv0)
+crash_trapsignals(char* argv0)
 {
     sigset_t mask;
     stack_t ss;
@@ -384,7 +443,7 @@ fail:
 }
 
 int
-daemonutil_disablecoredump(void)
+crash_disablecoredump(void)
 {
     struct rlimit rlim;
     rlim.rlim_cur = 0;

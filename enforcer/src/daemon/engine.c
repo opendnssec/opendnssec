@@ -131,8 +131,7 @@ engine_start_cmdhandler(engine_type* engine)
     ods_log_assert(engine);
     ods_log_debug("[%s] start command handler", engine_str);
     engine->cmdhandler->engine = engine;
-    pthread_create(&engine->cmdhandler->thread_id, NULL,
-        cmdhandler_thread_start, engine->cmdhandler);
+    crash_thread_createrunning(&engine->cmdhandler->thread_id, cmdhandler_thread_start, engine->cmdhandler);
 }
 
 /**
@@ -221,8 +220,7 @@ engine_start_workers(engine_type* engine)
     for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
         engine->workers[i]->need_to_exit = 0;
         engine->workers[i]->engine = (struct engine_struct*) engine;
-        pthread_create(&engine->workers[i]->thread_id, NULL,
-            worker_thread_start, engine->workers[i]);
+        crash_thread_create(&engine->workers[i]->thread_id, worker_thread_start, engine->workers[i]);
     }
 }
 

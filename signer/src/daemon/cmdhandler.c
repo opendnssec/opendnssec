@@ -837,9 +837,6 @@ cmdhandler_accept_client(void* arg)
 {
     cmdhandler_type* cmdc = (cmdhandler_type*) arg;
 
-    ods_thread_blocksigs();
-    ods_thread_detach(cmdc->thread_id);
-
     ods_log_debug("[%s] accept client %i", cmdh_str, cmdc->client_fd);
     cmdhandler_handle_cmd(cmdc);
     if (cmdc->client_fd) {
@@ -944,7 +941,7 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
     ods_log_assert(cmdhandler->engine);
     ods_log_debug("[%s] start", cmdh_str);
     engine = cmdhandler->engine;
-    ods_thread_detach(cmdhandler->thread_id);
+    crash_thread_detach(cmdhandler->thread_id);
     FD_ZERO(&rset);
     while (cmdhandler->need_to_exit == 0) {
         clilen = sizeof(cliaddr);
@@ -980,8 +977,7 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
             cmdc->listen_addr = cmdhandler->listen_addr;
             cmdc->engine = cmdhandler->engine;
             cmdc->need_to_exit = cmdhandler->need_to_exit;
-            ods_thread_create(&cmdc->thread_id, &cmdhandler_accept_client,
-                (void*) cmdc);
+            crash_thread_createrunningdetached(&cmdc->thread_id, &cmdhandler_accept_client, (void*) cmdc);
             count++;
             ods_log_debug("[%s] %i clients in progress...", cmdh_str, count);
         }
