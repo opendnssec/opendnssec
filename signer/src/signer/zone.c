@@ -571,7 +571,7 @@ zone_add_rr(zone_type* zone, ldns_rr* rr, int do_stats)
     rr_type* record = NULL;
     ods_status status = ODS_STATUS_OK;
     char* str = NULL;
-    int i;
+    size_t i;
 
     ods_log_assert(rr);
     ods_log_assert(zone);
@@ -694,7 +694,7 @@ zone_del_nsec3params(zone_type* zone)
 {
     domain_type* domain = NULL;
     rrset_type* rrset = NULL;
-    int i;
+    size_t i;
 
     ods_log_assert(zone);
     ods_log_assert(zone->name);
