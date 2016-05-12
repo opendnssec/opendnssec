@@ -869,6 +869,10 @@ query_process(query_type* q, void* engine)
         return query_formerr(q);
     }
     rr = ldns_rr_list_rr(ldns_pkt_question(pkt), 0);
+    if (!rr) {
+        ods_log_debug("[%s] no RRset in query section, ignoring", query_str);
+        return QUERY_DISCARDED; /* no RRset in query */
+    }
     lock_basic_lock(&e->zonelist->zl_lock);
     /* we can just lookup the zone, because we will only handle SOA queries,
        zone transfers, updates and notifies */
