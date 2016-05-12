@@ -1255,7 +1255,7 @@ ods_ldns_testns ()
 	echo "ods_ldns_testns: starting ldns-testns port $port data file $datafile"
 	log_this ldns-testns ldns-testns -v -p "$port" "$datafile" &
 
-	if log_waitfor ldns-testns stdout 5 "Listening on port"; then
+	if log_waitfor ldns-testns stdout 8 "Listening on port"; then
 		return 0
 	fi
 

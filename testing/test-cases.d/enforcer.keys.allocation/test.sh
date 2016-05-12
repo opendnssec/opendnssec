@@ -82,7 +82,7 @@ if [ $nonshare3 -eq 0 ]; then
 	KSK_CKA_ID_NON_3=`log_grep -o ods-enforcer-cka_id1 stdout "non-share3                      KSK      " | awk '{print $8}'`
 else
 	KSK_CKA_ID_NON_3=`log_grep -o ods-enforcer-cka_id1 stdout "non-share3                      KSK      " | awk '{print $9}'`
-fi 
+fi &&
 
 ZSK_CKA_ID_NON_1=`log_grep -o ods-enforcer-cka_id1 stdout "non-share1                      ZSK      " | awk '{print $8}'` &&
 ZSK_CKA_ID_NON_2=`log_grep -o ods-enforcer-cka_id1 stdout "non-share2                      ZSK      " | awk '{print $8}'` &&
