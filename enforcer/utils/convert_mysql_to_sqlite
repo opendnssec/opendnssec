@@ -5,7 +5,7 @@ set -e
 # old and new databases live on the same host and are accessable by the same 
 # user.
 
-SCHEMA=../../src/db/schema.sqlite
+SCHEMA=../src/db/schema.sqlite
 
 DB_IN=""
 DB_OUT=""
