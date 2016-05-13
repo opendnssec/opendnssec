@@ -39,11 +39,9 @@ fi
 
 rm -f $DB_OUT
 sqlite3 $DB_OUT < $SCHEMA 
-echo "attach '$DB_IN' as REMOTE;" |
-	cat - sqlite_convert.sql | sqlite3 $DB_OUT
 
 echo "Converting database"
 
-mysqldump -u $DB_USR -p$DB_PWD -h $DB_HOST $DB_IN |grep INSERT | sed -r 's/^INSERT INTO `([^"]+)`/INSERT INTO "\1"/' > tmp
+mysqldump -u $DB_USR -p$DB_PWD -h $DB_HOST $DB_IN | awk '/INSERT INTO/,/;/' | sed -r 's/^INSERT INTO `([^"]+)`/INSERT INTO "\1"/' > tmp
 sqlite3 $DB_OUT < tmp
 rm tmp

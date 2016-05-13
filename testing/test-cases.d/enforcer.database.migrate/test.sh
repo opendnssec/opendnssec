@@ -30,12 +30,10 @@ echo -n "LINE: ${LINENO} " && ods-enforcer zone add --zone ods2 &&
 
 echo "################## ROLL KSK ###########################" &&
 echo -n "LINE: ${LINENO} " && ods_enforcer_idle &&
-#echo -n "LINE: ${LINENO} " && visual_sleep 3 &&
 echo -n "LINE: ${LINENO} " && ods-enforcer key rollover -z ods2 -t KSK &&
 
 echo "################## CHECK ###########################" &&
 echo -n "LINE: ${LINENO} " && ods_enforcer_idle &&
-#echo -n "LINE: ${LINENO} " && visual_sleep 4 &&
 
 echo -n "LINE: ${LINENO} " && KSK1=`ods-enforcer key list -d -p | grep ods1 | grep KSK |cut -d ";" -f 9` &&
 echo -n "LINE: ${LINENO} " && ZSK1=`ods-enforcer key list -d -p | grep ods1 | grep ZSK |cut -d ";" -f 9` &&
@@ -58,19 +56,25 @@ echo -n "LINE: ${LINENO} New KSK may not use same material as ZSKs" && test "$KS
 echo "################## STOP AND CONVERT ###########################" &&
 echo -n "LINE: ${LINENO} " && ods_stop_enforcer &&
 
-echo -n "LINE: ${LINENO} " && ../../../enforcer/utils/convert_sqlite_to_mysql -i $INSTALL_ROOT/var/opendnssec/kasp.db -o enforcer-database-migrate-test &&
-echo -n "LINE: ${LINENO} " && ../../../enforcer/utils/convert_mysql_to_sqlite -o $INSTALL_ROOT/var/opendnssec/kasp.db -i enforcer-database-migrate-test &&
+if [ -n "$HAVE_MYSQL" ]; then
+	echo -n "LINE: ${LINENO} " && (cd ../../../enforcer/utils/; ./convert_mysql_to_sqlite -o $INSTALL_ROOT/var/opendnssec/kasp.db -i test) &&
+	echo -n "LINE: ${LINENO} " && echo "DROP DATABASE test;" | mysql -u test -ptest -h localhost &&
+	echo -n "LINE: ${LINENO} " && (cd ../../../enforcer/utils/; ./convert_sqlite_to_mysql -i $INSTALL_ROOT/var/opendnssec/kasp.db -o test)
+else
+	echo -n "LINE: ${LINENO} " && (cd ../../../enforcer/utils/; ./convert_sqlite_to_mysql -i $INSTALL_ROOT/var/opendnssec/kasp.db -o enforcer_database_migrate_test) &&
+	echo -n "LINE: ${LINENO} " && rm $INSTALL_ROOT/var/opendnssec/kasp.db &&
+	echo -n "LINE: ${LINENO} " && (cd ../../../enforcer/utils/; ./convert_mysql_to_sqlite -o $INSTALL_ROOT/var/opendnssec/kasp.db -i enforcer_database_migrate_test)
+fi &&
 
-echo -n "LINE: ${LINENO} " && ods_ods-controll_enforcer_start &&
-echo -n "LINE: ${LINENO} " && KSK1= &&
-echo -n "LINE: ${LINENO} " && ZSK1= &&
-echo -n "LINE: ${LINENO} " && KSK2= &&
-echo -n "LINE: ${LINENO} " && ZSK2= &&
-echo -n "LINE: ${LINENO} " && KSK3= &&
+echo -n "LINE: ${LINENO} " && ods_ods-control_enforcer_start &&
+echo -n "LINE: ${LINENO} " && unset KSK1 &&
+echo -n "LINE: ${LINENO} " && unset ZSK1 &&
+echo -n "LINE: ${LINENO} " && unset KSK2 &&
+echo -n "LINE: ${LINENO} " && unset ZSK2 &&
+echo -n "LINE: ${LINENO} " && unset KSK3 &&
 
 echo "################## CHECK ###########################" &&
 echo -n "LINE: ${LINENO} " && ods_enforcer_idle &&
-#echo -n "LINE: ${LINENO} " && visual_sleep 4 &&
 
 echo -n "LINE: ${LINENO} " && KSK1=`ods-enforcer key list -d -p | grep ods1 | grep KSK |cut -d ";" -f 9` &&
 echo -n "LINE: ${LINENO} " && ZSK1=`ods-enforcer key list -d -p | grep ods1 | grep ZSK |cut -d ";" -f 9` &&
@@ -89,10 +93,10 @@ echo -n "LINE: ${LINENO} New KSK should be different" && test "$KSK2" != "$KSK3"
 echo -n "LINE: ${LINENO} Both zones should use same ZSK" && test "$ZSK1"  = "$ZSK2" && echo "...OK" &&
 echo -n "LINE: ${LINENO} KSKs and ZSKs may not use same material" && test "$KSK1" != "$ZSK1" && echo "...OK" &&
 echo -n "LINE: ${LINENO} New KSK may not use same material as ZSKs" && test "$KSK3" != "$ZSK1" && echo "...OK" &&
-exit 0
 
 echo "################## STOP ###########################" &&
 echo -n "LINE: ${LINENO} " && ods_stop_enforcer &&
+exit 0
 
 echo "################## ERROR: CURRENT STATE ###########################"
 echo "DEBUG: " && ods-enforcer key list -d -p
