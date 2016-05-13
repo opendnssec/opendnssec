@@ -56,6 +56,8 @@ echo -n "LINE: ${LINENO} New KSK may not use same material as ZSKs" && test "$KS
 echo "################## STOP AND CONVERT ###########################" &&
 echo -n "LINE: ${LINENO} " && ods_stop_enforcer &&
 
+echo -n "LINE: ${LINENO} " && pwd &&
+
 if [ -n "$HAVE_MYSQL" ]; then
 	echo -n "LINE: ${LINENO} " && (cd ../../../enforcer/utils/; ./convert_mysql_to_sqlite -o $INSTALL_ROOT/var/opendnssec/kasp.db -i test) &&
 	echo -n "LINE: ${LINENO} " && echo "DROP DATABASE test;" | mysql -u test -ptest -h localhost &&
