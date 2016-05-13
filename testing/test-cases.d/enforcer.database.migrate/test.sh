@@ -56,16 +56,16 @@ echo -n "LINE: ${LINENO} New KSK may not use same material as ZSKs" && test "$KS
 echo "################## STOP AND CONVERT ###########################" &&
 echo -n "LINE: ${LINENO} " && ods_stop_enforcer &&
 
-echo -n "LINE: ${LINENO} " && pwd &&
+echo -n "LINE: ${LINENO} " && ls /usr/home/jenkins/workspace &&
 
 if [ -n "$HAVE_MYSQL" ]; then
 	echo -n "LINE: ${LINENO} " && (cd ../../../enforcer/utils/; ./convert_mysql_to_sqlite -o $INSTALL_ROOT/var/opendnssec/kasp.db -i test) &&
 	echo -n "LINE: ${LINENO} " && echo "DROP DATABASE test;" | mysql -u test -ptest -h localhost &&
 	echo -n "LINE: ${LINENO} " && (cd ../../../enforcer/utils/; ./convert_sqlite_to_mysql -i $INSTALL_ROOT/var/opendnssec/kasp.db -o test)
 else
-	echo -n "LINE: ${LINENO} " && (cd ../../../enforcer/utils/; ./convert_sqlite_to_mysql -i $INSTALL_ROOT/var/opendnssec/kasp.db -o enforcer_database_migrate_test) &&
+	echo -n "LINE: ${LINENO} " && (cd /usr/home/jenkins/workspace/opendnssec/enforcer/utils/; ./convert_sqlite_to_mysql -i $INSTALL_ROOT/var/opendnssec/kasp.db -o enforcer_database_migrate_test) &&
 	echo -n "LINE: ${LINENO} " && rm $INSTALL_ROOT/var/opendnssec/kasp.db &&
-	echo -n "LINE: ${LINENO} " && (cd ../../../enforcer/utils/; ./convert_mysql_to_sqlite -o $INSTALL_ROOT/var/opendnssec/kasp.db -i enforcer_database_migrate_test)
+	echo -n "LINE: ${LINENO} " && (cd /usr/home/jenkins/workspace/opendnssec/enforcer/utils/; ./convert_mysql_to_sqlite -o $INSTALL_ROOT/var/opendnssec/kasp.db -i enforcer_database_migrate_test)
 fi &&
 
 echo -n "LINE: ${LINENO} " && ods_ods-control_enforcer_start &&
