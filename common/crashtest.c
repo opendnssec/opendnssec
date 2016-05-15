@@ -39,29 +39,26 @@ x(void)
     y();
 }
 
-void *
+void
 fn1(void *dummy)
 {
     (void)dummy;
     x();
-    return NULL;
 }
 
-void *
+void
 fn2(void *dummy)
 {
     (void)dummy;
     x();
-    return NULL;
 }
 
-void *
+void
 fn3(void *dummy)
 {
     (void)dummy;
     sleep(10);
     recurse();
-    return NULL;
 }
 
 int
@@ -74,9 +71,9 @@ main(int argc, char* argv[])
     crash_disablecoredump();
     crash_trapsignals(argv[0]);
     terminate = 0;
-    crash_thread_create(&thr1, fn1, NULL);
-    crash_thread_create(&thr2, fn2, NULL);
-    crash_thread_create(&thr3, fn3, NULL);
+    crash_thread_create(&thr1, crash_threadclass_DEFAULT, fn1, NULL);
+    crash_thread_create(&thr2, crash_threadclass_DEFAULT, fn2, NULL);
+    crash_thread_create(&thr3, crash_threadclass_DEFAULT, fn3, NULL);
     crash_thread_start(thr1);
     crash_thread_start(thr2);
     crash_thread_start(thr3);

@@ -334,16 +334,11 @@ cmdhandler_handle_client_conversation(cmdhandler_type* cmdc)
  * Accept client.
  *
  */
-static void*
+static void
 cmdhandler_accept_client(void* arg)
 {
     int err;
-    sigset_t sigset;
     cmdhandler_type* cmdc = (cmdhandler_type*) arg;
-
-    sigfillset(&sigset);
-    if((err=pthread_sigmask(SIG_SETMASK, &sigset, NULL)))
-        ods_fatal_exit("[%s] pthread_sigmask: %s", module_str, strerror(err));
 
     ods_log_debug("[%s] accept client %i", module_str, cmdc->client_fd);
 
@@ -351,7 +346,7 @@ cmdhandler_accept_client(void* arg)
     if (!cmdc->dbconn) {
         client_printf_err(cmdc->client_fd, "Failed to open DB connection.\n");
         client_exit(cmdc->client_fd, 1);
-        return NULL;
+        return;
     }
     
     cmdhandler_handle_client_conversation(cmdc);
@@ -360,7 +355,6 @@ cmdhandler_accept_client(void* arg)
     }
     db_connection_free(cmdc->dbconn);
     cmdc->stopped = 1;
-    return NULL;
 }
 
 /**
@@ -532,7 +526,7 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
             cmdc->listen_addr = cmdhandler->listen_addr;
             cmdc->engine = cmdhandler->engine;
             cmdc->need_to_exit = cmdhandler->need_to_exit;
-            if (!crash_thread_createrunning(&(cmdcs[thread_index].thread_id), &cmdhandler_accept_client, (void*) cmdc)) {
+            if (!crash_thread_create(&(cmdcs[thread_index].thread_id), workerthreadclass, &cmdhandler_accept_client, (void*) cmdc)) {
                 thread_index++;
             }
             ods_log_debug("[%s] %lu clients in progress...", module_str, thread_index);

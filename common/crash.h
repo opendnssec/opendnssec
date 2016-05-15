@@ -32,24 +32,39 @@
 struct crash_thread_struct;
 typedef struct crash_thread_struct* crash_thread_t;
 
-typedef void (*daemonutil_alertfn_t)(const char *format, ...)
+typedef void (*crash_runfn_t)(void *);
+
+typedef void (*crash_alertfn_t)(const char *format, ...)
 #ifdef HAVE___ATTRIBUTE__
      __attribute__ ((format (printf, 1, 2)))
 #endif
      ;
 
-extern void crash_initialize(daemonutil_alertfn_t fatalalertfn, daemonutil_alertfn_t problemalertfn);
+extern void crash_initialize(crash_alertfn_t fatalalertfn, crash_alertfn_t problemalertfn);
 
-extern int  crash_thread_create(crash_thread_t* thread, void*(*func)(void*),void*data);
+struct crash_threadclass_struct;
+typedef struct crash_threadclass_struct* crash_threadclass_t;
+#define crash_threadclass_DEFAULT (NULL)
+
+extern int crash_threadclass_create(crash_threadclass_t* threadclassptr, char* name);
+extern char* crash_threadclass_name(crash_threadclass_t threadclass);
+extern void crash_threadclass_destroy(crash_threadclass_t threadclass);
+extern void crash_threadclass_setdetached(crash_threadclass_t threadclass);
+extern void crash_threadclass_setautorun(crash_threadclass_t threadclass);
+extern void crash_threadclass_setblockedsignals(crash_threadclass_t threadclass);
+extern void crash_threadclass_setminstacksize(crash_threadclass_t threadclass, size_t minstacksize);
+
+extern int crash_thread_create(crash_thread_t* thread, crash_threadclass_t threadclass, crash_runfn_t func, void*data);
 extern void crash_thread_start(crash_thread_t thread);
 extern void crash_thread_join(crash_thread_t thread, void* data);
 
 extern int crash_disablecoredump(void);
 extern int crash_trapsignals(char* argv0);
 
-extern int crash_thread_createrunning(crash_thread_t* thread,void*(*func)(void*),void*data);
-extern int crash_thread_createrunningdetached(crash_thread_t* thread,void*(*func)(void*),void*data);
-extern void crash_thread_detach(crash_thread_t thread);
 extern void crash_thread_signal(crash_thread_t thread);
+
+extern crash_threadclass_t detachedthreadclass;
+extern crash_threadclass_t workerthreadclass;
+extern crash_threadclass_t vanillathreadclass;
 
 #endif

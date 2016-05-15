@@ -24,11 +24,6 @@
  *
  */
 
-/**
- * Threading and locking.
- *
- */
-
 #ifndef SCHEDULER_LOCKS_H
 #define SCHEDULER_LOCKS_H
 
@@ -45,8 +40,6 @@
 		ods_log_error("%s at %d could not " #func ": %s", \
 		__FILE__, __LINE__, strerror(err)); \
 	} while(0)
-
-#if defined(HAVE_PTHREAD)
 
 #include <pthread.h>
 
@@ -73,42 +66,7 @@ typedef pthread_cond_t cond_basic_type;
 
 /** thread creation */
 typedef crash_thread_t ods_thread_type;
-/** Pass where to store tread_t in thr. */
-#define ods_thread_detach(thr) LOCKRET(pthread_detach(thr))
-#define ods_thread_self() pthread_self()
-#define ods_thread_join(thr) LOCKRET(pthread_join(thr, NULL))
-#define ods_thread_kill(thr, sig) LOCKRET(pthread_kill(thr, sig))
-int ods_thread_create(pthread_t *thr, void *(*func)(void *), void *arg);
+
 int ods_thread_wait(cond_basic_type* cond, lock_basic_type* lock, time_t wait);
-
-#else /* !HAVE_PTHREAD */
-
-/* we do not have PTHREADS */
-#define PTHREADS_DISABLED 1
-
-typedef int lock_basic_type;
-#define lock_basic_init(lock) 		/* nop */
-#define lock_basic_destroy(lock) 	/* nop */
-#define lock_basic_lock(lock) 		/* nop */
-#define lock_basic_unlock(lock) 	/* nop */
-
-#define lock_basic_set(cond)       /* nop */
-#define lock_basic_sleep(cond, lock, sleep) /* nop */
-#define lock_basic_alarm(cond)     /* nop */
-#define lock_basic_broadcast(cond)     /* nop */
-#define lock_basic_off(cond)       /* nop */
-
-typedef pid_t ods_thread_type;
-#define ods_thread_create(thr, func, arg) ods_thr_fork_create(thr, func, arg)
-#define ods_thread_detach(thr)      /* nop */
-#define ods_thread_self() getpid()
-#define ods_thread_join(thr) ods_thr_fork_wait(thr)
-
-void ods_thr_fork_create(ods_thread_type* thr, void* (*func)(void*), void* arg);
-void ods_thr_fork_wait(ods_thread_type thread);
-
-#endif /* HAVE_PTHREAD */
-
-void ods_thread_blocksigs(void);
 
 #endif /* SHARED_LOCKS_H */

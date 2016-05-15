@@ -80,7 +80,8 @@ worker_type* worker_create(char* name);
  * \param[in] worker worker to start working
  *
  */
-void worker_start(worker_type* worker);
+void worker_drudge(worker_type* worker);
+void worker_work(worker_type* worker);
 
 /**
  * Put worker to sleep.

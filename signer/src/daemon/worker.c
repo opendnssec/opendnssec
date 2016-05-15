@@ -342,7 +342,7 @@ worker_perform_task(worker_type* worker)
                     task->halted = TASK_NONE;
                 }
             } else {
-                ods_log_error("[%s[%i]] unable to sign zone %s: "
+                ods_log_error("[%s] unable to sign zone %s: "
                     "failed to increment serial",
                     worker->name, task_who2str(task));
                 if (task->halted == TASK_NONE) {
@@ -375,7 +375,7 @@ worker_perform_task(worker_type* worker)
             if (status == ODS_STATUS_OK) {
                 /* queue menial, hard signing work */
                 worker_queue_zone(worker, engine->signq, zone);
-                ods_log_deeebug("[%s[%i]] wait until drudgers are finished "
+                ods_log_deeebug("[%s] wait until drudgers are finished "
                     "signing zone %s", worker->name, task_who2str(task));
                 /* sleep until work is done */
                 worker_sleep_unless(worker, 0);
@@ -523,7 +523,7 @@ task_perform_continue:
  * Work.
  *
  */
-static void
+void
 worker_work(worker_type* worker)
 {
     time_t now = 0;
@@ -533,7 +533,6 @@ worker_work(worker_type* worker)
     ods_status status = ODS_STATUS_OK;
 
     ods_log_assert(worker);
-    ods_log_assert(worker->type == WORKER_WORKER);
 
     engine = worker->engine;
     while (worker->need_to_exit == 0) {
@@ -596,7 +595,7 @@ worker_work(worker_type* worker)
  * Drudge.
  *
  */
-static void
+void
 worker_drudge(worker_type* worker)
 {
     engine_type* engine = NULL;
@@ -682,29 +681,6 @@ worker_drudge(worker_type* worker)
         hsm_destroy_context(ctx);
     }
 }
-
-
-/**
- * Start worker.
- *
- */
-void
-worker_start(worker_type* worker)
-{
-    ods_log_assert(worker);
-    switch (worker->type) {
-        case WORKER_DRUDGER:
-            worker_drudge(worker);
-            break;
-        case WORKER_WORKER:
-            worker_work(worker);
-            break;
-        default:
-            ods_log_error("[worker] illegal worker (id=%i)", worker->type);
-            break;
-    }
-}
-
 
 /**
  * Put worker to sleep.

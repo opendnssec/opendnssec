@@ -43,7 +43,7 @@ typedef struct worker_struct worker_type;
 struct worker_struct {
     char* name;
     int thread_num;
-    pthread_t thread_id;
+    crash_thread_t thread_id;
     struct engine_struct* engine;
     task_type* task;
     size_t jobs_appointed;
@@ -62,7 +62,7 @@ struct worker_struct {
  * \return worker_type* created worker
  *
  */
-worker_type* worker_create(int num);
+worker_type* worker_create(char* name);
 
 /**
  * Start working.
