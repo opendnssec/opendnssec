@@ -16,6 +16,15 @@ visual_sleep()
 	echo
 }
 
+## This is a hack to get access to the migrate scripts which are in the source
+## but not part of the build. I want to avoid copying (and keeping up to date!)
+## these files to the test directory.
+cd_to_src()
+{
+	cd ../../.. &&
+	cd `pwd | sed "s/test/build/"`/enforcer/utils/
+}
+
 if [ -n "$HAVE_MYSQL" ]; then
         ods_setup_conf conf.xml conf-mysql.xml
 fi &&
@@ -56,16 +65,14 @@ echo -n "LINE: ${LINENO} New KSK may not use same material as ZSKs" && test "$KS
 echo "################## STOP AND CONVERT ###########################" &&
 echo -n "LINE: ${LINENO} " && ods_stop_enforcer &&
 
-echo -n "LINE: ${LINENO} " && ls /usr/home/jenkins/workspace &&
-
 if [ -n "$HAVE_MYSQL" ]; then
-	echo -n "LINE: ${LINENO} " && (cd ../../../enforcer/utils/; ./convert_mysql_to_sqlite -o $INSTALL_ROOT/var/opendnssec/kasp.db -i test) &&
+	echo -n "LINE: ${LINENO} " && (cd_to_src && ./convert_mysql_to_sqlite -o $INSTALL_ROOT/var/opendnssec/kasp.db -i test) &&
 	echo -n "LINE: ${LINENO} " && echo "DROP DATABASE test;" | mysql -u test -ptest -h localhost &&
-	echo -n "LINE: ${LINENO} " && (cd ../../../enforcer/utils/; ./convert_sqlite_to_mysql -i $INSTALL_ROOT/var/opendnssec/kasp.db -o test)
+	echo -n "LINE: ${LINENO} " && (cd_to_src && ./convert_sqlite_to_mysql -i $INSTALL_ROOT/var/opendnssec/kasp.db -o test)
 else
-	echo -n "LINE: ${LINENO} " && (cd /usr/home/jenkins/workspace/opendnssec/enforcer/utils/; ./convert_sqlite_to_mysql -i $INSTALL_ROOT/var/opendnssec/kasp.db -o enforcer_database_migrate_test) &&
+	echo -n "LINE: ${LINENO} " && (cd_to_src && ./convert_sqlite_to_mysql -i $INSTALL_ROOT/var/opendnssec/kasp.db -o enforcer_database_migrate_test) &&
 	echo -n "LINE: ${LINENO} " && rm $INSTALL_ROOT/var/opendnssec/kasp.db &&
-	echo -n "LINE: ${LINENO} " && (cd /usr/home/jenkins/workspace/opendnssec/enforcer/utils/; ./convert_mysql_to_sqlite -o $INSTALL_ROOT/var/opendnssec/kasp.db -i enforcer_database_migrate_test)
+	echo -n "LINE: ${LINENO} " && (cd_to_src && ./convert_mysql_to_sqlite -o $INSTALL_ROOT/var/opendnssec/kasp.db -i enforcer_database_migrate_test)
 fi &&
 
 echo -n "LINE: ${LINENO} " && ods_ods-control_enforcer_start &&
