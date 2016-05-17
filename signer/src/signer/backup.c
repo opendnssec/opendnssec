@@ -82,6 +82,14 @@ backup_read_check_str(FILE* in, const char* str)
         return 0;
     }
     if (ods_strcmp(p, str) != 0) {
+        if (!strcmp(str, "rfc5011") && !strcmp(p, ";;Key:")){
+            fseek(in, -7, SEEK_CUR);
+            return 1;
+        }
+        if (!strcmp(str, "rfc5011") && !strcmp(p, ";;")){
+            fseek(in, -3, SEEK_CUR);
+            return 1;
+        }
         ods_log_debug("[%s] \'%s\' does not match \'%s\'", backup_str, p, str);
         return 0;
     }
@@ -168,6 +176,14 @@ backup_read_int(FILE* in, int* v)
     if (!p) {
         ods_log_debug("[%s] cannot read integer", backup_str);
        return 0;
+    }
+    if (!strcmp(p, ";;Key:")) {
+        fseek(in, -7, SEEK_CUR);
+	return 1;
+    }
+    else if (!strcmp(p, ";;")) {
+        fseek(in, -3, SEEK_CUR);
+        return 1;
     }
     *v=atoi(p);
     return 1;
