@@ -70,9 +70,9 @@ if [ -n "$HAVE_MYSQL" ]; then
 	echo -n "LINE: ${LINENO} " && echo "DROP DATABASE test;" | mysql -u test -ptest -h localhost &&
 	echo -n "LINE: ${LINENO} " && (cd_to_src && ./convert_sqlite_to_mysql -i $INSTALL_ROOT/var/opendnssec/kasp.db -o test)
 else
-	echo -n "LINE: ${LINENO} " && (cd_to_src && ./convert_sqlite_to_mysql -p build -u build -i $INSTALL_ROOT/var/opendnssec/kasp.db -o enforcer_database_migrate_test) &&
+	echo -n "LINE: ${LINENO} " && (cd_to_src && ./convert_sqlite_to_mysql -p test -u test -i $INSTALL_ROOT/var/opendnssec/kasp.db -o test) &&
 	echo -n "LINE: ${LINENO} " && rm $INSTALL_ROOT/var/opendnssec/kasp.db &&
-	echo -n "LINE: ${LINENO} " && (cd_to_src && ./convert_mysql_to_sqlite -p build -u build -o $INSTALL_ROOT/var/opendnssec/kasp.db -i enforcer_database_migrate_test)
+	echo -n "LINE: ${LINENO} " && (cd_to_src && ./convert_mysql_to_sqlite -p test -u test -o $INSTALL_ROOT/var/opendnssec/kasp.db -i test)
 fi &&
 
 echo -n "LINE: ${LINENO} " && ods_ods-control_enforcer_start &&
