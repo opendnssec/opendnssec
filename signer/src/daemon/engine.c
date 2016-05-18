@@ -318,12 +318,12 @@ static void
 engine_create_workers(engine_type* engine)
 {
     char* name;
-    size_t i = 0;
+    int i = 0;
     ods_log_assert(engine);
     ods_log_assert(engine->config);
     CHECKALLOC(engine->workers = (worker_type**) malloc(((size_t)engine->config->num_worker_threads) * sizeof(worker_type*)));
-    for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
-        asprintf(&name, "worker[%i]", i+1);
+    for (i=0; i < (engine->config->num_worker_threads; i++) {
+        asprintf(&name, "worker[%d]", i+1);
         engine->workers[i] = worker_create(name);
     }
 }
@@ -331,12 +331,12 @@ static void
 engine_create_drudgers(engine_type* engine)
 {
     char* name;
-    size_t i = 0;
+    int i = 0;
     ods_log_assert(engine);
     ods_log_assert(engine->config);
     CHECKALLOC(engine->drudgers = (worker_type**) malloc(((size_t)engine->config->num_signer_threads) * sizeof(worker_type*)));
-    for (i=0; i < (size_t) engine->config->num_signer_threads; i++) {
-        asprintf(&name, "drudger[%i]", i+1);
+    for (i=0; i < engine->config->num_signer_threads; i++) {
+        asprintf(&name, "drudger[%d]", i+1);
         engine->drudgers[i] = worker_create(name);
     }
 }
