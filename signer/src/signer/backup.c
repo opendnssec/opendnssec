@@ -82,6 +82,9 @@ backup_read_check_str(FILE* in, const char* str)
         return 0;
     }
     if (ods_strcmp(p, str) != 0) {
+        if (!strcmp(p, "rfc5011") && !strcmp(str, "keytag")) {
+            return 1;
+        }
         ods_log_debug("[%s] \'%s\' does not match \'%s\'", backup_str, p, str);
         return 0;
     }
