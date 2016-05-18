@@ -46,7 +46,7 @@ struct crash_threadclass_struct;
 typedef struct crash_threadclass_struct* crash_threadclass_t;
 #define crash_threadclass_DEFAULT (NULL)
 
-extern int crash_threadclass_create(crash_threadclass_t* threadclassptr, char* name);
+extern int crash_threadclass_create(crash_threadclass_t* threadclassptr, const char* name);
 extern char* crash_threadclass_name(crash_threadclass_t threadclass);
 extern void crash_threadclass_destroy(crash_threadclass_t threadclass);
 extern void crash_threadclass_setdetached(crash_threadclass_t threadclass);
@@ -62,9 +62,5 @@ extern int crash_disablecoredump(void);
 extern int crash_trapsignals(char* argv0);
 
 extern void crash_thread_signal(crash_thread_t thread);
-
-extern crash_threadclass_t detachedthreadclass;
-extern crash_threadclass_t workerthreadclass;
-extern crash_threadclass_t vanillathreadclass;
 
 #endif

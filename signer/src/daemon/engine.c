@@ -192,7 +192,7 @@ engine_start_dnshandler(engine_type* engine)
     }
     ods_log_debug("[%s] start dnshandler", engine_str);
     engine->dnshandler->engine = engine;
-    crash_thread_create(&engine->dnshandler->thread_id, vanillathreadclass, (crash_runfn_t)dnshandler_start, engine->dnshandler);;
+    crash_thread_create(&engine->dnshandler->thread_id, handlerthreadclass, (crash_runfn_t)dnshandler_start, engine->dnshandler);;
 }
 static void
 engine_stop_dnshandler(engine_type* engine)
@@ -222,7 +222,7 @@ engine_start_xfrhandler(engine_type* engine)
      * it has marked itself started
      */
     engine->xfrhandler->started = 1;
-    crash_thread_create(&engine->xfrhandler->thread_id, vanillathreadclass, (crash_runfn_t)xfrhandler_start, engine->xfrhandler);
+    crash_thread_create(&engine->xfrhandler->thread_id, handlerthreadclass, (crash_runfn_t)xfrhandler_start, engine->xfrhandler);
 }
 static void
 engine_stop_xfrhandler(engine_type* engine)
@@ -290,7 +290,7 @@ engine_create_workers(engine_type* engine)
     ods_log_assert(engine);
     ods_log_assert(engine->config);
     CHECKALLOC(engine->workers = (worker_type**) malloc(((size_t)engine->config->num_worker_threads) * sizeof(worker_type*)));
-    for (i=0; i < (engine->config->num_worker_threads; i++) {
+    for (i=0; i < engine->config->num_worker_threads; i++) {
         asprintf(&name, "worker[%d]", i+1);
         engine->workers[i] = worker_create(name);
     }

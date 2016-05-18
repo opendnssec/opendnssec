@@ -36,6 +36,7 @@
 #include "daemon/cfg.h"
 #include "daemon/cmdhandler.h"
 #include "clientpipe.h"
+#include "locks.h"
 #include "daemon/engine.h"
 #include "daemon/signal.h"
 #include "daemon/worker.h"

@@ -76,7 +76,7 @@ struct crash_threadclass_struct {
 };
 
 int
-crash_threadclass_create(crash_threadclass_t* threadclass, char* name)
+crash_threadclass_create(crash_threadclass_t* threadclass, const char* name)
 {
     *threadclass = malloc(sizeof(struct crash_threadclass_struct));
     (*threadclass)->name = strdup(name);
@@ -270,11 +270,19 @@ void crash_thread_signal(crash_thread_t thread)
 void
 crash_thread_start(crash_thread_t thread)
 {
+    stack_t ss;
     int isstarted;
+
     pthread_mutex_lock(&threadlock);
     isstarted = thread->isstarted;
     thread->isstarted = 1;
     pthread_mutex_unlock(&threadlock);
+
+    ss.ss_sp = malloc(SIGSTKSZ);
+    ss.ss_size = SIGSTKSZ;
+    ss.ss_flags = 0;
+    sigaltstack(&ss, NULL);
+
     if (!isstarted) {
         pthread_barrier_wait(&thread->startbarrier);
     }
@@ -482,7 +490,3 @@ crash_disablecoredump(void)
 fail:
     return -1;
 }
-
-crash_threadclass_t detachedthreadclass;
-crash_threadclass_t workerthreadclass;
-crash_threadclass_t vanillathreadclass;

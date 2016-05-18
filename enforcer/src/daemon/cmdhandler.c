@@ -53,6 +53,7 @@
 
 #include "daemon/engine.h"
 #include "clientpipe.h"
+#include "locks.h"
 #include "scheduler/schedule.h"
 #include "scheduler/task.h"
 #include "file.h"

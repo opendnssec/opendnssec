@@ -69,4 +69,8 @@ typedef crash_thread_t ods_thread_type;
 
 int ods_thread_wait(cond_basic_type* cond, lock_basic_type* lock, time_t wait);
 
+extern crash_threadclass_t detachedthreadclass;
+extern crash_threadclass_t workerthreadclass;
+extern crash_threadclass_t handlerthreadclass;
+
 #endif /* SHARED_LOCKS_H */
