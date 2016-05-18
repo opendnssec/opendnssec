@@ -22,5 +22,5 @@ libcompat_a_SOURCES = \
 	datastructure.c datastructure.h \
 	crash.c crash.h
 crashtest_SOURCES = crash.c crashtest.c
-crashtest_CFLAGS = -fno-inline-small-functions -fno-inline-functions -fno-inline -fvisibility-inlines-hidden -fno-default-inline -fno-inline-functions-called-once -fkeep-inline-functions -O0
+crashtest_CFLAGS = -fno-inline-small-functions -fno-inline-functions -fno-inline -fno-default-inline -fno-inline-functions-called-once -fkeep-inline-functions -O0
 crashtest_LDFLAGS = -fno-inline-small-functions -fno-inline-functions -fno-inline -fvisibility-inlines-hidden -fno-default-inline -fno-inline-functions-called-once -fkeep-inline-functions -O0

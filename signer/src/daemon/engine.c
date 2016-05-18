@@ -108,27 +108,13 @@ engine_create(void)
 }
 
 
-/**
- * Start command handler.
- *
- */
-
-static void*
-cmdhandler_thread_start(void* arg)
-{
-    cmdhandler_type* cmd = (cmdhandler_type*) arg;
-    ods_thread_blocksigs();
-    cmdhandler_start(cmd);
-    return NULL;
-}
-
 static void
 engine_start_cmdhandler(engine_type* engine)
 {
     ods_log_assert(engine);
     ods_log_debug("[%s] start command handler", engine_str);
     engine->cmdhandler->engine = engine;
-    crash_thread_createrunning(&engine->cmdhandler->thread_id, cmdhandler_thread_start, engine->cmdhandler);
+    crash_thread_create(&engine->cmdhandler->thread_id, detachedthreadclass, (crash_runfn_t)cmdhandler_start, engine->cmdhandler);
 }
 
 /**
@@ -198,13 +184,6 @@ engine_stop_cmdhandler(engine_type* engine)
  * Start/stop dnshandler.
  *
  */
-static void*
-dnshandler_thread_start(void* arg)
-{
-    dnshandler_type* dnshandler = (dnshandler_type*) arg;
-    dnshandler_start(dnshandler);
-    return NULL;
-}
 static void
 engine_start_dnshandler(engine_type* engine)
 {
@@ -213,7 +192,7 @@ engine_start_dnshandler(engine_type* engine)
     }
     ods_log_debug("[%s] start dnshandler", engine_str);
     engine->dnshandler->engine = engine;
-    crash_thread_createrunning(&engine->dnshandler->thread_id, dnshandler_thread_start, engine->dnshandler);
+    crash_thread_create(&engine->dnshandler->thread_id, vanillathreadclass, (crash_runfn_t)dnshandler_start, engine->dnshandler);;
 }
 static void
 engine_stop_dnshandler(engine_type* engine)
@@ -230,17 +209,6 @@ engine_stop_dnshandler(engine_type* engine)
 }
 
 
-/**
- * Start/stop xfrhandler.
- *
- */
-static void*
-xfrhandler_thread_start(void* arg)
-{
-    xfrhandler_type* xfrhandler = (xfrhandler_type*) arg;
-    xfrhandler_start(xfrhandler);
-    return NULL;
-}
 static void
 engine_start_xfrhandler(engine_type* engine)
 {
@@ -254,7 +222,7 @@ engine_start_xfrhandler(engine_type* engine)
      * it has marked itself started
      */
     engine->xfrhandler->started = 1;
-    crash_thread_createrunning(&engine->xfrhandler->thread_id, xfrhandler_thread_start, engine->xfrhandler);
+    crash_thread_create(&engine->xfrhandler->thread_id, vanillathreadclass, (crash_runfn_t)xfrhandler_start, engine->xfrhandler);
 }
 static void
 engine_stop_xfrhandler(engine_type* engine)
@@ -318,7 +286,7 @@ static void
 engine_create_workers(engine_type* engine)
 {
     char* name;
-    int i = 0;
+    int i;
     ods_log_assert(engine);
     ods_log_assert(engine->config);
     CHECKALLOC(engine->workers = (worker_type**) malloc(((size_t)engine->config->num_worker_threads) * sizeof(worker_type*)));
@@ -331,7 +299,7 @@ static void
 engine_create_drudgers(engine_type* engine)
 {
     char* name;
-    int i = 0;
+    int i;
     ods_log_assert(engine);
     ods_log_assert(engine->config);
     CHECKALLOC(engine->drudgers = (worker_type**) malloc(((size_t)engine->config->num_signer_threads) * sizeof(worker_type*)));
@@ -341,41 +309,31 @@ engine_create_drudgers(engine_type* engine)
     }
 }
 
-static void*
-worker_thread_start(void* arg)
-{
-    worker_type* worker = (worker_type*) arg;
-    ods_thread_blocksigs();
-    worker_start(worker);
-    return NULL;
-}
-
 static void
 engine_start_workers(engine_type* engine)
 {
-    size_t i = 0;
+    int i;
     ods_log_assert(engine);
     ods_log_assert(engine->config);
     ods_log_debug("[%s] start workers", engine_str);
-    for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
+    for (i=0; i < engine->config->num_worker_threads; i++) {
         engine->workers[i]->need_to_exit = 0;
         engine->workers[i]->engine = (void*) engine;
         crash_thread_start(engine->workers[i]->thread_id);
-        crash_thread_createrunning(&engine->workers[i]->thread_id, worker_thread_start, engine->workers[i]);
+        crash_thread_create(&engine->workers[i]->thread_id, workerthreadclass, (crash_runfn_t)worker_work, engine->workers[i]);
     }
 }
 void
 engine_start_drudgers(engine_type* engine)
 {
-    size_t i = 0;
+    int i = 0;
     ods_log_assert(engine);
     ods_log_assert(engine->config);
     ods_log_debug("[%s] start drudgers", engine_str);
-    for (i=0; i < (size_t) engine->config->num_signer_threads; i++) {
+    for (i=0; i < engine->config->num_signer_threads; i++) {
         engine->drudgers[i]->need_to_exit = 0;
         engine->drudgers[i]->engine = (void*) engine;
-        crash_thread_start(engine->drudgers[i]->thread_id);
-        crash_thread_createrunning(&engine->drudgers[i]->thread_id, worker_thread_start, engine->drudgers[i]);
+        crash_thread_create(&engine->drudgers[i]->thread_id, workerthreadclass, (crash_runfn_t)worker_drudge, engine->drudgers[i]);
     }
 }
 static void

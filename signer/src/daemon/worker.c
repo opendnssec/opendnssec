@@ -523,7 +523,7 @@ task_perform_continue:
  * Work.
  *
  */
-static void
+void
 worker_work(worker_type* worker)
 {
     time_t now = 0;
@@ -595,7 +595,7 @@ worker_work(worker_type* worker)
  * Drudge.
  *
  */
-static void
+void
 worker_drudge(worker_type* worker)
 {
     engine_type* engine = NULL;
@@ -681,29 +681,6 @@ worker_drudge(worker_type* worker)
         hsm_destroy_context(ctx);
     }
 }
-
-
-/**
- * Start worker.
- *
- */
-void
-worker_start(worker_type* worker)
-{
-    ods_log_assert(worker);
-    switch (worker->type) {
-        case WORKER_DRUDGER:
-            worker_drudge(worker);
-            break;
-        case WORKER_WORKER:
-            worker_work(worker);
-            break;
-        default:
-            ods_log_error("[worker] illegal worker (id=%i)", worker->type);
-            break;
-    }
-}
-
 
 /**
  * Put worker to sleep.

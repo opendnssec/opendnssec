@@ -63,8 +63,77 @@ static struct sigaction original_ill_action;
 static struct sigaction original_bus_action;
 static struct sigaction original_sys_action;
 
-static daemonutil_alertfn_t alert;
-static daemonutil_alertfn_t report;
+static crash_alertfn_t alert;
+static crash_alertfn_t report;
+
+struct crash_threadclass_struct {
+    char* name;
+    int detached;
+    int autorun;
+    int blocksignals;
+    int hasattr;
+    pthread_attr_t attr;
+};
+
+int
+crash_threadclass_create(crash_threadclass_t* threadclass, char* name)
+{
+    *threadclass = malloc(sizeof(struct crash_threadclass_struct));
+    (*threadclass)->name = strdup(name);
+    (*threadclass)->detached = 0;
+    (*threadclass)->autorun = 0;
+    (*threadclass)->blocksignals = 0;
+    (*threadclass)->hasattr = 0;
+    return 0;
+}
+
+char*
+crash_threadclass_name(crash_threadclass_t threadclass)
+{
+    return threadclass->name;
+}
+
+void
+crash_threadclass_destroy(crash_threadclass_t threadclass)
+{
+    if (threadclass->hasattr) {
+        pthread_attr_destroy(&threadclass->attr);
+    }
+    free(threadclass->name);
+    free(threadclass);
+}
+
+void
+crash_threadclass_setdetached(crash_threadclass_t threadclass)
+{
+    threadclass->detached = 1;
+}
+
+void
+crash_threadclass_setautorun(crash_threadclass_t threadclass)
+{
+    threadclass->autorun = 1;
+}
+
+void
+crash_threadclass_setblockedsignals(crash_threadclass_t threadclass)
+{
+    threadclass->blocksignals = 1;
+}
+
+void
+crash_threadclass_setminstacksize(crash_threadclass_t threadclass, size_t minstacksize)
+{
+    size_t stacksize;
+    pthread_attr_init(&threadclass->attr);
+    pthread_attr_getstacksize(&threadclass->attr, &stacksize);
+#ifdef NOTDEFINED
+    if (stacksize < ODS_MINIMUM_STACKSIZE) {
+        pthread_attr_setstacksize(&threadclass->attr, minstacksize ODS_MINIMUM_STACKSIZE);
+    }
+#endif
+    threadclass->hasattr = 1;
+}
 
 static void fail(const char* file, int line, const char* func, const char* expr, int stat);
 #define CHECKFAIL(EX) do { int CHECKFAIL; if((CHECKFAIL = (EX))) { fail(__FILE__,__LINE__,__FUNCTION__,#EX,CHECKFAIL); goto fail; } } while(0)
@@ -76,7 +145,7 @@ fail(const char* file, int line, const char* func, const char* expr, int stat)
 }
 
 void
-crash_initialize(daemonutil_alertfn_t alertfn, daemonutil_alertfn_t reportfn)
+crash_initialize(crash_alertfn_t alertfn, crash_alertfn_t reportfn)
 {
     report = reportfn;
     alert = alertfn;
@@ -86,11 +155,13 @@ struct crash_thread_struct {
     struct crash_thread_struct* next;
     struct crash_thread_struct* prev;
     pthread_t thread;
-    void* (*runfunc)(void*);
+    crash_runfn_t runfunc;
     void* rundata;
     int isstarted;
+    int blocksignals;
     pthread_barrier_t startbarrier;
 };
+
 static pthread_mutex_t threadlock = PTHREAD_MUTEX_INITIALIZER;
 static struct crash_thread_struct *threadlist = NULL;
 static pthread_once_t threadlocatorinitializeonce = PTHREAD_ONCE_INIT;
@@ -144,99 +215,56 @@ crash_thread_register(crash_thread_t info)
     pthread_mutex_unlock(&threadlock);
 }
 
-void
-crash_thread_register_pthread(pthread_t thr)
-{
-    crash_thread_t info;
-    pthread_once(&threadlocatorinitializeonce, threadlocatorinitialize);
-    if (!(info = pthread_getspecific(threadlocator))) {
-        info = malloc(sizeof (struct crash_thread_struct));
-        info->runfunc = NULL;
-        info->rundata = NULL;
-        info->isstarted = 1;
-        pthread_barrier_init(&info->startbarrier, NULL, 1);
-    }
-    info->thread = thr;
-    crash_thread_register(info);
-}
-
-void
-crash_thread_unregister_pthread(void)
-{
-    crash_thread_t info;
-    pthread_once(&threadlocatorinitializeonce, threadlocatorinitialize);
-    if (!(info = pthread_getspecific(threadlocator))) {
-        crash_thread_unregister(info);
-    }
-}
-
 static void*
 runthread(void* data)
 {
+    int err;
+    sigset_t sigset;
     struct crash_thread_struct* info;
     info = (struct crash_thread_struct*) data;
     pthread_setspecific(threadlocator, info);
     pthread_barrier_wait(&info->startbarrier);
-    data = info->runfunc(info->rundata);
-    crash_thread_unregister(info);
-    return data;
-}
-
-int
-crash_thread_create(crash_thread_t* thread, void*(*func)(void*), void*data)
-{
-    struct crash_thread_struct* info;
-    info = malloc(sizeof (struct crash_thread_struct));
-    info->runfunc = func;
-    info->rundata = data;
-    info->isstarted = 0;
-    pthread_barrier_init(&info->startbarrier, NULL, 2);
-    pthread_create(&info->thread, NULL, runthread, info);
-    crash_thread_register(info);
-    *thread = info;
-    return 0;
-}
-
-int
-crash_thread_createrunning(crash_thread_t* thread, void*(*func)(void*), void*data)
-{
-    pthread_attr_t attrs;
-    struct crash_thread_struct* info;
-    info = malloc(sizeof (struct crash_thread_struct));
-    info->runfunc = func;
-    info->rundata = data;
-    info->isstarted = 1;
-    pthread_barrier_init(&info->startbarrier, NULL, 1);
-
-    size_t stacksize = 0;
-
-    pthread_attr_init(&attrs);
-    pthread_attr_getstacksize(&attrs, &stacksize);
-#ifdef NOTDEFINED
-    if (stacksize < ODS_MINIMUM_STACKSIZE) {
-        pthread_attr_setstacksize(&attr, ODS_MINIMUM_STACKSIZE);
+    if (info->blocksignals) {
+        sigfillset(&sigset);
+        sigdelset(&sigset, SIGQUIT);
+        sigdelset(&sigset, SIGABRT);
+        sigdelset(&sigset, SIGSEGV);
+        sigdelset(&sigset, SIGFPE);
+        sigdelset(&sigset, SIGILL);
+        sigdelset(&sigset, SIGBUS);
+        sigdelset(&sigset, SIGSYS);
+        if ((err = pthread_sigmask(SIG_SETMASK, &sigset, NULL)))
+            report("pthread_sigmask: %s (%d)", strerror(err), err);
     }
-#endif
-    pthread_create(&info->thread, &attrs, runthread, info);
-    pthread_attr_destroy(&attrs);
+    info->runfunc(info->rundata);
+    crash_thread_unregister(info);
+    return NULL;
+}
+
+int
+crash_thread_create(crash_thread_t* thread, crash_threadclass_t threadclass, crash_runfn_t func, void*data)
+{
+    struct crash_thread_struct* info;
+    info = malloc(sizeof (struct crash_thread_struct));
+    info->runfunc = func;
+    info->rundata = data;
+    info->blocksignals = 0;
+    if (threadclass && threadclass->autorun) {
+        info->isstarted = 1;
+        pthread_barrier_init(&info->startbarrier, NULL, 1);
+    } else {
+        info->isstarted = 0;
+        pthread_barrier_init(&info->startbarrier, NULL, 2);
+    }
+    pthread_create(&info->thread, ((threadclass && threadclass->hasattr) ? &threadclass->attr : NULL), runthread, info);
     crash_thread_register(info);
     *thread = info;
     return 0;
 }
 
-int
-crash_thread_createrunningdetached(crash_thread_t* thread, void*(*func)(void*), void*data)
-{
-#ifdef NOTDEFINED
-    ods_thread_blocksigs();
-#endif
-    return 0;
-}
-void crash_thread_detach(crash_thread_t thread)
-{
-}
 void crash_thread_signal(crash_thread_t thread)
 {
+    pthread_kill(thread->thread, SIGHUP);
 }
 
 void
@@ -454,3 +482,7 @@ crash_disablecoredump(void)
 fail:
     return -1;
 }
+
+crash_threadclass_t detachedthreadclass;
+crash_threadclass_t workerthreadclass;
+crash_threadclass_t vanillathreadclass;

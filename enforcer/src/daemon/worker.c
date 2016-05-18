@@ -80,7 +80,7 @@ worker_perform_task(worker_type* worker)
     }
 
     task = (task_type*) worker->task;
-    ods_log_debug("[worker[%i]]: perform task [%s] for %s",
+    ods_log_debug("[%s]: perform task [%s] for %s",
        worker->name, task_what2str(task->what),
        task_who2str(task->who));
 
@@ -100,6 +100,11 @@ worker_start(worker_type* worker)
 {
     ods_log_assert(worker);
 
+    worker->dbconn = get_database_connection(worker->engine->dbcfg_list);
+    if (!worker->dbconn) {
+        ods_log_crit("Failed to start worker, could not connect to database");
+        return;
+    }
     while (worker->need_to_exit == 0) {
         ods_log_debug("[%s]: report for duty", worker->name);
 
@@ -120,6 +125,7 @@ worker_start(worker_type* worker)
             }
         }
     }
+    db_connection_free(worker->dbconn);
 }
 
 /**
