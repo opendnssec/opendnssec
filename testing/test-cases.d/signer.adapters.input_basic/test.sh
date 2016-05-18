@@ -47,12 +47,12 @@ ods-signer verbosity 5 &&
 ldns-notify -p 15354 -s 2014102301 -r 2 -z ods 127.0.0.1 &&
 
 ## Request IXFR/UDP
-syslog_waitfor 10 'ods-signerd: .*\[xfrd\] zone ods request udp/ixfr=2014102300 to 127\.0\.0\.1' &&
-syslog_waitfor 10 'ods-signerd: .*\[xfrd\] zone ods received too short udp reply from 127\.0\.0\.1, retry tcp' &&
+syslog_waitfor 30 'ods-signerd: .*\[xfrd\] zone ods request udp/ixfr=2014102300 to 127\.0\.0\.1' &&
+syslog_waitfor 30 'ods-signerd: .*\[xfrd\] zone ods received too short udp reply from 127\.0\.0\.1, retry tcp' &&
 
 ## Request IXFR/TCP
-syslog_waitfor 10 'ods-signerd: .*\[xfrd\] zone ods request tcp/ixfr=2014102300 to 127\.0\.0\.1' &&
-syslog_waitfor 10 'ods-signerd: .*\[xfrd\] reschedule task for zone ods: disk serial=2014102301 acquired=.*, memory serial=2014102300 acquired=.*' &&
+syslog_waitfor 30 'ods-signerd: .*\[xfrd\] zone ods request tcp/ixfr=2014102300 to 127\.0\.0\.1' &&
+syslog_waitfor 30 'ods-signerd: .*\[xfrd\] reschedule task for zone ods: disk serial=2014102301 acquired=.*, memory serial=2014102300 acquired=.*' &&
 syslog_waitfor_count 60 2 'ods-signerd: .*\[STATS\] ods' &&
 
 ## Retransfer
