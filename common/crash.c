@@ -221,9 +221,16 @@ runthread(void* data)
     int err;
     sigset_t sigset;
     struct crash_thread_struct* info;
+    stack_t ss;
     info = (struct crash_thread_struct*) data;
     pthread_setspecific(threadlocator, info);
-    pthread_barrier_wait(&info->startbarrier);
+    ss.ss_sp = malloc(SIGSTKSZ);
+    ss.ss_size = SIGSTKSZ;
+    ss.ss_flags = 0;
+    sigaltstack(&ss, NULL);
+    if (!info->isstarted) {
+        pthread_barrier_wait(&info->startbarrier);
+    }
     if (info->blocksignals) {
         sigfillset(&sigset);
         sigdelset(&sigset, SIGQUIT);
@@ -270,18 +277,12 @@ void crash_thread_signal(crash_thread_t thread)
 void
 crash_thread_start(crash_thread_t thread)
 {
-    stack_t ss;
     int isstarted;
 
     pthread_mutex_lock(&threadlock);
     isstarted = thread->isstarted;
     thread->isstarted = 1;
     pthread_mutex_unlock(&threadlock);
-
-    ss.ss_sp = malloc(SIGSTKSZ);
-    ss.ss_size = SIGSTKSZ;
-    ss.ss_flags = 0;
-    sigaltstack(&ss, NULL);
 
     if (!isstarted) {
         pthread_barrier_wait(&thread->startbarrier);
