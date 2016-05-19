@@ -1,11 +1,11 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -e
 
 # This scipt converts a SQLite3 to a MySQL database. It assumes both
 # old and new databases live on the same host and are accessable by the same 
 # user.
 
-SCHEMA=../../src/db/schema.mysql
+SCHEMA=../src/db/schema.mysql
 
 DB_IN=""
 DB_OUT=""
@@ -46,6 +46,6 @@ mysql -u $DB_USR -p$DB_PWD -h $DB_HOST $DB_OUT < $SCHEMA
 
 echo "Converting database"
 
-sqlite3 $DB_IN .dump | grep INSERT | grep -v sqlite_sequence | sed -r 's/^INSERT INTO "([^"]+)"/INSERT INTO `\1`/' > tmp
+sqlite3 $DB_IN .dump | awk '/INSERT INTO/,/;/' | grep -v sqlite_sequence | sed -r 's/^INSERT INTO "([^"]+)"/INSERT INTO `\1`/' > tmp
 mysql -u $DB_USR -p$DB_PWD -h $DB_HOST $DB_OUT < tmp
 rm tmp
