@@ -58,7 +58,7 @@ zone_create(char* name, ldns_rr_class klass)
     if (!name || !klass) {
         return NULL;
     }
-    CHECKALLOC(zone = (zone_type*) malloc(sizeof(zone_type)));
+    CHECKALLOC(zone = (zone_type*) calloc(1, sizeof(zone_type)));
     /* [start] PS 9218653: Drop trailing dot in domain name */
     if (strlen(name) > 1 && name[strlen(name)-1] == '.') {
         name[strlen(name)-1] = '\0';
