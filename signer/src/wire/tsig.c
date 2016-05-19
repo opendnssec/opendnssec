@@ -188,6 +188,7 @@ tsig_key_create(tsig_type* tsig)
             "secret", tsig_str, tsig->name);
         ldns_rdf_deep_free(dname);
         free(data);
+        return NULL;
     }
     key->dname = dname;
     key->size = size;
