@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -e
 
 # This scipt converts a SQLite3 to a MySQL database. It assumes both
