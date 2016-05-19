@@ -3362,7 +3362,7 @@ keycache_lookup(hsm_ctx_t* ctx, const char* locator)
         }
     }  
 
-    if (node == LDNS_RBTREE_NULL || node == NULL) {
+    if (node == LDNS_RBTREE_NULL || node == NULL)
         return NULL;
     else
         return node->data;
