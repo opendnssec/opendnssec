@@ -184,6 +184,7 @@ main(int argc, char* argv[])
     /* main stuff */
     fprintf(stdout, "OpenDNSSEC signer engine version %s\n", PACKAGE_VERSION);
 
+    ods_crash_initialize(argv[0]);
     program_setup(cmdline_verbosity);
     returncode = engine_start(cfgfile, cmdline_verbosity, daemonize,
         info, single_run);

@@ -43,7 +43,7 @@
  *
  */
 worker_type*
-worker_create(int num)
+worker_create(char* name)
 {
     worker_type* worker;
 
@@ -52,8 +52,8 @@ worker_create(int num)
         return NULL;
     }
 
-    ods_log_debug("create worker[%i]", num +1);
-    worker->thread_num = num +1;
+    ods_log_debug("create %s", name);
+    worker->name = name;
     worker->engine = NULL;
     worker->task = NULL;
     worker->need_to_exit = 0;
@@ -80,8 +80,8 @@ worker_perform_task(worker_type* worker)
     }
 
     task = (task_type*) worker->task;
-    ods_log_debug("[worker[%i]]: perform task [%s] for %s",
-       worker->thread_num, task_what2str(task->what),
+    ods_log_debug("[%s]: perform task [%s] for %s",
+       worker->name, task_what2str(task->what),
        task_who2str(task->who));
 
     /* We temporarily assign the database connection to the task so
@@ -100,27 +100,32 @@ worker_start(worker_type* worker)
 {
     ods_log_assert(worker);
 
+    worker->dbconn = get_database_connection(worker->engine->dbcfg_list);
+    if (!worker->dbconn) {
+        ods_log_crit("Failed to start worker, could not connect to database");
+        return;
+    }
     while (worker->need_to_exit == 0) {
-        ods_log_debug("[worker[%i]]: report for duty", worker->thread_num);
+        ods_log_debug("[%s]: report for duty", worker->name);
 
         /* When no task available this call blocks and waits for event.
          * Then it will return NULL; */
         worker->task = schedule_pop_task(worker->engine->taskq);
         if (worker->task) {
-            ods_log_debug("[worker[%i]] start working", worker->thread_num);
+            ods_log_debug("[%s] start working", worker->name);
             worker_perform_task(worker);
-            ods_log_debug("[worker[%i]] finished working", worker->thread_num);
+            ods_log_debug("[%s] finished working", worker->name);
             if (worker->task) {
                 if (schedule_task(worker->engine->taskq, worker->task) !=
                     ODS_STATUS_OK)
                 {
-                    ods_log_error("[worker[%i]] unable to schedule task",
-                        worker->thread_num);
+                    ods_log_error("[%s] unable to schedule task", worker->name);
                 }
                 worker->task = NULL;
             }
         }
     }
+    db_connection_free(worker->dbconn);
 }
 
 /**
@@ -131,5 +136,6 @@ void
 worker_cleanup(worker_type* worker)
 {
     if (!worker) return;
+    free(worker->name);
     free(worker);
 }
