@@ -33,7 +33,7 @@ KSK_KEYTAG1=`log_grep -o ods-enforcer-key-list1 stdout "ods[[:space:]]*KSK[[:spa
 ods_timeleap_search_key "ods" "ZSK" "publish" &&
 
 # jump to the time that zsk becomes active
-ods_enforcer_leap_to 14400 &&
+ods_enforcer_leap_to 9000 &&
 
 # Check keys, we should see a new ZSK
 log_this ods-enforcer-key-list2 ods-enforcer key list -v &&

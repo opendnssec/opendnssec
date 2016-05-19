@@ -581,7 +581,6 @@ dnsin_update(dnsin_type** addns, const char* filename, time_t* last_mod)
     } else {
         ods_log_error("[%s] unable to update dnsin: dnsin_read(%s) "
             "failed (%s)", adapter_str, filename, ods_status2str(status));
-        dnsin_cleanup(*addns);
     }
     return status;
 }
