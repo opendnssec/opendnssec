@@ -254,6 +254,7 @@ zone_publish_dnskeys(zone_type* zone)
                 if ((status = rrset_getliteralrr(&zone->signconf->keys->keys[i].dnskey, zone->signconf->keys->keys[i].resourcerecord, ttl, zone->apex)) != ODS_STATUS_OK) {
                     ods_log_error("[%s] unable to publish dnskeys for zone %s: "
                             "error decoding literal dnskey", zone_str, zone->name);
+		    hsm_destroy_context(ctx);
                     return status;
                 }
             } else {
