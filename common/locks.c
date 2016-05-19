@@ -208,6 +208,7 @@ alertsyslog(const char* format, ...)
     va_list args;
     struct alertbuffer_struct buffer;
     va_start(args, format);
+    buffer.index = 0;
     valert(&buffer, format, args);
     va_end(args);
     if (buffer.index < sizeof(buffer.buffer)) {

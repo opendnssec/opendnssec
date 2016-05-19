@@ -319,7 +319,6 @@ engine_start_workers(engine_type* engine)
     for (i=0; i < engine->config->num_worker_threads; i++) {
         engine->workers[i]->need_to_exit = 0;
         engine->workers[i]->engine = (void*) engine;
-        crash_thread_start(engine->workers[i]->thread_id);
         crash_thread_create(&engine->workers[i]->thread_id, workerthreadclass, (crash_runfn_t)worker_work, engine->workers[i]);
     }
 }
