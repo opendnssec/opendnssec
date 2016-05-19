@@ -42,6 +42,6 @@ sqlite3 $DB_OUT < $SCHEMA
 
 echo "Converting database"
 
-mysqldump -u $DB_USR -p$DB_PWD -h $DB_HOST $DB_IN | awk '/INSERT INTO/,/;/' | sed -r 's/^INSERT INTO `([^"]+)`/INSERT INTO "\1"/' > tmp
+mysqldump --no-create-db --no-create-info --user="$DB_USR" --password="$DB_PWD" --host="$DB_HOST" "$DB_IN" | sed -r 's/^INSERT INTO `([^"]+)`/INSERT INTO "\1"/' > tmp
 sqlite3 $DB_OUT < tmp
 rm tmp
