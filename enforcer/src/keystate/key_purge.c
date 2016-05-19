@@ -33,10 +33,7 @@ static void free_all(key_data_list_t *key_list, key_data_t** keylist,
 		deplist2 = NULL;
 	}
 
-	if (zone) {
-		zone_free(zone);
-		zone = NULL;
-	}
+	zone_free(zone);
 }
 
 
@@ -166,10 +163,10 @@ int removeDeadKeysNow(int sockfd, db_connection_t *dbconn,
 				client_printf (sockfd, "deleting key: %s\n",
 				hsm_key_locator(key_data_cached_hsm_key(keylist[i])));
 
-				if (key_state_delete(key_data_get_cached_ds(keylist[i]))
-				    || key_state_delete(key_data_get_cached_dnskey(keylist[i]))
-				    || key_state_delete(key_data_get_cached_rrsigdnskey(keylist[i]))
-				    || key_state_delete(key_data_get_cached_rrsig(keylist[i]))
+				if (key_state_delete(key_data_cached_ds(keylist[i]))
+				    || key_state_delete(key_data_cached_dnskey(keylist[i]))
+				    || key_state_delete(key_data_cached_rrsigdnskey(keylist[i]))
+				    || key_state_delete(key_data_cached_rrsig(keylist[i]))
 				    || key_data_delete(keylist[i])
 				    || hsm_key_factory_release_key_id(hsm_key_id(key_data_cached_hsm_key(keylist[i])), dbconn))
 				{
