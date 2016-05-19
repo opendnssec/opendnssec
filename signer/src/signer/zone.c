@@ -701,7 +701,7 @@ zone_del_nsec3params(zone_type* zone)
 
     domain = namedb_lookup_domain(zone->db, zone->apex);
     if (!domain) {
-        ods_log_warning("[%s] unable to delete RR from zone %s: "
+        ods_log_verbose("[%s] unable to delete RR from zone %s: "
             "domain not found", zone_str, zone->name);
         return ODS_STATUS_UNCHANGED;
     }
