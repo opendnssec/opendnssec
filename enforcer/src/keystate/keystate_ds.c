@@ -91,7 +91,7 @@ get_dnskey(const char *id, const char *zone, int alg, uint32_t ttl)
 	return dnskey_rr;
 }
 
-
+/** returns non 0 on error */
 static int
 exec_dnskey_by_id(int sockfd, key_data_t *key, const char* ds_command,
 	const char* action)
@@ -108,7 +108,12 @@ exec_dnskey_by_id(int sockfd, key_data_t *key, const char* ds_command,
 	assert(key);
 
 	zone = key_data_get_zone(key);
-	key_data_cache_hsm_key(key);
+	if(key_data_cache_hsm_key(key) != DB_OK) {
+		ods_log_error_and_printf(sockfd, module_str,
+			"Error fetching from database");
+		zone_free(zone);
+		return 1;
+	}
 	locator = hsm_key_locator(key_data_hsm_key(key));
 	if (!locator) return 1;
 	/* This fetches the states from the DB, I'm only assuming they get
