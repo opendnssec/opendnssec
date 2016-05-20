@@ -105,21 +105,19 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 		return error;
 	}
 
-	if (policy_name) {
-		policy = policy_new(dbconn);
-		if (policy_get_by_name(policy, policy_name)){
-			policy_free(policy);
-			policy = NULL;
-	                free(buf);
-			client_printf_err(sockfd, "unknown policy %s\n", policy_name);
-			return -1;
-		}
-		error = removeDeadKeysNow(sockfd, dbconn, policy, NULL);
+	/* have policy_name since it is mutualy exlusive with zone_name */
+	policy = policy_new(dbconn);
+	if (policy_get_by_name(policy, policy_name)){
 		policy_free(policy);
 		policy = NULL;
-		return error;
+		free(buf);
+		client_printf_err(sockfd, "unknown policy %s\n", policy_name);
+		return -1;
 	}
-	return -1;
+	error = removeDeadKeysNow(sockfd, dbconn, policy, NULL);
+	policy_free(policy);
+	policy = NULL;
+	return error;
 }
 
 static struct cmd_func_block funcblock = {
