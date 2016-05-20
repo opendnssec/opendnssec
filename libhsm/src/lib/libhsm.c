@@ -1102,7 +1102,10 @@ hsm_get_key_size_ecdsa(hsm_ctx_t *ctx, const hsm_session_t *session,
 
     if (value == NULL) return 0;
 
-    if( ((CK_ULONG) - 1) / (8/2) < value_len) return 0;
+    if( ((CK_ULONG) - 1) / (8/2) < value_len) {
+	    free(value);
+	    return 0;
+    }
 
     /* value = x | y */
     bits = value_len * 8 / 2;
