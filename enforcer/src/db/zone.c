@@ -2277,6 +2277,7 @@ static int zone_list_get_associated(zone_list_t* zone_list) {
         || key_dependency_list_get_by_clauses(key_dependency_list, clause_list))
     {
         key_dependency_list_free(key_dependency_list);
+	key_data_list_free(key_data_list);
         db_clause_list_free(clause_list);
         return DB_ERROR_UNKNOWN;
     }
