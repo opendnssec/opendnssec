@@ -64,18 +64,18 @@ zone_create(char* name, ldns_rr_class klass)
     if (strlen(name) > 1 && name[strlen(name)-1] == '.') {
         name[strlen(name)-1] = '\0';
     }
-
-    if (lock_basic_init(&zone->zone_lock)) {
-        free(zone);
-        return NULL;
-    }
-    if (lock_basic_init(&zone->xfr_lock)) {
-        lock_basic_destroy(&zone->zone_lock);
-        free(zone);
-        return NULL;
-    }
-
     /* [end] PS 9218653 */
+
+    if (pthread_mutex_init(&zone->zone_lock, NULL)) {
+        free(zone);
+        return NULL;
+    }
+    if (pthread_mutex_init(&zone->xfr_lock, NULL)) {
+        (void)pthread_mutex_destroy(&zone->zone_lock);
+        free(zone);
+        return NULL;
+    }
+
     zone->name = strdup(name);
     if (!zone->name) {
         ods_log_error("[%s] unable to create zone %s: allocator_strdup() "
