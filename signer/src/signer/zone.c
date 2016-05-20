@@ -54,6 +54,7 @@ zone_type*
 zone_create(char* name, ldns_rr_class klass)
 {
     zone_type* zone = NULL;
+    int err;
 
     if (!name || !klass) {
         return NULL;
@@ -63,6 +64,17 @@ zone_create(char* name, ldns_rr_class klass)
     if (strlen(name) > 1 && name[strlen(name)-1] == '.') {
         name[strlen(name)-1] = '\0';
     }
+
+    if (lock_basic_init(&zone->zone_lock)) {
+        free(zone);
+        return NULL;
+    }
+    if (lock_basic_init(&zone->xfr_lock)) {
+        lock_basic_destroy(&zone->zone_lock);
+        free(zone);
+        return NULL;
+    }
+
     /* [end] PS 9218653 */
     zone->name = strdup(name);
     if (!zone->name) {
@@ -109,8 +121,6 @@ zone_create(char* name, ldns_rr_class klass)
     }
     zone->stats = stats_create();
     zone->rrstore = rrset_store_initialize();
-    lock_basic_init(&zone->zone_lock);
-    lock_basic_init(&zone->xfr_lock);
     return zone;
 }
 
