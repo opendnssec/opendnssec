@@ -860,6 +860,7 @@ addns_write(void* zone)
     {
         ixfrfile = ods_build_path(z->name, ".ixfr", 0, 1);
         if (!ixfrfile) {
+            lock_basic_unlock(&z->xfr_lock);
             free((void*) axfrfile);
             free((void*) atmpfile);
             free((void*) itmpfile);
