@@ -208,7 +208,7 @@ ods_fopen(const char* file, const char* dir, const char* mode)
                     ods_file_mode2str(mode), strerror(errno));
             } else {
                 file_count++;
-                ods_log_debug("[%s] openfile %s count %u", file_str, openf?openf:"(null)", file_count);
+                ods_log_debug("[%s] openfile %s count %u", file_str, openf[0]?openf:"(null)", file_count);
             }
         }
         free((void*) openf);
