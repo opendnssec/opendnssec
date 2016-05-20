@@ -242,7 +242,7 @@ engine_stop_workers(engine_type* engine)
     /* head count */
     for (i=0; i < engine->config->num_worker_threads; i++) {
         ods_log_debug("[%s] join worker %i", engine_str, i+1);
-        pthread_join(engine->workers[i]->thread_id, NULL);
+        (void)pthread_join(engine->workers[i]->thread_id, NULL);
         engine->workers[i]->engine = NULL;
     }
 }
