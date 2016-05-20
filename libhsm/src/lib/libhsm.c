@@ -1398,8 +1398,10 @@ hsm_list_keys_session_internal(hsm_ctx_t *ctx,
         for (i = 0; i < total_count; i++) {
             key = libhsm_key_new_privkey_object_handle(ctx, session,
                                                     key_handles[i]);
-            if(key == NULL) goto errkeys;
-
+            if(!key) {
+		    libhsm_key_list_free(keys, i);
+		    goto err;
+	    }
             keys[i] = key;
         }
     }
@@ -1407,9 +1409,6 @@ hsm_list_keys_session_internal(hsm_ctx_t *ctx,
 
     *count = total_count;
     return keys;
-
-errkeys:
-    libhsm_key_list_free(keys, i-1);
 
 err:
     free(key_handles);
