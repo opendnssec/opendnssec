@@ -55,10 +55,6 @@
 
 #include "janitor.h"
 
-#ifndef HAVE_BACKTRACE_FULL
-#error "should have this"
-#endif
-
 static struct sigaction original_quit_action;
 static struct sigaction original_abrt_action;
 static struct sigaction original_segv_action;
