@@ -1,5 +1,7 @@
 OpenDNSSEC 1.4.11 - 2015-xx-xx
 
+* OPENDNSSEC-810: Various fixes from static code analysis (possible
+  use after free).
 * OPENDNSSEC-808: Crash on query with empty query section (thanks Håvard
   Eidnes).
 
