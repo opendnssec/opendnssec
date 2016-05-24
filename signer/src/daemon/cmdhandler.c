@@ -462,7 +462,7 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_type* cmdc, const char* tbd)
         signconf_cleanup(zone->signconf);
 
         zone->db = namedb_create((void*)zone);
-        zone->ixfr = ixfr_create((void*)zone);
+        zone->ixfr = ixfr_create();
         zone->signconf = signconf_create();
 
         if (!zone->signconf || !zone->ixfr || !zone->db) {
