@@ -227,8 +227,9 @@ key_recover2(FILE* fd, keylist_type* kl)
     int ksk = 0;
     int zsk = 0;
     int keytag = 0; /* We are not actually interested but we must
-        parse it to continue correctly in the stream */
-
+        parse it to continue correctly in the stream.
+        When reading 1.4.8 or later version backup file, the real value of keytag is 
+        rfc5011, but not importat due to not using it.*/
     ods_log_assert(fd);
 
     if (!backup_read_check_str(fd, "locator") ||
