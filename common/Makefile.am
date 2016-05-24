@@ -4,7 +4,6 @@ AM_CPPFLAGS = \
 	@LDNS_INCLUDES@
 
 noinst_LIBRARIES = libcompat.a
-noinst_PROGRAMS = crashtest
 
 libcompat_a_SOURCES = \
 	b64_ntop.c b64_pton.c \
@@ -21,6 +20,3 @@ libcompat_a_SOURCES = \
 	util.c util.h \
 	datastructure.c datastructure.h \
 	janitor.c janitor.h
-crashtest_SOURCES = janitor.c crashtest.c
-crashtest_CFLAGS = -fno-inline-functions -fno-inline -fno-default-inline -fno-inline-functions-called-once -fkeep-inline-functions -O0
-crashtest_LDFLAGS = -fno-inline-functions -fno-inline -fvisibility-inlines-hidden -fno-default-inline -fno-inline-functions-called-once -fkeep-inline-functions -O0
