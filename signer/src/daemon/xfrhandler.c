@@ -158,7 +158,7 @@ void
 xfrhandler_signal(xfrhandler_type* xfrhandler)
 {
     if (xfrhandler && xfrhandler->started) {
-        ods_thread_kill(xfrhandler->thread_id, SIGHUP);
+        crash_thread_signal(xfrhandler->thread_id);
     }
 }
 

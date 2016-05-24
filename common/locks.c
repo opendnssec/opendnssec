@@ -33,6 +33,11 @@
 #include "locks.h"
 #include "log.h"
 
+#include <stdio.h>
+#include <stdarg.h>
+#include <limits.h>
+#include <syslog.h>
+#include <unistd.h>
 #include <errno.h>
 #include <signal.h> /* sigfillset(), sigprocmask() */
 #include <string.h> /* strerror() */
@@ -44,85 +49,6 @@
 #endif
 
 static const char* lock_str = "lock";
-
-#if !defined(HAVE_PTHREAD)
-#include <sys/wait.h> /* waitpid() */
-#include <sys/types.h> /* getpid(), waitpid() */
-#include <unistd.h> /* fork(), getpid() */
-
-
-/**
- * No threading available: fork a new process.
- * This means no shared data structure, and no locking.
- * Only the main thread ever returns. Exits on errors.
- * @param thr: the location where to store the thread-id.
- * @param func: function body of the thread. Return value of func is lost.
- * @param arg: user argument to func.
- */
-void
-ods_thr_fork_create(ods_thread_type* thr, void* (*func)(void*), void* arg)
-{
-    pid_t pid = fork();
-
-    switch (pid) {
-        case 0: /* child */
-            *thr = (ods_thread_type)getpid();
-            (void)(*func)(arg);
-            exit(0);
-        case -1: /* error */
-            ods_fatal_exit("[%s] unable to fork thread: %s", lock_str,
-                strerror(errno));
-        default: /* main */
-            *thr = (ods_thread_type)pid;
-    }
-}
-
-
-/**
- * There is no threading. Wait for a process to terminate.
- * Note that ub_thread_t is defined as pid_t.
- * @param thread: the process id to wait for.
- */
-void ods_thr_fork_wait(ods_thread_type thread)
-{
-    int status = 0;
-
-    if (waitpid((pid_t)thread, &status, 0) == -1) {
-        ods_log_error("[%s] waitpid(%d): %s", lock_str, (int)thread,
-            strerror(errno));
-    }
-    if (status != 0) {
-        ods_log_warning("[%s] process %d abnormal exit with status %d",
-             lock_str, (int)thread, status);
-    }
-}
-#else /* defined(HAVE_PTHREAD) */
-
-int
-ods_thread_create(pthread_t *thr, void *(*func)(void *), void *arg)
-{
-    int ret, attr_set;
-    pthread_attr_t attr;
-    size_t stacksize;
-
-    attr_set = (
-           !pthread_attr_init(&attr)
-        && !pthread_attr_getstacksize(&attr, &stacksize)
-        && stacksize < ODS_MINIMUM_STACKSIZE
-        && !pthread_attr_setstacksize(&attr, ODS_MINIMUM_STACKSIZE)
-    );
-
-    ret = pthread_create(thr, attr_set?&attr:NULL, func, arg);
-    if (attr_set)
-        (void) pthread_attr_destroy(&attr);
-
-    if ( ret != 0) {
-        ods_log_error("%s at %d could not pthread_create(thr, &attr, func, arg): %s",
-        __FILE__, __LINE__, strerror(ret));
-    }
-
-    return ret;
-}
 
 int
 ods_thread_wait(cond_basic_type* cond, lock_basic_type* lock, time_t wait)
@@ -160,24 +86,152 @@ ods_thread_wait(cond_basic_type* cond, lock_basic_type* lock, time_t wait)
     return ret;
 }
 
-#endif /* defined(HAVE_PTHREAD) */
+crash_threadclass_t detachedthreadclass;
+crash_threadclass_t workerthreadclass;
+crash_threadclass_t handlerthreadclass;
 
+struct alertbuffer_struct {
+    char buffer[1024];
+    int index;
+};
+static void alert(struct alertbuffer_struct* buffer, const char *format, ...)
+#ifdef HAVE___ATTRIBUTE__
+     __attribute__ ((format (printf, 2, 3)))
+#endif
+;
+static void alertsyslog(const char* format, ...)
+#ifdef HAVE___ATTRIBUTE__
+     __attribute__ ((format (printf, 1, 2)))
+#endif
+;
+
+inline static int
+alertoutput(struct alertbuffer_struct* buffer, int ch)
+{
+    if (buffer->index < sizeof(buffer->buffer)) {
+        buffer->buffer[buffer->index++] = ch;
+        return 0;
+    } else
+        return -1;
+}
+
+static void
+alertinteger(struct alertbuffer_struct* buffer, unsigned long value, int base)
+{
+    char ch;
+    if (value > base - 1)
+        alertinteger(buffer, value / base, base);
+    ch = "0123456789abcdef"[value % base];
+    alertoutput(buffer, ch);
+}
+
+static void
+valert(struct alertbuffer_struct* buffer, const char* format, va_list args)
+{
+    int idx, len;
+    const char* stringarg;
+    void* pointerarg;
+    int integerarg;
+    long longarg;
+    idx = 0;
+    while (format[idx]) {
+        if (format[idx] == '%') {
+            switch (format[idx + 1]) {
+                case '%':
+                    alertoutput(buffer, '%');
+                    idx += 2;
+                    break;
+                case 's':
+                    stringarg = va_arg(args, char*);
+                    if (stringarg == NULL)
+                        stringarg = "(null)";
+                    while(stringarg)
+                        if(alertoutput(buffer, *(stringarg++)))
+                            break;
+                    idx += 2;
+                    break;
+                case 'p':
+                    pointerarg = va_arg(args, void*);
+                    if (pointerarg == NULL) {
+                        stringarg = "(null)";
+                        while(stringarg)
+                            alertoutput(buffer, *(stringarg++));
+                    } else {
+                        alertoutput(buffer, '0');
+                        alertoutput(buffer, 'x');
+                        alertinteger(buffer, (unsigned long) pointerarg, 16);
+                    }
+                    idx += 2;
+                    break;
+                case 'l':
+                    switch (format[idx + 2]) {
+                        case 'd':
+                            longarg = va_arg(args, long);
+                            if (longarg < 0) {
+                                alertoutput(buffer, '-');
+                                alertinteger(buffer, 1UL + ~((unsigned long) longarg), 10);
+                            } else
+                                alertinteger(buffer, longarg, 10);
+                            idx += 3;
+                            break;
+                        case '\0':
+                            alertoutput(buffer, format[idx++]);
+                            break;
+                        default:
+                            alertoutput(buffer, format[idx++]);
+                            alertoutput(buffer, format[idx++]);
+                            alertoutput(buffer, format[idx++]);
+                    }
+                    break;
+                case 'd':
+                    integerarg = va_arg(args, int);
+                    alertinteger(buffer, (long) integerarg, 10);
+                    idx += 2;
+                    break;
+                case '\0':
+                    alertoutput(buffer, '%');
+                    idx += 1;
+                    break;
+                default:
+                    alertoutput(buffer, format[idx++]);
+                    alertoutput(buffer, format[idx++]);
+            }
+        } else {
+            alertoutput(buffer, format[idx++]);
+        }
+    }
+}
+
+static void
+alertsyslog(const char* format, ...)
+{
+    va_list args;
+    struct alertbuffer_struct buffer;
+    va_start(args, format);
+    buffer.index = 0;
+    valert(&buffer, format, args);
+    va_end(args);
+    if (buffer.index < sizeof(buffer.buffer)) {
+        buffer.buffer[buffer.index] = '\0';
+    } else {
+        strcpy(&buffer.buffer[buffer.index - strlen("...\n") -1], "...\n");
+    }
+    write(2, buffer.buffer, strlen(buffer.buffer));
+    syslog(LOG_CRIT, "%s", buffer.buffer);
+}
 
 void
-ods_thread_blocksigs(void)
+ods_crash_initialize(char*argv0)
 {
-#ifndef HAVE_PTHREAD
-    int err = 0;
-#endif
-    sigset_t sigset;
-    sigfillset(&sigset);
-
-#ifndef HAVE_PTHREAD
-    if((err=pthread_sigmask(SIG_SETMASK, &sigset, NULL)))
-        ods_fatal_exit("[%s] pthread_sigmask: %s", lock_str, strerror(err));
-#else /* !HAVE_PTHREAD */
-    /* have nothing, do single process signal mask */
-    if(sigprocmask(SIG_SETMASK, &sigset, NULL) != 0)
-        ods_fatal_exit("[%s] sigprocmask: %s", lock_str, strerror(errno));
-#endif /* HAVE_PTHREAD */
+    crash_initialize(alertsyslog, ods_log_error);
+    crash_threadclass_create(&detachedthreadclass, "daemonthreads");
+    crash_threadclass_setautorun(detachedthreadclass);
+    crash_threadclass_setblockedsignals(detachedthreadclass);
+    crash_threadclass_setdetached(detachedthreadclass);
+    crash_threadclass_create(&workerthreadclass, "workerthreads");
+    crash_threadclass_setautorun(workerthreadclass);
+    crash_threadclass_setblockedsignals(workerthreadclass);
+    crash_threadclass_create(&handlerthreadclass, "handlerthreads");
+    crash_threadclass_setautorun(handlerthreadclass);
+    crash_trapsignals(argv0);
 }

@@ -53,6 +53,7 @@
 
 #include "daemon/engine.h"
 #include "clientpipe.h"
+#include "locks.h"
 #include "scheduler/schedule.h"
 #include "scheduler/task.h"
 #include "file.h"
@@ -334,16 +335,11 @@ cmdhandler_handle_client_conversation(cmdhandler_type* cmdc)
  * Accept client.
  *
  */
-static void*
+static void
 cmdhandler_accept_client(void* arg)
 {
     int err;
-    sigset_t sigset;
     cmdhandler_type* cmdc = (cmdhandler_type*) arg;
-
-    sigfillset(&sigset);
-    if((err=pthread_sigmask(SIG_SETMASK, &sigset, NULL)))
-        ods_fatal_exit("[%s] pthread_sigmask: %s", module_str, strerror(err));
 
     ods_log_debug("[%s] accept client %i", module_str, cmdc->client_fd);
 
@@ -351,7 +347,7 @@ cmdhandler_accept_client(void* arg)
     if (!cmdc->dbconn) {
         client_printf_err(cmdc->client_fd, "Failed to open DB connection.\n");
         client_exit(cmdc->client_fd, 1);
-        return NULL;
+        return;
     }
     
     cmdhandler_handle_client_conversation(cmdc);
@@ -360,7 +356,6 @@ cmdhandler_accept_client(void* arg)
     }
     db_connection_free(cmdc->dbconn);
     cmdc->stopped = 1;
-    return NULL;
 }
 
 /**
@@ -485,9 +480,7 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
         /* Opportunistic join threads LIFO. */
         for (i = thread_index-1; i>0; i--) {
             if (!cmdcs[i].stopped) break;
-            if (pthread_join(cmdcs[i].thread_id, NULL)) {
-                break;
-            }
+            crash_thread_join(cmdcs[i].thread_id, NULL);
             thread_index--;
         }
 
@@ -534,9 +527,7 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
             cmdc->listen_addr = cmdhandler->listen_addr;
             cmdc->engine = cmdhandler->engine;
             cmdc->need_to_exit = cmdhandler->need_to_exit;
-            if (!pthread_create(&(cmdcs[thread_index].thread_id), NULL, &cmdhandler_accept_client,
-                (void*) cmdc))
-            {
+            if (!crash_thread_create(&(cmdcs[thread_index].thread_id), workerthreadclass, &cmdhandler_accept_client, (void*) cmdc)) {
                 thread_index++;
             }
             ods_log_debug("[%s] %lu clients in progress...", module_str, thread_index);
@@ -545,9 +536,7 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
 
     /* join threads LIFO. */
     for (i = thread_index-1; i>0; i--) {
-        if (pthread_join(cmdcs[i].thread_id, NULL)) {
-            break;
-        }
+        crash_thread_join(cmdcs[i].thread_id, NULL);
     }
 
     ods_log_debug("[%s] done", module_str);
@@ -613,5 +602,5 @@ cmdhandler_stop(struct engine_struct* engine)
         ods_log_error("[engine] command handler self pipe trick failed, "
             "unclean shutdown");
     }
-    (void) pthread_join(engine->cmdhandler->thread_id, NULL);
+    crash_thread_join(engine->cmdhandler->thread_id, NULL);
 }
