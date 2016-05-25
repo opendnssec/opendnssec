@@ -3334,6 +3334,7 @@ keycache_delfunc(ldns_rbnode_t* node, void* cargo)
     (void)cargo;
     free((void*)node->key);
     free((void*)node->data);
+    free((void*)node);
 }
 
 void
