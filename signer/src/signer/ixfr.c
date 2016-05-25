@@ -70,15 +70,17 @@ part_create()
 
 
 /**
- * Clean up a part of ixfr journal and free it.
+ * Clean up a part of ixfr journal.
  *
  */
 static void
-part_free(part_type* part)
+part_cleanup(part_type* part)
 {
-    if (!part) return;
+    if (!part) {
+        return;
+    }
     ldns_rr_list_deep_free(part->min);
-    ldns_rr_list_deep_free(part->plus);
+    ldns_rr_list_free(part->plus);
     free(part);
 }
 
@@ -88,12 +90,24 @@ part_free(part_type* part)
  *
  */
 ixfr_type*
-ixfr_create()
+ixfr_create(zone_type* zone)
 {
     size_t i = 0;
-    ixfr_type* xfr;
+    ixfr_type* xfr = NULL;
 
-    CHECKALLOC(xfr = (ixfr_type*) calloc(1, sizeof(ixfr_type)));
+    ods_log_assert(zone);
+    ods_log_assert(zone->name);
+
+    CHECKALLOC(xfr = (ixfr_type*) malloc(sizeof(ixfr_type)));
+    if (!xfr) {
+        ods_log_error("[%s] unable to create ixfr for zone %s: "
+            "allocator_alloc() failed", ixfr_str, zone->name);
+        return NULL;
+    }
+    for (i=0; i < IXFR_MAX_PARTS; i++) {
+        xfr->part[i] = NULL;
+    }
+    xfr->zone = zone;
     lock_basic_init(&xfr->ixfr_lock);
     return xfr;
 }
@@ -106,19 +120,25 @@ ixfr_create()
 void
 ixfr_add_rr(ixfr_type* ixfr, ldns_rr* rr)
 {
-    ldns_rr* rr_copy = ldns_rr_clone(rr);
-
-    ods_log_assert(ixfr)
-    ods_log_assert(rr);
+    zone_type* zone = NULL;
+    if (!ixfr || !rr) {
+        return;
+    }
+    zone = (zone_type*) ixfr->zone;
+    ods_log_assert(zone);
+    ods_log_assert(zone->db);
+    if (!zone->db->is_initialized) {
+        /* no ixfr yet */
+        return;
+    }
     ods_log_assert(ixfr->part[0]);
     ods_log_assert(ixfr->part[0]->plus);
-
-    if (!ldns_rr_list_push_rr(ixfr->part[0]->plus, rr_copy)) {
+    if (!ldns_rr_list_push_rr(ixfr->part[0]->plus, rr)) {
         ods_fatal_exit("[%s] fatal unable to +RR: ldns_rr_list_push_rr() failed",
             ixfr_str);
     }
-    if (ldns_rr_get_type(rr_copy) == LDNS_RR_TYPE_SOA) {
-        ixfr->part[0]->soaplus = rr_copy;
+    if (ldns_rr_get_type(rr) == LDNS_RR_TYPE_SOA) {
+        ixfr->part[0]->soaplus = rr;
     }
 }
 
@@ -130,20 +150,25 @@ ixfr_add_rr(ixfr_type* ixfr, ldns_rr* rr)
 void
 ixfr_del_rr(ixfr_type* ixfr, ldns_rr* rr)
 {
-    ldns_rr* rr_copy = ldns_rr_clone(rr);
-
-    ods_log_assert(ixfr)
-    ods_log_assert(rr);
+    zone_type* zone = NULL;
+    if (!ixfr || !rr) {
+        return;
+    }
+    zone = (zone_type*) ixfr->zone;
+    ods_log_assert(zone);
+    ods_log_assert(zone->db);
+    if (!zone->db->is_initialized) {
+        /* no ixfr yet */
+        return;
+    }
     ods_log_assert(ixfr->part[0]);
     ods_log_assert(ixfr->part[0]->min);
-
-    if (!ldns_rr_list_push_rr(ixfr->part[0]->min, rr_copy)) {
+    if (!ldns_rr_list_push_rr(ixfr->part[0]->min, rr)) {
         ods_fatal_exit("[%s] fatal unable to -RR: ldns_rr_list_push_rr() failed",
             ixfr_str);
     }
-    if (ldns_rr_get_type(rr_copy) == LDNS_RR_TYPE_SOA) {
-        ods_log_assert(!ixfr->part[0]->soamin); /* this part already has a soa */
-        ixfr->part[0]->soamin = rr_copy;
+    if (ldns_rr_get_type(rr) == LDNS_RR_TYPE_SOA) {
+        ixfr->part[0]->soamin = rr;
     }
 }
 
@@ -175,35 +200,38 @@ part_rr_list_print_nonsoa(FILE* fd, ldns_rr_list* list)
  * Print part of the ixfr journal.
  *
  */
-static int
+static void
 part_print(FILE* fd, ixfr_type* ixfr, size_t i)
 {
+    zone_type* zone = NULL;
     part_type* part = NULL;
     int error = 0;
-
-    ods_log_assert(ixfr);
-    ods_log_assert(fd);
-
+    if (!ixfr || !fd) {
+        return;
+    }
+    zone = (zone_type*) ixfr->zone;
     part = ixfr->part[i];
     if (!part || !part->soamin || !part->soaplus) {
-        return 0; /* due to code buggyness this is not considered an
-            error condition*/
+        return;
     }
     ods_log_assert(part->min);
     ods_log_assert(part->plus);
     ods_log_assert(part->soamin);
     ods_log_assert(part->soaplus);
-
     if (util_rr_print(fd, part->soamin) != ODS_STATUS_OK) {
-        return 1;
-    } else if (part_rr_list_print_nonsoa(fd, part->min)) {
-        return 1;
-    } else if (util_rr_print(fd, part->soaplus) != ODS_STATUS_OK) {
-        return 1;
-    } else if (part_rr_list_print_nonsoa(fd, part->plus)) {
-        return 1;
+        zone->adoutbound->error = 1;
     }
-    return 0;
+    error = part_rr_list_print_nonsoa(fd, part->min);
+    if (error) {
+        zone->adoutbound->error = 1;
+    }
+    if (util_rr_print(fd, part->soaplus) != ODS_STATUS_OK) {
+        zone->adoutbound->error = 1;
+    }
+    error = part_rr_list_print_nonsoa(fd, part->plus);
+    if (error) {
+        zone->adoutbound->error = 1;
+    }
 }
 
 
@@ -211,22 +239,18 @@ part_print(FILE* fd, ixfr_type* ixfr, size_t i)
  * Print the ixfr journal.
  *
  */
-int
+void
 ixfr_print(FILE* fd, ixfr_type* ixfr)
 {
-    int i = 0, error = 0;
-
-    ods_log_assert(fd);
-    ods_log_assert(ixfr);
-
+    int i = 0;
+    if (!ixfr || !fd) {
+        return;
+    }
     ods_log_debug("[%s] print ixfr", ixfr_str);
     for (i = IXFR_MAX_PARTS - 1; i >= 0; i--) {
         ods_log_deeebug("[%s] print ixfr part #%d", ixfr_str, i);
-        if (part_print(fd, ixfr, i)) {
-            return 1;
-        }
+        part_print(fd, ixfr, i);
     }
-    return 0;
 }
 
 
@@ -235,12 +259,13 @@ ixfr_print(FILE* fd, ixfr_type* ixfr)
  *
  */
 void
-ixfr_purge(ixfr_type* ixfr, char const *zonename)
+ixfr_purge(ixfr_type* ixfr)
 {
     int i = 0;
-
-    ods_log_assert(ixfr);
-    ods_log_assert(zonename);
+    zone_type* zone = NULL;
+    if (!ixfr) {
+        return;
+    }
 
     if (ixfr->part[0] &&
         (!ixfr->part[0]->soamin || !ixfr->part[0]->soaplus))
@@ -252,10 +277,12 @@ ixfr_purge(ixfr_type* ixfr, char const *zonename)
         return;
     }
 
-    ods_log_debug("[%s] purge ixfr for zone %s", ixfr_str, zonename);
+    zone = (zone_type*) ixfr->zone;
+    ods_log_assert(zone);
+    ods_log_debug("[%s] purge ixfr for zone %s", ixfr_str, zone->name);
     for (i = IXFR_MAX_PARTS - 1; i >= 0; i--) {
         if (i == (IXFR_MAX_PARTS - 1)) {
-            part_free(ixfr->part[i]);
+            part_cleanup(ixfr->part[i]);
             ixfr->part[i] = NULL;
         } else {
             ixfr->part[i+1] = ixfr->part[i];
@@ -265,7 +292,7 @@ ixfr_purge(ixfr_type* ixfr, char const *zonename)
     ixfr->part[0] = part_create();
     if (!ixfr->part[0]) {
         ods_fatal_exit("[%s] fatal unable to purge ixfr for zone %s: "
-            "part_create() failed", ixfr_str, zonename);
+            "part_create() failed", ixfr_str, zone->name);
     }
 }
 
@@ -282,7 +309,7 @@ ixfr_cleanup(ixfr_type* ixfr)
         return;
     }
     for (i = IXFR_MAX_PARTS - 1; i >= 0; i--) {
-        part_free(ixfr->part[i]);
+        part_cleanup(ixfr->part[i]);
     }
     lock_basic_destroy(&ixfr->ixfr_lock);
     free(ixfr);

@@ -1001,9 +1001,7 @@ namedb_wipe_denial(namedb_type* db)
                 if (denial->rrset->rrs[i].exists) {
                     /* ixfr -RR */
                     lock_basic_lock(&zone->ixfr->ixfr_lock);
-                    if (zone->db->is_initialized) {
-                        ixfr_del_rr(zone->ixfr, denial->rrset->rrs[i].rr);
-                    }
+                    ixfr_del_rr(zone->ixfr, denial->rrset->rrs[i].rr);
                     lock_basic_unlock(&zone->ixfr->ixfr_lock);
                 }
                 denial->rrset->rrs[i].exists = 0;

@@ -441,9 +441,7 @@ adapi_printixfr(FILE* fd, zone_type* zone)
         return status;
     }
     lock_basic_lock(&zone->ixfr->ixfr_lock);
-    if (ixfr_print(fd, zone->ixfr)) {
-        zone->adoutbound->error = 1;
-    }
+    ixfr_print(fd, zone->ixfr);
     lock_basic_unlock(&zone->ixfr->ixfr_lock);
     rrset_print(fd, rrset, 1, &status);
     return status;
