@@ -3332,6 +3332,7 @@ keycache_delfunc(ldns_rbnode_t* node, void* cargo)
     free((void*)node->key);
     free(((libhsm_key_t*)node->data)->modulename);
     free((void*)node->data);
+    free((void*)node);
 }
 
 void
