@@ -320,9 +320,10 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
         }
     }
     if (suspend) {
-        if (zone_set_next_change(zone, -1))
+        if (zone_set_next_change(zone, -1)) {
             ods_log_error("[%s] Cannot suspend zone %s, database error!", module_str, zone_name);
             client_printf_err(sockfd, "Cannot suspend zone %s, database error!\n", zone_name);
+	}
     }
 
     if (zone_create(zone)) {
