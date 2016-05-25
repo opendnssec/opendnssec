@@ -135,14 +135,15 @@ parse_zonelist_adapter(xmlXPathContextPtr xpathCtx, xmlChar* expr,
                     type = NULL;
                 }
                 if (adapter) {
-                    break;
+		    xmlXPathFreeObject(xpathObj);
+		    return adapter;
                 }
                 curNode = curNode->next;
             }
         }
     }
     xmlXPathFreeObject(xpathObj);
-    return adapter;
+    return NULL;
 }
 
 
