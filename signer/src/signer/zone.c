@@ -93,7 +93,7 @@ zone_create(char* name, ldns_rr_class klass)
         zone_cleanup(zone);
         return NULL;
     }
-    zone->ixfr = ixfr_create((void*)zone);
+    zone->ixfr = ixfr_create();
     if (!zone->ixfr) {
         ods_log_error("[%s] unable to create zone %s: ixfr_create() "
             "failed", zone_str, name);
@@ -1028,11 +1028,11 @@ zone_recover2(zone_type* zone)
                     ods_status2str(status));
                 (void)unlink(filename);
                 ixfr_cleanup(zone->ixfr);
-                zone->ixfr = ixfr_create((void*)zone);
+                zone->ixfr = ixfr_create();
             }
         }
         lock_basic_lock(&zone->ixfr->ixfr_lock);
-        ixfr_purge(zone->ixfr);
+        ixfr_purge(zone->ixfr, zone->name);
         lock_basic_unlock(&zone->ixfr->ixfr_lock);
 
         /* all ok */
