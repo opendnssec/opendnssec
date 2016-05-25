@@ -184,6 +184,7 @@ memberdestroy(void* dummy, void* member)
     free((void*) sig->key_locator);
     sig->key_locator = NULL;
     /* The rrs may still be in use by IXFRs so cannot do ldns_rr_free(sig->rr); */
+    ldns_rr_free(sig->rr);
     sig->owner = NULL;
     sig->rr = NULL;
     return 0;
@@ -325,8 +326,8 @@ rrset_del_rr(rrset_type* rrset, uint16_t rrnum)
     ods_log_assert(rrnum < rrset->rr_count);
 
     log_rr(rrset->rrs[rrnum].rr, "-RR", LOG_DEEEBUG);
-    rrset->rrs[rrnum].owner = NULL;
-    rrset->rrs[rrnum].rr = NULL;
+    rrset->rrs[rrnum].owner = NULL; /* who owns owner? */
+    ldns_rr_free(rrset->rrs[rrnum].rr);
     while (rrnum < rrset->rr_count-1) {
         rrset->rrs[rrnum] = rrset->rrs[rrnum+1];
         rrnum++;
@@ -358,6 +359,8 @@ rrset_diff(rrset_type* rrset, unsigned is_ixfr, unsigned more_coming)
         return;
     }
     zone = (zone_type*) rrset->zone;
+    /* CAUTION: both iterator and condition (implicit) are changed
+     * within the loop. */
     for (i=0; i < rrset->rr_count; i++) {
         if (rrset->rrs[i].is_added) {
             if (!rrset->rrs[i].exists) {
