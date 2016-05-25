@@ -477,6 +477,8 @@ backup_namedb_done:
         ldns_rdf_deep_free(prev);
         prev = NULL;
     }
+    free(locator); /* if everything went well this is NULL. otherwise
+                    clean up. */
     return result;
 }
 

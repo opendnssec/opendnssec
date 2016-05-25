@@ -204,7 +204,7 @@ ods_fopen(const char* file, const char* dir, const char* mode)
             fd = fopen(openf, mode);
             if (!fd) {
                 ods_log_debug("[%s] unable to open file %s for %s: %s",
-                    file_str, openf?openf:"(null)",
+                    file_str, openf[0]?openf:"(null)",
                     ods_file_mode2str(mode), strerror(errno));
             } else {
                 file_count++;
