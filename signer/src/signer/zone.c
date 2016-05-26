@@ -54,16 +54,28 @@ zone_type*
 zone_create(char* name, ldns_rr_class klass)
 {
     zone_type* zone = NULL;
+    int err;
 
     if (!name || !klass) {
         return NULL;
     }
-    CHECKALLOC(zone = (zone_type*) malloc(sizeof(zone_type)));
+    CHECKALLOC(zone = (zone_type*) calloc(1, sizeof(zone_type)));
     /* [start] PS 9218653: Drop trailing dot in domain name */
     if (strlen(name) > 1 && name[strlen(name)-1] == '.') {
         name[strlen(name)-1] = '\0';
     }
     /* [end] PS 9218653 */
+
+    if (pthread_mutex_init(&zone->zone_lock, NULL)) {
+        free(zone);
+        return NULL;
+    }
+    if (pthread_mutex_init(&zone->xfr_lock, NULL)) {
+        (void)pthread_mutex_destroy(&zone->zone_lock);
+        free(zone);
+        return NULL;
+    }
+
     zone->name = strdup(name);
     if (!zone->name) {
         ods_log_error("[%s] unable to create zone %s: allocator_strdup() "
@@ -109,8 +121,6 @@ zone_create(char* name, ldns_rr_class klass)
     }
     zone->stats = stats_create();
     zone->rrstore = rrset_store_initialize();
-    lock_basic_init(&zone->zone_lock);
-    lock_basic_init(&zone->xfr_lock);
     return zone;
 }
 
@@ -254,6 +264,7 @@ zone_publish_dnskeys(zone_type* zone)
                 if ((status = rrset_getliteralrr(&zone->signconf->keys->keys[i].dnskey, zone->signconf->keys->keys[i].resourcerecord, ttl, zone->apex)) != ODS_STATUS_OK) {
                     ods_log_error("[%s] unable to publish dnskeys for zone %s: "
                             "error decoding literal dnskey", zone_str, zone->name);
+		    hsm_destroy_context(ctx);
                     return status;
                 }
             } else {
@@ -701,7 +712,7 @@ zone_del_nsec3params(zone_type* zone)
 
     domain = namedb_lookup_domain(zone->db, zone->apex);
     if (!domain) {
-        ods_log_warning("[%s] unable to delete RR from zone %s: "
+        ods_log_verbose("[%s] unable to delete RR from zone %s: "
             "domain not found", zone_str, zone->name);
         return ODS_STATUS_UNCHANGED;
     }

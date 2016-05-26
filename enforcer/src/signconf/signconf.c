@@ -79,12 +79,13 @@ int signconf_export_all(int sockfd, const db_connection_t* connection, int force
         if (policy) {
             /*
              * If we already have a policy object; If policy_id compare fails
-             * or if they are not the same free the policy object to we will
+             * or if they are not the same, free the policy object so we will
              * later retrieve the correct policy
              */
             if (db_value_cmp(policy_id(policy), zone_policy_id(zone), &cmp)
                 || cmp)
             {
+                policy_free(policy);
                 policy = NULL;
             }
         }
@@ -107,6 +108,7 @@ int signconf_export_all(int sockfd, const db_connection_t* connection, int force
         }
         zone_free(zone);
     }
+    policy_free(policy);
     zone_list_free(zone_list);
 
     if (change) {

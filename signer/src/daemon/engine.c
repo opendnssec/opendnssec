@@ -78,6 +78,8 @@ engine_create(void)
     engine->cmdhandler_done = 0;
     engine->dnshandler = NULL;
     engine->xfrhandler = NULL;
+    engine->taskq = NULL;
+    engine->signq = NULL;
     engine->pid = -1;
     engine->uid = -1;
     engine->gid = -1;
