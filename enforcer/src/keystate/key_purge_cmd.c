@@ -96,12 +96,13 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 			client_printf_err(sockfd, "unknown zone %s\n", zone_name);
 			zone_free(zone);
 			zone = NULL;
-	                free(buf);
+			free(buf);
 			return -1;
 		}
 		error = removeDeadKeysNow(sockfd, dbconn, NULL, zone);
 		zone_free(zone);
 		zone = NULL;
+		free(buf);
 		return error;
 	}
 
@@ -117,6 +118,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	error = removeDeadKeysNow(sockfd, dbconn, policy, NULL);
 	policy_free(policy);
 	policy = NULL;
+	free(buf);
 	return error;
 }
 

@@ -115,7 +115,10 @@ exec_dnskey_by_id(int sockfd, key_data_t *key, const char* ds_command,
 		return 1;
 	}
 	locator = hsm_key_locator(key_data_hsm_key(key));
-	if (!locator) return 1;
+	if (!locator) {
+		zone_free(zone);
+		return 1;
+	}
 	/* This fetches the states from the DB, I'm only assuming they get
 	 * cleaned up when 'key' is cleaned(?) */
 	if (key_data_cache_key_states(key) != DB_OK) {

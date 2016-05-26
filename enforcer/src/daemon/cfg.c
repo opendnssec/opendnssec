@@ -82,6 +82,7 @@ engine_config(const char* cfgfile,
         ecfg = malloc(sizeof(engineconfig_type));
         if (!ecfg) {
             ods_log_error("[%s] failed to read: malloc failed", conf_str);
+            ods_fclose(cfgfd);
             return NULL;
         }
         if (oldcfg) {
