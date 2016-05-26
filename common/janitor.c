@@ -228,9 +228,7 @@ runthread(void* data)
     ss.ss_size = SIGSTKSZ;
     ss.ss_flags = 0;
     sigaltstack(&ss, NULL);
-    if (!info->isstarted) {
-        pthread_barrier_wait(&info->startbarrier);
-    }
+    pthread_barrier_wait(&info->startbarrier);
     if (info->blocksignals) {
         sigfillset(&sigset);
         sigdelset(&sigset, SIGQUIT);
