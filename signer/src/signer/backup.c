@@ -572,7 +572,7 @@ backup_read_ixfr(FILE* in, void* zone)
                     ods_log_debug("[%s] new part SOA: %s", backup_str,
                         ldns_rr2str(rr));
                     lock_basic_lock(&z->ixfr->ixfr_lock);
-                    ixfr_purge(z->ixfr);
+                    ixfr_purge(z->ixfr, z->name);
                     lock_basic_unlock(&z->ixfr->ixfr_lock);
                 }
             } else {
@@ -591,15 +591,17 @@ backup_read_ixfr(FILE* in, void* zone)
             goto backup_ixfr_done;
         }
         ods_log_assert(first_soa);
-        lock_basic_lock(&z->ixfr->ixfr_lock);
-        if (del_mode) {
-            ods_log_deeebug("[%s] -IXFR: %s", backup_str, ldns_rr2str(rr));
-            ixfr_del_rr(z->ixfr, rr);
-        } else {
-            ods_log_deeebug("[%s] +IXFR: %s", backup_str, ldns_rr2str(rr));
-            ixfr_add_rr(z->ixfr, rr);
+        if (z->db->is_initialized) {
+            lock_basic_lock(&z->ixfr->ixfr_lock);
+            if (del_mode) {
+                ods_log_deeebug("[%s] -IXFR: %s", backup_str, ldns_rr2str(rr));
+                ixfr_del_rr(z->ixfr, rr);
+            } else {
+                ods_log_deeebug("[%s] +IXFR: %s", backup_str, ldns_rr2str(rr));
+                ixfr_add_rr(z->ixfr, rr);
+            }
+            lock_basic_unlock(&z->ixfr->ixfr_lock);
         }
-        lock_basic_unlock(&z->ixfr->ixfr_lock);
     }
     if (result == ODS_STATUS_OK && status != LDNS_STATUS_OK) {
         ods_log_error("[%s] error reading RR #%i (%s): %s",
