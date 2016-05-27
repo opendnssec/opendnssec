@@ -236,5 +236,8 @@ ods_janitor_initialize(char*argv0)
     janitor_threadclass_create(&handlerthreadclass, "handlerthreads");
     janitor_threadclass_setautorun(handlerthreadclass);
     janitor_threadclass_setminstacksize(handlerthreadclass, ODS_MINIMUM_STACKSIZE);
-    janitor_trapsignals(argv0);
+    /* disable fancy core dumps for now, perhaps this should not be
+     * a default operation?
+     *     janitor_trapsignals(argv0);
+     */
 }
