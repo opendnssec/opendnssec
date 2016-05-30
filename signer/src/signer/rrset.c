@@ -326,8 +326,8 @@ rrset_del_rr(rrset_type* rrset, uint16_t rrnum)
     ods_log_assert(rrnum < rrset->rr_count);
 
     log_rr(rrset->rrs[rrnum].rr, "-RR", LOG_DEEEBUG);
-    rrset->rrs[rrnum].owner = NULL; /* who owns owner? */
-    ldns_rr_free(rrset->rrs[rrnum].rr);
+    rrset->rrs[rrnum].owner = NULL;
+    rrset->rrs[rrnum].rr = NULL;
     while (rrnum < rrset->rr_count-1) {
         rrset->rrs[rrnum] = rrset->rrs[rrnum+1];
         rrnum++;
