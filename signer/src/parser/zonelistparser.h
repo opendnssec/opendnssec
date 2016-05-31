@@ -39,16 +39,6 @@
 #include <libxml/xmlreader.h>
 
 /**
- * Parse adapter.
- * \param[in] xpathCtx XPath Context Pointer
- * \param[in] expr expression
- * \param[in] inbound true if Input Adapter
- *
- */
-adapter_type* parse_zonelist_adapter(xmlXPathContextPtr xpathCtx,
-    xmlChar* expr, int inbound);
-
-/**
  * Parse the zonelist file.
  * \param[in] zlist zone list storage
  * \param[in] zlfile zonelist file name
