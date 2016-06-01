@@ -87,10 +87,12 @@ version(FILE* out)
 }
 
 static void
-program_setup(int cmdline_verbosity)
+program_setup(const char* cfgfile, int cmdline_verbosity)
 {
-    /* for now just log to stderr */
-    ods_log_init("ods-enforcerd", 0, NULL, cmdline_verbosity);
+    const char* file;
+    /* fully initialized log with parameters in conf file*/
+    file = parse_conf_log_filename(cfgfile);
+    ods_log_init("ods-enforcerd", parse_conf_use_syslog(cfgfile), file, cmdline_verbosity?cmdline_verbosity:parse_conf_verbosity(cfgfile));
     ods_log_verbose("[%s] starting enforcer", enforcerd_str);
 
     /* initialize */
@@ -100,6 +102,7 @@ program_setup(int cmdline_verbosity)
     
     /* setup */
     tzset(); /* for portability */
+    free(file);
 }
 
 static void
@@ -194,7 +197,7 @@ main(int argc, char* argv[])
     fprintf(stdout, "OpenDNSSEC key and signing policy enforcer version %s\n", 
         PACKAGE_VERSION);
     
-    program_setup(cmdline_verbosity); /* setup basic logging, xml, PB */
+    program_setup(cfgfile, cmdline_verbosity); /* setup basic logging, xml, PB */
     engine = engine_alloc(); /* Let's create an engine only once */
     if (!engine) {
         ods_log_crit("Could not start engine");
