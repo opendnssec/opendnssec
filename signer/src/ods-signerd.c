@@ -36,6 +36,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <libxml/parser.h>
+#include "parser/confparser.h"
 
 
 #define AUTHOR_NAME "Matthijs Mekking"
@@ -97,7 +98,7 @@ program_setup(const char* cfgfile, int cmdline_verbosity)
     xmlInitThreads();
 
     tzset(); /* for portability */
-    free(file);
+    free((void*)file);
 }
 
 static void
