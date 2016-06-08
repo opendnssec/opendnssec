@@ -37,34 +37,34 @@
 
 /**
  * Get a list of keys for an enforcer zone object.
- * \param[in] zone an zone_t pointer.
+ * \param[in] zone an zone_db_t pointer.
  * \return a key_data_list_t pointer or NULL on error.
  */
-key_data_list_t* zone_get_keys(const zone_t* zone);
+key_data_list_t* zone_get_keys(const zone_db_t* zone);
 
 /**
  * Get a list of key dependencies for an enforcer zone object.
- * \param[in] zone an zone_t pointer.
+ * \param[in] zone an zone_db_t pointer.
  * \return a key_dependency_list_t pointer or NULL on error.
  */
-key_dependency_list_t* zone_get_key_dependencies(const zone_t* zone);
+key_dependency_list_t* zone_get_key_dependencies(const zone_db_t* zone);
 
 /**
  * Create a zone object from XML.
- * \param[in] zone a zone_t object being created.
+ * \param[in] zone a zone_db_t object being created.
  * \param[in] zone_node a xmlNodePtr to the XML for the zone.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int zone_create_from_xml(zone_t* zone, xmlNodePtr zone_node);
+int zone_create_from_xml(zone_db_t* zone, xmlNodePtr zone_node);
 
 /**
  * Update a zone object from XML.
- * \param[in] zone a zone_t object being updated.
+ * \param[in] zone a zone_db_t object being updated.
  * \param[in] zone_node a xmlNodePtr to the XML for the zone.
  * \param[out] updated an integer pointer that will be set to non-zero if any
  * values in the zone was updated.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int zone_update_from_xml(zone_t* zone, xmlNodePtr zone_node, int* updated);
+int zone_update_from_xml(zone_db_t* zone, xmlNodePtr zone_node, int* updated);
 
 #endif

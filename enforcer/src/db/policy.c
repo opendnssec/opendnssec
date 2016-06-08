@@ -535,7 +535,7 @@ void policy_free(policy_t* policy) {
             policy_key_list_free(policy->policy_key_list);
         }
         if (policy->zone_list) {
-            zone_list_free(policy->zone_list);
+            zone_list_db_free(policy->zone_list);
         }
         if (policy->hsm_key_list) {
             hsm_key_list_free(policy->hsm_key_list);
@@ -623,11 +623,11 @@ int policy_copy(policy_t* policy, const policy_t* policy_copy) {
         return DB_ERROR_UNKNOWN;
     }
     if (policy->zone_list) {
-        zone_list_free(policy->zone_list);
+        zone_list_db_free(policy->zone_list);
         policy->zone_list = NULL;
     }
     if (policy_copy->zone_list
-        && !(policy->zone_list = zone_list_new_copy(policy_copy->zone_list)))
+        && !(policy->zone_list = zone_list_db_new_copy(policy_copy->zone_list)))
     {
         if (name_text) {
             free(name_text);
@@ -1090,7 +1090,7 @@ unsigned int policy_passthrough(const policy_t* policy) {
     return policy->passthrough;
 }
 
-zone_list_t* policy_zone_list(policy_t* policy) {
+zone_list_db_t* policy_zone_list(policy_t* policy) {
 
     if (!policy) {
         return NULL;
@@ -1119,17 +1119,17 @@ int policy_retrieve_zone_list(policy_t* policy) {
     }
 
     if (policy->zone_list) {
-        zone_list_free(policy->zone_list);
+        zone_list_db_free(policy->zone_list);
         policy->zone_list = NULL;
     }
 
     if (!(clause_list = db_clause_list_new())
-        || !zone_policy_id_clause(clause_list, policy_id(policy))
-        || !(policy->zone_list = zone_list_new(db_object_connection(policy->dbo)))
-        || zone_list_object_store(policy->zone_list)
-        || zone_list_get_by_clauses(policy->zone_list, clause_list))
+        || !zone_db_policy_id_clause(clause_list, policy_id(policy))
+        || !(policy->zone_list = zone_list_db_new(db_object_connection(policy->dbo)))
+        || zone_list_db_object_store(policy->zone_list)
+        || zone_list_db_get_by_clauses(policy->zone_list, clause_list))
     {
-        zone_list_free(policy->zone_list);
+        zone_list_db_free(policy->zone_list);
         policy->zone_list = NULL;
         db_clause_list_free(clause_list);
         return DB_ERROR_UNKNOWN;
@@ -2750,8 +2750,8 @@ static int policy_list_get_associated(policy_list_t* policy_list) {
     const policy_t* policy;
     policy_key_list_t* policy_key_list;
     const policy_key_t* policy_key;
-    zone_list_t* zone_list;
-    const zone_t* zone;
+    zone_list_db_t* zone_list;
+    const zone_db_t* zone;
     hsm_key_list_t* hsm_key_list;
     const hsm_key_t* hsm_key;
 
@@ -2873,11 +2873,11 @@ static int policy_list_get_associated(policy_list_t* policy_list) {
         policy_list->object_list[i]->policy_key_list->object_list_first = 1;
     }
 
-    if (!(zone_list = zone_list_new(db_object_connection(policy_list->dbo)))
-        || zone_list_object_store(zone_list)
-        || zone_list_get_by_clauses(zone_list, clause_list))
+    if (!(zone_list = zone_list_db_new(db_object_connection(policy_list->dbo)))
+        || zone_list_db_object_store(zone_list)
+        || zone_list_db_get_by_clauses(zone_list, clause_list))
     {
-        zone_list_free(zone_list);
+        zone_list_db_free(zone_list);
         db_clause_list_free(clause_list);
         return DB_ERROR_UNKNOWN;
     }
@@ -2888,59 +2888,59 @@ static int policy_list_get_associated(policy_list_t* policy_list) {
         }
 
         count = 0;
-        zone = zone_list_begin(zone_list);
+        zone = zone_list_db_begin(zone_list);
         while (zone) {
-            if (db_value_cmp(policy_id(policy_list->object_list[i]), zone_policy_id(zone), &cmp)) {
-                zone_list_free(zone_list);
+            if (db_value_cmp(policy_id(policy_list->object_list[i]), zone_db_policy_id(zone), &cmp)) {
+                zone_list_db_free(zone_list);
                 db_clause_list_free(clause_list);
                 return DB_ERROR_UNKNOWN;
             }
             if (!cmp) {
                 count++;
             }
-            zone = zone_list_next(zone_list);
+            zone = zone_list_db_next(zone_list);
         }
         if (policy_list->object_list[i]->zone_list) {
-            zone_list_free(policy_list->object_list[i]->zone_list);
+            zone_list_db_free(policy_list->object_list[i]->zone_list);
             policy_list->object_list[i]->zone_list = NULL;
         }
-        if (!(policy_list->object_list[i]->zone_list = zone_list_new(db_object_connection(policy_list->dbo)))) {
-            zone_list_free(zone_list);
+        if (!(policy_list->object_list[i]->zone_list = zone_list_db_new(db_object_connection(policy_list->dbo)))) {
+            zone_list_db_free(zone_list);
             db_clause_list_free(clause_list);
             return DB_ERROR_UNKNOWN;
         }
         if (count) {
-            if (!(policy_list->object_list[i]->zone_list->object_list = (zone_t**)calloc(count, sizeof(zone_t*)))) {
-                zone_list_free(zone_list);
+            if (!(policy_list->object_list[i]->zone_list->object_list = (zone_db_t**)calloc(count, sizeof(zone_db_t*)))) {
+                zone_list_db_free(zone_list);
                 db_clause_list_free(clause_list);
                 return DB_ERROR_UNKNOWN;
             }
 
             j = 0;
-            zone = zone_list_begin(zone_list);
+            zone = zone_list_db_begin(zone_list);
             while (zone) {
                 if (j >= count) {
-                    zone_list_free(zone_list);
+                    zone_list_db_free(zone_list);
                     db_clause_list_free(clause_list);
                     return DB_ERROR_UNKNOWN;
                 }
-                if (db_value_cmp(policy_id(policy_list->object_list[i]), zone_policy_id(zone), &cmp)) {
-                    zone_list_free(zone_list);
+                if (db_value_cmp(policy_id(policy_list->object_list[i]), zone_db_policy_id(zone), &cmp)) {
+                    zone_list_db_free(zone_list);
                     db_clause_list_free(clause_list);
                     return DB_ERROR_UNKNOWN;
                 }
                 if (!cmp) {
-                    if (!(policy_list->object_list[i]->zone_list->object_list[j] = zone_new_copy(zone))) {
-                        zone_list_free(zone_list);
+                    if (!(policy_list->object_list[i]->zone_list->object_list[j] = zone_db_new_copy(zone))) {
+                        zone_list_db_free(zone_list);
                         db_clause_list_free(clause_list);
                         return DB_ERROR_UNKNOWN;
                     }
                     j++;
                 }
-                zone = zone_list_next(zone_list);
+                zone = zone_list_db_next(zone_list);
             }
             if (j != count) {
-                zone_list_free(zone_list);
+                zone_list_db_free(zone_list);
                 db_clause_list_free(clause_list);
                 return DB_ERROR_UNKNOWN;
             }

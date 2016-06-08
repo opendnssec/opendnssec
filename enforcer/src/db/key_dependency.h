@@ -58,8 +58,8 @@ struct key_dependency {
     db_value_t id;
     db_value_t rev;
     db_value_t zone_id;
-    const zone_t* associated_zone_id;
-    zone_t* private_zone_id;
+    const zone_db_t* associated_zone_id;
+    zone_db_t* private_zone_id;
     db_value_t from_key_data_id;
     const key_data_t* associated_from_key_data_id;
     key_data_t* private_from_key_data_id;
@@ -209,7 +209,7 @@ struct key_dependency_list {
     size_t object_list_position;
     int object_list_first;
     int associated_fetch;
-    zone_list_t* zone_id_list;
+    zone_list_db_t* zone_id_list;
     key_data_list_t* from_key_data_id_list;
     key_data_list_t* to_key_data_id_list;
 };

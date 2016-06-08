@@ -1243,7 +1243,7 @@ policyApproval(key_data_t** keylist, size_t keylist_size,
  * \return The TTL that should be used for the record or -1 on error.
  */
 static int
-getZoneTTL(policy_t* policy, zone_t* zone, key_state_type_t type,
+getZoneTTL(policy_t* policy, zone_db_t* zone, key_state_type_t type,
     const time_t now)
 {
     time_t end_date;
@@ -1258,18 +1258,18 @@ getZoneTTL(policy_t* policy, zone_t* zone, key_state_type_t type,
 
     switch (type) {
     case KEY_STATE_TYPE_DS:
-        end_date = zone_ttl_end_ds(zone);
+        end_date = zone_db_ttl_end_ds(zone);
         ttl = policy_parent_ds_ttl(policy);
         break;
 
     case KEY_STATE_TYPE_DNSKEY: /* Intentional fall-through */
     case KEY_STATE_TYPE_RRSIGDNSKEY:
-        end_date = zone_ttl_end_dk(zone);
+        end_date = zone_db_ttl_end_dk(zone);
         ttl = policy_keys_ttl(policy);
         break;
 
     case KEY_STATE_TYPE_RRSIG:
-        end_date = zone_ttl_end_rs(zone);
+        end_date = zone_db_ttl_end_rs(zone);
         ttl = max(min(policy_zone_soa_ttl(policy), policy_zone_soa_minimum(policy)),
             ( policy_denial_type(policy) == POLICY_DENIAL_TYPE_NSEC3
                 ? ( policy_denial_ttl(policy) > policy_signatures_max_zone_ttl(policy)
@@ -1337,7 +1337,7 @@ isSuccessable(struct future_key* future_key)
 static int
 markSuccessors(db_connection_t *dbconn, key_data_t** keylist,
     size_t keylist_size, struct future_key *future_key,
-    key_dependency_list_t* deplist, const zone_t* zone)
+    key_dependency_list_t* deplist, const zone_db_t* zone)
 {
     static const char *scmd = "markSuccessors";
     size_t i;
@@ -1391,7 +1391,7 @@ markSuccessors(db_connection_t *dbconn, key_data_t** keylist,
                 || key_dependency_set_from_key_data_id(key_dependency, key_data_id(future_key->key))
                 || key_dependency_set_to_key_data_id(key_dependency, key_data_id(keylist[i]))
                 || key_dependency_set_type(key_dependency, key_dependency_type)
-                || key_dependency_set_zone_id(key_dependency, zone_id(zone))
+                || key_dependency_set_zone_id(key_dependency, zone_db_id(zone))
                 || key_dependency_create(key_dependency))
             {
                 ods_log_error("[%s] %s: unable to create key dependency between %s and %s",
@@ -1418,7 +1418,7 @@ markSuccessors(db_connection_t *dbconn, key_data_t** keylist,
  * @return first absolute time some record *could* be advanced.
  * */
 static time_t
-updateZone(db_connection_t *dbconn, policy_t* policy, zone_t* zone,
+updateZone(db_connection_t *dbconn, policy_t* policy, zone_db_t* zone,
     const time_t now, int allow_unsigned, int *zone_updated,
     key_data_t** keylist, size_t keylist_size, key_dependency_list_t *deplist)
 {
@@ -1473,7 +1473,7 @@ updateZone(db_connection_t *dbconn, policy_t* policy, zone_t* zone,
         return returntime_zone;
     }
 
-    ods_log_verbose("[%s] %s: processing %s with policyName %s", module_str, scmd, zone_name(zone), policy_name(policy));
+    ods_log_verbose("[%s] %s: processing %s with policyName %s", module_str, scmd, zone_db_name(zone), policy_name(policy));
 
     deplisttmp = zone_get_key_dependencies(zone);
 
@@ -1489,16 +1489,16 @@ updateZone(db_connection_t *dbconn, policy_t* policy, zone_t* zone,
 	 * resolver picks up the RRset. When this date passes we may start using the
 	 * policies TTL.
 	 */
-	if (process && zone_ttl_end_ds(zone) <= now) {
-		if (zone_set_ttl_end_ds(zone, addtime(now, policy_parent_ds_ttl(policy)))) {
-            ods_log_error("[%s] %s: zone_set_ttl_end_ds() failed", module_str, scmd);
+	if (process && zone_db_ttl_end_ds(zone) <= now) {
+		if (zone_db_set_ttl_end_ds(zone, addtime(now, policy_parent_ds_ttl(policy)))) {
+            ods_log_error("[%s] %s: zone_db_set_ttl_end_ds() failed", module_str, scmd);
             process = 0;
 		}
 		else {
             *zone_updated = 1;
 		}
 	}
-	if (process && zone_ttl_end_dk(zone) <= now) {
+	if (process && zone_db_ttl_end_dk(zone) <= now) {
 		/*
 		 * If no DNSKEY is currently published we must take negative caching
 		 * into account.
@@ -1515,26 +1515,26 @@ updateZone(db_connection_t *dbconn, policy_t* policy, zone_t* zone,
 		else {
 			ttl = policy_keys_ttl(policy);
 		}
-		if (zone_set_ttl_end_dk(zone, addtime(now, ttl))) {
-            ods_log_error("[%s] %s: zone_set_ttl_end_dk() failed", module_str, scmd);
+		if (zone_db_set_ttl_end_dk(zone, addtime(now, ttl))) {
+            ods_log_error("[%s] %s: zone_db_set_ttl_end_dk() failed", module_str, scmd);
             process = 0;
         }
         else {
             *zone_updated = 1;
         }
 	}
-	if (process && zone_ttl_end_rs(zone) <= now) {
+	if (process && zone_db_ttl_end_rs(zone) <= now) {
 		if (policy_denial_type(policy) == POLICY_DENIAL_TYPE_NSEC3) {
 			ttl = max(policy_signatures_max_zone_ttl(policy), policy_denial_ttl(policy));
 		}
 		else {
 			ttl = policy_signatures_max_zone_ttl(policy);
 		}
-		if (zone_set_ttl_end_rs(zone, addtime(now, max(
+		if (zone_db_set_ttl_end_rs(zone, addtime(now, max(
 			min(policy_zone_soa_ttl(policy), policy_zone_soa_minimum(policy)),
 				ttl))))
 		{
-            ods_log_error("[%s] %s: zone_set_ttl_end_rs() failed", module_str, scmd);
+            ods_log_error("[%s] %s: zone_db_set_ttl_end_rs() failed", module_str, scmd);
             process = 0;
         }
         else {
@@ -1567,9 +1567,9 @@ updateZone(db_connection_t *dbconn, policy_t* policy, zone_t* zone,
             key_state_free(key_state);
             key_state = NULL;
 
-            if (!zone_signconf_needs_writing(zone)) {
-                if (zone_set_signconf_needs_writing(zone, 1)) {
-                    ods_log_error("[%s] %s: zone_set_signconf_needs_writing() failed", module_str, scmd);
+            if (!zone_db_signconf_needs_writing(zone)) {
+                if (zone_db_set_signconf_needs_writing(zone, 1)) {
+                    ods_log_error("[%s] %s: zone_db_set_signconf_needs_writing() failed", module_str, scmd);
                     process = 0;
                     break;
                 }
@@ -1598,9 +1598,9 @@ updateZone(db_connection_t *dbconn, policy_t* policy, zone_t* zone,
             key_state_free(key_state);
             key_state = NULL;
 
-            if (!zone_signconf_needs_writing(zone)) {
-                if (zone_set_signconf_needs_writing(zone, 1)) {
-                    ods_log_error("[%s] %s: zone_set_signconf_needs_writing() failed", module_str, scmd);
+            if (!zone_db_signconf_needs_writing(zone)) {
+                if (zone_db_set_signconf_needs_writing(zone, 1)) {
+                    ods_log_error("[%s] %s: zone_db_set_signconf_needs_writing() failed", module_str, scmd);
                     process = 0;
                     break;
                 }
@@ -1628,9 +1628,9 @@ updateZone(db_connection_t *dbconn, policy_t* policy, zone_t* zone,
             key_state_free(key_state);
             key_state = NULL;
 
-            if (!zone_signconf_needs_writing(zone)) {
-                if (zone_set_signconf_needs_writing(zone, 1)) {
-                    ods_log_error("[%s] %s: zone_set_signconf_needs_writing() failed", module_str, scmd);
+            if (!zone_db_signconf_needs_writing(zone)) {
+                if (zone_db_set_signconf_needs_writing(zone, 1)) {
+                    ods_log_error("[%s] %s: zone_db_set_signconf_needs_writing() failed", module_str, scmd);
                     process = 0;
                     break;
                 }
@@ -1659,9 +1659,9 @@ updateZone(db_connection_t *dbconn, policy_t* policy, zone_t* zone,
             key_state_free(key_state);
             key_state = NULL;
 
-            if (!zone_signconf_needs_writing(zone)) {
-                if (zone_set_signconf_needs_writing(zone, 1)) {
-                    ods_log_error("[%s] %s: zone_set_signconf_needs_writing() failed", module_str, scmd);
+            if (!zone_db_signconf_needs_writing(zone)) {
+                if (zone_db_set_signconf_needs_writing(zone, 1)) {
+                    ods_log_error("[%s] %s: zone_db_set_signconf_needs_writing() failed", module_str, scmd);
                     process = 0;
                     break;
                 }
@@ -1949,9 +1949,9 @@ updateZone(db_connection_t *dbconn, policy_t* policy, zone_t* zone,
                 }
 		key_state_free(key_state);
 
-                if (!zone_signconf_needs_writing(zone)) {
-                    if (zone_set_signconf_needs_writing(zone, 1)) {
-                        ods_log_error("[%s] %s: zone_set_signconf_needs_writing() failed", module_str, scmd);
+                if (!zone_db_signconf_needs_writing(zone)) {
+                    if (zone_db_set_signconf_needs_writing(zone, 1)) {
+                        ods_log_error("[%s] %s: zone_db_set_signconf_needs_writing() failed", module_str, scmd);
                         process = 0;
                         break;
                     }
@@ -2159,7 +2159,7 @@ key_for_conf(key_data_list_t *key_list, const policy_key_t *pkey)
  * value on generic errors.
  */
 static void 
-setnextroll(zone_t *zone, const policy_key_t *pkey, time_t t)
+setnextroll(zone_db_t *zone, const policy_key_t *pkey, time_t t)
 {
 	assert(zone);
 	assert(pkey);
@@ -2180,7 +2180,7 @@ setnextroll(zone_t *zone, const policy_key_t *pkey, time_t t)
 }
 
 static int
-enforce_roll(const zone_t *zone, const policy_key_t *pkey)
+enforce_roll(const zone_db_t *zone, const policy_key_t *pkey)
 {
 	if (!zone) {
 		return 0;
@@ -2191,18 +2191,18 @@ enforce_roll(const zone_t *zone, const policy_key_t *pkey)
 
 	switch(policy_key_role(pkey)) {
 		case POLICY_KEY_ROLE_KSK:
-			return zone_roll_ksk_now(zone);
+			return zone_db_roll_ksk_now(zone);
 		case POLICY_KEY_ROLE_ZSK:
-			return zone_roll_zsk_now(zone);
+			return zone_db_roll_zsk_now(zone);
 		case POLICY_KEY_ROLE_CSK:
-			return zone_roll_csk_now(zone);
+			return zone_db_roll_csk_now(zone);
 		default:
 			return 0;
 	}
 }
 
 static int
-set_roll(zone_t *zone, const policy_key_t *pkey, unsigned int roll)
+set_roll(zone_db_t *zone, const policy_key_t *pkey, unsigned int roll)
 {
 	if (!zone) {
 		return 0;
@@ -2213,11 +2213,11 @@ set_roll(zone_t *zone, const policy_key_t *pkey, unsigned int roll)
 
 	switch(policy_key_role(pkey)) {
 		case POLICY_KEY_ROLE_KSK:
-			return zone_set_roll_ksk_now(zone, roll);
+			return zone_db_set_roll_ksk_now(zone, roll);
 		case POLICY_KEY_ROLE_ZSK:
-			return zone_set_roll_zsk_now(zone, roll);
+			return zone_db_set_roll_zsk_now(zone, roll);
 		case POLICY_KEY_ROLE_CSK:
-			return zone_set_roll_csk_now(zone, roll);
+			return zone_db_set_roll_csk_now(zone, roll);
 		default:
 			return 1;
 	}
@@ -2234,7 +2234,7 @@ set_roll(zone_t *zone, const policy_key_t *pkey, unsigned int roll)
  * */
 static time_t
 updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
-	zone_t *zone, const time_t now, int *allow_unsigned, int *zone_updated)
+	zone_db_t *zone, const time_t now, int *allow_unsigned, int *zone_updated)
 {
 	time_t return_at = -1;
 	key_data_list_t *keylist;
@@ -2344,8 +2344,8 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 	/* If there are no keys configured set 'signconf_needs_writing'
 	 * every time this function is called */
 	if (!policy_key_list_size(policykeylist)) {
-		if (zone_set_signconf_needs_writing(zone, 1)) {
-			ods_log_error("[%s] %s: zone_set_signconf_needs_writing() failed", module_str, scmd);
+		if (zone_db_set_signconf_needs_writing(zone, 1)) {
+			ods_log_error("[%s] %s: zone_db_set_signconf_needs_writing() failed", module_str, scmd);
 		} else {
 			*zone_updated = 1;
 		}
@@ -2491,7 +2491,7 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 		 * Create a new key data object.
 		 */
 		if (!(mutkey = key_data_new(dbconn))
-			|| key_data_set_zone_id(mutkey, zone_id(zone))
+			|| key_data_set_zone_id(mutkey, zone_db_id(zone))
 			|| key_data_set_hsm_key_id(mutkey, hsm_key_id(hsmkey))
 			|| key_data_set_algorithm(mutkey, policy_key_algorithm(pkey))
 			|| key_data_set_inception(mutkey, now)
@@ -2722,7 +2722,7 @@ removeDeadKeys(db_connection_t *dbconn, key_data_t** keylist,
 }
 
 time_t
-update(engine_type *engine, db_connection_t *dbconn, zone_t *zone, policy_t *policy, time_t now, int *zone_updated)
+update(engine_type *engine, db_connection_t *dbconn, zone_db_t *zone, policy_t *policy, time_t now, int *zone_updated)
 {
 	int allow_unsigned = 0;
     time_t policy_return_time, zone_return_time, purge_return_time = -1, return_time;
@@ -2755,7 +2755,7 @@ update(engine_type *engine, db_connection_t *dbconn, zone_t *zone, policy_t *pol
 		return now + 60;
 	}
 
-	ods_log_info("[%s] update zone: %s", module_str, zone_name(zone));
+	ods_log_info("[%s] update zone: %s", module_str, zone_db_name(zone));
 
 	/*
 	 * Update policy.
@@ -2764,7 +2764,7 @@ update(engine_type *engine, db_connection_t *dbconn, zone_t *zone, policy_t *pol
 
 	if (allow_unsigned) {
 		ods_log_info("[%s] No keys configured for %s, zone will become unsigned eventually",
-		    module_str, zone_name(zone));
+		    module_str, zone_db_name(zone));
 	}
 
     /*

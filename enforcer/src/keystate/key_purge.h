@@ -6,7 +6,7 @@
 #include "db/zone.h"
 #include "db/policy.h"
 
-int removeDeadKeysNow(int sockfd, db_connection_t *dbconn, policy_t *policy, zone_t *rzone);
+int removeDeadKeysNow(int sockfd, db_connection_t *dbconn, policy_t *policy, zone_db_t *rzone);
 
 #endif
 

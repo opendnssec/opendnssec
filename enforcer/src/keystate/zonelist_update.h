@@ -60,20 +60,20 @@
  * Update a zonelist and add the supplied zone to it.
  * \param[in] sockfd socket fd.
  * \param[in] filename the zonelist filename to write to.
- * \param[in] zone a zone_t pointer to the zone to add.
+ * \param[in] zone a zone_db_t pointer to the zone to add.
  * \param[in] comment if non-zero include a comment about the zonelist file.
  * \return ZONELIST_UPDATE_ERR_* on error otherwise ZONELIST_UPDATE_OK.
  */
-int zonelist_update_add(int sockfd, const char* filename, const zone_t* zone, int comment);
+int zonelist_update_add(int sockfd, const char* filename, const zone_db_t* zone, int comment);
 
 /**
  * Update a zonelist and remove the supplied zone from it.
  * \param[in] sockfd socket fd.
  * \param[in] filename the zonelist filename to write to.
- * \param[in] zone a zone_t pointer to the zone to remove.
+ * \param[in] zone a zone_db_t pointer to the zone to remove.
  * \param[in] comment if non-zero include a comment about the zonelist file.
  * \return ZONELIST_UPDATE_ERR_* on error otherwise ZONELIST_UPDATE_OK.
  */
-int zonelist_update_delete(int sockfd, const char* filename, const zone_t* zone, int comment);
+int zonelist_update_delete(int sockfd, const char* filename, const zone_db_t* zone, int comment);
 
 #endif /* _KEYSTATE_ZONELIST_UPDATE_H_ */
