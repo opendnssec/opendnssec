@@ -207,7 +207,7 @@ AC_ARG_ENABLE(installation-group,
 		[enable_installationgroup="no"])
 if test "x${enable_installationuser}" != "xno"; then
 	INSTALLATIONUSER="${enable_installationuser}"
-	INSTALLATIONUSERARG="--owner=${enable_installationuser}"
+	INSTALLATIONUSERARG="-o${enable_installationuser}"
 	INSTALLATIONCOND="user"
 else
 	INSTALLATIONUSER=""
@@ -215,7 +215,7 @@ else
 fi
 if test "x${enable_installationgroup}" != "xno"; then
 	INSTALLATIONGROUP="${enable_installationgroup}"
-	INSTALLATIONGROUPARG="--group=${enable_installationgroup}"
+	INSTALLATIONGROUPARG="-g${enable_installationgroup}"
 	if test "x${enable_installationuser}" != "xno"; then
 		INSTALLATIONCOND="both"
 	else
