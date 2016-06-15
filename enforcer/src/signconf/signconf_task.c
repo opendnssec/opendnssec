@@ -27,7 +27,7 @@
  *
  */
 
-#include "signconf/signconf.h"
+#include "signconf/signconf_xml.h"
 #include "duration.h"
 #include "log.h"
 #include "file.h"
@@ -41,7 +41,7 @@ int perform_signconf(int sockfd, const db_connection_t* dbconn, int force) {
     char cmd[SYSTEM_MAXLEN];
 
     ods_log_info("[%s] performing signconf for all zones", module_str);
-    ret = signconf_export_all(sockfd, dbconn, force);
+    ret = signconf_xml_export_all(sockfd, dbconn, force);
     if (ret == SIGNCONF_EXPORT_NO_CHANGE) {
         ods_log_info("[%s] signconf done, no change", module_str);
         return 0;
