@@ -3,7 +3,7 @@
 
 #include "daemon/engine.h"
 #include "db/db_connection.h"
-#include "db/zone.h"
+#include "db/zone_db.h"
 #include "db/policy.h"
 
 int removeDeadKeysNow(int sockfd, db_connection_t *dbconn, policy_t *policy, zone_db_t *rzone);

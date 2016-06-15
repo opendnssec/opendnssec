@@ -27,7 +27,7 @@
  *
  */
 
-#include "zone.h"
+#include "zone_db.h"
 
 #include "db_error.h"
 #include "log.h"
@@ -35,7 +35,7 @@
 
 #include <string.h>
 
-key_data_list_t* zone_get_keys(const zone_db_t* zone) {
+key_data_list_t* zone_db_get_keys(const zone_db_t* zone) {
     if (!zone) {
         return NULL;
     }
@@ -55,7 +55,7 @@ key_data_list_t* zone_get_keys(const zone_db_t* zone) {
      */
 }
 
-key_dependency_list_t* zone_get_key_dependencies(const zone_db_t* zone) {
+key_dependency_list_t* zone_db_get_key_dependencies(const zone_db_t* zone) {
     if (!zone) {
         return NULL;
     }
@@ -511,7 +511,7 @@ static int __xmlNode2zone(zone_db_t* zone, xmlNodePtr zone_node, int* updated) {
     return DB_OK;
 }
 
-int zone_create_from_xml(zone_db_t* zone, xmlNodePtr zone_node) {
+int zone_db_create_from_xml(zone_db_t* zone, xmlNodePtr zone_node) {
     if (!zone) {
         return DB_ERROR_UNKNOWN;
     }
@@ -522,7 +522,7 @@ int zone_create_from_xml(zone_db_t* zone, xmlNodePtr zone_node) {
     return __xmlNode2zone(zone, zone_node, NULL);
 }
 
-int zone_update_from_xml(zone_db_t* zone, xmlNodePtr zone_node, int* updated) {
+int zone_db_update_from_xml(zone_db_t* zone, xmlNodePtr zone_node, int* updated) {
     if (!zone) {
         return DB_ERROR_UNKNOWN;
     }

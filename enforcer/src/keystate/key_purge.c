@@ -85,18 +85,18 @@ int removeDeadKeysNow(int sockfd, db_connection_t *dbconn,
 
 	while (listsize > 0 ) {
 		zone_key_purgable = 0;
-		if (!(deplist = zone_get_key_dependencies(zone))) {
+		if (!(deplist = zone_db_get_key_dependencies(zone))) {
 			/* TODO: better log error */
-			ods_log_error("[%s] error zone_get_key_dependencies()", scmd);
-			client_printf_err(sockfd, "%s: error zone_get_key_dependencies()", scmd);
+			ods_log_error("[%s] error zone_db_get_key_dependencies()", scmd);
+			client_printf_err(sockfd, "%s: error zone_db_get_key_dependencies()", scmd);
 			free_all(key_list, keylist, deplist, deplist2, zone);
 			return 1;
 		}
 
-		if (!(key_list = zone_get_keys(zone))) {
+		if (!(key_list = zone_db_get_keys(zone))) {
 			/* TODO: better log error */
-			ods_log_error("[%s] error zone_get_keys()", scmd);
-			client_printf_err(sockfd, "%s: error zone_get_keys()", scmd);
+			ods_log_error("[%s] error zone_db_get_keys()", scmd);
+			client_printf_err(sockfd, "%s: error zone_db_get_keys()", scmd);
 			free_all(key_list, keylist, deplist, deplist2, zone);
 			return 1;
 		}

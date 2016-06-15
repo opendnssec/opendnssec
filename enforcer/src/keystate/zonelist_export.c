@@ -31,7 +31,7 @@
 #include "log.h"
 #include "str.h"
 #include "clientpipe.h"
-#include "db/zone.h"
+#include "db/zone_db.h"
 #include "utils/kc_helper.h"
 
 #include "keystate/zonelist_export.h"

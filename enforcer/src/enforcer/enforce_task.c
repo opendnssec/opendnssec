@@ -42,7 +42,7 @@
 #include "log.h"
 #include "scheduler/schedule.h"
 #include "scheduler/task.h"
-#include "db/zone.h"
+#include "db/zone_db.h"
 #include "db/db_clause.h"
 
 #include "enforcer/enforce_task.h"
@@ -155,7 +155,7 @@ perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 		policy_free(policy);
 		bSignerConfNeedsWriting |= zone_db_signconf_needs_writing(zone);
 
-		keylist = zone_get_keys(zone);
+		keylist = zone_db_get_keys(zone);
 		while ((key = key_data_list_next(keylist))) {
 			if (key_data_ds_at_parent(key) == KEY_DATA_DS_AT_PARENT_SUBMIT) {
 				ods_log_warning("[%s] please submit DS "

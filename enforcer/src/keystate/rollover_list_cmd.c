@@ -29,7 +29,7 @@
 
 #include "config.h"
 
-#include "db/zone.h"
+#include "db/zone_db.h"
 #include "daemon/engine.h"
 #include "daemon/cmdhandler.h"
 #include "file.h"
@@ -85,7 +85,7 @@ print_zone(int sockfd, const char* fmt, const zone_db_t* zone)
 	key_data_list_t *keylist;
 	const key_data_t *key;
 
-	keylist = zone_get_keys(zone);
+	keylist = zone_db_get_keys(zone);
 	while ((key = key_data_list_next(keylist))) {
 		char *tchange = map_keytime(zone, key);
 		client_printf(sockfd, fmt, zone_db_name(zone),

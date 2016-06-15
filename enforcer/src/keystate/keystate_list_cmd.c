@@ -38,7 +38,7 @@
 
 #include "db/key_state.h"
 #include "db/hsm_key.h"
-#include "db/zone.h"
+#include "db/zone_db.h"
 
 #include "keystate/keystate_list_cmd.h"
 

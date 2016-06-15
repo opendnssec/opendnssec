@@ -27,8 +27,8 @@
  *
  */
 
-#ifndef __zone_h
-#define __zone_h
+#ifndef __zone_db_h
+#define __zone_db_h
 
 #include "db_object.h"
 
@@ -37,7 +37,7 @@ struct zone_list_db;
 typedef struct zone_db zone_db_t;
 typedef struct zone_list_db zone_list_db_t;
 
-#include "zone_ext.h"
+#include "zone_db_ext.h"
 #include "policy.h"
 
 /**

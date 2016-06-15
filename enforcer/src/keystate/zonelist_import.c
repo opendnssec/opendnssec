@@ -30,7 +30,7 @@
 
 #include "log.h"
 #include "clientpipe.h"
-#include "db/zone.h"
+#include "db/zone_db.h"
 #include "db/key_data.h"
 #include "db/key_state.h"
 #include "utils/kc_helper.h"
@@ -196,7 +196,7 @@ int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
                  * one otherwise update the existing one
                  */
                 if (zone_db_get_by_name(zone, (char*)name)) {
-                    if (zone_create_from_xml(zone, node)) {
+                    if (zone_db_create_from_xml(zone, node)) {
                         client_printf_err(sockfd,
                             "Unable to create zone %s from XML, XML content may be invalid!\n",
                             (char*)name);
@@ -250,7 +250,7 @@ int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
                      * Update the zone, if any data has changed then updated
                      * will be set to non-zero and if so we update the database
                      */
-                    if (zone_update_from_xml(zone, node, &updated)) {
+                    if (zone_db_update_from_xml(zone, node, &updated)) {
                         client_printf_err(sockfd,
                             "Unable to update zone %s from XML, XML content may be invalid!\n",
                             (char*)name);

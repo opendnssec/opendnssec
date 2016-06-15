@@ -295,7 +295,7 @@ static int signconf_export(int sockfd, const policy_t* policy, zone_db_t* zone, 
     __free(&duration_text);
     duration_cleanup(duration);
 
-    if (!(key_data_list = zone_get_keys(zone))) {
+    if (!(key_data_list = zone_db_get_keys(zone))) {
         ods_log_error("[signconf_export] Unable to get keys for zone %s!", zone_db_name(zone));
         if (sockfd > -1) client_printf_err(sockfd, "Unable to get keys for zone %s!\n", zone_db_name(zone));
         xmlFreeDoc(doc);

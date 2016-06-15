@@ -57,7 +57,7 @@ typedef enum key_data_ds_at_parent {
 extern const db_enum_t key_data_enum_set_ds_at_parent[];
 
 #include "key_data_ext.h"
-#include "zone.h"
+#include "zone_db.h"
 #include "hsm_key.h"
 
 /**

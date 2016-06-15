@@ -35,7 +35,7 @@
 #include "log.h"
 #include "clientpipe.h"
 #include "db/policy.h"
-#include "db/zone.h"
+#include "db/zone_db.h"
 #include "keystate/zonelist_update.h"
 #include "enforcer/enforce_task.h"
 #include "hsmkey/hsm_key_factory.h"

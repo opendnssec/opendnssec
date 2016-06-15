@@ -53,7 +53,7 @@
 #include "log.h"
 #include "daemon/engine.h"
 
-#include "db/zone.h"
+#include "db/zone_db.h"
 #include "db/policy.h"
 #include "db/policy_key.h"
 #include "db/hsm_key.h"
@@ -1475,7 +1475,7 @@ updateZone(db_connection_t *dbconn, policy_t* policy, zone_db_t* zone,
 
     ods_log_verbose("[%s] %s: processing %s with policyName %s", module_str, scmd, zone_db_name(zone), policy_name(policy));
 
-    deplisttmp = zone_get_key_dependencies(zone);
+    deplisttmp = zone_db_get_key_dependencies(zone);
 
 	/*
 	 * The process variable will indicate if we are processing, if something
@@ -1967,7 +1967,7 @@ updateZone(db_connection_t *dbconn, policy_t* policy, zone_db_t* zone,
                 }
                 /*deps have changed reload*/
 				key_dependency_list_free(deplisttmp);
-                deplisttmp = zone_get_key_dependencies(zone);
+                deplisttmp = zone_db_get_key_dependencies(zone);
 
 
                 if (key_data_cache_key_states(keylist[i])) {
@@ -2297,9 +2297,9 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
 	 * Get all key data objects for the given zone and fetch all the objects
 	 * from the database so we can use the list again later.
 	 */
-	if (!(keylist = zone_get_keys(zone))) {
+	if (!(keylist = zone_db_get_keys(zone))) {
 		/* TODO: better log error */
-		ods_log_error("[%s] %s: error zone_get_keys()", module_str, scmd);
+		ods_log_error("[%s] %s: error zone_db_get_keys()", module_str, scmd);
 		key_data_list_free(keylist);
 		policy_key_list_free(policykeylist);
 		return now + 60;
@@ -2770,15 +2770,15 @@ update(engine_type *engine, db_connection_t *dbconn, zone_db_t *zone, policy_t *
     /*
      * Get all key data/state/hsm objects for later processing.
      */
-    if (!(deplist = zone_get_key_dependencies(zone))) {
+    if (!(deplist = zone_db_get_key_dependencies(zone))) {
         /* TODO: better log error */
-        ods_log_error("[%s] %s: error zone_get_key_dependencies()", module_str, scmd);
+        ods_log_error("[%s] %s: error zone_db_get_key_dependencies()", module_str, scmd);
         key_dependency_list_free(deplist);
         return now + 60;
     }
-    if (!(key_list = zone_get_keys(zone))) {
+    if (!(key_list = zone_db_get_keys(zone))) {
         /* TODO: better log error */
-        ods_log_error("[%s] %s: error zone_get_keys()", module_str, scmd);
+        ods_log_error("[%s] %s: error zone_db_get_keys()", module_str, scmd);
         key_data_list_free(key_list);
         key_dependency_list_free(deplist);
         return now + 60;

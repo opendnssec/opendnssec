@@ -31,7 +31,7 @@
 
 #include "../db_configuration.h"
 #include "../db_connection.h"
-#include "../zone.h"
+#include "../zone_db.h"
 
 #include <string.h>
 

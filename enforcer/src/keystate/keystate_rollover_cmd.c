@@ -34,7 +34,7 @@
 #include "str.h"
 #include "enforcer/enforce_task.h"
 #include "clientpipe.h"
-#include "db/zone.h"
+#include "db/zone_db.h"
 #include "log.h"
 #include "file.h"
 

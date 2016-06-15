@@ -31,7 +31,7 @@
 #include "db/policy.h"
 #include "db/policy_key.h"
 #include "utils/kc_helper.h"
-#include "db/zone.h"
+#include "db/zone_db.h"
 #include "db/hsm_key.h"
 #include "hsmkey/hsm_key_factory.h"
 #include "signconf/signconf_task.h"

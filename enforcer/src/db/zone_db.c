@@ -27,7 +27,7 @@
  *
  */
 
-#include "zone.h"
+#include "zone_db.h"
 #include "db_error.h"
 
 

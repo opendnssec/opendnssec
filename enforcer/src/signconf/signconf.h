@@ -31,7 +31,7 @@
 
 #include "daemon/engine.h"
 #include "db/db_connection.h"
-#include "db/zone.h"
+#include "db/zone_db.h"
 #include "db/policy.h"
 
 /**

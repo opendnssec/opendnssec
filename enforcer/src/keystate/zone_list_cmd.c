@@ -35,7 +35,7 @@
 #include "str.h"
 #include "duration.h"
 #include "clientpipe.h"
-#include "db/zone.h"
+#include "db/zone_db.h"
 #include "db/policy.h"
 #include "db/db_value.h"
 

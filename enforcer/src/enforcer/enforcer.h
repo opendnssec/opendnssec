@@ -27,7 +27,7 @@
 #ifndef _ENFORCER_ENFORCER_H_
 #define _ENFORCER_ENFORCER_H_
 
-#include "db/zone.h"
+#include "db/zone_db.h"
 #include "db/policy.h"
 #include "daemon/engine.h"
 

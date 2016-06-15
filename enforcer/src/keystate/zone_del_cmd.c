@@ -34,7 +34,7 @@
 #include "log.h"
 #include "str.h"
 #include "clientpipe.h"
-#include "db/zone.h"
+#include "db/zone_db.h"
 #include "hsmkey/hsm_key_factory.h"
 #include "keystate/zonelist_update.h"
 #include "keystate/zonelist_export.h"
