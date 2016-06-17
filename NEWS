@@ -3,6 +3,7 @@
 * OPENDNSSEC-808: Crash on query with empty query section (thanks Håvard Eidnes)
 * OpenDNSSEC-771: Signer. Do not log warning on deleting a missing 
   NSEC3PARAM RR.
+* OPENDNSSEC-801: Set AA flag on outgoing AXFR.
 
 OpenDNSSEC 2.0b1 - 2016-04-14
 
