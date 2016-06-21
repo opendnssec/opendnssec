@@ -314,6 +314,10 @@ schedule_flush_type(schedule_type* schedule, task_id id)
                 if (!node) break; /* stange, bail out */
                 if (node->data) { /* task */
                     ((task_type*)node->data)->flush = 1;
+                    /* This is important for our tests only. If a task is
+                     * set to flush it should not affect the current time.
+                     * Otherwise timeleap will advance time. */
+                    ((task_type*)node->data)->when = time_now();
                     if (!ldns_rbtree_insert(schedule->tasks, node)) {
                         ods_log_crit("[%s] Could not reschedule task "
                             "after flush. A task has been lost!",
