@@ -66,6 +66,7 @@ static void hsm_key_factory_init(void) {
             || pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE)
             || pthread_mutex_init(__hsm_key_factory_lock, &attr))
         {
+            /* TODO: This should be fatal */
             ods_log_error("[hsm_key_factory_init] mutex error");
             if (__hsm_key_factory_lock) {
                 pthread_mutex_destroy(__hsm_key_factory_lock);
@@ -85,7 +86,10 @@ void hsm_key_factory_deinit(void)
     }
 }
 
-void hsm_key_factory_generate(engine_type* engine, const db_connection_t* connection, const policy_t* policy, const policy_key_t* policy_key, time_t duration) {
+void
+hsm_key_factory_generate(engine_type* engine, const db_connection_t* connection,
+    const policy_t* policy, const policy_key_t* policy_key, time_t duration)
+{
     db_clause_list_t* clause_list;
     hsm_key_t* hsm_key = NULL;
     size_t num_keys;
@@ -396,101 +400,70 @@ void hsm_key_factory_generate_all(engine_type* engine, const db_connection_t* co
     pthread_mutex_unlock(__hsm_key_factory_lock);
 }
 
-static task_type* hsm_key_factory_generate_task(task_type *task) {
+static time_t
+hsm_key_factory_generate_cb(char const *owner, void *context, db_connection_t *dbconn)
+{
     struct __hsm_key_factory_task* task2;
     policy_t* policy;
+    (void)owner;
 
-    if (!task) {
-        return NULL;
+    if (!context) {
+        return -1;
     }
-    task2 = (struct __hsm_key_factory_task*)task->context;
-    if (!task2
-        || !(task2->engine)
-        || !(task2->policy_key))
-    {
-        task_cleanup(task);
-        if (task2) {
-            free(task2);
-        }
-        return NULL;
-    }
-    if ((policy = policy_new(task->dbconn)) != NULL) {
+    task2 = (struct __hsm_key_factory_task*) context;
+
+    if ((policy = policy_new(dbconn)) != NULL) {
         if (policy_get_by_id(policy, policy_key_policy_id(task2->policy_key))) {
             policy_free(policy);
             policy = NULL;
         }
     }
 
-    ods_log_debug("[hsm_key_factory_generate_task] generate for policy key [duration: %lu]", (unsigned long)task2->duration);
-    hsm_key_factory_generate(task2->engine, task->dbconn, policy, task2->policy_key, task2->duration);
-    ods_log_debug("[hsm_key_factory_generate_task] generate for policy key done");
+    ods_log_debug("[hsm_key_factory_generate_cb] generate for policy key [duration: %lu]", (unsigned long)task2->duration);
+    hsm_key_factory_generate(task2->engine, dbconn, policy, task2->policy_key, task2->duration);
+    ods_log_debug("[hsm_key_factory_generate_cb] generate for policy key done");
     policy_key_free(task2->policy_key);
     task2->policy_key = NULL;
-    if(policy != NULL) {
-        policy_free(policy);
-        policy = NULL;
-    }
+    policy_free(policy);
     if (task2->reschedule_enforce_task)
-        flush_enforce_task(task2->engine, 1);
-    task_cleanup(task);
-    return NULL;
+        enforce_task_flush_all(task2->engine, dbconn);
+    return -1;
 }
 
-static task_type* hsm_key_factory_generate_policy_task(task_type *task) {
-    struct __hsm_key_factory_task* task2;
-
-    if (!task) {
-        return NULL;
-    }
-    task2 = (struct __hsm_key_factory_task*)task->context;
-    if (!task2
-        || !(task2->engine)
-        || !(task2->policy))
-    {
-        task_cleanup(task);
-        if (task2) {
-            free(task2);
-        }
-        return NULL;
-    }
-
-    ods_log_debug("[hsm_key_factory_generate_policy_task] generate for policy [duration: %lu]", (unsigned long) task2->duration);
-    hsm_key_factory_generate_policy(task2->engine, task->dbconn, task2->policy, task2->duration);
-    ods_log_debug("[hsm_key_factory_generate_policy_task] generate for policy done");
-    task_cleanup(task);
-    return NULL;
-}
-
-static task_type* hsm_key_factory_generate_all_task(task_type *task) {
-    struct __hsm_key_factory_task* task2;
-
-    if (!task) {
-        return NULL;
-    }
-    task2 = (struct __hsm_key_factory_task*)task->context;
-    if (!task->dbconn
-        || !task2
-        || !task2->engine)
-    {
-        task_cleanup(task);
-        if (task2) {
-            free(task2);
-        }
-        return NULL;
-    }
-
-    ods_log_debug("[hsm_key_factory_generate_all_task] generate for all policies [duration: %lu]", (unsigned long)task2->duration);
-    hsm_key_factory_generate_all(task2->engine, task->dbconn, task2->duration);
-    ods_log_debug("[hsm_key_factory_generate_all_task] generate for all policies done");
-    task_cleanup(task);
-    return NULL;
-}
-
-static task_type* hsm_key_factory_clean_context(task_type *task)
+static time_t
+hsm_key_factory_generate_policy_cb(char const *owner, void *context,
+    db_connection_t *dbconn)
 {
-    free(task->context);
-    task->context = NULL;
-    return task;
+    struct __hsm_key_factory_task* task2;
+    (void)owner;
+
+    if (!context) {
+        return -1;
+    }
+    task2 = (struct __hsm_key_factory_task*)context;
+
+    ods_log_debug("[hsm_key_factory_generate_policy_cb] generate for policy [duration: %lu]", (unsigned long) task2->duration);
+    hsm_key_factory_generate_policy(task2->engine, dbconn, task2->policy, task2->duration);
+    ods_log_debug("[hsm_key_factory_generate_policy_cb] generate for policy done");
+    return -1;
+}
+
+static time_t
+hsm_key_factory_generate_all_cb(char const *owner, void *context,
+    db_connection_t *dbconn)
+{
+    struct __hsm_key_factory_task* task2;
+    (void)owner;
+    
+    if (!context) {
+        return -1;
+    }
+    task2 = (struct __hsm_key_factory_task*)context;
+    
+    ods_log_debug("[hsm_key_factory_generate_all_cb] generate for all policies [duration: %lu]", (unsigned long)task2->duration);
+    hsm_key_factory_generate_all(task2->engine, dbconn, task2->duration);
+    ods_log_debug("[hsm_key_factory_generate_all_cb] generate for all policies done");
+    return -1;
 }
 
 /**
@@ -507,9 +480,8 @@ hsm_key_factory_schedule_generate(engine_type* engine,
     const policy_key_t* policy_key_orig, time_t duration,
     int reschedule_enforce_task)
 {
-    task_id what_id;
     policy_key_t* policy_key;
-    task_type* task = NULL;
+    task_t* task;
     struct __hsm_key_factory_task* task2 = NULL;
 
     if (!(task2 = calloc(1, sizeof(struct __hsm_key_factory_task)))) {
@@ -521,33 +493,33 @@ hsm_key_factory_schedule_generate(engine_type* engine,
     }
 
     task2->engine = engine;
-    task2->policy_key = policy_key;
     task2->duration = duration;
+    task2->policy_key = policy_key;
+    task2->policy = NULL;
     task2->reschedule_enforce_task = reschedule_enforce_task;
 
-    what_id = task_register("hsmkeygen", "hsm_key_factory_schedule_generation",
-        hsm_key_factory_generate_task);
-    if (what_id == TASK_NONE
-        || !(task = task_create(what_id, time_now(), "policy_key",
-            "hsmkeygen", task2, hsm_key_factory_clean_context))
-        || schedule_task(engine->taskq, task) != ODS_STATUS_OK)
-    {
+    task = task_create(strdup("hsm_key_factory_schedule_generation"),
+        TASK_CLASS_ENFORCER, TASK_TYPE_HSMKEYGEN,
+        hsm_key_factory_generate_cb, task2,
+        free, time_now());
+
+    if (schedule_task(engine->taskq, task) != ODS_STATUS_OK) {
         if (!task) {
             free(task2);
             policy_key_free(policy_key);
         }
-        task_cleanup(task);
+        task_deepfree(task);
         return 1;
     }
     return 0;
 }
 
-int hsm_key_factory_schedule_generate_policy(engine_type* engine,
+int
+hsm_key_factory_schedule_generate_policy(engine_type* engine,
     const policy_t* policy_orig, time_t duration)
 {
-    task_id what_id;
     policy_t* policy;
-    task_type* task = NULL;
+    task_t* task;
     struct __hsm_key_factory_task* task2 = NULL;
 
     if (!(task2 = calloc(1, sizeof(struct __hsm_key_factory_task)))) {
@@ -559,29 +531,31 @@ int hsm_key_factory_schedule_generate_policy(engine_type* engine,
     }
 
     task2->engine = engine;
-    task2->policy = policy;
     task2->duration = duration;
+    task2->policy_key = NULL;
+    task2->policy = policy;
+    task2->reschedule_enforce_task = 0;
 
-    what_id = task_register("hsmkeygen", "hsm_key_factory_schedule_generation_policy",
-        hsm_key_factory_generate_policy_task);
-    if (what_id == TASK_NONE
-        || !(task = task_create(what_id, time_now(), "policy",
-            "hsmkeygen", task2, hsm_key_factory_clean_context))
-        || schedule_task(engine->taskq, task) != ODS_STATUS_OK)
-    {
+    task = task_create(strdup("hsm_key_factory_schedule_generation_policy"),
+        TASK_CLASS_ENFORCER, TASK_TYPE_HSMKEYGEN,
+        hsm_key_factory_generate_policy_cb, task2,
+        free, time_now());
+
+    if (schedule_task(engine->taskq, task) != ODS_STATUS_OK) {
         if (!task) {
             free(task2);
             policy_free(policy);
         }
-        task_cleanup(task);
+        task_deepfree(task);
         return 1;
     }
     return 0;
 }
 
-int hsm_key_factory_schedule_generate_all(engine_type* engine, time_t duration) {
-    task_id what_id;
-    task_type* task = NULL;
+int
+hsm_key_factory_schedule_generate_all(engine_type* engine, time_t duration)
+{
+    task_t* task;
     struct __hsm_key_factory_task* task2 = NULL;
 
     if (!(task2 = calloc(1, sizeof(struct __hsm_key_factory_task)))) {
@@ -591,20 +565,24 @@ int hsm_key_factory_schedule_generate_all(engine_type* engine, time_t duration) 
     task2->engine = engine;
     task2->duration = duration;
     task2->policy_key = NULL;
+    task2->policy = NULL;
+    task2->reschedule_enforce_task = 0;
 
-    what_id = task_register("hsmkeygen", "hsm_key_factory_schedule_generation",
-        hsm_key_factory_generate_all_task);
-    if (what_id == TASK_NONE
-        || !(task = task_create(what_id, time_now(), "all policies",
-            "hsmkeygen", task2, hsm_key_factory_clean_context))
-        || schedule_task(engine->taskq, task) != ODS_STATUS_OK)
-    {
-        if (!task) free(task2);
-        task_cleanup(task);
+    task = task_create(strdup("hsm_key_factory_schedule_generation"),
+        TASK_CLASS_ENFORCER, TASK_TYPE_HSMKEYGEN,
+        hsm_key_factory_generate_all_cb, task2,
+        free, time_now());
+
+    if (schedule_task(engine->taskq, task) != ODS_STATUS_OK) {
+        if (!task) {
+            free(task2);
+        }
+        task_deepfree(task);
         return 1;
     }
     return 0;
 }
+
 
 hsm_key_t* hsm_key_factory_get_key(engine_type* engine,
     const db_connection_t* connection, const policy_key_t* policy_key,

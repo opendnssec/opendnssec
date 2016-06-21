@@ -34,11 +34,12 @@
 #include "daemon/engine.h"
 #include "scheduler/task.h"
 
-time_t perform_enforce_lock(int sockfd, engine_type *engine, int bForce,
-                       task_type *task, db_connection_t *dbconn);
+task_t *enforce_task(engine_type *engine, char const *owner);
 
-task_type *enforce_task(engine_type *engine, bool all);
+time_t enforce_task_perform(char const *owner, void *context,
+    db_connection_t *dbconn);
 
-int flush_enforce_task(engine_type *engine, bool enforce_all);
+//YBS DOC
+void enforce_task_flush_all(engine_type *engine, db_connection_t *dbconn);
 
 #endif

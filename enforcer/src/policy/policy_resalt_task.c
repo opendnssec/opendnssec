@@ -165,39 +165,26 @@ perform_policy_resalt(int sockfd, engine_type* engine,
 	return schedule_time;
 }
 
-static task_type * 
-policy_resalt_task_perform(task_type *task)
+time_t
+policy_resalt_task_perform(char const *owner, void *context, db_connection_t *dbconn)
 {
-	task->backoff = 0;
-	task->when = perform_policy_resalt(-1,(engine_type *)task->context,
-		task->dbconn);
-	if (task->when == -1) {
-		task_cleanup(task);
-		return NULL;
-	}
-	return task;
+	return perform_policy_resalt(-1, (engine_type *)context, dbconn);
 }
 
-task_type *
+task_t *
 policy_resalt_task(engine_type* engine)
 {
-	task_id what_id = task_register("resalt",
-		"policy_resalt_task_perform", policy_resalt_task_perform);
-	return task_create(what_id, time_now(), "policies", "resalt", engine, NULL);
+	return task_create(strdup("policies"), TASK_CLASS_ENFORCER, TASK_TYPE_RESALT,
+		policy_resalt_task_perform, engine, NULL, time_now());
 }
 
 int
 flush_resalt_task(engine_type *engine)
 {
 	int status;
-	task_id what_id;
 	/* flush (force to run) the enforcer task when it is waiting in the 
 	 task list. */
-	if (!task_id_from_long_name("policy_resalt_task_perform", &what_id)) {
-		/* no such task */
-		return 1;
-	}
-	if (!schedule_flush_type(engine->taskq, what_id)) {
+	if (!schedule_flush_type(engine->taskq, TASK_CLASS_ENFORCER, TASK_TYPE_RESALT)) {
 		status = schedule_task(engine->taskq, policy_resalt_task(engine));
 		if (status != ODS_STATUS_OK) {
 			ods_fatal_exit("[%s] failed to create resalt task", module_str);

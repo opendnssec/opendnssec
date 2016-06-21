@@ -82,7 +82,8 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 		KEY_DATA_DS_AT_PARENT_RETRACTED,
 		KEY_DATA_DS_AT_PARENT_UNSUBMITTED, engine);
 	if (error == 0) {
-		flush_enforce_task(engine, 0);
+		/* YBS: TODO only affected zones */
+		enforce_task_flush_all(engine, dbconn);
 	}
 	return error;
 }

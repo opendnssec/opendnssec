@@ -64,13 +64,17 @@ int perform_signconf(int sockfd, const db_connection_t* dbconn, int force) {
 }
 
 
-static task_type* signconf_task_perform(task_type* task) {
-    perform_signconf(-1, task->dbconn, 0);
-    task_cleanup(task);
-    return NULL;
+static time_t
+signconf_task_perform(char const *owner, void *context,
+    db_connection_t* dbconn)
+{
+    (void)perform_signconf(-1, dbconn, 0);
+    return -1;
 }
 
-task_type* signconf_task(const db_connection_t* dbconn, const char* what, const char* who) {
-    task_id what_id = task_register(what, "signconf_task_perform", signconf_task_perform);
-    return task_create(what_id, time_now(), who, what, (void*)dbconn, NULL);
+task_t*
+signconf_task(const char* who)
+{
+    return task_create(strdup(who), TASK_CLASS_ENFORCER,
+        TASK_TYPE_SIGNCONF, signconf_task_perform, NULL, NULL, time_now());
 }

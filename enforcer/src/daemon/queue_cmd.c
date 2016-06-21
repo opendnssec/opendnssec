@@ -69,6 +69,30 @@ handles(const char *cmd, ssize_t n)
 	return ods_check_command(cmd, n, queue_funcblock()->cmdname)?1:0;
 }
 
+/**
+ * Convert task to string.
+ * buf must be at least ODS_SE_MAXLINE long.
+ */
+static void
+task2str(task_t* task, char* buf, time_t now)
+{
+	char ctimebuf[32]; /* at least 26 according to docs */
+	time_t time;
+	char* strtime = NULL;
+	char* strtask = NULL;
+
+	assert(task);
+
+	time = (task->due_date < now)?now:task->due_date;
+	strtime = ctime_r(&time, ctimebuf);
+	/* We need cut off the newline */
+	if (strtime && strlen(strtime) > 0) {
+		strtime[strlen(strtime)-1] = 0;
+	}
+	(void)snprintf(buf, ODS_SE_MAXLINE, "On %s I will [%s] %s\n",
+		strtime?strtime:"(null)", task->type, task->owner);
+}
+
 static int
 run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	db_connection_t *dbconn)
@@ -80,7 +104,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	time_t now;
 	time_t nextFireTime;
 	ldns_rbnode_t* node = LDNS_RBTREE_NULL;
-	task_type* task = NULL;
+	task_t* task = NULL;
 	(void)cmd; (void)n; (void)dbconn;
 
 	ods_log_debug("[%s] list tasks command", module_str);
@@ -91,17 +115,17 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 		return 0;
 	}
 
-	/* current work */
-	pthread_mutex_lock(&engine->taskq->schedule_lock);
-		for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
-			task = engine->workers[i]->task;
-			if (task) {
-				/* TODO: even holding that lock, this is not safe! */
-				client_printf(sockfd, "Working with [%s] %s\n",
-					task_what2str(task->what), task_who2str(task->who));
-			}
-		}
-	pthread_mutex_unlock(&engine->taskq->schedule_lock);
+	//~ /* current work */
+	//~ pthread_mutex_lock(&engine->taskq->schedule_lock);
+		//~ for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
+			//~ task = engine->workers[i]->task;
+			//~ if (task) {
+				//~ /* TODO: even holding that lock, this is not safe! */
+				//~ client_printf(sockfd, "Working with [%s] %s\n",
+					//~ task_what2str(task->what), task_who2str(task->who));
+			//~ }
+		//~ }
+	//~ pthread_mutex_unlock(&engine->taskq->schedule_lock);
 
 	/* how many tasks */
 	count = schedule_taskcount(engine->taskq);
@@ -111,20 +135,20 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	strftime(strtime, sizeof(strtime), "%c", localtime_r(&now, &strtime_struct));
 	client_printf(sockfd, "It is now %s (%ld seconds since epoch)\n", (strtime[0]?strtime:"(null)"), (long)now);
 	nextFireTime = schedule_time_first(engine->taskq);
-        if (nextFireTime > 0) {
-                strftime(strtime, sizeof(strtime), "%c", localtime_r(&nextFireTime, &strtime_struct));
-                client_printf(sockfd, "Next task scheduled %s (%ld seconds since epoch)\n", strtime, (long)nextFireTime);
-        } else if (nextFireTime == 0) {
-                client_printf(sockfd, "Next task scheduled immediately\n");
-        }
+	if (nextFireTime > now) {
+			strftime(strtime, sizeof(strtime), "%c", localtime_r(&nextFireTime, &strtime_struct));
+			client_printf(sockfd, "Next task scheduled %s (%ld seconds since epoch)\n", strtime, (long)nextFireTime);
+	} else {
+			client_printf(sockfd, "Next task scheduled immediately\n");
+	}
 	
 	/* list tasks */
 	pthread_mutex_lock(&engine->taskq->schedule_lock);
 		node = ldns_rbtree_first(engine->taskq->tasks);
 		while (node && node != LDNS_RBTREE_NULL) {
-			task = (task_type*) node->data;
+			task = (task_t*) node->data;
 			memset(buf, 0, ODS_SE_MAXLINE);
-			(void)task2str(task, buf);
+			task2str(task, buf, now);
 			client_printf(sockfd, "%s", buf);
 			node = ldns_rbtree_next(node);
 		}

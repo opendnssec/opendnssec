@@ -36,6 +36,6 @@
 
 int perform_signconf(int sockfd, const db_connection_t* dbconn, int force);
 
-task_type* signconf_task(const db_connection_t* dbconn, const char* what, const char* who);
+task_t* signconf_task(const char* what);
 
 #endif
