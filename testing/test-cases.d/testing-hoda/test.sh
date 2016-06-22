@@ -39,13 +39,13 @@ ods-enforcer start &&
 log_this ods-enforcer-zone_add   ods-enforcer zone add --zone ods1 &&
 ods_enforcer_idle &&
 log_grep ods-enforcer-zone_add stdout "Zone ods1 added successfully" &&
-sleep 5 &&
+sleep 30 &&
 ods-enforcer stop &&
 sleep 5 &&
 ods-enforcer start &&
 log_this ods-enforcer-zone_del   ods-enforcer zone delete --zone ods1 &&
-sleep 5 && ods_enforcer_idle &&
-! log_grep ods-enforcer-zone_del   stdout "Deleted zone.*ods1" &&
+sleep 30 && ods_enforcer_idle &&
+log_grep ods-enforcer-zone_del   stdout "Deleted zone.*ods1" &&
 
 sleep 3 &&
 
