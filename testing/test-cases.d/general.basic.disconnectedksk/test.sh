@@ -25,7 +25,7 @@ log_this 08 softhsm --init-token --pin 1234 --slot 1 --label KSKs --so-pin 1234 
 log_this 09 softhsm --init-token --pin 1234 --slot 2 --label ZSKs --so-pin 1234 &&
 echo 'y' | log_this 10 ods-enforcer-db-setup &&
 log_this 11 ods-enforcerd --set-time 2017-01-01-00:00:00 &&
-sleep 5 &&
+#sleep 5 &&
 log_this 12 ods-enforcer policy import &&
 log_this 13 ods-enforcer zone add -z xx &&
 log_this 14 ods_enforcer_idle &&
@@ -36,8 +36,8 @@ log_this 18 ods-enforcer time leap &&
 ( log_this 16 ods-enforcer signconf || echo "signconf unjustly failing" ) &&
 log_this 19 ods_enforcer_idle &&
 log_this 20 ods-enforcer stop &&
-log_this 21 ods-signerd --set-time 2017-01-01-00:00:00 &&
 sleep 10 &&
+log_this 21 ods-signerd --set-time 2017-01-01-00:00:00 &&
 ods-signer sign --all &&
 sleep 90 &&
 log_this 22 ods-signer stop &&
@@ -51,7 +51,6 @@ log_this 28 apply_parameter "INSTALL_ROOT" "$INSTALL_ROOT" "$INSTALL_ROOT/etc/so
 log_this 29 apply_parameter "INSTALL_ROOT" "$INSTALL_ROOT" "$INSTALL_ROOT/etc/opendnssec/conf.xml" &&
 log_this 30 apply_parameter "SOFTHSM_MODULE" "$SOFTHSM_MODULE" "$INSTALL_ROOT/etc/opendnssec/conf.xml" &&
 log_this 31 ods-signerd --set-time 2017-02-01-00:00:00 &&
-sleep 10 &&
 ods-signer sign --all &&
 sleep 90 &&
 test -f $INSTALL_ROOT/var/opendnssec/signed/xx &&
