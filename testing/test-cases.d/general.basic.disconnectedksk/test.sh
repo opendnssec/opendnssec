@@ -41,7 +41,7 @@ log_this 21 ods-signerd --set-time 2017-01-01-00:00:00 &&
 ods-signer sign --all &&
 sleep 90 &&
 log_this 22 ods-signer stop &&
-sleep 25 &&
+sleep 45 &&
 log_this 23 perl sneakernet.pl $INSTALL_ROOT/var/opendnssec/signconf/xx.xml $INSTALL_ROOT/var/opendnssec/signer/xx.backup2 &&
 log_this 24 rm -f $INSTALL_ROOT/var/opendnssec/signer/* $INSTALL_ROOT/var/opendnssec/signed/* &&
 log_this 25 mv $INSTALL_ROOT/var/opendnssec/signconf/xx.xml.new $INSTALL_ROOT/var/opendnssec/signconf/xx.xml &&
@@ -52,7 +52,8 @@ log_this 29 apply_parameter "INSTALL_ROOT" "$INSTALL_ROOT" "$INSTALL_ROOT/etc/op
 log_this 30 apply_parameter "SOFTHSM_MODULE" "$SOFTHSM_MODULE" "$INSTALL_ROOT/etc/opendnssec/conf.xml" &&
 log_this 31 ods-signerd --set-time 2017-02-01-00:00:00 &&
 ods-signer sign --all &&
-sleep 100 &&
+sleep 120 &&
+echo "hereeee" &&
 test -f $INSTALL_ROOT/var/opendnssec/signed/xx &&
 log_this 32 ods-signer stop &&
 sleep 15 &&
