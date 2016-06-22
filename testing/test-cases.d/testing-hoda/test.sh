@@ -39,13 +39,13 @@ ods-enforcer start &&
 log_this ods-enforcer-zone_add   ods-enforcer zone add --zone ods1 &&
 ods_enforcer_idle &&
 log_grep ods-enforcer-zone_add stdout "Zone ods1 added successfully" &&
-
+sleep 5 &&
 ods-enforcer stop &&
 sleep 5 &&
 ods-enforcer start &&
-log_this ods-enforcer-zone_add   ods-enforcer zone delete --zone ods1 &&
+log_this ods-enforcer-zone_del   ods-enforcer zone delete --zone ods1 &&
 sleep 5 && ods_enforcer_idle &&
-log_grep ods-enforcer-zone_add   stdout "Deleted zone.*ods1" &&
+! log_grep ods-enforcer-zone_del   stdout "Deleted zone.*ods1" &&
 
 sleep 3 &&
 
@@ -64,7 +64,10 @@ echo "DEBUG: " && ods-enforcer zone list
 echo "DEBUG: " && ods-enforcer key list -d -p
 echo "DEBUG: " && ods-enforcer key list -v
 echo "DEBUG: " && ods-enforcer queue
-
+echo "stderr: "
+cat _log.$BUILD_TAG.ods-enforcer-zone_del.stderr
+echo "stdout: "
+cat _log.$BUILD_TAG.ods-enforcer-zone_del.stdout
 echo "************ERROR******************"
 echo
 ods_kill

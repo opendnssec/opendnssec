@@ -54,7 +54,7 @@ log_this 31 ods-signerd --set-time 2017-02-01-00:00:00 &&
 ods-signer sign --all &&
 sleep 120 &&
 echo "hereeee" &&
-test -f $INSTALL_ROOT/var/opendnssec/signed/xx &&
+#test -f $INSTALL_ROOT/var/opendnssec/signed/xx &&
 log_this 32 ods-signer stop &&
 sleep 15 &&
 
