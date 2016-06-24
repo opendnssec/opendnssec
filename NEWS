@@ -1,4 +1,5 @@
 * OPENDNSSEC-808: Crash on query with empty query section (thanks Håvard Eidnes)
+* SUPPORT-191: Regression, Must accept notify without SOA (thanks Christos Trochalakis)
 
 OpenDNSSEC 1.4.10 - 2016-05-02
 
