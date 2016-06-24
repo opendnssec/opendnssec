@@ -42,6 +42,7 @@
 #include <libxml/xmlreader.h>
 #include <string.h>
 #include <stdlib.h>
+#include <sys/un.h>
 
 static const char* parser_str = "parser";
 
@@ -496,7 +497,7 @@ parse_conf_notify_command(const char* cfgfile)
 const char*
 parse_conf_clisock_filename(const char* cfgfile)
 {
-    const char* dup = NULL;
+    char* dup = NULL;
     const char* str = parse_conf_string(
         cfgfile,
         "//Configuration/Signer/SocketFile",
@@ -507,6 +508,10 @@ parse_conf_clisock_filename(const char* cfgfile)
         free((void*)str);
     } else {
         dup = strdup(ODS_SE_SOCKFILE);
+    }
+    if (strlen(dup) >= sizeof(((struct sockaddr_un*)0)->sun_path)) {
+        dup[sizeof(((struct sockaddr_un*)0)->sun_path)-1] = '\0'; /* don't worry about just a few bytes 'lost' */
+        ods_log_warning("[%s] SocketFile path too long, truncated to %s", parser_str, dup);
     }
     return dup;
 }

@@ -402,13 +402,13 @@ cmdhandler_create(const char* filename)
         return NULL;
     }
 
-    if (filename) {
-        unlink(filename);
-    }
     /* no surprises */
     bzero(&servaddr, sizeof(servaddr));
     servaddr.sun_family = AF_UNIX;
     strncpy(servaddr.sun_path, filename, sizeof(servaddr.sun_path) - 1);
+    if (filename) {
+        unlink(servaddr.sun_path);
+    }
 
     /* bind and listen... */
     ret = bind(listenfd, (const struct sockaddr*) &servaddr, sizeof(struct sockaddr_un));
