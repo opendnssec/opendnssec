@@ -54,16 +54,28 @@ zone_type*
 zone_create(char* name, ldns_rr_class klass)
 {
     zone_type* zone = NULL;
+    int err;
 
     if (!name || !klass) {
         return NULL;
     }
-    CHECKALLOC(zone = (zone_type*) malloc(sizeof(zone_type)));
+    CHECKALLOC(zone = (zone_type*) calloc(1, sizeof(zone_type)));
     /* [start] PS 9218653: Drop trailing dot in domain name */
     if (strlen(name) > 1 && name[strlen(name)-1] == '.') {
         name[strlen(name)-1] = '\0';
     }
     /* [end] PS 9218653 */
+
+    if (pthread_mutex_init(&zone->zone_lock, NULL)) {
+        free(zone);
+        return NULL;
+    }
+    if (pthread_mutex_init(&zone->xfr_lock, NULL)) {
+        (void)pthread_mutex_destroy(&zone->zone_lock);
+        free(zone);
+        return NULL;
+    }
+
     zone->name = strdup(name);
     if (!zone->name) {
         ods_log_error("[%s] unable to create zone %s: allocator_strdup() "
@@ -109,8 +121,6 @@ zone_create(char* name, ldns_rr_class klass)
     }
     zone->stats = stats_create();
     zone->rrstore = rrset_store_initialize();
-    lock_basic_init(&zone->zone_lock);
-    lock_basic_init(&zone->xfr_lock);
     return zone;
 }
 
@@ -254,6 +264,7 @@ zone_publish_dnskeys(zone_type* zone)
                 if ((status = rrset_getliteralrr(&zone->signconf->keys->keys[i].dnskey, zone->signconf->keys->keys[i].resourcerecord, ttl, zone->apex)) != ODS_STATUS_OK) {
                     ods_log_error("[%s] unable to publish dnskeys for zone %s: "
                             "error decoding literal dnskey", zone_str, zone->name);
+		    hsm_destroy_context(ctx);
                     return status;
                 }
             } else {
@@ -454,7 +465,6 @@ zone_prepare_keys(zone_type* zone)
             break;
         }
         ods_log_assert(zone->signconf->keys->keys[i].dnskey);
-        ods_log_assert(zone->signconf->keys->keys[i].hsmkey);
         ods_log_assert(zone->signconf->keys->keys[i].params);
     }
     /* done */
@@ -569,6 +579,8 @@ zone_add_rr(zone_type* zone, ldns_rr* rr, int do_stats)
     rrset_type* rrset = NULL;
     rr_type* record = NULL;
     ods_status status = ODS_STATUS_OK;
+    char* str = NULL;
+    int i;
 
     ods_log_assert(rr);
     ods_log_assert(zone);
@@ -619,6 +631,17 @@ zone_add_rr(zone_type* zone, ldns_rr* rr, int do_stats)
         ods_log_assert(record);
         ods_log_assert(record->rr);
         ods_log_assert(record->is_added);
+        if (ldns_rr_ttl(rr) != ldns_rr_ttl(rrset->rrs[0].rr)) {
+            str = ldns_rr2str(rr);
+            str[(strlen(str)) - 1] = '\0';
+            for (i = 0; i < strlen(str); i++) {
+                if (str[i] == '\t') {
+                    str[i] = ' ';
+                }
+            }
+            ods_log_error("In zone file %s: TTL for the record '%s' set to %d", zone->name, str, ldns_rr_ttl(rrset->rrs[0].rr));
+            LDNS_FREE(str);
+        }
     }
     /* update stats */
     if (do_stats && zone->stats) {
@@ -674,12 +697,14 @@ zone_del_rr(zone_type* zone, ldns_rr* rr, int do_stats)
 /**
  * Delete NSEC3PARAM RRs.
  *
+ * Marks all NSEC3PARAM records as removed.
  */
 ods_status
 zone_del_nsec3params(zone_type* zone)
 {
     domain_type* domain = NULL;
     rrset_type* rrset = NULL;
+    int i;
 
     ods_log_assert(zone);
     ods_log_assert(zone->name);
@@ -687,20 +712,24 @@ zone_del_nsec3params(zone_type* zone)
 
     domain = namedb_lookup_domain(zone->db, zone->apex);
     if (!domain) {
-        ods_log_warning("[%s] unable to delete RR from zone %s: "
+        ods_log_verbose("[%s] unable to delete RR from zone %s: "
             "domain not found", zone_str, zone->name);
         return ODS_STATUS_UNCHANGED;
     }
 
     rrset = domain_lookup_rrset(domain, LDNS_RR_TYPE_NSEC3PARAMS);
     if (!rrset) {
-        ods_log_warning("[%s] unable to delete RR from zone %s: "
-            "RRset not found", zone_str, zone->name);
+        ods_log_verbose("[%s] NSEC3PARAM in zone %s not found: "
+            "skipping delete", zone_str, zone->name);
         return ODS_STATUS_UNCHANGED;
     }
 
-    while(rrset->rr_count) {
-        rrset_del_rr(rrset, 0);
+    /* We don't actually delete the record as we still need the
+     * information in the IXFR. Just set it as removed. The code
+     * inserting the new record may flip this flag when the record
+     * hasn't changed. */
+    for (i=0; i < rrset->rr_count; i++) {
+        rrset->rrs[i].is_removed = 1;
     }
     return ODS_STATUS_OK;
 }

@@ -118,7 +118,6 @@ keylist_push(keylist_type* kl, const char* locator, const char* resourcerecord,
     kl->keys[kl->count -1].ksk = ksk;
     kl->keys[kl->count -1].zsk = zsk;
     kl->keys[kl->count -1].dnskey = NULL;
-    kl->keys[kl->count -1].hsmkey = NULL;
     kl->keys[kl->count -1].params = NULL;
     return &kl->keys[kl->count -1];
 }
@@ -168,7 +167,6 @@ key_delfunc(key_type* key)
         return;
     }
     /* ldns_rr_free(key->dnskey); */
-    free(key->hsmkey);
     hsm_sign_params_free(key->params);
     free((void*) key->locator);
 }
@@ -229,8 +227,9 @@ key_recover2(FILE* fd, keylist_type* kl)
     int ksk = 0;
     int zsk = 0;
     int keytag = 0; /* We are not actually interested but we must
-        parse it to continue correctly in the stream */
-
+        parse it to continue correctly in the stream.
+        When reading 1.4.8 or later version backup file, the real value of keytag is 
+        rfc5011, but not importat due to not using it.*/
     ods_log_assert(fd);
 
     if (!backup_read_check_str(fd, "locator") ||

@@ -241,9 +241,11 @@ parse_sc_sig_validity_keyset(const char* cfgfile)
     const char* str = parse_conf_string(cfgfile,
         "//SignerConfiguration/Zone/Signatures/Validity/Keyset",
         0);
-    if (!str || *str == 0 || *str == '0') {
+    /* Even if the value is 0 or NULL we want to write it in duration format. 
+       The value is written in backup file and read during startup*/
+    /*if (!str || *str == 0 || *str == '0') {
         return NULL;
-    }
+    }*/
     duration = duration_create_from_string(str);
     free((void*)str);
     return duration;
@@ -412,7 +414,7 @@ parse_sc_max_zone_ttl(const char* cfgfile)
     duration_type* duration = NULL;
     const char* str = parse_conf_string(cfgfile,
         "//SignerConfiguration/Zone/Signatures/MaxZoneTTL",
-        1);
+        0);
     if (!str) {
         return NULL;
     }

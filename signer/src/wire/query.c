@@ -383,7 +383,21 @@ query_process_notify(query_type* q, ldns_rr_type qtype, engine_type* engine)
             dnshandler_fwd_notify(engine->dnshandler, buffer_begin(q->buffer),
                 buffer_remaining(q->buffer));
         }
+    } else { /* Empty answer section, no SOA. We still need to process
+        the notify according to the RFC */
+        /* forward notify to xfrd */
+        if (addr2ip(q->addr, address, sizeof(address))) {
+            ods_log_verbose("[%s] forward notify for zone %s from client %s",
+                query_str, q->zone->name, address);
+        } else {
+            ods_log_verbose("[%s] forward notify for zone %s", query_str,
+                q->zone->name);
+        }
+        xfrd_set_timer_now(q->zone->xfrd);
+        dnshandler_fwd_notify(engine->dnshandler, buffer_begin(q->buffer),
+            buffer_remaining(q->buffer));
     }
+
     /* send notify ok */
     buffer_pkt_set_qr(q->buffer);
     buffer_pkt_set_aa(q->buffer);
@@ -855,6 +869,10 @@ query_process(query_type* q, engine_type* engine)
         return query_formerr(q);
     }
     rr = ldns_rr_list_rr(ldns_pkt_question(pkt), 0);
+    if (!rr) {
+        ods_log_debug("[%s] no RRset in query section, ignoring", query_str);
+        return QUERY_DISCARDED; /* no RRset in query */
+    }
     lock_basic_lock(&engine->zonelist->zl_lock);
     /* we can just lookup the zone, because we will only handle SOA queries,
        zone transfers, updates and notifies */

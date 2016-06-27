@@ -153,9 +153,9 @@ help(int sockfd)
 		"the keys lifetime to expire before rolling. The next rollover is due\n"
 		"after the newest key aged passed its lifetime.\n"
 		"\nOptions:\n"
-		"zone		name of the zone\n"
-		"policy		name of the policy\n"
-		"keytype		type of the key, KSK, ZSK or CSK (default is all)\n\n"
+		"zone		limit the output to the given the zone\n"
+		"policy		limit the output to the given the policy\n"
+		"keytype		limit the output to the given type, can be KSK, ZSK or CSK (default is all)\n\n"
 	);
 }
 

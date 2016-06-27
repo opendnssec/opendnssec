@@ -33,6 +33,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <dlfcn.h>
+#include <ldns/ldns.h>
 
 #include <libxml/tree.h>
 #include <libxml/parser.h>
@@ -677,6 +678,7 @@ hsm_ctx_new()
         memset(ctx->session, 0, HSM_MAX_SESSIONS);
         ctx->session_count = 0;
         ctx->error = 0;
+        keycache_create(ctx);
     }
     return ctx;
 }
@@ -686,6 +688,7 @@ static void
 hsm_ctx_free(hsm_ctx_t *ctx)
 {
     unsigned int i;
+    keycache_destroy(ctx);
     if (ctx) {
         for (i = 0; i < ctx->session_count; i++) {
             hsm_session_free(ctx->session[i]);
@@ -1098,7 +1101,10 @@ hsm_get_key_size_ecdsa(hsm_ctx_t *ctx, const hsm_session_t *session,
 
     if (value == NULL) return 0;
 
-    if( ((CK_ULONG) - 1) / (8/2) < value_len) return 0;
+    if( ((CK_ULONG) - 1) / (8/2) < value_len) {
+	    free(value);
+	    return 0;
+    }
 
     /* value = x | y */
     bits = value_len * 8 / 2;
@@ -1394,8 +1400,10 @@ hsm_list_keys_session_internal(hsm_ctx_t *ctx,
         for (i = 0; i < total_count; i++) {
             key = libhsm_key_new_privkey_object_handle(ctx, session,
                                                     key_handles[i]);
-            if(key == NULL) goto errkeys;
-
+            if(!key) {
+		    libhsm_key_list_free(keys, i);
+		    goto err;
+	    }
             keys[i] = key;
         }
     }
@@ -1403,9 +1411,6 @@ hsm_list_keys_session_internal(hsm_ctx_t *ctx,
 
     *count = total_count;
     return keys;
-
-errkeys:
-    libhsm_key_list_free(keys, i-1);
 
 err:
     free(key_handles);
@@ -2406,6 +2411,19 @@ hsm_find_key_by_id(hsm_ctx_t *ctx, const char *id)
     return key;
 }
 
+static void
+generate_unique_id(hsm_ctx_t *ctx, unsigned char *buf, size_t bufsize)
+{
+    libhsm_key_t *key;
+    /* check whether this key doesn't happen to exist already */
+    hsm_random_buffer(ctx, buf, bufsize);
+    while ((key = hsm_find_key_by_id_bin(ctx, buf, bufsize))) {
+	free(key);
+	hsm_random_buffer(ctx, buf, bufsize);
+    }
+
+}
+
 libhsm_key_t *
 hsm_generate_rsa_key(hsm_ctx_t *ctx,
                      const char *repository,
@@ -2431,10 +2449,8 @@ hsm_generate_rsa_key(hsm_ctx_t *ctx,
     session = hsm_find_repository_session(ctx, repository);
     if (!session) return NULL;
 
-    /* check whether this key doesn't happen to exist already */
-    do {
-        hsm_random_buffer(ctx, id, 16);
-    } while (hsm_find_key_by_id_bin(ctx, id, 16));
+    generate_unique_id(ctx, id, 16);
+
     /* the CKA_LABEL will contain a hexadecimal string representation
      * of the id */
     hsm_hex_unparse(id_str, id, 16);
@@ -2514,11 +2530,8 @@ hsm_generate_dsa_key(hsm_ctx_t *ctx,
     session = hsm_find_repository_session(ctx, repository);
     if (!session) return NULL;
 
-    /* check whether this key doesn't happen to exist already */
+    generate_unique_id(ctx, id, 16);
 
-    do {
-        hsm_random_buffer(ctx, id, 16);
-    } while (hsm_find_key_by_id_bin(ctx, id, 16));
     /* the CKA_LABEL will contain a hexadecimal string representation
      * of the id */
     hsm_hex_unparse(id_str, id, 16);
@@ -2626,11 +2639,8 @@ hsm_generate_gost_key(hsm_ctx_t *ctx,
     session = hsm_find_repository_session(ctx, repository);
     if (!session) return NULL;
 
-    /* check whether this key doesn't happen to exist already */
+    generate_unique_id(ctx, id, 16);
 
-    do {
-        hsm_random_buffer(ctx, id, 16);
-    } while (hsm_find_key_by_id_bin(ctx, id, 16));
     /* the CKA_LABEL will contain a hexadecimal string representation
      * of the id */
     hsm_hex_unparse(id_str, id, 16);
@@ -2708,11 +2718,8 @@ hsm_generate_ecdsa_key(hsm_ctx_t *ctx,
     session = hsm_find_repository_session(ctx, repository);
     if (!session) return NULL;
 
-    /* check whether this key doesn't happen to exist already */
+    generate_unique_id(ctx, id, 16);
 
-    do {
-        hsm_random_buffer(ctx, id, 16);
-    } while (hsm_find_key_by_id_bin(ctx, id, 16));
     /* the CKA_LABEL will contain a hexadecimal string representation
      * of the id */
     hsm_hex_unparse(id_str, id, 16);
@@ -2819,7 +2826,7 @@ libhsm_key_list_free(libhsm_key_t **key_list, size_t count)
 {
     size_t i;
     for (i = 0; i < count; i++) {
-        free((char*)key_list[i]->modulename);
+        free((void*)key_list[i]->modulename);
         free(key_list[i]);
     }
     free(key_list);
@@ -3310,4 +3317,58 @@ hsm_print_tokeninfo(hsm_ctx_t *ctx)
         if (i + 1 != ctx->session_count)
             printf("\n");
     }
+}
+
+static int
+keycache_cmpfunc(const void* a, const void* b)
+{
+    const char* x = (const char*)a;
+    const char* y = (const char*)b;
+    return strcmp(x, y);
+}
+
+static void
+keycache_delfunc(ldns_rbnode_t* node, void* cargo)
+{
+    (void)cargo;
+    free((void*)node->key);
+    free((void*)node->data);
+    free((void*)node);
+}
+
+void
+keycache_create(hsm_ctx_t* ctx)
+{
+    ctx->keycache = ldns_rbtree_create(keycache_cmpfunc);
+}
+
+void
+keycache_destroy(hsm_ctx_t* ctx)
+{
+    ldns_traverse_postorder(ctx->keycache, keycache_delfunc, NULL);
+    ldns_rbtree_free(ctx->keycache);
+}
+
+const libhsm_key_t*
+keycache_lookup(hsm_ctx_t* ctx, const char* locator)
+{
+    ldns_rbnode_t* node;
+
+    node = ldns_rbtree_search(ctx->keycache, locator);
+    if (node == LDNS_RBTREE_NULL || node == NULL) {
+        libhsm_key_t* key;
+        if ((key = hsm_find_key_by_id(ctx, locator)) == NULL) {
+            node = NULL;
+        } else {
+            node = malloc(sizeof(ldns_rbnode_t));
+            node->key = strdup(locator);
+            node->data = key;
+            node = ldns_rbtree_insert(ctx->keycache, node);
+        }
+    }  
+
+    if (node == LDNS_RBTREE_NULL || node == NULL)
+        return NULL;
+    else
+        return node->data;
 }

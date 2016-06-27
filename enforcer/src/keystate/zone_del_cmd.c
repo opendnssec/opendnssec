@@ -59,10 +59,10 @@ static void
 help(int sockfd)
 {
     client_printf(sockfd,
-        "Delete zones from the enforcer database.\n"
+        "Delete one zone or all of them from the enforcer database.\n"
 	"\nOptions:\n"
-        "zone|all	name of zone or delete all zones\n"
-        "xml		update zonelist.xml\n\n"
+        "zone|all	name of the zone or all zones\n"
+        "xml		update zonelist.xml and remove the contents for the deleted zone\n\n"
     );
 }
 

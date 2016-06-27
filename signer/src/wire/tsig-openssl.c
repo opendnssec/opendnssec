@@ -76,6 +76,7 @@ tsig_openssl_init_algorithm(const char* digest, const char* name, const char* wi
     if (!algorithm->wf_name) {
         ods_log_error("[%s] unable to parse %s algorithm", tsig_str,
             wireformat);
+	free(algorithm);
         return 0;
     }
     algorithm->max_digest_size = EVP_MAX_MD_SIZE;

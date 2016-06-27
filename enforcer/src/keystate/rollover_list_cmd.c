@@ -159,7 +159,7 @@ static void
 help(int sockfd)
 {
 	client_printf(sockfd,
-		"List upcoming rollovers.\n"
+		"List the expected dates and times of upcoming rollovers. This can be used to get an idea of upcoming works.\n"
 		"\nOptions:\n"
 		"zone	name of the zone\n\n");
 }

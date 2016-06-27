@@ -535,12 +535,12 @@ notify_enable(notify_type* notify, ldns_rr* soa)
             zone->name);
         return; /* nothing to do */
     }
-    notify_update_soa(notify, soa);
-    if (notify->is_waiting) {
+    if (notify->is_waiting || notify->handler.fd != -1) {
         ods_log_debug("[%s] zone %s already on waiting list", notify_str,
             zone->name);
        return;
     }
+    notify_update_soa(notify, soa);
     if (xfrhandler->notify_udp_num < NOTIFY_MAX_UDP) {
         notify_setup(notify);
         xfrhandler->notify_udp_num++;

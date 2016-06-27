@@ -60,7 +60,7 @@ and
 are both acceptable duration representations.
 .SH "EXCEPTION"
 .LP
-A year or month vary in duration depending on the current date. For OpenDNSSEC, we assume fixed values
+A year or month vary in duration depending on the current date. For OpenDNSSEC, we assume fixed values.
 .TP
 .B One month
 is assumed to be 31 days.
@@ -73,9 +73,10 @@ The reason for making this exception is to avoid complicating this
 software in a way that may not meet any practical need.
 .SH "SEE ALSO"
 .LP
-ods\-control(8), ods\-enforcerd(8), ods\-hsmspeed(1),
-ods\-hsmutil(1), ods\-kaspcheck(1), ods\-ksmutil(1), ods\-signer(8),
-ods\-signerd(8), opendnssec(7),
+ods\-control(8), ods\-enforcerd(8), ods\-enforcer(8),
+ods\-signerd(8), ods\-signer(8), ods\-ksmutil(1),
+ods\-kasp(5), ods\-kaspcheck(1), ods\-timing(5),
+ods\-hsmspeed(1), ods\-hsmutil(1), opendnssec(7),
 ISO 8601,
 .B http://www.opendnssec.org/
 .SH "AUTHORS" 

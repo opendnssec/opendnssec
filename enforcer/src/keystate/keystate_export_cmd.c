@@ -246,12 +246,12 @@ static void
 help(int sockfd)
 {
 	client_printf(sockfd,
-		"Export DNSKEY(s) for a given zone.\n"
+		"Export DNSKEY(s) for a given zone or all of them from the database.\n"
 		"\nOptions:\n"
 		"zone|all	name of the zone or all of them\n"
-		"keystate	state of the key\n"
-		"keytype		type of the key: ZSK, KSK, or CSK\n"
-		"ds		export DS in BIND format\n\n");
+		"keystate	limit the output to a given state\n"
+		"keytype		limit the output to a given type, can be ZSK, KSK, or CSK\n"
+		"ds		export DS in BIND format which can be used for upload to a registry\n\n");
 }
 
 static int

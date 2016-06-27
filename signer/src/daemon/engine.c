@@ -78,6 +78,8 @@ engine_create(void)
     engine->cmdhandler_done = 0;
     engine->dnshandler = NULL;
     engine->xfrhandler = NULL;
+    engine->taskq = NULL;
+    engine->signq = NULL;
     engine->pid = -1;
     engine->uid = -1;
     engine->gid = -1;
@@ -474,6 +476,7 @@ engine_setup(engine_type* engine)
         if (status != ODS_STATUS_OK) {
             ods_log_error("[%s] setup: unable to listen to sockets (%s)",
                 engine_str, ods_status2str(status));
+            return ODS_STATUS_XFRHANDLER_ERR;
         }
     }
     /* privdrop */

@@ -57,8 +57,16 @@ static void
 usage ()
 {
     fprintf(stderr,
-       "usage: %s [-c config] [-vV] command [options]\n",
+       "usage: %s [-c config] [-vVfh] [command [options]]\n",
         progname);
+
+    fprintf(stderr,"  -h        Print this usage information.\n");
+    fprintf(stderr,"  -v        Increase verbosity.\n");
+    fprintf(stderr,"  -V        Print version and exit.\n");
+    fprintf(stderr,"  -f        Force, Assume yes on all questions.\n");
+    fprintf(stderr,"  -c <cfg>  Use alternative conf.xml.\n");
+
+    fprintf(stderr,"commands\n");
 
     fprintf(stderr,"  login\n");
     fprintf(stderr,"  logout\n");
@@ -300,7 +308,7 @@ cmd_remove (int argc, char *argv[])
 }
 
 static int
-cmd_purge (int argc, char *argv[])
+cmd_purge (int argc, char *argv[], int force)
 {
     int result;
     int final_result = 0;
@@ -343,15 +351,16 @@ cmd_purge (int argc, char *argv[])
         return -1;
     }
 
-    printf("Are you sure you want to remove ALL keys from repository %s ? (YES/NO) ", repository);
-    fresult = fgets(confirm, sizeof(confirm) - 1, stdin);
-    if (fresult == NULL || strncasecmp(confirm, "yes", 3) != 0) {
-        printf("\nPurge cancelled.\n");
-        libhsm_key_list_free(keys, key_count);
-        return -1;
-    } else {
-        printf("\nStarting purge...\n");
+    if (!force) {
+        printf("Are you sure you want to remove ALL keys from repository %s ? (YES/NO) ", repository);
+        fresult = fgets(confirm, sizeof(confirm) - 1, stdin);
+        if (fresult == NULL || strncasecmp(confirm, "yes", 3) != 0) {
+            printf("\npurge cancelled.\n");
+            libhsm_key_list_free(keys, key_count);
+            return -1;
+        }
     }
+    printf("\nStarting purge...\n");
 
     for (i = 0; i < key_count; i++) {
         libhsm_key_info_t *key_info;
@@ -428,6 +437,7 @@ cmd_dnskey (int argc, char *argv[])
             if (strcmp(key_info->algorithm_name, "RSA") != 0) {
                 printf("Not an RSA key, the key is of algorithm %s.\n", key_info->algorithm_name);
                 libhsm_key_info_free(key_info);
+                free(key);
                 free(name);
                 free(id);
                 return -1;
@@ -438,6 +448,7 @@ cmd_dnskey (int argc, char *argv[])
             if (strcmp(key_info->algorithm_name, "DSA") != 0) {
                 printf("Not a DSA key, the key is of algorithm %s.\n", key_info->algorithm_name);
                 libhsm_key_info_free(key_info);
+                free(key);
                 free(name);
                 free(id);
                 return -1;
@@ -447,6 +458,7 @@ cmd_dnskey (int argc, char *argv[])
             if (strcmp(key_info->algorithm_name, "GOST") != 0) {
                 printf("Not a GOST key, the key is of algorithm %s.\n", key_info->algorithm_name);
                 libhsm_key_info_free(key_info);
+                free(key);
                 free(name);
                 free(id);
                 return -1;
@@ -458,6 +470,7 @@ cmd_dnskey (int argc, char *argv[])
             if (strcmp(key_info->algorithm_name, "ECDSA") != 0) {
                 printf("Not an ECDSA key, the key is of algorithm %s.\n", key_info->algorithm_name);
                 libhsm_key_info_free(key_info);
+                free(key);
                 free(name);
                 free(id);
                 return -1;
@@ -465,6 +478,7 @@ cmd_dnskey (int argc, char *argv[])
             if (key_info->keysize != 256) {
                 printf("The key is a ECDSA/%lu, expecting ECDSA/256 for this algorithm.\n", key_info->keysize);
                 libhsm_key_info_free(key_info);
+                free(key);
                 free(name);
                 free(id);
                 return -1;
@@ -474,6 +488,7 @@ cmd_dnskey (int argc, char *argv[])
             if (strcmp(key_info->algorithm_name, "ECDSA") != 0) {
                 printf("Not an ECDSA key, the key is of algorithm %s.\n", key_info->algorithm_name);
                 libhsm_key_info_free(key_info);
+                free(key);
                 free(name);
                 free(id);
                 return -1;
@@ -481,6 +496,7 @@ cmd_dnskey (int argc, char *argv[])
             if (key_info->keysize != 384) {
                 printf("The key is a ECDSA/%lu, expecting ECDSA/384 for this algorithm.\n", key_info->keysize);
                 libhsm_key_info_free(key_info);
+                free(key);
                 free(name);
                 free(id);
                 return -1;
@@ -559,13 +575,17 @@ main (int argc, char *argv[])
     char *config = NULL;
 
     int ch;
+    int force = 0;
     progname = argv[0];
 
-    while ((ch = getopt(argc, argv, "c:vVh")) != -1) {
+    while ((ch = getopt(argc, argv, "c:vVhf")) != -1) {
         switch (ch) {
         case 'c':
             config = strdup(optarg);
             break;
+	case 'f':
+	    force = 1;
+	    break;
         case 'v':
             verbose++;
             break;
@@ -628,7 +648,7 @@ main (int argc, char *argv[])
     } else if (!strcasecmp(argv[0], "purge")) {
         argc --;
         argv ++;
-        result = cmd_purge(argc, argv);
+        result = cmd_purge(argc, argv, force);
     } else if (!strcasecmp(argv[0], "dnskey")) {
         argc --;
         argv ++;

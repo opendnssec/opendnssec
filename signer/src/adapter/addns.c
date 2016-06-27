@@ -581,7 +581,6 @@ dnsin_update(dnsin_type** addns, const char* filename, time_t* last_mod)
     } else {
         ods_log_error("[%s] unable to update dnsin: dnsin_read(%s) "
             "failed (%s)", adapter_str, filename, ods_status2str(status));
-        dnsin_cleanup(*addns);
     }
     return status;
 }
@@ -640,7 +639,10 @@ dnsout_update(dnsout_type** addns, const char* filename, time_t* last_mod)
     } else {
         ods_log_error("[%s] unable to update dnsout: dnsout_read(%s) "
             "failed (%s)", adapter_str, filename, ods_status2str(status));
-        dnsout_cleanup(*addns);
+        /* Don't do this cleanup. Signer will crash on exit and will
+         * access the wrong memory runtime. Leak is only once per badly
+         * configured adapter. */
+        /* dnsout_cleanup(*addns); */
     }
     return status;
 }
@@ -794,7 +796,9 @@ addns_write(void* zone)
         return status;
     }
 
-    if (z->db->is_initialized) {
+    if (z->db->is_initialized && z->ixfr->part[0] &&
+            z->ixfr->part[0]->soamin && z->ixfr->part[0]->soaplus)
+    {
         itmpfile = ods_build_path(z->name, ".ixfr.tmp", 0, 1);
         if (!itmpfile) {
             free((void*) atmpfile);
@@ -851,9 +855,12 @@ addns_write(void* zone)
     axfrfile = NULL;
     atmpfile = NULL;
 
-    if (z->db->is_initialized) {
+    if (z->db->is_initialized  && z->ixfr->part[0] &&
+            z->ixfr->part[0]->soamin && z->ixfr->part[0]->soaplus)
+    {
         ixfrfile = ods_build_path(z->name, ".ixfr", 0, 1);
         if (!ixfrfile) {
+            lock_basic_unlock(&z->xfr_lock);
             free((void*) axfrfile);
             free((void*) atmpfile);
             free((void*) itmpfile);
