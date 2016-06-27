@@ -157,7 +157,7 @@ fi
 
 # common dependencies
 ACX_LIBXML2
-ACX_LDNS(1,6,12)
+ACX_LDNS(1,6,17)
 ACX_LDNS_NOT(1,6,14, [binary incompatibility, see http://open.nlnetlabs.nl/pipermail/ldns-users/2012-October/000564.html])
 ACX_LDNS_NOT(1,6,15, [fail to create NSEC3 bitmap for empty non-terminals, see http://www.nlnetlabs.nl/pipermail/ldns-users/2012-November/000565.html])
 ACX_PKCS11_MODULES
