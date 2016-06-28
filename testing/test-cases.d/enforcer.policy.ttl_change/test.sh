@@ -17,41 +17,31 @@ fi &&
 ods_reset_env -i &&
 ods_start_enforcer &&
 
-echo "################## ZONE ADD 1 ###########################" &&
+echo "################## ZONE ADD 1" &&
 echo -n "LINE: ${LINENO} " && ods-enforcer zone add --zone ods1 &&
+ods_enforcer_idle &&
+ods-enforcer zone list &&
 
-echo "################## LEAP TO OMNIPRESENT ZSK DNSKEY ###########################" &&
-echo -n "LINE: ${LINENO} " && ods-enforcer time leap --attach &&
-echo -n "LINE: ${LINENO} " && ods-enforcer time leap --attach &&
-echo -n "LINE: ${LINENO} " && ods-enforcer time leap --attach &&
+echo "################## LEAP TO OMNIPRESENT ZSK DNSKEY" &&
+echo -n "LINE: ${LINENO} " && ods_enforcer_leap_over 120 &&
 
-echo "################## LOWER TTL AND RESTART ###########################" &&
-ods_stop_enforcer &&
+echo "################## LOWER TTL AND RESTART" &&
 echo -n "LINE: ${LINENO} " && cp kasp-short-ttl.xml  "$INSTALL_ROOT/etc/opendnssec/kasp.xml" &&
-ods_start_enforcer &&
 echo -n "LINE: ${LINENO} " && ods-enforcer policy import &&
-echo -n "LINE: ${LINENO} " && ods-enforcer time leap --attach &&
 
-echo "################## START ZSK ROLL ##########################" &&
+echo "################## START ZSK ROLL" &&
 echo -n "LINE: ${LINENO} " && ods-enforcer key rollover -t ZSK -z ods1 &&
-echo -n "LINE: ${LINENO} " && ods-enforcer time leap --attach &&
 
-echo "################## RECORD T_0 #########################" &&
-echo -n "LINE: ${LINENO} " && T0=`ods-enforcer queue | grep "It is now" | 
-	sed -r "s/^.*\(([0-9]+) .*$/\1/"` &&
-
-echo "################## LEAP TO OMNIPRESENT ########################" &&
-echo -n "LINE: ${LINENO} " && ods-enforcer time leap --attach &&
-
-echo "################## MUST HAVE 2 OMNIPRESENT ZSKS ######################" &&
+echo "################## TESTING 2ND ZSK IS NOT ACTIVE FOR ENOUGH TIME" &&
+echo -n "LINE: ${LINENO} " && ods_enforcer_leap_to 3600 &&
+ods-enforcer key list -d -p | grep ZSK &&
+COUNT=`ods-enforcer key list -d -p |grep ZSK|cut -f 4 -d ";" |grep -c omnipresent` &&
+[ $COUNT -eq 1 ] &&
+echo "################## BUT A MOMENT LATER IT IS" &&
+echo -n "LINE: ${LINENO} " && ods-enforcer time leap &&
 COUNT=`ods-enforcer key list -d -p |grep ZSK|cut -f 4 -d ";" |grep -c omnipresent` &&
 [ $COUNT -eq 2 ] &&
 
-echo "################## RECORD T_1 #########################" &&
-echo -n "LINE: ${LINENO} " && T1=`ods-enforcer queue | grep "It is now" | 
-	sed -r "s/^.*\(([0-9]+) .*$/\1/"` &&
-
-echo "################## DID ENOUGH TIME PASS? ########################" &&
 ###############################################################################
 ## NOTICE: we would expect roughly an hour + a minute here. (Old TTL + margins)
 ## If we would botch it up we expect a minute + a minute. (New TTL + margin)
@@ -61,15 +51,13 @@ echo "################## DID ENOUGH TIME PASS? ########################" &&
 ## so it will still succeed if we once fix that bug. (i.e. anything more than
 ## an hour is okay)
 ###############################################################################
-echo "T1 - T0 = $T1 - $T0 = $((T1 - T0))" &&
-[ $((T1 - T0)) -gt 3600 ] &&
 
-echo "################## TEST TEARDOWN ###########################" &&
+echo "################## TEST TEARDOWN" &&
 echo -n "LINE: ${LINENO} " && ods_stop_enforcer &&
 
 exit 0
 
-echo "################## ERROR: CURRENT STATE ###########################"
+echo "################## ERROR: CURRENT STATE" &&
 echo "DEBUG: " && ods-enforcer key list -d -p
 echo "DEBUG: " && ods-enforcer key list -v
 echo "DEBUG: " && ods-enforcer queue

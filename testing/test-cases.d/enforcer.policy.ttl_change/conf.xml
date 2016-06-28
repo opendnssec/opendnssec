@@ -6,7 +6,6 @@
 			<Module>@SOFTHSM_MODULE@</Module>
 			<TokenLabel>OpenDNSSEC</TokenLabel>
 			<PIN>1234</PIN>		
-			<Capacity>10000</Capacity>
 		</Repository>
 	</RepositoryList>
 	<Common>
@@ -19,11 +18,11 @@
 	</Common>
 	<Enforcer>
 		<Datastore><SQLite>@INSTALL_ROOT@/var/opendnssec/kasp.db</SQLite></Datastore>
-		<AutomaticKeyGenerationPeriod>PT1M</AutomaticKeyGenerationPeriod>
-		<WorkerThreads>0</WorkerThreads>
+		<AutomaticKeyGenerationPeriod>P1Y</AutomaticKeyGenerationPeriod>
+		<WorkerThreads>1</WorkerThreads>
 	</Enforcer>
 	<Signer>
 		<WorkingDirectory>@INSTALL_ROOT@/var/opendnssec/signer</WorkingDirectory>
-		<WorkerThreads>4</WorkerThreads>
+		<WorkerThreads>1</WorkerThreads>
 	</Signer>
 </Configuration>
