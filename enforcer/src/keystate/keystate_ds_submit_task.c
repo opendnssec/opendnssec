@@ -48,7 +48,7 @@ keystate_ds_submit_task_perform(task_type *task)
 		KEY_DATA_DS_AT_PARENT_SUBMIT, KEY_DATA_DS_AT_PARENT_SUBMITTED,
 		(engine_type*)task->context);
 	task_cleanup(task);
-	flush_enforce_task((engine_type*)task->context, time_now());
+	flush_enforce_task((engine_type*)task->context, 0);
 	return NULL;
 }
 
