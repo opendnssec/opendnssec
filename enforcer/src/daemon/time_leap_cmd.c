@@ -139,6 +139,9 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 		if (! time)
 			time_leap = schedule_time_first(engine->taskq);
 		if (time_leap < 0) break;
+		if (now > time_leap) {
+			time_leap = now;
+		}
 
 		set_time_now(time_leap);
 		strftime(strtime, sizeof(strtime), "%c", localtime_r(&time_leap, &strtime_struct));

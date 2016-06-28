@@ -25,20 +25,14 @@
 		<TTL>PT1H</TTL>
 		<RetireSafety>PT0S</RetireSafety>
 		<PublishSafety>PT0S</PublishSafety>
-		<ShareKeys/>
-		<Purge>P5M</Purge>
-		<!-- Parameters for KSK only -->
 		<KSK>
 			<Algorithm length="2048">5</Algorithm>
-			<Lifetime>P5M</Lifetime>
-			<!-- @TODO@ Repository should be configured -->
+			<Lifetime>P1Y</Lifetime>
 			<Repository>SoftHSM</Repository>
 		</KSK>
-		<!-- Parameters for ZSK only -->
 		<ZSK>
 			<Algorithm length="2048">5</Algorithm>
 			<Lifetime>P5M</Lifetime>
-			<!-- @TODO@ Repository should be configured -->
 			<Repository>SoftHSM</Repository>
 		</ZSK>
 	</Keys>
