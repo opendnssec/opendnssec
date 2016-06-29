@@ -113,7 +113,7 @@ ods_enforcerd_SOURCES = \
 	db/db_value.c db/db_value.h \
 	db/db_join.c db/db_join.h \
 	db/db_error.h \
-	db/zone.c db/zone_ext.c db/zone_ext.h db/zone.h \
+	db/zone_db.c db/zone_db_ext.c db/zone_db_ext.h db/zone_db.h \
 	db/key_data.c db/key_data_ext.c db/key_data_ext.h db/key_data.h \
 	db/key_state.c db/key_state_ext.c db/key_state_ext.h db/key_state.h \
 	db/key_dependency.c db/key_dependency_ext.c db/key_dependency_ext.h db/key_dependency.h \

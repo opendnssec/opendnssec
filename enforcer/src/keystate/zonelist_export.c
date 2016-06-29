@@ -31,7 +31,7 @@
 #include "log.h"
 #include "str.h"
 #include "clientpipe.h"
-#include "db/zone.h"
+#include "db/zone_db.h"
 #include "utils/kc_helper.h"
 
 #include "keystate/zonelist_export.h"
@@ -51,8 +51,8 @@ int zonelist_export(int sockfd, db_connection_t* connection, const char* filenam
     xmlNodePtr node2;
     xmlNodePtr node3;
     xmlNodePtr node4;
-    zone_list_t* zone_list;
-    const zone_t* zone;
+    zone_list_db_t* zone_list;
+    const zone_db_t* zone;
     policy_t* policy = NULL;
     int cmp;
     char path[PATH_MAX];
@@ -124,12 +124,12 @@ int zonelist_export(int sockfd, db_connection_t* connection, const char* filenam
     }
     xmlDocSetRootElement(doc, root);
 
-    if (!(zone_list = zone_list_new(connection))
-        || zone_list_get(zone_list))
+    if (!(zone_list = zone_list_db_new(connection))
+        || zone_list_db_get(zone_list))
     {
         xmlFreeDoc(doc);
         if (zone_list) {
-            zone_list_free(zone_list);
+            zone_list_db_free(zone_list);
             client_printf_err(sockfd, "Unable to get list of zones, database error!\n");
             return ZONELIST_EXPORT_ERR_DATABASE;
         }
@@ -139,14 +139,14 @@ int zonelist_export(int sockfd, db_connection_t* connection, const char* filenam
         }
     }
 
-    while ((zone = zone_list_next(zone_list))) {
+    while ((zone = zone_list_db_next(zone_list))) {
         if (policy) {
             /*
              * If we already have a policy object; If policy_id compare fails
              * or if they are not the same free the policy object to we will
              * later retrieve the correct policy
              */
-            if (db_value_cmp(policy_id(policy), zone_policy_id(zone), &cmp)
+            if (db_value_cmp(policy_id(policy), zone_db_policy_id(zone), &cmp)
                 || cmp)
             {
                 policy_free(policy);
@@ -154,33 +154,33 @@ int zonelist_export(int sockfd, db_connection_t* connection, const char* filenam
             }
         }
         if (!policy) {
-            if (!(policy = zone_get_policy(zone))) {
+            if (!(policy = zone_db_get_policy(zone))) {
                 client_printf_err(sockfd, "Unable to get policy, database error!\n");
-                zone_list_free(zone_list);
+                zone_list_db_free(zone_list);
                 xmlFreeDoc(doc);
                 return ZONELIST_EXPORT_ERR_DATABASE;
             }
         }
 
         if (!(node = xmlNewChild(root, NULL, (xmlChar*)"Zone", NULL))
-            || !xmlNewProp(node, (xmlChar*)"name", (xmlChar*)zone_name(zone))
+            || !xmlNewProp(node, (xmlChar*)"name", (xmlChar*)zone_db_name(zone))
             || !xmlNewChild(node, NULL, (xmlChar*)"Policy", (xmlChar*)policy_name(policy))
-            || !xmlNewChild(node, NULL, (xmlChar*)"SignerConfiguration", (xmlChar*)zone_signconf_path(zone))
+            || !xmlNewChild(node, NULL, (xmlChar*)"SignerConfiguration", (xmlChar*)zone_db_signconf_path(zone))
             || !(node2 = xmlNewChild(node, NULL, (xmlChar*)"Adapters", NULL))
             || !(node3 = xmlNewChild(node2, NULL, (xmlChar*)"Input", NULL))
-            || !(node4 = xmlNewChild(node3, NULL, (xmlChar*)"Adapter", (xmlChar*)zone_input_adapter_uri(zone)))
-            || !xmlNewProp(node4, (xmlChar*)"type", (xmlChar*)zone_input_adapter_type(zone))
+            || !(node4 = xmlNewChild(node3, NULL, (xmlChar*)"Adapter", (xmlChar*)zone_db_input_adapter_uri(zone)))
+            || !xmlNewProp(node4, (xmlChar*)"type", (xmlChar*)zone_db_input_adapter_type(zone))
             || !(node3 = xmlNewChild(node2, NULL, (xmlChar*)"Output", NULL))
-            || !(node4 = xmlNewChild(node3, NULL, (xmlChar*)"Adapter", (xmlChar*)zone_output_adapter_uri(zone)))
-            || !xmlNewProp(node4, (xmlChar*)"type", (xmlChar*)zone_output_adapter_type(zone)))
+            || !(node4 = xmlNewChild(node3, NULL, (xmlChar*)"Adapter", (xmlChar*)zone_db_output_adapter_uri(zone)))
+            || !xmlNewProp(node4, (xmlChar*)"type", (xmlChar*)zone_db_output_adapter_type(zone)))
         {
-            client_printf_err(sockfd, "Unable to create XML elements for zone %s!\n", zone_name(zone));
-            zone_list_free(zone_list);
+            client_printf_err(sockfd, "Unable to create XML elements for zone %s!\n", zone_db_name(zone));
+            zone_list_db_free(zone_list);
             xmlFreeDoc(doc);
             return ZONELIST_EXPORT_ERR_XML;
         }
     }
-    zone_list_free(zone_list);
+    zone_list_db_free(zone_list);
     policy_free(policy);
 
     if (snprintf(path, sizeof(path), "%s.new", filename) >= (int)sizeof(path)) {

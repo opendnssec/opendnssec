@@ -57,7 +57,7 @@ typedef enum key_data_ds_at_parent {
 extern const db_enum_t key_data_enum_set_ds_at_parent[];
 
 #include "key_data_ext.h"
-#include "zone.h"
+#include "zone_db.h"
 #include "hsm_key.h"
 
 /**
@@ -68,8 +68,8 @@ struct key_data {
     db_value_t id;
     db_value_t rev;
     db_value_t zone_id;
-    const zone_t* associated_zone_id;
-    zone_t* private_zone_id;
+    const zone_db_t* associated_zone_id;
+    zone_db_t* private_zone_id;
     db_value_t hsm_key_id;
     const hsm_key_t* associated_hsm_key_id;
     hsm_key_t* private_hsm_key_id;
@@ -153,9 +153,9 @@ const db_value_t* key_data_zone_id(const key_data_t* key_data);
  * Get the zone_id object related to a key data object.
  * The caller will be given ownership of this object and is responsible for freeing it.
  * \param[in] key_data a key_data_t pointer.
- * \return a zone_t pointer or NULL on error or if no object could be found.
+ * \return a zone_db_t pointer or NULL on error or if no object could be found.
  */
-zone_t* key_data_get_zone(const key_data_t* key_data);
+zone_db_t* key_data_get_zone(const key_data_t* key_data);
 
 /**
  * Get the hsm_key_id of a key data object.
@@ -485,7 +485,7 @@ struct key_data_list {
     size_t object_list_position;
     int object_list_first;
     int associated_fetch;
-    zone_list_t* zone_id_list;
+    zone_list_db_t* zone_id_list;
     hsm_key_list_t* hsm_key_id_list;
 };
 

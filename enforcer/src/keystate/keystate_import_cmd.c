@@ -65,7 +65,7 @@ perform_hsmkey_import(int sockfd, db_connection_t *dbconn,
     hsm_key_t *hsm_key = NULL;
     char *hsm_err;
     libhsm_key_t *libhsmkey;
-    zone_t *zone;
+    zone_db_t *zone;
 	
   /* Create an HSM context and check that the repository exists  */
     if (!(hsm_ctx = hsm_create_context())) {
@@ -101,14 +101,14 @@ perform_hsmkey_import(int sockfd, db_connection_t *dbconn,
         return -1;
     }
 
-    zone = zone_new_get_by_name(dbconn, zonename);
+    zone = zone_db_new_get_by_name(dbconn, zonename);
     if (!(hsm_key = hsm_key_new(dbconn))
                 || hsm_key_set_algorithm(hsm_key, alg)
                 || hsm_key_set_bits(hsm_key, bits)
                 || hsm_key_set_inception(hsm_key, time)
                 || hsm_key_set_key_type(hsm_key, HSM_KEY_KEY_TYPE_RSA)
                 || hsm_key_set_locator(hsm_key, ckaid)
-                || hsm_key_set_policy_id(hsm_key, zone_policy_id(zone))
+                || hsm_key_set_policy_id(hsm_key, zone_db_policy_id(zone))
                 || hsm_key_set_repository(hsm_key, rep)
                 || hsm_key_set_role(hsm_key, keytype)
                 || hsm_key_set_state(hsm_key, (hsm_key_state_t)HSM_KEY_STATE_PRIVATE)
@@ -117,13 +117,13 @@ perform_hsmkey_import(int sockfd, db_connection_t *dbconn,
         ods_log_error("[%s] hsm key creation failed, database or memory error", module_str);
         hsm_key_free(hsm_key);                
         hsm_destroy_context(hsm_ctx);
-        zone_free(zone);
+        zone_db_free(zone);
         return -1;
     }
     ods_log_debug("[%s] hsm key with this locator %s is created successfully", module_str, ckaid);
     hsm_key_free(hsm_key);
     hsm_destroy_context(hsm_ctx);
-    zone_free(zone);
+    zone_db_free(zone);
     return 0;
 }
 
@@ -138,7 +138,7 @@ perform_keydata_import(int sockfd, db_connection_t *dbconn,
     uint16_t tag;
     hsm_key_t * hsmkey;
     libhsm_key_t *libhsmkey;
-    zone_t *zone;
+    zone_db_t *zone;
 
     /* Create a HSM context and check that the repository exists  */
     if (!(hsm_ctx = hsm_create_context())) {
@@ -174,9 +174,9 @@ perform_keydata_import(int sockfd, db_connection_t *dbconn,
         ods_log_error("[%s] Error: Keytag for this key %s is not correct", module_str, ckaid);
     }
 
-    zone = zone_new_get_by_name(dbconn, zonename);
+    zone = zone_db_new_get_by_name(dbconn, zonename);
     if (!(key_data = key_data_new(dbconn))
-                || key_data_set_zone_id(key_data, zone_id(zone))
+                || key_data_set_zone_id(key_data, zone_db_id(zone))
                 || key_data_set_hsm_key_id(key_data, hsm_key_id(hsmkey))
 		|| key_data_set_algorithm (key_data, alg)
                 || key_data_set_inception(key_data, time)
@@ -194,10 +194,10 @@ perform_keydata_import(int sockfd, db_connection_t *dbconn,
         hsm_key_free(hsmkey);
         key_data_free(key_data);
         hsm_destroy_context(hsm_ctx);
-        zone_free(zone);
+        zone_db_free(zone);
         return -1;
     }
-    zone_free(zone);
+    zone_db_free(zone);
     ods_log_debug("[%s] key data with this locator %s is created successfully", module_str, ckaid);
     key_data_free(key_data);
     hsm_destroy_context(hsm_ctx);
@@ -219,7 +219,7 @@ perform_keystate_import(int sockfd, db_connection_t *dbconn,
     const db_value_t* keydataid;
     policy_t* policy;
     libhsm_key_t *libhsmkey;
-    zone_t *zone;
+    zone_db_t *zone;
 
     /* Create a HSM context and check that the repository exists  */
     if (!(hsm_ctx = hsm_create_context())) {
@@ -250,9 +250,9 @@ perform_keystate_import(int sockfd, db_connection_t *dbconn,
     keydataid = key_data_id(key);
 
     policy = policy_new(dbconn);
-    zone = zone_new_get_by_name(dbconn, zonename);
-    policy_get_by_id(policy, zone_policy_id(zone));
-    zone_free(zone);
+    zone = zone_db_new_get_by_name(dbconn, zonename);
+    policy_get_by_id(policy, zone_db_policy_id(zone));
+    zone_db_free(zone);
 
     if (!(key_state = key_state_new(dbconn))
                 || key_state_set_key_data_id(key_state, keydataid)
@@ -397,7 +397,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     const char* keytype = NULL;
     const char* keystate = NULL;
     const char *time = NULL;
-    zone_t *zone = NULL;
+    zone_db_t *zone = NULL;
     time_t inception = 0;
     struct tm tm;
     (void)engine;
@@ -456,7 +456,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
         client_printf_err(sockfd, "expected --zone \n");
         return -1;
     }
-    if (zonename && !(zone = zone_new_get_by_name(dbconn, zonename))) {
+    if (zonename && !(zone = zone_db_new_get_by_name(dbconn, zonename))) {
         ods_log_error("[%s] Unknown zone: %s", module_str, zonename);
         client_printf_err(sockfd, "Unknown zone: %s\n", zonename);
         return -1;
@@ -493,9 +493,9 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
         type = 3;
 
     hsmkey_id = db_value_new();
-    zone = zone_new_get_by_name(dbconn, zonename);
-    policy_key = policy_key_new_get_by_policyid_and_role(dbconn, zone_policy_id(zone), type);
-    zone_free(zone);
+    zone = zone_db_new_get_by_name(dbconn, zonename);
+    policy_key = policy_key_new_get_by_policyid_and_role(dbconn, zone_db_policy_id(zone), type);
+    zone_db_free(zone);
     if (!policy_key) {
         ods_log_error("Unable to get policyKey, database error!");
         client_printf_err(sockfd, "Unable to get policyKey, database error!\n");

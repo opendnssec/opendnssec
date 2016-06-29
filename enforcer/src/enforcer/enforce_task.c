@@ -42,7 +42,7 @@
 #include "log.h"
 #include "scheduler/schedule.h"
 #include "scheduler/task.h"
-#include "db/zone.h"
+#include "db/zone_db.h"
 #include "db/db_clause.h"
 
 #include "enforcer/enforce_task.h"
@@ -80,8 +80,8 @@ static time_t
 perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 	task_type* task, db_connection_t *dbconn)
 {
-	zone_list_t *zonelist = NULL;
-	zone_t *zone, *firstzone = NULL;
+	zone_list_db_t *zonelist = NULL;
+	zone_db_t *zone, *firstzone = NULL;
 	policy_t *policy;
 	key_data_list_t *keylist;
 	const key_data_t *key;
@@ -93,11 +93,11 @@ perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 	int bRetractFromParent = 0;
 	int zone_updated;
 
-	if (!(zonelist = zone_list_new(dbconn))
+	if (!(zonelist = zone_list_db_new(dbconn))
 		/*|| zone_list_associated_fetch(zonelist)*/
-		|| zone_list_get(zonelist))
+		|| zone_list_db_get(zonelist))
 	{
-		zone_list_free(zonelist);
+		zone_list_db_free(zonelist);
 		zonelist = NULL;
 	}
 	if (!zonelist) {
@@ -107,34 +107,34 @@ perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 		return t_reschedule;
 	}
 
-	for (zone = zone_list_get_next(zonelist); zone;
-		zone_free(zone), zone = zone_list_get_next(zonelist))
+	for (zone = zone_list_db_get_next(zonelist); zone;
+		zone_db_free(zone), zone = zone_list_db_get_next(zonelist))
 	{
 		if (engine->need_to_reload || engine->need_to_exit) break;
 
-		if (!bForceUpdate && (zone_next_change(zone) == -1)) {
+		if (!bForceUpdate && (zone_db_next_change(zone) == -1)) {
 			continue;
-		} else if (zone_next_change(zone) > t_now && !bForceUpdate) {
+		} else if (zone_db_next_change(zone) > t_now && !bForceUpdate) {
 			/* This zone needs no update, however it might be the first
 			 * for future updates */
-			if (zone_next_change(zone) < t_reschedule || !firstzone)
+			if (zone_db_next_change(zone) < t_reschedule || !firstzone)
 			{
-				t_reschedule = zone_next_change(zone);
+				t_reschedule = zone_db_next_change(zone);
 				if (firstzone) {
-					zone_free(firstzone);
+					zone_db_free(firstzone);
 				}
 				firstzone = zone;
 				zone = NULL; /* keeps firstzone from being freed. */
 			}
 			continue;
 		}
-		if (!(policy = zone_get_policy(zone))) {
+		if (!(policy = zone_db_get_policy(zone))) {
 			client_printf(sockfd,
 				"Next update for zone %s NOT scheduled "
-				"because policy is missing !\n", zone_name(zone));
-			if (zone_next_change(zone) != -1
-				&& (zone_set_next_change(zone, -1)
-					|| zone_update(zone)))
+				"because policy is missing !\n", zone_db_name(zone));
+			if (zone_db_next_change(zone) != -1
+				&& (zone_db_set_next_change(zone, -1)
+					|| zone_db_update(zone)))
 			{
 				/* TODO: Log error */
 			}
@@ -142,9 +142,9 @@ perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 		}
 
 		if (policy_passthrough(policy)) {
-			ods_log_info("Passing through zone %s.\n", zone_name(zone));
-			zone_set_signconf_needs_writing(zone, 1);
-			zone_update(zone);
+			ods_log_info("Passing through zone %s.\n", zone_db_name(zone));
+			zone_db_set_signconf_needs_writing(zone, 1);
+			zone_db_update(zone);
 			bSignerConfNeedsWriting = 1;
 			policy_free(policy);
 			continue;
@@ -153,19 +153,19 @@ perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 		zone_updated = 0;
 		t_next = update(engine, dbconn, zone, policy, t_now, &zone_updated);
 		policy_free(policy);
-		bSignerConfNeedsWriting |= zone_signconf_needs_writing(zone);
+		bSignerConfNeedsWriting |= zone_db_signconf_needs_writing(zone);
 
-		keylist = zone_get_keys(zone);
+		keylist = zone_db_get_keys(zone);
 		while ((key = key_data_list_next(keylist))) {
 			if (key_data_ds_at_parent(key) == KEY_DATA_DS_AT_PARENT_SUBMIT) {
 				ods_log_warning("[%s] please submit DS "
 					"with keytag %d for zone %s",
-					module_str, key_data_keytag(key)&0xFFFF, zone_name(zone));
+					module_str, key_data_keytag(key)&0xFFFF, zone_db_name(zone));
 				bSubmitToParent = 1;
 			} else if (key_data_ds_at_parent(key) == KEY_DATA_DS_AT_PARENT_RETRACT) {
 				ods_log_warning("[%s] please retract DS "
 					"with keytag %d for zone %s",
-					module_str, key_data_keytag(key)&0xFFFF, zone_name(zone));
+					module_str, key_data_keytag(key)&0xFFFF, zone_db_name(zone));
 				bRetractFromParent = 1;
 			}
 		}
@@ -174,21 +174,21 @@ perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 		if (t_next == -1) {
 			client_printf(sockfd,
 				"Next update for zone %s NOT scheduled "
-				"by enforcer !\n", zone_name(zone));
+				"by enforcer !\n", zone_db_name(zone));
 			ods_log_debug("Next update for zone %s NOT scheduled "
-				"by enforcer !\n", zone_name(zone));
+				"by enforcer !\n", zone_db_name(zone));
 		} else {
 			/* Invalid schedule time then skip the zone.*/
 			char tbuf[32] = "date/time invalid\n"; /* at least 26 bytes */
 			ctime_r(&t_next, tbuf); /* note that ctime_r inserts \n */
 			client_printf(sockfd,
 				"Next update for zone %s scheduled at %s",
-				zone_name(zone), tbuf);
+				zone_db_name(zone), tbuf);
 			ods_log_debug("Next update for zone %s scheduled at %s",
-				zone_name(zone), tbuf);
+				zone_db_name(zone), tbuf);
 		}
-		if (zone_next_change(zone) != t_next) {
-			zone_set_next_change(zone, t_next);
+		if (zone_db_next_change(zone) != t_next) {
+			zone_db_set_next_change(zone, t_next);
 			zone_updated = 1;
 		}
 
@@ -196,34 +196,34 @@ perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
 		 * Commit the changes to the zone if there where any.
 		 */
 		if (zone_updated) {
-			if (zone_update(zone)) {
-				ods_log_debug("[%s] error zone_update(%s)", module_str, zone_name(zone));
+			if (zone_db_update(zone)) {
+				ods_log_debug("[%s] error zone_db_update(%s)", module_str, zone_db_name(zone));
 			}
 		}
 
 		/*
 		 * Find out when to schedule the next change.
 		 */
-		if (zone_next_change(zone) != -1
-			&& (zone_next_change(zone) < t_reschedule
+		if (zone_db_next_change(zone) != -1
+			&& (zone_db_next_change(zone) < t_reschedule
 				|| !firstzone))
 		{
-			t_reschedule = zone_next_change(zone);
+			t_reschedule = zone_db_next_change(zone);
 			if (firstzone) {
-				zone_free(firstzone);
+				zone_db_free(firstzone);
 			}
 			firstzone = zone;
 			zone = NULL;
 		}
 	}
-	zone_list_free(zonelist);
+	zone_list_db_free(zonelist);
 
 	/*
 	 * Schedule the next change if needed.
 	 */
 	if (firstzone) {
-		reschedule_enforce(task, t_reschedule, zone_name(firstzone));
-		zone_free(firstzone);
+		reschedule_enforce(task, t_reschedule, zone_db_name(firstzone));
+		zone_db_free(firstzone);
 	}
 
 	/* Launch signer configuration writer task when one of the

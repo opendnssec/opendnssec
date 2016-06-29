@@ -27,7 +27,7 @@
 #ifndef _ENFORCER_ENFORCER_H_
 #define _ENFORCER_ENFORCER_H_
 
-#include "db/zone.h"
+#include "db/zone_db.h"
 #include "db/policy.h"
 #include "daemon/engine.h"
 
@@ -48,6 +48,6 @@
  * @return time_t Time the function wishes to be called again.
  * */
 time_t
-update(engine_type *engine, db_connection_t *dbconn, zone_t *zone, policy_t *policy, time_t now, int *zone_updated);
+update(engine_type *engine, db_connection_t *dbconn, zone_db_t *zone, policy_t *policy, time_t now, int *zone_updated);
 
 #endif /* _ENFORCER_ENFORCER_H_ */

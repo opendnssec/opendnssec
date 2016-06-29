@@ -34,7 +34,7 @@
 #include "str.h"
 #include "enforcer/enforce_task.h"
 #include "clientpipe.h"
-#include "db/zone.h"
+#include "db/zone_db.h"
 #include "log.h"
 #include "file.h"
 
@@ -47,8 +47,8 @@ perform_keystate_rollover(int sockfd, db_connection_t *dbconn, const char * poli
 	const char *zonename, int nkeyrole)
 {
 	policy_t* policy = NULL;
-	zone_t* zone = NULL;
-	zone_list_t *zonelist = NULL;
+	zone_db_t* zone = NULL;
+	zone_list_db_t *zonelist = NULL;
 	int reterror = 0;
 	int error = 0;
 	int listsize = 0;
@@ -69,18 +69,18 @@ perform_keystate_rollover(int sockfd, db_connection_t *dbconn, const char * poli
 	                return 1;
                 }
                 zonelist = policy_zone_list(policy);
-                listsize = zone_list_size(zonelist);
+                listsize = zone_list_db_size(zonelist);
 		if (listsize == 0) {
 			client_printf (sockfd, "No zones on policy %s\n", policy_name(policy));
 			client_printf (sockfd, "No keys to be rolled\n");
 			policy_free(policy);
 			return 0;
 		}
-                zone = zone_list_get_next(zonelist);
+                zone = zone_list_db_get_next(zonelist);
 	}
 	else if (zonename) {
 		listsize = 1;
-		if (!(zone = zone_new_get_by_name(dbconn, zonename))) {
+		if (!(zone = zone_db_new_get_by_name(dbconn, zonename))) {
 			client_printf(sockfd, "zone %s not found\n", zonename);
 			return 1;
 		}
@@ -90,27 +90,27 @@ perform_keystate_rollover(int sockfd, db_connection_t *dbconn, const char * poli
 		error = 0;
 		switch (nkeyrole) {
 			case 0:
-				if (zone_set_roll_ksk_now(zone, 1) ||
-					zone_set_roll_zsk_now(zone, 1) ||
-					zone_set_roll_csk_now(zone, 1)) {error = 1; break;}
-				client_printf(sockfd, "rolling all keys for zone %s\n", zone_name(zone));
+				if (zone_db_set_roll_ksk_now(zone, 1) ||
+					zone_db_set_roll_zsk_now(zone, 1) ||
+					zone_db_set_roll_csk_now(zone, 1)) {error = 1; break;}
+				client_printf(sockfd, "rolling all keys for zone %s\n", zone_db_name(zone));
 				ods_log_info("[%s] Manual rollover initiated for all keys on Zone: %s",
-					module_str, zone_name(zone));
+					module_str, zone_db_name(zone));
 				break;
 			case KEY_DATA_ROLE_KSK:
-				if (zone_set_roll_ksk_now(zone, 1)) {error = 1; break;};
-				client_printf(sockfd, "rolling KSK for zone %s\n", zone_name(zone));
-				ods_log_info("[%s] Manual rollover initiated for KSK on Zone: %s", module_str, zone_name(zone));
+				if (zone_db_set_roll_ksk_now(zone, 1)) {error = 1; break;};
+				client_printf(sockfd, "rolling KSK for zone %s\n", zone_db_name(zone));
+				ods_log_info("[%s] Manual rollover initiated for KSK on Zone: %s", module_str, zone_db_name(zone));
 				break;
 			case KEY_DATA_ROLE_ZSK:
-				if (zone_set_roll_zsk_now(zone, 1)) {error = 1; break;}
-				client_printf(sockfd, "rolling ZSK for zone %s\n", zone_name(zone));
-				ods_log_info("[%s] Manual rollover initiated for ZSK on Zone: %s", module_str, zone_name(zone));
+				if (zone_db_set_roll_zsk_now(zone, 1)) {error = 1; break;}
+				client_printf(sockfd, "rolling ZSK for zone %s\n", zone_db_name(zone));
+				ods_log_info("[%s] Manual rollover initiated for ZSK on Zone: %s", module_str, zone_db_name(zone));
 				break;
 			case KEY_DATA_ROLE_CSK:
-				if (zone_set_roll_csk_now(zone, 1)) {error = 1; break;}
-				client_printf(sockfd, "rolling CSK for zone %s\n", zone_name(zone));
-				ods_log_info("[%s] Manual rollover initiated for CSK on Zone: %s", module_str, zone_name(zone));
+				if (zone_db_set_roll_csk_now(zone, 1)) {error = 1; break;}
+				client_printf(sockfd, "rolling CSK for zone %s\n", zone_db_name(zone));
+				ods_log_info("[%s] Manual rollover initiated for CSK on Zone: %s", module_str, zone_db_name(zone));
 				break;
 			default:
 				ods_log_assert(false && "nkeyrole out of range");
@@ -118,16 +118,16 @@ perform_keystate_rollover(int sockfd, db_connection_t *dbconn, const char * poli
 					"nkeyrole out of range");
 				error = 1;
 		}
-		error = error || zone_set_next_change(zone, 0) || zone_update(zone);
+		error = error || zone_db_set_next_change(zone, 0) || zone_db_update(zone);
 		if (error) {
 			ods_log_error_and_printf(sockfd, module_str,
-				"updating zone %s in the database failed", zone_name(zone));
+				"updating zone %s in the database failed", zone_db_name(zone));
 		}
 		reterror = error || reterror;
 		listsize--;
-		zone_free(zone);
+		zone_db_free(zone);
 		if (listsize > 0)
-			zone = zone_list_get_next(zonelist);
+			zone = zone_list_db_get_next(zonelist);
 	}
 	policy_free(policy);
 	return reterror;

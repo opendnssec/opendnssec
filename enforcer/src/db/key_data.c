@@ -310,7 +310,7 @@ void key_data_free(key_data_t* key_data) {
         db_value_reset(&(key_data->rev));
         db_value_reset(&(key_data->zone_id));
         if (key_data->private_zone_id) {
-            zone_free(key_data->private_zone_id);
+            zone_db_free(key_data->private_zone_id);
         }
         db_value_reset(&(key_data->hsm_key_id));
         if (key_data->private_hsm_key_id) {
@@ -341,18 +341,18 @@ int key_data_copy(key_data_t* key_data, const key_data_t* key_data_copy) {
         return DB_ERROR_UNKNOWN;
     }
     if (key_data->private_zone_id) {
-        zone_free(key_data->private_zone_id);
+        zone_db_free(key_data->private_zone_id);
         key_data->private_zone_id = NULL;
     }
     if (key_data_copy->private_zone_id
-        && !(key_data->private_zone_id = zone_new_copy(key_data_copy->private_zone_id)))
+        && !(key_data->private_zone_id = zone_db_new_copy(key_data_copy->private_zone_id)))
     {
         return DB_ERROR_UNKNOWN;
     }
     key_data->associated_zone_id = NULL;
     if (!key_data_copy->private_zone_id
         && key_data_copy->associated_zone_id
-        && !(key_data->private_zone_id = zone_new_copy(key_data_copy->associated_zone_id)))
+        && !(key_data->private_zone_id = zone_db_new_copy(key_data_copy->associated_zone_id)))
     {
         return DB_ERROR_UNKNOWN;
     }
@@ -566,8 +566,8 @@ const db_value_t* key_data_zone_id(const key_data_t* key_data) {
     return &(key_data->zone_id);
 }
 
-zone_t* key_data_get_zone(const key_data_t* key_data) {
-    zone_t* zone_id = NULL;
+zone_db_t* key_data_get_zone(const key_data_t* key_data) {
+    zone_db_t* zone_id = NULL;
 
     if (!key_data) {
         return NULL;
@@ -579,24 +579,24 @@ zone_t* key_data_get_zone(const key_data_t* key_data) {
         return NULL;
     }
 
-    if (!(zone_id = zone_new(db_object_connection(key_data->dbo)))) {
+    if (!(zone_id = zone_db_new(db_object_connection(key_data->dbo)))) {
         return NULL;
     }
     if (key_data->private_zone_id) {
-        if (zone_copy(zone_id, key_data->private_zone_id)) {
-            zone_free(zone_id);
+        if (zone_db_copy(zone_id, key_data->private_zone_id)) {
+            zone_db_free(zone_id);
             return NULL;
         }
     }
     else if (key_data->associated_zone_id) {
-        if (zone_copy(zone_id, key_data->associated_zone_id)) {
-            zone_free(zone_id);
+        if (zone_db_copy(zone_id, key_data->associated_zone_id)) {
+            zone_db_free(zone_id);
             return NULL;
         }
     }
     else {
-        if (zone_get_by_id(zone_id, &(key_data->zone_id))) {
-            zone_free(zone_id);
+        if (zone_db_get_by_id(zone_id, &(key_data->zone_id))) {
+            zone_db_free(zone_id);
             return NULL;
         }
     }
@@ -1713,7 +1713,7 @@ void key_data_list_free(key_data_list_t* key_data_list) {
             free(key_data_list->object_list);
         }
         if (key_data_list->zone_id_list) {
-            zone_list_free(key_data_list->zone_id_list);
+            zone_list_db_free(key_data_list->zone_id_list);
         }
         if (key_data_list->hsm_key_id_list) {
             hsm_key_list_free(key_data_list->hsm_key_id_list);
@@ -1775,7 +1775,7 @@ int key_data_list_copy(key_data_list_t* key_data_list, const key_data_list_t* fr
     key_data_list->associated_fetch = from_key_data_list->associated_fetch;
 
     if (from_key_data_list->zone_id_list
-        && !(key_data_list->zone_id_list = zone_list_new_copy(from_key_data_list->zone_id_list)))
+        && !(key_data_list->zone_id_list = zone_list_db_new_copy(from_key_data_list->zone_id_list)))
     {
         return DB_ERROR_UNKNOWN;
     }
@@ -1791,7 +1791,7 @@ int key_data_list_copy(key_data_list_t* key_data_list, const key_data_list_t* fr
 
 static int key_data_list_get_associated(key_data_list_t* key_data_list) {
     const db_clause_t* clause_walk;
-    const zone_t* zone_zone_id;
+    const zone_db_t* zone_zone_id;
     const hsm_key_t* hsm_key_hsm_key_id;
     size_t j, count;
     int cmp;
@@ -1819,7 +1819,7 @@ static int key_data_list_get_associated(key_data_list_t* key_data_list) {
     }
 
     if (key_data_list->zone_id_list) {
-        zone_list_free(key_data_list->zone_id_list);
+        zone_list_db_free(key_data_list->zone_id_list);
         key_data_list->zone_id_list = NULL;
     }
     if (key_data_list->hsm_key_id_list) {
@@ -1861,12 +1861,12 @@ static int key_data_list_get_associated(key_data_list_t* key_data_list) {
         key_data = key_data_list_next(key_data_list);
     }
 
-    if (!(key_data_list->zone_id_list = zone_list_new(db_object_connection(key_data_list->dbo)))
-        || zone_list_object_store(key_data_list->zone_id_list)
-        || zone_list_get_by_clauses(key_data_list->zone_id_list, clause_list))
+    if (!(key_data_list->zone_id_list = zone_list_db_new(db_object_connection(key_data_list->dbo)))
+        || zone_list_db_object_store(key_data_list->zone_id_list)
+        || zone_list_db_get_by_clauses(key_data_list->zone_id_list, clause_list))
     {
         if (key_data_list->zone_id_list) {
-            zone_list_free(key_data_list->zone_id_list);
+            zone_list_db_free(key_data_list->zone_id_list);
             key_data_list->zone_id_list = NULL;
         }
         db_clause_list_free(clause_list);
@@ -1879,16 +1879,16 @@ static int key_data_list_get_associated(key_data_list_t* key_data_list) {
             return DB_ERROR_UNKNOWN;
         }
 
-        zone_zone_id = zone_list_begin(key_data_list->zone_id_list);
+        zone_zone_id = zone_list_db_begin(key_data_list->zone_id_list);
         while (zone_zone_id) {
-            if (db_value_cmp(key_data_zone_id(key_data_list->object_list[i]), zone_id(zone_zone_id), &cmp)) {
+            if (db_value_cmp(key_data_zone_id(key_data_list->object_list[i]), zone_db_id(zone_zone_id), &cmp)) {
                 return DB_ERROR_UNKNOWN;
             }
             if (!cmp) {
                 key_data_list->object_list[i]->associated_zone_id = zone_zone_id;
             }
 
-            zone_zone_id = zone_list_next(key_data_list->zone_id_list);
+            zone_zone_id = zone_list_db_next(key_data_list->zone_id_list);
         }
     }
 
