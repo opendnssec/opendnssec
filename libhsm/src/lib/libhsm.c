@@ -688,14 +688,13 @@ static void
 hsm_ctx_free(hsm_ctx_t *ctx)
 {
     unsigned int i;
+    keycache_destroy(ctx);
     if (ctx) {
         for (i = 0; i < ctx->session_count; i++) {
             hsm_session_free(ctx->session[i]);
         }
         free(ctx);
     }
-
-    keycache_destroy(ctx);
 }
 
 /* close the session, and free the allocated data
@@ -1102,7 +1101,10 @@ hsm_get_key_size_ecdsa(hsm_ctx_t *ctx, const hsm_session_t *session,
 
     if (value == NULL) return 0;
 
-    if( ((CK_ULONG) - 1) / (8/2) < value_len) return 0;
+    if( ((CK_ULONG) - 1) / (8/2) < value_len) {
+	    free(value);
+	    return 0;
+    }
 
     /* value = x | y */
     bits = value_len * 8 / 2;
@@ -1398,8 +1400,10 @@ hsm_list_keys_session_internal(hsm_ctx_t *ctx,
         for (i = 0; i < total_count; i++) {
             key = libhsm_key_new_privkey_object_handle(ctx, session,
                                                     key_handles[i]);
-            if(key == NULL) goto errkeys;
-
+            if(!key) {
+		    libhsm_key_list_free(keys, i);
+		    goto err;
+	    }
             keys[i] = key;
         }
     }
@@ -1407,9 +1411,6 @@ hsm_list_keys_session_internal(hsm_ctx_t *ctx,
 
     *count = total_count;
     return keys;
-
-errkeys:
-    libhsm_key_list_free(keys, i-1);
 
 err:
     free(key_handles);
@@ -2410,6 +2411,19 @@ hsm_find_key_by_id(hsm_ctx_t *ctx, const char *id)
     return key;
 }
 
+static void
+generate_unique_id(hsm_ctx_t *ctx, unsigned char *buf, size_t bufsize)
+{
+    libhsm_key_t *key;
+    /* check whether this key doesn't happen to exist already */
+    hsm_random_buffer(ctx, buf, bufsize);
+    while ((key = hsm_find_key_by_id_bin(ctx, buf, bufsize))) {
+	free(key);
+	hsm_random_buffer(ctx, buf, bufsize);
+    }
+
+}
+
 libhsm_key_t *
 hsm_generate_rsa_key(hsm_ctx_t *ctx,
                      const char *repository,
@@ -2435,10 +2449,8 @@ hsm_generate_rsa_key(hsm_ctx_t *ctx,
     session = hsm_find_repository_session(ctx, repository);
     if (!session) return NULL;
 
-    /* check whether this key doesn't happen to exist already */
-    do {
-        hsm_random_buffer(ctx, id, 16);
-    } while (hsm_find_key_by_id_bin(ctx, id, 16));
+    generate_unique_id(ctx, id, 16);
+
     /* the CKA_LABEL will contain a hexadecimal string representation
      * of the id */
     hsm_hex_unparse(id_str, id, 16);
@@ -2518,11 +2530,8 @@ hsm_generate_dsa_key(hsm_ctx_t *ctx,
     session = hsm_find_repository_session(ctx, repository);
     if (!session) return NULL;
 
-    /* check whether this key doesn't happen to exist already */
+    generate_unique_id(ctx, id, 16);
 
-    do {
-        hsm_random_buffer(ctx, id, 16);
-    } while (hsm_find_key_by_id_bin(ctx, id, 16));
     /* the CKA_LABEL will contain a hexadecimal string representation
      * of the id */
     hsm_hex_unparse(id_str, id, 16);
@@ -2630,11 +2639,8 @@ hsm_generate_gost_key(hsm_ctx_t *ctx,
     session = hsm_find_repository_session(ctx, repository);
     if (!session) return NULL;
 
-    /* check whether this key doesn't happen to exist already */
+    generate_unique_id(ctx, id, 16);
 
-    do {
-        hsm_random_buffer(ctx, id, 16);
-    } while (hsm_find_key_by_id_bin(ctx, id, 16));
     /* the CKA_LABEL will contain a hexadecimal string representation
      * of the id */
     hsm_hex_unparse(id_str, id, 16);
@@ -2712,11 +2718,8 @@ hsm_generate_ecdsa_key(hsm_ctx_t *ctx,
     session = hsm_find_repository_session(ctx, repository);
     if (!session) return NULL;
 
-    /* check whether this key doesn't happen to exist already */
+    generate_unique_id(ctx, id, 16);
 
-    do {
-        hsm_random_buffer(ctx, id, 16);
-    } while (hsm_find_key_by_id_bin(ctx, id, 16));
     /* the CKA_LABEL will contain a hexadecimal string representation
      * of the id */
     hsm_hex_unparse(id_str, id, 16);
@@ -3330,6 +3333,7 @@ keycache_delfunc(ldns_rbnode_t* node, void* cargo)
     (void)cargo;
     free((void*)node->key);
     free((void*)node->data);
+    free((void*)node);
 }
 
 void
@@ -3363,7 +3367,7 @@ keycache_lookup(hsm_ctx_t* ctx, const char* locator)
         }
     }  
 
-    if (node == LDNS_RBTREE_NULL)
+    if (node == LDNS_RBTREE_NULL || node == NULL)
         return NULL;
     else
         return node->data;

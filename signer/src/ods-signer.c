@@ -285,8 +285,7 @@ interface_start(char* cmd)
     /* no suprises */
     bzero(&servaddr, sizeof(servaddr));
     servaddr.sun_family = AF_UNIX;
-    strncpy(servaddr.sun_path, servsock_filename,
-        sizeof(servaddr.sun_path) - 1);
+    strncpy(servaddr.sun_path, servsock_filename, sizeof(servaddr.sun_path)-1);
 
     /* connect */
     ret = connect(sockfd, (const struct sockaddr*) &servaddr,

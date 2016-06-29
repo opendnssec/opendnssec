@@ -1,5 +1,6 @@
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
+EXTRA_DIST = utils
 SUBDIRS = src man
 
 doxygen:

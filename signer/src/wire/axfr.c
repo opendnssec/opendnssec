@@ -347,6 +347,7 @@ return_axfr:
     if (q->tcp) {
         ods_log_debug("[%s] return part axfr zone %s", axfr_str,
             q->zone->name);
+        buffer_pkt_set_aa(q->buffer);
         buffer_pkt_set_ancount(q->buffer, total_added);
         buffer_pkt_set_nscount(q->buffer, 0);
         buffer_pkt_set_arcount(q->buffer, 0);
@@ -366,6 +367,7 @@ udp_overflow:
     /* UDP Overflow */
     ods_log_info("[%s] axfr udp overflow zone %s", axfr_str, q->zone->name);
     buffer_set_position(q->buffer, bufpos);
+    buffer_pkt_set_aa(q->buffer);
     buffer_pkt_set_ancount(q->buffer, 1);
     buffer_pkt_set_nscount(q->buffer, 0);
     buffer_pkt_set_arcount(q->buffer, 0);

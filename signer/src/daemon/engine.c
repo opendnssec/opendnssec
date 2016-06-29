@@ -78,6 +78,8 @@ engine_create(void)
     engine->cmdhandler_done = 0;
     engine->dnshandler = NULL;
     engine->xfrhandler = NULL;
+    engine->taskq = NULL;
+    engine->signq = NULL;
     engine->pid = -1;
     engine->uid = -1;
     engine->gid = -1;
@@ -152,8 +154,7 @@ self_pipe_trick(engine_type* engine)
     } else {
         bzero(&servaddr, sizeof(servaddr));
         servaddr.sun_family = AF_UNIX;
-        strncpy(servaddr.sun_path, servsock_filename,
-            sizeof(servaddr.sun_path) - 1);
+        strncpy(servaddr.sun_path, servsock_filename, sizeof(servaddr.sun_path)-1);
         ret = connect(sockfd, (const struct sockaddr*) &servaddr,
             sizeof(servaddr));
         if (ret != 0) {

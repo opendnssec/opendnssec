@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<KASP>
+<Policy name="default">
+	<Description>
+			Policy1 in ODS wiki BasicTest outline
+	</Description>
+		
+	<Signatures>
+		<Resign>PT1S</Resign>
+		<Refresh>PT10S</Refresh>
+		<Validity>
+			<Default>PT1M</Default>
+			<Denial>PT1M</Denial>
+		</Validity>
+		<Jitter>PT0S</Jitter>
+		<InceptionOffset>PT0S</InceptionOffset>
+	</Signatures>
+	<Denial>
+		<NSEC/>
+	</Denial>
+	
+	<Keys>
+		<!-- Parameters for both KSK and ZSK -->
+		<TTL>PT1H</TTL>
+		<RetireSafety>PT0S</RetireSafety>
+		<PublishSafety>PT0S</PublishSafety>
+		<KSK>
+			<Algorithm length="2048">5</Algorithm>
+			<Lifetime>P1Y</Lifetime>
+			<Repository>SoftHSM</Repository>
+		</KSK>
+		<ZSK>
+			<Algorithm length="2048">5</Algorithm>
+			<Lifetime>P5M</Lifetime>
+			<Repository>SoftHSM</Repository>
+		</ZSK>
+	</Keys>
+	
+	<Zone>
+		<PropagationDelay>PT0S</PropagationDelay>
+		<SOA>
+			<TTL>PT1M</TTL>
+			<Minimum>PT1M</Minimum>
+			<Serial>unixtime</Serial>
+		</SOA>
+	</Zone>
+	
+	<Parent>
+		<PropagationDelay>PT0M</PropagationDelay>
+		<DS>
+			<TTL>PT10S</TTL>
+		</DS>
+		<SOA>
+			<TTL>PT0M</TTL>
+			<Minimum>PT0M</Minimum>
+		</SOA>
+	</Parent>
+</Policy>
+</KASP>
+

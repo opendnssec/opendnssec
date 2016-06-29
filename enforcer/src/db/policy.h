@@ -98,7 +98,7 @@ struct policy {
     unsigned int parent_soa_ttl;
     unsigned int parent_soa_minimum;
     policy_key_list_t* policy_key_list;
-    zone_list_t* zone_list;
+    zone_list_db_t* zone_list;
     hsm_key_list_t* hsm_key_list;
 };
 
@@ -386,9 +386,9 @@ unsigned int policy_parent_soa_minimum(const policy_t* policy);
 /**
  * Get the zone objects related to a policy object.
  * \param[in] policy a policy_t pointer.
- * \return a zone_list_t pointer or NULL on error.
+ * \return a zone_list_db_t pointer or NULL on error.
  */
-zone_list_t* policy_zone_list(policy_t* policy);
+zone_list_db_t* policy_zone_list(policy_t* policy);
 
 /**
  * Retrieve zone objects related to a policy object.

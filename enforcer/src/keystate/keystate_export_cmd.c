@@ -159,7 +159,7 @@ perform_keystate_export(int sockfd, db_connection_t *dbconn,
 {
 	key_data_list_t *key_list = NULL;
 	key_data_t *key;
-	zone_t *zone = NULL;
+	zone_db_t *zone = NULL;
 	db_clause_list_t* clause_list = NULL;
 	const char *azonename = NULL;
 
@@ -167,18 +167,18 @@ perform_keystate_export(int sockfd, db_connection_t *dbconn,
 	if (all == 0) { 
 		if (!(key_list = key_data_list_new(dbconn)) ||
 			!(clause_list = db_clause_list_new()) ||
-			!(zone = zone_new_get_by_name(dbconn, zonename)) ||
-			!key_data_zone_id_clause(clause_list, zone_id(zone)) ||
+			!(zone = zone_db_new_get_by_name(dbconn, zonename)) ||
+			!key_data_zone_id_clause(clause_list, zone_db_id(zone)) ||
 			key_data_list_get_by_clauses(key_list, clause_list))
 		{
 			key_data_list_free(key_list);
 			db_clause_list_free(clause_list);
-			zone_free(zone);
+			zone_db_free(zone);
 			ods_log_error("[%s] Error fetching from database", module_str);
 			return 1;
 		}
 		db_clause_list_free(clause_list);
-		zone_free(zone);
+		zone_db_free(zone);
 	}
 	if (all && !(key_list = key_data_list_new_get(dbconn))) {
 		client_printf_err(sockfd, "Unable to get list of keys, memory allocation or database error!\n");
@@ -205,7 +205,7 @@ perform_keystate_export(int sockfd, db_connection_t *dbconn,
 			continue;
 		}
 
-		if (all && (!(zone = zone_new (dbconn)) || (zone_get_by_id(zone, key_data_zone_id(key))) || !(azonename = zone_name(zone)))) {
+		if (all && (!(zone = zone_db_new (dbconn)) || (zone_db_get_by_id(zone, key_data_zone_id(key))) || !(azonename = zone_db_name(zone)))) {
                         ods_log_error("[%s] Error fetching from database", module_str);
                         client_printf_err(sockfd, "Error fetching from database \n");
 		}
@@ -224,7 +224,7 @@ perform_keystate_export(int sockfd, db_connection_t *dbconn,
 		key_data_free(key);
 
 		if (all)
-			zone_free(zone);
+			zone_db_free(zone);
 	}
 	key_data_list_free(key_list);
 	return 0;
@@ -271,7 +271,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	const char *zonename = NULL;
 	const char* keytype = NULL;
 	const char* keystate = NULL;
-	zone_t * zone = NULL;
+	zone_db_t * zone = NULL;
 	int all = 0;
 	(void)engine;
 	
@@ -327,7 +327,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 		client_printf_err(sockfd, "expected either --zone or --all \n");
 		return -1;
 	}
-	if (zonename && !(zone = zone_new_get_by_name(dbconn, zonename))) {
+	if (zonename && !(zone = zone_db_new_get_by_name(dbconn, zonename))) {
 		ods_log_error("[%s] Unknown zone: %s", module_str, zonename);
 		client_printf_err(sockfd, "Unknown zone: %s\n", zonename);
 		return -1;
