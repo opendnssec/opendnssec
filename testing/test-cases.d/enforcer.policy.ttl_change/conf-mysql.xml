@@ -6,11 +6,11 @@
 			<Module>@SOFTHSM_MODULE@</Module>
 			<TokenLabel>OpenDNSSEC</TokenLabel>
 			<PIN>1234</PIN>		
-			<Capacity>10000</Capacity>
 		</Repository>
 	</RepositoryList>
 	<Common>
 		<Logging>
+			<Verbosity>4</Verbosity>
 			<Syslog><Facility>local0</Facility></Syslog>
 		</Logging>
 		<PolicyFile>@INSTALL_ROOT@/etc/opendnssec/kasp.xml</PolicyFile>
@@ -18,11 +18,11 @@
 	</Common>
 	<Enforcer>
 		<Datastore><MySQL><Host>localhost</Host><Database>test</Database><Username>test</Username><Password>test</Password></MySQL></Datastore>
-		<AutomaticKeyGenerationPeriod>PT1M</AutomaticKeyGenerationPeriod>
-		<WorkerThreads>0</WorkerThreads>
+		<AutomaticKeyGenerationPeriod>P1Y</AutomaticKeyGenerationPeriod>
+		<WorkerThreads>1</WorkerThreads>
 	</Enforcer>
 	<Signer>
 		<WorkingDirectory>@INSTALL_ROOT@/var/opendnssec/signer</WorkingDirectory>
-		<WorkerThreads>4</WorkerThreads>
+		<WorkerThreads>1</WorkerThreads>
 	</Signer>
 </Configuration>
