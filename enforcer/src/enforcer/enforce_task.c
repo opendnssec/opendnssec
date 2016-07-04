@@ -49,6 +49,8 @@
 
 static const char *module_str = "enforce_task";
 
+static pthread_mutex_t enflock = PTHREAD_MUTEX_INITIALIZER;
+
 static time_t
 perform_enforce(int sockfd, engine_type *engine, char const *zonename,
 	db_connection_t *dbconn)
@@ -71,10 +73,13 @@ perform_enforce(int sockfd, engine_type *engine, char const *zonename,
 		return -1;
 	}
 
+/*LOCK*/
+	pthread_mutex_lock(&enflock);
 	if (!(policy = zone_db_get_policy(zone))) {
 		ods_log_error("Next update for zone %s NOT scheduled "
 			"because policy is missing !\n", zone_db_name(zone));
 		zone_db_free(zone);
+		pthread_mutex_unlock(&enflock);
 		return -1;
 	}
 
@@ -88,7 +93,8 @@ perform_enforce(int sockfd, engine_type *engine, char const *zonename,
 	}
 	
 	policy_free(policy);
-	
+	pthread_mutex_unlock(&enflock);
+/*END LOCK*/
 	/* Commit zone to database before we schedule signconf */
 	if (zone_updated)
 		zone_db_update(zone);

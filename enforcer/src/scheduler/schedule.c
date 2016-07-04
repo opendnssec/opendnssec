@@ -359,7 +359,8 @@ schedule_purge(schedule_type* schedule)
         {
             node = ldns_rbtree_delete(schedule->locks_by_name, node->data);
             if (node == 0) break;
-            pthread_mutex_destroy(&((task_t*) node->data)->lock);
+            pthread_mutex_destroy(((task_t*) node->data)->lock);
+            free(((task_t*) node->data)->lock);
             task_deepfree((task_t*) node->data);
             free(node);
         }
@@ -443,20 +444,24 @@ schedule_task(schedule_type *schedule, task_t *task)
     pthread_mutex_lock(&schedule->schedule_lock);
     if (remove_node_pair(schedule, task, &node1, &node2)) {
         /* Though no such task is scheduled at the moment, there could
-         * be a lock for it */
-        node1 = ldns_rbtree_search(schedule->locks_by_name, task);
-        if (!node1) {
-            /* New lock, insert in tree */
-            t = task_duplicate_shallow(task);
-            if (pthread_mutex_init(&t->lock, NULL)) {
-                task_deepfree(t);
-                pthread_mutex_unlock(&schedule->schedule_lock);
-                return ODS_STATUS_ERR;
+         * be a lock for it. If task already has a lock, keep using that.
+         */
+        if (!task->lock) {
+            node1 = ldns_rbtree_search(schedule->locks_by_name, task);
+            if (!node1) {
+                /* New lock, insert in tree */
+                t = task_duplicate_shallow(task);
+                t->lock = (pthread_mutex_t *) malloc(sizeof(pthread_mutex_t));
+                if (pthread_mutex_init(t->lock, NULL)) {
+                    task_deepfree(t);
+                    pthread_mutex_unlock(&schedule->schedule_lock);
+                    return ODS_STATUS_ERR;
+                }
+                node1 = task2node(t);
+                ods_log_assert(ldns_rbtree_insert(schedule->locks_by_name, node1));
             }
-            node1 = task2node(t);
-            ods_log_assert(ldns_rbtree_insert(schedule->locks_by_name, node1));
+            task->lock = ((task_t *)node1->key)->lock;
         }
-        task->lock = ((task_t *)node1->key)->lock;
         /* not is schedule yet */
         node1 = task2node(task);
         node2 = task2node(task);
@@ -478,7 +483,6 @@ schedule_task(schedule_type *schedule, task_t *task)
         }
         existing_task->context = task->context;
         existing_task->free_context = task->free_context;
-        existing_task->lock = task->lock;
         task->context = NULL; /* context is now assigned to
             existing_task, prevent it from freeing */
         task_deepfree(task);

@@ -58,12 +58,9 @@ time_t task_execute(task_t *task, db_connection_t *dbconn)
         return -1;
     }
     ods_log_assert(task->owner);
-    printf("LOCKING %d %s\n", &task->lock, task->owner);
-    pthread_mutex_lock(&task->lock);
-    printf("LOCKED %d %s\n", &task->lock, task->owner);
+    pthread_mutex_lock(task->lock);
         t = task->callback(task->owner, task->context, dbconn);
-    printf("UNLOCKING %d %s\n", &task->lock, task->owner);
-    pthread_mutex_unlock(&task->lock);
+    pthread_mutex_unlock(task->lock);
     return t;
 }
 
@@ -115,6 +112,7 @@ task_duplicate_shallow(task_t *task)
     dup->owner = strdup(task->owner);
     dup->type = task->type;
     dup->class = task->class;
+    dup->lock = NULL;
     return dup;
 }
 
@@ -140,6 +138,7 @@ task_create(char *owner, char const *class, char const *type,
     task->context = context;
     task->free_context = free_context;
     task->due_date = due_date;
+    task->lock = NULL;
 
     return task;
 }

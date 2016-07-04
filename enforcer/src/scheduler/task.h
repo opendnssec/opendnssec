@@ -90,7 +90,7 @@ typedef struct _task {
     /* Lock specific for this task. It is assigned by the scheduler
      * on scheduler_push_task(). All tasks with the same ttuple will
      * get the same lock. */
-    pthread_mutex_t lock;
+    pthread_mutex_t *lock;
 } task_t;
 
 /* Free task, owner, and context */
