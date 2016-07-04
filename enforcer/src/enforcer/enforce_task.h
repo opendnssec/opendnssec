@@ -39,7 +39,7 @@ task_t *enforce_task(engine_type *engine, char const *owner);
 time_t enforce_task_perform(char const *owner, void *context,
     db_connection_t *dbconn);
 
-//YBS DOC
+/* Schedule enforce tasks for *now* for ALL zones. */
 void enforce_task_flush_all(engine_type *engine, db_connection_t *dbconn);
 
 #endif
