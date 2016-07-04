@@ -1,0 +1,72 @@
+Dear OpenDNSSEC community,
+
+It gives us pleasure to announce the release of OpenDNSSEC 2.0
+
+Download it here:
+  https://dist.opendnssec.org/source/opendnssec-2.0.0.tar.gz
+
+OpenDNSSEC got a entire re-write of the enforcer.  This part of OpenDNSSEC
+controls changing signing keys in the right way to perform a roll-over.
+Before, the enforcer would perform a roll-over according to a strict paradigm.
+One scenario in which deviations would not be possible.
+
+The new enforcer is more aware of the zone changes being propagated in
+the Internet.  It can therefor decide when it is safe to make changes,
+rather than to rely upon a given scenario.  This makes it possible now
+for OpenDNSSEC to:
+- Allow changing your TTL values and all other related parameters in
+  your key and signing policy (KASP).  OpenDNSSEC will know which
+  outdated records may still be on the Internet due to their TTL and
+  only roll when it is safe.
+- It is possible to safely roll to an unsigned situation, without going
+  bogus.
+- Perform a roll-over procedure at any time, even if a roll-over
+  procedure is still in progress, this way you can abort a roll-over
+  and perform emergency roll-overs.
+- Perform a roll-over to a different signing algorithm.  DNSSEC requires
+  the algorithm number of ZSK and KSK to be the same, so a roll-over to
+  a different algorithm requires a different sequence.
+- Since there is no longer a single scenario, it will become possible
+  to perform other roll-over methods, like a double DS roll-over or
+  a double RRSIG roll-over.
+
+These features keep your zone valid even in situations where changing
+parameters could trap you into a bogus situation.  OpenDNSSEC chooses
+the fastest safe steps to keep (or even heal) your zone.
+Other features have also been realized in this rewrite:
+
+- Shared keys, allowing multiple zones to share the most recent signing
+  key for that policy.  Useful when having many zones, and a limited
+  storage in your HSM.
+- Combined keys, allow KSK and ZSK to be the same key, also limiting
+  the   usage of keys, but also simplify key usage.
+- Also allow zones to pass unsigned.  This allows for a chain of
+  software packages where both signed and unsigned zones can follow
+  the same steps in your chain, simplifying the set-up.
+- And the enforcer no longer requires to be run periodically, but runs
+  as a proper daemon which wakes up at the proper time.
+- Allow for multiple HSMs, also allowing you to roll to roll your zone
+  from keys in one HSM to another.  Or to store KSK and ZSK separately.
+- This could even be used in set-ups where the key set is signed
+  separately from your zone.
+- And the enforcer daemon can now be queried and given commands using
+  command line channel.
+
+Administratively, there has also been a major change.  NLnet Labs has
+adopted the full development of OpenDNSSEC, where previously it was
+one of the partners in the project.  This ensures a future-safe
+continued development of OpenDNSSEC.  In this respect we will see
+more features enhancements in quicker release cycles soon.
+
+Some heads-up when trying it out after being used to 1.4:
+- Scripted migration from 1.4 to 2.0 is available, see MIGRATION file;
+- Use command ods-enforcer-db-setup rather than "ods-ksmutil setup";
+- Any other use of ods-ksmutil is replaced with the ods-enforcer command,
+  which at the moment requires the enforcer daemon to be running;
+- Use ods-enforcer zone add and delete rather than modifying the
+  zonelist.xml file yourself.  This file is not kept up-to-date
+  automatically anymore;
+- to start using OpenDNSSEC, use ods-enforcer policy import instead
+  of update kasp to update your policies;
+- Getting started at:
+  https://wiki.opendnssec.org/display/DOCS20/Quick+start+guide
