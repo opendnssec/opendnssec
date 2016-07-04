@@ -48,6 +48,8 @@
 
 struct __hsm_key_factory_task {
     engine_type* engine;
+    /* YBS: I find it scary that these database objects are carried
+     * around in our scheduler. Is that safe? */
     policy_key_t* policy_key;
     policy_t* policy;
     time_t duration;
@@ -424,9 +426,9 @@ hsm_key_factory_generate_cb(char const *owner, void *context, db_connection_t *d
     ods_log_debug("[hsm_key_factory_generate_cb] generate for policy key done");
     policy_key_free(task2->policy_key);
     task2->policy_key = NULL;
-    policy_free(policy);
     if (task2->reschedule_enforce_task)
-        enforce_task_flush_all(task2->engine, dbconn);
+        enforce_task_flush_policy(task2->engine, dbconn, policy);
+    policy_free(policy);
     return -1;
 }
 
@@ -445,6 +447,8 @@ hsm_key_factory_generate_policy_cb(char const *owner, void *context,
     ods_log_debug("[hsm_key_factory_generate_policy_cb] generate for policy [duration: %lu]", (unsigned long) task2->duration);
     hsm_key_factory_generate_policy(task2->engine, dbconn, task2->policy, task2->duration);
     ods_log_debug("[hsm_key_factory_generate_policy_cb] generate for policy done");
+    if (task2->reschedule_enforce_task)
+        enforce_task_flush_policy(task2->engine, dbconn, task2->policy);
     return -1;
 }
 
@@ -463,6 +467,8 @@ hsm_key_factory_generate_all_cb(char const *owner, void *context,
     ods_log_debug("[hsm_key_factory_generate_all_cb] generate for all policies [duration: %lu]", (unsigned long)task2->duration);
     hsm_key_factory_generate_all(task2->engine, dbconn, task2->duration);
     ods_log_debug("[hsm_key_factory_generate_all_cb] generate for all policies done");
+    if (task2->reschedule_enforce_task)
+        enforce_task_flush_all(task2->engine, dbconn);
     return -1;
 }
 
@@ -534,7 +540,7 @@ hsm_key_factory_schedule_generate_policy(engine_type* engine,
     task2->duration = duration;
     task2->policy_key = NULL;
     task2->policy = policy;
-    task2->reschedule_enforce_task = 0;
+    task2->reschedule_enforce_task = 1;
 
     task = task_create(strdup("hsm_key_factory_schedule_generation_policy"),
         TASK_CLASS_ENFORCER, TASK_TYPE_HSMKEYGEN,
@@ -566,7 +572,7 @@ hsm_key_factory_schedule_generate_all(engine_type* engine, time_t duration)
     task2->duration = duration;
     task2->policy_key = NULL;
     task2->policy = NULL;
-    task2->reschedule_enforce_task = 0;
+    task2->reschedule_enforce_task = 1;
 
     task = task_create(strdup("hsm_key_factory_schedule_generation"),
         TASK_CLASS_ENFORCER, TASK_TYPE_HSMKEYGEN,

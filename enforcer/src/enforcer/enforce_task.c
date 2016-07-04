@@ -152,6 +152,27 @@ enforce_task(engine_type *engine, char const *owner)
 }
 
 void
+enforce_task_flush_policy(engine_type *engine, db_connection_t *dbconn,
+	policy_t const *policy)
+{
+	zone_db_t const *zone;
+	zone_list_db_t *zonelist;
+
+	ods_log_assert(policy);
+	
+	zonelist = zone_list_db_new_get_by_policy_id(dbconn, policy_id(policy));
+	if (!zonelist) {
+		ods_log_error("[%s] Can't fetch zones for policy %s from database",
+			module_str, policy_name(policy));
+		return;
+	}
+	while ((zone = zone_list_db_next(zonelist))) {
+		(void)schedule_task(engine->taskq, enforce_task(engine, zone->name));
+	}
+	zone_list_db_free(zonelist);
+}
+
+void
 enforce_task_flush_all(engine_type *engine, db_connection_t *dbconn)
 {
 	zone_list_db_t *zonelist;

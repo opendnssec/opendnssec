@@ -33,11 +33,16 @@
 #include "daemon/cfg.h"
 #include "daemon/engine.h"
 #include "scheduler/task.h"
+#include "db/policy.h"
 
 task_t *enforce_task(engine_type *engine, char const *owner);
 
 time_t enforce_task_perform(char const *owner, void *context,
     db_connection_t *dbconn);
+
+/* Schedule enforce tasks for *now* for ALL zones of policy. */
+void enforce_task_flush_policy(engine_type *engine, db_connection_t *dbconn,
+    policy_t const *policy);
 
 /* Schedule enforce tasks for *now* for ALL zones. */
 void enforce_task_flush_all(engine_type *engine, db_connection_t *dbconn);

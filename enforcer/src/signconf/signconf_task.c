@@ -82,7 +82,7 @@ signconf_task_flush_zone(engine_type *engine, db_connection_t *dbconn,
 
 void
 signconf_task_flush_policy(engine_type *engine, db_connection_t *dbconn,
-    policy_t *policy)
+    policy_t const *policy)
 {
     zone_db_t const *zone;
     zone_list_db_t *zonelist;
@@ -93,7 +93,6 @@ signconf_task_flush_policy(engine_type *engine, db_connection_t *dbconn,
     if (!zonelist) {
         ods_log_error("[%s] Can't fetch zones for policy %s from database",
             module_str, policy_name(policy));
-        policy_free(policy);
         return;
     }
     while ((zone = zone_list_db_next(zonelist))) {
