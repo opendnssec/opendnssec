@@ -94,10 +94,9 @@ perform_enforce(int sockfd, engine_type *engine, char const *zonename,
 		zone_db_update(zone);
 
 	if (bSignerConfNeedsWriting) {
-		task_t *signconf = signconf_task(zonename);
-		(void)schedule_task(engine->taskq, signconf);
+		signconf_task_flush_zone(engine, dbconn, zonename);
 	} else {
-		ods_log_info("[%s] No changes to any signconf file required", module_str);
+		ods_log_info("[%s] No changes to signconf file required for zone %s", module_str, zonename);
 	}
 
 	keylist = zone_db_get_keys(zone);

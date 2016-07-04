@@ -113,10 +113,10 @@ perform_policy_resalt(int sockfd, engine_type* engine,
 #endif
 
 	if (!(clause_list = db_clause_list_new())
-	    || !policy_denial_type_clause(clause_list, POLICY_DENIAL_TYPE_NSEC3)
-	    || !(pol_list = policy_list_new_get_by_clauses(dbconn, clause_list)))
+		|| !policy_denial_type_clause(clause_list, POLICY_DENIAL_TYPE_NSEC3)
+		|| !(pol_list = policy_list_new_get_by_clauses(dbconn, clause_list)))
 	{
-	    db_clause_list_free(clause_list);
+		db_clause_list_free(clause_list);
 		ods_log_error("[%s] retrying in 60 seconds", module_str);
 		return now + 60;
 	}
@@ -144,8 +144,8 @@ perform_policy_resalt(int sockfd, engine_type* engine,
 			to_hex(salt, saltlength, salthex);
 
 			if(policy_set_denial_salt(policy, salthex) ||
-			   policy_set_denial_salt_last_change(policy, now) ||
-			   policy_update(policy))
+				policy_set_denial_salt_last_change(policy, now) ||
+				policy_update(policy))
 			{
 				ods_log_error("[%s] db error", module_str);
 				policy_free(policy);
@@ -153,8 +153,7 @@ perform_policy_resalt(int sockfd, engine_type* engine,
 			}
 			resalt_time = now + policy_denial_resalt(policy);
 			ods_log_debug("[%s] policy %s resalted successfully", module_str, policy_name(policy));
-                        if (perform_signconf(sockfd, dbconn, 1))
-                            ods_log_error("[%s] signconf not updated: new salt cannot be written in signconf", module_str);
+			signconf_task_flush_policy(engine, dbconn, policy);
 		}
 		if ((resalt_time < schedule_time || schedule_time == TIME_INF) && policy_denial_resalt(policy) > 0)
 			schedule_time = resalt_time;

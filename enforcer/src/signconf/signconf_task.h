@@ -30,12 +30,15 @@
 #ifndef _SIGNCONF_SIGNCONF_TASK_H_
 #define _SIGNCONF_SIGNCONF_TASK_H_
 
-#include "daemon/cfg.h"
-#include "scheduler/task.h"
 #include "db/db_connection.h"
+#include "db/policy.h"
 
-int perform_signconf(int sockfd, const db_connection_t* dbconn, int force);
+void signconf_task_flush_zone(engine_type *engine, db_connection_t *dbconn,
+    const char* zonename);
 
-task_t* signconf_task(const char* what);
+void signconf_task_flush_policy(engine_type *engine, db_connection_t *dbconn,
+    policy_t *policy);
+
+void signconf_task_flush_all(engine_type *engine, db_connection_t *dbconn);
 
 #endif
