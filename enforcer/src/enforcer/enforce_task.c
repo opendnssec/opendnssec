@@ -88,6 +88,10 @@ perform_enforce(int sockfd, engine_type *engine, char const *zonename,
 	}
 	
 	policy_free(policy);
+	
+	/* Commit zone to database before we schedule signconf */
+	if (zone_updated)
+		zone_db_update(zone);
 
 	if (bSignerConfNeedsWriting) {
 		task_t *signconf = signconf_task(zonename);
@@ -125,8 +129,6 @@ perform_enforce(int sockfd, engine_type *engine, char const *zonename,
 		schedule_task(engine->taskq, retract);
 	}
 
-	if (zone_updated)
-		zone_db_update(zone);
 	zone_db_free(zone);
 	return t_next;
 }
