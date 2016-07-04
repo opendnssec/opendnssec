@@ -358,7 +358,7 @@ tokenizeparam(char *argument)
     char** newtokenized;
     int argCount;
     char* argString;
-    char* argSavePtr;
+    char* argSavePtr = NULL;
     int argSize = 8;
 
     if ((argString = strtok_r(argument, ",", &argSavePtr)) != NULL) {
