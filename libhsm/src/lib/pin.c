@@ -426,6 +426,7 @@ hsm_logout_pin()
             return HSM_ERROR;
         }
     } else {
+        arg.val = 0;
         /* Remove the semaphore */
         if (semctl(semid, 0, IPC_RMID, arg) != 0) {
             hsm_ctx_set_error(_hsm_ctx, HSM_ERROR, "hsm_logout_pin()",
