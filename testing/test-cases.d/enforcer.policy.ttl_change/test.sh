@@ -29,7 +29,7 @@ echo "################## LOWER TTL AND RESTART" &&
 echo -n "LINE: ${LINENO} " && cp kasp-short-ttl.xml  "$INSTALL_ROOT/etc/opendnssec/kasp.xml" &&
 echo -n "LINE: ${LINENO} " && ods-enforcer policy import &&
 ## Sleep for a bit. policy import triggers enforce and might conflict with key rollover
-sleep 3 &&
+sleep 10 &&
 
 echo "################## START ZSK ROLL" &&
 echo -n "LINE: ${LINENO} " && ods-enforcer key rollover -t ZSK -z ods1 &&
