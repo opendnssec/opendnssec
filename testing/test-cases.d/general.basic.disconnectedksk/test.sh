@@ -29,10 +29,10 @@ sleep 5 &&
 log_this 12 ods-enforcer policy import &&
 log_this 13 ods-enforcer zone add -z xx &&
 log_this 14 ods_enforcer_idle &&
-log_this 15 ods-enforcer time leap &&
-log_this 16 ods-enforcer time leap &&
-log_this 17 ods-enforcer time leap &&
-log_this 18 ods-enforcer time leap &&
+log_this 15 ods-enforcer time leap && sleep 3
+log_this 16 ods-enforcer time leap && sleep 3
+log_this 17 ods-enforcer time leap && sleep 3
+log_this 18 ods-enforcer time leap && sleep 3
 ( log_this 16 ods-enforcer signconf || echo "signconf unjustly failing" ) &&
 log_this 19 ods_enforcer_idle &&
 log_this 20 ods-enforcer stop &&
