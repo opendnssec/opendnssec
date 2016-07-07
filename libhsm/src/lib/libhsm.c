@@ -693,6 +693,7 @@ hsm_ctx_free(hsm_ctx_t *ctx)
         for (i = 0; i < ctx->session_count; i++) {
             hsm_session_free(ctx->session[i]);
         }
+        keycache_destroy(ctx);
         free(ctx);
     }
 }
@@ -747,8 +748,10 @@ hsm_ctx_close(hsm_ctx_t *ctx, int unload)
     if (!ctx) return;
     for (i = 0; i < ctx->session_count; i++) {
         hsm_session_close(ctx, ctx->session[i], unload);
+        ctx->session[i] = NULL;
     }
-    free(ctx);
+    hsm_ctx_free(ctx);
+
 }
 
 
@@ -3332,6 +3335,7 @@ keycache_delfunc(ldns_rbnode_t* node, void* cargo)
 {
     (void)cargo;
     free((void*)node->key);
+    free(((libhsm_key_t*)node->data)->modulename);
     free((void*)node->data);
     free((void*)node);
 }
