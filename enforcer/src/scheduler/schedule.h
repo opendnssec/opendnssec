@@ -54,6 +54,9 @@ struct schedule_struct {
     ldns_rbtree_t* locks_by_name;
     pthread_cond_t schedule_cond;
     pthread_mutex_t schedule_lock;
+    /* For testing. So we can verify al workers are waiting and nothing
+     * is to be done. Used by enforcer_idle. */
+    int num_waiting;
 };
 
 /**
@@ -102,6 +105,11 @@ void schedule_purge(schedule_type* schedule);
  *
  */
 ods_status schedule_task(schedule_type *schedule, task_t *task);
+
+
+/** Get the number of threads in condition wait for this lock.
+ * So we can detect all workers are idle. */
+int schedule_get_num_waiting(schedule_type* schedule);
 
 /**
  * Pop the first scheduled task that is due. If an item is directly

@@ -50,6 +50,7 @@ static const char* schedule_str = "scheduler";
 
 /* Condition must be accessible from ISR */
 static pthread_cond_t *schedule_cond;
+static int numwaiting = 0;
 
 static task_t* get_first_task(schedule_type *schedule);
 
@@ -203,6 +204,7 @@ schedule_create()
     pthread_cond_init(&schedule->schedule_cond, NULL);
     /* static condition for alarm. Must be accessible from interrupt */
     schedule_cond = &schedule->schedule_cond;
+    schedule->num_waiting = 0;
 
     action.sa_handler = (void (*)(int))&alarm_handler;
     sigfillset(&action.sa_mask);
@@ -367,6 +369,18 @@ schedule_purge(schedule_type* schedule)
     pthread_mutex_unlock(&schedule->schedule_lock);
 }
 
+int
+schedule_get_num_waiting(schedule_type* schedule)
+{
+    int num_waiting;
+
+    pthread_mutex_lock(&schedule->schedule_lock);
+        num_waiting = schedule->num_waiting;
+    pthread_mutex_unlock(&schedule->schedule_lock);
+
+    return num_waiting;
+}
+
 task_t*
 schedule_pop_task(schedule_type* schedule)
 {
@@ -377,8 +391,10 @@ schedule_pop_task(schedule_type* schedule)
         task = get_first_task(schedule);
         if (!task || task->due_date > now) {
             /* nothing to do now, sleep and wait for signal */
+            schedule->num_waiting += 1;
             pthread_cond_wait(&schedule->schedule_cond,
                 &schedule->schedule_lock);
+            schedule->num_waiting -= 1;
             task = NULL;
         } else {
             task = pop_first_task(schedule);

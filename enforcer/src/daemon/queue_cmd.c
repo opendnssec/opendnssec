@@ -106,6 +106,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	ldns_rbnode_t* node = LDNS_RBTREE_NULL;
 	task_t* task = NULL;
 	(void)cmd; (void)n; (void)dbconn;
+	int num_waiting;
 
 	ods_log_debug("[%s] list tasks command", module_str);
 
@@ -115,17 +116,10 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 		return 0;
 	}
 
-	//~ /* current work */
-	//~ pthread_mutex_lock(&engine->taskq->schedule_lock);
-		//~ for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
-			//~ task = engine->workers[i]->task;
-			//~ if (task) {
-				//~ /* TODO: even holding that lock, this is not safe! */
-				//~ client_printf(sockfd, "Working with [%s] %s\n",
-					//~ task_what2str(task->what), task_who2str(task->who));
-			//~ }
-		//~ }
-	//~ pthread_mutex_unlock(&engine->taskq->schedule_lock);
+	num_waiting = schedule_get_num_waiting(engine->taskq);
+	if (num_waiting == engine->config->num_worker_threads) {
+		client_printf(sockfd, "All worker threads idle.\n");
+	}
 
 	/* how many tasks */
 	count = schedule_taskcount(engine->taskq);
