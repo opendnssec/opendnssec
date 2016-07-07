@@ -137,7 +137,6 @@ struct netio_handler_struct {
  */
 struct netio_struct {
     netio_handler_list_type* handlers;
-    netio_handler_list_type* deallocated;
     /*
      * Cached value of the current time.  The cached value is
      * cleared at the start of netio_dispatch to calculate the
