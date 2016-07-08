@@ -48,6 +48,7 @@ autostart(engine_type* engine)
 	db_connection_t* dbconn;
 
 	ods_log_debug("[%s] autostart", module_str);
+	dbconn = get_database_connection(engine->dbcfg_list);
 
 	schedule_purge(engine->taskq); /* Remove old tasks in queue */
 
@@ -57,7 +58,6 @@ autostart(engine_type* engine)
 	if (status != ODS_STATUS_OK)
 		ods_log_crit("[%s] failed to create resalt task", module_str);
 
-	dbconn = get_database_connection(engine->dbcfg_list);
 	enforce_task_flush_all(engine, dbconn);
 	db_connection_free(dbconn);
 
