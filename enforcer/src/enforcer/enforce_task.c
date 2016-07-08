@@ -146,6 +146,12 @@ enforce_task(engine_type *engine, char const *owner)
 }
 
 void
+enforce_task_flush_zone(engine_type *engine, char const *zonename)
+{
+	(void)schedule_task(engine->taskq, enforce_task(engine, zonename));
+}
+
+void
 enforce_task_flush_policy(engine_type *engine, db_connection_t *dbconn,
 	policy_t const *policy)
 {

@@ -36,14 +36,11 @@
 
 #include "keystate/keystate_ds_retract_task.h"
 
-/* executed headless */
 static time_t
-keystate_ds_retract_task_perform(char const *owner, void *context,
+keystate_ds_retract_task_perform(char const *zonename, void *context,
 	db_connection_t* dbconn)
 {
-	(void)owner;//YBS owner only
-	
-	(void)change_keys_from_to(dbconn, -1, NULL, NULL, 0,
+	(void)change_keys_from_to(dbconn, -1, zonename, NULL, 0,
 		KEY_DATA_DS_AT_PARENT_RETRACT, KEY_DATA_DS_AT_PARENT_RETRACTED,
 		(engine_type*)context);
 	return -1;
