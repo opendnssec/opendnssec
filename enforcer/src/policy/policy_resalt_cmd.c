@@ -66,11 +66,9 @@ static int
 run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	db_connection_t *dbconn)
 {
-	/* TODO: this should actually create/schedule the resalt task
-	 * for *now* and return */
 	(void)cmd; (void)n;
-	(void) perform_policy_resalt(sockfd, engine, dbconn);
-	return 0;
+	
+	return flush_resalt_task_all(engine, dbconn);
 }
 
 static struct cmd_func_block funcblock = {

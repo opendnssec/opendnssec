@@ -96,99 +96,102 @@ to_hex(const char *buf, int len, char *out)
 	out[2*len] = 0;
 }
 
-time_t 
-perform_policy_resalt(int sockfd, engine_type* engine,
+/**
+ * Generate new salt for specified policy. Schedules signconf task
+ * when done.
+ */
+static time_t 
+perform_policy_resalt(char const *policyname, void *context,
 	db_connection_t *dbconn)
 {
-	policy_list_t *pol_list;
 	policy_t *policy;
-	time_t schedule_time = TIME_INF, now = time_now(), resalt_time;
+	time_t resalt_time, now = time_now();
 	char salt[255], salthex[511];
 	int saltlength;
-	db_clause_list_t* clause_list;
-	(void) engine; (void) sockfd;
+	engine_type *engine = (engine_type *)context;
+	
+	policy = policy_new_get_by_name(dbconn, policyname);
+	if (!policy) {
+		ods_log_error("[%s] could not fetch policy %s from database,"
+			" rescheduling", module_str, policyname);
+		/* TODO: figure out if it was a database error. if it is truly
+		 * not in database we should just return -1 */
+		return 60;
+	}
+
+	if  (policy_denial_type(policy) != POLICY_DENIAL_TYPE_NSEC3
+		|| policy_passthrough(policy))
+	{
+		policy_free(policy);
+		return -1;
+	}
+	resalt_time = policy_denial_salt_last_change(policy) +
+		policy_denial_resalt(policy);
+
+	if (now >= resalt_time) {
+		saltlength = policy_denial_salt_length(policy);
+		if (saltlength <= 0 || saltlength > 255) {
+			ods_log_error("[%s] policy %s has an invalid salt length. "
+				"Must be in range [0..255]", module_str, policy_name(policy));
+			policy_free(policy);
+			return -1; /* no point in rescheduling */
+		}
 
 #ifndef HAVE_ARC4RANDOM
-	srand(now);
+		srand(now);
 #endif
 
-	if (!(clause_list = db_clause_list_new())
-		|| !policy_denial_type_clause(clause_list, POLICY_DENIAL_TYPE_NSEC3)
-		|| !(pol_list = policy_list_new_get_by_clauses(dbconn, clause_list)))
-	{
-		db_clause_list_free(clause_list);
-		ods_log_error("[%s] retrying in 60 seconds", module_str);
-		return now + 60;
-	}
-    db_clause_list_free(clause_list);
-	
-	while ((policy = policy_list_get_next(pol_list))) {
-		if (policy_denial_type(policy) != POLICY_DENIAL_TYPE_NSEC3
-			|| policy_passthrough(policy))
+		/* Yes, we need to resalt this policy */
+		generate_salt(salt, saltlength);
+		to_hex(salt, saltlength, salthex);
+
+		if(policy_set_denial_salt(policy, salthex) ||
+			policy_set_denial_salt_last_change(policy, now) ||
+			policy_update(policy))
 		{
+			ods_log_error("[%s] db error", module_str);
 			policy_free(policy);
-			continue;
+			return 60;
 		}
-		resalt_time = policy_denial_salt_last_change(policy) +
-			policy_denial_resalt(policy);
-		if (now >= resalt_time) {
-			saltlength = policy_denial_salt_length(policy);
-			if (saltlength <= 0 || saltlength > 255) {
-				ods_log_error("[%s] policy %s has an invalid salt length. "
-					"Must be in range [0..255]", module_str, policy_name(policy));
-				policy_free(policy);
-				continue; /* no need to schedule for this policy */
-			}
-			/* Yes, we need to resalt this policy */
-			generate_salt(salt, saltlength);
-			to_hex(salt, saltlength, salthex);
-
-			if(policy_set_denial_salt(policy, salthex) ||
-				policy_set_denial_salt_last_change(policy, now) ||
-				policy_update(policy))
-			{
-				ods_log_error("[%s] db error", module_str);
-				policy_free(policy);
-				break;
-			}
-			resalt_time = now + policy_denial_resalt(policy);
-			ods_log_debug("[%s] policy %s resalted successfully", module_str, policy_name(policy));
-			signconf_task_flush_policy(engine, dbconn, policy);
-		}
-		if ((resalt_time < schedule_time || schedule_time == TIME_INF) && policy_denial_resalt(policy) > 0)
-			schedule_time = resalt_time;
-		policy_free(policy);
+		resalt_time = now + policy_denial_resalt(policy);
+		ods_log_debug("[%s] policy %s resalted successfully", module_str, policy_name(policy));
+		signconf_task_flush_policy(engine, dbconn, policy);
 	}
-	policy_list_free(pol_list);
-	ods_log_debug("[%s] policies have been updated", module_str);
-	return schedule_time;
+	if (policy_denial_resalt(policy) <= 0) resalt_time = -1;
+	policy_free(policy);
+	return resalt_time;
 }
 
-time_t
-policy_resalt_task_perform(char const *owner, void *context, db_connection_t *dbconn)
+static task_t *
+policy_resalt_task(char const *owner, engine_type *engine)
 {
-	return perform_policy_resalt(-1, (engine_type *)context, dbconn);
+	return task_create(strdup(owner), TASK_CLASS_ENFORCER, TASK_TYPE_RESALT,
+		perform_policy_resalt, engine, NULL, time_now());
 }
 
-task_t *
-policy_resalt_task(engine_type* engine)
-{
-	return task_create(strdup("policies"), TASK_CLASS_ENFORCER, TASK_TYPE_RESALT,
-		policy_resalt_task_perform, engine, NULL, time_now());
-}
-
+/*
+ * Schedule resalt tasks for all policies. 
+ * */
 int
-flush_resalt_task(engine_type *engine)
+flush_resalt_task_all(engine_type *engine, db_connection_t *dbconn)
 {
-	int status;
-	/* flush (force to run) the enforcer task when it is waiting in the 
-	 task list. */
-	if (!schedule_flush_type(engine->taskq, TASK_CLASS_ENFORCER, TASK_TYPE_RESALT)) {
-		status = schedule_task(engine->taskq, policy_resalt_task(engine));
-		if (status != ODS_STATUS_OK) {
-			ods_fatal_exit("[%s] failed to create resalt task", module_str);
-			return 0;
-		}
+
+	policy_list_t *policylist;
+	const policy_t *policy;
+	task_t *task;
+	int status = ODS_STATUS_OK;
+
+	policylist = policy_list_new(dbconn);
+	if (policy_list_get(policylist)) {
+		ods_log_error("[%s] Unable to get list of policies from database",
+			module_str);
+		policy_list_free(policylist);
 	}
-	return 1;
+
+	while ((policy = policy_list_next(policylist))) {
+		task = policy_resalt_task(policy_name(policy), engine);
+		status |= schedule_task(engine->taskq, task);
+	}
+	policy_list_free(policylist);
+	return status;
 }
