@@ -243,7 +243,6 @@ domain_rollback(domain_type* domain, int keepsc)
     denial_type* denial = NULL;
     rrset_type* rrset = NULL;
     rrset_type* prev_rrset = NULL;
-    ldns_rr* del_rr = NULL;
     int del_rrset = 0;
     uint16_t i = 0;
     if (!domain) {
@@ -269,10 +268,7 @@ domain_rollback(domain_type* domain, int keepsc)
                 if(rrset->rr_count == 1) {
                     del_rrset = 1;
                 }
-                del_rr = rrset->rrs[i].rr;
                 rrset_del_rr(rrset, i);
-                ldns_rr_free(del_rr);
-                del_rr = NULL;
                 i--;
             }
         }
