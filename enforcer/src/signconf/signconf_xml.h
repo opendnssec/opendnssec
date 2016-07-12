@@ -26,8 +26,8 @@
  *
  */
 
-#ifndef SIGNCONF_SIGNCONF_H_
-#define SIGNCONF_SIGNCONF_H_
+#ifndef SIGNCONF_SIGNCONF_XML_H_
+#define SIGNCONF_SIGNCONF_XML_H_
 
 #include "daemon/engine.h"
 #include "db/db_connection.h"

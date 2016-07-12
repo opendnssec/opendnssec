@@ -27,7 +27,7 @@
  *
  */
 
-#include "signconf/signconf.h"
+#include "signconf/signconf_xml.h"
 #include "duration.h"
 #include "log.h"
 #include "file.h"

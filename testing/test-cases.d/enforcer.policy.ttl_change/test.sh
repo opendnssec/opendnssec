@@ -40,7 +40,7 @@ ods-enforcer key list -d -p | grep ZSK &&
 COUNT=`ods-enforcer key list -d -p |grep ZSK|cut -f 4 -d ";" |grep -c omnipresent` &&
 [ $COUNT -eq 1 ] &&
 echo "################## BUT A MOMENT LATER IT IS" &&
-echo -n "LINE: ${LINENO} " && ods-enforcer time leap &&
+echo -n "LINE: ${LINENO} " && ods-enforcer time leap && sleep 1 &&
 COUNT=`ods-enforcer key list -d -p |grep ZSK|cut -f 4 -d ";" |grep -c omnipresent` &&
 [ $COUNT -eq 2 ] &&
 
