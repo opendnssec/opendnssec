@@ -17,7 +17,6 @@
 	</Common>
 	<Enforcer>
 		<Datastore><MySQL><Host>localhost</Host><Database>test999</Database><Username>test</Username><Password>test</Password></MySQL></Datastore>
-		<Interval>PT3600S</Interval>
 	</Enforcer>
 	<Signer>
 		<WorkingDirectory>@INSTALL_ROOT@/var/opendnssec/signer</WorkingDirectory>

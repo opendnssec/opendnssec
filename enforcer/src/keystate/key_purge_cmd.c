@@ -51,7 +51,7 @@ static int
 run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	db_connection_t *dbconn)
 {
-	zone_t *zone;
+	zone_db_t *zone;
 	policy_t *policy;
 	const char *zone_name = NULL;
 	const char *policy_name = NULL;
@@ -91,16 +91,16 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
         }
 
 	if (zone_name) {
-		zone = zone_new(dbconn);
-		if (zone_get_by_name(zone, zone_name)) {
+		zone = zone_db_new(dbconn);
+		if (zone_db_get_by_name(zone, zone_name)) {
 			client_printf_err(sockfd, "unknown zone %s\n", zone_name);
-			zone_free(zone);
+			zone_db_free(zone);
 			zone = NULL;
 			free(buf);
 			return -1;
 		}
 		error = removeDeadKeysNow(sockfd, dbconn, NULL, zone);
-		zone_free(zone);
+		zone_db_free(zone);
 		zone = NULL;
 		free(buf);
 		return error;

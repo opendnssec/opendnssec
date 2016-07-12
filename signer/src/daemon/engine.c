@@ -139,8 +139,7 @@ self_pipe_trick(engine_type* engine)
     } else {
         bzero(&servaddr, sizeof(servaddr));
         servaddr.sun_family = AF_UNIX;
-        strncpy(servaddr.sun_path, servsock_filename,
-            sizeof(servaddr.sun_path) - 1);
+        strncpy(servaddr.sun_path, servsock_filename, sizeof(servaddr.sun_path)-1);
         ret = connect(sockfd, (const struct sockaddr*) &servaddr,
             sizeof(servaddr));
         if (ret != 0) {

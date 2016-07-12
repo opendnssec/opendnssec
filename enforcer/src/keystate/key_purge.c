@@ -5,7 +5,7 @@
 
 static void free_all(key_data_list_t *key_list, key_data_t** keylist,
 	key_dependency_list_t *deplist, key_dependency_t **deplist2,
-	zone_t *zone)
+	zone_db_t *zone)
 {
 	int i;
 
@@ -33,12 +33,12 @@ static void free_all(key_data_list_t *key_list, key_data_t** keylist,
 		deplist2 = NULL;
 	}
 
-	zone_free(zone);
+	zone_db_free(zone);
 }
 
 
 int removeDeadKeysNow(int sockfd, db_connection_t *dbconn,
-	policy_t *policy, zone_t *rzone)
+	policy_t *policy, zone_db_t *rzone)
 {
 	static const char *scmd = "removeDeadKeysNow";
 	size_t i, deplist2_size = 0;
@@ -51,8 +51,8 @@ int removeDeadKeysNow(int sockfd, db_connection_t *dbconn,
 	key_dependency_list_t *deplist = NULL;
 	key_dependency_t **deplist2 = NULL;
 	size_t keylist_size;
-	zone_list_t *zonelist = NULL;
-	zone_t *zone = NULL;
+	zone_list_db_t *zonelist = NULL;
+	zone_db_t *zone = NULL;
 	int listsize = 0;
 
 
@@ -69,34 +69,34 @@ int removeDeadKeysNow(int sockfd, db_connection_t *dbconn,
 			return 1;
 		}
 		zonelist = policy_zone_list(policy);
-		listsize = zone_list_size(zonelist);
+		listsize = zone_list_db_size(zonelist);
 		if (listsize == 0) {
 			client_printf (sockfd, "No zones on policy %s\n", policy_name(policy));
 			client_printf (sockfd, "No keys to purge\n");
 			return 0;
 		}
-		zone = zone_list_get_next(zonelist);
+		zone = zone_list_db_get_next(zonelist);
 	}
 	else if (rzone) {
 		listsize = 1;
-		zone = zone_new_copy(rzone);
+		zone = zone_db_new_copy(rzone);
 	}
 
 
 	while (listsize > 0 ) {
 		zone_key_purgable = 0;
-		if (!(deplist = zone_get_key_dependencies(zone))) {
+		if (!(deplist = zone_db_get_key_dependencies(zone))) {
 			/* TODO: better log error */
-			ods_log_error("[%s] error zone_get_key_dependencies()", scmd);
-			client_printf_err(sockfd, "%s: error zone_get_key_dependencies()", scmd);
+			ods_log_error("[%s] error zone_db_get_key_dependencies()", scmd);
+			client_printf_err(sockfd, "%s: error zone_db_get_key_dependencies()", scmd);
 			free_all(key_list, keylist, deplist, deplist2, zone);
 			return 1;
 		}
 
-		if (!(key_list = zone_get_keys(zone))) {
+		if (!(key_list = zone_db_get_keys(zone))) {
 			/* TODO: better log error */
-			ods_log_error("[%s] error zone_get_keys()", scmd);
-			client_printf_err(sockfd, "%s: error zone_get_keys()", scmd);
+			ods_log_error("[%s] error zone_db_get_keys()", scmd);
+			client_printf_err(sockfd, "%s: error zone_db_get_keys()", scmd);
 			free_all(key_list, keylist, deplist, deplist2, zone);
 			return 1;
 		}
@@ -199,14 +199,14 @@ int removeDeadKeysNow(int sockfd, db_connection_t *dbconn,
 
 		}
 		if (zone_key_purgable == 0)
-			client_printf (sockfd, "No keys to purge for %s \n", zone_name(zone));
+			client_printf (sockfd, "No keys to purge for %s \n", zone_db_name(zone));
 
 		free_all(key_list, keylist, deplist, deplist2, zone);
 
 
 		listsize--;
 		if (listsize > 0) {
-			zone = zone_list_get_next(zonelist);
+			zone = zone_list_db_get_next(zonelist);
 		}
 	}
 

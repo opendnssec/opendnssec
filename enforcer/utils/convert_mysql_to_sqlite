@@ -45,7 +45,7 @@ echo "Converting database"
 mysqldump --user="$DB_USR" --password="$DB_PWD" --host="$DB_HOST" "$DB_IN" \
   --skip-opt --no-create-db --no-create-info --skip-extended-insert \
   --skip-disable-keys --skip-set-charset --skip-lock-tables \
-| sed -r 's/^INSERT INTO `([^"]+)`/INSERT INTO "\1"/' \
+| sed -r -e 's/^INSERT INTO `([^"]+)`/INSERT INTO "\1"/' -e '/^SET/d' \
 | sqlite3 $DB_OUT
 
 exit 0

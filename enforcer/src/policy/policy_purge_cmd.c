@@ -44,7 +44,7 @@ purge_policies(int sockfd, db_connection_t *dbconn)
 {
 	policy_list_t* policy_list;
 	policy_t* policy;
-	zone_list_t* zonelist;
+	zone_list_db_t* zonelist;
 	const char* name;
 	size_t listsize;
 	int result = 0;
@@ -63,7 +63,7 @@ purge_policies(int sockfd, db_connection_t *dbconn)
 			break;
 		}
 		zonelist = policy_zone_list(policy);
-		listsize = zone_list_size(zonelist);
+		listsize = zone_list_db_size(zonelist);
 		if (listsize == 0) {
 			ods_log_info("[%s] No zones on policy %s; purging...", module_str, name);
 			client_printf(sockfd, "No zones on policy %s; purging...\n", name);

@@ -32,7 +32,7 @@
 
 #include <libxml/tree.h>
 
-#include "zone.h"
+#include "zone_db.h"
 #include "policy_key.h"
 
 /**

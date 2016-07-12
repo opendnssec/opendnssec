@@ -103,10 +103,6 @@
 #define SE_CMDH_CMDLEN 7
 #define MAX_CLIENT_CONN 8
 
-#ifndef SUN_LEN
-#define SUN_LEN(su) (sizeof(*(su))-sizeof((su)->sun_path)+strlen((su)->sun_path))
-#endif
-
 static char const * module_str = "cmdhandler";
 
 typedef struct cmd_func_block* (*fbgetfunctype)(void);
@@ -402,16 +398,15 @@ cmdhandler_create(const char* filename)
     }
 
     /* no surprises */
-    if (filename) {
-        unlink(filename);
-    }
     bzero(&servaddr, sizeof(servaddr));
     servaddr.sun_family = AF_UNIX;
     strncpy(servaddr.sun_path, filename, sizeof(servaddr.sun_path) - 1);
+    if (filename) {
+        unlink(servaddr.sun_path);
+    }
 
     /* bind and listen... */
-    ret = bind(listenfd, (const struct sockaddr*) &servaddr,
-        SUN_LEN(&servaddr));
+    ret = bind(listenfd, (const struct sockaddr*) &servaddr, sizeof(struct sockaddr_un));
     if (ret != 0) {
         ods_log_error("[%s] unable to create, bind() failed: %s", module_str,
             strerror(errno));

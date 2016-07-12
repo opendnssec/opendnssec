@@ -1,6 +1,7 @@
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
-SUBDIRS = src man
+EXTRA_DIST = utils
+SUBDIRS = src man src/utils
 
 doxygen:
 	rm -fr $(top_builddir)/enforcer/doxygen-doc
