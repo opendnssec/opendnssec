@@ -136,7 +136,6 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     int ret = 0;
     char path[PATH_MAX];
     char *signconf_del = NULL;
-    (void)engine;
 
     ods_log_debug("[%s] %s command", module_str, zone_del_funcblock()->cmdname);
     cmd = ods_check_command(cmd, n, zone_del_funcblock()->cmdname);
@@ -195,6 +194,9 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
         free(signconf_del);
         signconf_del = NULL;
 
+        /* Delete all 'zone' related tasks */
+        schedule_purge_owner(engine->taskq, TASK_CLASS_ENFORCER, zone_name2);
+
         ods_log_info("[%s] zone %s deleted", module_str, zone_name2);
         client_printf(sockfd, "Deleted zone %s successfully\n", zone_name2);
     } else if (!zone_name2 && all) {
@@ -226,6 +228,9 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
             rename(zone_db_signconf_path(zone), signconf_del);
             free(signconf_del);
             signconf_del = NULL;
+
+            /* Delete all 'zone' related tasks */
+            schedule_purge_owner(engine->taskq, TASK_CLASS_ENFORCER, zone_db_name(zone));
 
             ods_log_info("[%s] zone %s deleted", module_str, zone_db_name(zone));
             client_printf(sockfd, "Deleted zone %s successfully\n", zone_db_name(zone));

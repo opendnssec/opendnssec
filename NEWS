@@ -1,5 +1,6 @@
 * Enforce and signconf tasks are now scheduled individually per zone. Resign
   per policy.
+* zone delete removes tasks associated with zone from queue.
 
 OpenDNSSEC 2.0.0 - 2016-07-07
 

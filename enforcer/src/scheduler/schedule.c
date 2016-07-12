@@ -440,6 +440,56 @@ remove_node_pair(schedule_type *schedule, task_t *task,
     return 0;
 }
 
+void
+schedule_purge_owner(schedule_type* schedule, char const *class,
+    char const *owner)
+{
+    /* This method is somewhat inefficient but not too bad. Approx:
+     * O(N + M log N). Where N total tasks, M tasks to remove. Probably
+     * a bit worse since the trees are balanced. */
+    task_t **tasks, *task;
+    int i, num_slots = 10, num_tasks = 0;
+    ldns_rbnode_t *n1, *n2, *node;
+
+    /* We expect around 3 tasks per owner so we probably never have to
+     * realloc if we start with num_slots = 10 */
+    tasks = (task_t **)malloc(num_slots * sizeof(task_t *));
+    if (!tasks) return;
+
+    pthread_mutex_lock(&schedule->schedule_lock);
+
+        /* First collect all tasks that match. Don't fiddle with the
+         * tree. That is not save and might mess up our iteration. */
+        node = ldns_rbtree_first(schedule->tasks_by_name);
+        while (node != LDNS_RBTREE_NULL) {
+            task = node->key;
+            node = ldns_rbtree_next(node);
+            if (!strcmp(task->owner, owner) && !strcmp(task->class, class)) {
+                tasks[num_tasks++] = task;
+                if (num_tasks == num_slots) {
+                    num_slots *= 2;
+                    tasks = realloc(tasks, num_slots * sizeof(task_t *));
+                    if (!tasks) {
+                        pthread_mutex_unlock(&schedule->schedule_lock);
+                        return;
+                    }
+                }
+            }
+        }
+
+        /* Be free my little tasks, be free! */
+        for (i = 0; i<num_tasks; i++) {
+            if (!remove_node_pair(schedule, tasks[i], &n1, &n2)) {
+                task_deepfree(tasks[i]);
+                free(n1);
+                free(n2);
+            }
+        }
+        free(tasks);
+
+    pthread_mutex_unlock(&schedule->schedule_lock);
+}
+
 ods_status
 schedule_task(schedule_type *schedule, task_t *task)
 {
