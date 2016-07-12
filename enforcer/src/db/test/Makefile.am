@@ -51,7 +51,7 @@ test_LDADD = \
 	../policy.o ../policy_ext.o \
 	../policy_key.o ../policy_key_ext.o \
 	../database_version.o ../database_version_ext.o \
-	../zone.o ../zone_ext.o \
+	../zone_db.o ../zone_db_ext.o \
 	${top_builddir}/common/duration.o \
 	$(BACKEND_LDADD_CUSTOM)
 

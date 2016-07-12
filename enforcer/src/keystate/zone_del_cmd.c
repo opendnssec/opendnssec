@@ -34,7 +34,7 @@
 #include "log.h"
 #include "str.h"
 #include "clientpipe.h"
-#include "db/zone.h"
+#include "db/zone_db.h"
 #include "hsmkey/hsm_key_factory.h"
 #include "keystate/zonelist_update.h"
 #include "keystate/zonelist_export.h"
@@ -72,7 +72,7 @@ handles(const char *cmd, ssize_t n)
 	return ods_check_command(cmd, n, zone_del_funcblock()->cmdname)?1:0;
 }
 
-static int delete_key_data(zone_t* zone, db_connection_t *dbconn, int sockfd) {
+static int delete_key_data(zone_db_t* zone, db_connection_t *dbconn, int sockfd) {
     int successful;
     key_data_list_t* key_data_list;
     key_data_t* key_data;
@@ -83,21 +83,21 @@ static int delete_key_data(zone_t* zone, db_connection_t *dbconn, int sockfd) {
      * Get key data for the zone and for each key data get the key state
      * and try to delete all key state then the key data
      */
-    if (!(key_data_list = key_data_list_new_get_by_zone_id(dbconn, zone_id(zone)))) {
-        client_printf_err(sockfd, "Unable to get key data for zone %s from database!\n", zone_name(zone));
+    if (!(key_data_list = key_data_list_new_get_by_zone_id(dbconn, zone_db_id(zone)))) {
+        client_printf_err(sockfd, "Unable to get key data for zone %s from database!\n", zone_db_name(zone));
         return 0;
     }
     successful = 1;
     for (key_data = key_data_list_get_next(key_data_list); key_data; key_data_free(key_data), key_data = key_data_list_get_next(key_data_list)) {
         if (!(key_state_list = key_state_list_new_get_by_key_data_id(dbconn, key_data_id(key_data)))) {
-            client_printf_err(sockfd, "Unable to get key states for key data %s of zone %s from database!\n", key_data_role_text(key_data), zone_name(zone));
+            client_printf_err(sockfd, "Unable to get key states for key data %s of zone %s from database!\n", key_data_role_text(key_data), zone_db_name(zone));
             successful = 0;
             continue;
         }
 
         for (key_state = key_state_list_get_next(key_state_list); key_state; key_state_free(key_state), key_state = key_state_list_get_next(key_state_list)) {
             if (key_state_delete(key_state)) {
-                client_printf_err(sockfd, "Unable to delete key state %s for key data %s of zone %s from database!\n", key_state_type_text(key_state), key_data_role_text(key_data), zone_name(zone));
+                client_printf_err(sockfd, "Unable to delete key state %s for key data %s of zone %s from database!\n", key_state_type_text(key_state), key_data_role_text(key_data), zone_db_name(zone));
                 successful = 0;
                 continue;
             }
@@ -105,13 +105,13 @@ static int delete_key_data(zone_t* zone, db_connection_t *dbconn, int sockfd) {
         key_state_list_free(key_state_list);
 
         if (key_data_delete(key_data)) {
-            client_printf_err(sockfd, "Unable to delete key data %s of zone %s from database!\n", key_data_role_text(key_data), zone_name(zone));
+            client_printf_err(sockfd, "Unable to delete key data %s of zone %s from database!\n", key_data_role_text(key_data), zone_db_name(zone));
             successful = 0;
             continue;
         }
 
         if (hsm_key_factory_release_key_id(key_data_hsm_key_id(key_data), dbconn)) {
-            client_printf_err(sockfd, "Unable to release HSM key for key data %s of zone %s from database!\n", key_data_role_text(key_data), zone_name(zone));
+            client_printf_err(sockfd, "Unable to release HSM key for key data %s of zone %s from database!\n", key_data_role_text(key_data), zone_db_name(zone));
             successful = 0;
             continue;
         }
@@ -131,8 +131,8 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     const char *zone_name2 = NULL;
     int all;
     int write_xml;
-    zone_list_t* zone_list;
-    zone_t* zone;
+    zone_list_db_t* zone_list;
+    zone_db_t* zone;
     int ret = 0;
     char path[PATH_MAX];
     char *signconf_del = NULL;
@@ -164,73 +164,73 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     }
 
     if (zone_name2 && !all) {
-        if (!(zone = zone_new_get_by_name(dbconn, zone_name2))) {
+        if (!(zone = zone_db_new_get_by_name(dbconn, zone_name2))) {
             client_printf_err(sockfd, "Unable to delete zone, zone %s not found!\n", zone_name2);
             free(buf);
             return 1;
         }
 
         if (!delete_key_data(zone, dbconn, sockfd)) {
-            zone_free(zone);
+            zone_db_free(zone);
             free(buf);
             return 1;
         }
-        if (zone_delete(zone)) {
+        if (zone_db_delete(zone)) {
             client_printf_err(sockfd, "Unable to delete zone %s from database!\n", zone_name2);
-            zone_free(zone);
+            zone_db_free(zone);
             free(buf);
             return 1;
         }
-        signconf_del = (char*) calloc(strlen(zone_signconf_path(zone)) +
+        signconf_del = (char*) calloc(strlen(zone_db_signconf_path(zone)) +
             strlen(".ZONE_DELETED") + 1, sizeof(char));
         if (!signconf_del) {
             ods_log_error("[%s] malloc failed", module_str);
-            zone_free(zone);
+            zone_db_free(zone);
             free(buf);
             return 1;
         }
-        strncpy(signconf_del, zone_signconf_path(zone), strlen(zone_signconf_path(zone)));
+        strncpy(signconf_del, zone_db_signconf_path(zone), strlen(zone_db_signconf_path(zone)));
         strncat(signconf_del, ".ZONE_DELETED", strlen(".ZONE_DELETED"));
- 	    rename(zone_signconf_path(zone), signconf_del);
+ 	    rename(zone_db_signconf_path(zone), signconf_del);
  	    free(signconf_del);
  	    signconf_del = NULL;
 
         ods_log_info("[%s] zone %s deleted", module_str, zone_name2);
         client_printf(sockfd, "Deleted zone %s successfully\n", zone_name2);
     } else if (!zone_name2 && all) {
-        if (!(zone_list = zone_list_new_get(dbconn))) {
+        if (!(zone_list = zone_list_db_new_get(dbconn))) {
             client_printf_err(sockfd, "Unable to get list of zones from database!\n");
             free(buf);
             return 1;
         }
-        for (zone = zone_list_get_next(zone_list); zone; zone_free(zone), zone = zone_list_get_next(zone_list)) {
+        for (zone = zone_list_db_get_next(zone_list); zone; zone_db_free(zone), zone = zone_list_db_get_next(zone_list)) {
             if (!delete_key_data(zone, dbconn, sockfd)) {
                 continue;
             }
-            if (zone_delete(zone)) {
-                client_printf_err(sockfd, "Unable to delete zone %s from database!\n", zone_name(zone));
+            if (zone_db_delete(zone)) {
+                client_printf_err(sockfd, "Unable to delete zone %s from database!\n", zone_db_name(zone));
                 continue;
             }
 
-            signconf_del = (char*) calloc(strlen(zone_signconf_path(zone)) +
+            signconf_del = (char*) calloc(strlen(zone_db_signconf_path(zone)) +
                 strlen(".ZONE_DELETED") + 1, sizeof(char));
             if (!signconf_del) {
                 ods_log_error("[%s] malloc failed", module_str);
-                zone_free(zone);
-                zone_list_free(zone_list);
+                zone_db_free(zone);
+                zone_list_db_free(zone_list);
                 free(buf);
                 return 1;
             }
-            strncpy(signconf_del, zone_signconf_path(zone), strlen(zone_signconf_path(zone)));
+            strncpy(signconf_del, zone_db_signconf_path(zone), strlen(zone_db_signconf_path(zone)));
             strncat(signconf_del, ".ZONE_DELETED", strlen(".ZONE_DELETED"));
-            rename(zone_signconf_path(zone), signconf_del);
+            rename(zone_db_signconf_path(zone), signconf_del);
             free(signconf_del);
             signconf_del = NULL;
 
-            ods_log_info("[%s] zone %s deleted", module_str, zone_name(zone));
-            client_printf(sockfd, "Deleted zone %s successfully\n", zone_name(zone));
+            ods_log_info("[%s] zone %s deleted", module_str, zone_db_name(zone));
+            client_printf(sockfd, "Deleted zone %s successfully\n", zone_db_name(zone));
         }
-        zone_list_free(zone_list);
+        zone_list_db_free(zone_list);
         zone = NULL;
         client_printf(sockfd, "All zones deleted successfully\n");
     } else {
@@ -284,7 +284,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
         }
     }
 
-    zone_free(zone);
+    zone_db_free(zone);
     return ret;
 }
 

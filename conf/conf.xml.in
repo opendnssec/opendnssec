@@ -44,8 +44,6 @@
 -->
 
 		<Datastore><SQLite>@OPENDNSSEC_STATE_DIR@/kasp.db</SQLite></Datastore>
-		<!--The enforcer interval parameter is no long used in 2.0 and will be deprecated in 2.1 -->
-		<Interval>PT3600S</Interval>
 		<!-- <ManualKeyGeneration/> -->
 		<AutomaticKeyGenerationPeriod>P1Y</AutomaticKeyGenerationPeriod>
 		<!-- <RolloverNotification>P14D</RolloverNotification> -->

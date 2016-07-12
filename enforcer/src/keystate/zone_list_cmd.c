@@ -35,7 +35,7 @@
 #include "str.h"
 #include "duration.h"
 #include "clientpipe.h"
-#include "db/zone.h"
+#include "db/zone_db.h"
 #include "db/policy.h"
 #include "db/db_value.h"
 
@@ -69,8 +69,8 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	db_connection_t *dbconn)
 {
     const char* fmt = "%-31s %-13s %-26s %-34s\n";
-    zone_list_t* zone_list;
-    const zone_t* zone;
+    zone_list_db_t* zone_list;
+    const zone_db_t* zone;
     policy_t* policy = NULL;
     const char* nctime;
     char buf[32];
@@ -79,15 +79,15 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 
 	ods_log_debug("[%s] %s command", module_str, zone_list_funcblock()->cmdname);
 
-	if (!(zone_list = zone_list_new_get(dbconn))) {
+	if (!(zone_list = zone_list_db_new_get(dbconn))) {
 	    client_printf_err(sockfd, "Unable to get list of zones, memory allocation or database error!\n");
 	    return 1;
 	}
 
     client_printf(sockfd, "Database set to: %s\n", engine->config->datastore);
-    if (!(zone = zone_list_next(zone_list))) {
+    if (!(zone = zone_list_db_next(zone_list))) {
         client_printf(sockfd, "No zones in database.\n");
-        zone_list_free(zone_list);
+        zone_list_db_free(zone_list);
         return 0;
     }
 
@@ -95,14 +95,14 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     client_printf(sockfd, fmt, "Zone:", "Policy:", "Next change:",
         "Signer Configuration:");
     while (zone) {
-        if (zone_next_change(zone) >= time_now()) {
-            if (!ods_ctime_r(buf, sizeof(buf), zone_next_change(zone))) {
+        if (zone_db_next_change(zone) >= time_now()) {
+            if (!ods_ctime_r(buf, sizeof(buf), zone_db_next_change(zone))) {
                 nctime = "invalid date/time";
             }
             else {
                 nctime = buf;
             }
-        } else if (zone_next_change(zone) >= 0) {
+        } else if (zone_db_next_change(zone) >= 0) {
             nctime = "as soon as possible";
         } else {
             nctime = "no changes scheduled";
@@ -114,7 +114,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
              * or if they are not the same free the policy object to we will
              * later retrieve the correct policy
              */
-            if (db_value_cmp(policy_id(policy), zone_policy_id(zone), &cmp)
+            if (db_value_cmp(policy_id(policy), zone_db_policy_id(zone), &cmp)
                 || cmp)
             {
                 policy_free(policy);
@@ -122,19 +122,19 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
             }
         }
         if (!policy) {
-            policy = zone_get_policy(zone);
+            policy = zone_db_get_policy(zone);
         }
 
         client_printf(sockfd, fmt,
-            zone_name(zone),
+            zone_db_name(zone),
             (policy ? policy_name(policy) : "NOT_FOUND"),
             nctime,
-            zone_signconf_path(zone));
+            zone_db_signconf_path(zone));
 
-        zone = zone_list_next(zone_list);
+        zone = zone_list_db_next(zone_list);
     }
     policy_free(policy);
-    zone_list_free(zone_list);
+    zone_list_db_free(zone_list);
 
 	return 0;
 }

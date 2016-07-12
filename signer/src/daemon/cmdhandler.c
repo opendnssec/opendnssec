@@ -57,10 +57,6 @@
 
 #define SE_CMDH_CMDLEN 7
 
-#ifndef SUN_LEN
-#define SUN_LEN(su)  (sizeof(*(su)) - sizeof((su)->sun_path) + strlen((su)->sun_path))
-#endif
-
 static int count = 0;
 static char const * cmdh_str = "cmdhandler";
 
@@ -462,7 +458,7 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_type* cmdc, const char* tbd)
         signconf_cleanup(zone->signconf);
 
         zone->db = namedb_create((void*)zone);
-        zone->ixfr = ixfr_create((void*)zone);
+        zone->ixfr = ixfr_create();
         zone->signconf = signconf_create();
 
         if (!zone->signconf || !zone->ixfr || !zone->db) {
@@ -902,8 +898,7 @@ cmdhandler_create(const char* filename)
     servaddr.sun_len = strlen(servaddr.sun_path);
 #endif
     /* bind and listen... */
-    ret = bind(listenfd, (const struct sockaddr*) &servaddr,
-        SUN_LEN(&servaddr));
+    ret = bind(listenfd, (const struct sockaddr*) &servaddr, sizeof(struct sockaddr_un));
     if (ret != 0) {
         ods_log_error("[%s] unable to create cmdhandler: "
             "bind() failed (%s)", cmdh_str, strerror(errno));
