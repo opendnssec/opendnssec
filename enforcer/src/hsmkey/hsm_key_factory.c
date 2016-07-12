@@ -426,7 +426,7 @@ hsm_key_factory_generate_cb(char const *owner, void *context, db_connection_t *d
     ods_log_debug("[hsm_key_factory_generate_cb] generate for policy key done");
     policy_key_free(task2->policy_key);
     task2->policy_key = NULL;
-    if (task2->reschedule_enforce_task)
+    if (task2->reschedule_enforce_task && policy)
         enforce_task_flush_policy(task2->engine, dbconn, policy);
     policy_free(policy);
     return -1;
@@ -447,7 +447,7 @@ hsm_key_factory_generate_policy_cb(char const *owner, void *context,
     ods_log_debug("[hsm_key_factory_generate_policy_cb] generate for policy [duration: %lu]", (unsigned long) task2->duration);
     hsm_key_factory_generate_policy(task2->engine, dbconn, task2->policy, task2->duration);
     ods_log_debug("[hsm_key_factory_generate_policy_cb] generate for policy done");
-    if (task2->reschedule_enforce_task)
+    if (task2->reschedule_enforce_task && task2->policy)
         enforce_task_flush_policy(task2->engine, dbconn, task2->policy);
     return -1;
 }
