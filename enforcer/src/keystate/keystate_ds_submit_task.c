@@ -41,7 +41,7 @@ static time_t
 keystate_ds_submit_task_perform(char const *zonename, void *context,
 	db_connection_t* dbconn)
 {
-	(void)change_keys_from_to(dbconn, -1, zonename, NULL, 0,
+	(void)change_keys_from_to(dbconn, -1, zonename, NULL, -1,
 		KEY_DATA_DS_AT_PARENT_SUBMIT, KEY_DATA_DS_AT_PARENT_SUBMITTED,
 		(engine_type*)context);
 	return -1;

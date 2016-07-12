@@ -39,6 +39,7 @@
 #include "log.h"
 
 static const char* task_str = "task";
+static pthread_mutex_t worklock = PTHREAD_MUTEX_INITIALIZER;
 
 void task_deepfree(task_t *task)
 {
@@ -58,9 +59,23 @@ time_t task_execute(task_t *task, db_connection_t *dbconn)
         return -1;
     }
     ods_log_assert(task->owner);
-    pthread_mutex_lock(task->lock);
-        t = task->callback(task->owner, task->context, dbconn);
-    pthread_mutex_unlock(task->lock);
+
+    /*
+     * It is sad but we need worklock to prevent concurrent database
+     * access. Our code is not able to handle that properly. (we can't
+     * really tell the difference between an error and nodata.) Once we
+     * fixed our database backend this lock can be removed.
+     * */
+    if (!strcmp(task->class, TASK_CLASS_ENFORCER))
+        pthread_mutex_lock(&worklock);
+
+        pthread_mutex_lock(task->lock);
+            t = task->callback(task->owner, task->context, dbconn);
+        pthread_mutex_unlock(task->lock);
+
+    if (!strcmp(task->class, TASK_CLASS_ENFORCER))
+        pthread_mutex_unlock(&worklock);
+
     return t;
 }
 

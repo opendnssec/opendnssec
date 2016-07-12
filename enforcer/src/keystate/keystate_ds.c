@@ -295,12 +295,14 @@ push_clauses(db_clause_list_t *clause_list, zone_db_t *zone,
 		return 1;
 	if (!key_data_ds_at_parent_clause(clause_list, state_from))
 		return 1;
+
 	/* filter in id and or keytag conditionally. */
 	if (hsmkey) {
 		if (hsmkey && !key_data_hsm_key_id_clause(clause_list, hsm_key_id(hsmkey)))
 			return 1;
-	} else {
-		if (keytag < 0 || !key_data_keytag_clause(clause_list, keytag))
+	}
+	if (keytag > 0) {
+		if (!key_data_keytag_clause(clause_list, keytag))
 			return 1;
 	}
 	return 0;

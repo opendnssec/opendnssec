@@ -90,7 +90,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	const char *argv[MAX_ARGS];
 	int argc, attach, cont;
 	task_t* task = NULL;
-	(void)n; (void)dbconn;
+	(void)n;
 
 	ods_log_debug("[%s] %s command", module_str, time_leap_funcblock()->cmdname);
 
@@ -166,7 +166,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 		} else {
 			task_deepfree(task);
 		}
-		hsm_key_factory_generate_all(engine, dbconn, 0);
+		//~ hsm_key_factory_generate_all(engine, dbconn, 0); /* should be scheduled already */
 	}
 	return 0;
 }
