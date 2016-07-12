@@ -44,7 +44,7 @@ regress: $(RNG)
 		(echo "kasp.xml built")
 
 install-data-hook:
-	test -d ${DESTDIR}${sysconfdir} || ${INSTALL_DATA} -m 0775 -D -d @INSTALLATIONUSERARG@ @INSTALLATIONGROUPARG@ ${DESTDIR}${sysconfdir}
+	test -d ${DESTDIR}${sysconfdir} || ${INSTALL_DATA} -m 0775 -d @INSTALLATIONUSERARG@ @INSTALLATIONGROUPARG@ ${DESTDIR}${sysconfdir}
 	test -f ${DESTDIR}${sysconfdir}/conf.xml || ( ${INSTALL_DATA} -m 0640 conf.xml @INSTALLATIONUSERARG@ @INSTALLATIONGROUPARG@ ${DESTDIR}${sysconfdir} ; if which >/dev/null xmlif ; then xmlif < ${DESTDIR}${sysconfdir}/conf.xml > ${DESTDIR}${sysconfdir}/conf.xml~ privdrop=@INSTALLATIONCOND@ ; else ${GREP} -v '^<?xmlif' < ${DESTDIR}${sysconfdir}/conf.xml > ${DESTDIR}${sysconfdir}/conf.xml~ ; fi ; cat < ${DESTDIR}${sysconfdir}/conf.xml~ > ${DESTDIR}${sysconfdir}/conf.xml ; rm ${DESTDIR}${sysconfdir}/conf.xml~ )
 	${INSTALL_DATA} -m 640 conf.xml ${DESTDIR}${sysconfdir}/conf.xml.sample ; ${GREP} -v '^<?xmlif' < ${DESTDIR}${sysconfdir}/conf.xml.sample > ${DESTDIR}${sysconfdir}/conf.xml.sample~ ; cat < ${DESTDIR}${sysconfdir}/conf.xml.sample~ > ${DESTDIR}${sysconfdir}/conf.xml.sample ; rm ${DESTDIR}${sysconfdir}/conf.xml.sample~
 	test -f ${DESTDIR}${sysconfdir}/addns.xml || \
