@@ -525,7 +525,10 @@ worker_perform_task(worker_type* worker)
     return;
 
 task_perform_fail:
-    if (status != ODS_STATUS_XFR_NOT_READY) {
+    if (!zone->signconf->last_modified) {
+        ods_log_warning("[%s[%i]] WARNING: unable to sign zone %s, signconf is not ready", worker2str(worker->type), worker->thread_num, task_who2str(task));
+    }
+    else if (status != ODS_STATUS_XFR_NOT_READY) {
         /* other statuses is critical, and we know it is not ODS_STATUS_OK */
         ods_log_crit("[%s[%i]] CRITICAL: failed to sign zone %s: %s",
             worker2str(worker->type), worker->thread_num,
