@@ -48,11 +48,11 @@ static const char *module_str = "zone_del_cmd";
 static void
 usage(int sockfd)
 {
-	client_printf(sockfd,
-		"zone delete\n"
-		"	--zone <zone> | --all			aka -z | -a \n"
-		"	[--xml]					aka -u \n"
-	);
+    client_printf(sockfd,
+        "zone delete\n"
+        "   --zone <zone> | --all           aka -z | -a \n"
+        "   [--xml]                 aka -u \n"
+    );
 }
 
 static void
@@ -60,16 +60,16 @@ help(int sockfd)
 {
     client_printf(sockfd,
         "Delete one zone or all of them from the enforcer database.\n"
-	"\nOptions:\n"
-        "zone|all	name of the zone or all zones\n"
-        "xml		update zonelist.xml and remove the contents for the deleted zone\n\n"
+        "\nOptions:\n"
+        "zone|all   name of the zone or all zones\n"
+        "xml        update zonelist.xml and remove the contents for the deleted zone\n\n"
     );
 }
 
 static int
 handles(const char *cmd, ssize_t n)
 {
-	return ods_check_command(cmd, n, zone_del_funcblock()->cmdname)?1:0;
+    return ods_check_command(cmd, n, zone_del_funcblock()->cmdname)?1:0;
 }
 
 static int delete_key_data(zone_db_t* zone, db_connection_t *dbconn, int sockfd) {
@@ -191,9 +191,9 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
         }
         strncpy(signconf_del, zone_db_signconf_path(zone), strlen(zone_db_signconf_path(zone)));
         strncat(signconf_del, ".ZONE_DELETED", strlen(".ZONE_DELETED"));
- 	    rename(zone_db_signconf_path(zone), signconf_del);
- 	    free(signconf_del);
- 	    signconf_del = NULL;
+        rename(zone_db_signconf_path(zone), signconf_del);
+        free(signconf_del);
+        signconf_del = NULL;
 
         ods_log_info("[%s] zone %s deleted", module_str, zone_name2);
         client_printf(sockfd, "Deleted zone %s successfully\n", zone_name2);
@@ -289,11 +289,11 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 }
 
 static struct cmd_func_block funcblock = {
-	"zone delete", &usage, &help, &handles, &run
+    "zone delete", &usage, &help, &handles, &run
 };
 
 struct cmd_func_block*
 zone_del_funcblock(void)
 {
-	return &funcblock;
+    return &funcblock;
 }
