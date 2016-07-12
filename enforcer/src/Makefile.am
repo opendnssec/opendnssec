@@ -93,7 +93,7 @@ ods_enforcerd_SOURCES = \
 	keystate/keystate_ds_submit_task.h \
 	signconf/signconf_cmd.c signconf/signconf_cmd.h \
 	signconf/signconf_task.c signconf/signconf_task.h \
-	signconf/signconf.c signconf/signconf.h \
+	signconf/signconf_xml.c signconf/signconf_xml.h \
 	enforcer/autostart_cmd.c enforcer/autostart_cmd.h \
 	enforcer/enforce_cmd.c enforcer/enforce_cmd.h \
 	enforcer/enforce_task.c enforcer/enforce_task.h \
