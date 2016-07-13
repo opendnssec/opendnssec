@@ -218,6 +218,7 @@ AC_CONFIG_FILES([
 	enforcer/man/Makefile
 	enforcer/src/db/test/Makefile
 	enforcer/man/ods-enforcer.8
+	enforcer/man/ods-enforcer-db-setup.8
 	enforcer/man/ods-enforcerd.8
 	enforcer/src/utils/Makefile
 	enforcer/src/utils/ods-kaspcheck.1
