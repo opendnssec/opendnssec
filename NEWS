@@ -1,3 +1,4 @@
+* In the kasp file, KSK/ZSK section, the algorithm length must be set now.
 * Enforce and signconf tasks are now scheduled individually per zone. Resign
   per policy.
 
