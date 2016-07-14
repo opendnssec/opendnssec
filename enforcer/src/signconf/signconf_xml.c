@@ -57,7 +57,7 @@ int signconf_xml_export_all(int sockfd, const db_connection_t* connection, int f
     zone_list_db_t* zone_list;
     zone_db_t* zone;
     int ret;
-    const policy_t* policy = NULL;
+    policy_t *policy = NULL;
     int cmp;
     int change = 0;
 
