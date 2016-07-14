@@ -27,6 +27,9 @@ ods_start_ods-control &&
 syslog_waitfor 60 'ods-signerd: .*\[STATS\] ods' &&
 syslog_waitfor 60 'ods-signerd: .*\[STATS\] \.' &&
 
+# sleep a bit more to ensure the verbosity is really done
+sleep 30 &&
+
 ## Check signed zone file [when we decide on auditor tool]
 test -f "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
 test -f "$INSTALL_ROOT/var/opendnssec/signed/root" &&
