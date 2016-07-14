@@ -154,8 +154,8 @@ parse_zonelist_adapter(xmlXPathContextPtr xpathCtx, xmlChar* expr,
 static void
 parse_zonelist_adapters(xmlXPathContextPtr xpathCtx, zone_type* zone)
 {
-    xmlChar* i_expr = (xmlChar*) "//Zone/Adapters/Input";
-    xmlChar* o_expr = (xmlChar*) "//Zone/Adapters/Output";
+    xmlChar* i_expr = (xmlChar*) "Adapters/Input";
+    xmlChar* o_expr = (xmlChar*) "Adapters/Output";
 
     if (!xpathCtx || !zone) {
         return;
@@ -180,10 +180,11 @@ parse_zonelist_zones(void* zlist, const char* zlfile)
     int error = 0;
     xmlTextReaderPtr reader = NULL;
     xmlDocPtr doc = NULL;
+    xmlNodePtr node = NULL;
     xmlXPathContextPtr xpathCtx = NULL;
     xmlChar* name_expr = (unsigned char*) "name";
-    xmlChar* policy_expr = (unsigned char*) "//Zone/Policy";
-    xmlChar* signconf_expr = (unsigned char*) "//Zone/SignerConfiguration";
+    xmlChar* policy_expr = (unsigned char*) "Policy";
+    xmlChar* signconf_expr = (unsigned char*) "SignerConfiguration";
 
     if (!zlist || !zlfile) {
         return ODS_STATUS_ASSERT_ERR;
@@ -214,12 +215,13 @@ parse_zonelist_zones(void* zlist, const char* zlfile)
                 continue;
             }
             /* Expand this node to get the rest of the info */
-            xmlTextReaderExpand(reader);
+            node = xmlTextReaderExpand(reader);
             doc = xmlTextReaderCurrentDoc(reader);
             if (doc) {
                 xpathCtx = xmlXPathNewContext(doc);
             }
-            if (doc == NULL || xpathCtx == NULL) {
+            if (doc == NULL || xpathCtx == NULL || node == NULL ||
+                    xmlXPathSetContextNode(node, xpathCtx)) {
                 ods_log_alert("[%s] unable to read zone %s, skipping...",
                    parser_str, zone_name);
                 ret = xmlTextReaderRead(reader);
