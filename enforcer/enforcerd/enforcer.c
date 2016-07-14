@@ -586,6 +586,7 @@ int do_communication(hsm_ctx_t* ctx, DAEMONCONFIG *config, KSM_POLICY* policy, b
 
     xmlTextReaderPtr reader = NULL;
     xmlDocPtr doc = NULL;
+    xmlNodePtr node = NULL;
     xmlXPathContextPtr xpathCtx = NULL;
     xmlXPathObjectPtr xpathObj = NULL;
 
@@ -600,8 +601,8 @@ int do_communication(hsm_ctx_t* ctx, DAEMONCONFIG *config, KSM_POLICY* policy, b
     char* ksk_expected = NULL;  /* When is the next ksk rollover expected? */
 
     xmlChar *name_expr = (unsigned char*) "name";
-    xmlChar *policy_expr = (unsigned char*) "//Zone/Policy";
-    xmlChar *filename_expr = (unsigned char*) "//Zone/SignerConfiguration";
+    xmlChar *policy_expr = (unsigned char*) "Policy";
+    xmlChar *filename_expr = (unsigned char*) "SignerConfiguration";
 
     char* temp_char = NULL;
 
@@ -664,9 +665,9 @@ int do_communication(hsm_ctx_t* ctx, DAEMONCONFIG *config, KSM_POLICY* policy, b
                 }
 
                 /* Expand this node and get the rest of the info with XPath */
-                xmlTextReaderExpand(reader);
+                node = xmlTextReaderExpand(reader);
                 doc = xmlTextReaderCurrentDoc(reader);
-                if (doc == NULL) {
+                if (doc == NULL || node == NULL) {
                     log_msg(config, LOG_ERR, "Error: can not read zone \"%s\"; skipping", zone_name);
                     /* Don't return? try to parse the rest of the zones? */
                     ret = xmlTextReaderRead(reader);
@@ -678,7 +679,7 @@ int do_communication(hsm_ctx_t* ctx, DAEMONCONFIG *config, KSM_POLICY* policy, b
                 /* TODO should we validate here? Or should we validate the whole document? */
 
                 xpathCtx = xmlXPathNewContext(doc);
-                if(xpathCtx == NULL) {
+                if(xpathCtx == NULL || xmlXPathSetContextNode(node, xpathCtx)) {
                     log_msg(config, LOG_ERR,"Error: can not create XPath context for \"%s\"; skipping zone", zone_name);
                     /* Don't return? try to parse the rest of the zones? */
                     ret = xmlTextReaderRead(reader);
