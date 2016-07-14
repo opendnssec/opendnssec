@@ -35,7 +35,6 @@
 	<Enforcer>
 
 		<Datastore><SQLite>really/does_not_exist</SQLite></Datastore>
-		<Interval>P1Y</Interval>
 	</Enforcer>
 
 	<Signer>
