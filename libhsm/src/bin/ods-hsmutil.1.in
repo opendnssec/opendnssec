@@ -74,9 +74,9 @@ Output more information by increasing the verbosity level
 .SH "SEE ALSO"
 .LP
 ods\-control(8), ods\-enforcerd(8), ods\-hsmspeed(1),
-ods\-kaspcheck(1), ods\-ksmutil(1), ods\-signer(8),
-ods\-signerd(8), ods\-enforcer(8), ods\-timing(5),
-ods\-kasp(5), opendnssec(7),
+ods\-kaspcheck(1), ods\-signer(8), ods\-signerd(8),
+ods\-enforcer(8), ods\-timing(5), ods\-kasp(5),
+opendnssec(7),
 .B http://www.opendnssec.org/
 .SH "AUTHORS"
 .LP
