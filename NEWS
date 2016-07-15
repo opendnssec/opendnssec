@@ -1,3 +1,9 @@
+OpenDNSSEC 2.0.0-1
+
+* include db creation scripts in dist tarball needed for migration from 1.4.
+
+OpenDNSSEC 2.0.0
+
 * OpenDNSSEC-99: Skip "are you sure" messages. Add --force and -f flag to
   ods-enforcer-db-setup and hsmutil purge
 * OPENDNSSEC-808: Crash on query with empty query section (thanks Håvard Eidnes)
