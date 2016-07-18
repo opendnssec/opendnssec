@@ -23,7 +23,6 @@ enforcerdir =	@libdir@/opendnssec/enforcer
 dist_bin_SCRIPTS = ods-ksmutil
 bin_PROGRAMS = ods-kaspcheck
 sbin_PROGRAMS =	ods-enforcerd ods-enforcer ods-enforcer-db-setup ods-migrate
-# man8_MANS =	man/ods-enforcer.8 man/ods-enforcerd.8
 dist_man1_MANS = utils/ods-kaspcheck.1
 
 BACKEND_SOURCES_CUSTOM =
