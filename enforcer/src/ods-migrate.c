@@ -396,7 +396,9 @@ main(int argc, char* argv[])
     hsm_close();
 
     engine_config_cleanup(cfg);
-    dblayer_close();
+    /* dblayer_foreach for each frees something dblayer_close uses
+     * We better just let it leak. */
+    /* dblayer_close(); */
     dblayer_finalize();
     ods_log_close();
 
