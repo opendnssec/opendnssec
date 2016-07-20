@@ -37,7 +37,7 @@
 				<Standby>0</Standby>
 			</KSK>
 			<ZSK>
-				<Algorithm length="1024">7</Algorithm>
+				<Algorithm length="1024">8</Algorithm>
 				<Lifetime>P3M</Lifetime>
 				<Repository>SoftHSM</Repository>
 				<Standby>0</Standby>
