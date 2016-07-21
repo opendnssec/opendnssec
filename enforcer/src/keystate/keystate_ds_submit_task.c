@@ -34,6 +34,7 @@
 #include "daemon/engine.h"
 #include "duration.h"
 #include "keystate/keystate_ds.h"
+#include "enforcer/enforce_task.h"
 
 #include "keystate/keystate_ds_submit_task.h"
 

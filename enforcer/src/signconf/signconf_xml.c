@@ -85,7 +85,7 @@ int signconf_export_all(int sockfd, const db_connection_t* connection, int force
     zone_list_db_t* zone_list;
     zone_db_t* zone;
     int ret;
-    policy_t* policy = NULL;
+    policy_t *policy = NULL;
     int cmp;
     int change = 0;
 

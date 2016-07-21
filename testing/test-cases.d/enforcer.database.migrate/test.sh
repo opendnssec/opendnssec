@@ -75,6 +75,8 @@ else
 	echo -n "LINE: ${LINENO} " && (cd_to_src && ./convert_mysql_to_sqlite -p test -u test -o $INSTALL_ROOT/var/opendnssec/kasp.db -i test )
 fi &&
 
+echo -n "LINE: ${LINENO} " && ods-migrate &&
+
 echo -n "LINE: ${LINENO} " && ods_ods-control_enforcer_start &&
 echo -n "LINE: ${LINENO} " && unset KSK1 &&
 echo -n "LINE: ${LINENO} " && unset ZSK1 &&
