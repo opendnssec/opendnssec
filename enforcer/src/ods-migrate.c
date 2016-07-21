@@ -93,16 +93,26 @@ struct dblayer_sqlite3_struct dblayer_sqlite3;
 static void
 dblayer_sqlite3_initialize(void)
 {
-    dblayer_sqlite3.sqlite3_prepare_v2 = (int(*)(sqlite3*, const char*, int, sqlite3_stmt**, const char **))functioncast(dlsym(NULL, "sqlite3_prepare_v2"));
-    dblayer_sqlite3.sqlite3_reset = (int(*)(sqlite3_stmt*)) functioncast(dlsym(NULL, "sqlite3_reset"));
-    dblayer_sqlite3.sqlite3_bind_int = (int(*)(sqlite3_stmt*, int, int))functioncast(dlsym(NULL, "sqlite3_bind_int"));
-    dblayer_sqlite3.sqlite3_finalize = (int(*)(sqlite3_stmt*))functioncast(dlsym(NULL, "sqlite3_finalize"));
-    dblayer_sqlite3.sqlite3_open = (int(*)(const char*, sqlite3**)) functioncast(dlsym(NULL, "sqlite3_open"));
-    dblayer_sqlite3.sqlite3_exec = (int(*)(sqlite3*, const char*, int(*)(void*, int, char**, char**), void*, char **)) functioncast(dlsym(NULL, "sqlite3_exec"));
-    dblayer_sqlite3.sqlite3_step = (int(*)(sqlite3_stmt*)) functioncast(dlsym(NULL, "sqlite3_step"));
-    dblayer_sqlite3.sqlite3_close = (int(*)(sqlite3*)) functioncast(dlsym(NULL, "sqlite3_close"));
-    dblayer_sqlite3.sqlite3_errmsg = (const char*(*)(sqlite3*)) functioncast(dlsym(NULL, "sqlite3_errmsg"));
-    dblayer_sqlite3.sqlite3_free = (int(*)(void*)) functioncast(dlsym(NULL, "sqlite3_free"));
+    void *handle;
+    char const *error;
+
+    dlerror();
+    handle = dlopen("libsqlite3.so", RTLD_NOW);
+    if ((error = dlerror()) != NULL) {
+	    printf("Failed to load sqlite3 library. dlerror(): %s\n", error);
+	    exit(1);
+    }
+
+    dblayer_sqlite3.sqlite3_prepare_v2 = (int(*)(sqlite3*, const char*, int, sqlite3_stmt**, const char **))functioncast(dlsym(handle, "sqlite3_prepare_v2"));
+    dblayer_sqlite3.sqlite3_reset = (int(*)(sqlite3_stmt*)) functioncast(dlsym(handle, "sqlite3_reset"));
+    dblayer_sqlite3.sqlite3_bind_int = (int(*)(sqlite3_stmt*, int, int))functioncast(dlsym(handle, "sqlite3_bind_int"));
+    dblayer_sqlite3.sqlite3_finalize = (int(*)(sqlite3_stmt*))functioncast(dlsym(handle, "sqlite3_finalize"));
+    dblayer_sqlite3.sqlite3_open = (int(*)(const char*, sqlite3**)) functioncast(dlsym(handle, "sqlite3_open"));
+    dblayer_sqlite3.sqlite3_exec = (int(*)(sqlite3*, const char*, int(*)(void*, int, char**, char**), void*, char **)) functioncast(dlsym(handle, "sqlite3_exec"));
+    dblayer_sqlite3.sqlite3_step = (int(*)(sqlite3_stmt*)) functioncast(dlsym(handle, "sqlite3_step"));
+    dblayer_sqlite3.sqlite3_close = (int(*)(sqlite3*)) functioncast(dlsym(handle, "sqlite3_close"));
+    dblayer_sqlite3.sqlite3_errmsg = (const char*(*)(sqlite3*)) functioncast(dlsym(handle, "sqlite3_errmsg"));
+    dblayer_sqlite3.sqlite3_free = (int(*)(void*)) functioncast(dlsym(handle, "sqlite3_free"));
 }
 
 static void
@@ -210,11 +220,13 @@ dblayer_mysql_foreach(const char* listQueryStr, const char* updateQueryStr, int 
     mysql_stmt_prepare(updateStmt, updateQueryStr, strlen(updateQueryStr) + 1);
     mysql_query(dblayer_mysql.handle, listQueryStr);
     res = mysql_store_result(dblayer_mysql.handle);
+    if (!res) {
+        fprintf(stderr, "Failed to update db. Is it set correctly in conf.xml?\n");
+        exit(1);
+    }
     mysql_num_fields(res);
     while ((row = mysql_fetch_row(res))) {
-    printf("BERRY#1\n");
         compute(row, &id, &keytag);
-    printf("BERRY#2 %d %d\n",(int)id,(int)keytag);
         memset(bind, 0, sizeof (bind));
         bind[0].buffer = &keytag;
         bind[0].buffer_length = sizeof(keytag);
@@ -226,7 +238,6 @@ dblayer_mysql_foreach(const char* listQueryStr, const char* updateQueryStr, int 
         mysql_stmt_bind_param(updateStmt, bind);
         mysql_stmt_execute(updateStmt);
         mysql_stmt_affected_rows(updateStmt);
-    printf("BERRY#4 %d\n",mysql_stmt_affected_rows(updateStmt));
     }
     mysql_free_result(res);
     mysql_stmt_close(updateStmt);
@@ -236,10 +247,12 @@ static void
 dblayer_mysql_open(const char* host, const char* user, const char* pass,
         const char *rsrc, unsigned int port, const char *unix_socket)
 {
-    MYSQL* database;
     dblayer_mysql.handle = mysql_init(NULL);
-    database = mysql_real_connect(dblayer_mysql.handle, host, user, pass, rsrc, port, NULL, 0);
-    (void)database;
+    if (!mysql_real_connect(dblayer_mysql.handle, host, user, pass, rsrc, port, NULL, 0)) {
+	fprintf(stderr, "Failed to connect to database: Error: %s\n",
+	    mysql_error(dblayer_mysql.handle)); 
+	exit(1);
+    }
     dblayer.close = &dblayer_mysql_close;
     dblayer.foreach = &dblayer_mysql_foreach;
 
@@ -396,7 +409,9 @@ main(int argc, char* argv[])
     hsm_close();
 
     engine_config_cleanup(cfg);
-    dblayer_close();
+    /* dblayer_foreach for each frees something dblayer_close uses
+     * We better just let it leak. */
+    /* dblayer_close(); */
     dblayer_finalize();
     ods_log_close();
 
