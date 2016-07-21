@@ -220,11 +220,13 @@ dblayer_mysql_foreach(const char* listQueryStr, const char* updateQueryStr, int 
     mysql_stmt_prepare(updateStmt, updateQueryStr, strlen(updateQueryStr) + 1);
     mysql_query(dblayer_mysql.handle, listQueryStr);
     res = mysql_store_result(dblayer_mysql.handle);
+    if (!res) {
+        fprintf(stderr, "Failed to update db. Is it set correctly in conf.xml?\n");
+        exit(1);
+    }
     mysql_num_fields(res);
     while ((row = mysql_fetch_row(res))) {
-    printf("BERRY#1\n");
         compute(row, &id, &keytag);
-    printf("BERRY#2 %d %d\n",(int)id,(int)keytag);
         memset(bind, 0, sizeof (bind));
         bind[0].buffer = &keytag;
         bind[0].buffer_length = sizeof(keytag);
@@ -236,7 +238,6 @@ dblayer_mysql_foreach(const char* listQueryStr, const char* updateQueryStr, int 
         mysql_stmt_bind_param(updateStmt, bind);
         mysql_stmt_execute(updateStmt);
         mysql_stmt_affected_rows(updateStmt);
-    printf("BERRY#4 %d\n",mysql_stmt_affected_rows(updateStmt));
     }
     mysql_free_result(res);
     mysql_stmt_close(updateStmt);
@@ -246,10 +247,12 @@ static void
 dblayer_mysql_open(const char* host, const char* user, const char* pass,
         const char *rsrc, unsigned int port, const char *unix_socket)
 {
-    MYSQL* database;
     dblayer_mysql.handle = mysql_init(NULL);
-    database = mysql_real_connect(dblayer_mysql.handle, host, user, pass, rsrc, port, NULL, 0);
-    (void)database;
+    if (!mysql_real_connect(dblayer_mysql.handle, host, user, pass, rsrc, port, NULL, 0)) {
+	fprintf(stderr, "Failed to connect to database: Error: %s\n",
+	    mysql_error(dblayer_mysql.handle)); 
+	exit(1);
+    }
     dblayer.close = &dblayer_mysql_close;
     dblayer.foreach = &dblayer_mysql_foreach;
 
