@@ -1,3 +1,9 @@
+OpenDNSSEC 2.0.1 - 2016-07-21
+
+* Fixed crash and linking issue in ods-migrate.
+* Fixed case where 2.0.0 could not read backup files from 1.4.10.
+* Fixed bug in migration script where key state wasn't transformed properly.
+
 OpenDNSSEC 2.0.0-1
 
 * include db creation scripts in dist tarball needed for migration from 1.4.
