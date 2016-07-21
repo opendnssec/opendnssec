@@ -221,7 +221,7 @@ dblayer_mysql_foreach(const char* listQueryStr, const char* updateQueryStr, int 
     mysql_query(dblayer_mysql.handle, listQueryStr);
     res = mysql_store_result(dblayer_mysql.handle);
     if (!res) {
-        fprintf(stderr, "Failed to update db. Is it set correctly in conf.xml?");
+        fprintf(stderr, "Failed to update db. Is it set correctly in conf.xml?\n");
         exit(1);
     }
     mysql_num_fields(res);
@@ -250,7 +250,7 @@ dblayer_mysql_open(const char* host, const char* user, const char* pass,
     dblayer_mysql.handle = mysql_init(NULL);
     if (!mysql_real_connect(dblayer_mysql.handle, host, user, pass, rsrc, port, NULL, 0)) {
 	fprintf(stderr, "Failed to connect to database: Error: %s\n",
-	    mysql_error(&mysql)); 
+	    mysql_error(dblayer_mysql.handle)); 
 	exit(1);
     }
     dblayer.close = &dblayer_mysql_close;
