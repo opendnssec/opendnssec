@@ -227,7 +227,7 @@ void
 dnshandler_signal(dnshandler_type* dnshandler)
 {
     if (dnshandler && dnshandler->thread_id) {
-        ods_thread_kill(dnshandler->thread_id, SIGHUP);
+        janitor_thread_signal(dnshandler->thread_id);
     }
 }
 

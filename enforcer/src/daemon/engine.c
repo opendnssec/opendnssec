@@ -36,6 +36,7 @@
 #include "daemon/cfg.h"
 #include "daemon/cmdhandler.h"
 #include "clientpipe.h"
+#include "locks.h"
 #include "daemon/engine.h"
 #include "daemon/signal.h"
 #include "daemon/worker.h"
@@ -106,33 +107,13 @@ engine_dealloc(engine_type* engine)
     free(engine);
 }
 
-/**
- * Start command handler.
- *
- */
-static void*
-cmdhandler_thread_start(void* arg)
-{
-    int err;
-    sigset_t sigset;
-    cmdhandler_type* cmd = (cmdhandler_type*) arg;
-
-    sigfillset(&sigset);
-    if((err=pthread_sigmask(SIG_SETMASK, &sigset, NULL)))
-        ods_fatal_exit("[%s] pthread_sigmask: %s", engine_str, strerror(err));
-
-    cmdhandler_start(cmd);
-    return NULL;
-}
-
 static void
 engine_start_cmdhandler(engine_type* engine)
 {
     ods_log_assert(engine);
     ods_log_debug("[%s] start command handler", engine_str);
     engine->cmdhandler->engine = engine;
-    pthread_create(&engine->cmdhandler->thread_id, NULL,
-        cmdhandler_thread_start, engine->cmdhandler);
+    janitor_thread_create(&engine->cmdhandler->thread_id, workerthreadclass, (janitor_runfn_t)cmdhandler_start, engine->cmdhandler);
 }
 
 /**
@@ -179,35 +160,16 @@ engine_privdrop(engine_type* engine)
 static void
 engine_create_workers(engine_type* engine)
 {
-    size_t i = 0;
+    char* name;
+    int i = 0;
     ods_log_assert(engine);
     ods_log_assert(engine->config);
     engine->workers = (worker_type**) malloc(
         (size_t)engine->config->num_worker_threads * sizeof(worker_type*));
     for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
-        engine->workers[i] = worker_create(i);
+        asprintf(&name, "worker[%d]", i+1);
+        engine->workers[i] = worker_create(name);
     }
-}
-
-static void*
-worker_thread_start(void* arg)
-{
-    int err;
-    sigset_t sigset;
-    worker_type* worker = (worker_type*) arg;
-
-    sigfillset(&sigset);
-    if((err=pthread_sigmask(SIG_SETMASK, &sigset, NULL)))
-        ods_fatal_exit("[%s] pthread_sigmask: %s", engine_str, strerror(err));
-
-    worker->dbconn = get_database_connection(worker->engine->dbcfg_list);
-    if (!worker->dbconn) {
-        ods_log_crit("Failed to start worker, could not connect to database");
-        return NULL;
-    }
-    worker_start(worker);
-    db_connection_free(worker->dbconn);
-    return NULL;
 }
 
 void
@@ -221,8 +183,7 @@ engine_start_workers(engine_type* engine)
     for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
         engine->workers[i]->need_to_exit = 0;
         engine->workers[i]->engine = (struct engine_struct*) engine;
-        pthread_create(&engine->workers[i]->thread_id, NULL,
-            worker_thread_start, engine->workers[i]);
+        janitor_thread_create(&engine->workers[i]->thread_id, workerthreadclass, (janitor_runfn_t)worker_start, engine->workers[i]);
     }
 }
 
@@ -242,7 +203,7 @@ engine_stop_workers(engine_type* engine)
     /* head count */
     for (i=0; i < engine->config->num_worker_threads; i++) {
         ods_log_debug("[%s] join worker %i", engine_str, i+1);
-        (void)pthread_join(engine->workers[i]->thread_id, NULL);
+        janitor_thread_join(engine->workers[i]->thread_id);
         engine->workers[i]->engine = NULL;
     }
 }

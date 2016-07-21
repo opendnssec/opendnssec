@@ -47,7 +47,7 @@ typedef struct cmdhandler_struct cmdhandler_type;
 struct cmdhandler_struct {
     engine_type* engine;
     struct sockaddr_un listen_addr;
-    ods_thread_type thread_id;
+    janitor_thread_t thread_id;
     int listen_fd;
     int client_fd;
     int need_to_exit;
