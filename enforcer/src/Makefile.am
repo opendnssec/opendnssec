@@ -20,11 +20,9 @@ AM_CFLAGS = \
 
 enforcerdir =	@libdir@/opendnssec/enforcer
 
-dist_bin_SCRIPTS = ods-ksmutil
 bin_PROGRAMS = ods-kaspcheck
 sbin_PROGRAMS =	ods-enforcerd ods-enforcer ods-enforcer-db-setup ods-migrate
-# man8_MANS =	man/ods-enforcer.8 man/ods-enforcerd.8
-dist_man1_MANS = utils/ods-kaspcheck.1
+#dist_man1_MANS = utils/ods-kaspcheck.1
 
 BACKEND_SOURCES_CUSTOM =
 BACKEND_LDFLAGS_CUSTOM = -lm
@@ -33,13 +31,13 @@ BACKEND_SCHEMA_CUSTOM =
 if USE_SQLITE
 BACKEND_SOURCES_CUSTOM += db/db_backend_sqlite.c db/db_backend_sqlite.h
 BACKEND_SCHEMA_CUSTOM += db/db_schema_sqlite.c db/db_schema_sqlite.h \
-	db/db_data_sqlite.c db/db_data_sqlite.h
+	db/db_data_sqlite.c db/db_data_sqlite.h db/schema.sqlite
 endif
 
 if USE_MYSQL
 BACKEND_SOURCES_CUSTOM += db/db_backend_mysql.c db/db_backend_mysql.h
 BACKEND_SCHEMA_CUSTOM += db/db_schema_mysql.c db/db_schema_mysql.h \
-	db/db_data_mysql.c db/db_data_mysql.h
+	db/db_data_mysql.c db/db_data_mysql.h db/schema.mysql
 endif
 
 ods_enforcerd_SOURCES = \
@@ -93,7 +91,7 @@ ods_enforcerd_SOURCES = \
 	keystate/keystate_ds_submit_task.h \
 	signconf/signconf_cmd.c signconf/signconf_cmd.h \
 	signconf/signconf_task.c signconf/signconf_task.h \
-	signconf/signconf.c signconf/signconf.h \
+	signconf/signconf_xml.c signconf/signconf_xml.h \
 	enforcer/autostart_cmd.c enforcer/autostart_cmd.h \
 	enforcer/enforce_cmd.c enforcer/enforce_cmd.h \
 	enforcer/enforce_task.c enforcer/enforce_task.h \
@@ -113,7 +111,7 @@ ods_enforcerd_SOURCES = \
 	db/db_value.c db/db_value.h \
 	db/db_join.c db/db_join.h \
 	db/db_error.h \
-	db/zone.c db/zone_ext.c db/zone_ext.h db/zone.h \
+	db/zone_db.c db/zone_db_ext.c db/zone_db_ext.h db/zone_db.h \
 	db/key_data.c db/key_data_ext.c db/key_data_ext.h db/key_data.h \
 	db/key_state.c db/key_state_ext.c db/key_state_ext.h db/key_state.h \
 	db/key_dependency.c db/key_dependency_ext.c db/key_dependency_ext.h db/key_dependency.h \

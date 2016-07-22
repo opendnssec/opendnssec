@@ -89,7 +89,7 @@ void hsm_key_factory_generate(engine_type* engine, const db_connection_t* connec
     db_clause_list_t* clause_list;
     hsm_key_t* hsm_key = NULL;
     size_t num_keys;
-    zone_t* zone = NULL;
+    zone_db_t* zone = NULL;
     size_t num_zones;
     ssize_t generate_keys;
     libhsm_key_t *key = NULL;
@@ -148,17 +148,17 @@ void hsm_key_factory_generate(engine_type* engine, const db_connection_t* connec
      * Get the count of zones we have for the policy
      */
     if (!(clause_list = db_clause_list_new())
-        || !(zone = zone_new(connection))
-        || !zone_policy_id_clause(clause_list, policy_key_policy_id(policy_key))
-        || zone_count(zone, clause_list, &num_zones))
+        || !(zone = zone_db_new(connection))
+        || !zone_db_policy_id_clause(clause_list, policy_key_policy_id(policy_key))
+        || zone_db_count(zone, clause_list, &num_zones))
     {
         ods_log_error("[hsm_key_factory_generate] unable to count zones for policy, database or memory allocation error");
-        zone_free(zone);
+        zone_db_free(zone);
         db_clause_list_free(clause_list);
         pthread_mutex_unlock(__hsm_key_factory_lock);
         return;
     }
-    zone_free(zone);
+    zone_db_free(zone);
     db_clause_list_free(clause_list);
 
     /*

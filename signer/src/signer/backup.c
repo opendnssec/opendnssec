@@ -85,6 +85,11 @@ backup_read_check_str(FILE* in, const char* str)
         if (!strcmp(p, "rfc5011") && !strcmp(str, "keytag")) {
             return 1;
         }
+        if (!strcmp(p, "jitter") && !strcmp(str, "keyset")) {
+            fseek(in, -7, SEEK_CUR);
+            return 1;
+        }
+
         ods_log_debug("[%s] \'%s\' does not match \'%s\'", backup_str, p, str);
         return 0;
     }
@@ -137,6 +142,10 @@ backup_read_duration(FILE* in, duration_type** v)
     if (!p) {
         ods_log_debug("[%s] cannot read duration", backup_str);
        return 0;
+    }
+    if (!strcmp(p, "jitter")) {
+        fseek(in, -7, SEEK_CUR);
+        return 1;
     }
     *v=duration_create_from_string((const char*) p);
     return 1;
@@ -499,6 +508,7 @@ backup_read_ixfr(FILE* in, void* zone)
     ldns_rdf* dname = NULL;
     ldns_status status = LDNS_STATUS_OK;
     char line[SE_ADFILE_MAXLINE];
+    char *str;
     uint32_t serial = 0;
     unsigned l = 0;
     unsigned first_soa = 0;
@@ -542,8 +552,10 @@ backup_read_ixfr(FILE* in, void* zone)
             serial = ldns_rdf2native_int32(
                 ldns_rr_rdf(rr, SE_SOA_RDATA_SERIAL));
             if (!first_soa) {
+                str = ldns_rr2str(rr);
                 ods_log_debug("[%s] ixfr first SOA: %s", backup_str,
-                    ldns_rr2str(rr));
+                    str);
+                LDNS_FREE(str);
                 /* first SOA */
                 ldns_rr_free(rr);
                 rr = NULL;
@@ -561,23 +573,29 @@ backup_read_ixfr(FILE* in, void* zone)
             if (!del_mode) {
                 if (z->db->outserial == serial) {
                     /* final SOA */
+                    str = ldns_rr2str(rr);
                     ods_log_debug("[%s] ixfr final SOA: %s", backup_str,
-                        ldns_rr2str(rr));
+                        str);
+                    LDNS_FREE(str);
                     ldns_rr_free(rr);
                     rr = NULL;
                     result = ODS_STATUS_OK;
                     first_soa = 2;
                     continue;
                 } else {
+                    str = ldns_rr2str(rr);
                     ods_log_debug("[%s] new part SOA: %s", backup_str,
-                        ldns_rr2str(rr));
+                        str);
+                    LDNS_FREE(str);
                     lock_basic_lock(&z->ixfr->ixfr_lock);
-                    ixfr_purge(z->ixfr);
+                    ixfr_purge(z->ixfr, z->name);
                     lock_basic_unlock(&z->ixfr->ixfr_lock);
                 }
             } else {
+                str = ldns_rr2str(rr);
                 ods_log_debug("[%s] second part SOA: %s", backup_str,
-                    ldns_rr2str(rr));
+                    str);
+                LDNS_FREE(str);
             }
             del_mode = !del_mode;
         }
@@ -591,15 +609,20 @@ backup_read_ixfr(FILE* in, void* zone)
             goto backup_ixfr_done;
         }
         ods_log_assert(first_soa);
-        lock_basic_lock(&z->ixfr->ixfr_lock);
-        if (del_mode) {
-            ods_log_deeebug("[%s] -IXFR: %s", backup_str, ldns_rr2str(rr));
-            ixfr_del_rr(z->ixfr, rr);
-        } else {
-            ods_log_deeebug("[%s] +IXFR: %s", backup_str, ldns_rr2str(rr));
-            ixfr_add_rr(z->ixfr, rr);
+        if (z->db->is_initialized) {
+            str = ldns_rr2str(rr);
+            lock_basic_lock(&z->ixfr->ixfr_lock);
+            if (del_mode) {
+                ods_log_deeebug("[%s] -IXFR: %s", backup_str, str);
+                ixfr_del_rr(z->ixfr, rr);
+            } else {
+                ods_log_deeebug("[%s] +IXFR: %s", backup_str, str);
+                ixfr_add_rr(z->ixfr, rr);
+            }
+            lock_basic_unlock(&z->ixfr->ixfr_lock);
+            LDNS_FREE(str);
         }
-        lock_basic_unlock(&z->ixfr->ixfr_lock);
+        ldns_rr_free(rr);
     }
     if (result == ODS_STATUS_OK && status != LDNS_STATUS_OK) {
         ods_log_error("[%s] error reading RR #%i (%s): %s",
