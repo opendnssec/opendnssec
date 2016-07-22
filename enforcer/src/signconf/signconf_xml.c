@@ -34,7 +34,7 @@
 #include "db/hsm_key.h"
 #include "utils/kc_helper.h"
 
-#include "signconf/signconf.h"
+#include "signconf/signconf_xml.h"
 
 #include <libxml/parser.h>
 #include <libxml/tree.h>
@@ -51,13 +51,13 @@
  * \return SIGNCONF_EXPORT_ERR_* on error, otherwise SIGNCONF_EXPORT_OK or
  * SIGNCONF_EXPORT_NO_CHANGE.
  */
-static int signconf_export(int sockfd, const policy_t* policy, zone_db_t* zone, int force);
+static int signconf_xml_export(int sockfd, const policy_t* policy, zone_db_t* zone, int force);
 
-int signconf_export_all(int sockfd, const db_connection_t* connection, int force) {
+int signconf_xml_export_all(int sockfd, const db_connection_t* connection, int force) {
     zone_list_db_t* zone_list;
     zone_db_t* zone;
     int ret;
-    const policy_t* policy = NULL;
+    policy_t *policy = NULL;
     int cmp;
     int change = 0;
 
@@ -97,7 +97,7 @@ int signconf_export_all(int sockfd, const db_connection_t* connection, int force
             }
         }
 
-        ret = signconf_export(sockfd, policy, zone, force);
+        ret = signconf_xml_export(sockfd, policy, zone, force);
         if (ret == SIGNCONF_EXPORT_OK) {
             change = 1;
         }
@@ -126,7 +126,7 @@ static int __free(char **p) {
     return 0;
 }
 
-static int signconf_export(int sockfd, const policy_t* policy, zone_db_t* zone, int force) {
+static int signconf_xml_export(int sockfd, const policy_t* policy, zone_db_t* zone, int force) {
     char path[PATH_MAX];
     xmlDocPtr doc;
     xmlNodePtr root;

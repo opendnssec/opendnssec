@@ -80,7 +80,7 @@ void ods_log_close(void);
  * \return int facility
  *
  */
-int ods_log_get_facility(const char* facility);
+int ods_log_get_facility(const char* facility, int* error);
 
 /**
  * Get the log level.

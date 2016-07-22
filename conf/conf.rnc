@@ -81,10 +81,6 @@ start = element Configuration {
 		# Where to store internal Enforcer state
 		& element Datastore { (mysql | sqlite) }
 
-		# Interval between runs of the key rollover procedure
-		# This is no longer used in 2.0 and will be deprecated in 2.1
-		& element Interval { xsd:duration }?
-
 		# Use manual key generation?
 		& element ManualKeyGeneration { empty }?
 
