@@ -51,7 +51,7 @@ echo -n "LINE: ${LINENO} " && ods-signer stop && sleep 4 &&
 
 echo &&
 echo "############## ROLL ZSK: DOUBLE-RR-SIGNATURE METHOD ############## " &&
-echo -n "LINE: ${LINENO} " && ods-enforcer key rollover -z ods --keytype zsk && sleep 1 &&
+echo -n "LINE: ${LINENO} " && ods-enforcer key rollover -z ods --keytype zsk && sleep 5 &&
 
 # in Double RRsig mechanism, RRSIG is published before DNSKEY
 # also the Pub must be 0 and Act must be 1 which means although the key is not published, it is used for signing.

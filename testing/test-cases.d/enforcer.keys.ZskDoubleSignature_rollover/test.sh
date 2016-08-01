@@ -30,8 +30,8 @@ echo -n "LINE: ${LINENO} " && ods-enforcer key list -v -p &&
 echo -n "LINE: ${LINENO} " && ZSK1=`ods-enforcer key list -v -p | grep "ZSK" | cut -d ";" -f7` &&
 
 # Leap to the time that both KSK and ZSK are used for signing
-echo -n "LINE: ${LINENO} " && ods-enforcer time leap && sleep 1 &&
-echo -n "LINE: ${LINENO} " && ods-enforcer time leap && sleep 1 &&
+echo -n "LINE: ${LINENO} " && ods-enforcer time leap && sleep 3 &&
+echo -n "LINE: ${LINENO} " && ods-enforcer time leap && sleep 3 &&
 
 echo &&
 echo "########### VERIFY SIGNATURES IN THE SIGNED FILE ############ " &&

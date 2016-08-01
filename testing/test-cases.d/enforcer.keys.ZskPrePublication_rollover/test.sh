@@ -59,6 +59,9 @@ echo -n "LINE: ${LINENO} " && ZSK2=`ods-enforcer key list -d -p | grep "ZSK" | g
 echo &&
 echo "############# CHECK SIGNATURES AFTER ROLLOVER-1 ############# " &&
 echo -n "LINE: ${LINENO} " && ods_signer_start &&
+echo -n "LINE: ${LINENO} " && ods-enforcer signconf &&
+echo -n "LINE: ${LINENO} " && ods-signer sign --all &&
+
 # There must be 2 ZSKs
 echo -n "LINE: ${LINENO} " && count=`grep -c "DNSKEY[[:space:]]*256" "$INSTALL_ROOT/var/opendnssec/signed/ods"` &&
 echo -n "LINE: ${LINENO} " && [ $count -eq 2 ] &&
