@@ -3,6 +3,7 @@ UNRELEASED:
 * Enforce and signconf tasks are now scheduled individually per zone. Resign
   per policy.
 * zone delete removes tasks associated with zone from queue.
+* In the kasp file, KSK/ZSK section, the algorithm length must be set now.
 
 OpenDNSSEC 2.0.1 - 2016-07-21
 
