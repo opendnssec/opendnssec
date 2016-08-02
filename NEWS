@@ -1,6 +1,14 @@
+UNRELEASED:
+
 * Enforce and signconf tasks are now scheduled individually per zone. Resign
   per policy.
 * zone delete removes tasks associated with zone from queue.
+
+OpenDNSSEC 2.0.1 - 2016-07-21
+
+* Fixed crash and linking issue in ods-migrate.
+* Fixed case where 2.0.0 could not read backup files from 1.4.10.
+* Fixed bug in migration script where key state wasn't transformed properly.
 
 OpenDNSSEC 2.0.0-1
 
