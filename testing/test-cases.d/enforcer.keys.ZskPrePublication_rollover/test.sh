@@ -7,7 +7,7 @@ ods_signer_start () {
 	rm -f "$INSTALL_ROOT/var/opendnssec/signer/ods.backup2"
         rm -f "$INSTALL_ROOT/var/opendnssec/signed/ods"
 
-	ods-signer start &&
+	ods_start_signer &&
 	sleep 5
 }
 
@@ -24,7 +24,7 @@ fi &&
 ods_reset_env && 
 echo &&
 echo "#################### START AND LEAP TIME #################### " &&
-echo -n "LINE: ${LINENO} " && ods-enforcer start && sleep 1 &&
+echo -n "LINE: ${LINENO} " && ods_start_enforcer && sleep 1 &&
 
 echo -n "LINE: ${LINENO} " && ods-enforcer key list -v -p &&
 echo -n "LINE: ${LINENO} " && ZSK1=`ods-enforcer key list -v -p | grep "ZSK" | cut -d ";" -f7` &&
@@ -44,7 +44,7 @@ echo -n "LINE: ${LINENO} " && count=`grep -c "RRSIG[[:space:]]*MX" "$INSTALL_ROO
 echo -n "LINE: ${LINENO} " && [ $count -eq 1 ] &&
 
 echo -n "LINE: ${LINENO} " && ldns-verify-zone "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
-echo -n "LINE: ${LINENO} " && ods-signer stop && sleep 4 &&
+echo -n "LINE: ${LINENO} " && ods_stop_signer && sleep 4 &&
 
 echo &&
 echo "############## ROLL ZSK: PRE-PUBLICATION METHOD ############## " &&
@@ -59,8 +59,6 @@ echo -n "LINE: ${LINENO} " && ZSK2=`ods-enforcer key list -d -p | grep "ZSK" | g
 echo &&
 echo "############# CHECK SIGNATURES AFTER ROLLOVER-1 ############# " &&
 echo -n "LINE: ${LINENO} " && ods_signer_start &&
-echo -n "LINE: ${LINENO} " && ods-enforcer signconf &&
-echo -n "LINE: ${LINENO} " && ods-signer sign --all &&
 
 # There must be 2 ZSKs
 echo -n "LINE: ${LINENO} " && count=`grep -c "DNSKEY[[:space:]]*256" "$INSTALL_ROOT/var/opendnssec/signed/ods"` &&
@@ -73,7 +71,7 @@ echo -n "LINE: ${LINENO} " && [ $count -eq 1 ] &&
 echo -n "LINE: ${LINENO} " && grep "RRSIG[[:space:]]*MX" "$INSTALL_ROOT/var/opendnssec/signer/ods.backup2" | grep -v $ZSK2 | grep $ZSK1 &&
 
 echo -n "LINE: ${LINENO} " && ldns-verify-zone "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
-echo -n "LINE: ${LINENO} " && ods-signer stop &&
+echo -n "LINE: ${LINENO} " && ods_stop_signer &&
 
 echo &&
 echo "############# CHECK SIGNATURES AFTER ROLLOVER-2 ############# " &&

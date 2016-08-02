@@ -6,7 +6,7 @@ ods_signer_start () {
         rm -f "$INSTALL_ROOT/var/opendnssec/signer/ods.backup2" 
         rm -f "$INSTALL_ROOT/var/opendnssec/signed/ods" 
 
-        ods-signerd &&
+        ods_start_signer &&
         sleep 5
 }
 
@@ -24,7 +24,7 @@ ods_reset_env &&
 
 echo &&
 echo "#################### START AND LEAP TIME #################### " &&
-echo -n "LINE: ${LINENO} " && ods-enforcer start && sleep 1 &&
+echo -n "LINE: ${LINENO} " && ods_start_enforcer && sleep 1 &&
 echo -n "LINE: ${LINENO} " && KSK1=`ods-enforcer key list -v -p --all | grep "KSK" | cut -d ";" -f9` &&
 
 # Leap to the time that both KSK and ZSK are used for signing
@@ -46,7 +46,7 @@ echo -n "LINE: ${LINENO} " && syslog_waitfor 60 'ods-signerd: .*\[STATS\] ods' &
 echo -n "LINE: ${LINENO} " && test -f "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
 
 echo -n "LINE: ${LINENO} " && ldns-verify-zone "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
-echo -n "LINE: ${LINENO} " && ods-signer stop && sleep 4 &&
+echo -n "LINE: ${LINENO} " && ods_stop_signer && sleep 4 &&
 
 echo &&
 echo "############## ROLL KSK: DOUBLE-DS METHOD ############## " &&
@@ -70,7 +70,7 @@ echo -n "LINE: ${LINENO} " && count=`grep -c "IN[[:space:]]*RRSIG[[:space:]]*DNS
 echo -n "LINE: ${LINENO} " && [ $count -eq 1 ] &&
 
 echo -n "LINE: ${LINENO} " && ldns-verify-zone "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
-echo -n "LINE: ${LINENO} " && ods-signer stop && sleep 4 &&
+echo -n "LINE: ${LINENO} " && ods_stop_signer && sleep 4 &&
 
 echo &&
 echo "############# CHECK SIGNATURES AFTER ROLLOVER-2 ############# " &&
