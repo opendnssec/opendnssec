@@ -93,8 +93,9 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 
     switch (policy_import(sockfd, engine, dbconn, 0)) {
     case POLICY_IMPORT_OK:
-        (void)flush_enforce_task(engine, 0);
-        (void)flush_resalt_task(engine);
+        /* only zones in policy, and force! */
+        enforce_task_flush_all(engine, dbconn);
+        (void)flush_resalt_task_all(engine, dbconn);
         return 0;
         break;
 

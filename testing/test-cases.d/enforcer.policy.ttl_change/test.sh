@@ -19,8 +19,8 @@ ods_start_enforcer &&
 
 echo "################## ZONE ADD 1" &&
 echo -n "LINE: ${LINENO} " && ods-enforcer zone add --zone ods1 &&
-ods_enforcer_idle &&
-ods-enforcer zone list &&
+echo -n "LINE: ${LINENO} " && ods_enforcer_idle &&
+echo -n "LINE: ${LINENO} " && ods-enforcer zone list &&
 
 echo "################## LEAP TO OMNIPRESENT ZSK DNSKEY" &&
 echo -n "LINE: ${LINENO} " && ods_enforcer_leap_over 120 &&
@@ -28,19 +28,23 @@ echo -n "LINE: ${LINENO} " && ods_enforcer_leap_over 120 &&
 echo "################## LOWER TTL AND RESTART" &&
 echo -n "LINE: ${LINENO} " && cp kasp-short-ttl.xml  "$INSTALL_ROOT/etc/opendnssec/kasp.xml" &&
 echo -n "LINE: ${LINENO} " && ods-enforcer policy import &&
+## Sleep for a bit. policy import triggers enforce and might conflict with key rollover
+sleep 10 &&
 
 echo "################## START ZSK ROLL" &&
 echo -n "LINE: ${LINENO} " && ods-enforcer key rollover -t ZSK -z ods1 &&
 
 echo "################## TESTING 2ND ZSK IS NOT ACTIVE FOR ENOUGH TIME" &&
 echo -n "LINE: ${LINENO} " && ods_enforcer_leap_to 3600 &&
-ods-enforcer key list -d -p | grep ZSK &&
-COUNT=`ods-enforcer key list -d -p |grep ZSK|cut -f 4 -d ";" |grep -c omnipresent` &&
-[ $COUNT -eq 1 ] &&
+echo -n "LINE: ${LINENO} " && ods-enforcer key list -d -p | grep ZSK &&
+echo -n "LINE: ${LINENO} " && COUNT=`ods-enforcer key list -d -p |grep ZSK|cut -f 4 -d ";" |grep -c omnipresent` &&
+echo -n "LINE: ${LINENO} " && [ $COUNT -eq 1 ] &&
+
 echo "################## BUT A MOMENT LATER IT IS" &&
-echo -n "LINE: ${LINENO} " && ods-enforcer time leap && sleep 1 &&
-COUNT=`ods-enforcer key list -d -p |grep ZSK|cut -f 4 -d ";" |grep -c omnipresent` &&
-[ $COUNT -eq 2 ] &&
+echo -n "LINE: ${LINENO} " && ods-enforcer time leap &&
+echo -n "LINE: ${LINENO} " && sleep 5 && # give a bit of time for the enforce to finish
+echo -n "LINE: ${LINENO} " && COUNT=`ods-enforcer key list -d -p |grep ZSK|cut -f 4 -d ";" |grep -c omnipresent` &&
+echo -n "LINE: ${LINENO} " && [ $COUNT -eq 2 ] &&
 
 ###############################################################################
 ## NOTICE: we would expect roughly an hour + a minute here. (Old TTL + margins)

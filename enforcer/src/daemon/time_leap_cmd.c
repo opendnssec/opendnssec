@@ -89,8 +89,8 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	const int NARGV = MAX_ARGS;
 	const char *argv[MAX_ARGS];
 	int argc, attach, cont;
-	task_type* task = NULL, *newtask;
-	(void)n; (void)dbconn;
+	task_t* task = NULL;
+	(void)n;
 
 	ods_log_debug("[%s] %s command", module_str, time_leap_funcblock()->cmdname);
 
@@ -136,12 +136,11 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 		(int) schedule_taskcount(engine->taskq), strtime, (long)now);
 	cont = 1;
 	while (cont) {
-		if (! time)
+		if (!time)
 			time_leap = schedule_time_first(engine->taskq);
-		if (time_leap < 0) break;
-		if (now > time_leap) {
-			time_leap = now;
-		}
+
+		assert(time_leap >= 0); /* These tasks should not have end up
+								   in the queue!*/
 
 		set_time_now(time_leap);
 		strftime(strtime, sizeof(strtime), "%c", localtime_r(&time_leap, &strtime_struct));
@@ -157,17 +156,17 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 			break;
 		if (!(task = schedule_pop_first_task(engine->taskq)))
 			break;
-		client_printf(sockfd, "[timeleap] attaching to job %s\n", task_what2str(task->what));
-		if (strcmp(task_what2str(task->what),  "enforce") == 0)
+		client_printf(sockfd, "[timeleap] attaching to job %s\n", task->type);
+		if (strcmp(task->type,  TASK_TYPE_ENFORCE) == 0)
 			cont = 0;
-		task->dbconn = dbconn;
-		newtask = task_perform(task);
+		task->due_date = task_execute(task, dbconn);
 		ods_log_debug("[timeleap] finished working");
-		if (newtask) {
-			newtask->dbconn = NULL;
-			(void) schedule_task(engine->taskq, newtask); /* TODO unchecked error code */
+		if (task->due_date >= 0) {
+			(void) schedule_task(engine->taskq, task); /* TODO unchecked error code */
+		} else {
+			task_deepfree(task);
 		}
-		hsm_key_factory_generate_all(engine, dbconn, 0);
+		//~ hsm_key_factory_generate_all(engine, dbconn, 0); /* should be scheduled already */
 	}
 	return 0;
 }

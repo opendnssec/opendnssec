@@ -31,7 +31,7 @@ ods_stop_enforcer &&
 echo -n "LINE: ${LINENO} " && cp kasp-alg-switch.xml  "$INSTALL_ROOT/etc/opendnssec/kasp.xml" &&
 ods_start_enforcer &&
 echo -n "LINE: ${LINENO} " && ods-enforcer policy import &&
-echo -n "LINE: ${LINENO} " && ods-enforcer time leap --attach &&
+#echo -n "LINE: ${LINENO} " && ods-enforcer time leap --attach &&
 ## between these 2 enforces the new keys should be generated.
 
 echo "################## INTRODUCE ZSK ###########################" &&

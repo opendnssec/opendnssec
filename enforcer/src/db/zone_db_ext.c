@@ -35,6 +35,24 @@
 
 #include <string.h>
 
+char *
+zone_db_ext_zonename_from_id(const db_connection_t* connection,
+    const db_value_t* id)
+{
+    zone_db_t *zone;
+    char *zonename = NULL;
+
+    if (!connection || !id) {
+        return NULL;
+    }
+
+    if ((zone = zone_db_new(connection)) && !zone_db_get_by_id(zone, id)) {
+        zonename = strdup(zone_db_name(zone));
+    }
+    zone_db_free(zone);
+    return zonename;
+}
+
 key_data_list_t* zone_db_get_keys(const zone_db_t* zone) {
     if (!zone) {
         return NULL;
