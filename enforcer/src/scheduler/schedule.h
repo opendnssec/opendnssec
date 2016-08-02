@@ -45,10 +45,18 @@
  */
 typedef struct schedule_struct schedule_type;
 struct schedule_struct {
+    /* Contains all tasks sorted by due_date so we can quickly find
+     * the first task. */
     ldns_rbtree_t* tasks;
+    /* Contains all tasks in tasks tree but here sorted by ttuple. */
     ldns_rbtree_t* tasks_by_name;
+    /* For every ttuple contains a task structure with an unique lock */
+    ldns_rbtree_t* locks_by_name;
     pthread_cond_t schedule_cond;
     pthread_mutex_t schedule_lock;
+    /* For testing. So we can verify al workers are waiting and nothing
+     * is to be done. Used by enforcer_idle. */
+    int num_waiting;
 };
 
 /**
@@ -76,7 +84,7 @@ void schedule_flush(schedule_type* schedule);
  * \param[in] schedule schedule to be flushed
  * \return number of tasks flushed
  */
-int schedule_flush_type(schedule_type* schedule, task_id id);
+int schedule_flush_type(schedule_type* schedule, char const *class, char const *type);
 
 /**
  * purge schedule. All tasks will be thrashed.
@@ -85,13 +93,23 @@ int schedule_flush_type(schedule_type* schedule, task_id id);
 void schedule_purge(schedule_type* schedule);
 
 /**
- * Schedule task.
+ * Schedule task. Task is now owned by scheduler and should must no
+ * longer be accessed. If a task with the same identifier is scheduled
+ * it is updated with this tasks' context and due_time is the minimum
+ * of both tasks.
+ * On return ERROR caller is responsible for freeing task.
+ * 
  * \param[in] schedule schedule
  * \param[in] task task
  * \return ods_status status
  *
  */
-ods_status schedule_task(schedule_type* schedule, task_type* task);
+ods_status schedule_task(schedule_type *schedule, task_t *task);
+
+
+/** Get the number of threads in condition wait for this lock.
+ * So we can detect all workers are idle. */
+int schedule_get_num_waiting(schedule_type* schedule);
 
 /**
  * Pop the first scheduled task that is due. If an item is directly
@@ -102,16 +120,17 @@ ods_status schedule_task(schedule_type* schedule, task_type* task);
  * \return task_type* popped task, or NULL when no task available or
  * no task due
  */
-task_type* schedule_pop_task(schedule_type* schedule);
+task_t* schedule_pop_task(schedule_type* schedule);
 
 /**
  * Pop the first scheduled task. regardless of its due time.
+ * Used for timeleap.
  *
  * \param[in] schedule schedule
  * \return task_type* popped task, or NULL when no task available or
  * no task available
  */
-task_type* schedule_pop_first_task(schedule_type* schedule);
+task_t* schedule_pop_first_task(schedule_type* schedule);
 
 /**
  * Time of first task in schedule.

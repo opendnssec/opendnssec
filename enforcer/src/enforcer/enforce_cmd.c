@@ -67,15 +67,6 @@ handles(const char *cmd, ssize_t n)
 	return ods_check_command(cmd, n, enforce_funcblock()->cmdname)?1:0;
 }
 
-static void
-reschedule_enforce(task_type *task, time_t t_when, const char *z_when)
-{
-	ods_log_assert(task->who);
-	task->who = strdup(z_when);
-	task->when = t_when;
-	task->backoff = 0;
-}
-
 /**
  * Handle the 'enforce' command.
  *
@@ -85,19 +76,11 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	db_connection_t *dbconn)
 {
 	time_t t_next;
-	task_type *task;
+	task_t *task;
 	(void)cmd; (void)n;
 	ods_log_debug("[%s] %s command", module_str, enforce_funcblock()->cmdname);
 
-	task = enforce_task(engine, 1);
-
-	t_next = perform_enforce_lock(sockfd, engine, 1, task, dbconn);
-	if (t_next == -1) {
-		task_cleanup(task);
-	} else {
-		reschedule_enforce(task, t_next, "next zone");
-		schedule_task(engine->taskq, task); /* TODO unchecked error */
-	}
+	enforce_task_flush_all(engine, dbconn);
 	return 0;
 }
 
