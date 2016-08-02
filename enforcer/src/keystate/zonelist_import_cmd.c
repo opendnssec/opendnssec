@@ -129,7 +129,8 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
         ods_log_info("[%s] internal zonelist exported successfully", module_str);
     }
 
-    flush_enforce_task(engine, 1);
+    /* YBS Only flush for zones with changed policy */
+    enforce_task_flush_all(engine, dbconn);
 
     return 0;
 }

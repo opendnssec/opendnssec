@@ -295,12 +295,14 @@ push_clauses(db_clause_list_t *clause_list, zone_db_t *zone,
 		return 1;
 	if (!key_data_ds_at_parent_clause(clause_list, state_from))
 		return 1;
+
 	/* filter in id and or keytag conditionally. */
 	if (hsmkey) {
 		if (hsmkey && !key_data_hsm_key_id_clause(clause_list, hsm_key_id(hsmkey)))
 			return 1;
-	} else {
-		if (keytag < 0 || !key_data_keytag_clause(clause_list, keytag))
+	}
+	if (keytag > 0) {
+		if (!key_data_keytag_clause(clause_list, keytag))
 			return 1;
 	}
 	return 0;
@@ -350,6 +352,7 @@ change_keys_from_to(db_connection_t *dbconn, int sockfd,
 	int status = 0, key_match = 0, key_mod = 0;
 	db_clause_list_t* clause_list = NULL;
 	db_clause_t* clause = NULL;
+	char *tmp_zone_name;
 
 	if (zonename) {
 		if (!(key_list = key_data_list_new(dbconn)) ||
@@ -405,6 +408,11 @@ change_keys_from_to(db_connection_t *dbconn, int sockfd,
 			break;
 		}
 		key_mod++;
+		/* We need to schedule enforce for owner of key. */
+		tmp_zone_name = zone_db_ext_zonename_from_id(dbconn, &key->zone_id);
+		if (tmp_zone_name)
+			enforce_task_flush_zone(engine, tmp_zone_name);
+		free(tmp_zone_name);
 		key_data_free(key);
 	}
 	key_data_list_free(key_list);

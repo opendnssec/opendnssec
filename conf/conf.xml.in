@@ -36,12 +36,10 @@
 	</Common>
 
 	<Enforcer>
-<!--
-		<Privileges>
-			<User>opendnssec</User>
-			<Group>opendnssec</Group>
-		</Privileges>
--->
+<?xmlif if condition privdrop="user|group|both"?>		<Privileges>
+<?xmlif fi?><?xmlif if condition privdrop="user|both"?>			<User>@INSTALLATIONUSER@</User>
+<?xmlif fi?><?xmlif if condition privdrop="group|both"?>			<Group>@INSTALLATIONGROUP@</Group>
+<?xmlif fi?><?xmlif if condition privdrop="user|group|both"?>		</Privileges><?xmlif fi?>
 
 		<Datastore><SQLite>@OPENDNSSEC_STATE_DIR@/kasp.db</SQLite></Datastore>
 		<!-- <ManualKeyGeneration/> -->
@@ -58,12 +56,10 @@
 	</Enforcer>
 
 	<Signer>
-<!--
-		<Privileges>
-			<User>opendnssec</User>
-			<Group>opendnssec</Group>
-		</Privileges>
--->
+<?xmlif if condition privdrop="user|group|both"?>		<Privileges>
+<?xmlif fi?><?xmlif if condition privdrop="user|both"?>			<User>@INSTALLATIONUSER@</User>
+<?xmlif fi?><?xmlif if condition privdrop="group|both"?>			<Group>@INSTALLATIONGROUP@</Group>
+<?xmlif fi?><?xmlif if condition privdrop="user|group|both"?>		</Privileges><?xmlif fi?>
 
 		<WorkingDirectory>@OPENDNSSEC_STATE_DIR@/signer</WorkingDirectory>
 		<WorkerThreads>4</WorkerThreads>

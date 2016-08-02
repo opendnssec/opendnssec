@@ -72,6 +72,28 @@
  * \return SIGNCONF_EXPORT_ERR_* on error, otherwise SIGNCONF_EXPORT_OK or
  * SIGNCONF_EXPORT_NO_CHANGE.
  */
-int signconf_xml_export_all(int sockfd, const db_connection_t* connection, int force);
+int signconf_export_all(int sockfd, const db_connection_t* connection, int force);
+
+/**
+ * Export the signconf XML for zone.
+ * \param[in] zonename Name of zone to write signconf for.
+ * \param[in] dbconn a db_connection_t pointer.
+ * \return SIGNCONF_EXPORT_ERR_* on error, otherwise SIGNCONF_EXPORT_OK or
+ * SIGNCONF_EXPORT_NO_CHANGE.
+ */
+int
+signconf_export_zone(char const *zonename, db_connection_t* dbconn);
+
+/**
+ * Export the signconf XML for all zones that uses a specified policy.
+ * \param[in] sockfd a socket fd.
+ * \param[in] connection a db_connection_t pointer.
+ * \param[in] policy a policy_t pointer.
+ * \param[in] force if non-zero it will force the export for all zones even if
+ * there are no updates for the zones.
+ * \return SIGNCONF_EXPORT_ERR_* on error, otherwise SIGNCONF_EXPORT_OK or
+ * SIGNCONF_EXPORT_NO_CHANGE.
+ */
+int signconf_export_policy(int sockfd, const db_connection_t* connection, const policy_t* policy, int force);
 
 #endif /* SIGNCONF_SIGNCONF_H_ */

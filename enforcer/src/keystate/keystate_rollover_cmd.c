@@ -232,7 +232,9 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	}
 
 	error = perform_keystate_rollover(sockfd, dbconn, policy, zone, nkeytype);
-	flush_enforce_task(engine, 0);
+	
+	/* YBS: TODO only affected zones */
+	enforce_task_flush_all(engine, dbconn);
 	return error;
 }
 

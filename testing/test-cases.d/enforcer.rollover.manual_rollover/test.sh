@@ -98,7 +98,7 @@ log_grep ods-enforcer-key-list4 stdout "ods[[:space:]]*ZSK[[:space:]]*active.*$Z
 ! log_grep ods-enforcer-key-list4 stdout "ods[[:space:]]*ZSK[[:space:]]*retire.*$ZSK_CKA_ID1" &&
 
 ##################  STEP 3: Time Leap to next new zsk for ods ###########################
-log_this ods-enforcer-time-leap-4 ods_timeleap_search_key "ods" "ZSK" "publish" &&
+log_this ods-enforcer-time-leap-4 ods_timeleap_search_key "ods" "ZSK" "publish" ".*" 100 &&
 
 
 # Check the next scheduled rollover starts for the ZSK
@@ -128,7 +128,7 @@ KSK_CKA_ID2=`log_grep -o ods-enforcer-key-list6 stdout "ods[[:space:]]*KSK[[:spa
 KSK_KEYTAG2=`log_grep -o ods-enforcer-key-list6 stdout "ods[[:space:]]*KSK[[:space:]]*publish" | awk '{print $10}'` &&
 
 # ##################  STEP 4: Time Leap to ready KSK ###########################
-log_this ods-enforcer-time-leap-5 ods_timeleap_search_key "ods" "KSK" "ready" "$KSK_CKA_ID2"&&
+log_this ods-enforcer-time-leap-5 ods_timeleap_search_key "ods" "KSK" "ready" "$KSK_CKA_ID2" ".*" 100 &&
 
 
 # Look for a ready KSK 

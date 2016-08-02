@@ -36,6 +36,14 @@
 #include <libxml/tree.h>
 
 /**
+ * Convert zone ID to name, caller must free resulting string.
+ * return NULL on error
+ */
+char *
+zone_db_ext_zonename_from_id(const db_connection_t* connection,
+    const db_value_t* id);
+
+/**
  * Get a list of keys for an enforcer zone object.
  * \param[in] zone an zone_db_t pointer.
  * \return a key_data_list_t pointer or NULL on error.
