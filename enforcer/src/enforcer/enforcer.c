@@ -498,6 +498,7 @@ successor_rec(key_data_t** keylist, size_t keylist_size,
         }
 
         if (db_value_cmp(key_data_id(predecessor_key), key_dependency_from_key_data_id(dep), &cmp)) {
+            key_dependency_list_free(deplist);
             return -1;
         }
         if (cmp) {
@@ -505,6 +506,7 @@ successor_rec(key_data_t** keylist, size_t keylist_size,
         }
 
         if (db_value_cmp(key_data_id(successor_key), key_dependency_to_key_data_id(dep), &cmp)) {
+            key_dependency_list_free(deplist);
             return -1;
         }
         if (cmp) {
@@ -576,7 +578,7 @@ successor_rec(key_data_t** keylist, size_t keylist_size,
          * first, only retrieving it from the database if needed or giving an
          * error if it does not exist in the keylist.
          */
-        if ((from_key = key_dependency_get_from_key_data(dep))) {
+        if (!(from_key = key_dependency_get_from_key_data(dep))) {
             key_dependency_list_free(deplist);
             return -1;
         }
@@ -2000,8 +2002,8 @@ getLastReusableKey(key_data_list_t *key_list, const policy_key_t *pkey)
 		return NULL;
 
 	hsmkeylist = hsm_key_list_new_get_by_policy_key(pkey);
-	for (hkey = hsm_key_list_get_begin(hsmkeylist); hkey;
-		hkey = hsm_key_list_get_next(hsmkeylist))
+	for (hkey = hsm_key_list_begin(hsmkeylist); hkey;
+		hkey = hsm_key_list_next(hsmkeylist))
 	{
 		/** only match if the hkey has at least the role(s) of pkey */
 		if ((~hsm_key_role(hkey) & policy_key_role(pkey)) != 0)

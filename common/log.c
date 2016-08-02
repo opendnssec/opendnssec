@@ -117,10 +117,8 @@ ods_log_init(const char *programname, int use_syslog, const char *targetname, in
         ods_log_warning("[%s] syslog facility %s not supported, logging to "
                    "log_daemon", log_str, targetname);
        }
-       ods_log_verbose("[%s] switching log to %s verbosity %i (log level %i)",
-          log_str, use_syslog?"syslog":(targetname&&targetname[0]?targetname:"stderr"),
-          verbosity, verbosity+2);
-
+       ods_log_verbose("[%s] switching log to syslog verbosity %i (log level %i)",
+          log_str, verbosity, verbosity+2);
        return;
     }
 #endif /* HAVE_SYSLOG_H */

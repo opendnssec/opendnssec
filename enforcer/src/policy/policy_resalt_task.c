@@ -186,6 +186,7 @@ flush_resalt_task_all(engine_type *engine, db_connection_t *dbconn)
 		ods_log_error("[%s] Unable to get list of policies from database",
 			module_str);
 		policy_list_free(policylist);
+		return ODS_STATUS_ERR;
 	}
 
 	while ((policy = policy_list_next(policylist))) {
