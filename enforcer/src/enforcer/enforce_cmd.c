@@ -103,6 +103,7 @@ run(int sockfd, engine_type *engine, const char *cmd, ssize_t n,
 	pos = ods_find_arg_and_param(&argc, argv, "zone", "z", &zone_name);
 	if (argc > 0) {
 		client_printf_err(sockfd, "Too many arguments.\n");
+		free(buf);
 		return -1;
 	}
 
@@ -111,6 +112,7 @@ run(int sockfd, engine_type *engine, const char *cmd, ssize_t n,
 	} else {
 		enforce_task_flush_all(engine, dbconn);
 	}
+	free(buf);
 	return 0;
 }
 

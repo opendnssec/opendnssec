@@ -2949,6 +2949,7 @@ static int policy_list_get_associated(policy_list_t* policy_list) {
         policy_list->object_list[i]->zone_list->object_list_size = count;
         policy_list->object_list[i]->zone_list->object_list_first = 1;
     }
+    zone_list_db_free(zone_list);
 
     if (!(hsm_key_list = hsm_key_list_new(db_object_connection(policy_list->dbo)))
         || hsm_key_list_object_store(hsm_key_list)

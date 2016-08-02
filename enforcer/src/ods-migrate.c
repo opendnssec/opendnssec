@@ -113,6 +113,8 @@ dblayer_sqlite3_initialize(void)
     dblayer_sqlite3.sqlite3_close = (int(*)(sqlite3*)) functioncast(dlsym(handle, "sqlite3_close"));
     dblayer_sqlite3.sqlite3_errmsg = (const char*(*)(sqlite3*)) functioncast(dlsym(handle, "sqlite3_errmsg"));
     dblayer_sqlite3.sqlite3_free = (int(*)(void*)) functioncast(dlsym(handle, "sqlite3_free"));
+
+    (void)dlclose(handle);
 }
 
 static void

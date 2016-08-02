@@ -86,8 +86,7 @@ backup_read_check_str(FILE* in, const char* str)
             return 1;
         }
         if (!strcmp(p, "jitter") && !strcmp(str, "keyset")) {
-            fseek(in, -7, SEEK_CUR);
-            return 1;
+            return fseek(in, -7, SEEK_CUR) == 0;
         }
 
         ods_log_debug("[%s] \'%s\' does not match \'%s\'", backup_str, p, str);
@@ -144,8 +143,7 @@ backup_read_duration(FILE* in, duration_type** v)
        return 0;
     }
     if (!strcmp(p, "jitter")) {
-        fseek(in, -7, SEEK_CUR);
-        return 1;
+        return fseek(in, -7, SEEK_CUR) == 0;
     }
     *v=duration_create_from_string((const char*) p);
     return 1;
