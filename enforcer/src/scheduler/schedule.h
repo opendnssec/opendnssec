@@ -93,6 +93,13 @@ int schedule_flush_type(schedule_type* schedule, char const *class, char const *
 void schedule_purge(schedule_type* schedule);
 
 /**
+ * Delete and free all tasks from the queue associated with owner for a
+ * specific class
+ */
+void schedule_purge_owner(schedule_type* schedule, char const *class,
+    char const *owner);
+
+/**
  * Schedule task. Task is now owned by scheduler and should must no
  * longer be accessed. If a task with the same identifier is scheduled
  * it is updated with this tasks' context and due_time is the minimum
