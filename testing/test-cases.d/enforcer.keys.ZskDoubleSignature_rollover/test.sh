@@ -87,5 +87,10 @@ echo "############################ STOP ############################ " &&
 echo -n "LINE: ${LINENO} " && ods_stop_ods-control &&
 return 0
 
+echo "#################### ERROR: CURRENT STATE ####################"
+echo "DEBUG: " && ods-enforcer key list -d -p
+echo "DEBUG: " && ods-enforcer key list -v
+echo "DEBUG: " && ods-enforcer queue
+
 ods_kill
 return 1
