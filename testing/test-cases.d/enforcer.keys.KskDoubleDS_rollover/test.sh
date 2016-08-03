@@ -50,7 +50,7 @@ echo -n "LINE: ${LINENO} " && ods_stop_signer && sleep 4 &&
 
 echo &&
 echo "############## ROLL KSK: DOUBLE-DS METHOD ############## " &&
-echo -n "LINE: ${LINENO} " && ods-enforcer key rollover -z ods --keytype ksk && sleep 1 &&
+echo -n "LINE: ${LINENO} " && ods-enforcer key rollover -z ods --keytype ksk && sleep 5 &&
 
 # in Double DS mechanism, DS is published before publishing the DNSKEY
 # Pub and Act have 0 value

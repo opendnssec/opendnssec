@@ -51,16 +51,17 @@ echo -n "LINE: ${LINENO} " && ods_stop_signer && sleep 4 &&
 
 echo &&
 echo "############## ROLL ZSK: DOUBLE-RR-SIGNATURE METHOD ############## " &&
-echo -n "LINE: ${LINENO} " && ods-enforcer key rollover -z ods --keytype zsk && sleep 1 &&
+echo -n "LINE: ${LINENO} " && ods-enforcer key rollover -z ods --keytype zsk && sleep 5 &&
 
 # in Double RRsig mechanism, RRSIG is published before DNSKEY
 # also the Pub must be 0 and Act must be 1 which means although the key is not published, it is used for signing.
 echo -n "LINE: ${LINENO} " && ods-enforcer key list -d -p | grep "ZSK" | grep "hidden;NA;rumoured;0;1" &&
+echo -n "LINE: ${LINENO} " && ods-enforcer key list -v -p &&
 echo -n "LINE: ${LINENO} " && ZSK2=`ods-enforcer key list -v -p | grep "ZSK" | grep "publish"| cut -d ";" -f9` &&
 
 echo &&
 echo "############# CHECK SIGNATURES AFTER ROLLOVER-1 ############# " &&
-echo -n "LINE: ${LINENO} " && ods_signer_start &&
+echo -n "LINE: ${LINENO} " && sleep 3 && ods_signer_start && sleep 3 &&
 
 # There must be one published ZSK
 echo -n "LINE: ${LINENO} " && count=`grep -c "DNSKEY[[:space:]]*256" "$INSTALL_ROOT/var/opendnssec/signed/ods"` &&

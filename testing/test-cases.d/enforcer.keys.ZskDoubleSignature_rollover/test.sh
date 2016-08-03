@@ -48,7 +48,7 @@ echo -n "LINE: ${LINENO} " && ods_stop_signer && sleep 4 &&
 
 echo &&
 echo "############## ROLL ZSK: DOUBLE-SIGNATURE METHOD ############## " &&
-echo -n "LINE: ${LINENO} " && ods-enforcer key rollover -z ods --keytype zsk && sleep 1 &&
+echo -n "LINE: ${LINENO} " && ods-enforcer key rollover -z ods --keytype zsk && sleep 5 &&
 
 # in Double Signature mechanism, DNSKEY and RRSIG are published at the same time,
 # also the Pub and Act must be 1 which means the key is published and used for signing.

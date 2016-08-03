@@ -53,7 +53,7 @@ echo -n "LINE: ${LINENO} " && ods_stop_signer && sleep 4 &&
 
 echo &&
 echo "############## ROLL KSK: DOUBLE-SIGNATURE METHOD ############## " &&
-echo -n "LINE: ${LINENO} " && ods-enforcer key rollover -z ods --keytype ksk && sleep 1 &&
+echo -n "LINE: ${LINENO} " && ods-enforcer key rollover -z ods --keytype ksk && sleep 5 &&
 
 # in Double Signature mechanism, DNSKEY is published before publishing the DS
 # Pub and Act are 1 which means the key is published and also used for signing.
@@ -61,7 +61,7 @@ echo -n "LINE: ${LINENO} " && KSK2=`ods-enforcer key list -d -p | grep "KSK" | g
 
 echo &&
 echo "############# CHECK SIGNATURES AFTER ROLLOVER-1 ############# " &&
-echo -n "LINE: ${LINENO} " && ods_signer_start &&
+echo -n "LINE: ${LINENO} " && sleep 3 && ods_signer_start && sleep 3 &&
 
 # There must be two DNSKEY and also two RRSIGs for DNSKEY 
 echo -n "LINE: ${LINENO} " && count=`grep -c "DNSKEY[[:space:]]*257" "$INSTALL_ROOT/var/opendnssec/signed/ods"` &&

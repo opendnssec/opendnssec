@@ -48,17 +48,18 @@ echo -n "LINE: ${LINENO} " && ods_stop_signer && sleep 4 &&
 
 echo &&
 echo "############## ROLL ZSK: PRE-PUBLICATION METHOD ############## " &&
-echo -n "LINE: ${LINENO} " && ods-enforcer key rollover -z ods --keytype zsk && sleep 1 &&
+echo -n "LINE: ${LINENO} " && ods-enforcer key rollover -z ods --keytype zsk && sleep 5 &&
 
 # In the PrePublication mechanism, DNSKEY is published before the RRSIG
 # Check DNSKEY must be rumoured while RRSIG is hidden, also Pub is 1 and Act is 0 which means
 # before using the new key for signign, DNSKEY must be published
 echo -n "LINE: ${LINENO} " && ods-enforcer key list -d -p --all &&
+echo -n "LINE: ${LINENO} " && ods-enforcer key list -v -p --all &&
 echo -n "LINE: ${LINENO} " && ZSK2=`ods-enforcer key list -d -p | grep "ZSK" | grep "rumoured;NA;hidden;1;0"| cut -d ";" -f9` &&
 
 echo &&
 echo "############# CHECK SIGNATURES AFTER ROLLOVER-1 ############# " &&
-echo -n "LINE: ${LINENO} " && ods_signer_start &&
+echo -n "LINE: ${LINENO} " && sleep 3 && ods_signer_start && sleep 3 &&
 
 # There must be 2 ZSKs
 echo -n "LINE: ${LINENO} " && count=`grep -c "DNSKEY[[:space:]]*256" "$INSTALL_ROOT/var/opendnssec/signed/ods"` &&
