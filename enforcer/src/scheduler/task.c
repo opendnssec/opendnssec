@@ -120,7 +120,7 @@ task_duplicate_shallow(task_t *task)
 {
     task_t *dup;
     dup = (task_t*) calloc(1, sizeof(task_t));
-    if (!task) {
+    if (!dup) {
         ods_log_error("[%s] cannot create: malloc failed", task_str);
         return NULL;
     }

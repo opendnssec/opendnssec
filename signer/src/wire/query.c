@@ -848,10 +848,6 @@ query_process(query_type* q, engine_type* engine)
     ods_log_assert(engine);
     ods_log_assert(q);
     ods_log_assert(q->buffer);
-    if (!engine || !q || !q->buffer) {
-        ods_log_error("[%s] drop query: assertion error", query_str);
-        return QUERY_DISCARDED; /* should not happen */
-    }
     if (buffer_limit(q->buffer) < BUFFER_PKT_HEADER_SIZE) {
         ods_log_debug("[%s] drop query: packet too small", query_str);
         return QUERY_DISCARDED; /* too small */

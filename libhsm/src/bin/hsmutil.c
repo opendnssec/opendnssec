@@ -506,6 +506,7 @@ cmd_dnskey (int argc, char *argv[])
         default:
             printf("Invalid algorithm: %i\n", algo);
             libhsm_key_info_free(key_info);
+	    free(key);
             free(name);
             free(id);
             return -1;

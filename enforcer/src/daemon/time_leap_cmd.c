@@ -139,8 +139,10 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 		if (!time)
 			time_leap = schedule_time_first(engine->taskq);
 
-		assert(time_leap >= 0); /* These tasks should not have end up
-								   in the queue!*/
+		if (time_leap == -1) {
+			client_printf(sockfd, "No tasks in queue. Not able to leap.\n");
+			break;
+		}
 
 		set_time_now(time_leap);
 		strftime(strtime, sizeof(strtime), "%c", localtime_r(&time_leap, &strtime_struct));

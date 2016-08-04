@@ -498,6 +498,7 @@ successor_rec(key_data_t** keylist, size_t keylist_size,
         }
 
         if (db_value_cmp(key_data_id(predecessor_key), key_dependency_from_key_data_id(dep), &cmp)) {
+            key_dependency_list_free(deplist);
             return -1;
         }
         if (cmp) {
@@ -505,6 +506,7 @@ successor_rec(key_data_t** keylist, size_t keylist_size,
         }
 
         if (db_value_cmp(key_data_id(successor_key), key_dependency_to_key_data_id(dep), &cmp)) {
+            key_dependency_list_free(deplist);
             return -1;
         }
         if (cmp) {
