@@ -535,9 +535,10 @@ run_ds_cmd(int sockfd, const char *cmd, ssize_t n,
 		if (!(hsmkey = hsm_key_new_get_by_locator(dbconn, cka_id))) {
 			client_printf_err(sockfd, "CKA_ID %s can not be found!\n", cka_id);
 		}
+	} else {
+		ret = change_keys_from_to(dbconn, sockfd, zonename, hsmkey, keytag,
+			state_from, state_to, engine);
 	}
-	ret = change_keys_from_to(dbconn, sockfd, zonename, hsmkey, keytag,
-		state_from, state_to, engine);
 	hsm_key_free(hsmkey);
 	return ret;
 }
