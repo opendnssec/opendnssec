@@ -50,16 +50,14 @@ static const char* schedule_str = "scheduler";
 
 /* Condition must be accessible from ISR */
 static pthread_cond_t *schedule_cond;
+static pthread_mutex_t *schedule_lock;
 static int numwaiting = 0;
 
 static task_t* get_first_task(schedule_type *schedule);
 
 /**
  * Interrupt service routine on SIGALRM. When caught such signal one of
- * the threads waiting for a task is notified. Unfortunately we can not
- * put the notify in a lock. When we have just a single worker thread
- * there is a rare race condition where the thread just misses this
- * event. Having multiple threads the race condition is not a problem.
+ * the threads waiting for a task is notified.
  */
 static void*
 alarm_handler(sig_atomic_t sig)
@@ -67,11 +65,9 @@ alarm_handler(sig_atomic_t sig)
     switch (sig) {
         case SIGALRM:
             ods_log_debug("[%s] SIGALRM received", schedule_str);
-            /* normally a signal is locked to prevent race conditions.
-             * We MUST NOT lock this. This function is called by the
-             * main thread as interrupt which might have acquired
-             * the lock. */
-            pthread_cond_signal(schedule_cond);
+            pthread_mutex_lock(schedule_lock);
+                pthread_cond_signal(schedule_cond);
+            pthread_mutex_unlock(schedule_lock);
             break;
         default:
             ods_log_debug("[%s] Spurious signal %d received", 
@@ -190,6 +186,7 @@ schedule_create()
 {
     schedule_type* schedule;
     struct sigaction action;
+    pthread_mutexattr_t mtx_attr;
 
     schedule = (schedule_type*) malloc(sizeof(schedule_type));
     if (!schedule) {
@@ -200,10 +197,20 @@ schedule_create()
     schedule->tasks = ldns_rbtree_create(task_compare_time_then_ttuple);
     schedule->tasks_by_name = ldns_rbtree_create(task_compare_ttuple);
     schedule->locks_by_name = ldns_rbtree_create(task_compare_ttuple);
-    pthread_mutex_init(&schedule->schedule_lock, NULL);
+
+    /* The reason we allow recursive locks is because we broadcast
+     * a condition in an ISR. The main thread would receive this
+     * interrupt. If we would do no locking in the ISR we risk missing
+     * conditions. If we use a normal mutex we risk a deadlock if the
+     * main thread occasionally grabs the lock. */
+    (void)pthread_mutexattr_init(&mtx_attr);
+    (void)pthread_mutexattr_settype(&mtx_attr, PTHREAD_MUTEX_RECURSIVE);
+    pthread_mutex_init(&schedule->schedule_lock, &mtx_attr);
+    
     pthread_cond_init(&schedule->schedule_cond, NULL);
     /* static condition for alarm. Must be accessible from interrupt */
     schedule_cond = &schedule->schedule_cond;
+    schedule_lock = &schedule->schedule_lock;
     schedule->num_waiting = 0;
 
     action.sa_handler = (void (*)(int))&alarm_handler;
