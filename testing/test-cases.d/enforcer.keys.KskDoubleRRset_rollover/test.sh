@@ -78,6 +78,7 @@ echo "############# CHECK SIGNATURES AFTER ROLLOVER-2 ############# " &&
 ods-enforcer key ds-seen -z ods --cka_id $KSK2 && sleep 3 &&
 
 echo -n "LINE: ${LINENO} " && ods-enforcer time leap && sleep 3 &&
+echo -n "LINE: ${LINENO} " && ods-enforcer time leap && sleep 3 &&
 
 echo -n "LINE: ${LINENO} " && ods-enforcer key list -d -p | grep "ods;KSK;omnipresent;omnipresent;omnipresent;NA;1;1;$KSK2" &&
 echo -n "LINE: ${LINENO} " && ods-enforcer key list -d -p | grep "ods;KSK;unretentive;unretentive;unretentive;NA;0;0;$KSK1" &&
