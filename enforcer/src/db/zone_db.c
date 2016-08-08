@@ -2282,8 +2282,12 @@ static int zone_list_db_get_associated(zone_list_db_t* zone_list) {
         return DB_ERROR_UNKNOWN;
     }
 
+    key_data_list_free(key_data_list);
+
     for (i = 0; i < zone_list->object_list_size; i++) {
         if (!(zone_list->object_list[i])) {
+            key_dependency_list_free(key_dependency_list);
+            db_clause_list_free(clause_list);
             return DB_ERROR_UNKNOWN;
         }
 
@@ -2351,7 +2355,6 @@ static int zone_list_db_get_associated(zone_list_db_t* zone_list) {
     }
     key_dependency_list_free(key_dependency_list);
     db_clause_list_free(clause_list);
-    key_data_list_free(key_data_list);
 
     zone_list->object_list_first = 1;
     return DB_OK;

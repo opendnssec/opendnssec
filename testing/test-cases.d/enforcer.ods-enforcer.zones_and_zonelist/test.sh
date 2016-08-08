@@ -278,7 +278,9 @@ log_grep ods-enforcer-zone_add_list_3   stdout "ods14[[:space:]]*default" &&
 # There is a back-off task sometimes firing up here, which is not caught by
 # the _idle.  This back-off task is generating the right signconf /with/
 # keys once they are available.
-sleep 120 &&
+# YBS: keygen will trigger enforce, enforce will trigger signconf.
+# this sleep is no longer relevant.
+#sleep 120 &&
 ods_enforcer_idle &&
 
 log_this ods-enforcer-zonelist-export ods-enforcer zonelist export &&
@@ -292,7 +294,20 @@ echo "zones.xml contents OK" &&
 ods_start_signer 10 &&
 log_this ods-enforcer-signconf ods-enforcer signconf && 
 # cp $INSTALL_root/var/opendnssec/signconf
-syslog_waitfor 300 'signconf done, notifying signer' &&
+syslog_waitfor 300 'signconf done for zone ods1, notifying signer' &&
+syslog_waitfor 300 'signconf done for zone ods2, notifying signer' &&
+syslog_waitfor 300 'signconf done for zone ods3, notifying signer' &&
+syslog_waitfor 300 'signconf done for zone ods4, notifying signer' &&
+syslog_waitfor 300 'signconf done for zone ods5, notifying signer' &&
+syslog_waitfor 300 'signconf done for zone ods6, notifying signer' &&
+syslog_waitfor 300 'signconf done for zone ods7, notifying signer' &&
+syslog_waitfor 300 'signconf done for zone ods8, notifying signer' &&
+syslog_waitfor 300 'signconf done for zone ods9, notifying signer' &&
+syslog_waitfor 300 'signconf done for zone ods10, notifying signer' &&
+syslog_waitfor 300 'signconf done for zone ods11, notifying signer' &&
+syslog_waitfor 300 'signconf done for zone ods12, notifying signer' &&
+syslog_waitfor 300 'signconf done for zone ods13, notifying signer' &&
+syslog_waitfor 300 'signconf done for zone ods14, notifying signer' &&
 syslog_waitfor 300 'ods-signerd: .*\[STATS\] ods1' &&
 syslog_waitfor 300 'ods-signerd: .*\[STATS\] ods2' &&
 syslog_waitfor 300 'ods-signerd: .*\[STATS\] ods3' &&

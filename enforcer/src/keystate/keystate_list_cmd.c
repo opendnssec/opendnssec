@@ -452,16 +452,13 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
         filterKeytype = tokenizeparam(keytypeParam);
     else
         filterKeytype = NULL;
+
     if (keystateParam) {
         filterKeystate = tokenizeparam(keystateParam);
     } else
         filterKeystate = NULL;
-    if (bAll) {
-        if (filterKeystate != NULL) {
-            free(filterKeystate);
-        }
-        filterKeystate = NULL;
-    } else if(filterKeystate == NULL) {
+
+    if(!bAll && filterKeystate == NULL) {
         if ((filterKeystate = malloc(sizeof (char*) * 6))) {
             filterKeystate[0] = (char *)"publish";
             filterKeystate[1] = (char *)"ready";

@@ -471,25 +471,25 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 
     /* gen = 0, pub = 1, ready = 2, act = 3, ... */
     int state = -1;
-    if (!strcasecmp(keystate, "generate"))
+    if (keystate && !strcasecmp(keystate, "generate"))
         state = 0;
-    else if (!strcasecmp(keystate,"publish"))
+    else if (keystate && !strcasecmp(keystate,"publish"))
         state = 1;
-    else if (!strcasecmp(keystate, "ready"))
+    else if (keystate && !strcasecmp(keystate, "ready"))
         state = 2;
-    else if (!strcasecmp(keystate, "active"))
+    else if (keystate && !strcasecmp(keystate, "active"))
         state = 3;
-    else if (!strcasecmp(keystate, "retire"))
+    else if (keystate && !strcasecmp(keystate, "retire"))
         state = 4;
-    else if (!strcasecmp(keystate, "revoke"))
+    else if (keystate && !strcasecmp(keystate, "revoke"))
         state = 5;
 
     int type = -1;
-    if (!strcasecmp(keytype, "KSK"))
+    if (keytype && !strcasecmp(keytype, "KSK"))
         type = 1;
-    else if (!strcasecmp(keytype, "ZSK"))
+    else if (keytype && !strcasecmp(keytype, "ZSK"))
         type = 2;
-    else if (!strcasecmp(keytype, "CSK"))
+    else if (keytype && !strcasecmp(keytype, "CSK"))
         type = 3;
 
     hsmkey_id = db_value_new();

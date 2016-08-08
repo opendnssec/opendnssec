@@ -311,9 +311,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
         }
     }
     else {
-	char signedfile[257] = "";
-	strncat (strncat (signedfile, zone_name, strlen (zone_name)), ".xml", 4);
-        if (snprintf(path, sizeof(path), "%s/signconf/%s", OPENDNSSEC_STATE_DIR, signedfile) >= (int)sizeof(path)
+        if (snprintf(path, sizeof(path), "%s/signconf/%s.xml", OPENDNSSEC_STATE_DIR, zone_name) >= (int)sizeof(path)
             || zone_db_set_signconf_path(zone, path))
         {
             client_printf_err(sockfd, "Unable to add zone, failed to set signconf!\n");
@@ -365,7 +363,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
      */
     hsm_key_factory_generate_policy(engine, dbconn, policy, 0);
     ods_log_debug("[%s] Flushing enforce task", module_str);
-    flush_enforce_task(engine, 0);
+    (void)schedule_task(engine->taskq, enforce_task(engine, zone->name));
 
     policy_free(policy);
 
