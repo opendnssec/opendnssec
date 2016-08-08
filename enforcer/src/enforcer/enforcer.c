@@ -498,6 +498,7 @@ successor_rec(key_data_t** keylist, size_t keylist_size,
         }
 
         if (db_value_cmp(key_data_id(predecessor_key), key_dependency_from_key_data_id(dep), &cmp)) {
+            key_dependency_list_free(deplist);
             return -1;
         }
         if (cmp) {
@@ -505,6 +506,7 @@ successor_rec(key_data_t** keylist, size_t keylist_size,
         }
 
         if (db_value_cmp(key_data_id(successor_key), key_dependency_to_key_data_id(dep), &cmp)) {
+            key_dependency_list_free(deplist);
             return -1;
         }
         if (cmp) {
@@ -1045,7 +1047,7 @@ dnssecApproval(key_data_t** keylist, size_t keylist_size,
  * return a time_t with the absolute time or -1 on error.
  */
 static time_t
-minTransitionTime(policy_t* policy, key_state_type_t type,
+minTransitionTime(policy_t const *policy, key_state_type_t type,
     key_state_state_t next_state, const time_t lastchange, const int ttl)
 {
     if (!policy) {
@@ -1243,7 +1245,7 @@ policyApproval(key_data_t** keylist, size_t keylist_size,
  * \return The TTL that should be used for the record or -1 on error.
  */
 static int
-getZoneTTL(policy_t* policy, zone_db_t* zone, key_state_type_t type,
+getZoneTTL(policy_t const *policy, zone_db_t* zone, key_state_type_t type,
     const time_t now)
 {
     time_t end_date;
@@ -1418,7 +1420,7 @@ markSuccessors(db_connection_t *dbconn, key_data_t** keylist,
  * @return first absolute time some record *could* be advanced.
  * */
 static time_t
-updateZone(db_connection_t *dbconn, policy_t* policy, zone_db_t* zone,
+updateZone(db_connection_t *dbconn, policy_t const *policy, zone_db_t* zone,
     const time_t now, int allow_unsigned, int *zone_updated,
     key_data_t** keylist, size_t keylist_size, key_dependency_list_t *deplist)
 {
@@ -2233,7 +2235,7 @@ set_roll(zone_db_t *zone, const policy_key_t *pkey, unsigned int roll)
  * @return time_t
  * */
 static time_t
-updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t *policy,
+updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t const *policy,
 	zone_db_t *zone, const time_t now, int *allow_unsigned, int *zone_updated)
 {
 	time_t return_at = -1;
@@ -2722,7 +2724,7 @@ removeDeadKeys(db_connection_t *dbconn, key_data_t** keylist,
 }
 
 time_t
-update(engine_type *engine, db_connection_t *dbconn, zone_db_t *zone, policy_t *policy, time_t now, int *zone_updated)
+update(engine_type *engine, db_connection_t *dbconn, zone_db_t *zone, policy_t const *policy, time_t now, int *zone_updated)
 {
 	int allow_unsigned = 0;
     time_t policy_return_time, zone_return_time, purge_return_time = -1, return_time;

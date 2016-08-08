@@ -27,7 +27,7 @@
  *
  */
 
-#include "signconf/signconf.h"
+#include "signconf/signconf_xml.h"
 #include "duration.h"
 #include "log.h"
 #include "file.h"
@@ -36,41 +36,89 @@
 
 static const char *module_str = "signconf_cmd";
 
-int perform_signconf(int sockfd, const db_connection_t* dbconn, int force) {
+static time_t
+perform(char const *zonename, void *context, db_connection_t* dbconn)
+{
+    (void)context;
     int ret;
     char cmd[SYSTEM_MAXLEN];
 
-    ods_log_info("[%s] performing signconf for all zones", module_str);
-    ret = signconf_export_all(sockfd, dbconn, force);
+    ods_log_info("[%s] performing signconf for zone %s", module_str,
+        zonename);
+
+    /* exports all that have "needswriting set */
+    ret = signconf_export_zone(zonename, dbconn);
     if (ret == SIGNCONF_EXPORT_NO_CHANGE) {
         ods_log_info("[%s] signconf done, no change", module_str);
-        return 0;
+        return -1;
     }
     if (ret != SIGNCONF_EXPORT_OK) {
         ods_log_error("[%s] signconf failed", module_str);
-        return 1;
+        /* YBS reschedule backoff? */
+        return -1;
     }
-
-    ods_log_info("[%s] signconf done, notifying signer", module_str);
+    
+    ods_log_info("[%s] signconf done for zone %s, notifying signer",
+        module_str, zonename);
+        
     /* TODO: do this better, connect directly or use execve() */
-    if (snprintf(cmd, sizeof(cmd), "%s --all", SIGNER_CLI_UPDATE) >= (int)sizeof(cmd)
+    if (snprintf(cmd, sizeof(cmd), "%s %s", SIGNER_CLI_UPDATE, zonename) >= (int)sizeof(cmd)
         || system(cmd))
     {
-        ods_log_error("[%s] unable to notify signer of signconf changes!", module_str);
-        return 1;
+        ods_log_error("[%s] unable to notify signer of signconf changes for zone %s!",
+            module_str, zonename);
     }
-
-    return 0;
+    return -1;
 }
 
-
-static task_type* signconf_task_perform(task_type* task) {
-    perform_signconf(-1, task->dbconn, 0);
-    task_cleanup(task);
-    return NULL;
+void
+signconf_task_flush_zone(engine_type *engine, db_connection_t *dbconn,
+    const char* zonename)
+{
+    task_t* task = task_create(strdup(zonename), TASK_CLASS_ENFORCER,
+        TASK_TYPE_SIGNCONF, perform, NULL, NULL, time_now());
+    (void) schedule_task(engine->taskq, task);
 }
 
-task_type* signconf_task(const db_connection_t* dbconn, const char* what, const char* who) {
-    task_id what_id = task_register(what, "signconf_task_perform", signconf_task_perform);
-    return task_create(what_id, time_now(), who, what, (void*)dbconn, NULL);
+void
+signconf_task_flush_policy(engine_type *engine, db_connection_t *dbconn,
+    policy_t const *policy)
+{
+    zone_db_t const *zone;
+    zone_list_db_t *zonelist;
+
+    ods_log_assert(policy);
+    
+    zonelist = zone_list_db_new_get_by_policy_id(dbconn, policy_id(policy));
+    if (!zonelist) {
+        ods_log_error("[%s] Can't fetch zones for policy %s from database",
+            module_str, policy_name(policy));
+        return;
+    }
+    while ((zone = zone_list_db_next(zonelist))) {
+        signconf_task_flush_zone(engine, dbconn, zone_db_name(zone));
+    }
+    zone_list_db_free(zonelist);
+}
+
+void
+signconf_task_flush_all(engine_type *engine, db_connection_t *dbconn)
+{
+    zone_list_db_t *zonelist;
+    zone_db_t const *zone;
+
+    zonelist = zone_list_db_new(dbconn);
+    if (!zonelist) {
+        ods_log_error("[%s] Can't fetch zones from database", module_str);
+        return;
+    }
+    if (zone_list_db_get(zonelist)) { /* fetch all */
+        ods_log_error("[%s] Can't fetch zones from database", module_str);
+        zone_list_db_free(zonelist);
+        return;
+    }
+    while ((zone = zone_list_db_next(zonelist))) {
+        signconf_task_flush_zone(engine, dbconn, zone_db_name(zone));
+    }
+    zone_list_db_free(zonelist);
 }

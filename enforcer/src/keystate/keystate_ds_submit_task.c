@@ -30,36 +30,27 @@
 
 #include "clientpipe.h"
 #include "scheduler/task.h"
+#include "enforcer/enforce_task.h"
 #include "daemon/engine.h"
 #include "duration.h"
 #include "keystate/keystate_ds.h"
+#include "enforcer/enforce_task.h"
 
 #include "keystate/keystate_ds_submit_task.h"
 
-/* static const char *module_str = "keystate_ds_submit_task"; */
-
-/* executed headless */
-static task_type * 
-keystate_ds_submit_task_perform(task_type *task)
+static time_t
+keystate_ds_submit_task_perform(char const *zonename, void *context,
+	db_connection_t* dbconn)
 {
-	assert(task);
-
-	(void)change_keys_from_to(task->dbconn, -1, NULL, NULL, 0,
+	(void)change_keys_from_to(dbconn, -1, zonename, NULL, -1,
 		KEY_DATA_DS_AT_PARENT_SUBMIT, KEY_DATA_DS_AT_PARENT_SUBMITTED,
-		(engine_type*)task->context);
-	task_cleanup(task);
-	flush_enforce_task((engine_type*)task->context, 0);
-	return NULL;
+		(engine_type*)context);
+	return -1;
 }
 
-task_type *
-keystate_ds_submit_task(engine_type *engine)
+task_t *
+keystate_ds_submit_task(engine_type *engine, char const *owner)
 {
-	task_id what_id;
-	const char *what = "ds-submit";
-	const char *who = "KSK keys with submit flag set";
-	
-	what_id = task_register(what, "keystate_ds_submit_task_perform",
-		keystate_ds_submit_task_perform);
-	return task_create(what_id, time_now(), who, what, engine, NULL);
+	return task_create(strdup(owner), TASK_CLASS_ENFORCER, TASK_TYPE_DSSUBMIT,
+		keystate_ds_submit_task_perform, engine, NULL, time_now());
 }

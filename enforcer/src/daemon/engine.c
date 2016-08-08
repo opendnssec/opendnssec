@@ -80,7 +80,6 @@ engine_alloc(void)
     if (!engine) return NULL;
 
     pthread_mutex_init(&engine->signal_lock, NULL);
-    pthread_mutex_init(&engine->enforce_lock, NULL);
     pthread_cond_init(&engine->signal_cond, NULL);
 
     engine->dbcfg_list = NULL;
@@ -96,7 +95,6 @@ void
 engine_dealloc(engine_type* engine)
 {
     schedule_cleanup(engine->taskq);
-    pthread_mutex_destroy(&engine->enforce_lock);
     pthread_mutex_destroy(&engine->signal_lock);
     pthread_cond_destroy(&engine->signal_cond);
     if (engine->dbcfg_list) {
@@ -445,8 +443,6 @@ engine_setup(engine_type* engine)
     int fd;
 
     ods_log_debug("[%s] enforcer setup", engine_str);
-
-    ods_log_init("ods-enforcerd", engine->config->use_syslog, engine->config->log_filename, engine->config->verbosity);
 
     engine->pid = getpid(); /* We need to do this again after fork() */
 

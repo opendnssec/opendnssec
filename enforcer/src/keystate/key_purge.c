@@ -147,7 +147,8 @@ int removeDeadKeysNow(int sockfd, db_connection_t *dbconn,
 					case 0: state = key_data_cached_ds(keylist[i]); break;
 					case 1: state = key_data_cached_dnskey(keylist[i]); break;
 					case 2: state = key_data_cached_rrsigdnskey(keylist[i]); break;
-					case 3: state = key_data_cached_rrsig(keylist[i]);
+					case 3: state = key_data_cached_rrsig(keylist[i]); break;
+					default: state = NULL;
 				}
 				if (key_state_state(state) == KEY_STATE_STATE_NA) continue;
 				if (key_state_state(state) != KEY_STATE_STATE_HIDDEN) {
@@ -163,6 +164,8 @@ int removeDeadKeysNow(int sockfd, db_connection_t *dbconn,
 				client_printf (sockfd, "deleting key: %s\n",
 				hsm_key_locator(key_data_cached_hsm_key(keylist[i])));
 
+				/* FIXME: key_data_cached_ds spits out const
+				 * key_state_delete discards that. */
 				if (key_state_delete(key_data_cached_ds(keylist[i]))
 				    || key_state_delete(key_data_cached_dnskey(keylist[i]))
 				    || key_state_delete(key_data_cached_rrsigdnskey(keylist[i]))

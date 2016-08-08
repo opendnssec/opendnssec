@@ -971,9 +971,6 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
     if (!util_check_pidfile(engine->config->pid_filename)) {
         exit(1);
     }
-    /* open log */
-    ods_log_init("ods-signerd", engine->config->use_syslog,
-        engine->config->log_filename, engine->config->verbosity);
     /* setup */
     status = engine_setup(engine);
     if (status != ODS_STATUS_OK) {

@@ -35,7 +35,7 @@
 #include "scheduler/task.h"
 #include "db/db_connection.h"
 
-#include <time.h>
+//~ #include <time.h>
 
 struct engine_struct;
 
@@ -44,12 +44,6 @@ struct worker_struct {
     int thread_num;
     pthread_t thread_id;
     struct engine_struct* engine;
-    task_type* task;
-    size_t jobs_appointed;
-    size_t jobs_completed;
-    size_t jobs_failed;
-    int sleeping;
-    int waiting;
     int need_to_exit;
     db_connection_t* dbconn;
 };

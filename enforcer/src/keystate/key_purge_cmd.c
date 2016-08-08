@@ -57,7 +57,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	const char *policy_name = NULL;
 	char *buf;
 	int argc;
-	const char *argv[4];
+	const char *argv[MAX_ARGS];
 	int error = 0;
 	(void)engine;
 

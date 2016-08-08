@@ -26,7 +26,6 @@
 	<Enforcer>
 
 		<Datastore><SQLite>kaspcheck_good/kasp.xml</SQLite></Datastore>
-		<Interval>PT3600S</Interval>
 	</Enforcer>
 
 	<Signer>
