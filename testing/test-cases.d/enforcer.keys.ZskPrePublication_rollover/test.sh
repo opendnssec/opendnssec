@@ -77,9 +77,9 @@ echo -n "LINE: ${LINENO} " && ods_stop_signer &&
 echo &&
 echo "############# CHECK SIGNATURES AFTER ROLLOVER-2 ############# " &&
 # The new zsk becomes active
-echo -n "LINE: ${LINENO} " && ods-enforcer time leap && sleep 1 &&
+echo -n "LINE: ${LINENO} " && ods-enforcer time leap && sleep 3 &&
 
-echo -n "LINE: ${LINENO} " && ods_signer_start &&
+echo -n "LINE: ${LINENO} " && ods_signer_start && sleep 5 &&
 echo -n "LINE: ${LINENO} " && count=`grep -c "RRSIG[[:space:]]*MX" "$INSTALL_ROOT/var/opendnssec/signed/ods"` &&
 echo -n "LINE: ${LINENO} " && [ $count -eq 1 ] &&
 

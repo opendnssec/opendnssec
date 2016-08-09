@@ -57,7 +57,7 @@ echo -n "LINE: ${LINENO} " && ZSK2=`ods-enforcer key list -d -p | grep "ZSK" | g
 
 echo &&
 echo "############# CHECK SIGNATURES AFTER ROLLOVER-1 ############# " &&
-echo -n "LINE: ${LINENO} " && ods_signer_start &&
+echo -n "LINE: ${LINENO} " && ods_signer_start && sleep 5 &&
 
 # There must be two ZSKs 
 echo -n "LINE: ${LINENO} " && count=`grep -c "DNSKEY[[:space:]]*256" "$INSTALL_ROOT/var/opendnssec/signed/ods"` &&
@@ -73,9 +73,9 @@ echo -n "LINE: ${LINENO} " && ods_stop_signer && sleep 4 &&
 echo &&
 echo "############# CHECK SIGNATURES AFTER ROLLOVER-2 ############# " &&
 # The new zsk becomes active
-echo -n "LINE: ${LINENO} " && ods-enforcer time leap && sleep 1 &&
+echo -n "LINE: ${LINENO} " && ods-enforcer time leap && sleep 3 &&
 
-echo -n "LINE: ${LINENO} " && ods_signer_start &&
+echo -n "LINE: ${LINENO} " && ods_signer_start && sleep 4 &&
 echo -n "LINE: ${LINENO} " && count=`grep -c "RRSIG[[:space:]]*MX" "$INSTALL_ROOT/var/opendnssec/signed/ods"` &&
 echo -n "LINE: ${LINENO} " && [ $count -eq 2 ] &&
 

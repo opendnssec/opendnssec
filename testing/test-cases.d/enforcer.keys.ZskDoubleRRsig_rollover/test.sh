@@ -80,9 +80,9 @@ echo -n "LINE: ${LINENO} " && ods_stop_signer && sleep 4 &&
 echo &&
 echo "############# CHECK SIGNATURES AFTER ROLLOVER-2 ############# " &&
 # The new zsk is now published and the old one is retired
-echo -n "LINE: ${LINENO} " && ods-enforcer time leap && sleep 1 &&
+echo -n "LINE: ${LINENO} " && ods-enforcer time leap && sleep 3 &&
 
-echo -n "LINE: ${LINENO} " && ods_signer_start &&
+echo -n "LINE: ${LINENO} " && ods_signer_start && sleep 5 &&
 echo -n "LINE: ${LINENO} " && count=`grep -c "DNSKEY[[:space:]]*256" "$INSTALL_ROOT/var/opendnssec/signed/ods"` &&
 echo -n "LINE: ${LINENO} " && [ $count -eq 1 ] &&
 echo -n "LINE: ${LINENO} " && grep "DNSKEY[[:space:]]*256" "$INSTALL_ROOT/var/opendnssec/signed/ods" | grep $ZSK2 &&

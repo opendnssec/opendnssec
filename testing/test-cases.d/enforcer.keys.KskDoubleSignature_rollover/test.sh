@@ -25,18 +25,18 @@ ods_reset_env &&
 
 echo &&
 echo "#################### START AND LEAP TIME #################### " &&
-echo -n "LINE: ${LINENO} " && ods_start_enforcer && sleep 1 &&
+echo -n "LINE: ${LINENO} " && ods_start_enforcer && sleep 4 &&
 
 echo -n "LINE: ${LINENO} " && ods-enforcer key list -v -p --all &&
 echo -n "LINE: ${LINENO} " && KSK1=`ods-enforcer key list -v -p --all | grep "KSK" | cut -d ";" -f7` &&
 
 # Leap to the time that both KSK and ZSK are used for signing
-echo -n "LINE: ${LINENO} " && ods-enforcer time leap && sleep 1 &&
-echo -n "LINE: ${LINENO} " && ods-enforcer time leap && sleep 1 &&
+echo -n "LINE: ${LINENO} " && ods-enforcer time leap && sleep 3 &&
+echo -n "LINE: ${LINENO} " && ods-enforcer time leap && sleep 3 &&
 
-echo -n "LINE: ${LINENO} " && ods-enforcer key ds-seen -z ods --cka_id $KSK1 && sleep 1 &&
+echo -n "LINE: ${LINENO} " && ods-enforcer key ds-seen -z ods --cka_id $KSK1 && sleep 5 &&
 
-ods-enforcer time leap && sleep 1 &&
+echo -n "LINE: ${LINENO} " && ods-enforcer time leap && sleep 3 &&
 
 # KSK must be active now
 echo -n "LINE: ${LINENO} " && ods-enforcer key list -v -p | grep KSK | grep active &&

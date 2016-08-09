@@ -60,7 +60,7 @@ ods-enforcer key list -d -p | grep "KSK" | grep "rumoured;hidden;hidden;NA;0;0" 
 
 echo &&
 echo "############# CHECK SIGNATURES AFTER ROLLOVER-1 ############# " &&
-echo -n "LINE: ${LINENO} " && ods_signer_start &&
+echo -n "LINE: ${LINENO} " && ods_signer_start && sleep 5 &&
 
 # Check that there must be only one DNSKEY and one RRSIG for DNSKEY 
 echo -n "LINE: ${LINENO} " && count=`grep -c "DNSKEY[[:space:]]*257" "$INSTALL_ROOT/var/opendnssec/signed/ods"` &&
