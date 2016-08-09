@@ -81,7 +81,7 @@ echo -n "LINE: ${LINENO} " && ods-enforcer time leap && sleep 1 &&
 echo -n "LINE: ${LINENO} " && ods-enforcer key list -d -p | grep "ods;KSK;rumoured;omnipresent;omnipresent;NA;1;1;$KSK2" &&
 echo -n "LINE: ${LINENO} " && ods-enforcer key list -d -p | grep "ods;KSK;unretentive;omnipresent;omnipresent;NA;1;1;$KSK1" &&
 
-echo -n "LINE: ${LINENO} " && ods_signer_start &&
+echo -n "LINE: ${LINENO} " && ods_signer_start && sleep 5 &&
 echo -n "LINE: ${LINENO} " && count=`grep -c "IN[[:space:]]*RRSIG[[:space:]]*DNSKEY" "$INSTALL_ROOT/var/opendnssec/signed/ods"` &&
 echo -n "LINE: ${LINENO} " && [ $count -eq 2 ] &&
 
