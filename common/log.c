@@ -86,7 +86,7 @@ ods_log_init(const char *programname, int use_syslog, const char *targetname, in
     int facility;
     int error = 0;
 #endif /* HAVE_SYSLOG_H */
-    if(logfile && logfile != stderr) {
+    if(logfile && logfile != stderr && logfile != stdout) {
             ods_fclose(logfile);
     }
     if(log_ident) {
@@ -252,6 +252,7 @@ ods_log_vmsg(int priority, const char* t, const char* s, va_list args)
 #endif /* HAVE_SYSLOG_H */
 
     if (!logfile) {
+        printf(stdout, "%s\n", message);
         return;
     }
 
