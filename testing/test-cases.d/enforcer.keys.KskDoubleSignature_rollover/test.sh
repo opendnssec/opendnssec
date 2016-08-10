@@ -71,7 +71,7 @@ echo -n "LINE: ${LINENO} " && count=`grep -c "IN[[:space:]]*RRSIG[[:space:]]*DNS
 echo -n "LINE: ${LINENO} " && [ $count -eq 2 ] &&
 
 echo -n "LINE: ${LINENO} " && ldns-verify-zone "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
-echo -n "LINE: ${LINENO} " && ods_stop_signer && sleep 4 &&
+echo -n "LINE: ${LINENO} " && ods_stop_signer && sleep 10 &&
 
 echo &&
 echo "############# CHECK SIGNATURES AFTER ROLLOVER-2 ############# " &&
