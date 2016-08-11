@@ -482,6 +482,8 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
             success = perform_keystate_list(sockfd, dbconn, filterZone, filterKeytype, filterKeystate, &printverboseheader, &printverbosekey);
         }
     } else {
+        if (bParsable)
+            client_printf_err(sockfd, "-p option only available in combination with -v and -d.\n");
         success = perform_keystate_list(sockfd, dbconn, filterZone, filterKeytype, filterKeystate, &printcompatheader, &printcompatkey);
     }
 
