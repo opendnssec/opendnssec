@@ -44,10 +44,10 @@
 static const char *module_str = "backup_hsmkeys_cmd";
 
 enum {
-	PREPARE,
-	COMMIT,
-	ROLLBACK,
-	LIST
+    PREPARE,
+    COMMIT,
+    ROLLBACK,
+    LIST
 };
 
 static int
@@ -90,8 +90,8 @@ prepare(int sockfd, db_connection_t *dbconn, db_clause_list_t* clause_list)
     if (keys_marked < 0) {
         return 1;
     }
-	client_printf(sockfd,"info: keys flagged for backup: %d\n", keys_marked);
-	return 0;
+    client_printf(sockfd,"info: keys flagged for backup: %d\n", keys_marked);
+    return 0;
 }
 
 static int
@@ -124,7 +124,8 @@ list(int sockfd, db_connection_t *dbconn, db_clause_list_t* clause_list)
     hsm_key_list_t* hsmkey_list;
     const hsm_key_t *hsmkey;
 
-    if (!(hsmkey_list = hsm_key_list_new_get_by_clauses(dbconn, clause_list))) {
+    if (!(hsmkey_list = hsm_key_list_new_get_by_clauses(dbconn, clause_list)))
+    {
         ods_log_error("[%s] database error", module_str);
         return -1;
     }
@@ -133,120 +134,124 @@ list(int sockfd, db_connection_t *dbconn, db_clause_list_t* clause_list)
     for (hsmkey = hsm_key_list_next(hsmkey_list); hsmkey;
         hsmkey = hsm_key_list_next(hsmkey_list))
     {
-        /* TODO: propper output */
-        client_printf(sockfd, "%s\n", hsm_key_locator(hsmkey));
+        /* TODO: proper output */
+        client_printf(sockfd, "%s %d %s\n", hsm_key_locator(hsmkey), hsm_key_backup(hsmkey), hsm_key_repository(hsmkey));
     }
     hsm_key_list_free(hsmkey_list);
-	return 0;
+    return 0;
 }
 
 static void
 usage(int sockfd)
 {
-	client_printf(sockfd,
-		"backup list\n"
-		"	--repository <repository>		aka -r\n");
-	client_printf(sockfd,
-		"backup prepare \n"
-		"	--repository <repository>		aka -r\n");
-	client_printf(sockfd,
-		"backup commit\n"
-		"	--repository <repository>		aka -r  \n");
-	client_printf(sockfd,
-		"backup rollback\n"
-		"	--repository <repository>		aka -r  \n");
+    client_printf(sockfd,
+        "backup [list|prepare|commit|rollback]\n"
+        "   --repository <repository>                    aka -r\n");
 }
 
 static void
 help(int sockfd)
 {
-	client_printf(sockfd, 
-		"backup list  Enumerate backup status of keys.\n"
-		"backup prepare  Flag the keys found in all configured HSMs as to be backed up.\n"
-		"backup commit  Mark flagged keys found in all configured HSMs as backed up.\n"
-		"backup rollback  Cancel a 'backup prepare' action.\n"
-		"\nOptions:\n"
-		"repository	Limit to this repository\n\n");
+    client_printf(sockfd,
+        "If the <RequireBackup/> option is given for a <Repository> in "
+        "conf.xml, OpenDNSSEC will not publish records using key material "
+        "not marked as backed up. Backing up key material is "
+        "be done repository wide and is a 2-step process. First the "
+        "operator issues a 'prepare' and after backing up a 'commit'. "
+        "This avoids race conditions where the operator and the enforcer "
+        "disagree on which keys are actually backed up.\n\n"
+
+        "NOTICE: OpenDNSSEC does not backup key material it self. It is "
+        "the operators responsibility to do this. This merely keeps track "
+        "of the state and acts as a safety net.\n\n"
+        
+        "backup list:\t Print backup status of keys.\n"
+        "backup prepare:\t Flag the keys as 'to be backed up'.\n"
+        "backup commit:\t Mark flagged keys as backed up.\n"
+        "backup rollback: Cancel a 'backup prepare' action.\n"
+        "\nOptions:\n"
+        "-r <repository>:\t Limit operations to this repository only.\n\n");
 }
 
 static int
 handles(const char *cmd, ssize_t n)
 {
-	if (ods_check_command(cmd, n, "backup prepare")) return 1;
-	if (ods_check_command(cmd, n, "backup commit")) return 1;
-	if (ods_check_command(cmd, n, "backup rollback")) return 1;
-	if (ods_check_command(cmd, n, "backup list")) return 1;
-	return 0;
+    if (ods_check_command(cmd, n, "backup")) return 1;
+    if (ods_check_command(cmd, n, "backup prepare")) return 1;
+    if (ods_check_command(cmd, n, "backup commit")) return 1;
+    if (ods_check_command(cmd, n, "backup rollback")) return 1;
+    if (ods_check_command(cmd, n, "backup list")) return 1;
+    return 0;
 }
 
 static const char *
 get_repo_param(const char *cmd, ssize_t n, char *buf, size_t buflen)
 {
-	#define NARGV 8
-	const char *argv[NARGV];
-	int argc;
-	const char *repository = NULL;
-	(void)n;
+    #define NARGV 8
+    const char *argv[NARGV];
+    int argc;
+    const char *repository = NULL;
+    (void)n;
 
-	strncpy(buf, cmd, buflen);
-	argc = ods_str_explode(buf, NARGV, argv);
-	buf[sizeof(buf)-1] = '\0';
-	if (argc > NARGV) {
-		ods_log_warning("[%s] too many arguments for %s command",
-			module_str,cmd);
-		return NULL;
-	}
-	(void)ods_find_arg_and_param(&argc, argv, "repository", "r",
-		&repository);
-	return repository; /* ptr in buf */
+    strncpy(buf, cmd, buflen);
+    argc = ods_str_explode(buf, NARGV, argv);
+    buf[sizeof(buf)-1] = '\0';
+    if (argc > NARGV) {
+        ods_log_warning("[%s] too many arguments for %s command",
+            module_str,cmd);
+        return NULL;
+    }
+    (void)ods_find_arg_and_param(&argc, argv, "repository", "r",
+        &repository);
+    return repository; /* ptr in buf */
 }
 
 static int
 run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
-	db_connection_t *dbconn)
+    db_connection_t *dbconn)
 {
-	char buf[ODS_SE_MAXLINE];
-	int status;
-	const char *repository;
-	db_clause_list_t* clause_list;
-	(void)engine;
+    char buf[ODS_SE_MAXLINE];
+    int status;
+    const char *repository;
+    db_clause_list_t* clause_list;
+    (void)engine;
 
-	if (!handles(cmd, n)) return -1;
-	repository = get_repo_param(cmd, n, buf, ODS_SE_MAXLINE);
-
-	/* iterate the keys */
-	if (!(clause_list = db_clause_list_new())) {
-		ods_log_error("[%s] database error", module_str);
-		return 1;
-	}
-	if (repository && !hsm_key_repository_clause(clause_list, repository)) {
-	    db_clause_list_free(clause_list);
+    if (!handles(cmd, n)) return -1;
+    repository = get_repo_param(cmd, n, buf, ODS_SE_MAXLINE);
+    
+    /* iterate the keys */
+    if (!(clause_list = db_clause_list_new())) {
+        ods_log_error("[%s] database error", module_str);
+        return 1;
+    }
+    if (repository && !hsm_key_repository_clause(clause_list, repository)) {
+        db_clause_list_free(clause_list);
         ods_log_error("[%s] Could not get key list", module_str);
         return 1;
-	}
-	
-	/* Find out what we need to do */
-	if (ods_check_command(cmd,n,"backup prepare"))
-		status = prepare(sockfd, dbconn, clause_list);
-	else if (ods_check_command(cmd,n,"backup commit"))
-		status = commit(sockfd, dbconn, clause_list);
-	else if (ods_check_command(cmd,n,"backup rollback"))
-		status = rollback(sockfd, dbconn, clause_list);
-	else if (ods_check_command(cmd,n,"backup list"))
-		status = list(sockfd, dbconn, clause_list);
-	else
-		status = -1;
+    }
+    
+    /* Find out what we need to do */
+    if (ods_check_command(cmd,n,"backup prepare"))
+        status = prepare(sockfd, dbconn, clause_list);
+    else if (ods_check_command(cmd,n,"backup commit"))
+        status = commit(sockfd, dbconn, clause_list);
+    else if (ods_check_command(cmd,n,"backup rollback"))
+        status = rollback(sockfd, dbconn, clause_list);
+    else if (ods_check_command(cmd,n,"backup list"))
+        status = list(sockfd, dbconn, clause_list);
+    else
+        status = -1;
 
     db_clause_list_free(clause_list);
-	return status;
+    return status;
 }
 
 static struct cmd_func_block funcblock = {
-	"backup", &usage, &help, &handles, &run
+    "backup", &usage, &help, &handles, &run
 };
 
 struct cmd_func_block*
 backup_funcblock(void)
 {
-	return &funcblock;
+    return &funcblock;
 }
