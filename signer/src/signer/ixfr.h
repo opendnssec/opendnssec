@@ -61,7 +61,7 @@ struct part_struct {
  */
 struct ixfr_struct {
     part_type* part[IXFR_MAX_PARTS];
-    lock_basic_type ixfr_lock;
+    pthread_mutex_t ixfr_lock;
 };
 
 /**
