@@ -38,6 +38,7 @@
 #include "clientpipe.h"
 #include "libhsm.h"
 #include "db/hsm_key.h"
+#include "db/hsm_key_ext.h"
 
 #include "hsmkey/backup_hsmkeys_cmd.h"
 
@@ -123,6 +124,7 @@ list(int sockfd, db_connection_t *dbconn, db_clause_list_t* clause_list)
 {
     hsm_key_list_t* hsmkey_list;
     const hsm_key_t *hsmkey;
+    char const *fmt = "%-32s %-16s %-16s\n";
 
     if (!(hsmkey_list = hsm_key_list_new_get_by_clauses(dbconn, clause_list)))
     {
@@ -130,12 +132,11 @@ list(int sockfd, db_connection_t *dbconn, db_clause_list_t* clause_list)
         return -1;
     }
 
-    /* TODO: Header */
+    client_printf_err(sockfd, fmt, "Locator:", "Repository:", "Backup state:");
     for (hsmkey = hsm_key_list_next(hsmkey_list); hsmkey;
         hsmkey = hsm_key_list_next(hsmkey_list))
     {
-        /* TODO: proper output */
-        client_printf(sockfd, "%s %d %s\n", hsm_key_locator(hsmkey), hsm_key_backup(hsmkey), hsm_key_repository(hsmkey));
+        client_printf(sockfd, fmt, hsm_key_locator(hsmkey), hsm_key_repository(hsmkey), hsm_key_to_backup_state(hsmkey));
     }
     hsm_key_list_free(hsmkey_list);
     return 0;
