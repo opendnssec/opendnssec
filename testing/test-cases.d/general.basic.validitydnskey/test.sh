@@ -55,6 +55,7 @@ echo "  validity of keyset signature should be around 8H (per per default validi
 testvalidity 28800 &&
 
 ods-enforcer zone delete -z ods &&
+ods_enforcer_idle &&
 rm -f "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
 
 echo "verifying with keyset validity explicitly set" &&
