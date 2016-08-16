@@ -172,7 +172,7 @@
 		</KSK>
 		<!-- Parameters for ZSK only -->
 		<ZSK>
-			<Algorithm length="2048">8</Algorithm>
+			<Algorithm length="2048">7</Algorithm>
 			<Lifetime>PT15H</Lifetime>
 			<!-- @TODO@ Repository should be configured -->
 			<Repository>SoftHSM</Repository>
@@ -362,14 +362,14 @@
 		<Purge>P3D</Purge>
 		<!-- Parameters for KSK only -->
 		<KSK>
-			<Algorithm length="1024">7</Algorithm>
+			<Algorithm length="2048">7</Algorithm>
 			<Lifetime>PT45H</Lifetime>
 			<!-- @TODO@ Repository should be configured -->
 			<Repository>SoftHSM</Repository>
 		</KSK>
 		<!-- Parameters for ZSK only -->
 		<ZSK>
-			<Algorithm length="2048">8</Algorithm>
+			<Algorithm length="2048">7</Algorithm>
 			<Lifetime>PT25H</Lifetime>
 			<!-- @TODO@ Repository should be configured -->
 			<Repository>SoftHSM</Repository>

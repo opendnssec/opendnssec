@@ -83,8 +83,8 @@ struct zone_struct {
     task_type* task; /* next assigned task */
     /* statistics */
     stats_type* stats;
-    lock_basic_type zone_lock;
-    lock_basic_type xfr_lock;
+    pthread_mutex_t zone_lock;
+    pthread_mutex_t xfr_lock;
     /* backing store for rrsigs (both domain as denial) */
     collection_class rrstore;
 };

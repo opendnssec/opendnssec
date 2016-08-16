@@ -428,6 +428,7 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 	int nsec = 0;
 	int resalt = 0;
 	int hash_algo = 0;
+        int find_alg = 0;
 	
 	enum {KSK = 1, ZSK, CSK};
 	struct key {
@@ -914,15 +915,21 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 	/* O(n^2). But this is probably a small set */
 	for (curkey = firstkey; curkey; curkey = curkey->next) {
 		if (!(curkey->type & KSK)) continue;
+		find_alg = 0;
 		for (tmpkey = firstkey; tmpkey; tmpkey = tmpkey->next) {
 			if (!(tmpkey->type & ZSK)) continue;
 			if (tmpkey->algo != curkey->algo) continue;
+			find_alg = 1;
 			/* Warn if for any zone, the KSK lifetime is less than the ZSK lifetime. */
 			if (curkey->life < tmpkey->life) {
 				dual_log("WARNING: KSK minimum lifetime (%d seconds) is less than "
 						"ZSK minimum lifetime (%d seconds) for %s Policy in %s",
 						curkey->life, tmpkey->life, policy_name, kasp);
 			}
+		}
+		if (!find_alg) {
+			dual_log("ERROR: ZSK with algorithm %i not found, algorithm mismatch between ZSK and KSK", curkey->algo);
+			status++;
 		}
 	}
 
@@ -941,9 +948,9 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 				jitter, denial, policy_name, kasp);
 		status++;
 	}
-	while (curkey) {
-		tmpkey = curkey;
-		curkey = curkey->next;
+	while (firstkey) {
+		tmpkey = firstkey;
+		firstkey = firstkey->next;
 		StrFree(tmpkey->repo);
 		free(tmpkey);
 	}

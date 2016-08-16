@@ -418,9 +418,9 @@ ods_enforcer_idle ()
 		log_this idle ods-enforcer queue || return 1
 		grep -q "^Next task scheduled immediately" _log.$BUILD_TAG.idle.stdout 2>/dev/null > /dev/null
 		status_grep1=$?
-		grep -q "^Working with" _log.$BUILD_TAG.idle.stdout 2>/dev/null > /dev/null
+		grep -q "^All worker threads idle." _log.$BUILD_TAG.idle.stdout 2>/dev/null > /dev/null
 		status_grep2=$?
-		if [ $status_grep1 -ne 0 -a $status_grep2 -ne 0 ] ; then
+		if [ $status_grep1 -ne 0 -a $status_grep2 -eq 0 ] ; then
 			return 0
 		fi
 		time_now=`$DATE '+%s' 2>/dev/null`
@@ -1270,7 +1270,7 @@ ods_ldns_testns ()
 #   BIND9_NAMED_PORT
 ods_bind9_start ()
 {
-	local username=jenkins
+	local username=$USER
 	local named_pid
 	local exit_code
 

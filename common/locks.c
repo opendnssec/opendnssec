@@ -41,49 +41,26 @@
 #include <errno.h>
 #include <signal.h> /* sigfillset(), sigprocmask() */
 #include <string.h> /* strerror() */
-#ifdef HAVE_SYS_TIME_H
-#include <sys/time.h> /* gettimeofday() */
-#endif
-#ifdef HAVE_TIME_H
 #include <time.h> /* gettimeofday() */
-#endif
 
 static const char* lock_str = "lock";
 
 int
-ods_thread_wait(cond_basic_type* cond, lock_basic_type* lock, time_t wait)
+ods_thread_wait(pthread_cond_t* cond, pthread_mutex_t* lock, time_t wait)
 {
     struct timespec ts;
-    int ret = 0;
 
-#ifndef HAVE_CLOCK_GETTIME
-    struct timeval tv;
-    if (gettimeofday(&tv, NULL) != 0) {
-        ods_log_error("[%s] clock_gettime() error: %s", lock_str,
-            strerror(errno));
-        return 1;
-    }
-    ts.tv_sec = tv.tv_sec;
-    ts.tv_nsec = (tv.tv_usec/1000);
-#else /* HAVE_CLOCK_GETTIME */
+    if (wait <= 0)
+        return pthread_cond_wait(cond, lock);
+
     if (clock_gettime(CLOCK_REALTIME, &ts) < 0) {
         ods_log_error("[%s] clock_gettime() error: %s", lock_str,
             strerror(errno));
         return 1;
     }
-#endif /* !HAVE_CLOCK_GETTIME */
 
-    if (wait > 0) {
-        ts.tv_sec = ts.tv_sec + wait;
-        ret = pthread_cond_timedwait(cond, lock, &ts);
-    } else {
-        ret = pthread_cond_wait(cond, lock);
-    }
-
-    if (ret == ETIMEDOUT) {
-        return 0;
-    }
-    return ret;
+    ts.tv_sec += wait;
+    return pthread_cond_timedwait(cond, lock, &ts);
 }
 
 janitor_threadclass_t detachedthreadclass;

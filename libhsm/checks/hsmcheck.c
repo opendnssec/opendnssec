@@ -240,9 +240,7 @@ main (int argc, char *argv[])
     /*
      * Destroy HSM context
      */
-    if (ctx) {
-        hsm_destroy_context(ctx);
-    }
+    hsm_destroy_context(ctx);
 
     /*
      * Close HSM library

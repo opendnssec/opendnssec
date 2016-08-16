@@ -86,11 +86,11 @@ engine_create(void)
     engine->daemonize = 0;
     engine->need_to_exit = 0;
     engine->need_to_reload = 0;
-    lock_basic_init(&engine->signal_lock);
-    lock_basic_set(&engine->signal_cond);
-    lock_basic_lock(&engine->signal_lock);
+    pthread_mutex_init(&engine->signal_lock, NULL);
+    pthread_cond_init(&engine->signal_cond, NULL);
+    pthread_mutex_lock(&engine->signal_lock);
     engine->signal = SIGNAL_INIT;
-    lock_basic_unlock(&engine->signal_lock);
+    pthread_mutex_unlock(&engine->signal_lock);
     engine->zonelist = zonelist_create();
     if (!engine->zonelist) {
         engine_cleanup(engine);
@@ -556,12 +556,12 @@ engine_run(engine_type* engine, int single_run)
     engine_start_workers(engine);
     engine_start_drudgers(engine);
 
-    lock_basic_lock(&engine->signal_lock);
+    pthread_mutex_lock(&engine->signal_lock);
     engine->signal = SIGNAL_RUN;
-    lock_basic_unlock(&engine->signal_lock);
+    pthread_mutex_unlock(&engine->signal_lock);
 
     while (!engine->need_to_exit && !engine->need_to_reload) {
-        lock_basic_lock(&engine->signal_lock);
+        pthread_mutex_lock(&engine->signal_lock);
         engine->signal = signal_capture(engine->signal);
         switch (engine->signal) {
             case SIGNAL_RUN:
@@ -580,17 +580,17 @@ engine_run(engine_type* engine, int single_run)
                 engine->signal = SIGNAL_RUN;
                 break;
         }
-        lock_basic_unlock(&engine->signal_lock);
+        pthread_mutex_unlock(&engine->signal_lock);
 
         if (single_run) {
            engine->need_to_exit = engine_all_zones_processed(engine);
         }
-        lock_basic_lock(&engine->signal_lock);
+        pthread_mutex_lock(&engine->signal_lock);
         if (engine->signal == SIGNAL_RUN && !single_run) {
            ods_log_debug("[%s] taking a break", engine_str);
-           lock_basic_sleep(&engine->signal_cond, &engine->signal_lock, 3600);
+           ods_thread_wait(&engine->signal_cond, &engine->signal_lock, 3600);
         }
-        lock_basic_unlock(&engine->signal_lock);
+        pthread_mutex_unlock(&engine->signal_lock);
     }
     ods_log_debug("[%s] signer halted", engine_str);
     engine_stop_drudgers(engine);
@@ -725,7 +725,7 @@ engine_update_zones(engine_type* engine, ods_status zl_changed)
     now = time_now();
 
     ods_log_debug("[%s] commit zone list changes", engine_str);
-    lock_basic_lock(&engine->zonelist->zl_lock);
+    pthread_mutex_lock(&engine->zonelist->zl_lock);
     node = ldns_rbtree_first(engine->zonelist->zones);
     while (node && node != LDNS_RBTREE_NULL) {
         zone = (zone_type*) node->data;
@@ -733,24 +733,24 @@ engine_update_zones(engine_type* engine, ods_status zl_changed)
 
         if (zone->zl_status == ZONE_ZL_REMOVED) {
             node = ldns_rbtree_next(node);
-            lock_basic_lock(&zone->zone_lock);
+            pthread_mutex_lock(&zone->zone_lock);
             delzone = zonelist_del_zone(engine->zonelist, zone);
             if (delzone) {
-                lock_basic_lock(&engine->taskq->schedule_lock);
+                pthread_mutex_lock(&engine->taskq->schedule_lock);
                 task = unschedule_task(engine->taskq,
                     (task_type*) zone->task);
-                lock_basic_unlock(&engine->taskq->schedule_lock);
+                pthread_mutex_unlock(&engine->taskq->schedule_lock);
             }
             task_cleanup(task);
             task = NULL;
-            lock_basic_unlock(&zone->zone_lock);
+            pthread_mutex_unlock(&zone->zone_lock);
             netio_remove_handler(engine->xfrhandler->netio,
                 &zone->xfrd->handler);
             zone_cleanup(zone);
             zone = NULL;
             continue;
         } else if (zone->zl_status == ZONE_ZL_ADDED) {
-            lock_basic_lock(&zone->zone_lock);
+            pthread_mutex_lock(&zone->zone_lock);
             ods_log_assert(!zone->task);
             /* set notify nameserver command */
             if (engine->config->notify_command && !zone->notify_ns) {
@@ -758,7 +758,7 @@ engine_update_zones(engine_type* engine, ods_status zl_changed)
             }
             /* create task */
             task = task_create(TASK_SIGNCONF, now, zone);
-            lock_basic_unlock(&zone->zone_lock);
+            pthread_mutex_unlock(&zone->zone_lock);
             if (!task) {
                 ods_log_crit("[%s] unable to create task for zone %s: "
                     "task_create() failed", engine_str, zone->name);
@@ -784,20 +784,20 @@ engine_update_zones(engine_type* engine, ods_status zl_changed)
 
         if (zone->zl_status == ZONE_ZL_ADDED) {
             ods_log_assert(task);
-            lock_basic_lock(&zone->zone_lock);
+            pthread_mutex_lock(&zone->zone_lock);
             zone->task = task;
-            lock_basic_unlock(&zone->zone_lock);
+            pthread_mutex_unlock(&zone->zone_lock);
             /* TODO: task is reachable from other threads by means of
              * zone->task. To fix this we need to nest the locks. But
              * first investigate any possible deadlocks. */
-            lock_basic_lock(&engine->taskq->schedule_lock);
+            pthread_mutex_lock(&engine->taskq->schedule_lock);
             status = schedule_task(engine->taskq, task, 0);
-            lock_basic_unlock(&engine->taskq->schedule_lock);
+            pthread_mutex_unlock(&engine->taskq->schedule_lock);
         } else if (zl_changed == ODS_STATUS_OK) {
             /* always try to update signconf */
-            lock_basic_lock(&zone->zone_lock);
+            pthread_mutex_lock(&zone->zone_lock);
             status = zone_reschedule_task(zone, engine->taskq, TASK_SIGNCONF);
-            lock_basic_unlock(&zone->zone_lock);
+            pthread_mutex_unlock(&zone->zone_lock);
         }
         if (status != ODS_STATUS_OK) {
             ods_log_crit("[%s] unable to schedule task for zone %s: %s",
@@ -808,7 +808,7 @@ engine_update_zones(engine_type* engine, ods_status zl_changed)
         }
         node = ldns_rbtree_next(node);
     }
-    lock_basic_unlock(&engine->zonelist->zl_lock);
+    pthread_mutex_unlock(&engine->zonelist->zl_lock);
     if (engine->dnshandler) {
         ods_log_debug("[%s] forward notify for all zones", engine_str);
         dnshandler_fwd_notify(engine->dnshandler,
@@ -845,14 +845,14 @@ engine_recover(engine_type* engine)
     ods_log_assert(engine->zonelist);
     ods_log_assert(engine->zonelist->zones);
 
-    lock_basic_lock(&engine->zonelist->zl_lock);
+    pthread_mutex_lock(&engine->zonelist->zl_lock);
     /* [LOCK] zonelist */
     node = ldns_rbtree_first(engine->zonelist->zones);
     while (node && node != LDNS_RBTREE_NULL) {
         zone = (zone_type*) node->data;
 
         ods_log_assert(zone->zl_status == ZONE_ZL_ADDED);
-        lock_basic_lock(&zone->zone_lock);
+        pthread_mutex_lock(&zone->zone_lock);
         status = zone_recover2(zone);
         if (status == ODS_STATUS_OK) {
             ods_log_assert(zone->task);
@@ -863,11 +863,11 @@ engine_recover(engine_type* engine)
                 set_notify_ns(zone, engine->config->notify_command);
             }
             /* schedule task */
-            lock_basic_lock(&engine->taskq->schedule_lock);
+            pthread_mutex_lock(&engine->taskq->schedule_lock);
             /* [LOCK] schedule */
             status = schedule_task(engine->taskq, (task_type*) zone->task, 0);
             /* [UNLOCK] schedule */
-            lock_basic_unlock(&engine->taskq->schedule_lock);
+            pthread_mutex_unlock(&engine->taskq->schedule_lock);
 
             if (status != ODS_STATUS_OK) {
                 ods_log_crit("[%s] unable to schedule task for zone %s: %s",
@@ -888,11 +888,11 @@ engine_recover(engine_type* engine)
             }
             result = ODS_STATUS_OK; /* will trigger update zones */
         }
-        lock_basic_unlock(&zone->zone_lock);
+        pthread_mutex_unlock(&zone->zone_lock);
         node = ldns_rbtree_next(node);
     }
     /* [UNLOCK] zonelist */
-    lock_basic_unlock(&engine->zonelist->zl_lock);
+    pthread_mutex_unlock(&engine->zonelist->zl_lock);
     return result;
 }
 
@@ -931,9 +931,6 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
     if (!util_check_pidfile(engine->config->pid_filename)) {
         exit(1);
     }
-    /* open log */
-    ods_log_init("ods-signerd", engine->config->use_syslog,
-        engine->config->log_filename, engine->config->verbosity);
     /* setup */
     status = engine_setup(engine);
     if (status != ODS_STATUS_OK) {
@@ -949,13 +946,13 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
     /* run */
     while (engine->need_to_exit == 0) {
         /* update zone list */
-        lock_basic_lock(&engine->zonelist->zl_lock);
+        pthread_mutex_lock(&engine->zonelist->zl_lock);
         zl_changed = zonelist_update(engine->zonelist,
             engine->config->zonelist_filename);
         engine->zonelist->just_removed = 0;
         engine->zonelist->just_added = 0;
         engine->zonelist->just_updated = 0;
-        lock_basic_unlock(&engine->zonelist->zl_lock);
+        pthread_mutex_unlock(&engine->zonelist->zl_lock);
         /* start/reload */
         if (engine->need_to_reload) {
             ods_log_info("[%s] signer reloading", engine_str);
@@ -1047,7 +1044,7 @@ engine_cleanup(engine_type* engine)
     dnshandler_cleanup(engine->dnshandler);
     xfrhandler_cleanup(engine->xfrhandler);
     engine_config_cleanup(engine->config);
-    lock_basic_destroy(&engine->signal_lock);
-    lock_basic_off(&engine->signal_cond);
+    pthread_mutex_destroy(&engine->signal_lock);
+    pthread_cond_destroy(&engine->signal_cond);
     free(engine);
 }

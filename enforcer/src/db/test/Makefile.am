@@ -10,7 +10,6 @@ AM_CPPFLAGS = \
 check_PROGRAMS = test
 
 test_SOURCES = \
-	log.c \
 	test.c test.h \
 	test_classes.c \
 	test_initialization.c \
@@ -53,6 +52,8 @@ test_LDADD = \
 	../database_version.o ../database_version_ext.o \
 	../zone_db.o ../zone_db_ext.o \
 	${top_builddir}/common/duration.o \
+	${top_builddir}/common/log.o \
+	${top_builddir}/common/file.o \
 	$(BACKEND_LDADD_CUSTOM)
 
 test_LDFLAGS = -no-install \

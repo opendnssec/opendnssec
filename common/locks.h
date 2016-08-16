@@ -34,40 +34,15 @@
 #include <errno.h>
 #include <stdlib.h>
 
-#define LOCKRET(func) do { \
-	int err; \
-	if ( (err=(func)) != 0) \
-		ods_log_error("%s at %d could not " #func ": %s", \
-		__FILE__, __LINE__, strerror(err)); \
-	} while(0)
-
 #include <pthread.h>
 
 /** ods-signerd will crash if the thread stacksize is too small */
 #define ODS_MINIMUM_STACKSIZE 524288
 
-/** use pthread mutex for basic lock */
-typedef pthread_mutex_t lock_basic_type;
-/** use pthread cond for basic condition */
-typedef pthread_cond_t cond_basic_type;
-
-/** small front for pthread init func, NULL is default attrs. */
-#define lock_basic_init(lock) LOCKRET(pthread_mutex_init(lock, NULL))
-#define lock_basic_destroy(lock) LOCKRET(pthread_mutex_destroy(lock))
-#define lock_basic_lock(lock) LOCKRET(pthread_mutex_lock(lock))
-#define lock_basic_unlock(lock) LOCKRET(pthread_mutex_unlock(lock))
-
-/** our own alarm clock */
-#define lock_basic_set(cond) LOCKRET(pthread_cond_init(cond, NULL))
-#define lock_basic_sleep(cond, lock, sleep) LOCKRET(ods_thread_wait(cond, lock, sleep))
-#define lock_basic_alarm(cond) LOCKRET(pthread_cond_signal(cond))
-#define lock_basic_broadcast(cond) LOCKRET(pthread_cond_broadcast(cond))
-#define lock_basic_off(cond) LOCKRET(pthread_cond_destroy(cond))
-
 /** thread creation */
 typedef janitor_thread_t ods_thread_type;
 
-int ods_thread_wait(cond_basic_type* cond, lock_basic_type* lock, time_t wait);
+int ods_thread_wait(pthread_cond_t* cond, pthread_mutex_t* lock, time_t wait);
 
 extern janitor_threadclass_t detachedthreadclass;
 extern janitor_threadclass_t workerthreadclass;

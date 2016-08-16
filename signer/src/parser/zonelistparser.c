@@ -185,7 +185,8 @@ parse_zonelist_zones(void* zlist, const char* zlfile)
     xmlChar* signconf_expr = (unsigned char*) "//Zone/SignerConfiguration";
 
     if (!zlist || !zlfile) {
-        ods_log_error("[%s] unable to parse zonelist: no storage or no filename");
+        ods_log_error("[%s] unable to parse zonelist: no storage or no filename",
+            parser_str);
         return ODS_STATUS_ASSERT_ERR;
     }
     reader = xmlNewTextReaderFilename(zlfile);

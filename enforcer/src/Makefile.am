@@ -22,7 +22,6 @@ enforcerdir =	@libdir@/opendnssec/enforcer
 
 bin_PROGRAMS = ods-kaspcheck
 sbin_PROGRAMS =	ods-enforcerd ods-enforcer ods-enforcer-db-setup ods-migrate
-# man8_MANS =	man/ods-enforcer.8 man/ods-enforcerd.8
 #dist_man1_MANS = utils/ods-kaspcheck.1
 
 BACKEND_SOURCES_CUSTOM =
@@ -32,13 +31,13 @@ BACKEND_SCHEMA_CUSTOM =
 if USE_SQLITE
 BACKEND_SOURCES_CUSTOM += db/db_backend_sqlite.c db/db_backend_sqlite.h
 BACKEND_SCHEMA_CUSTOM += db/db_schema_sqlite.c db/db_schema_sqlite.h \
-	db/db_data_sqlite.c db/db_data_sqlite.h
+	db/db_data_sqlite.c db/db_data_sqlite.h db/schema.sqlite
 endif
 
 if USE_MYSQL
 BACKEND_SOURCES_CUSTOM += db/db_backend_mysql.c db/db_backend_mysql.h
 BACKEND_SCHEMA_CUSTOM += db/db_schema_mysql.c db/db_schema_mysql.h \
-	db/db_data_mysql.c db/db_data_mysql.h
+	db/db_data_mysql.c db/db_data_mysql.h db/schema.mysql
 endif
 
 ods_enforcerd_SOURCES = \

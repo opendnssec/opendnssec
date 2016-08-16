@@ -546,6 +546,10 @@ JOIN mapping
 	ON REMOTE.dnsseckeys.state = mapping.state;
 -- WHERE REMOTE.keypairs.generate IS NOT NULL;
 
+UPDATE keyData
+SET dsatparent = 0
+WHERE role = 2;
+
 DROP TABLE mapping;
 
 -- If an active time is set for a ready KSK dsAtParent is submitted 
@@ -651,3 +655,17 @@ WHERE keyState.state = 1
 	AND REMOTE.dnsseckeys.retire IS NOT NULL;
 
 DROP TABLE mapping;
+
+UPDATE keyState
+SET state = 4
+WHERE (keyState.type = 0 OR keyState.type = 3) AND keyDataId IN (
+	       SELECT keyData.id
+	       FROM keyData
+	       WHERE keyData.role = 2);
+
+UPDATE keyState
+SET state = 4
+WHERE keyState.type = 1 AND keyDataId IN (
+	       SELECT keyData.id
+	       FROM keyData
+	       WHERE keyData.role = 1);

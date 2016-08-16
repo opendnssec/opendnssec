@@ -344,7 +344,7 @@ query_process_notify(query_type* q, ldns_rr_type qtype, engine_type* engine)
             return QUERY_DISCARDED;
         }
 
-        lock_basic_lock(&q->zone->xfrd->serial_lock);
+        pthread_mutex_lock(&q->zone->xfrd->serial_lock);
         if (!util_serial_gt(serial, q->zone->xfrd->serial_disk)) {
             if (addr2ip(q->addr, address, sizeof(address))) {
                 ods_log_info("[%s] ignore notify from %s: already got "
@@ -356,9 +356,9 @@ query_process_notify(query_type* q, ldns_rr_type qtype, engine_type* engine)
                     "serial %u on disk (received %u)", query_str,
                     q->zone->name, q->zone->xfrd->serial_disk, serial);
             }
-            lock_basic_unlock(&q->zone->xfrd->serial_lock);
+            pthread_mutex_unlock(&q->zone->xfrd->serial_lock);
         } else if (q->zone->xfrd->serial_notify_acquired) {
-            lock_basic_unlock(&q->zone->xfrd->serial_lock);
+            pthread_mutex_unlock(&q->zone->xfrd->serial_lock);
             if (addr2ip(q->addr, address, sizeof(address))) {
                 ods_log_info("[%s] ignore notify from %s: zone %s "
                     "transfer in progress", query_str, address,
@@ -370,7 +370,7 @@ query_process_notify(query_type* q, ldns_rr_type qtype, engine_type* engine)
         } else {
             q->zone->xfrd->serial_notify = serial;
             q->zone->xfrd->serial_notify_acquired = time_now();
-            lock_basic_unlock(&q->zone->xfrd->serial_lock);
+            pthread_mutex_unlock(&q->zone->xfrd->serial_lock);
             /* forward notify to xfrd */
             if (addr2ip(q->addr, address, sizeof(address))) {
                 ods_log_verbose("[%s] forward notify for zone %s from client %s",
@@ -567,18 +567,18 @@ query_response(query_type* q, ldns_rr_type qtype)
         return QUERY_DISCARDED;
     }
     r.rrset_count = 0;
-    lock_basic_lock(&q->zone->zone_lock);
+    pthread_mutex_lock(&q->zone->zone_lock);
     rrset = zone_lookup_rrset(q->zone, q->zone->apex, qtype);
     if (rrset) {
         if (!response_add_rrset(&r, rrset, LDNS_SECTION_ANSWER)) {
-            lock_basic_unlock(&q->zone->zone_lock);
+            pthread_mutex_unlock(&q->zone->zone_lock);
             return query_servfail(q);
         }
         /* NS RRset goes into Authority Section */
         rrset = zone_lookup_rrset(q->zone, q->zone->apex, LDNS_RR_TYPE_NS);
         if (rrset) {
             if (!response_add_rrset(&r, rrset, LDNS_SECTION_AUTHORITY)) {
-                lock_basic_unlock(&q->zone->zone_lock);
+                pthread_mutex_unlock(&q->zone->zone_lock);
                 return query_servfail(q);
             }
         }
@@ -586,15 +586,15 @@ query_response(query_type* q, ldns_rr_type qtype)
         rrset = zone_lookup_rrset(q->zone, q->zone->apex, LDNS_RR_TYPE_SOA);
         if (rrset) {
             if (!response_add_rrset(&r, rrset, LDNS_SECTION_AUTHORITY)) {
-                lock_basic_unlock(&q->zone->zone_lock);
+                pthread_mutex_unlock(&q->zone->zone_lock);
                 return query_servfail(q);
             }
         }
     } else {
-        lock_basic_unlock(&q->zone->zone_lock);
+        pthread_mutex_unlock(&q->zone->zone_lock);
         return query_servfail(q);
     }
-    lock_basic_unlock(&q->zone->zone_lock);
+    pthread_mutex_unlock(&q->zone->zone_lock);
 
     response_encode(q, &r);
     /* compression */
@@ -848,10 +848,6 @@ query_process(query_type* q, engine_type* engine)
     ods_log_assert(engine);
     ods_log_assert(q);
     ods_log_assert(q->buffer);
-    if (!engine || !q || !q->buffer) {
-        ods_log_error("[%s] drop query: assertion error", query_str);
-        return QUERY_DISCARDED; /* should not happen */
-    }
     if (buffer_limit(q->buffer) < BUFFER_PKT_HEADER_SIZE) {
         ods_log_debug("[%s] drop query: packet too small", query_str);
         return QUERY_DISCARDED; /* too small */
@@ -873,7 +869,7 @@ query_process(query_type* q, engine_type* engine)
         ods_log_debug("[%s] no RRset in query section, ignoring", query_str);
         return QUERY_DISCARDED; /* no RRset in query */
     }
-    lock_basic_lock(&engine->zonelist->zl_lock);
+    pthread_mutex_lock(&engine->zonelist->zl_lock);
     /* we can just lookup the zone, because we will only handle SOA queries,
        zone transfers, updates and notifies */
     q->zone = zonelist_lookup_zone_by_dname(engine->zonelist, ldns_rr_owner(rr),
@@ -885,7 +881,7 @@ query_process(query_type* q, engine_type* engine)
             query_str, q->zone->name);
         q->zone = NULL;
     }
-    lock_basic_unlock(&engine->zonelist->zl_lock);
+    pthread_mutex_unlock(&engine->zonelist->zl_lock);
     if (!q->zone) {
         ods_log_debug("[%s] zone not found", query_str);
         return query_servfail(q);

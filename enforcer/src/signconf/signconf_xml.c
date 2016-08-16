@@ -53,11 +53,39 @@
  */
 static int signconf_xml_export(int sockfd, const policy_t* policy, zone_db_t* zone, int force);
 
-int signconf_xml_export_all(int sockfd, const db_connection_t* connection, int force) {
+int
+signconf_export_zone(char const *zonename, db_connection_t* dbconn)
+{
+    zone_db_t* zone;
+    int ret;
+    policy_t* policy;
+
+    zone = zone_db_new_get_by_name(dbconn, zonename);
+    if (!zone) {
+        ods_log_error("[signconf_export] Unable to fetch zone %s from"
+            " database", zonename);
+        return SIGNCONF_EXPORT_ERR_DATABASE;
+    }
+    policy = zone_db_get_policy(zone);
+    if (!policy) {
+        ods_log_error("[signconf_export] Unable to fetch policy for zone"
+            " %s from database", zonename);
+        zone_db_free(zone);
+        return SIGNCONF_EXPORT_ERR_DATABASE;
+    }
+
+    /* We always force. Since now it is scheduled per zone */
+    ret = signconf_xml_export(-1, policy, zone, 1);
+    policy_free(policy);
+    zone_db_free(zone);
+    return ret;
+}
+
+int signconf_export_all(int sockfd, const db_connection_t* connection, int force) {
     zone_list_db_t* zone_list;
     zone_db_t* zone;
     int ret;
-    const policy_t* policy = NULL;
+    policy_t *policy = NULL;
     int cmp;
     int change = 0;
 

@@ -1,3 +1,25 @@
+UNRELEASED:
+
+* Enforce and signconf tasks are now scheduled individually per zone. Resign
+  per policy.
+* zone delete removes tasks associated with zone from queue.
+* Show help for ods-enforcer-db-setup
+* In the kasp file, KSK/ZSK section, the algorithm length must be set now.
+* The <Interval> tag had been deprecrecated, and is now no longer allowed to
+  be specified.
+
+OpenDNSSEC 2.0.1 - 2016-07-21
+
+* Fixed crash and linking issue in ods-migrate.
+* Fixed case where 2.0.0 could not read backup files from 1.4.10.
+* Fixed bug in migration script where key state wasn't transformed properly.
+
+OpenDNSSEC 2.0.0-1
+
+* include db creation scripts in dist tarball needed for migration from 1.4.
+
+OpenDNSSEC 2.0.0 - 2016-07-07
+
 * OpenDNSSEC-99: Skip "are you sure" messages. Add --force and -f flag to
   ods-enforcer-db-setup and hsmutil purge
 * OPENDNSSEC-808: Crash on query with empty query section (thanks Håvard Eidnes)

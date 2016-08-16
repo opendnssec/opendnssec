@@ -84,11 +84,9 @@ ods_log_init(const char *programname, int use_syslog, const char *targetname, in
 {
 #ifdef HAVE_SYSLOG_H
     int facility;
+    int error = 0;
 #endif /* HAVE_SYSLOG_H */
-    ods_log_verbose("[%s] switching log to %s verbosity %i (log level %i)",
-        log_str, use_syslog?"syslog":(targetname&&targetname[0]?targetname:"stderr"),
-        verbosity, verbosity+2);
-    if(logfile && logfile != stderr) {
+    if(logfile && logfile != stderr && logfile != stdout) {
             ods_fclose(logfile);
     }
     if(log_ident) {
@@ -107,7 +105,7 @@ ods_log_init(const char *programname, int use_syslog, const char *targetname, in
         logging_to_syslog = 0;
     }
     if(use_syslog) {
-       facility = ods_log_get_facility(targetname);
+       facility = ods_log_get_facility(targetname, &error);
 #ifdef HAVE_OPENLOG_R
        openlog_r(programname, LOG_NDELAY, facility, &sdata);
 #else
@@ -115,6 +113,12 @@ ods_log_init(const char *programname, int use_syslog, const char *targetname, in
 #endif
        log_ident = strdup(programname);
        logging_to_syslog = 1;
+       if (error == 1) {
+        ods_log_warning("[%s] syslog facility %s not supported, logging to "
+                   "log_daemon", log_str, targetname);
+       }
+       ods_log_verbose("[%s] switching log to syslog verbosity %i (log level %i)",
+          log_str, verbosity, verbosity+2);
        return;
     }
 #endif /* HAVE_SYSLOG_H */
@@ -131,6 +135,10 @@ ods_log_init(const char *programname, int use_syslog, const char *targetname, in
     } else {
         logfile = stderr;
     }
+    ods_log_verbose("[%s] switching log to %s verbosity %i (log level %i)",
+          log_str, use_syslog?"syslog":(targetname&&targetname[0]?targetname:"stderr"),
+          verbosity, verbosity+2);
+
 }
 
 int
@@ -160,7 +168,7 @@ ods_log_close(void)
  */
 #ifdef HAVE_SYSLOG_H
 int
-ods_log_get_facility(const char* facility)
+ods_log_get_facility(const char* facility, int* error)
 {
     int length;
 
@@ -203,8 +211,7 @@ ods_log_get_facility(const char* facility)
         return LOG_LOCAL6;
     else if (length == 6 && strncasecmp(facility, "LOCAL7", 6) == 0)
         return LOG_LOCAL7;
-    ods_log_warning("[%s] syslog facility %s not supported, logging to "
-                   "log_daemon", log_str, facility);
+    *error = 1;
     return LOG_DAEMON;
 
 }
@@ -245,6 +252,7 @@ ods_log_vmsg(int priority, const char* t, const char* s, va_list args)
 #endif /* HAVE_SYSLOG_H */
 
     if (!logfile) {
+        fprintf(stdout, "%s\n", message);
         return;
     }
 
