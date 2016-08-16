@@ -75,8 +75,8 @@ struct engine_struct {
     int need_to_reload;
 
     sig_atomic_t signal;
-    cond_basic_type signal_cond;
-    lock_basic_type signal_lock;
+    pthread_cond_t signal_cond;
+    pthread_mutex_t signal_lock;
 };
 
 /**

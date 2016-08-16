@@ -94,7 +94,7 @@ ixfr_create()
     ixfr_type* xfr;
 
     CHECKALLOC(xfr = (ixfr_type*) calloc(1, sizeof(ixfr_type)));
-    lock_basic_init(&xfr->ixfr_lock);
+    pthread_mutex_init(&xfr->ixfr_lock, NULL);
     return xfr;
 }
 
@@ -298,6 +298,6 @@ ixfr_cleanup(ixfr_type* ixfr)
     for (i = IXFR_MAX_PARTS - 1; i >= 0; i--) {
         part_free(ixfr->part[i]);
     }
-    lock_basic_destroy(&ixfr->ixfr_lock);
+    pthread_mutex_destroy(&ixfr->ixfr_lock);
     free(ixfr);
 }

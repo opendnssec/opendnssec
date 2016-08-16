@@ -66,11 +66,11 @@ signal_handler(sig_atomic_t sig)
             ods_log_debug("[%s] SIGHUP received", signal_str);
             signal_hup_recvd++;
             if (signal_engine) {
-                lock_basic_lock(&signal_engine->signal_lock);
+                pthread_mutex_lock(&signal_engine->signal_lock);
                 /* [LOCK] signal */
-                lock_basic_alarm(&signal_engine->signal_cond);
+                pthread_cond_signal(&signal_engine->signal_cond);
                 /* [UNLOCK] signal */
-                lock_basic_unlock(&signal_engine->signal_lock);
+                pthread_mutex_unlock(&signal_engine->signal_lock);
             }
             break;
         case SIGINT:
@@ -78,11 +78,11 @@ signal_handler(sig_atomic_t sig)
             ods_log_debug("[%s] SIGTERM received", signal_str);
             signal_term_recvd++;
             if (signal_engine) {
-                lock_basic_lock(&signal_engine->signal_lock);
+                pthread_mutex_lock(&signal_engine->signal_lock);
                 /* [LOCK] signal */
-                lock_basic_alarm(&signal_engine->signal_cond);
+                pthread_cond_signal(&signal_engine->signal_cond);
                 /* [UNLOCK] signal */
-                lock_basic_unlock(&signal_engine->signal_lock);
+                pthread_mutex_unlock(&signal_engine->signal_lock);
             }
             break;
         default:

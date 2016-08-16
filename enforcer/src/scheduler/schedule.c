@@ -62,9 +62,12 @@ static task_t* get_first_task(schedule_type *schedule);
 static void*
 alarm_handler(sig_atomic_t sig)
 {
+    pthread_t tid = pthread_self();
     switch (sig) {
         case SIGALRM:
+        
             ods_log_debug("[%s] SIGALRM received", schedule_str);
+            printf("[%s] SIGALRM received: %d\n", schedule_str, tid);
             pthread_mutex_lock(schedule_lock);
                 pthread_cond_signal(schedule_cond);
             pthread_mutex_unlock(schedule_lock);
