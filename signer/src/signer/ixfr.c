@@ -118,6 +118,13 @@ ixfr_add_rr(ixfr_type* ixfr, ldns_rr* rr)
             ixfr_str);
     }
     if (ldns_rr_get_type(rr_copy) == LDNS_RR_TYPE_SOA) {
+        if (ixfr->part[0]->soaplus) {
+            /* This should not happen. But it does once in a while due
+             * to general buggyness of ixfr part code. Since nowadays
+             * we use copies instead of referenced lets just deal with
+             * it*/
+             ldns_rr_free(ixfr->part[0]->soaplus);
+        }
         ixfr->part[0]->soaplus = rr_copy;
     }
 }
@@ -142,7 +149,14 @@ ixfr_del_rr(ixfr_type* ixfr, ldns_rr* rr)
             ixfr_str);
     }
     if (ldns_rr_get_type(rr_copy) == LDNS_RR_TYPE_SOA) {
-        ods_log_assert(!ixfr->part[0]->soamin); /* this part already has a soa */
+        if (ixfr->part[0]->soamin) {
+            /* This should not happen. But it does once in a while due
+             * to general buggyness of ixfr part code. Since nowadays
+             * we use copies instead of referenced lets just deal with
+             * it*/
+             ldns_rr_free(ixfr->part[0]->soamin);
+
+        }
         ixfr->part[0]->soamin = rr_copy;
     }
 }

@@ -5,6 +5,8 @@ UNRELEASED:
 * zone delete removes tasks associated with zone from queue.
 * Show help for ods-enforcer-db-setup
 * In the kasp file, KSK/ZSK section, the algorithm length must be set now.
+* The <Interval> tag had been deprecrecated, and is now no longer allowed to
+  be specified.
 
 OpenDNSSEC 2.0.1 - 2016-07-21
 
