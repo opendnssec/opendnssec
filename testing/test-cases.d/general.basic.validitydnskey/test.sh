@@ -9,12 +9,25 @@ testvalidity() {
 	local starting
 	until=`awk < $INSTALL_ROOT/var/opendnssec/signed/ods '($4=="RRSIG"&&$5=="DNSKEY") {print $9;}'`
 	starting=`awk < $INSTALL_ROOT/var/opendnssec/signed/ods '($4=="RRSIG"&&$5=="DNSKEY") {print $10;}'`
+	# Skip the real check if no GNU date command present that accepts --date option
+	if date 2>/dev/null >/dev/null --date 0 ; then
 	until=`echo $until       | sed 's/\(....\)\(..\)\(..\)\(..\)\(..\)\(..\)/\1-\2-\3 \4:\5/'`
 	starting=`echo $starting | sed 's/\(....\)\(..\)\(..\)\(..\)\(..\)\(..\)/\1-\2-\3 \4:\5/'`
 	until=`date --date "$until" +%s`
 	starting=`date --date "$starting" +%s`
-	# Skip the real check if no GNU date command present that accepts --date option
-	if date 2>/dev/null >/dev/null --date 0 ; then
+	    if [ "`expr $until - $starting`" -lt "`expr $1 - 121`" ]; then
+		echo "`expr $1 - 121` <= `expr $until - $starting` <= `expr $1 + 121`"
+		return 1
+	    fi
+	    if [ "`expr $until - $starting`" -gt "`expr $1 + 121`" ]; then
+		echo "`expr $1 - 121` <= `expr $until - $starting` <= `expr $1 + 121`"
+		return 1
+	    fi
+	else
+	    until=`echo $until       | sed 's/\(....\)\(..\)\(..\)\(..\)\(..\)\(..\)/\1\2\3\4\5/'`
+	    starting=`echo $starting | sed 's/\(....\)\(..\)\(..\)\(..\)\(..\)\(..\)/\1\2\3\4\5/'`
+	    until=`date -j "$until" +%s`
+	    starting=`date -j "$starting" +%s`
 	    if [ "`expr $until - $starting`" -lt "`expr $1 - 121`" ]; then
 		echo "`expr $1 - 121` <= `expr $until - $starting` <= `expr $1 + 121`"
 		return 1
