@@ -52,9 +52,9 @@ usage(int sockfd)
 static void
 help(int sockfd)
 {
-    client_printf(sockfd,
-        "Force write of signer configuration files for all zones.\n\n"
-    );
+	client_printf(sockfd,
+		"Force write of signer configuration files for all zones.\n\n"
+	);
 }
 
 static int
@@ -67,11 +67,12 @@ static int
 run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	db_connection_t *dbconn)
 {
-    (void)engine; (void)cmd; (void)n;
+	(void)cmd; (void)n;
 
 	ods_log_debug("[%s] %s command", module_str, signconf_funcblock()->cmdname);
 
-	return perform_signconf(sockfd, dbconn, 1);
+	signconf_task_flush_all(engine, dbconn);
+	return 0;
 }
 
 static struct cmd_func_block funcblock = {

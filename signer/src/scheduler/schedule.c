@@ -63,7 +63,7 @@ schedule_create()
         free(schedule);
         return NULL;
     }
-    lock_basic_init(&schedule->schedule_lock);
+    pthread_mutex_init(&schedule->schedule_lock, NULL);
     return schedule;
 }
 
@@ -312,6 +312,6 @@ schedule_cleanup(schedule_type* schedule)
         ldns_rbtree_free(schedule->tasks);
         schedule->tasks = NULL;
     }
-    lock_basic_destroy(&schedule->schedule_lock);
+    pthread_mutex_destroy(&schedule->schedule_lock);
     free(schedule);
 }

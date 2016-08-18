@@ -948,9 +948,9 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 				jitter, denial, policy_name, kasp);
 		status++;
 	}
-	while (curkey) {
-		tmpkey = curkey;
-		curkey = curkey->next;
+	while (firstkey) {
+		tmpkey = firstkey;
+		firstkey = firstkey->next;
 		StrFree(tmpkey->repo);
 		free(tmpkey);
 	}

@@ -88,7 +88,7 @@ zonelist_create()
         return NULL;
     }
     zlist->last_modified = 0;
-    lock_basic_init(&zlist->zl_lock);
+    pthread_mutex_init(&zlist->zl_lock, NULL);
     return zlist;
 }
 
@@ -443,7 +443,7 @@ zonelist_cleanup(zonelist_type* zl)
         ldns_rbtree_free(zl->zones);
         zl->zones = NULL;
     }
-    lock_basic_destroy(&zl->zl_lock);
+    pthread_mutex_destroy(&zl->zl_lock);
     free(zl);
 }
 
@@ -463,6 +463,6 @@ zonelist_free(zonelist_type* zl)
         ldns_rbtree_free(zl->zones);
         zl->zones = NULL;
     }
-    lock_basic_destroy(&zl->zl_lock);
+    pthread_mutex_destroy(&zl->zl_lock);
     free(zl);
 }

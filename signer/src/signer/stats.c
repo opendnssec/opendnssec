@@ -41,7 +41,7 @@ stats_create(void)
 {
     stats_type* stats = (stats_type*) malloc(sizeof(stats_type));
     stats_clear(stats);
-    lock_basic_init(&stats->stats_lock);
+    pthread_mutex_init(&stats->stats_lock, NULL);
     return stats;
 }
 
@@ -105,6 +105,6 @@ stats_log(stats_type* stats, const char* name, uint32_t serial,
 void
 stats_cleanup(stats_type* stats)
 {
-    lock_basic_destroy(&stats->stats_lock);
+    pthread_mutex_destroy(&stats->stats_lock);
     free((void*) stats);
 }

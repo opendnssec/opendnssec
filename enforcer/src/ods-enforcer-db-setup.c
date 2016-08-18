@@ -67,6 +67,9 @@ static void usage(FILE* out) {
         "Version %s. Report bugs to <%s>.\n",
         PACKAGE_VERSION,
         PACKAGE_BUGREPORT);
+    fprintf(out, "--help,     -h: Print usage.\n");
+    fprintf(out, "--version,  -V: Print version.\n");
+    fprintf(out, "--force,    -f: Yes to all questions.\n");
 }
 
 static void version(FILE* out) {

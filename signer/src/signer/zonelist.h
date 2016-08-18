@@ -47,7 +47,7 @@ struct zonelist_struct {
     int just_added;
     int just_updated;
     int just_removed;
-    lock_basic_type zl_lock;
+    pthread_mutex_t zl_lock;
 };
 
 /**
