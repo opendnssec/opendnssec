@@ -51,9 +51,9 @@ static const char *module_str = "keystate_list_task";
 #define UNR KEY_STATE_STATE_UNRETENTIVE
 #define NAV KEY_STATE_STATE_NA
 
-enum {KS_GEN = 0, KS_PUB, KS_RDY, KS_ACT, KS_RET, KS_DEA, KS_UNK, KS_MIX};
+enum {KS_GEN = 0, KS_PUB, KS_RDY, KS_ACT, KS_RET, KS_UNK, KS_MIX};
 const char* statenames[] = {"generate", "publish", "ready",
-		"active", "retire", "dead", "unknown", "mixed"};
+		"active", "retire", "unknown", "mixed"};
 
 /** Map 2.0 states to 1.x states
  * @param p: state of RR higher in the chain (e.g. DS)
