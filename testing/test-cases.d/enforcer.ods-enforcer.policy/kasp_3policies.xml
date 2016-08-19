@@ -12,6 +12,7 @@
             </Validity>
             <Jitter>PT61S</Jitter>
             <InceptionOffset>PT60S</InceptionOffset>
+            <MaxZoneTTL>PT0S</MaxZoneTTL>
         </Signatures>
         <Denial>
             <NSEC3>
