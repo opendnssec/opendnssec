@@ -54,16 +54,28 @@ zone_type*
 zone_create(char* name, ldns_rr_class klass)
 {
     zone_type* zone = NULL;
+    int err;
 
     if (!name || !klass) {
         return NULL;
     }
-    CHECKALLOC(zone = (zone_type*) malloc(sizeof(zone_type)));
+    CHECKALLOC(zone = (zone_type*) calloc(1, sizeof(zone_type)));
     /* [start] PS 9218653: Drop trailing dot in domain name */
     if (strlen(name) > 1 && name[strlen(name)-1] == '.') {
         name[strlen(name)-1] = '\0';
     }
     /* [end] PS 9218653 */
+
+    if (pthread_mutex_init(&zone->zone_lock, NULL)) {
+        free(zone);
+        return NULL;
+    }
+    if (pthread_mutex_init(&zone->xfr_lock, NULL)) {
+        (void)pthread_mutex_destroy(&zone->zone_lock);
+        free(zone);
+        return NULL;
+    }
+
     zone->name = strdup(name);
     if (!zone->name) {
         ods_log_error("[%s] unable to create zone %s: allocator_strdup() "
@@ -93,7 +105,7 @@ zone_create(char* name, ldns_rr_class klass)
         zone_cleanup(zone);
         return NULL;
     }
-    zone->ixfr = ixfr_create((void*)zone);
+    zone->ixfr = ixfr_create();
     if (!zone->ixfr) {
         ods_log_error("[%s] unable to create zone %s: ixfr_create() "
             "failed", zone_str, name);
@@ -109,8 +121,6 @@ zone_create(char* name, ldns_rr_class klass)
     }
     zone->stats = stats_create();
     zone->rrstore = rrset_store_initialize();
-    lock_basic_init(&zone->zone_lock);
-    lock_basic_init(&zone->xfr_lock);
     return zone;
 }
 
@@ -183,7 +193,7 @@ zone_reschedule_task(zone_type* zone, schedule_type* taskq, task_id what)
      ods_log_assert(zone->name);
      ods_log_assert(zone->task);
      ods_log_debug("[%s] reschedule task for zone %s", zone_str, zone->name);
-     lock_basic_lock(&taskq->schedule_lock);
+     pthread_mutex_lock(&taskq->schedule_lock);
      task = unschedule_task(taskq, zone->task);
      if (task != NULL) {
          if (task->what != what) {
@@ -206,7 +216,7 @@ zone_reschedule_task(zone_type* zone, schedule_type* taskq, task_id what)
          task->interrupt = what;
          /* task->halted(_when) set by worker */
      }
-     lock_basic_unlock(&taskq->schedule_lock);
+     pthread_mutex_unlock(&taskq->schedule_lock);
      zone->task = task;
      return status;
 }
@@ -254,6 +264,7 @@ zone_publish_dnskeys(zone_type* zone)
                 if ((status = rrset_getliteralrr(&zone->signconf->keys->keys[i].dnskey, zone->signconf->keys->keys[i].resourcerecord, ttl, zone->apex)) != ODS_STATUS_OK) {
                     ods_log_error("[%s] unable to publish dnskeys for zone %s: "
                             "error decoding literal dnskey", zone_str, zone->name);
+		    hsm_destroy_context(ctx);
                     return status;
                 }
             } else {
@@ -701,7 +712,7 @@ zone_del_nsec3params(zone_type* zone)
 
     domain = namedb_lookup_domain(zone->db, zone->apex);
     if (!domain) {
-        ods_log_warning("[%s] unable to delete RR from zone %s: "
+        ods_log_verbose("[%s] unable to delete RR from zone %s: "
             "domain not found", zone_str, zone->name);
         return ODS_STATUS_UNCHANGED;
     }
@@ -813,8 +824,8 @@ zone_cleanup(zone_type* zone)
     free((void*)zone->signconf_filename);
     free((void*)zone->name);
     collection_class_destroy(&zone->rrstore);
-    lock_basic_destroy(&zone->xfr_lock);
-    lock_basic_destroy(&zone->zone_lock);
+    pthread_mutex_destroy(&zone->xfr_lock);
+    pthread_mutex_destroy(&zone->zone_lock);
     free(zone);
 }
 
@@ -1028,12 +1039,12 @@ zone_recover2(zone_type* zone)
                     ods_status2str(status));
                 (void)unlink(filename);
                 ixfr_cleanup(zone->ixfr);
-                zone->ixfr = ixfr_create((void*)zone);
+                zone->ixfr = ixfr_create();
             }
         }
-        lock_basic_lock(&zone->ixfr->ixfr_lock);
-        ixfr_purge(zone->ixfr);
-        lock_basic_unlock(&zone->ixfr->ixfr_lock);
+        pthread_mutex_lock(&zone->ixfr->ixfr_lock);
+        ixfr_purge(zone->ixfr, zone->name);
+        pthread_mutex_unlock(&zone->ixfr->ixfr_lock);
 
         /* all ok */
         free((void*)filename);
@@ -1041,9 +1052,9 @@ zone_recover2(zone_type* zone)
             ods_fclose(fd);
         }
         if (zone->stats) {
-            lock_basic_lock(&zone->stats->stats_lock);
+            pthread_mutex_lock(&zone->stats->stats_lock);
             stats_clear(zone->stats);
-            lock_basic_unlock(&zone->stats->stats_lock);
+            pthread_mutex_unlock(&zone->stats->stats_lock);
         }
         return ODS_STATUS_OK;
     }
@@ -1065,9 +1076,9 @@ recover_error2:
     ods_log_assert(zone->db);
     /* stats reset */
     if (zone->stats) {
-       lock_basic_lock(&zone->stats->stats_lock);
+       pthread_mutex_lock(&zone->stats->stats_lock);
        stats_clear(zone->stats);
-       lock_basic_unlock(&zone->stats->stats_lock);
+       pthread_mutex_unlock(&zone->stats->stats_lock);
     }
     return ODS_STATUS_ERR;
 }

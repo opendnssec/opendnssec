@@ -138,6 +138,7 @@ extract_msg(char* buf, int *pos, int buflen, int *exitcode, int sockfd)
         if (*pos < 3) return 0;
         opc = buf[0];
         datalen = (buf[1]<<8) | (buf[2]&0xFF);
+	datalen &= 0xFFFF; /* hopefully sooth tainted data checker */
         if (datalen+3 <= *pos) {
             /* a complete message */
             memset(data, 0, ODS_SE_MAXLINE+1);
@@ -217,18 +218,24 @@ interface_start(const char* cmd, const char* servsock_filename)
         if (cmd) {
             if (strncmp(cmd, "start", 5) == 0) {
                 exitcode = system(ODS_EN_ENGINE);
-                if (exitcode == 0) return 0;
+                if (exitcode == 0) {
+                    close(sockfd);
+                    return 0;
+                }
                 fprintf(stderr, "Error: Daemon reported a failure "
                     "starting. Please consult the logfiles.\n");
+                close(sockfd);
                 return exitcode;
             } else if (strcmp(cmd, "running\n") == 0) {
                 fprintf(stdout, "Engine not running.\n");
+                close(sockfd);
                 return 209;
             }
         }
         fprintf(stderr, 
             "Unable to connect to engine. connect() failed: "
             "%s (\"%s\")\n", strerror(errno), servsock_filename);
+        close(sockfd);
         return 201;
     }
     /* set socket to non-blocking */

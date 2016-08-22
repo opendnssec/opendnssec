@@ -41,6 +41,8 @@
 
 static const char *module_str = "enforce_cmd";
 
+#define MAX_ARGS 16
+
 /**
  * Print help for the 'enforce' command
  *
@@ -50,14 +52,18 @@ usage(int sockfd)
 {
 	client_printf(sockfd,
 		"enforce\n"
-	);
+		"	--zone <zone>	aka -z\n");
 }
 
 static void
 help(int sockfd)
 {
 	client_printf(sockfd,
-		"Force the enforcer to run once for every zone.\n\n"
+		"Force enforce task to run for a zone."
+		" Without arguments run enforce task for every zone.\n"
+		"\nOptions:\n"
+		"zone		Schedule enforce task for this zone for *now*\n"
+		"\n"
 	);
 }
 
@@ -67,37 +73,46 @@ handles(const char *cmd, ssize_t n)
 	return ods_check_command(cmd, n, enforce_funcblock()->cmdname)?1:0;
 }
 
-static void
-reschedule_enforce(task_type *task, time_t t_when, const char *z_when)
-{
-	ods_log_assert(task->who);
-	task->who = strdup(z_when);
-	task->when = t_when;
-	task->backoff = 0;
-}
-
 /**
  * Handle the 'enforce' command.
  *
  */
 static int
-run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
+run(int sockfd, engine_type *engine, const char *cmd, ssize_t n,
 	db_connection_t *dbconn)
 {
 	time_t t_next;
-	task_type *task;
-	(void)cmd; (void)n;
+	task_t *task;
+	char *buf;
+	int argc;
+	char const *argv[MAX_ARGS];
+	char const *zone_name = NULL;
+	int pos;
+
 	ods_log_debug("[%s] %s command", module_str, enforce_funcblock()->cmdname);
 
-	task = enforce_task(engine, 1);
+	cmd = ods_check_command(cmd, n, enforce_funcblock()->cmdname);
+	if (!cmd) return -1;
 
-	t_next = perform_enforce_lock(sockfd, engine, 1, task, dbconn);
-	if (t_next == -1) {
-		task_cleanup(task);
-	} else {
-		reschedule_enforce(task, t_next, "next zone");
-		schedule_task(engine->taskq, task); /* TODO unchecked error */
+	if (!(buf = strdup(cmd))) {
+		client_printf_err(sockfd, "memory error\n");
+		return -1;
 	}
+	argc = ods_str_explode(buf, MAX_ARGS, argv);
+
+	pos = ods_find_arg_and_param(&argc, argv, "zone", "z", &zone_name);
+	if (argc > 0) {
+		client_printf_err(sockfd, "Too many arguments.\n");
+		free(buf);
+		return -1;
+	}
+
+	if (pos != -1) {
+		enforce_task_flush_zone(engine, zone_name);
+	} else {
+		enforce_task_flush_all(engine, dbconn);
+	}
+	free(buf);
 	return 0;
 }
 

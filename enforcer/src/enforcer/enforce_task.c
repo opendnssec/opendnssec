@@ -42,304 +42,151 @@
 #include "log.h"
 #include "scheduler/schedule.h"
 #include "scheduler/task.h"
-#include "db/zone.h"
+#include "db/zone_db.h"
 #include "db/db_clause.h"
 
 #include "enforcer/enforce_task.h"
 
 static const char *module_str = "enforce_task";
 
-static void
-enf_schedule_task(int sockfd, engine_type* engine, task_type *task, const char *what)
-{
-	/* schedule task */
-	if (!task) {
-		ods_log_crit("[%s] failed to create %s task", module_str, what);
-	} else {
-		ods_status status = schedule_task(engine->taskq, task);
-		if (status != ODS_STATUS_OK) {
-			ods_log_crit("[%s] failed to create %s task", module_str, what);
-			client_printf(sockfd, "Unable to schedule %s task.\n", what);
-		} else {
-			client_printf(sockfd, "Scheduled %s task.\n", what);
-		}
-	}
-}
-
-static void
-reschedule_enforce(task_type *task, time_t t_when, const char *z_when)
-{
-	ods_log_assert(task->who);
-	free(task->who);
-	task->who = strdup(z_when);
-	task->when = t_when;
-	task->backoff = 0;
-}
-
 static time_t
-perform_enforce(int sockfd, engine_type *engine, int bForceUpdate,
-	task_type* task, db_connection_t *dbconn)
+perform_enforce(int sockfd, engine_type *engine, char const *zonename,
+	db_connection_t *dbconn)
 {
-	zone_list_t *zonelist = NULL;
-	zone_t *zone, *firstzone = NULL;
+	zone_db_t *zone;
 	policy_t *policy;
-	key_data_list_t *keylist;
-	const key_data_t *key;
-	time_t t_next, t_now = time_now(), t_reschedule = -1;
-	/* Flags that indicate tasks to be scheduled after zones have been
-	 * enforced. */
+	time_t t_next;
+	int zone_updated = 0;
 	int bSignerConfNeedsWriting = 0;
 	int bSubmitToParent = 0;
 	int bRetractFromParent = 0;
-	int zone_updated;
+	key_data_list_t *keylist;
+	key_data_t const *key;
 
-	if (!(zonelist = zone_list_new(dbconn))
-		/*|| zone_list_associated_fetch(zonelist)*/
-		|| zone_list_get(zonelist))
-	{
-		zone_list_free(zonelist);
-		zonelist = NULL;
-	}
-	if (!zonelist) {
-		/* TODO: log error */
-		ods_log_error("[%s] zonelist NULL", module_str);
-		/* TODO: backoff? */
-		return t_reschedule;
+	
+	zone = zone_db_new_get_by_name(dbconn, zonename);
+	if (!zone) {
+		ods_log_error("[%s] Could not find zone %s in database",
+			module_str, zonename);
+		return -1;
 	}
 
-	for (zone = zone_list_get_next(zonelist); zone;
-		zone_free(zone), zone = zone_list_get_next(zonelist))
-	{
-		if (engine->need_to_reload || engine->need_to_exit) break;
-
-		if (!bForceUpdate && (zone_next_change(zone) == -1)) {
-			continue;
-		} else if (zone_next_change(zone) > t_now && !bForceUpdate) {
-			/* This zone needs no update, however it might be the first
-			 * for future updates */
-			if (zone_next_change(zone) < t_reschedule || !firstzone)
-			{
-				t_reschedule = zone_next_change(zone);
-				if (firstzone) {
-					zone_free(firstzone);
-				}
-				firstzone = zone;
-				zone = NULL; /* keeps firstzone from being freed. */
-			}
-			continue;
-		}
-		if (!(policy = zone_get_policy(zone))) {
-			client_printf(sockfd,
-				"Next update for zone %s NOT scheduled "
-				"because policy is missing !\n", zone_name(zone));
-			if (zone_next_change(zone) != -1
-				&& (zone_set_next_change(zone, -1)
-					|| zone_update(zone)))
-			{
-				/* TODO: Log error */
-			}
-			continue;
-		}
-
-		if (policy_passthrough(policy)) {
-			ods_log_info("Passing through zone %s.\n", zone_name(zone));
-			zone_set_signconf_needs_writing(zone, 1);
-			zone_update(zone);
-			bSignerConfNeedsWriting = 1;
-			policy_free(policy);
-			continue;
-		}
-
-		zone_updated = 0;
-		t_next = update(engine, dbconn, zone, policy, t_now, &zone_updated);
-		policy_free(policy);
-		bSignerConfNeedsWriting |= zone_signconf_needs_writing(zone);
-
-		keylist = zone_get_keys(zone);
-		while ((key = key_data_list_next(keylist))) {
-			if (key_data_ds_at_parent(key) == KEY_DATA_DS_AT_PARENT_SUBMIT) {
-				ods_log_warning("[%s] please submit DS "
-					"with keytag %d for zone %s",
-					module_str, key_data_keytag(key)&0xFFFF, zone_name(zone));
-				bSubmitToParent = 1;
-			} else if (key_data_ds_at_parent(key) == KEY_DATA_DS_AT_PARENT_RETRACT) {
-				ods_log_warning("[%s] please retract DS "
-					"with keytag %d for zone %s",
-					module_str, key_data_keytag(key)&0xFFFF, zone_name(zone));
-				bRetractFromParent = 1;
-			}
-		}
-		key_data_list_free(keylist);
-
-		if (t_next == -1) {
-			client_printf(sockfd,
-				"Next update for zone %s NOT scheduled "
-				"by enforcer !\n", zone_name(zone));
-			ods_log_debug("Next update for zone %s NOT scheduled "
-				"by enforcer !\n", zone_name(zone));
-		} else {
-			/* Invalid schedule time then skip the zone.*/
-			char tbuf[32] = "date/time invalid\n"; /* at least 26 bytes */
-			ctime_r(&t_next, tbuf); /* note that ctime_r inserts \n */
-			client_printf(sockfd,
-				"Next update for zone %s scheduled at %s",
-				zone_name(zone), tbuf);
-			ods_log_debug("Next update for zone %s scheduled at %s",
-				zone_name(zone), tbuf);
-		}
-		if (zone_next_change(zone) != t_next) {
-			zone_set_next_change(zone, t_next);
-			zone_updated = 1;
-		}
-
-		/*
-		 * Commit the changes to the zone if there where any.
-		 */
-		if (zone_updated) {
-			if (zone_update(zone)) {
-				ods_log_debug("[%s] error zone_update(%s)", module_str, zone_name(zone));
-			}
-		}
-
-		/*
-		 * Find out when to schedule the next change.
-		 */
-		if (zone_next_change(zone) != -1
-			&& (zone_next_change(zone) < t_reschedule
-				|| !firstzone))
-		{
-			t_reschedule = zone_next_change(zone);
-			if (firstzone) {
-				zone_free(firstzone);
-			}
-			firstzone = zone;
-			zone = NULL;
-		}
-	}
-	zone_list_free(zonelist);
-
-	/*
-	 * Schedule the next change if needed.
-	 */
-	if (firstzone) {
-		reschedule_enforce(task, t_reschedule, zone_name(firstzone));
-		zone_free(firstzone);
+	if (!(policy = zone_db_get_policy(zone))) {
+		ods_log_error("Next update for zone %s NOT scheduled "
+			"because policy is missing !\n", zone_db_name(zone));
+		zone_db_free(zone);
+		return -1;
 	}
 
-	/* Launch signer configuration writer task when one of the
-	 * zones indicated that it needs to be written.
-	 * TODO: unschedule it first!
-	 */
-	if (bSignerConfNeedsWriting) {
-		task_type *signconf =
-			signconf_task(dbconn, "signconf", "signer configurations");
-		enf_schedule_task(sockfd,engine,signconf,"signconf");
+	if (policy_passthrough(policy)) {
+		ods_log_info("Passing through zone %s.\n", zone_db_name(zone));
+		bSignerConfNeedsWriting = 1;
+		t_next = -1;
 	} else {
-		ods_log_info("[%s] No changes to any signconf file required", module_str);
+		t_next = update(engine, dbconn, zone, policy, time_now(), &zone_updated);
+		bSignerConfNeedsWriting = zone_db_signconf_needs_writing(zone);
 	}
+	
+	policy_free(policy);
+
+	/* Commit zone to database before we schedule signconf */
+	if (zone_updated) {
+		(void)zone_db_set_next_change(zone, t_next);
+		(void)zone_db_update(zone);
+	}
+
+	if (bSignerConfNeedsWriting) {
+		signconf_task_flush_zone(engine, dbconn, zonename);
+	} else {
+		ods_log_info("[%s] No changes to signconf file required for zone %s", module_str, zonename);
+	}
+
+	keylist = zone_db_get_keys(zone);
+	while ((key = key_data_list_next(keylist))) {
+		if (key_data_ds_at_parent(key) == KEY_DATA_DS_AT_PARENT_SUBMIT) {
+			ods_log_warning("[%s] please submit DS "
+				"with keytag %d for zone %s",
+				module_str, key_data_keytag(key)&0xFFFF, zone_db_name(zone));
+			bSubmitToParent = 1;
+		} else if (key_data_ds_at_parent(key) == KEY_DATA_DS_AT_PARENT_RETRACT) {
+			ods_log_warning("[%s] please retract DS "
+				"with keytag %d for zone %s",
+				module_str, key_data_keytag(key)&0xFFFF, zone_db_name(zone));
+			bRetractFromParent = 1;
+		}
+	}
+	key_data_list_free(keylist);
 
 	/* Launch ds-submit task when one of the updated key states has the
 	 * DS_SUBMIT flag set. */
 	if (bSubmitToParent) {
-		task_type *submit =
-			keystate_ds_submit_task(engine);
-		enf_schedule_task(sockfd, engine, submit, "ds-submit");
+		task_t *submit = keystate_ds_submit_task(engine, zonename);
+		schedule_task(engine->taskq, submit);
 	}
-
-
 	/* Launch ds-retract task when one of the updated key states has the
 	 * DS_RETRACT flag set. */
 	if (bRetractFromParent) {
-		task_type *retract =
-			keystate_ds_retract_task(engine);
-		enf_schedule_task(sockfd, engine, retract, "ds-retract");
+		task_t *retract = keystate_ds_retract_task(engine, zonename);
+		schedule_task(engine->taskq, retract);
 	}
 
-
-	return t_reschedule;
+	zone_db_free(zone);
+	return t_next;
 }
 
-time_t perform_enforce_lock(int sockfd, engine_type *engine,
-	int bForceUpdate, task_type* task, db_connection_t *dbconn)
+time_t
+enforce_task_perform(char const *owner, void *context, db_connection_t *dbconn)
 {
-	time_t returntime;
-	if (pthread_mutex_trylock(&engine->enforce_lock)) {
-		client_printf(sockfd, "An other enforce task is already running."
-			" No action taken.\n");
-		return 0;
+	return perform_enforce(-1, (engine_type *)context, owner, dbconn);
+}
+
+task_t *
+enforce_task(engine_type *engine, char const *owner)
+{
+	return task_create(strdup(owner), TASK_CLASS_ENFORCER, TASK_TYPE_ENFORCE,
+		enforce_task_perform, engine, NULL, time_now());
+}
+
+void
+enforce_task_flush_zone(engine_type *engine, char const *zonename)
+{
+	(void)schedule_task(engine->taskq, enforce_task(engine, zonename));
+}
+
+void
+enforce_task_flush_policy(engine_type *engine, db_connection_t *dbconn,
+	policy_t const *policy)
+{
+	zone_db_t const *zone;
+	zone_list_db_t *zonelist;
+
+	ods_log_assert(policy);
+	
+	zonelist = zone_list_db_new_get_by_policy_id(dbconn, policy_id(policy));
+	if (!zonelist) {
+		ods_log_error("[%s] Can't fetch zones for policy %s from database",
+			module_str, policy_name(policy));
+		return;
 	}
-	returntime = perform_enforce(sockfd, engine, bForceUpdate, task,
-		dbconn);
-	pthread_mutex_unlock(&engine->enforce_lock);
-	return returntime;
-}
-
-struct enf_task_ctx {
-	engine_type *engine;
-	int enforce_all;
-};
-
-static struct enf_task_ctx enforcer_context;
-
-static task_type*
-enforce_task_clean_ctx(task_type *task)
-{
-	task->context = NULL;
-	return NULL;
-}
-
-static task_type *
-enforce_task_perform(task_type *task)
-{
-	engine_type *engine = ((struct enf_task_ctx *)task->context)->engine;
-	int enforce_all = ((struct enf_task_ctx *)task->context)->enforce_all;
-	int return_time = perform_enforce_lock(-1, engine, enforce_all,
-		task, task->dbconn);
-	enforcer_context.enforce_all = 0;
-	if (return_time != -1) return task;
-	task_cleanup(task);
-	return NULL;
-}
-
-task_type *
-enforce_task(engine_type *engine, bool all)
-{
-	task_id what_id;
-	const char *what = "enforce";
-	const char *who = "next zone";
-	struct enf_task_ctx *ctx = &enforcer_context;
-	if (!ctx) {
-		ods_log_error("Malloc failure, enforce task not scheduled");
-		return NULL;
+	while ((zone = zone_list_db_next(zonelist))) {
+		(void)schedule_task(engine->taskq, enforce_task(engine, zone->name));
 	}
-	ctx->engine = engine;
-	ctx->enforce_all = all;
-	what_id = task_register(what, module_str, enforce_task_perform);
-	return task_create(what_id, time_now(), who, what, ctx,
-		enforce_task_clean_ctx);
+	zone_list_db_free(zonelist);
 }
 
-int
-flush_enforce_task(engine_type *engine, bool enforce_all)
+void
+enforce_task_flush_all(engine_type *engine, db_connection_t *dbconn)
 {
-	int status;
-	task_id what_id;
-
-	/* flush (force to run) the enforcer task when it is waiting in the
-	 task list. */
-	if (!task_id_from_long_name(module_str, &what_id)) {
-		/* no such task */
-		return 1;
+	zone_list_db_t *zonelist;
+	const zone_db_t *zone;
+	
+	zonelist = zone_list_db_new_get(dbconn);
+	if (!zonelist) {
+		db_connection_free(dbconn);
+		ods_fatal_exit("[%s] failed to list zones from DB", module_str);
 	}
-
-	enforcer_context.enforce_all = enforce_all;
-
-	if (!schedule_flush_type(engine->taskq, what_id)) {
-		status = schedule_task(engine->taskq, enforce_task(engine, enforce_all));
-		if (status != ODS_STATUS_OK) {
-			ods_fatal_exit("[%s] failed to create enforce task", module_str);
-			return 0;
-		}
+	while ((zone = zone_list_db_next(zonelist))) {
+		(void)schedule_task(engine->taskq, enforce_task(engine, zone->name));
 	}
-	return 1;
+	zone_list_db_free(zonelist);
 }

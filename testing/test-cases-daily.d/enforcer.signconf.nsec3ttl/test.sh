@@ -60,6 +60,7 @@ echo "Importing changed policies" &&
 cp kasp.reversed.xml "$INSTALL_ROOT/etc/opendnssec/kasp.xml" &&
 log_this ods-import-reversed ods-enforcer policy import && 
 
+sleep 2
 
 for zone in with-ttl no-ttl with-0-ttl; do
 	# Used only to create a gold while setting up the test

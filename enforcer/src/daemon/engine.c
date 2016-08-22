@@ -51,6 +51,7 @@
 #include "db/database_version.h"
 #include "hsmkey/hsm_key_factory.h"
 #include "libhsm.h"
+#include "locks.h"
 
 #include <errno.h>
 #include <libxml/parser.h>
@@ -80,7 +81,6 @@ engine_alloc(void)
     if (!engine) return NULL;
 
     pthread_mutex_init(&engine->signal_lock, NULL);
-    pthread_mutex_init(&engine->enforce_lock, NULL);
     pthread_cond_init(&engine->signal_cond, NULL);
 
     engine->dbcfg_list = NULL;
@@ -96,7 +96,6 @@ void
 engine_dealloc(engine_type* engine)
 {
     schedule_cleanup(engine->taskq);
-    pthread_mutex_destroy(&engine->enforce_lock);
     pthread_mutex_destroy(&engine->signal_lock);
     pthread_cond_destroy(&engine->signal_cond);
     if (engine->dbcfg_list) {
@@ -113,15 +112,8 @@ engine_dealloc(engine_type* engine)
 static void*
 cmdhandler_thread_start(void* arg)
 {
-    int err;
-    sigset_t sigset;
-    cmdhandler_type* cmd = (cmdhandler_type*) arg;
-
-    sigfillset(&sigset);
-    if((err=pthread_sigmask(SIG_SETMASK, &sigset, NULL)))
-        ods_fatal_exit("[%s] pthread_sigmask: %s", engine_str, strerror(err));
-
-    cmdhandler_start(cmd);
+    ods_thread_blocksigs();
+    cmdhandler_start((cmdhandler_type*) arg);
     return NULL;
 }
 
@@ -192,13 +184,9 @@ engine_create_workers(engine_type* engine)
 static void*
 worker_thread_start(void* arg)
 {
-    int err;
-    sigset_t sigset;
     worker_type* worker = (worker_type*) arg;
 
-    sigfillset(&sigset);
-    if((err=pthread_sigmask(SIG_SETMASK, &sigset, NULL)))
-        ods_fatal_exit("[%s] pthread_sigmask: %s", engine_str, strerror(err));
+    ods_thread_blocksigs();
 
     worker->dbconn = get_database_connection(worker->engine->dbcfg_list);
     if (!worker->dbconn) {
@@ -242,7 +230,7 @@ engine_stop_workers(engine_type* engine)
     /* head count */
     for (i=0; i < engine->config->num_worker_threads; i++) {
         ods_log_debug("[%s] join worker %i", engine_str, i+1);
-        pthread_join(engine->workers[i]->thread_id, NULL);
+        (void)pthread_join(engine->workers[i]->thread_id, NULL);
         engine->workers[i]->engine = NULL;
     }
 }
@@ -445,8 +433,6 @@ engine_setup(engine_type* engine)
     int fd;
 
     ods_log_debug("[%s] enforcer setup", engine_str);
-
-    ods_log_init("ods-enforcerd", engine->config->use_syslog, engine->config->log_filename, engine->config->verbosity);
 
     engine->pid = getpid(); /* We need to do this again after fork() */
 

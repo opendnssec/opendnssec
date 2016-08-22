@@ -68,8 +68,6 @@ struct engine_struct {
     /* Main thread blocks on this condition when there is nothing to do */
     pthread_cond_t signal_cond;
     pthread_mutex_t signal_lock;
-    /* To prevent having 2 enforce tasks running simultaneously. */
-    pthread_mutex_t enforce_lock;
 
     db_configuration_list_t* dbcfg_list;
 };

@@ -138,7 +138,7 @@ AC_CHECK_MEMBER([struct sockaddr_un.sun_len],
 
 # common dependencies
 ACX_LIBXML2
-ACX_LDNS(1,6,12)
+ACX_LDNS(1,6,17)
 ACX_LDNS_NOT(1,6,14, [binary incompatibility, see http://open.nlnetlabs.nl/pipermail/ldns-users/2012-October/000564.html])
 ACX_LDNS_NOT(1,6,15, [fail to create NSEC3 bitmap for empty non-terminals, see http://www.nlnetlabs.nl/pipermail/ldns-users/2012-November/000565.html])
 ACX_PKCS11_MODULES
@@ -194,6 +194,43 @@ AH_BOTTOM([
 ])
 AM_CONDITIONAL([ENABLE_SIGNER], [test "${enable_signer}" = "yes"])
 
+INSTALLATIONCOND=""
+AC_ARG_ENABLE(installation-user,
+	AC_HELP_STRING([--enable-installation-user],
+		[Install for usage by specific user (default=disabled)]),
+		[enable_installationuser=$enableval],
+		[enable_installationuser="no"])
+AC_ARG_ENABLE(installation-group,
+	AC_HELP_STRING([--enable-installation-group],
+		[Install for usage by specific group (default=disabled)]),
+		[enable_installationgroup=$enableval],
+		[enable_installationgroup="no"])
+if test "x${enable_installationuser}" != "xno"; then
+	INSTALLATIONUSER="${enable_installationuser}"
+	INSTALLATIONUSERARG="-o${enable_installationuser}"
+	INSTALLATIONCOND="user"
+else
+	INSTALLATIONUSER=""
+	INSTALLATIONUSERARG=""
+fi
+if test "x${enable_installationgroup}" != "xno"; then
+	INSTALLATIONGROUP="${enable_installationgroup}"
+	INSTALLATIONGROUPARG="-g${enable_installationgroup}"
+	if test "x${enable_installationuser}" != "xno"; then
+		INSTALLATIONCOND="both"
+	else
+		INSTALLATIONCOND="group"
+	fi
+else
+	INSTALLATIONGROUP=""
+	INSTALLATIONGROUPARG=""
+fi
+AC_SUBST([INSTALLATIONGROUP])
+AC_SUBST([INSTALLATIONGROUPARG])
+AC_SUBST([INSTALLATIONUSER])
+AC_SUBST([INSTALLATIONUSERARG])
+AC_SUBST([INSTALLATIONCOND])
+
 # doxygen
 DX_PDF_FEATURE(OFF)
 DX_PS_FEATURE(OFF)
@@ -218,8 +255,10 @@ AC_CONFIG_FILES([
 	enforcer/man/Makefile
 	enforcer/src/db/test/Makefile
 	enforcer/man/ods-enforcer.8
+	enforcer/man/ods-enforcer-db-setup.8
 	enforcer/man/ods-enforcerd.8
-	enforcer/man/ods-ksmutil.1
+	enforcer/src/utils/Makefile
+	enforcer/src/utils/ods-kaspcheck.1
 	libhsm/Makefile
 	libhsm/src/Makefile
 	libhsm/src/bin/Makefile

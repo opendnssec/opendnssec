@@ -178,6 +178,7 @@ tsig_key_create(tsig_type* tsig)
     CHECKALLOC(key = (tsig_key_type*) malloc(sizeof(tsig_key_type)));
     dname = ldns_dname_new_frm_str(tsig->name);
     if (!dname) {
+	free(key);
         return NULL;
     }
     CHECKALLOC(data = malloc(sizeof(uint8_t) * util_b64_pton_calculate_size(strlen(tsig->secret))));
@@ -188,6 +189,8 @@ tsig_key_create(tsig_type* tsig)
             "secret", tsig_str, tsig->name);
         ldns_rdf_deep_free(dname);
         free(data);
+	free(key);
+        return NULL;
     }
     key->dname = dname;
     key->size = size;

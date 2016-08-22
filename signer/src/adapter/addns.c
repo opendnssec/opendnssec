@@ -441,7 +441,7 @@ begin_pkt:
             ods_log_crit("[%s] unable to restore incomple xfr zone %s: %s",
                 adapter_str, zone->name, ods_status2str(result));
         } else {
-            lock_basic_lock(&zone->xfrd->rw_lock);
+            pthread_mutex_lock(&zone->xfrd->rw_lock);
             if (ods_file_lastmodified(xfrd)) {
                 result = ods_file_copy(xfrd, fout, 0, 1);
                 if (result != ODS_STATUS_OK) {
@@ -458,7 +458,7 @@ begin_pkt:
                     adapter_str, zone->name, ods_status2str(result));
 
             }
-            lock_basic_unlock(&zone->xfrd->rw_lock);
+            pthread_mutex_unlock(&zone->xfrd->rw_lock);
         }
         free((void*) xfrd);
         free((void*) fin);
@@ -481,10 +481,10 @@ addns_read_file(FILE* fd, zone_type* zone)
     while (status == ODS_STATUS_OK) {
         status = addns_read_pkt(fd, zone);
         if (status == ODS_STATUS_OK) {
-            lock_basic_lock(&zone->xfrd->serial_lock);
+            pthread_mutex_lock(&zone->xfrd->serial_lock);
             zone->xfrd->serial_xfr = adapi_get_serial(zone);
             zone->xfrd->serial_xfr_acquired = zone->xfrd->serial_disk_acquired;
-            lock_basic_unlock(&zone->xfrd->serial_lock);
+            pthread_mutex_unlock(&zone->xfrd->serial_lock);
         }
     }
     if (status == ODS_STATUS_EOF) {
@@ -581,7 +581,6 @@ dnsin_update(dnsin_type** addns, const char* filename, time_t* last_mod)
     } else {
         ods_log_error("[%s] unable to update dnsin: dnsin_read(%s) "
             "failed (%s)", adapter_str, filename, ods_status2str(status));
-        dnsin_cleanup(*addns);
     }
     return status;
 }
@@ -697,18 +696,18 @@ addns_read(void* zone)
     ods_log_assert(z->adinbound);
     ods_log_assert(z->adinbound->type == ADAPTER_DNS);
 
-    lock_basic_lock(&z->xfrd->rw_lock);
-    lock_basic_lock(&z->xfrd->serial_lock);
+    pthread_mutex_lock(&z->xfrd->rw_lock);
+    pthread_mutex_lock(&z->xfrd->serial_lock);
     /* did we already store a new zone transfer on disk? */
     if (!z->xfrd->serial_disk_acquired ||
         z->xfrd->serial_disk_acquired <= z->xfrd->serial_xfr_acquired) {
         if (!z->xfrd->serial_disk_acquired) {
-            lock_basic_unlock(&z->xfrd->serial_lock);
-            lock_basic_unlock(&z->xfrd->rw_lock);
+            pthread_mutex_unlock(&z->xfrd->serial_lock);
+            pthread_mutex_unlock(&z->xfrd->rw_lock);
             return ODS_STATUS_XFR_NOT_READY;
         }
-        lock_basic_unlock(&z->xfrd->serial_lock);
-        lock_basic_unlock(&z->xfrd->rw_lock);
+        pthread_mutex_unlock(&z->xfrd->serial_lock);
+        pthread_mutex_unlock(&z->xfrd->rw_lock);
         /* do a transaction for DNSKEY and NSEC3PARAM */
         adapi_trans_diff(z, 0);
         ods_log_verbose("[%s] no new xfr ready for zone %s", adapter_str,
@@ -721,30 +720,30 @@ addns_read(void* zone)
     if (!xfrfile || !file) {
         free(xfrfile);
         free(file);
-        lock_basic_unlock(&z->xfrd->serial_lock);
-        lock_basic_unlock(&z->xfrd->rw_lock);
+        pthread_mutex_unlock(&z->xfrd->serial_lock);
+        pthread_mutex_unlock(&z->xfrd->rw_lock);
         ods_log_error("[%s] unable to build paths to xfrd files", adapter_str);
         return ODS_STATUS_MALLOC_ERR;
     }
     if (rename(xfrfile, file) != 0) {
-        lock_basic_unlock(&z->xfrd->serial_lock);
-        lock_basic_unlock(&z->xfrd->rw_lock);
+        pthread_mutex_unlock(&z->xfrd->serial_lock);
+        pthread_mutex_unlock(&z->xfrd->rw_lock);
         ods_log_error("[%s] unable to rename file %s to %s: %s", adapter_str,
            xfrfile, file, strerror(errno));
         free((void*) xfrfile);
         free((void*) file);
         return ODS_STATUS_RENAME_ERR;
     }
-    lock_basic_unlock(&z->xfrd->serial_lock);
+    pthread_mutex_unlock(&z->xfrd->serial_lock);
     /* open copy of zone transfers to read */
     fd = ods_fopen(file, NULL, "r");
     free((void*) xfrfile);
     if (!fd) {
-        lock_basic_unlock(&z->xfrd->rw_lock);
+        pthread_mutex_unlock(&z->xfrd->rw_lock);
         free((void*) file);
         return ODS_STATUS_FOPEN_ERR;
     }
-    lock_basic_unlock(&z->xfrd->rw_lock);
+    pthread_mutex_unlock(&z->xfrd->rw_lock);
 
     status = addns_read_file(fd, z);
     if (status == ODS_STATUS_OK) {
@@ -840,12 +839,12 @@ addns_write(void* zone)
         return ODS_STATUS_MALLOC_ERR;
     }
 
-    lock_basic_lock(&z->xfr_lock);
+    pthread_mutex_lock(&z->xfr_lock);
     ret = rename(atmpfile, axfrfile);
     if (ret != 0) {
         ods_log_error("[%s] unable to rename file %s to %s: %s", adapter_str,
             atmpfile, axfrfile, strerror(errno));
-        lock_basic_unlock(&z->xfr_lock);
+        pthread_mutex_unlock(&z->xfr_lock);
         free((void*) atmpfile);
         free((void*) axfrfile);
         free((void*) itmpfile);
@@ -861,6 +860,7 @@ addns_write(void* zone)
     {
         ixfrfile = ods_build_path(z->name, ".ixfr", 0, 1);
         if (!ixfrfile) {
+            pthread_mutex_unlock(&z->xfr_lock);
             free((void*) axfrfile);
             free((void*) atmpfile);
             free((void*) itmpfile);
@@ -870,7 +870,7 @@ addns_write(void* zone)
         if (ret != 0) {
             ods_log_error("[%s] unable to rename file %s to %s: %s",
                 adapter_str, itmpfile, ixfrfile, strerror(errno));
-            lock_basic_unlock(&z->xfr_lock);
+            pthread_mutex_unlock(&z->xfr_lock);
             free((void*) itmpfile);
             free((void*) ixfrfile);
             return ODS_STATUS_RENAME_ERR;
@@ -878,7 +878,7 @@ addns_write(void* zone)
         free((void*) ixfrfile);
     }
     free((void*) itmpfile);
-    lock_basic_unlock(&z->xfr_lock);
+    pthread_mutex_unlock(&z->xfr_lock);
 
     dnsout_send_notify(zone);
     return ODS_STATUS_OK;

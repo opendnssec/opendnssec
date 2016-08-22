@@ -47,7 +47,7 @@ perform_repositorylist(int sockfd)
 
 	const char *fmt = "%-31s %-13s %-13s\n";
 	char *capacity = NULL;
-	char *backup = NULL;
+	int backup;
 	char *repository = NULL;
 	int i;
 
@@ -84,19 +84,17 @@ perform_repositorylist(int sockfd)
 			curNode = xpathObj->nodesetval->nodeTab[i]->xmlChildrenNode;
 			repository = (char*)xmlGetProp(xpathObj->nodesetval->nodeTab[i], (const xmlChar *)"name");
 
+			backup = 0;
 			while (curNode) {
 				if (xmlStrEqual(curNode->name, (const xmlChar *)"Capacity"))
 					capacity = (char*) xmlNodeGetContent(curNode);
-				if (xmlStrEqual(curNode->name, (const xmlChar *)"RequireBackup")){
-                                        backup = strdup("Yes");
-				}
+				if (xmlStrEqual(curNode->name, (const xmlChar *)"RequireBackup"))
+					backup = 1;
 				curNode = curNode->next;
 			}
-			client_printf(sockfd, fmt, repository, capacity?capacity:"-", backup?backup:"No");
+			client_printf(sockfd, fmt, repository, capacity?capacity:"-", backup?"Yes":"No");
 			free(repository);
 			repository = NULL;
-			free(backup);
-			backup = NULL;
 			free(capacity);
 			capacity = NULL;
 		}

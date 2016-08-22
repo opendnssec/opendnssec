@@ -44,13 +44,14 @@ typedef struct ixfr_struct ixfr_type;
 #define IXFR_MAX_PARTS 3
 
 /**
- * Part of IXFR Journal.
+ * Part of IXFR Journal. RRs in soamin and soaplus should be owned
+ * by part and must be freed.
  *
  */
 struct part_struct {
-    ldns_rr* soamin;
+    ldns_rr* soamin; /* pointer to rr in min */
     ldns_rr_list* min;
-    ldns_rr* soaplus;
+    ldns_rr* soaplus; /* pointer to rr in min */
     ldns_rr_list* plus;
 };
 
@@ -59,9 +60,8 @@ struct part_struct {
  *
  */
 struct ixfr_struct {
-    zone_type* zone;
     part_type* part[IXFR_MAX_PARTS];
-    lock_basic_type ixfr_lock;
+    pthread_mutex_t ixfr_lock;
 };
 
 /**
@@ -70,7 +70,7 @@ struct ixfr_struct {
  * \return ixfr_type* ixfr
  *
  */
-ixfr_type* ixfr_create(zone_type* zone);
+ixfr_type* ixfr_create(void);
 
 /**
  * Add +RR to ixfr journal.
@@ -94,14 +94,14 @@ void ixfr_del_rr(ixfr_type* ixfr, ldns_rr* rr);
  * \param[in] ixfr journal
  *
  */
-void ixfr_print(FILE* fd, ixfr_type* ixfr);
+int ixfr_print(FILE* fd, ixfr_type* ixfr);
 
 /**
  * Purge the ixfr journal.
  * \param[in] ixfr journal
  *
  */
-void ixfr_purge(ixfr_type* ixfr);
+void ixfr_purge(ixfr_type* ixfr, char const *zonename);
 
 /**
  * Cleanup the ixfr journal.

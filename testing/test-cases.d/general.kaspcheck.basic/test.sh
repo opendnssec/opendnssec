@@ -63,7 +63,6 @@ log_grep ods-kaspcheck-run-bad-config stdout "INFO: The XML in kaspcheck_bad/kas
 # General Checks
 # --------------
 # Duration checks in various elements in both files
-log_grep ods-kaspcheck-run-bad-config stdout "WARNING: In Configuration Y used in duration field for Enforcer/Interval (P1Y) in kaspcheck_bad/conf.xml - this will be interpreted as 365 days" &&
 log_grep ods-kaspcheck-run-bad-config stdout "WARNING: In policy namedtwice, M used in duration field for Signatures/InceptionOffset (P1M) in kaspcheck_bad/kasp.xml - this will be interpreted as 31 days" &&
 # # @TODO@ Uknown paths - e.g. HSM, chdir, etc.
 # Conf.xml checks

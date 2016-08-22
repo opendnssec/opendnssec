@@ -74,9 +74,9 @@ software in a way that may not meet any practical need.
 .SH "SEE ALSO"
 .LP
 ods\-control(8), ods\-enforcerd(8), ods\-enforcer(8),
-ods\-signerd(8), ods\-signer(8), ods\-ksmutil(1),
-ods\-kasp(5), ods\-kaspcheck(1), ods\-timing(5),
-ods\-hsmspeed(1), ods\-hsmutil(1), opendnssec(7),
+ods\-signerd(8), ods\-signer(8), ods\-kasp(5),
+ods\-kaspcheck(1), ods\-timing(5), ods\-hsmspeed(1),
+ods\-hsmutil(1), opendnssec(7),
 ISO 8601,
 .B http://www.opendnssec.org/
 .SH "AUTHORS" 

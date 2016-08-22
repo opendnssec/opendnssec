@@ -59,7 +59,7 @@ struct schedule_struct {
     ldns_rbtree_t* tasks;
     int flushcount;
     int loading; /* to determine backoff */
-    lock_basic_type schedule_lock;
+    pthread_mutex_t schedule_lock;
 };
 
 /**

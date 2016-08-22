@@ -205,6 +205,7 @@ dnshandler_start(dnshandler_type* dnshandler)
     }
     /* shutdown */
     ods_log_debug("[%s] shutdown", dnsh_str);
+    free(tcp_accept_handlers);
  /*   for (i=0; i < dnshandler->interfaces->count; i++) {
         if (dnshandler->socklist->udp[i].s != -1) {
             close(dnshandler->socklist->udp[i].s);
@@ -226,7 +227,7 @@ void
 dnshandler_signal(dnshandler_type* dnshandler)
 {
     if (dnshandler && dnshandler->thread_id) {
-        ods_thread_kill(dnshandler->thread_id, SIGHUP);
+        pthread_kill(dnshandler->thread_id, SIGHUP);
     }
 }
 

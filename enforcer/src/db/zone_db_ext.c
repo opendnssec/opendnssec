@@ -27,7 +27,7 @@
  *
  */
 
-#include "zone.h"
+#include "zone_db.h"
 
 #include "db_error.h"
 #include "log.h"
@@ -35,7 +35,25 @@
 
 #include <string.h>
 
-key_data_list_t* zone_get_keys(const zone_t* zone) {
+char *
+zone_db_ext_zonename_from_id(const db_connection_t* connection,
+    const db_value_t* id)
+{
+    zone_db_t *zone;
+    char *zonename = NULL;
+
+    if (!connection || !id) {
+        return NULL;
+    }
+
+    if ((zone = zone_db_new(connection)) && !zone_db_get_by_id(zone, id)) {
+        zonename = strdup(zone_db_name(zone));
+    }
+    zone_db_free(zone);
+    return zonename;
+}
+
+key_data_list_t* zone_db_get_keys(const zone_db_t* zone) {
     if (!zone) {
         return NULL;
     }
@@ -55,7 +73,7 @@ key_data_list_t* zone_get_keys(const zone_t* zone) {
      */
 }
 
-key_dependency_list_t* zone_get_key_dependencies(const zone_t* zone) {
+key_dependency_list_t* zone_db_get_key_dependencies(const zone_db_t* zone) {
     if (!zone) {
         return NULL;
     }
@@ -75,7 +93,7 @@ key_dependency_list_t* zone_get_key_dependencies(const zone_t* zone) {
     */
 }
 
-static int __xmlNode2zone(zone_t* zone, xmlNodePtr zone_node, int* updated) {
+static int __xmlNode2zone(zone_db_t* zone, xmlNodePtr zone_node, int* updated) {
     xmlNodePtr node;
     xmlNodePtr node2;
     xmlNodePtr node3;
@@ -107,17 +125,17 @@ static int __xmlNode2zone(zone_t* zone, xmlNodePtr zone_node, int* updated) {
     ods_log_deeebug("[zone_*_from_xml] zone %s", (char*)xml_text);
     if (check_if_updated) {
         update_this = 0;
-        if (!zone_name(zone)) {
+        if (!zone_db_name(zone)) {
             *updated = 1;
             update_this = 1;
         }
-        else if (strcmp(zone_name(zone), (char*)xml_text)) {
+        else if (strcmp(zone_db_name(zone), (char*)xml_text)) {
             *updated = 1;
             update_this = 1;
         }
     }
     if (update_this) {
-        if (zone_set_name(zone, (char*)xml_text)) {
+        if (zone_db_set_name(zone, (char*)xml_text)) {
             if (xml_text) {
                 xmlFree(xml_text);
             }
@@ -164,7 +182,7 @@ static int __xmlNode2zone(zone_t* zone, xmlNodePtr zone_node, int* updated) {
             ods_log_deeebug("[zone_*_from_xml] policy %s", (char*)xml_text);
             if (check_if_updated) {
                 update_this = 0;
-                if (db_value_cmp(zone_policy_id(zone), policy_id(policy), &ret)) {
+                if (db_value_cmp(zone_db_policy_id(zone), policy_id(policy), &ret)) {
                     policy_free(policy);
                     if (xml_text) {
                         xmlFree(xml_text);
@@ -177,7 +195,7 @@ static int __xmlNode2zone(zone_t* zone, xmlNodePtr zone_node, int* updated) {
                 }
             }
             if (update_this) {
-                if (zone_set_policy_id(zone, policy_id(policy))) {
+                if (zone_db_set_policy_id(zone, policy_id(policy))) {
                     policy_free(policy);
                     if (xml_text) {
                         xmlFree(xml_text);
@@ -198,17 +216,17 @@ static int __xmlNode2zone(zone_t* zone, xmlNodePtr zone_node, int* updated) {
             ods_log_deeebug("[zone_*_from_xml] signconf path %s", (char*)xml_text);
             if (check_if_updated) {
                 update_this = 0;
-                if (!zone_signconf_path(zone)) {
+                if (!zone_db_signconf_path(zone)) {
                     *updated = 1;
                     update_this = 1;
                 }
-                else if (strcmp(zone_signconf_path(zone), (char*)xml_text)) {
+                else if (strcmp(zone_db_signconf_path(zone), (char*)xml_text)) {
                     *updated = 1;
                     update_this = 1;
                 }
             }
             if (update_this) {
-                if (zone_set_signconf_path(zone, (char*)xml_text)) {
+                if (zone_db_set_signconf_path(zone, (char*)xml_text)) {
                     if (xml_text) {
                         xmlFree(xml_text);
                     }
@@ -237,17 +255,17 @@ static int __xmlNode2zone(zone_t* zone, xmlNodePtr zone_node, int* updated) {
                             ods_log_deeebug("[zone_*_from_xml] input adapter type File");
                             if (check_if_updated) {
                                 update_this = 0;
-                                if (!zone_input_adapter_type(zone)) {
+                                if (!zone_db_input_adapter_type(zone)) {
                                     *updated = 1;
                                     update_this = 1;
                                 }
-                                else if (strcmp(zone_input_adapter_type(zone), "File")) {
+                                else if (strcmp(zone_db_input_adapter_type(zone), "File")) {
                                     *updated = 1;
                                     update_this = 1;
                                 }
                             }
                             if (update_this) {
-                                if (zone_set_input_adapter_type(zone, "File")) {
+                                if (zone_db_set_input_adapter_type(zone, "File")) {
                                     if (xml_text) {
                                         xmlFree(xml_text);
                                     }
@@ -267,17 +285,17 @@ static int __xmlNode2zone(zone_t* zone, xmlNodePtr zone_node, int* updated) {
                             ods_log_deeebug("[zone_*_from_xml] input adapter uri %s", (char*)xml_text);
                             if (check_if_updated) {
                                 update_this = 0;
-                                if (!zone_input_adapter_uri(zone)) {
+                                if (!zone_db_input_adapter_uri(zone)) {
                                     *updated = 1;
                                     update_this = 1;
                                 }
-                                else if (strcmp(zone_input_adapter_uri(zone), (char*)xml_text)) {
+                                else if (strcmp(zone_db_input_adapter_uri(zone), (char*)xml_text)) {
                                     *updated = 1;
                                     update_this = 1;
                                 }
                             }
                             if (update_this) {
-                                if (zone_set_input_adapter_uri(zone, (char*)xml_text)) {
+                                if (zone_db_set_input_adapter_uri(zone, (char*)xml_text)) {
                                     if (xml_text) {
                                         xmlFree(xml_text);
                                     }
@@ -298,17 +316,17 @@ static int __xmlNode2zone(zone_t* zone, xmlNodePtr zone_node, int* updated) {
                             ods_log_deeebug("[zone_*_from_xml] input adapter type %s", (char*)xml_text);
                             if (check_if_updated) {
                                 update_this = 0;
-                                if (!zone_input_adapter_type(zone)) {
+                                if (!zone_db_input_adapter_type(zone)) {
                                     *updated = 1;
                                     update_this = 1;
                                 }
-                                else if (strcmp(zone_input_adapter_type(zone), (char*)xml_text)) {
+                                else if (strcmp(zone_db_input_adapter_type(zone), (char*)xml_text)) {
                                     *updated = 1;
                                     update_this = 1;
                                 }
                             }
                             if (update_this) {
-                                if (zone_set_input_adapter_type(zone, (char*)xml_text)) {
+                                if (zone_db_set_input_adapter_type(zone, (char*)xml_text)) {
                                     if (xml_text) {
                                         xmlFree(xml_text);
                                     }
@@ -328,17 +346,17 @@ static int __xmlNode2zone(zone_t* zone, xmlNodePtr zone_node, int* updated) {
                             ods_log_deeebug("[zone_*_from_xml] input adapter uri %s", (char*)xml_text);
                             if (check_if_updated) {
                                 update_this = 0;
-                                if (!zone_input_adapter_uri(zone)) {
+                                if (!zone_db_input_adapter_uri(zone)) {
                                     *updated = 1;
                                     update_this = 1;
                                 }
-                                else if (strcmp(zone_input_adapter_uri(zone), (char*)xml_text)) {
+                                else if (strcmp(zone_db_input_adapter_uri(zone), (char*)xml_text)) {
                                     *updated = 1;
                                     update_this = 1;
                                 }
                             }
                             if (update_this) {
-                                if (zone_set_input_adapter_uri(zone, (char*)xml_text)) {
+                                if (zone_db_set_input_adapter_uri(zone, (char*)xml_text)) {
                                     if (xml_text) {
                                         xmlFree(xml_text);
                                     }
@@ -368,17 +386,17 @@ static int __xmlNode2zone(zone_t* zone, xmlNodePtr zone_node, int* updated) {
                             ods_log_deeebug("[zone_*_from_xml] output adapter type File");
                             if (check_if_updated) {
                                 update_this = 0;
-                                if (!zone_output_adapter_type(zone)) {
+                                if (!zone_db_output_adapter_type(zone)) {
                                     *updated = 1;
                                     update_this = 1;
                                 }
-                                else if (strcmp(zone_output_adapter_type(zone), "File")) {
+                                else if (strcmp(zone_db_output_adapter_type(zone), "File")) {
                                     *updated = 1;
                                     update_this = 1;
                                 }
                             }
                             if (update_this) {
-                                if (zone_set_output_adapter_type(zone, "File")) {
+                                if (zone_db_set_output_adapter_type(zone, "File")) {
                                     if (xml_text) {
                                         xmlFree(xml_text);
                                     }
@@ -398,17 +416,17 @@ static int __xmlNode2zone(zone_t* zone, xmlNodePtr zone_node, int* updated) {
                             ods_log_deeebug("[zone_*_from_xml] output adapter uri %s", (char*)xml_text);
                             if (check_if_updated) {
                                 update_this = 0;
-                                if (!zone_output_adapter_uri(zone)) {
+                                if (!zone_db_output_adapter_uri(zone)) {
                                     *updated = 1;
                                     update_this = 1;
                                 }
-                                else if (strcmp(zone_output_adapter_uri(zone), (char*)xml_text)) {
+                                else if (strcmp(zone_db_output_adapter_uri(zone), (char*)xml_text)) {
                                     *updated = 1;
                                     update_this = 1;
                                 }
                             }
                             if (update_this) {
-                                if (zone_set_output_adapter_uri(zone, (char*)xml_text)) {
+                                if (zone_db_set_output_adapter_uri(zone, (char*)xml_text)) {
                                     if (xml_text) {
                                         xmlFree(xml_text);
                                     }
@@ -429,17 +447,17 @@ static int __xmlNode2zone(zone_t* zone, xmlNodePtr zone_node, int* updated) {
                             ods_log_deeebug("[zone_*_from_xml] output adapter type %s", (char*)xml_text);
                             if (check_if_updated) {
                                 update_this = 0;
-                                if (!zone_output_adapter_type(zone)) {
+                                if (!zone_db_output_adapter_type(zone)) {
                                     *updated = 1;
                                     update_this = 1;
                                 }
-                                else if (strcmp(zone_output_adapter_type(zone), (char*)xml_text)) {
+                                else if (strcmp(zone_db_output_adapter_type(zone), (char*)xml_text)) {
                                     *updated = 1;
                                     update_this = 1;
                                 }
                             }
                             if (update_this) {
-                                if (zone_set_output_adapter_type(zone, (char*)xml_text)) {
+                                if (zone_db_set_output_adapter_type(zone, (char*)xml_text)) {
                                     if (xml_text) {
                                         xmlFree(xml_text);
                                     }
@@ -459,17 +477,17 @@ static int __xmlNode2zone(zone_t* zone, xmlNodePtr zone_node, int* updated) {
                             ods_log_deeebug("[zone_*_from_xml] output adapter uri %s", (char*)xml_text);
                             if (check_if_updated) {
                                 update_this = 0;
-                                if (!zone_output_adapter_uri(zone)) {
+                                if (!zone_db_output_adapter_uri(zone)) {
                                     *updated = 1;
                                     update_this = 1;
                                 }
-                                else if (strcmp(zone_output_adapter_uri(zone), (char*)xml_text)) {
+                                else if (strcmp(zone_db_output_adapter_uri(zone), (char*)xml_text)) {
                                     *updated = 1;
                                     update_this = 1;
                                 }
                             }
                             if (update_this) {
-                                if (zone_set_output_adapter_uri(zone, (char*)xml_text)) {
+                                if (zone_db_set_output_adapter_uri(zone, (char*)xml_text)) {
                                     if (xml_text) {
                                         xmlFree(xml_text);
                                     }
@@ -511,7 +529,7 @@ static int __xmlNode2zone(zone_t* zone, xmlNodePtr zone_node, int* updated) {
     return DB_OK;
 }
 
-int zone_create_from_xml(zone_t* zone, xmlNodePtr zone_node) {
+int zone_db_create_from_xml(zone_db_t* zone, xmlNodePtr zone_node) {
     if (!zone) {
         return DB_ERROR_UNKNOWN;
     }
@@ -522,7 +540,7 @@ int zone_create_from_xml(zone_t* zone, xmlNodePtr zone_node) {
     return __xmlNode2zone(zone, zone_node, NULL);
 }
 
-int zone_update_from_xml(zone_t* zone, xmlNodePtr zone_node, int* updated) {
+int zone_db_update_from_xml(zone_db_t* zone, xmlNodePtr zone_node, int* updated) {
     if (!zone) {
         return DB_ERROR_UNKNOWN;
     }

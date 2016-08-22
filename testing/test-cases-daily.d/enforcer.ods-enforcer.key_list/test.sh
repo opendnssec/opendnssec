@@ -61,8 +61,7 @@ echo -n "LINE: ${LINENO} " && ! expect list-nonods '^ods ' &&
 # using --keystate and --all you should get an error
 echo -n "LINE: ${LINENO} " && ! log_this list-conflict ods-enforcer key list --keystate publish --all &&
 
-i=0 &&
-while [ $i -lt 25 ]; do
+for i in `seq 0 24`; do
   log_this list-$i-zsk              ods-enforcer key list --keytype ZSK &&
   log_this list-$i-ksk              ods-enforcer key list --keytype KSK &&
   log_this list-$i-active           ods-enforcer key list --keystate active &&
@@ -77,8 +76,7 @@ while [ $i -lt 25 ]; do
   log_this list-$i-verboseall ods-enforcer key list --verbose --all &&
   log_this list-$i-parsable ods-enforcer key list --parsable &&
   log_this list-$i-debug ods-enforcer key list --debug &&
-  log_this timeleap ods-enforcer time leap &&
-  i=`expr $i + 1`
+  log_this timeleap ods-enforcer time leap
 done &&
 
 # When listing ZSKs, we should only see ZSKs, and see a ZSK at least

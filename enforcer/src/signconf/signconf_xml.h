@@ -26,12 +26,12 @@
  *
  */
 
-#ifndef SIGNCONF_SIGNCONF_H_
-#define SIGNCONF_SIGNCONF_H_
+#ifndef SIGNCONF_SIGNCONF_XML_H_
+#define SIGNCONF_SIGNCONF_XML_H_
 
 #include "daemon/engine.h"
 #include "db/db_connection.h"
-#include "db/zone.h"
+#include "db/zone_db.h"
 #include "db/policy.h"
 
 /**
@@ -73,6 +73,16 @@
  * SIGNCONF_EXPORT_NO_CHANGE.
  */
 int signconf_export_all(int sockfd, const db_connection_t* connection, int force);
+
+/**
+ * Export the signconf XML for zone.
+ * \param[in] zonename Name of zone to write signconf for.
+ * \param[in] dbconn a db_connection_t pointer.
+ * \return SIGNCONF_EXPORT_ERR_* on error, otherwise SIGNCONF_EXPORT_OK or
+ * SIGNCONF_EXPORT_NO_CHANGE.
+ */
+int
+signconf_export_zone(char const *zonename, db_connection_t* dbconn);
 
 /**
  * Export the signconf XML for all zones that uses a specified policy.

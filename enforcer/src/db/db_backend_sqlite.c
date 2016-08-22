@@ -1872,6 +1872,8 @@ db_backend_handle_t* db_backend_sqlite_new_handle(void) {
             free(backend_sqlite);
             return NULL;
         }
+        return backend_handle;
     }
-    return backend_handle;
+    free(backend_sqlite);
+    return NULL;
 }

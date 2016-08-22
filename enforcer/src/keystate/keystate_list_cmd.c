@@ -38,7 +38,7 @@
 
 #include "db/key_state.h"
 #include "db/hsm_key.h"
-#include "db/zone.h"
+#include "db/zone_db.h"
 
 #include "keystate/keystate_list_cmd.h"
 
@@ -51,9 +51,9 @@ static const char *module_str = "keystate_list_task";
 #define UNR KEY_STATE_STATE_UNRETENTIVE
 #define NAV KEY_STATE_STATE_NA
 
-enum {KS_GEN = 0, KS_PUB, KS_RDY, KS_ACT, KS_RET, KS_DEA, KS_UNK, KS_MIX};
+enum {KS_GEN = 0, KS_PUB, KS_RDY, KS_ACT, KS_RET, KS_UNK, KS_MIX};
 const char* statenames[] = {"generate", "publish", "ready",
-		"active", "retire", "dead", "unknown", "mixed"};
+		"active", "retire", "unknown", "mixed"};
 
 /** Map 2.0 states to 1.x states
  * @param p: state of RR higher in the chain (e.g. DS)
@@ -129,7 +129,7 @@ map_keystate(key_data_t *key)
  * @param key: key to evaluate
  * @return: human readable transition time/event */
 static char*
-map_keytime(const zone_t *zone, const key_data_t *key)
+map_keytime(const zone_db_t *zone, const key_data_t *key)
 {
 	char ct[26];
 	struct tm srtm;
@@ -147,10 +147,10 @@ map_keytime(const zone_t *zone, const key_data_t *key)
 		default:
 			break;
 	}
-	if (zone_next_change(zone) < 0)
+	if (zone_db_next_change(zone) < 0)
 		return strdup("-");
 
-	t = (time_t)zone_next_change(zone);
+	t = (time_t)zone_db_next_change(zone);
 	localtime_r(&t, &srtm);
 	strftime(ct, 26, "%Y-%m-%d %H:%M:%S", &srtm);
 	return strdup(ct);
@@ -160,10 +160,10 @@ static int
 perform_keystate_list(int sockfd, db_connection_t *dbconn,
         const char* filterZone, char** filterKeytype, char** filterKeystate,
         void (printheader)(int sockfd),
-        void (printkey)(int sockfd, zone_t* zone, key_data_t* key, char*tchange, hsm_key_t* hsmKey)) {
+        void (printkey)(int sockfd, zone_db_t* zone, key_data_t* key, char*tchange, hsm_key_t* hsmKey)) {
     key_data_list_t* key_list;
     key_data_t* key;
-    zone_t *zone = NULL;
+    zone_db_t *zone = NULL;
     char* tchange;
     hsm_key_t *hsmkey;
     int cmp;
@@ -182,9 +182,9 @@ perform_keystate_list(int sockfd, db_connection_t *dbconn,
     while ((key = key_data_list_get_next(key_list))) {
 		/* only refetches zone if different from previous */
         if (zone
-                && (db_value_cmp(zone_id(zone), key_data_zone_id(key), &cmp)
+                && (db_value_cmp(zone_db_id(zone), key_data_zone_id(key), &cmp)
                 || cmp)) {
-            zone_free(zone);
+            zone_db_free(zone);
             zone = NULL;
         }
         if (!zone) {
@@ -196,7 +196,7 @@ perform_keystate_list(int sockfd, db_connection_t *dbconn,
         skipPrintKey = 0;
         if(printkey == NULL)
             skipPrintKey = 1;
-        if(filterZone != NULL && strcmp(zone_name(zone), filterZone))
+        if(filterZone != NULL && strcmp(zone_db_name(zone), filterZone))
             skipPrintKey = 1;
         for(i=0; filterKeytype && filterKeytype[i]; i++)
             if(!strcasecmp(filterKeytype[i],key_data_role_text(key)))
@@ -215,7 +215,7 @@ perform_keystate_list(int sockfd, db_connection_t *dbconn,
         hsm_key_free(hsmkey);
         key_data_free(key);
     }
-    zone_free(zone);
+    zone_db_free(zone);
     key_data_list_free(key_list);
     return 0;
 }
@@ -262,11 +262,11 @@ printcompatheader(int sockfd) {
 }
 
 static void
-printcompatkey(int sockfd, zone_t* zone, key_data_t* key, char*tchange, hsm_key_t* hsmkey) {
+printcompatkey(int sockfd, zone_db_t* zone, key_data_t* key, char*tchange, hsm_key_t* hsmkey) {
     (void)hsmkey;
     client_printf(sockfd,
             "%-31s %-8s %-9s %s\n",
-            zone_name(zone),
+            zone_db_name(zone),
             key_data_role_text(key),
             map_keystate(key),
             tchange);
@@ -281,11 +281,11 @@ printverboseheader(int sockfd) {
 }
 
 static void
-printverbosekey(int sockfd, zone_t* zone, key_data_t* key, char* tchange, hsm_key_t* hsmkey) {
+printverbosekey(int sockfd, zone_db_t* zone, key_data_t* key, char* tchange, hsm_key_t* hsmkey) {
     (void)tchange;
     client_printf(sockfd,
             "%-31s %-8s %-9s %-24s %-5d %-10d %-32s %-11s %d\n",
-            zone_name(zone),
+            zone_db_name(zone),
             key_data_role_text(key),
             map_keystate(key),
             tchange,
@@ -297,10 +297,10 @@ printverbosekey(int sockfd, zone_t* zone, key_data_t* key, char* tchange, hsm_ke
 }
 
 static void
-printverboseparsablekey(int sockfd, zone_t* zone, key_data_t* key, char* tchange, hsm_key_t* hsmkey) {
+printverboseparsablekey(int sockfd, zone_db_t* zone, key_data_t* key, char* tchange, hsm_key_t* hsmkey) {
     client_printf(sockfd,
             "%s;%s;%s;%s;%d;%d;%s;%s;%d\n",
-            zone_name(zone),
+            zone_db_name(zone),
             key_data_role_text(key),
             map_keystate(key),
             tchange,
@@ -320,11 +320,11 @@ printdebugheader(int sockfd) {
 }
 
 static void
-printdebugkey(int sockfd, zone_t* zone, key_data_t* key, char* tchange, hsm_key_t* hsmkey) {
+printdebugkey(int sockfd, zone_db_t* zone, key_data_t* key, char* tchange, hsm_key_t* hsmkey) {
     (void)tchange;
     client_printf(sockfd,
             "%-31s %-13s %-12s %-12s %-12s %-12s %d %4d    %s\n",
-            zone_name(zone),
+            zone_db_name(zone),
             key_data_role_text(key),
             key_state_state_text(key_data_cached_ds(key)),
             key_state_state_text(key_data_cached_dnskey(key)),
@@ -336,11 +336,11 @@ printdebugkey(int sockfd, zone_t* zone, key_data_t* key, char* tchange, hsm_key_
 }
 
 static void
-printdebugparsablekey(int sockfd, zone_t* zone, key_data_t* key, char* tchange, hsm_key_t* hsmkey) {
+printdebugparsablekey(int sockfd, zone_db_t* zone, key_data_t* key, char* tchange, hsm_key_t* hsmkey) {
     (void)tchange;
     client_printf(sockfd,
             "%s;%s;%s;%s;%s;%s;%d;%d;%s\n",
-            zone_name(zone),
+            zone_db_name(zone),
             key_data_role_text(key),
             key_state_state_text(key_data_cached_ds(key)),
             key_state_state_text(key_data_cached_dnskey(key)),
@@ -358,7 +358,7 @@ tokenizeparam(char *argument)
     char** newtokenized;
     int argCount;
     char* argString;
-    char* argSavePtr;
+    char* argSavePtr = NULL;
     int argSize = 8;
 
     if ((argString = strtok_r(argument, ",", &argSavePtr)) != NULL) {
@@ -452,16 +452,13 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
         filterKeytype = tokenizeparam(keytypeParam);
     else
         filterKeytype = NULL;
+
     if (keystateParam) {
         filterKeystate = tokenizeparam(keystateParam);
     } else
         filterKeystate = NULL;
-    if (bAll) {
-        if (filterKeystate != NULL) {
-            free(filterKeystate);
-        }
-        filterKeystate = NULL;
-    } else if(filterKeystate == NULL) {
+
+    if(!bAll && filterKeystate == NULL) {
         if ((filterKeystate = malloc(sizeof (char*) * 6))) {
             filterKeystate[0] = (char *)"publish";
             filterKeystate[1] = (char *)"ready";

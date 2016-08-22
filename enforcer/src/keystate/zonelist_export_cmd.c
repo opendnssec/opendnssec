@@ -88,9 +88,6 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 
     ods_log_info("[%s] zonelist exported to %s successfully", module_str, engine->config->zonelist_filename);
     client_printf(sockfd, "Exported zonelist to %s successfully\n", engine->config->zonelist_filename);
-    /*
-    flush_enforce_task(engine, 1);
-    */
     return 0;
 }
 

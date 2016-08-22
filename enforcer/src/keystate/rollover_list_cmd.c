@@ -29,7 +29,7 @@
 
 #include "config.h"
 
-#include "db/zone.h"
+#include "db/zone_db.h"
 #include "daemon/engine.h"
 #include "daemon/cmdhandler.h"
 #include "file.h"
@@ -48,7 +48,7 @@ static const char *module_str = "rollover_list_cmd";
  * \return: human readable transition time/event
  */
 static char*
-map_keytime(const zone_t *zone, const key_data_t *key)
+map_keytime(const zone_db_t *zone, const key_data_t *key)
 {
 	time_t t = 0;
 	char ct[26];
@@ -67,9 +67,9 @@ map_keytime(const zone_t *zone, const key_data_t *key)
 	}
 
 	switch (key_data_role(key)) {
-		case KEY_DATA_ROLE_KSK: t = (time_t)zone_next_ksk_roll(zone); break;
-		case KEY_DATA_ROLE_ZSK: t = (time_t)zone_next_zsk_roll(zone); break;
-		case KEY_DATA_ROLE_CSK: t = (time_t)zone_next_csk_roll(zone); break;
+		case KEY_DATA_ROLE_KSK: t = (time_t)zone_db_next_ksk_roll(zone); break;
+		case KEY_DATA_ROLE_ZSK: t = (time_t)zone_db_next_zsk_roll(zone); break;
+		case KEY_DATA_ROLE_CSK: t = (time_t)zone_db_next_csk_roll(zone); break;
 		default: break;
 	}
 	if (!t) return strdup("No roll scheduled");
@@ -80,15 +80,15 @@ map_keytime(const zone_t *zone, const key_data_t *key)
 }
 
 static void
-print_zone(int sockfd, const char* fmt, const zone_t* zone)
+print_zone(int sockfd, const char* fmt, const zone_db_t* zone)
 {
 	key_data_list_t *keylist;
 	const key_data_t *key;
 
-	keylist = zone_get_keys(zone);
+	keylist = zone_db_get_keys(zone);
 	while ((key = key_data_list_next(keylist))) {
 		char *tchange = map_keytime(zone, key);
-		client_printf(sockfd, fmt, zone_name(zone),
+		client_printf(sockfd, fmt, zone_db_name(zone),
 			key_data_role_text(key), tchange);
 		free(tchange);
 	}
@@ -107,15 +107,15 @@ static int
 perform_rollover_list(int sockfd, const char *listed_zone,
 	db_connection_t *dbconn)
 {
-	zone_list_t *zonelist = NULL;
-	zone_t *zone = NULL;
-	const zone_t *zone_walk = NULL;
+	zone_list_db_t *zonelist = NULL;
+	zone_db_t *zone = NULL;
+	const zone_db_t *zone_walk = NULL;
 	const char* fmt = "%-31s %-8s %-30s\n";
 
 	if (listed_zone) {
-		zone = zone_new_get_by_name(dbconn, listed_zone);
+		zone = zone_db_new_get_by_name(dbconn, listed_zone);
 	} else {
-		zonelist = zone_list_new_get(dbconn);
+		zonelist = zone_list_db_new_get(dbconn);
 	}
 
 	if (listed_zone && !zone) {
@@ -135,14 +135,14 @@ perform_rollover_list(int sockfd, const char *listed_zone,
 
 	if (zone) {
 		print_zone(sockfd, fmt, zone);
-		zone_free(zone);
+		zone_db_free(zone);
 		return 0;
 	}
 
-	while ((zone_walk = zone_list_next(zonelist))) {
+	while ((zone_walk = zone_list_db_next(zonelist))) {
 		print_zone(sockfd, fmt, zone_walk);
 	}
-	zone_list_free(zonelist);
+	zone_list_db_free(zonelist);
 	return 0;
 }
 

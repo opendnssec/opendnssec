@@ -41,7 +41,6 @@ netio_create()
     netio_type* netio = NULL;
     CHECKALLOC(netio = (netio_type*) malloc(sizeof(netio_type)));
     netio->handlers = NULL;
-    netio->deallocated = NULL;
     netio->dispatch_next = NULL;
     return netio;
 }
@@ -54,15 +53,11 @@ void
 netio_add_handler(netio_type* netio, netio_handler_type* handler)
 {
     netio_handler_list_type* l = NULL;
-    if (!netio || !handler) {
-        return;
-    }
-    if (netio->deallocated) {
-        l = netio->deallocated;
-        netio->deallocated = l->next;
-    } else {
-        CHECKALLOC(l = (netio_handler_list_type*) malloc(sizeof(netio_handler_list_type)));
-    }
+
+    ods_log_assert(netio);
+    ods_log_assert(handler);
+
+    CHECKALLOC(l = (netio_handler_list_type*) malloc(sizeof(netio_handler_list_type)));
     l->next = netio->handlers;
     l->handler = handler;
     netio->handlers = l;
@@ -70,8 +65,8 @@ netio_add_handler(netio_type* netio, netio_handler_type* handler)
 }
 
 /*
- * Remove the handler from netio.
- *
+ * Remove the handler from netio. Caller is responsible for freeing
+ * handler afterwards.
  */
 void
 netio_remove_handler(netio_type* netio, netio_handler_type* handler)
@@ -83,14 +78,14 @@ netio_remove_handler(netio_type* netio, netio_handler_type* handler)
     for (lptr = &netio->handlers; *lptr; lptr = &(*lptr)->next) {
         if ((*lptr)->handler == handler) {
             netio_handler_list_type* next = (*lptr)->next;
-            if ((*lptr) == netio->dispatch_next)
+            if ((*lptr) == netio->dispatch_next) {
                 netio->dispatch_next = next;
-                (*lptr)->handler = NULL;
-                (*lptr)->next = netio->deallocated;
-                netio->deallocated = *lptr;
-                *lptr = next;
-                break;
-           }
+            }
+            (*lptr)->handler = NULL;
+	    free(*lptr);
+            *lptr = next;
+            break;
+        }
     }
     ods_log_debug("[%s] handler removed", netio_str);
 }
@@ -340,11 +335,17 @@ netio_dispatch(netio_type* netio, const struct timespec* timeout,
 void
 netio_cleanup(netio_type* netio)
 {
-    if (!netio) {
-        return;
+    netio_handler_list_type* handler;
+
+    ods_log_assert(netio);
+
+    while (netio->handlers) {
+        handler = netio->handlers->next;
+        /* handler and handler->user_data are managed by something else
+         * it seems */
+        free(netio->handlers);
+        netio->handlers = handler;
     }
-    free(netio->handlers);
-    free(netio->deallocated);
     free(netio);
 }
 

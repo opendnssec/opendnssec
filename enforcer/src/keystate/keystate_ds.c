@@ -38,7 +38,7 @@
 #include "clientpipe.h"
 #include "duration.h"
 #include "db/key_data.h"
-#include "db/zone.h"
+#include "db/zone_db.h"
 #include "db/db_error.h"
 #include "db/hsm_key.h"
 #include "libhsm.h"
@@ -91,7 +91,7 @@ get_dnskey(const char *id, const char *zone, int alg, uint32_t ttl)
 	return dnskey_rr;
 }
 
-
+/** returns non 0 on error */
 static int
 exec_dnskey_by_id(int sockfd, key_data_t *key, const char* ds_command,
 	const char* action)
@@ -100,7 +100,7 @@ exec_dnskey_by_id(int sockfd, key_data_t *key, const char* ds_command,
 	int ttl = 0, status, i;
 	const char *locator;
 	char *rrstr, *chrptr;
-	zone_t* zone;
+	zone_db_t* zone;
 	struct stat stat_ret;
         int cka = 0;
 	char *pos = NULL;
@@ -108,20 +108,28 @@ exec_dnskey_by_id(int sockfd, key_data_t *key, const char* ds_command,
 	assert(key);
 
 	zone = key_data_get_zone(key);
-	key_data_cache_hsm_key(key);
+	if(key_data_cache_hsm_key(key) != DB_OK) {
+		ods_log_error_and_printf(sockfd, module_str,
+			"Error fetching from database");
+		zone_db_free(zone);
+		return 1;
+	}
 	locator = hsm_key_locator(key_data_hsm_key(key));
-	if (!locator) return 1;
+	if (!locator) {
+		zone_db_free(zone);
+		return 1;
+	}
 	/* This fetches the states from the DB, I'm only assuming they get
 	 * cleaned up when 'key' is cleaned(?) */
 	if (key_data_cache_key_states(key) != DB_OK) {
-		zone_free(zone);
+		zone_db_free(zone);
 		return 1;
 	}
 
 	ttl = key_state_ttl(key_data_cached_dnskey(key));
 
-	dnskey_rr = get_dnskey(locator, zone_name(zone), key_data_algorithm(key), ttl);
-	zone_free(zone);
+	dnskey_rr = get_dnskey(locator, zone_db_name(zone), key_data_algorithm(key), ttl);
+	zone_db_free(zone);
 	if (!dnskey_rr) return 2;
 
 	rrstr = ldns_rr2str(dnskey_rr);
@@ -228,7 +236,7 @@ ds_list_keys(db_connection_t *dbconn, int sockfd,
 
 	key_data_list_t *key_list;
 	const key_data_t *key;
-	zone_t *zone = NULL;
+	zone_db_t *zone = NULL;
 	hsm_key_t* hsmkey = NULL;
 	db_clause_list_t* clause_list;
 	db_clause_t* clause;
@@ -263,11 +271,11 @@ ds_list_keys(db_connection_t *dbconn, int sockfd,
 		zone = key_data_get_zone(key);
 		hsmkey = key_data_get_hsm_key(key);
 		client_printf(sockfd, fmtl,
-			(zone ? zone_name(zone) : "NOT_FOUND"),
+			(zone ? zone_db_name(zone) : "NOT_FOUND"),
 			key_data_role_text(key), key_data_keytag(key),
 			(hsmkey ? hsm_key_locator(hsmkey) : "NOT_FOUND")
 		);
-		zone_free(zone);
+		zone_db_free(zone);
 		hsm_key_free(hsmkey);
 	}
 	key_data_list_free(key_list);
@@ -275,24 +283,26 @@ ds_list_keys(db_connection_t *dbconn, int sockfd,
 }
 
 static int
-push_clauses(db_clause_list_t *clause_list, zone_t *zone,
+push_clauses(db_clause_list_t *clause_list, zone_db_t *zone,
 	key_data_ds_at_parent_t state_from, const hsm_key_t* hsmkey, int keytag)
 {
 	db_clause_t* clause;
 
-	if (!key_data_zone_id_clause(clause_list, zone_id(zone)))
+	if (!key_data_zone_id_clause(clause_list, zone_db_id(zone)))
 		return 1;
 	if (!(clause = key_data_role_clause(clause_list, KEY_DATA_ROLE_ZSK)) ||
 			db_clause_set_type(clause, DB_CLAUSE_NOT_EQUAL))
 		return 1;
 	if (!key_data_ds_at_parent_clause(clause_list, state_from))
 		return 1;
+
 	/* filter in id and or keytag conditionally. */
 	if (hsmkey) {
 		if (hsmkey && !key_data_hsm_key_id_clause(clause_list, hsm_key_id(hsmkey)))
 			return 1;
-	} else {
-		if (keytag < 0 || !key_data_keytag_clause(clause_list, keytag))
+	}
+	if (keytag > 0) {
+		if (!key_data_keytag_clause(clause_list, keytag))
 			return 1;
 	}
 	return 0;
@@ -338,21 +348,22 @@ change_keys_from_to(db_connection_t *dbconn, int sockfd,
 {
 	key_data_list_t *key_list = NULL;
 	key_data_t *key;
-	zone_t *zone = NULL;
+	zone_db_t *zone = NULL;
 	int status = 0, key_match = 0, key_mod = 0;
 	db_clause_list_t* clause_list = NULL;
 	db_clause_t* clause = NULL;
+	char *tmp_zone_name;
 
 	if (zonename) {
 		if (!(key_list = key_data_list_new(dbconn)) ||
 			!(clause_list = db_clause_list_new()) ||
-			!(zone = zone_new_get_by_name(dbconn, zonename)) ||
+			!(zone = zone_db_new_get_by_name(dbconn, zonename)) ||
 			push_clauses(clause_list, zone, state_from, hsmkey, keytag) ||
 			key_data_list_get_by_clauses(key_list, clause_list))
 		{
 			key_data_list_free(key_list);
 			db_clause_list_free(clause_list);
-			zone_free(zone);
+			zone_db_free(zone);
 			client_printf_err(sockfd, "Could not find ksk for zone %s, "
 				"does zone exist?\n", zonename);
 			ods_log_error("[%s] Error fetching from database", module_str);
@@ -397,6 +408,11 @@ change_keys_from_to(db_connection_t *dbconn, int sockfd,
 			break;
 		}
 		key_mod++;
+		/* We need to schedule enforce for owner of key. */
+		tmp_zone_name = zone_db_ext_zonename_from_id(dbconn, &key->zone_id);
+		if (tmp_zone_name)
+			enforce_task_flush_zone(engine, tmp_zone_name);
+		free(tmp_zone_name);
 		key_data_free(key);
 	}
 	key_data_list_free(key_list);
@@ -406,9 +422,9 @@ change_keys_from_to(db_connection_t *dbconn, int sockfd,
 	client_printf(sockfd, "%d KSKs changed.\n", key_mod);
 	if (zone) {
 		zone->next_change = 0; /* asap */
-		(void)zone_update(zone);
+		(void)zone_db_update(zone);
 	}
-	zone_free(zone);
+	zone_db_free(zone);
 	return status;
 }
 
@@ -474,7 +490,7 @@ run_ds_cmd(int sockfd, const char *cmd, ssize_t n,
 	hsm_key_t* hsmkey = NULL;
 	int ret;
 	char buf[ODS_SE_MAXLINE];
-	zone_t* zone = NULL;
+	zone_db_t* zone = NULL;
 	int all;
 
 	if (get_args(sockfd, cmd, n, &zonename, &cka_id, &keytag, &all, buf)) {
@@ -491,14 +507,14 @@ run_ds_cmd(int sockfd, const char *cmd, ssize_t n,
 		return -1;
 	}
 
-	if (zonename && (!(zone = zone_new(dbconn)) || zone_get_by_name(zone, zonename))) {
+	if (zonename && (!(zone = zone_db_new(dbconn)) || zone_db_get_by_name(zone, zonename))) {
 		ods_log_warning ("[%s] Error: Unable to find a zone named \"%s\" in database\n", module_str, zonename);
 	        client_printf_err(sockfd, "Error: Unable to find a zone named \"%s\" in database\n", zonename);
-		zone_free(zone);
+		zone_db_free(zone);
 		zone = NULL;
         	return -1;
 	}
-	zone_free(zone);
+	zone_db_free(zone);
 	zone = NULL;
         if (!zonename && (keytag != -1 || cka_id)) {
                 ods_log_warning ("[%s] Error: expected --zone <zone>", module_str);
@@ -515,10 +531,9 @@ run_ds_cmd(int sockfd, const char *cmd, ssize_t n,
 		return -1;
 	}
 	
-	if (cka_id) {
-		if (!(hsmkey = hsm_key_new_get_by_locator(dbconn, cka_id))) {
+	if (cka_id && !(hsmkey = hsm_key_new_get_by_locator(dbconn, cka_id))) {
 			client_printf_err(sockfd, "CKA_ID %s can not be found!\n", cka_id);
-		}
+			return -1;
 	}
 	ret = change_keys_from_to(dbconn, sockfd, zonename, hsmkey, keytag,
 		state_from, state_to, engine);

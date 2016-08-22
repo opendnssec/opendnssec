@@ -437,6 +437,7 @@ cmd_dnskey (int argc, char *argv[])
             if (strcmp(key_info->algorithm_name, "RSA") != 0) {
                 printf("Not an RSA key, the key is of algorithm %s.\n", key_info->algorithm_name);
                 libhsm_key_info_free(key_info);
+                free(key);
                 free(name);
                 free(id);
                 return -1;
@@ -447,6 +448,7 @@ cmd_dnskey (int argc, char *argv[])
             if (strcmp(key_info->algorithm_name, "DSA") != 0) {
                 printf("Not a DSA key, the key is of algorithm %s.\n", key_info->algorithm_name);
                 libhsm_key_info_free(key_info);
+                free(key);
                 free(name);
                 free(id);
                 return -1;
@@ -456,6 +458,7 @@ cmd_dnskey (int argc, char *argv[])
             if (strcmp(key_info->algorithm_name, "GOST") != 0) {
                 printf("Not a GOST key, the key is of algorithm %s.\n", key_info->algorithm_name);
                 libhsm_key_info_free(key_info);
+                free(key);
                 free(name);
                 free(id);
                 return -1;
@@ -467,6 +470,7 @@ cmd_dnskey (int argc, char *argv[])
             if (strcmp(key_info->algorithm_name, "ECDSA") != 0) {
                 printf("Not an ECDSA key, the key is of algorithm %s.\n", key_info->algorithm_name);
                 libhsm_key_info_free(key_info);
+                free(key);
                 free(name);
                 free(id);
                 return -1;
@@ -474,6 +478,7 @@ cmd_dnskey (int argc, char *argv[])
             if (key_info->keysize != 256) {
                 printf("The key is a ECDSA/%lu, expecting ECDSA/256 for this algorithm.\n", key_info->keysize);
                 libhsm_key_info_free(key_info);
+                free(key);
                 free(name);
                 free(id);
                 return -1;
@@ -483,6 +488,7 @@ cmd_dnskey (int argc, char *argv[])
             if (strcmp(key_info->algorithm_name, "ECDSA") != 0) {
                 printf("Not an ECDSA key, the key is of algorithm %s.\n", key_info->algorithm_name);
                 libhsm_key_info_free(key_info);
+                free(key);
                 free(name);
                 free(id);
                 return -1;
@@ -490,6 +496,7 @@ cmd_dnskey (int argc, char *argv[])
             if (key_info->keysize != 384) {
                 printf("The key is a ECDSA/%lu, expecting ECDSA/384 for this algorithm.\n", key_info->keysize);
                 libhsm_key_info_free(key_info);
+                free(key);
                 free(name);
                 free(id);
                 return -1;
@@ -499,6 +506,7 @@ cmd_dnskey (int argc, char *argv[])
         default:
             printf("Invalid algorithm: %i\n", algo);
             libhsm_key_info_free(key_info);
+	    free(key);
             free(name);
             free(id);
             return -1;

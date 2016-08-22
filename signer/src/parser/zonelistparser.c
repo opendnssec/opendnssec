@@ -95,7 +95,7 @@ zlp_adapter(xmlNode* curNode, adapter_mode type, unsigned inbound)
  * Parse adapter.
  *
  */
-adapter_type*
+static adapter_type*
 parse_zonelist_adapter(xmlXPathContextPtr xpathCtx, xmlChar* expr,
     int inbound)
 {
@@ -135,14 +135,15 @@ parse_zonelist_adapter(xmlXPathContextPtr xpathCtx, xmlChar* expr,
                     type = NULL;
                 }
                 if (adapter) {
-                    break;
+		    xmlXPathFreeObject(xpathObj);
+		    return adapter;
                 }
                 curNode = curNode->next;
             }
         }
     }
     xmlXPathFreeObject(xpathObj);
-    return adapter;
+    return NULL;
 }
 
 
@@ -184,6 +185,8 @@ parse_zonelist_zones(void* zlist, const char* zlfile)
     xmlChar* signconf_expr = (unsigned char*) "//Zone/SignerConfiguration";
 
     if (!zlist || !zlfile) {
+        ods_log_error("[%s] unable to parse zonelist: no storage or no filename",
+            parser_str);
         return ODS_STATUS_ASSERT_ERR;
     }
     reader = xmlNewTextReaderFilename(zlfile);

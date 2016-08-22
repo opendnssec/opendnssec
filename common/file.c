@@ -204,11 +204,11 @@ ods_fopen(const char* file, const char* dir, const char* mode)
             fd = fopen(openf, mode);
             if (!fd) {
                 ods_log_debug("[%s] unable to open file %s for %s: %s",
-                    file_str, openf?openf:"(null)",
+                    file_str, openf[0]?openf:"(null)",
                     ods_file_mode2str(mode), strerror(errno));
             } else {
                 file_count++;
-                ods_log_debug("[%s] openfile %s count %u", file_str, openf?openf:"(null)", file_count);
+                ods_log_debug("[%s] openfile %s count %u", file_str, openf[0]?openf:"(null)", file_count);
             }
         }
         free((void*) openf);
@@ -255,50 +255,6 @@ ods_writen(int fd, const void* vptr, size_t n)
         ptr += nwritten;
     }
     return n;
-}
-
-
-/**
- * Combined error logging and writing to a file descriptor.
- *
- */
-void 
-ods_log_error_and_printf(int fd, const char *mod, const char *format, ...)
-{
-	va_list ap;
-	char fmt[128];
-    char buf[ODS_SE_MAXLINE];
-	int ok;
-	
-	/* first perform the ods_log_error */
-	ok = (snprintf(fmt, sizeof(fmt), "[%s] %s", mod, format) < (int)sizeof(fmt));
-	if (!ok) {
-		ods_log_error("[%s] snprintf buffer too small",file_str);
-		client_printf_err(fd, "error: snprintf buffer too small\n"); 
-		return;
-	}
-	va_start(ap, format);
-	ods_log_verror(fmt, ap);
-	va_end(ap);
-
-
-	/* then perform the ods_printf */
-	ok = (snprintf(fmt, sizeof(fmt), "error: %s\n", format) < (int)sizeof(fmt));
-	if (!ok) {
-		ods_log_error("[%s] snprintf buffer too small",file_str);
-		client_printf_err(fd, "error: snprintf buffer too small\n"); 
-		return;
-	}
-	
-	va_start(ap, format);
-	ok = (vsnprintf(buf, ODS_SE_MAXLINE, fmt,ap) < ODS_SE_MAXLINE);
-	va_end(ap);
-	if (!ok) {
-		ods_log_error("[%s] vsnprintf buffer too small",file_str);
-		client_printf_err(fd, "error: vsnprintf buffer too small\n"); 
-		return;
-	}
-	client_printf(fd, "%s", buf); 
 }
 
 

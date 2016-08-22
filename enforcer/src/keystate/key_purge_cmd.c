@@ -51,13 +51,13 @@ static int
 run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	db_connection_t *dbconn)
 {
-	zone_t *zone;
+	zone_db_t *zone;
 	policy_t *policy;
 	const char *zone_name = NULL;
 	const char *policy_name = NULL;
 	char *buf;
 	int argc;
-	const char *argv[4];
+	const char *argv[MAX_ARGS];
 	int error = 0;
 	(void)engine;
 
@@ -91,35 +91,35 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
         }
 
 	if (zone_name) {
-		zone = zone_new(dbconn);
-		if (zone_get_by_name(zone, zone_name)) {
+		zone = zone_db_new(dbconn);
+		if (zone_db_get_by_name(zone, zone_name)) {
 			client_printf_err(sockfd, "unknown zone %s\n", zone_name);
-			zone_free(zone);
+			zone_db_free(zone);
 			zone = NULL;
-	                free(buf);
+			free(buf);
 			return -1;
 		}
 		error = removeDeadKeysNow(sockfd, dbconn, NULL, zone);
-		zone_free(zone);
+		zone_db_free(zone);
 		zone = NULL;
+		free(buf);
 		return error;
 	}
 
-	if (policy_name) {
-		policy = policy_new(dbconn);
-		if (policy_get_by_name(policy, policy_name)){
-			policy_free(policy);
-			policy = NULL;
-	                free(buf);
-			client_printf_err(sockfd, "unknown policy %s\n", policy_name);
-			return -1;
-		}
-		error = removeDeadKeysNow(sockfd, dbconn, policy, NULL);
+	/* have policy_name since it is mutualy exlusive with zone_name */
+	policy = policy_new(dbconn);
+	if (policy_get_by_name(policy, policy_name)){
 		policy_free(policy);
 		policy = NULL;
-		return error;
+		free(buf);
+		client_printf_err(sockfd, "unknown policy %s\n", policy_name);
+		return -1;
 	}
-	return -1;
+	error = removeDeadKeysNow(sockfd, dbconn, policy, NULL);
+	policy_free(policy);
+	policy = NULL;
+	free(buf);
+	return error;
 }
 
 static struct cmd_func_block funcblock = {
