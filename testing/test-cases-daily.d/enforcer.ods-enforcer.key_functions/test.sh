@@ -42,24 +42,25 @@ KSK_CKA_ID_1=`log_grep -o ods-enforcer-check-0 stdout "KSK.*publish" | sed 's/^.
 
 ##################  1. Export  the ZSKs first using 'ods-enforcer key export --all' ######################################
 # Then try the export with each of the different flags (--zone, --keystate, --keytype, --ds) and make sure it works correctly
-# test --keytype
-log_this ods-enforcer-key-export  ods-enforcer key export --all --keytype ZSK &&
-log_grep_count ods-enforcer-key-export stdout "DNSKEY	256" 1 &&
-log_this ods-enforcer-key-export  ods-enforcer key export --all --keytype KSK &&
+# test
+log_this ods-enforcer-key-export  ods-enforcer key export --all &&
 log_grep_count ods-enforcer-key-export stdout "DNSKEY	257" 1 &&
 # test --zone
-log_this ods-enforcer-key-export  ods-enforcer key export --zone ods --keytype ZSK &&
-log_grep_count ods-enforcer-key-export stdout "DNSKEY	256" 2 &&
-log_this ods-enforcer-key-export  ods-enforcer key export --zone ods --keytype KSK &&
+log_this ods-enforcer-key-export  ods-enforcer key export --zone ods --keytype ZSK --keystate publish &&
+log_grep_count ods-enforcer-key-export stdout "DNSKEY	256" 1 &&
+log_this ods-enforcer-key-export  ods-enforcer key export --zone ods &&
 log_grep_count ods-enforcer-key-export stdout "DNSKEY	257" 2 &&
-# test --keystate
+# test --keystate and --keytype
+# there is no ZSK in generate state, so the number must not be increased
 log_this ods-enforcer-key-export  ods-enforcer key export --all --keytype ZSK --keystate generate &&
-log_grep_count ods-enforcer-key-export stdout "DNSKEY	256" 2 &&
+log_grep_count ods-enforcer-key-export stdout "DNSKEY	256" 1 &&
 log_this ods-enforcer-key-export  ods-enforcer key export --all --keytype ZSK --keystate publish &&
-log_grep_count ods-enforcer-key-export stdout "DNSKEY	256" 3 &&
+log_grep_count ods-enforcer-key-export stdout "DNSKEY	256" 2 &&
+# there is no ZSK in ready state
 log_this ods-enforcer-key-export  ods-enforcer key export --all --keytype ZSK --keystate ready &&
-log_grep_count ods-enforcer-key-export stdout "DNSKEY	256" 3 &&
+log_grep_count ods-enforcer-key-export stdout "DNSKEY	256" 2 &&
 log_this ods-enforcer-key-export  ods-enforcer key export --all --keytype ZSK --keystate active &&
+log_grep_count ods-enforcer-key-export stdout "DNSKEY	256" 3 &&
 # test --ds
 log_this ods-enforcer-key-export  ods-enforcer key export --ds --zone ods &&
 log_grep ods-enforcer-key-export stdout "KSK DS record (SHA1):" &&
