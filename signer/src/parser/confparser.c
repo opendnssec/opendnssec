@@ -295,7 +295,7 @@ parse_conf_listener(const char* cfgfile)
     if (xpathObj->nodesetval && xpathObj->nodesetval->nodeNr > 0) {
         for (i = 0; i < xpathObj->nodesetval->nodeNr; i++) {
             address = NULL;
-            port = NULL;
+            port = "15354";
 
             curNode = xpathObj->nodesetval->nodeTab[i]->xmlChildrenNode;
             while (curNode) {
@@ -308,20 +308,20 @@ parse_conf_listener(const char* cfgfile)
             }
             if (address) {
                 interface = listener_push(listener, address,
-                    acl_parse_family(address), port?port:"15354");
+                    acl_parse_family(address), port);
             } else {
-                interface = listener_push(listener, (char *)"", AF_INET, port?port:"15354");
+                interface = listener_push(listener, (char *)"", AF_INET, port);
                 if (interface) {
-                    interface = listener_push(listener, (char *)"", AF_INET6, port?port:"15354");
+                    interface = listener_push(listener, (char *)"", AF_INET6, port);
                 }
             }
             if (!interface) {
                ods_log_error("[%s] unable to add %s:%s interface: "
                    "listener_push() failed", parser_str, address?address:"",
-                   port?port:"15354");
+                   port);
             } else {
                ods_log_debug("[%s] added %s:%s interface to listener",
-                   parser_str, address?address:"", port?port:"");
+                   parser_str, address?address:"", port);
             }
             free((void*)port);
             free((void*)address);
