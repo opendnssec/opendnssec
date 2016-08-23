@@ -131,6 +131,7 @@ start = element Configuration {
 		element SignerThreads { xsd:positiveInteger }? &
 
 		# Listener
+		# DEFAULT PORT: 15354
 		element Listener {
 			interface*
 		}? &
