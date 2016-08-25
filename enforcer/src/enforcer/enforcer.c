@@ -1102,6 +1102,8 @@ policyApproval(key_data_t** keylist, size_t keylist_size,
 {
     static const key_state_state_t dnskey_algorithm_rollover[4] = { OMNIPRESENT, OMNIPRESENT, OMNIPRESENT, NA };
     static const key_state_state_t rrsig_algorithm_rollover[4] = { NA, OMNIPRESENT, NA, OMNIPRESENT };
+    static const key_state_state_t rrsig_roll_in[4] = { NA, OMNIPRESENT, NA, RUMOURED };
+    static const key_state_state_t rrsig_roll_out[4] = { NA, OMNIPRESENT, NA, UNRETENTIVE };
 
     if (!keylist) {
         return -1;
@@ -1220,7 +1222,12 @@ policyApproval(key_data_t** keylist, size_t keylist_size,
          *
          * TODO: How is this related to ZSK/CSK? There are no check for key_data_role().
          */
-        if (exists(keylist, keylist_size, future_key, 1, rrsig_algorithm_rollover) > 0) {
+        if (exists(keylist, keylist_size, future_key, 1, rrsig_algorithm_rollover) > 0
+            || (
+                exists(keylist, keylist_size, future_key, 1, rrsig_roll_in)  > 0 &&
+                exists(keylist, keylist_size, future_key, 1, rrsig_roll_out) > 0
+            ))
+        {
             /*
              * We found a good key, so we will not do any transition.
              */
