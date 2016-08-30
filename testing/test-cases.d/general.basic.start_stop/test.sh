@@ -13,6 +13,12 @@ ods-enforcer stop &&
 ods-enforcer start &&
 ods-enforcer stop &&
 
+ods-signer start &&
+ods-signer stop &&
+ods-signer start &&
+ods-signer sign --all &&
+ods-signer stop &&
+
 return 0
 
 ods_kill

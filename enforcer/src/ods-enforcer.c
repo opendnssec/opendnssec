@@ -349,7 +349,7 @@ interface_start(const char* cmd, const char* servsock_filename)
     clear_history();
     rl_free_undo_list();
 #endif
-    sleep(2);
+    sleep(3);
     return error;
 }
 

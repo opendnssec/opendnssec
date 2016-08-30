@@ -398,5 +398,6 @@ main(int argc, char* argv[])
 
     /* done */
     free(cmd);
+    sleep(3);
     return ret;
 }
