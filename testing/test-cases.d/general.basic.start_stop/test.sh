@@ -2,13 +2,16 @@
 
 #TEST: Start and stop using ods-control and default conf files. Check the deamons behave.
 
+if [ -n "$HAVE_MYSQL" ]; then
+        ods_setup_conf conf.xml conf-mysql.xml
+fi &&
+
 ods_reset_env &&
 
 ods_start_ods-control &&
 ods_stop_ods-control &&
 
 ods-enforcer start &&
-ods-enforcer zone add -z ods &&
 ods-enforcer stop &&
 ods-enforcer start &&
 ods-enforcer stop &&
