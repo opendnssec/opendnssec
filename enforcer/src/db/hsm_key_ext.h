@@ -33,6 +33,12 @@
 #include "policy_key.h"
 
 /**
+ * Return the human readable backup state of hsm_key as static string.
+ */
+char const *
+hsm_key_to_backup_state(hsm_key_t const *hsm_key);
+
+/**
  * Get all HSM keys for policy/algorithm/bits/repository.
  * NULL on failure
  */

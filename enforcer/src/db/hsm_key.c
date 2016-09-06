@@ -54,10 +54,10 @@ const db_enum_t hsm_key_enum_set_key_type[] = {
 };
 
 const db_enum_t hsm_key_enum_set_backup[] = {
-    { "No Backup", (hsm_key_backup_t)HSM_KEY_BACKUP_NO_BACKUP },
-    { "Backup Required", (hsm_key_backup_t)HSM_KEY_BACKUP_BACKUP_REQUIRED },
-    { "Backup Requested", (hsm_key_backup_t)HSM_KEY_BACKUP_BACKUP_REQUESTED },
-    { "Backup Done", (hsm_key_backup_t)HSM_KEY_BACKUP_BACKUP_DONE },
+    { "Not Required", (hsm_key_backup_t)HSM_KEY_BACKUP_NO_BACKUP },
+    { "Required", (hsm_key_backup_t)HSM_KEY_BACKUP_BACKUP_REQUIRED },
+    { "Prepared", (hsm_key_backup_t)HSM_KEY_BACKUP_BACKUP_REQUESTED },
+    { "Done", (hsm_key_backup_t)HSM_KEY_BACKUP_BACKUP_DONE },
     { NULL, 0 }
 };
 
