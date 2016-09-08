@@ -752,7 +752,6 @@ engine_update_zones(engine_type* engine, ods_status zl_changed)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     zone_type* zone = NULL;
-    zone_type* delzone = NULL;
     task_type* task = NULL;
     ods_status status = ODS_STATUS_OK;
     unsigned wake_up = 0;
@@ -774,15 +773,8 @@ engine_update_zones(engine_type* engine, ods_status zl_changed)
         if (zone->zl_status == ZONE_ZL_REMOVED) {
             node = ldns_rbtree_next(node);
             pthread_mutex_lock(&zone->zone_lock);
-            delzone = zonelist_del_zone(engine->zonelist, zone);
-            if (delzone) {
-                pthread_mutex_lock(&engine->taskq->schedule_lock);
-                task = unschedule_task(engine->taskq,
-                    (task_type*) zone->task);
-                pthread_mutex_unlock(&engine->taskq->schedule_lock);
-            }
-            task_cleanup(task);
-            task = NULL;
+            zonelist_del_zone(engine->zonelist, zone);
+            sched_task_destroy(engine->taskq, zone->task);
             pthread_mutex_unlock(&zone->zone_lock);
             netio_remove_handler(engine->xfrhandler->netio,
                 &zone->xfrd->handler);
@@ -797,7 +789,7 @@ engine_update_zones(engine_type* engine, ods_status zl_changed)
                 set_notify_ns(zone, engine->config->notify_command);
             }
             /* create task */
-            task = task_create(TASK_SIGNCONF, now, zone);
+            task = task_create(strdup(zone->name), TASK_CLASS_SIGNER, TASK_SIGNCONF, worker_perform_task, zone, NULL, now);
             pthread_mutex_unlock(&zone->zone_lock);
             if (!task) {
                 ods_log_crit("[%s] unable to create task for zone %s: "
@@ -830,9 +822,7 @@ engine_update_zones(engine_type* engine, ods_status zl_changed)
             /* TODO: task is reachable from other threads by means of
              * zone->task. To fix this we need to nest the locks. But
              * first investigate any possible deadlocks. */
-            pthread_mutex_lock(&engine->taskq->schedule_lock);
             status = schedule_task(engine->taskq, task, 0);
-            pthread_mutex_unlock(&engine->taskq->schedule_lock);
         } else if (zl_changed == ODS_STATUS_OK) {
             /* always try to update signconf */
             pthread_mutex_lock(&zone->zone_lock);
@@ -902,17 +892,11 @@ engine_recover(engine_type* engine)
             if (engine->config->notify_command && !zone->notify_ns) {
                 set_notify_ns(zone, engine->config->notify_command);
             }
-            /* schedule task */
-            pthread_mutex_lock(&engine->taskq->schedule_lock);
-            /* [LOCK] schedule */
             status = schedule_task(engine->taskq, (task_type*) zone->task, 0);
-            /* [UNLOCK] schedule */
-            pthread_mutex_unlock(&engine->taskq->schedule_lock);
-
             if (status != ODS_STATUS_OK) {
                 ods_log_crit("[%s] unable to schedule task for zone %s: %s",
                     engine_str, zone->name, ods_status2str(status));
-                task_cleanup((task_type*) zone->task);
+                task_destroy((task_type*) zone->task);
                 zone->task = NULL;
                 result = ODS_STATUS_OK; /* will trigger update zones */
             } else {

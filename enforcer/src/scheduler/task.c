@@ -32,8 +32,11 @@
 #include "config.h"
 
 #include <string.h>
+#include <pthread.h>
+#include "db/db_connection.h"
 
 #include "scheduler/task.h"
+#include "scheduler/schedule.h"
 #include "duration.h"
 #include "file.h"
 #include "log.h"
@@ -41,20 +44,58 @@
 static const char* task_str = "task";
 static pthread_mutex_t worklock = PTHREAD_MUTEX_INITIALIZER;
 
-void task_deepfree(task_t *task)
+const char* TASK_CLASS_ENFORCER = "enforcer";
+
+const char* TASK_NONE = "[ignore]";
+const char* TASK_TYPE_ENFORCE   = "enforce";
+const char* TASK_TYPE_RESALT    = "resalt";
+const char* TASK_TYPE_HSMKEYGEN = "hsmkeygen";
+const char* TASK_TYPE_DSSUBMIT  = "ds-submit";
+const char* TASK_TYPE_DSRETRACT = "ds-retract";
+const char* TASK_TYPE_SIGNCONF  = "signconf";
+
+task_type*
+task_create(const char *owner, char const *class, char const *type,
+    time_t (*callback)(char const *owner, void *userdata, void *context),
+    void *userdata, void (*freedata)(void *userdata), time_t due_date)
+{
+    task_type* task;
+    ods_log_assert(owner);
+    ods_log_assert(class);
+    ods_log_assert(type);
+    
+    CHECKALLOC(task = (task_type*) malloc(sizeof(task_type)));;
+    task->owner = owner; /* TODO: each call to task_create needs to strdup this, but the free is inside task_destroy */
+    task->class = class;
+    task->type = type;
+    task->callback = callback;
+    task->userdata = userdata;
+    task->freedata = freedata;
+    task->due_date = due_date;
+    task->lock = NULL;
+
+    task->backoff = 0;
+    task->flush = 0;
+
+    return task;
+}
+
+void
+task_destroy(task_type* task)
 {
     ods_log_assert(task);
-    free(task->owner);
-    if (task->free_context)
-        task->free_context(task->context);
+    free((void*)task->owner);
+    if (task->freedata)
+        task->freedata((void*)task->userdata);
     free(task);
 }
 
-time_t task_execute(task_t *task, db_connection_t *dbconn)
+time_t
+task_execute(task_type *task, void *context)
 {
     time_t t;
     ods_log_assert(task);
-    /* I'll allow a task without callback, just don't reschedule. */
+    /* We'll allow a task without callback, just don't reschedule. */
     if (!task->callback) {
         return -1;
     }
@@ -66,20 +107,46 @@ time_t task_execute(task_t *task, db_connection_t *dbconn)
      * really tell the difference between an error and nodata.) Once we
      * fixed our database backend this lock can be removed.
      * */
-    if (!strcmp(task->class, TASK_CLASS_ENFORCER))
-        pthread_mutex_lock(&worklock);
-
+    if(task->lock) {
         pthread_mutex_lock(task->lock);
-            t = task->callback(task->owner, task->context, dbconn);
+            t = task->callback(task->owner, task->userdata, context);
         pthread_mutex_unlock(task->lock);
-
-    if (!strcmp(task->class, TASK_CLASS_ENFORCER))
-        pthread_mutex_unlock(&worklock);
+    } else {
+        t = task->callback(task->owner, task->userdata, context);
+    }
 
     return t;
 }
 
-static int cmp_ttuple(task_t *x, task_t *y)
+void
+task_perform(schedule_type* scheduler, task_type* task, void* context)
+{
+    task->due_date = task_execute(task, context);
+    if (task->due_date >= 0) {
+        (void) schedule_task(scheduler, task, 0); /* TODO unchecked error code */
+    } else {
+        task_destroy(task);
+    }    
+}
+
+task_type*
+task_duplicate_shallow(task_type *task)
+{
+    task_type *dup;
+    dup = (task_type*) calloc(1, sizeof(task_type));
+    if (!dup) {
+        ods_log_error("[%s] cannot create: malloc failed", task_str);
+        return NULL; /* TODO */
+    }
+    dup->owner = strdup(task->owner);
+    dup->type = task->type;
+    dup->class = task->class;
+    dup->lock = NULL;
+    return dup;
+}
+
+int
+cmp_ttuple(task_type *x, task_type *y)
 {
     int cmp;
     cmp = strcmp(x->owner, y->owner);
@@ -91,20 +158,22 @@ static int cmp_ttuple(task_t *x, task_t *y)
     return strcmp(x->class, y->class);
 }
 
-int task_compare_ttuple(const void* a, const void* b)
+int
+task_compare_ttuple(const void* a, const void* b)
 {
-    task_t* x = (task_t*)a;
-    task_t* y = (task_t*)b;
+    task_type* x = (task_type*)a;
+    task_type* y = (task_type*)b;
     ods_log_assert(a);
     ods_log_assert(b);
 
     return cmp_ttuple(x, y);
 }
 
-int task_compare_time_then_ttuple(const void* a, const void* b)
+int
+task_compare_time_then_ttuple(const void* a, const void* b)
 {
-    task_t* x = (task_t*)a;
-    task_t* y = (task_t*)b;
+    task_type* x = (task_type*)a;
+    task_type* y = (task_type*)b;
     ods_log_assert(a);
     ods_log_assert(b);
 
@@ -112,48 +181,4 @@ int task_compare_time_then_ttuple(const void* a, const void* b)
         return (int) x->due_date - y->due_date;
     }
     return cmp_ttuple(x, y);
-}
-
-
-task_t*
-task_duplicate_shallow(task_t *task)
-{
-    task_t *dup;
-    dup = (task_t*) calloc(1, sizeof(task_t));
-    if (!dup) {
-        ods_log_error("[%s] cannot create: malloc failed", task_str);
-        return NULL;
-    }
-    dup->owner = strdup(task->owner);
-    dup->type = task->type;
-    dup->class = task->class;
-    dup->lock = NULL;
-    return dup;
-}
-
-task_t*
-task_create(char *owner, char const *class, char const *type,
-    time_t (*callback)(char const *owner, void *context, db_connection_t *dbconn),
-    void *context, void (*free_context)(void *context), time_t due_date)
-{
-    task_t *task;
-    ods_log_assert(owner);
-    ods_log_assert(class);
-    ods_log_assert(type);
-    
-    task = (task_t*) malloc(sizeof(task_t));
-    if (!task) {
-        ods_log_error("[%s] cannot create: malloc failed", task_str);
-        return NULL;
-    }
-    task->owner = owner;
-    task->class = class;
-    task->type = type;
-    task->callback = callback;
-    task->context = context;
-    task->free_context = free_context;
-    task->due_date = due_date;
-    task->lock = NULL;
-
-    return task;
 }

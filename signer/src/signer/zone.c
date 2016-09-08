@@ -121,6 +121,11 @@ zone_create(char* name, ldns_rr_class klass)
     }
     zone->stats = stats_create();
     zone->rrstore = rrset_store_initialize();
+    zone->nexttask = TASK_NONE;
+    zone->interrupt = TASK_NONE;
+    zone->halted = TASK_NONE;
+    zone->when = 0;
+    zone->halted_when = 0;
     return zone;
 }
 
@@ -177,7 +182,53 @@ zone_load_signconf(zone_type* zone, signconf_type** new_signconf)
     return status;
 }
 
+int
+sched_task_comparetype(task_type* task, task_id other, task_id* sequence)
+{
+    int taskidx, otheridx;
+    for (taskidx = 0; sequence[taskidx] != NULL; taskidx++) {
+        if (sched_task_istype(task, sequence[taskidx]))
+            break;
+    }
+    if (sequence[taskidx] != NULL) {
+        for (otheridx=0; otheridx<taskidx; otheridx++) {
+            if (!strcmp(other, sequence[otheridx])) {
+                return -1;
+            }
+        }
+        if (!strcmp(other, sequence[taskidx])) {
+            return 0;
+        } else {
+            return 1;
+        }
+    } else {
+        return -1;
+    }
+}
 
+int
+sched_task_comparetype2(task_id task, task_id other, task_id* sequence)
+{
+    int taskidx, otheridx;
+    for (taskidx = 0; sequence[taskidx] != NULL; taskidx++) {
+        if (!strcmp(task, sequence[taskidx]))
+            break;
+    }
+    if (sequence[taskidx] != NULL) {
+        for (otheridx=0; otheridx<taskidx; otheridx++) {
+            if (!strcmp(other, sequence[otheridx])) {
+                return -1;
+            }
+        }
+        if (!strcmp(other, sequence[taskidx])) {
+            return 0;
+        } else {
+            return 1;
+        }
+    } else {
+        return -1;
+    }
+}
 /**
  * Reschedule task for zone.
  *
@@ -185,40 +236,43 @@ zone_load_signconf(zone_type* zone, signconf_type** new_signconf)
 ods_status
 zone_reschedule_task(zone_type* zone, schedule_type* taskq, task_id what)
 {
-     task_type* task = NULL;
-     ods_status status = ODS_STATUS_OK;
+    task_id taskordering[] = { TASK_NONE, TASK_SIGNCONF, TASK_READ, TASK_NSECIFY, TASK_SIGN, TASK_WRITE, NULL };
+    int taskorder;
 
-     ods_log_assert(taskq);
-     ods_log_assert(zone);
-     ods_log_assert(zone->name);
-     ods_log_assert(zone->task);
-     ods_log_debug("[%s] reschedule task for zone %s", zone_str, zone->name);
-     pthread_mutex_lock(&taskq->schedule_lock);
-     task = unschedule_task(taskq, zone->task);
-     if (task != NULL) {
-         if (task->what != what) {
-             task->halted = task->what;
-             task->halted_when = task->when;
-             task->interrupt = what;
-         }
-         /** Only reschedule if what to do is lower than what was scheduled. */
-         if (task->what > what) {
-             task->what = what;
-         }
-         task->when = time_now();
-         status = schedule_task(taskq, task, 0);
-     } else {
-         /* task not queued, being worked on? */
-         ods_log_verbose("[%s] unable to reschedule task for zone %s now: "
-             "task is not queued (task will be rescheduled when it is put "
-             "back on the queue)", zone_str, zone->name);
-         task = zone->task;
-         task->interrupt = what;
-         /* task->halted(_when) set by worker */
-     }
-     pthread_mutex_unlock(&taskq->schedule_lock);
-     zone->task = task;
-     return status;
+    task_type* task = NULL;
+    ods_status status = ODS_STATUS_OK;
+
+    ods_log_assert(taskq);
+    ods_log_assert(zone);
+    ods_log_assert(zone->name);
+    ods_log_debug("[%s] reschedule task for zone %s", zone_str, zone->name);
+    /* postpone a later task or bring forward an earlier task */
+    task = unschedule_task(taskq, zone->task);
+    if (task != NULL) {
+        taskorder = sched_task_comparetype(zone->task, what, taskordering);
+        if (taskorder != 0) {
+            zone->halted = task->type;
+            zone->halted_when = sched_task_due(task);
+            zone->interrupt = what;
+        }
+        /** Only reschedule if what to do is lower than what was scheduled. */
+        if (taskorder < 0) {
+            task->type = what;
+            zone->when = time_now();
+        }
+        task->due_date = time_now();
+        status = schedule_task(taskq, task, 0);
+    } else {
+        /* task not queued, being worked on? */
+        ods_log_verbose("[%s] unable to reschedule task for zone %s now: "
+                "task is not queued (task will be rescheduled when it is put "
+                "back on the queue)", zone_str, zone->name);
+        task = zone->task;
+        zone->interrupt = what;
+        /* task->halted(_when) set by worker */
+    }
+    zone->task = task;
+    return status;
 }
 
 
@@ -1015,13 +1069,13 @@ zone_recover2(zone_type* zone)
             goto recover_error2;
         }
         /* task */
-        task = task_create(TASK_SIGN, when, (void*) zone);
+        task = task_create(strdup(zone->name), TASK_CLASS_SIGNER, TASK_SIGN, worker_perform_task, zone, NULL, when);
         if (!task) {
             ods_log_error("[%s] failed to restore zone %s: unable to "
                 "create task", zone_str, zone->name);
             goto recover_error2;
         }
-        zone->task = (void*) task;
+        zone->task = task;
         free((void*)filename);
         ods_fclose(fd);
         zone->db->is_initialized = 1;
@@ -1102,7 +1156,6 @@ zone_backup2(zone_type* zone)
     ods_log_assert(zone->name);
     ods_log_assert(zone->db);
     ods_log_assert(zone->signconf);
-    ods_log_assert(zone->task);
 
     tmpfile = ods_build_path(zone->name, ".backup2.tmp", 0, 1);
     filename = ods_build_path(zone->name, ".backup2", 0, 1);
@@ -1115,7 +1168,7 @@ zone_backup2(zone_type* zone)
     if (fd) {
         fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC_V3);
         task = zone->task;
-        fprintf(fd, ";;Time: %u\n", (unsigned) task->when);
+        fprintf(fd, ";;Time: %u\n", (unsigned) sched_task_due(task));
         /** Backup zone */
         fprintf(fd, ";;Zone: name %s class %i inbound %u internal %u "
             "outbound %u\n", zone->name, (int) zone->klass,

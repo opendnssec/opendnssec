@@ -68,8 +68,7 @@ void
 worker_start(worker_type* worker)
 {
     ods_log_assert(worker);
-    task_t *task;
-    time_t time;
+    task_type *task;
 
     while (worker->need_to_exit == 0) {
         ods_log_debug("[worker[%i]]: report for duty", worker->thread_num);
@@ -80,18 +79,9 @@ worker_start(worker_type* worker)
         if (!task) continue;
         
         ods_log_debug("[worker[%i]] start working", worker->thread_num);
-        time = task_execute(task, worker->dbconn);
+        task_perform(worker->engine->taskq, task, worker->dbconn);
         ods_log_debug("[worker[%i]] finished working", worker->thread_num);
 
-        if (time < 0) {
-            task_deepfree(task);
-            continue;
-        }
-        task->due_date = time;
-        if (schedule_task(worker->engine->taskq, task) != ODS_STATUS_OK) {
-            ods_log_error("[worker[%i]] unable to schedule task",
-                worker->thread_num);
-        }
     }
 }
 
