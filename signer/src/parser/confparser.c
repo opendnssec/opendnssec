@@ -251,7 +251,7 @@ parse_conf_listener(const char* cfgfile)
     interface_type* interface = NULL;
     int i = 0;
     char* address = NULL;
-    char* port = NULL;
+    const char* port = NULL;
     xmlDocPtr doc = NULL;
     xmlXPathContextPtr xpathCtx = NULL;
     xmlXPathObjectPtr xpathObj = NULL;

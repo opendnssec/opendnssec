@@ -101,7 +101,7 @@ listener_type* listener_create(void);
  *
  */
 interface_type* listener_push(listener_type* list, char* address, int family,
-    char* port);
+    const char* port);
 
 /**
  * Clean up interface.
