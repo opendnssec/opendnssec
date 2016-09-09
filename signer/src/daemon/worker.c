@@ -541,6 +541,7 @@ worker_work(worker_type* worker)
 {
     time_t now = 0;
     time_t timeout = 1;
+    time_t nextFireTime;
     engine_type* engine = NULL;
     zone_type* zone;
     task_type* task;
@@ -584,9 +585,9 @@ worker_work(worker_type* worker)
         } else {
             ods_log_debug("[%s[%i]] nothing to do", worker2str(worker->type),
                 worker->thread_num);
-            task = schedule_get_first_task(engine->taskq);
-            if (task && !engine->taskq->loading) {
-                timeout = (sched_task_due(task) - now);
+            schedule_info(engine->taskq, &nextFireTime, NULL, NULL);
+            if (nextFireTime>=0 && !engine->taskq->loading) {
+                timeout = (nextFireTime - now);
             } else {
                 timeout *= 2;
             }

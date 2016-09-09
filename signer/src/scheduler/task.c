@@ -30,24 +30,37 @@
  */
 
 #include "config.h"
+
+#include <string.h>
+#include <pthread.h>
+
 #include "scheduler/task.h"
 #include "scheduler/schedule.h"
 #include "status.h"
 #include "duration.h"
 #include "file.h"
 #include "log.h"
-#include "signer/zone.h"
 
 static const char* task_str = "task";
 static pthread_mutex_t worklock = PTHREAD_MUTEX_INITIALIZER;
 
-const char* TASK_CLASS_SIGNER = "signer";
-const char* TASK_NONE = "[ignore]";
-const char* TASK_SIGNCONF = "[configure]";
-const char* TASK_READ = "[read]";
-const char* TASK_NSECIFY = "[???]";
-const char* TASK_SIGN = "[sign]";
-const char* TASK_WRITE = "[write]";
+const char* TASK_CLASS_ENFORCER = "enforcer";
+const char* TASK_CLASS_SIGNER   = "signer";
+
+const char* TASK_NONE           = "[ignore]";
+
+const char* TASK_TYPE_ENFORCE   = "enforce";
+const char* TASK_TYPE_RESALT    = "resalt";
+const char* TASK_TYPE_HSMKEYGEN = "hsmkeygen";
+const char* TASK_TYPE_DSSUBMIT  = "ds-submit";
+const char* TASK_TYPE_DSRETRACT = "ds-retract";
+const char* TASK_TYPE_SIGNCONF  = "signconf";
+
+const char* TASK_SIGNCONF       = "[configure]";
+const char* TASK_READ           = "[read]";
+const char* TASK_NSECIFY        = "[???]";
+const char* TASK_SIGN           = "[sign]";
+const char* TASK_WRITE          = "[write]";
 
 task_type*
 task_create(const char *owner, char const *class, char const *type,
@@ -113,6 +126,33 @@ task_execute(task_type *task, void *context)
     return t;
 }
 
+void
+task_perform(schedule_type* scheduler, task_type* task, void* context)
+{
+    task->due_date = task_execute(task, context);
+    if (task->due_date >= 0) {
+        (void) schedule_task(scheduler, task, 0); /* TODO unchecked error code */
+    } else {
+        task_destroy(task);
+    }    
+}
+
+task_type*
+task_duplicate_shallow(task_type *task)
+{
+    task_type *dup;
+    dup = (task_type*) calloc(1, sizeof(task_type));
+    if (!dup) {
+        ods_log_error("[%s] cannot create: malloc failed", task_str);
+        return NULL; /* TODO */
+    }
+    dup->owner = strdup(task->owner);
+    dup->type = task->type;
+    dup->class = task->class;
+    dup->lock = NULL;
+    return dup;
+}
+
 int
 task_compare(const void* a, const void* b)
 {
@@ -131,6 +171,44 @@ task_compare(const void* a, const void* b)
     }
     /* this is unfair, it prioritizes zones that are first in canonical line */
     return strcmp(x->owner, y->owner);
+}
+
+int
+cmp_ttuple(task_type *x, task_type *y)
+{
+    int cmp;
+    cmp = strcmp(x->owner, y->owner);
+    if (cmp != 0)
+        return cmp;
+    cmp = strcmp(x->type, y->type);
+    if (cmp != 0)
+        return cmp;
+    return strcmp(x->class, y->class);
+}
+
+int
+task_compare_ttuple(const void* a, const void* b)
+{
+    task_type* x = (task_type*)a;
+    task_type* y = (task_type*)b;
+    ods_log_assert(a);
+    ods_log_assert(b);
+
+    return cmp_ttuple(x, y);
+}
+
+int
+task_compare_time_then_ttuple(const void* a, const void* b)
+{
+    task_type* x = (task_type*)a;
+    task_type* y = (task_type*)b;
+    ods_log_assert(a);
+    ods_log_assert(b);
+
+    if (x->due_date != y->due_date) {
+        return (int) x->due_date - y->due_date;
+    }
+    return cmp_ttuple(x, y);
 }
 
 void

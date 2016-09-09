@@ -33,17 +33,25 @@
 #define SCHEDULER_SCHEDULE_H
 
 #include "config.h"
-
+#include <stdio.h>
 #include <time.h>
+
+#ifdef HAVE_SYS_TYPES_H
+# include <sys/types.h>
+#endif
+#ifdef HAVE_UNISTD_H
+# include <unistd.h>
+#endif
+
 #include <ldns/ldns.h>
 
-#include "scheduler/task.h"
-#include "status.h"
-
-/**
- * Task schedule.
- */
 typedef struct schedule_struct schedule_type;
+
+#include "scheduler/task.h"
+#include "locks.h"
+#include "status.h"
+#include "task.h"
+
 struct schedule_struct {
     /* Contains all tasks sorted by due_date so we can quickly find
      * the first task. */
@@ -76,19 +84,6 @@ schedule_type* schedule_create(void);
 void schedule_cleanup(schedule_type* schedule);
 
 /**
- * Flush schedule.
- * \param[in] schedule schedule to be flushed
- */
-void schedule_flush(schedule_type* schedule);
-
-/**
- * Flush schedule for a specific type of task.
- * \param[in] schedule schedule to be flushed
- * \return number of tasks flushed
- */
-int schedule_flush_type(schedule_type* schedule, char const *class, char const *type);
-
-/**
  * purge schedule. All tasks will be thrashed.
  * \param[in] schedule schedule to be purged
  */
@@ -110,15 +105,20 @@ void schedule_purge_owner(schedule_type* schedule, char const *class,
  * 
  * \param[in] schedule schedule
  * \param[in] task task
+ * \param[in] log add entry in log for this
  * \return ods_status status
  *
  */
-ods_status schedule_task(schedule_type *schedule, task_type *task, int log);
+ods_status schedule_task(schedule_type* schedule, task_type* task, int log);
 
-
-/** Get the number of threads in condition wait for this lock.
- * So we can detect all workers are idle. */
-int schedule_get_num_waiting(schedule_type* schedule);
+/**
+ * Unschedule task.
+ * \param[in] schedule schedule
+ * \param[in] task task to delete
+ * \return task_type* task, if it was scheduled
+ *
+ */
+task_type* unschedule_task(schedule_type* schedule, task_type* task);
 
 /**
  * Pop the first scheduled task that is due. If an item is directly
@@ -141,20 +141,16 @@ task_type* schedule_pop_task(schedule_type* schedule);
  */
 task_type* schedule_pop_first_task(schedule_type* schedule);
 
-/**
- * Time of first task in schedule.
- * \param[in] schedule schedule
- * \return Time of first task, 0 if task->flush is set,
- * 		-1 if no task available
- */
-time_t schedule_time_first(schedule_type* schedule);
+void sched_flush(schedule_type* schedule, task_id override);
 
 /**
- * Number of task in schedule
- * \param[in] schedule schedule
- * \return task count, 0 on empty or error;
+ * Flush schedule for a specific type of task.
+ * \param[in] schedule schedule to be flushed
+ * \return number of tasks flushed
  */
-size_t schedule_taskcount(schedule_type* schedule);
+int schedule_flush_type(schedule_type* schedule, char const *class, char const *type);
+
+int schedule_info(schedule_type* schedule, time_t* firstFireTime, int* idleWorkers, int* taskCount);
 
 /**
  * Wake up all threads waiting for tasks. Useful to on program teardown.
@@ -162,7 +158,6 @@ size_t schedule_taskcount(schedule_type* schedule);
 void schedule_release_all(schedule_type* schedule);
 
 void sched_task_destroy(schedule_type* sched, task_type* task);
-void sched_flush(schedule_type* schedule, task_id override);
 time_t sched_task_due(task_type* task);
 int sched_task_istype(task_type* task, task_id type);
 char* sched_describetask(task_type* task);

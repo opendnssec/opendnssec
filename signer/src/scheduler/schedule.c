@@ -27,23 +27,141 @@
 /**
  * Task scheduling.
  *
+ * This module maintains a collection of tasks. All external functions
+ * should be thread safe. Beware not to call an external function from
+ * within this module, it will cause deadlocks.
+ *
+ * In principle the calling function should never need to lock the
+ * scheduler.
  */
 
 #include "config.h"
-#include "scheduler/schedule.h"
-#include "scheduler/task.h"
-#include "signer/zone.h"
-#include "duration.h"
-#include "log.h"
 
 #include <ldns/ldns.h>
+#include <pthread.h>
+#include <signal.h>
+
+#include "scheduler/schedule.h"
+#include "scheduler/task.h"
+#include "duration.h"
+#include "log.h"
+#include "locks.h"
 
 static const char* schedule_str = "scheduler";
 
+/**
+ * Convert task to a tree node.
+ * NULL on malloc failure
+ */
+static ldns_rbnode_t*
+task2node(task_type* task)
+{
+    ldns_rbnode_t* node = (ldns_rbnode_t*) malloc(sizeof(ldns_rbnode_t));
+    if (node) {
+        node->key = task;
+        node->data = task;
+    }
+    return node;
+}
 
 /**
- * Create new schedule.
+ * Get the first scheduled task. As long as return value is used
+ * caller should hold schedule->schedule_lock.
+ * 
+ * \param[in] schedule schedule
+ * \return task_type* first scheduled task, NULL on no task or error.
+ */
+static task_type*
+get_first_task(schedule_type* schedule)
+{
+    ldns_rbnode_t* first_node;
+
+    if (!schedule || !schedule->tasks) return NULL;
+    first_node = ldns_rbtree_first(schedule->tasks);
+    if (!first_node) return NULL;
+    return (task_type*) first_node->data;
+}
+
+/**
+ * Get the first scheduled task.
  *
+ */
+static task_type*
+schedule_get_first_task(schedule_type* schedule)
+{
+    ldns_rbnode_t* first_node = LDNS_RBTREE_NULL;
+    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
+    task_type* pop = NULL;
+    if (!schedule || !schedule->tasks) {
+        return NULL;
+    }
+    first_node = ldns_rbtree_first(schedule->tasks);
+    if (!first_node) {
+        return NULL;
+    }
+    if (schedule->flushcount > 0) {
+        /* find remaining to be flushed tasks */
+        node = first_node;
+        while (node && node != LDNS_RBTREE_NULL) {
+            pop = (task_type*) node->data;
+            if (pop->flush) {
+                return pop;
+            }
+            node = ldns_rbtree_next(node);
+        }
+        /* no more to be flushed tasks found */
+        ods_log_warning("[%s] unable to get first scheduled task: could not "
+            "find flush-task, while there should be %i flush-tasks left",
+            schedule_str, schedule->flushcount);
+        ods_log_info("[%s] reset flush count to 0", schedule_str);
+        schedule->flushcount = 0;
+    }
+    /* no more tasks to be flushed, return first task in schedule */
+    pop = (task_type*) first_node->data;
+    return pop;
+}
+
+/**
+ * Look up task.
+ *
+ */
+static task_type*
+schedule_lookup_task(schedule_type* schedule, task_type* task)
+{
+    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
+    task_type* lookup = NULL;
+    if (!schedule || !task) {
+        return NULL;
+    }
+    ods_log_assert(schedule->tasks);
+    node = ldns_rbtree_search(schedule->tasks, task);
+    if (node && node != LDNS_RBTREE_NULL) {
+        lookup = (task_type*) node->data;
+    }
+    return lookup;
+}
+
+/**
+ * Internal task cleanup function.
+ *
+ */
+static void
+task_delfunc(ldns_rbnode_t* node)
+{
+    task_type* task;
+
+    if (node && node != LDNS_RBTREE_NULL) {
+        task = (task_type*) node->data;
+        task_delfunc(node->left);
+        task_delfunc(node->right);
+        task_destroy(task);
+        free((void*)node);
+    }
+}
+
+/**
+ * Create new schedule. Allocate and initialise scheduler. To clean
+ * up schedule_cleanup() should be called.
  */
 schedule_type*
 schedule_create()
@@ -68,43 +186,25 @@ schedule_create()
     return schedule;
 }
 
-
 /**
- * Convert task to a tree node.
- *
+ * Clean up schedule. deinitialise and free scheduler.
+ * Threads MUST be stopped before calling this function.
  */
-static ldns_rbnode_t*
-task2node(task_type* task)
+void
+schedule_cleanup(schedule_type* schedule)
 {
-    ldns_rbnode_t* node = (ldns_rbnode_t*) malloc(sizeof(ldns_rbnode_t));
-    if (node) {
-        node->key = task;
-        node->data = task;
+    if (!schedule) {
+        return;
     }
-    return node;
+    ods_log_debug("[%s] cleanup schedule", schedule_str);
+    if (schedule->tasks) {
+        task_delfunc(schedule->tasks->root);
+        ldns_rbtree_free(schedule->tasks);
+        schedule->tasks = NULL;
+    }
+    pthread_mutex_destroy(&schedule->schedule_lock);
+    free(schedule);
 }
-
-
-/**
- * Look up task.
- *
- */
-task_type*
-schedule_lookup_task(schedule_type* schedule, task_type* task)
-{
-    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
-    task_type* lookup = NULL;
-    if (!schedule || !task) {
-        return NULL;
-    }
-    ods_log_assert(schedule->tasks);
-    node = ldns_rbtree_search(schedule->tasks, task);
-    if (node && node != LDNS_RBTREE_NULL) {
-        lookup = (task_type*) node->data;
-    }
-    return lookup;
-}
-
 
 /**
  * Schedule task.
@@ -185,46 +285,6 @@ unschedule_task(schedule_type* schedule, task_type* task)
 
 
 /**
- * Get the first scheduled task.
- *
- */
-task_type*
-schedule_get_first_task(schedule_type* schedule)
-{
-    ldns_rbnode_t* first_node = LDNS_RBTREE_NULL;
-    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
-    task_type* pop = NULL;
-    if (!schedule || !schedule->tasks) {
-        return NULL;
-    }
-    first_node = ldns_rbtree_first(schedule->tasks);
-    if (!first_node) {
-        return NULL;
-    }
-    if (schedule->flushcount > 0) {
-        /* find remaining to be flushed tasks */
-        node = first_node;
-        while (node && node != LDNS_RBTREE_NULL) {
-            pop = (task_type*) node->data;
-            if (pop->flush) {
-                return pop;
-            }
-            node = ldns_rbtree_next(node);
-        }
-        /* no more to be flushed tasks found */
-        ods_log_warning("[%s] unable to get first scheduled task: could not "
-            "find flush-task, while there should be %i flush-tasks left",
-            schedule_str, schedule->flushcount);
-        ods_log_info("[%s] reset flush count to 0", schedule_str);
-        schedule->flushcount = 0;
-    }
-    /* no more tasks to be flushed, return first task in schedule */
-    pop = (task_type*) first_node->data;
-    return pop;
-}
-
-
-/**
  * Pop the first scheduled task.
  *
  */
@@ -255,54 +315,6 @@ schedule_pop_task(schedule_type* schedule)
 }
 
 
-/**
- * Internal task cleanup function.
- *
- */
-static void
-task_delfunc(ldns_rbnode_t* elem)
-{
-    task_type* task;
-
-    if (elem && elem != LDNS_RBTREE_NULL) {
-        task = (task_type*) elem->data;
-        task_delfunc(elem->left);
-        task_delfunc(elem->right);
-        task_destroy(task);
-        free((void*)elem);
-    }
-}
-
-
-/**
- * Clean up schedule.
- *
- */
-void
-schedule_cleanup(schedule_type* schedule)
-{
-    if (!schedule) {
-        return;
-    }
-    ods_log_debug("[%s] cleanup schedule", schedule_str);
-    if (schedule->tasks) {
-        task_delfunc(schedule->tasks->root);
-        ldns_rbtree_free(schedule->tasks);
-        schedule->tasks = NULL;
-    }
-    pthread_mutex_destroy(&schedule->schedule_lock);
-    free(schedule);
-}
-
-void
-sched_task_destroy(schedule_type* sched, task_type* task)
-{
-    pthread_mutex_lock(&sched->schedule_lock);
-    task = unschedule_task(sched, (task_type*) task);
-    pthread_mutex_unlock(&sched->schedule_lock);
-    task_destroy(task);
-}
-
 void
 sched_flush(schedule_type* schedule, task_id override)
 {
@@ -326,6 +338,45 @@ sched_flush(schedule_type* schedule, task_id override)
     }
     /* wakeup! work to do! */
     pthread_mutex_unlock(&schedule->schedule_lock);
+}
+
+int
+schedule_info(schedule_type* schedule, time_t* firstFireTime, int* idleWorkers, int* taskCount)
+{
+    task_type* task;
+    if (firstFireTime) {
+        *firstFireTime = -1;
+    }
+    if (idleWorkers) {
+        *idleWorkers = 0;
+    }
+    if (taskCount) {
+        *taskCount = 0;
+    }
+    if (!schedule || !schedule->tasks) {
+        return -1;
+    }
+    pthread_mutex_lock(&schedule->schedule_lock);
+    if (taskCount)
+        *taskCount = schedule->tasks->count;
+    if (idleWorkers) {
+        *idleWorkers = schedule->num_waiting;
+    }
+    task = get_first_task(schedule);
+    if (task)
+        if (firstFireTime)
+            *firstFireTime = sched_task_due(task);
+    pthread_mutex_unlock(&schedule->schedule_lock);
+    return 0;
+}
+
+void
+sched_task_destroy(schedule_type* sched, task_type* task)
+{
+    pthread_mutex_lock(&sched->schedule_lock);
+    task = unschedule_task(sched, (task_type*) task);
+    pthread_mutex_unlock(&sched->schedule_lock);
+    task_destroy(task);
 }
 
 char*
