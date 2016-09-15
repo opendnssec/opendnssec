@@ -15,7 +15,6 @@
 		</Validity>
 		<Jitter>PT2S</Jitter>
 		<InceptionOffset>PT1S</InceptionOffset>
-		<MaxZoneTTL>PT0S</MaxZoneTTL>
 	</Signatures>
 	<Denial>
 		<NSEC/>
@@ -80,7 +79,6 @@
 		</Validity>
 		<Jitter>PT2M</Jitter>
 		<InceptionOffset>PT1M</InceptionOffset>
-		<MaxZoneTTL>PT0S</MaxZoneTTL>
 	</Signatures>
 	<Denial>
 		<NSEC3>
@@ -147,7 +145,6 @@
 		</Validity>
 		<Jitter>PT2M</Jitter>
 		<InceptionOffset>PT1M</InceptionOffset>
-		<MaxZoneTTL>PT0S</MaxZoneTTL>
 	</Signatures>
 	<Denial>
 		<NSEC3>
@@ -214,7 +211,6 @@
 		</Validity>
 		<Jitter>PT2M</Jitter>
 		<InceptionOffset>PT1M</InceptionOffset>
-		<MaxZoneTTL>PT0S</MaxZoneTTL>
 	</Signatures>
 	<Denial>
 		<NSEC3>
@@ -281,7 +277,6 @@
 		</Validity>
 		<Jitter>PT2M</Jitter>
 		<InceptionOffset>PT1M</InceptionOffset>
-		<MaxZoneTTL>PT0S</MaxZoneTTL>
 	</Signatures>
 	<Denial>
 		<NSEC3>
@@ -347,7 +342,6 @@
 		</Validity>
 		<Jitter>PT2M</Jitter>
 		<InceptionOffset>PT1M</InceptionOffset>
-		<MaxZoneTTL>PT0S</MaxZoneTTL>
 	</Signatures>
 	<Denial>
 		<NSEC3>
