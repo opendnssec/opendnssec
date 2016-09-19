@@ -49,53 +49,9 @@
 static const char* schedule_str = "scheduler";
 
 /* Condition must be accessible from ISR */
-static pthread_cond_t *schedule_cond;
-static pthread_mutex_t *schedule_lock;
 static int numwaiting = 0;
 
 static task_t* get_first_task(schedule_type *schedule);
-
-/**
- * Interrupt service routine on SIGALRM. When caught such signal one of
- * the threads waiting for a task is notified.
- */
-static void*
-alarm_handler(sig_atomic_t sig)
-{
-    switch (sig) {
-        case SIGALRM:
-            ods_log_debug("[%s] SIGALRM received", schedule_str);
-            pthread_mutex_lock(schedule_lock);
-                pthread_cond_signal(schedule_cond);
-            pthread_mutex_unlock(schedule_lock);
-            break;
-        default:
-            ods_log_debug("[%s] Spurious signal %d received", 
-                schedule_str, (int)sig);
-    }
-    return NULL;
-}
-
-/**
- * Inspect head of queue and wakeup a worker now or set alarm.
- * Caller SHOULD hold schedule->schedule_lock. Failing to do so
- * could possibly cause a thread to miss the wakeup.
- */
-static void
-set_alarm(schedule_type* schedule)
-{
-    time_t now = time_now();
-    task_t *task = get_first_task(schedule);
-    if (!task) {
-        ods_log_debug("[%s] no alarm set", schedule_str);
-    } else if (task->due_date <= now) {
-        ods_log_debug("[%s] signal now", schedule_str);
-        pthread_cond_signal(&schedule->schedule_cond);
-    } else {
-        ods_log_debug("[%s] SIGALRM set", schedule_str);
-        alarm(task->due_date - now);
-    }
-}
 
 /**
  * Convert task to a tree node.
@@ -155,7 +111,7 @@ pop_first_task(schedule_type* schedule)
     if (!delnode) return NULL;
     task = (task_t*) delnode->data;
     free(delnode); /* this delnode != node */
-    set_alarm(schedule);
+    pthread_cond_signal(&schedule->schedule_cond);
     return task;
 }
 
@@ -185,8 +141,6 @@ schedule_type*
 schedule_create()
 {
     schedule_type* schedule;
-    struct sigaction action;
-    pthread_mutexattr_t mtx_attr;
 
     schedule = (schedule_type*) malloc(sizeof(schedule_type));
     if (!schedule) {
@@ -198,25 +152,9 @@ schedule_create()
     schedule->tasks_by_name = ldns_rbtree_create(task_compare_ttuple);
     schedule->locks_by_name = ldns_rbtree_create(task_compare_ttuple);
 
-    /* The reason we allow recursive locks is because we broadcast
-     * a condition in an ISR. The main thread would receive this
-     * interrupt. If we would do no locking in the ISR we risk missing
-     * conditions. If we use a normal mutex we risk a deadlock if the
-     * main thread occasionally grabs the lock. */
-    (void)pthread_mutexattr_init(&mtx_attr);
-    (void)pthread_mutexattr_settype(&mtx_attr, PTHREAD_MUTEX_RECURSIVE);
-    pthread_mutex_init(&schedule->schedule_lock, &mtx_attr);
-    
+    pthread_mutex_init(&schedule->schedule_lock, NULL);
     pthread_cond_init(&schedule->schedule_cond, NULL);
-    /* static condition for alarm. Must be accessible from interrupt */
-    schedule_cond = &schedule->schedule_cond;
-    schedule_lock = &schedule->schedule_lock;
     schedule->num_waiting = 0;
-
-    action.sa_handler = (void (*)(int))&alarm_handler;
-    sigfillset(&action.sa_mask);
-    action.sa_flags = 0;
-    sigaction(SIGALRM, &action, NULL);
     
     return schedule;
 }
@@ -391,7 +329,7 @@ schedule_get_num_waiting(schedule_type* schedule)
 task_t*
 schedule_pop_task(schedule_type* schedule)
 {
-    time_t now = time_now();
+    time_t delay, now = time_now();
     task_t *task;
 
     pthread_mutex_lock(&schedule->schedule_lock);
@@ -399,8 +337,9 @@ schedule_pop_task(schedule_type* schedule)
         if (!task || task->due_date > now) {
             /* nothing to do now, sleep and wait for signal */
             schedule->num_waiting += 1;
-            pthread_cond_wait(&schedule->schedule_cond,
-                &schedule->schedule_lock);
+            delay = task?(task->due_date - now):0;
+            ods_thread_wait(&schedule->schedule_cond,
+                &schedule->schedule_lock, delay);
             schedule->num_waiting -= 1;
             task = NULL;
         } else {
@@ -562,7 +501,7 @@ schedule_task(schedule_type *schedule, task_t *task)
         ods_log_assert(ldns_rbtree_insert(schedule->tasks, node1));
         ods_log_assert(ldns_rbtree_insert(schedule->tasks_by_name, node2));
     }
-    set_alarm(schedule);
+    pthread_cond_signal(&schedule->schedule_cond);
     pthread_mutex_unlock(&schedule->schedule_lock);
     return ODS_STATUS_OK;
 }

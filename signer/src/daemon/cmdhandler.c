@@ -130,7 +130,7 @@ cmdhandler_handle_cmd_zones(int sockfd, cmdhandler_type* cmdc)
         return;
     }
     /* how many zones */
-    lock_basic_lock(&engine->zonelist->zl_lock);
+    pthread_mutex_lock(&engine->zonelist->zl_lock);
     (void)snprintf(buf, ODS_SE_MAXLINE, "There are %i zones configured\n",
         (int) engine->zonelist->zones->count);
     ods_writen(sockfd, buf, strlen(buf));
@@ -145,7 +145,7 @@ cmdhandler_handle_cmd_zones(int sockfd, cmdhandler_type* cmdc)
         ods_writen(sockfd, buf, strlen(buf));
         node = ldns_rbtree_next(node);
     }
-    lock_basic_unlock(&engine->zonelist->zl_lock);
+    pthread_mutex_unlock(&engine->zonelist->zl_lock);
 }
 
 
@@ -168,7 +168,7 @@ cmdhandler_handle_cmd_update(int sockfd, cmdhandler_type* cmdc,
     engine = cmdc->engine;
     ods_log_assert(engine->taskq);
     if (ods_strcmp(tbd, "--all") == 0) {
-        lock_basic_lock(&engine->zonelist->zl_lock);
+        pthread_mutex_lock(&engine->zonelist->zl_lock);
         zl_changed = zonelist_update(engine->zonelist,
             engine->config->zonelist_filename);
         if (zl_changed == ODS_STATUS_UNCHANGED) {
@@ -183,7 +183,7 @@ cmdhandler_handle_cmd_update(int sockfd, cmdhandler_type* cmdc,
                 engine->zonelist->just_updated);
             ods_writen(sockfd, buf, strlen(buf));
         } else {
-            lock_basic_unlock(&engine->zonelist->zl_lock);
+            pthread_mutex_unlock(&engine->zonelist->zl_lock);
             (void)snprintf(buf, ODS_SE_MAXLINE, "Zone list has errors.\n");
             ods_writen(sockfd, buf, strlen(buf));
         }
@@ -192,7 +192,7 @@ cmdhandler_handle_cmd_update(int sockfd, cmdhandler_type* cmdc,
             engine->zonelist->just_removed = 0;
             engine->zonelist->just_added = 0;
             engine->zonelist->just_updated = 0;
-            lock_basic_unlock(&engine->zonelist->zl_lock);
+            pthread_mutex_unlock(&engine->zonelist->zl_lock);
             /**
               * Always update the signconf for zones, even if zonelist has
               * not changed: ODS_STATUS_OK.
@@ -201,7 +201,7 @@ cmdhandler_handle_cmd_update(int sockfd, cmdhandler_type* cmdc,
         }
     } else {
         /* look up zone */
-        lock_basic_lock(&engine->zonelist->zl_lock);
+        pthread_mutex_lock(&engine->zonelist->zl_lock);
         zone = zonelist_lookup_zone_by_name(engine->zonelist, tbd,
             LDNS_RR_CLASS_IN);
         /* If this zone is just added, don't update (it might not have a
@@ -209,7 +209,7 @@ cmdhandler_handle_cmd_update(int sockfd, cmdhandler_type* cmdc,
         if (zone && zone->zl_status == ZONE_ZL_ADDED) {
             zone = NULL;
         }
-        lock_basic_unlock(&engine->zonelist->zl_lock);
+        pthread_mutex_unlock(&engine->zonelist->zl_lock);
 
         if (!zone) {
             (void)snprintf(buf, ODS_SE_MAXLINE, "Error: Zone %s not found.\n",
@@ -220,9 +220,9 @@ cmdhandler_handle_cmd_update(int sockfd, cmdhandler_type* cmdc,
             return;
         }
 
-        lock_basic_lock(&zone->zone_lock);
+        pthread_mutex_lock(&zone->zone_lock);
         status = zone_reschedule_task(zone, engine->taskq, TASK_SIGNCONF);
-        lock_basic_unlock(&zone->zone_lock);
+        pthread_mutex_unlock(&zone->zone_lock);
 
         if (status != ODS_STATUS_OK) {
             (void)snprintf(buf, ODS_SE_MAXLINE, "Error: Unable to reschedule "
@@ -258,7 +258,7 @@ cmdhandler_handle_cmd_retransfer(int sockfd, cmdhandler_type* cmdc, char* tbd)
     engine = (engine_type*) cmdc->engine;
     ods_log_assert(engine->taskq);
     /* look up zone */
-    lock_basic_lock(&engine->zonelist->zl_lock);
+    pthread_mutex_lock(&engine->zonelist->zl_lock);
     zone = zonelist_lookup_zone_by_name(engine->zonelist, tbd,
         LDNS_RR_CLASS_IN);
     /* If this zone is just added, don't retransfer (it might not have a
@@ -266,7 +266,7 @@ cmdhandler_handle_cmd_retransfer(int sockfd, cmdhandler_type* cmdc, char* tbd)
     if (zone && zone->zl_status == ZONE_ZL_ADDED) {
         zone = NULL;
     }
-    lock_basic_unlock(&engine->zonelist->zl_lock);
+    pthread_mutex_unlock(&engine->zonelist->zl_lock);
 
     if (!zone) {
         (void)snprintf(buf, ODS_SE_MAXLINE, "Error: Zone %s not found.\n",
@@ -315,9 +315,9 @@ cmdhandler_handle_cmd_sign(int sockfd, cmdhandler_type* cmdc, const char* tbd)
     engine = (engine_type*) cmdc->engine;
     ods_log_assert(engine->taskq);
     if (ods_strcmp(tbd, "--all") == 0) {
-        lock_basic_lock(&engine->taskq->schedule_lock);
+        pthread_mutex_lock(&engine->taskq->schedule_lock);
         schedule_flush(engine->taskq, TASK_READ);
-        lock_basic_unlock(&engine->taskq->schedule_lock);
+        pthread_mutex_unlock(&engine->taskq->schedule_lock);
         engine_wakeup_workers(engine);
         (void)snprintf(buf, ODS_SE_MAXLINE, "All zones scheduled for "
             "immediate re-sign.\n");
@@ -354,7 +354,7 @@ cmdhandler_handle_cmd_sign(int sockfd, cmdhandler_type* cmdc, const char* tbd)
             force_serial = 1;
             *delim1 = '\0';
         }
-        lock_basic_lock(&engine->zonelist->zl_lock);
+        pthread_mutex_lock(&engine->zonelist->zl_lock);
         zone = zonelist_lookup_zone_by_name(engine->zonelist, tbd,
             LDNS_RR_CLASS_IN);
         /* If this zone is just added, don't update (it might not have a task
@@ -363,7 +363,7 @@ cmdhandler_handle_cmd_sign(int sockfd, cmdhandler_type* cmdc, const char* tbd)
         if (zone && zone->zl_status == ZONE_ZL_ADDED) {
             zone = NULL;
         }
-        lock_basic_unlock(&engine->zonelist->zl_lock);
+        pthread_mutex_unlock(&engine->zonelist->zl_lock);
 
         if (!zone) {
             (void)snprintf(buf, ODS_SE_MAXLINE, "Error: Zone %s not found.\n",
@@ -372,12 +372,12 @@ cmdhandler_handle_cmd_sign(int sockfd, cmdhandler_type* cmdc, const char* tbd)
             return;
         }
 
-        lock_basic_lock(&zone->zone_lock);
+        pthread_mutex_lock(&zone->zone_lock);
         if (force_serial) {
             ods_log_assert(zone->db);
             if (!util_serial_gt(serial, max(zone->db->outserial,
                 zone->db->inbserial))) {
-                lock_basic_unlock(&zone->zone_lock);
+                pthread_mutex_unlock(&zone->zone_lock);
                 (void)snprintf(buf, ODS_SE_MAXLINE, "Error: Unable to enforce "
                     "serial %u for zone %s.\n", serial, tbd);
                 ods_writen(sockfd, buf, strlen(buf));
@@ -387,7 +387,7 @@ cmdhandler_handle_cmd_sign(int sockfd, cmdhandler_type* cmdc, const char* tbd)
             zone->db->force_serial = 1;
         }
         status = zone_reschedule_task(zone, engine->taskq, TASK_READ);
-        lock_basic_unlock(&zone->zone_lock);
+        pthread_mutex_unlock(&zone->zone_lock);
 
         if (status != ODS_STATUS_OK) {
             (void)snprintf(buf, ODS_SE_MAXLINE, "Error: Unable to reschedule "
@@ -444,12 +444,12 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_type* cmdc, const char* tbd)
     unlink_backup_file(tbd, ".backup");
     unlink_backup_file(tbd, ".axfr");
     unlink_backup_file(tbd, ".ixfr");
-    lock_basic_lock(&engine->zonelist->zl_lock);
+    pthread_mutex_lock(&engine->zonelist->zl_lock);
     zone = zonelist_lookup_zone_by_name(engine->zonelist, tbd,
         LDNS_RR_CLASS_IN);
-    lock_basic_unlock(&engine->zonelist->zl_lock);
+    pthread_mutex_unlock(&engine->zonelist->zl_lock);
     if (zone) {
-        lock_basic_lock(&zone->zone_lock);
+        pthread_mutex_lock(&zone->zone_lock);
         inbserial = zone->db->inbserial;
         intserial = zone->db->intserial;
         outserial = zone->db->outserial;
@@ -472,8 +472,11 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_type* cmdc, const char* tbd)
         zone->db->outserial = outserial;
         zone->db->have_serial = 1;
 
-        status = zone_reschedule_task(zone, engine->taskq, TASK_SIGNCONF);
-        lock_basic_unlock(&zone->zone_lock);
+        /* If a zone does not have a task we probably never read a signconf
+         * for it. Skip reschedule step */
+        if (zone->task)
+            status = zone_reschedule_task(zone, engine->taskq, TASK_SIGNCONF);
+        pthread_mutex_unlock(&zone->zone_lock);
 
         if (status != ODS_STATUS_OK) {
             (void)snprintf(buf, ODS_SE_MAXLINE, "Error: Unable to reschedule "
@@ -525,7 +528,7 @@ cmdhandler_handle_cmd_queue(int sockfd, cmdhandler_type* cmdc)
         strtime?strtime:"(null)");
     ods_writen(sockfd, buf, strlen(buf));
     /* current work */
-    lock_basic_lock(&engine->taskq->schedule_lock);
+    pthread_mutex_lock(&engine->taskq->schedule_lock);
     for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
         task = engine->workers[i]->task;
         if (task) {
@@ -551,7 +554,7 @@ cmdhandler_handle_cmd_queue(int sockfd, cmdhandler_type* cmdc)
         ods_writen(sockfd, buf, strlen(buf));
         node = ldns_rbtree_next(node);
     }
-    lock_basic_unlock(&engine->taskq->schedule_lock);
+    pthread_mutex_unlock(&engine->taskq->schedule_lock);
 }
 
 
@@ -568,9 +571,9 @@ cmdhandler_handle_cmd_flush(int sockfd, cmdhandler_type* cmdc)
     ods_log_assert(cmdc->engine);
     engine = (engine_type*) cmdc->engine;
     ods_log_assert(engine->taskq);
-    lock_basic_lock(&engine->taskq->schedule_lock);
+    pthread_mutex_lock(&engine->taskq->schedule_lock);
     schedule_flush(engine->taskq, TASK_NONE);
-    lock_basic_unlock(&engine->taskq->schedule_lock);
+    pthread_mutex_unlock(&engine->taskq->schedule_lock);
     engine_wakeup_workers(engine);
     (void)snprintf(buf, ODS_SE_MAXLINE, "All tasks scheduled immediately.\n");
     ods_writen(sockfd, buf, strlen(buf));
@@ -592,9 +595,9 @@ cmdhandler_handle_cmd_reload(int sockfd, cmdhandler_type* cmdc)
     engine = (engine_type*) cmdc->engine;
     ods_log_error("signer instructed to reload due to explicit command");
     engine->need_to_reload = 1;
-    lock_basic_lock(&engine->signal_lock);
-    lock_basic_alarm(&engine->signal_cond);
-    lock_basic_unlock(&engine->signal_lock);
+    pthread_mutex_lock(&engine->signal_lock);
+    pthread_cond_signal(&engine->signal_cond);
+    pthread_mutex_unlock(&engine->signal_lock);
     (void)snprintf(buf, ODS_SE_MAXLINE, "Reloading engine.\n");
     ods_writen(sockfd, buf, strlen(buf));
 }
@@ -613,9 +616,9 @@ cmdhandler_handle_cmd_stop(int sockfd, cmdhandler_type* cmdc)
     ods_log_assert(cmdc->engine);
     engine = (engine_type*) cmdc->engine;
     engine->need_to_exit = 1;
-    lock_basic_lock(&engine->signal_lock);
-    lock_basic_alarm(&engine->signal_cond);
-    lock_basic_unlock(&engine->signal_lock);
+    pthread_mutex_lock(&engine->signal_lock);
+    pthread_cond_signal(&engine->signal_cond);
+    pthread_mutex_unlock(&engine->signal_lock);
     (void)snprintf(buf, ODS_SE_MAXLINE, ODS_SE_STOP_RESPONSE);
     ods_writen(sockfd, buf, strlen(buf));
 }
@@ -834,7 +837,7 @@ cmdhandler_accept_client(void* arg)
     cmdhandler_type* cmdc = (cmdhandler_type*) arg;
 
     ods_thread_blocksigs();
-    ods_thread_detach(cmdc->thread_id);
+    pthread_detach(cmdc->thread_id);
 
     ods_log_debug("[%s] accept client %i", cmdh_str, cmdc->client_fd);
     cmdhandler_handle_cmd(cmdc);
@@ -939,7 +942,7 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
     ods_log_assert(cmdhandler->engine);
     ods_log_debug("[%s] start", cmdh_str);
     engine = cmdhandler->engine;
-    ods_thread_detach(cmdhandler->thread_id);
+    pthread_detach(cmdhandler->thread_id);
     FD_ZERO(&rset);
     while (cmdhandler->need_to_exit == 0) {
         clilen = sizeof(cliaddr);

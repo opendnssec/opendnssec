@@ -38,76 +38,18 @@
 #include <errno.h>
 #include <stdlib.h>
 
-#define LOCKRET(func) do { \
-	int err; \
-	if ( (err=(func)) != 0) \
-		ods_log_error("%s at %d could not " #func ": %s", \
-		__FILE__, __LINE__, strerror(err)); \
-	} while(0)
-
-#if defined(HAVE_PTHREAD)
-
 #include <pthread.h>
 
 /** ods-signerd will crash if the thread stacksize is too small */
 #define ODS_MINIMUM_STACKSIZE 524288
 
-/** use pthread mutex for basic lock */
-typedef pthread_mutex_t lock_basic_type;
-/** use pthread cond for basic condition */
-typedef pthread_cond_t cond_basic_type;
-
-/** small front for pthread init func, NULL is default attrs. */
-#define lock_basic_init(lock) LOCKRET(pthread_mutex_init(lock, NULL))
-#define lock_basic_destroy(lock) LOCKRET(pthread_mutex_destroy(lock))
-#define lock_basic_lock(lock) LOCKRET(pthread_mutex_lock(lock))
-#define lock_basic_unlock(lock) LOCKRET(pthread_mutex_unlock(lock))
-
-/** our own alarm clock */
-#define lock_basic_set(cond) LOCKRET(pthread_cond_init(cond, NULL))
-#define lock_basic_sleep(cond, lock, sleep) LOCKRET(ods_thread_wait(cond, lock, sleep))
-#define lock_basic_alarm(cond) LOCKRET(pthread_cond_signal(cond))
-#define lock_basic_broadcast(cond) LOCKRET(pthread_cond_broadcast(cond))
-#define lock_basic_off(cond) LOCKRET(pthread_cond_destroy(cond))
-
-/** thread creation */
-typedef pthread_t ods_thread_type;
-/** Pass where to store tread_t in thr. */
-#define ods_thread_detach(thr) LOCKRET(pthread_detach(thr))
-#define ods_thread_self() pthread_self()
-#define ods_thread_join(thr) LOCKRET(pthread_join(thr, NULL))
-#define ods_thread_kill(thr, sig) LOCKRET(pthread_kill(thr, sig))
 int ods_thread_create(pthread_t *thr, void *(*func)(void *), void *arg);
-int ods_thread_wait(cond_basic_type* cond, lock_basic_type* lock, time_t wait);
+int ods_thread_wait(pthread_cond_t* cond, pthread_mutex_t* lock, time_t wait);
 
-#else /* !HAVE_PTHREAD */
-
-/* we do not have PTHREADS */
-#define PTHREADS_DISABLED 1
-
-typedef int lock_basic_type;
-#define lock_basic_init(lock) 		/* nop */
-#define lock_basic_destroy(lock) 	/* nop */
-#define lock_basic_lock(lock) 		/* nop */
-#define lock_basic_unlock(lock) 	/* nop */
-
-#define lock_basic_set(cond)       /* nop */
-#define lock_basic_sleep(cond, lock, sleep) /* nop */
-#define lock_basic_alarm(cond)     /* nop */
-#define lock_basic_broadcast(cond)     /* nop */
-#define lock_basic_off(cond)       /* nop */
-
-typedef pid_t ods_thread_type;
-#define ods_thread_create(thr, func, arg) ods_thr_fork_create(thr, func, arg)
-#define ods_thread_detach(thr)      /* nop */
-#define ods_thread_self() getpid()
-#define ods_thread_join(thr) ods_thr_fork_wait(thr)
-
-void ods_thr_fork_create(ods_thread_type* thr, void* (*func)(void*), void* arg);
-void ods_thr_fork_wait(ods_thread_type thread);
-
-#endif /* HAVE_PTHREAD */
-
+/**
+ * Explicitly block all signals for calling thread so we are sure any
+ * signal coming from our OS will end up at the main thread.
+ */
 void ods_thread_blocksigs(void);
 
 #endif /* SHARED_LOCKS_H */

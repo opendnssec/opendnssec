@@ -51,7 +51,7 @@ typedef struct xfrhandler_struct xfrhandler_type;
  */
 struct xfrhandler_struct {
     /* Engine reference */
-    ods_thread_type thread_id;
+    pthread_t thread_id;
     engine_type* engine;
     /* Start time */
     time_t start_time;

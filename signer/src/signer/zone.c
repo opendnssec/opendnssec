@@ -193,7 +193,7 @@ zone_reschedule_task(zone_type* zone, schedule_type* taskq, task_id what)
      ods_log_assert(zone->name);
      ods_log_assert(zone->task);
      ods_log_debug("[%s] reschedule task for zone %s", zone_str, zone->name);
-     lock_basic_lock(&taskq->schedule_lock);
+     pthread_mutex_lock(&taskq->schedule_lock);
      task = unschedule_task(taskq, zone->task);
      if (task != NULL) {
          if (task->what != what) {
@@ -216,7 +216,7 @@ zone_reschedule_task(zone_type* zone, schedule_type* taskq, task_id what)
          task->interrupt = what;
          /* task->halted(_when) set by worker */
      }
-     lock_basic_unlock(&taskq->schedule_lock);
+     pthread_mutex_unlock(&taskq->schedule_lock);
      zone->task = task;
      return status;
 }
@@ -824,8 +824,8 @@ zone_cleanup(zone_type* zone)
     free((void*)zone->signconf_filename);
     free((void*)zone->name);
     collection_class_destroy(&zone->rrstore);
-    lock_basic_destroy(&zone->xfr_lock);
-    lock_basic_destroy(&zone->zone_lock);
+    pthread_mutex_destroy(&zone->xfr_lock);
+    pthread_mutex_destroy(&zone->zone_lock);
     free(zone);
 }
 
@@ -1042,9 +1042,9 @@ zone_recover2(zone_type* zone)
                 zone->ixfr = ixfr_create();
             }
         }
-        lock_basic_lock(&zone->ixfr->ixfr_lock);
+        pthread_mutex_lock(&zone->ixfr->ixfr_lock);
         ixfr_purge(zone->ixfr, zone->name);
-        lock_basic_unlock(&zone->ixfr->ixfr_lock);
+        pthread_mutex_unlock(&zone->ixfr->ixfr_lock);
 
         /* all ok */
         free((void*)filename);
@@ -1052,9 +1052,9 @@ zone_recover2(zone_type* zone)
             ods_fclose(fd);
         }
         if (zone->stats) {
-            lock_basic_lock(&zone->stats->stats_lock);
+            pthread_mutex_lock(&zone->stats->stats_lock);
             stats_clear(zone->stats);
-            lock_basic_unlock(&zone->stats->stats_lock);
+            pthread_mutex_unlock(&zone->stats->stats_lock);
         }
         return ODS_STATUS_OK;
     }
@@ -1076,9 +1076,9 @@ recover_error2:
     ods_log_assert(zone->db);
     /* stats reset */
     if (zone->stats) {
-       lock_basic_lock(&zone->stats->stats_lock);
+       pthread_mutex_lock(&zone->stats->stats_lock);
        stats_clear(zone->stats);
-       lock_basic_unlock(&zone->stats->stats_lock);
+       pthread_mutex_unlock(&zone->stats->stats_lock);
     }
     return ODS_STATUS_ERR;
 }

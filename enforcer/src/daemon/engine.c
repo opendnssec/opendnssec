@@ -51,6 +51,7 @@
 #include "db/database_version.h"
 #include "hsmkey/hsm_key_factory.h"
 #include "libhsm.h"
+#include "locks.h"
 
 #include <errno.h>
 #include <libxml/parser.h>
@@ -111,15 +112,8 @@ engine_dealloc(engine_type* engine)
 static void*
 cmdhandler_thread_start(void* arg)
 {
-    int err;
-    sigset_t sigset;
-    cmdhandler_type* cmd = (cmdhandler_type*) arg;
-
-    sigfillset(&sigset);
-    if((err=pthread_sigmask(SIG_SETMASK, &sigset, NULL)))
-        ods_fatal_exit("[%s] pthread_sigmask: %s", engine_str, strerror(err));
-
-    cmdhandler_start(cmd);
+    ods_thread_blocksigs();
+    cmdhandler_start((cmdhandler_type*) arg);
     return NULL;
 }
 
@@ -190,13 +184,9 @@ engine_create_workers(engine_type* engine)
 static void*
 worker_thread_start(void* arg)
 {
-    int err;
-    sigset_t sigset;
     worker_type* worker = (worker_type*) arg;
 
-    sigfillset(&sigset);
-    if((err=pthread_sigmask(SIG_SETMASK, &sigset, NULL)))
-        ods_fatal_exit("[%s] pthread_sigmask: %s", engine_str, strerror(err));
+    ods_thread_blocksigs();
 
     worker->dbconn = get_database_connection(worker->engine->dbcfg_list);
     if (!worker->dbconn) {
