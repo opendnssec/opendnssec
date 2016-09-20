@@ -53,6 +53,7 @@ usage(int sockfd)
 {
     client_printf(sockfd,
         "policy import\n"
+        "	[--remove-missing-policies]		aka -r\n"
     );
 }
 
@@ -60,9 +61,13 @@ static void
 help(int sockfd)
 {
     client_printf(sockfd,
-        "Import policies from kasp.xml into the enforcer database.\n\n"
+        "Import policies from kasp.xml into the enforcer database.\n"
+        "\nOptions:\n"
+        "remove-missing-policies	Remove any policies from database "
+            "that do not exist in the KASP file\n\n"
     );
 }
+
 
 static int
 handles(const char *cmd, ssize_t n)
@@ -74,24 +79,41 @@ static int
 run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     db_connection_t *dbconn)
 {
-    (void)cmd; (void)n;
+    #define NARGV 8
 
-    if (!engine) {
-        return 1;
-    }
-    if (!engine->config) {
-        return 1;
-    }
-    if (!engine->config->policy_filename) {
-        return 1;
-    }
-    if (!dbconn) {
+    int remove_missing_policies, argc;
+    char buf[ODS_SE_MAXLINE];
+    char const *argv[NARGV];
+
+    if (!engine || !engine->config || !engine->config->policy_filename
+        || !dbconn)
+    {
         return 1;
     }
 
     ods_log_debug("[%s] %s command", module_str, policy_import_funcblock()->cmdname);
 
-    switch (policy_import(sockfd, engine, dbconn, 0)) {
+    cmd = ods_check_command(cmd, n, policy_import_funcblock()->cmdname);
+    if (!cmd) return -1;
+    strncpy(buf, cmd, sizeof(buf));
+    buf[sizeof(buf)-1] = '\0';
+    /* separate the arguments*/
+    argc = ods_str_explode(buf, NARGV, argv);
+    if (argc > NARGV) {
+        ods_log_warning("[%s] too many arguments for %s command",
+                        module_str, policy_import_funcblock()->cmdname);
+        client_printf(sockfd,"too many arguments\n");
+        return -1;
+    }
+    remove_missing_policies = (ods_find_arg(&argc, argv, "remove-missing-policies", "r") >= 0);
+    if (argc) {
+        ods_log_warning("[%s] unknown arguments for %s command",
+                        module_str, policy_import_funcblock()->cmdname);
+        client_printf(sockfd,"unknown arguments\n");
+        return -1;
+    }
+
+    switch (policy_import(sockfd, engine, dbconn, remove_missing_policies)) {
     case POLICY_IMPORT_OK:
         (void)flush_enforce_task(engine, 0);
         (void)flush_resalt_task(engine);
