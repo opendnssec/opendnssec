@@ -46,10 +46,10 @@ extern const db_enum_t policy_enum_set_denial_type[];
 
 typedef enum policy_zone_soa_serial {
     POLICY_ZONE_SOA_SERIAL_INVALID = -1,
-    POLICY_ZONE_SOA_SERIAL_COUNTER = 0,
-    POLICY_ZONE_SOA_SERIAL_DATECOUNTER = 1,
-    POLICY_ZONE_SOA_SERIAL_UNIXTIME = 2,
-    POLICY_ZONE_SOA_SERIAL_KEEP = 3
+    POLICY_ZONE_SOA_SERIAL_UNIXTIME = 1,
+    POLICY_ZONE_SOA_SERIAL_COUNTER = 2,
+    POLICY_ZONE_SOA_SERIAL_DATECOUNTER = 3,
+    POLICY_ZONE_SOA_SERIAL_KEEP = 4
 } policy_zone_soa_serial_t;
 
 #include "policy_ext.h"
