@@ -1,3 +1,11 @@
+OpenDNSSEC 2.0.2 - 2016-09-27
+
+* OpenDNSSEC-839: update all no longer deletes zones or policies. Policy import
+  now has a --remove-missing-policies option. (thanks David Peall)
+* OpenDNSSEC-840: Fix migration script to correcttly interpret SOA serial
+  strategy.
+* OPENDNSSEC-843: MaxZoneTTL defaults to 0 instead of 1 day.
+
 OpenDNSSEC 2.0.1 - 2016-07-21
 
 * Fixed crash and linking issue in ods-migrate.
