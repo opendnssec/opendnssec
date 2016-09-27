@@ -1167,17 +1167,13 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
     }
     if (!signatures_max_zone_ttl) {
         ods_log_deeebug("[policy_*_from_xml] - signatures max zone ttl");
-        if (check_if_updated) {
-            update_this = 0;
-            if (policy_signatures_max_zone_ttl(policy)) {
-                *updated = 1;
-                update_this = 1;
-            }
-        }
-        if (update_this) {
-            if (policy_set_signatures_max_zone_ttl(policy, 0)) {
+
+        if (policy_signatures_max_zone_ttl(policy) != 86400)
+        {
+            if (policy_set_signatures_max_zone_ttl(policy, 86400)) {
                 return DB_ERROR_UNKNOWN;
             }
+            if (check_if_updated) *updated = 1;
         }
     }
     if (!keys_purge) {

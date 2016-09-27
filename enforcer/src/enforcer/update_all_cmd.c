@@ -122,16 +122,8 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 		pthread_mutex_lock(&engine->signal_lock);
 		engine_stop_workers(engine);
 
-		/*
-		 * Update KASP and zonelist, first update without deleting and then
-		 * update with deleting. This is for when a zone has changed policy and
-		 * the policy did not exist before.
-		 * NOTE: Errors are ignored!
-		 */
 		policy_import(sockfd, engine, dbconn, 0);
 		zonelist_import(sockfd, engine, dbconn, 0, NULL);
-		policy_import(sockfd, engine, dbconn, 1);
-		zonelist_import(sockfd, engine, dbconn, 1, NULL);
 
 		/*
 		 * Mark the engine for reload, signal it and start it again

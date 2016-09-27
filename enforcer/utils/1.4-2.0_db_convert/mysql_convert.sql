@@ -232,15 +232,29 @@ SET zoneSoaMinimum = (
 		AND REMOTE.parameters.category_id = 7
 		AND REMOTE.parameters.name = 'min');
 
+-- Temporary mapping table between 1.4 and 2.0 SOA serial strategy
+CREATE TABLE mapping (
+	soa14 INTEGER,
+	soa20 INTEGER
+);
+INSERT INTO mapping SELECT  1, 2;
+INSERT INTO mapping SELECT  2, 0;
+INSERT INTO mapping SELECT  3, 1;
+INSERT INTO mapping SELECT  4, 3;
+
 UPDATE policy
 SET zoneSoaSerial = (
-	SELECT value
+	SELECT mapping.soa20
 	FROM  REMOTE.parameters_policies
 	INNER JOIN REMOTE.parameters
 	ON REMOTE.parameters_policies.parameter_id = REMOTE.parameters.id 
+        INNER JOIN mapping
+        ON REMOTE.parameters_policies.value = mapping.soa14
 	WHERE REMOTE.parameters_policies.policy_id = policy.id 
 		AND REMOTE.parameters.category_id = 7
 		AND REMOTE.parameters.name = 'serial');
+
+DROP TABLE mapping;
 
 -- parentRegistrationDelay = 0 on 1.4
 
