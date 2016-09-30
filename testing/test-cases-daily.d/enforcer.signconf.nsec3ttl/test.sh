@@ -18,7 +18,7 @@ mkdir  gold &&
 # Start enforcer (Zones already exist and we let it generate keys itself)
 ods_start_enforcer &&
 
-sleep 4 &&
+sleep 1 && ods_enforcer_idle && sleep 1 &&
 
 for zone in with-ttl no-ttl with-0-ttl; do
 	# Used only to create a gold while setting up the test
@@ -62,7 +62,7 @@ echo "Importing changed policies" &&
 cp kasp.reversed.xml "$INSTALL_ROOT/etc/opendnssec/kasp.xml" &&
 log_this ods-import-reversed ods-enforcer policy import && 
 
-sleep 4 &&
+sleep 1 && ods_enforcer_idle && sleep 1 &&
 
 for zone in with-ttl no-ttl with-0-ttl; do
 	# Used only to create a gold while setting up the test
