@@ -553,6 +553,8 @@ ixfr(query_type* q, engine_type* engine)
             } else {
                 ods_log_deeebug("[%s] soa serial %u not found for rr at line %d",
                     axfr_str, q->serial, l);
+                ldns_rr_free(rr);
+                rr = NULL;
                 continue;
             }
         }
