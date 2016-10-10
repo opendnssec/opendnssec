@@ -642,6 +642,7 @@ JOIN REMOTE.keypairs
 	ON REMOTE.dnsseckeys.keypair_id = REMOTE.keypairs.id
 JOIN mapping 
 	ON REMOTE.dnsseckeys.state = mapping.state;
+WHERE EXISTS(select REMOTE.zones.id FROM REMOTE.zones WHERE REMOTE.zones.id = REMOTE.dnsseckeys.zone_id);
 --WHERE REMOTE.keypairs.generate IS NOT NULL;
 
 -- Everything that is just a ZSK must not have dsatparent set.
