@@ -576,7 +576,7 @@ successor_rec(key_data_t** keylist, size_t keylist_size,
          * first, only retrieving it from the database if needed or giving an
          * error if it does not exist in the keylist.
          */
-        if ((from_key = key_dependency_get_from_key_data(dep))) {
+        if (!(from_key = key_dependency_get_from_key_data(dep))) {
             key_dependency_list_free(deplist);
             return -1;
         }
