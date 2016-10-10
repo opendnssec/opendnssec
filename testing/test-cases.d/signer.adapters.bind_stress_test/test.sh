@@ -24,6 +24,7 @@ fi &&
 ods_reset_env &&
 
 ## Start master name server
+cp ods $BIND9_NAMED_RUNDIR/ods
 ods_bind9_info &&
 ods_bind9_start &&
 

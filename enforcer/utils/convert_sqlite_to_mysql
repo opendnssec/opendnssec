@@ -21,7 +21,7 @@ while getopts "i:o:h:u:p:" arg; do
 	u) DB_USR=$OPTARG ;;
 	p) DB_PWD=$OPTARG ;;
 	*)
-		echo "usage: "$0" -i DATABASE_1.4 -o DATABASE_2.0 [-h HOST] [-u USER] [-p PASSWORD]"
+		echo "usage: "$0" -i DATABASE_SQLITE -o DATABASE_MYSQL [-h HOST] [-u USER] [-p PASSWORD]"
 		exit 1
 	;;
 	esac
