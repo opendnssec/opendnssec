@@ -472,7 +472,10 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_type* cmdc, const char* tbd)
         zone->db->outserial = outserial;
         zone->db->have_serial = 1;
 
-        status = zone_reschedule_task(zone, engine->taskq, TASK_SIGNCONF);
+        /* If a zone does not have a task we probably never read a signconf
+         * for it. Skip reschedule step */
+        if (zone->task)
+            status = zone_reschedule_task(zone, engine->taskq, TASK_SIGNCONF);
         pthread_mutex_unlock(&zone->zone_lock);
 
         if (status != ODS_STATUS_OK) {

@@ -288,10 +288,14 @@ parse_conf_listener(const char* cfgfile)
     /* Parse interfaces */
     listener = listener_create();
     ods_log_assert(listener);
+
+    /* If port is not set in Listener in the conf file, default value is used.
+     * default port: 15354
+     */
     if (xpathObj->nodesetval && xpathObj->nodesetval->nodeNr > 0) {
         for (i = 0; i < xpathObj->nodesetval->nodeNr; i++) {
             address = NULL;
-            port = NULL;
+            port = "15354";
 
             curNode = xpathObj->nodesetval->nodeTab[i]->xmlChildrenNode;
             while (curNode) {
@@ -314,13 +318,19 @@ parse_conf_listener(const char* cfgfile)
             if (!interface) {
                ods_log_error("[%s] unable to add %s:%s interface: "
                    "listener_push() failed", parser_str, address?address:"",
-                   port?port:"");
+                   port);
             } else {
                ods_log_debug("[%s] added %s:%s interface to listener",
-                   parser_str, address?address:"", port?port:"");
+                   parser_str, address?address:"", port);
             }
             free((void*)port);
             free((void*)address);
+        }
+    }
+    else {
+        interface = listener_push(listener, (char *)"", AF_INET, "15354");
+        if (interface) {
+            interface = listener_push(listener, (char *)"", AF_INET6, "15354");
         }
     }
     xmlXPathFreeObject(xpathObj);
