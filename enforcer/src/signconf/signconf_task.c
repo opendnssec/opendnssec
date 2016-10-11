@@ -37,11 +37,12 @@
 static const char *module_str = "signconf_cmd";
 
 static time_t
-perform(char const *zonename, void *context, db_connection_t* dbconn)
+perform(char const *zonename, void *userdata, void *context)
 {
-    (void)context;
+    (void)userdata;
     int ret;
     char cmd[SYSTEM_MAXLEN];
+    db_connection_t* dbconn = (db_connection_t*) context;
 
     ods_log_info("[%s] performing signconf for zone %s", module_str,
         zonename);
@@ -75,9 +76,9 @@ void
 signconf_task_flush_zone(engine_type *engine, db_connection_t *dbconn,
     const char* zonename)
 {
-    task_t* task = task_create(strdup(zonename), TASK_CLASS_ENFORCER,
+    task_type* task = task_create(strdup(zonename), TASK_CLASS_ENFORCER,
         TASK_TYPE_SIGNCONF, perform, NULL, NULL, time_now());
-    (void) schedule_task(engine->taskq, task);
+    (void) schedule_task(engine->taskq, task, 0);
 }
 
 void

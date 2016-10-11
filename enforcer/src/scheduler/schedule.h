@@ -58,6 +58,8 @@ struct schedule_struct {
     /* For testing. So we can verify al workers are waiting and nothing
      * is to be done. Used by enforcer_idle. */
     int num_waiting;
+    int flushcount;
+    int loading; /* to determine backoff */
 };
 
 /**
@@ -112,7 +114,7 @@ void schedule_purge_owner(schedule_type* schedule, char const *class,
  * \return ods_status status
  *
  */
-ods_status schedule_task(schedule_type *schedule, task_t *task);
+ods_status schedule_task(schedule_type *schedule, task_type *task, int log);
 
 
 /** Get the number of threads in condition wait for this lock.
@@ -128,7 +130,7 @@ int schedule_get_num_waiting(schedule_type* schedule);
  * \return task_type* popped task, or NULL when no task available or
  * no task due
  */
-task_t* schedule_pop_task(schedule_type* schedule);
+task_type* schedule_pop_task(schedule_type* schedule);
 
 /**
  * Pop the first scheduled task. regardless of its due time.
@@ -138,7 +140,7 @@ task_t* schedule_pop_task(schedule_type* schedule);
  * \return task_type* popped task, or NULL when no task available or
  * no task available
  */
-task_t* schedule_pop_first_task(schedule_type* schedule);
+task_type* schedule_pop_first_task(schedule_type* schedule);
 
 /**
  * Time of first task in schedule.
@@ -156,16 +158,16 @@ time_t schedule_time_first(schedule_type* schedule);
 size_t schedule_taskcount(schedule_type* schedule);
 
 /**
- * Print schedule.
- * \param[in] out file descriptor
- * \param[in] schedule schedule
- *
- */
-void schedule_print(FILE* out, schedule_type* schedule);
-
-/**
  * Wake up all threads waiting for tasks. Useful to on program teardown.
  */
 void schedule_release_all(schedule_type* schedule);
+
+void sched_task_destroy(schedule_type* sched, task_type* task);
+void sched_flush(schedule_type* schedule, task_id override);
+time_t sched_task_due(task_type* task);
+int sched_task_istype(task_type* task, task_id type);
+char* sched_describetask(task_type* task);
+time_t task_execute(task_type* task, void* context);
+void task_perform(schedule_type* sched, task_type* task, void* context);
 
 #endif /* SCHEDULER_SCHEDULE_H */

@@ -828,7 +828,7 @@ int key_state_update(key_state_t* key_state) {
     return ret;
 }
 
-int key_state_delete(key_state_t* key_state) {
+int key_state_delete(const key_state_t* key_state) {
     db_clause_list_t* clause_list;
     db_clause_t* clause;
     int ret;

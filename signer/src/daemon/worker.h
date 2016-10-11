@@ -52,8 +52,6 @@ struct worker_struct {
     int thread_num;
     pthread_t thread_id;
     engine_type* engine;
-    task_type* task;
-    task_id working_with;
     worker_id type;
     time_t clock_in;
     size_t jobs_appointed;
@@ -64,6 +62,11 @@ struct worker_struct {
     unsigned sleeping : 1;
     unsigned waiting : 1;
     unsigned need_to_exit : 1;
+};
+
+struct worker_context {
+    worker_type* worker;
+    task_type* task;
 };
 
 /**
@@ -121,5 +124,7 @@ void worker_notify_all(pthread_mutex_t* lock, pthread_cond_t* condition);
  *
  */
 void worker_cleanup(worker_type* worker);
+
+time_t worker_perform_task(const char* zonename, void* zonearg, void* contextarg);
 
 #endif /* DAEMON_WORKER_H */
