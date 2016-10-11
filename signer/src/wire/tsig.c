@@ -218,6 +218,7 @@ tsig_key_create(allocator_type* allocator, tsig_type* tsig)
             "secret", tsig_str, tsig->name);
         ldns_rdf_deep_free(dname);
         allocator_deallocate(allocator, (void*)data);
+        return NULL;
     }
     key->dname = dname;
     key->size = size;
