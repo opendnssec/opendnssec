@@ -36,6 +36,7 @@
 
 #include <time.h>
 #include <ldns/ldns.h>
+#include <pthread.h>
 
 #include "scheduler/task.h"
 #include "status.h"
