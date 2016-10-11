@@ -2636,7 +2636,7 @@ removeDeadKeys(db_connection_t *dbconn, key_data_t** keylist,
 	size_t i, deplist2_size = 0;
 	int key_purgable, cmp;
 	unsigned int j;
-	const key_state_t* state;
+	const key_state_t* state = NULL;
 	key_dependency_t **deplist2 = NULL;
 
 	assert(keylist);
