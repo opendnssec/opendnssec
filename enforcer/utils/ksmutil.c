@@ -6878,7 +6878,7 @@ int ListKeys(int zone_id)
     hsm_key_t *key = NULL;
     ldns_rr *dnskey_rr = NULL;
     hsm_sign_params_t *sign_params = NULL;
-    hsm_ctx_t* ctx;
+    hsm_ctx_t* ctx = NULL;
 
     if (verbose_flag) {
         /* connect to the HSM */
