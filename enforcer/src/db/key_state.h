@@ -254,7 +254,7 @@ int key_state_update(key_state_t* key_state);
  * \param[in] key_state a key_state_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_state_delete(key_state_t* key_state);
+int key_state_delete(const key_state_t* key_state);
 
 /**
  * A list of key state objects.

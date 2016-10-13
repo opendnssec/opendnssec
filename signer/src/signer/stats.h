@@ -60,7 +60,7 @@ struct stats_struct {
     time_t      audit_time;
     time_t      start_time;
     time_t      end_time;
-    lock_basic_type stats_lock;
+    pthread_mutex_t stats_lock;
 };
 
 /**

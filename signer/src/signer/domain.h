@@ -37,6 +37,7 @@ typedef struct domain_struct domain_type;
 #include "status.h"
 #include "signer/rrset.h"
 #include "signer/signconf.h"
+#include "signer/zone.h"
 
 #define SE_NSEC_RDATA_NXT          0
 #define SE_NSEC_RDATA_BITMAP       1

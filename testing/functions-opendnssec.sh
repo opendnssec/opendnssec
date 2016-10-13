@@ -1270,7 +1270,7 @@ ods_ldns_testns ()
 #   BIND9_NAMED_PORT
 ods_bind9_start ()
 {
-	local username=jenkins
+	local username=$USER
 	local named_pid
 	local exit_code
 
@@ -1685,5 +1685,6 @@ END
 	  xsltproc diff.xsl~ "$1" | xmllint --c14n - | xmllint --format - > "$1~"
 	  xsltproc diff.xsl~ "$2" | xmllint --c14n - | xmllint --format - > "$2~"
 	fi
+	echo "comparing file '$1' to '$2'."
 	diff -rw "$1~" "$2~"
 }

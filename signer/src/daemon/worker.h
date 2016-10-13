@@ -50,20 +50,23 @@ typedef struct worker_struct worker_type;
 
 struct worker_struct {
     int thread_num;
-    ods_thread_type thread_id;
+    pthread_t thread_id;
     engine_type* engine;
-    task_type* task;
-    task_id working_with;
     worker_id type;
     time_t clock_in;
     size_t jobs_appointed;
     size_t jobs_completed;
     size_t jobs_failed;
-    cond_basic_type worker_alarm;
-    lock_basic_type worker_lock;
+    pthread_cond_t worker_alarm;
+    pthread_mutex_t worker_lock;
     unsigned sleeping : 1;
     unsigned waiting : 1;
     unsigned need_to_exit : 1;
+};
+
+struct worker_context {
+    worker_type* worker;
+    task_type* task;
 };
 
 /**
@@ -96,11 +99,9 @@ void worker_sleep(worker_type* worker, time_t timeout);
  * Put worker to sleep unless the worker has measured up to all
  * appointed jobs.
  * \param[in] worker put this worker to sleep
- * \param[in] timeout time before alarm clock is going off,
- *            0 means no alarm clock is set.
  *
  */
-void worker_sleep_unless(worker_type* worker, time_t timeout);
+void worker_sleep_unless(worker_type* worker);
 
 /**
  * Wake up worker.
@@ -115,7 +116,7 @@ void worker_wakeup(worker_type* worker);
  * \param[in] condition condition that has been met
  *
  */
-void worker_notify_all(lock_basic_type* lock, cond_basic_type* condition);
+void worker_notify_all(pthread_mutex_t* lock, pthread_cond_t* condition);
 
 /**
  * Clean up worker.
@@ -123,5 +124,7 @@ void worker_notify_all(lock_basic_type* lock, cond_basic_type* condition);
  *
  */
 void worker_cleanup(worker_type* worker);
+
+time_t worker_perform_task(const char* zonename, void* zonearg, void* contextarg);
 
 #endif /* DAEMON_WORKER_H */

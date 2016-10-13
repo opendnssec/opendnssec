@@ -53,9 +53,9 @@ fifoq_create()
         return NULL;
     }
     fifoq_wipe(fifoq);
-    lock_basic_init(&fifoq->q_lock);
-    lock_basic_set(&fifoq->q_threshold);
-    lock_basic_set(&fifoq->q_nonfull);
+    pthread_mutex_init(&fifoq->q_lock, NULL);
+    pthread_cond_init(&fifoq->q_threshold, NULL);
+    pthread_cond_init(&fifoq->q_nonfull, NULL);
     return fifoq;
 }
 
@@ -100,7 +100,7 @@ fifoq_pop(fifoq_type* q, worker_type** worker)
          * Notify waiting workers that they can start queuing again
          * If no workers are waiting, this call has no effect.
          */
-        lock_basic_broadcast(&q->q_nonfull);
+        pthread_cond_broadcast(&q->q_nonfull);
     }
     return pop;
 }
@@ -123,7 +123,7 @@ fifoq_push(fifoq_type* q, void* item, worker_type* worker, int* tries)
          * If no drudgers are waiting, this call has no effect.
          */
         if (*tries > FIFOQ_TRIES_COUNT) {
-            lock_basic_broadcast(&q->q_threshold);
+            pthread_cond_broadcast(&q->q_threshold);
             ods_log_debug("[%s] queue full, notify drudgers again", fifoq_str);
             /* reset tries */
             *tries = 0;
@@ -132,14 +132,13 @@ fifoq_push(fifoq_type* q, void* item, worker_type* worker, int* tries)
     }
     q->blob[q->count] = item;
     assert(worker);
-    assert(worker->task);
     q->owner[q->count] = worker;
     q->count += 1;
     if (q->count == 1) {
         ods_log_deeebug("[%s] threshold %lu reached, notify drudgers",
             fifoq_str, (unsigned long) q->count);
         /* If no drudgers are waiting, this call has no effect. */
-        lock_basic_broadcast(&q->q_threshold);
+        pthread_cond_broadcast(&q->q_threshold);
     }
     return ODS_STATUS_OK;
 }
@@ -155,8 +154,8 @@ fifoq_cleanup(fifoq_type* q)
     if (!q) {
         return;
     }
-    lock_basic_off(&q->q_threshold);
-    lock_basic_off(&q->q_nonfull);
-    lock_basic_destroy(&q->q_lock);
+    pthread_cond_destroy(&q->q_threshold);
+    pthread_cond_destroy(&q->q_nonfull);
+    pthread_mutex_destroy(&q->q_lock);
     free(q);
 }

@@ -27,98 +27,113 @@
 /**
  * Tasks.
  *
+ * Tasks consists of several parts:
+ *
+ * Identifier: a task is uniquely identified by its ttuple (task-tuple).
+ * which consist of a class (enforcer/signer) a type (resalt/sign) and
+ * an owner, usually the zone the task is for. This way we can find
+ * all tasks belonging to a component so we can later merge signer and
+ * enforcer if we so wish.
+ *
+ * due_date: The time this task should run on. Unix timestamp. Anything
+ * smaller than now() should be considered ASAP. Negative values should
+ * not be given. They are special and tell the signer not to schedule a
+ * task.
+ *
+ * Payload: the callback, a context passed to the callback and method
+ * to free the context.
+ *
  */
 
 #ifndef SCHEDULER_TASK_H
 #define SCHEDULER_TASK_H
 
 #include "config.h"
-#include <ldns/ldns.h>
-
-enum task_id_enum {
-    TASK_NONE = 0,
-    TASK_SIGNCONF, /* ods-signer update */
-    TASK_READ, /* ods-signer sign */
-    TASK_NSECIFY,
-    TASK_SIGN, /* ods-signer flush */
-    TASK_WRITE
-};
-typedef enum task_id_enum task_id;
-
-typedef struct task_struct task_type;
-
+#include <time.h>
+#include <pthread.h>
 #include "status.h"
-#include "signer/zone.h"
 
-/**
- * Task.
- */
+struct task_struct;
+typedef struct task_struct task_type;
+typedef const char* task_id;
+
 struct task_struct {
-    task_id what;
-    task_id interrupt;
-    task_id halted;
-    time_t when;
-    time_t halted_when;
+    /* The following span the T-tuple. It is used to uniquely identify
+     * a task. */
+    task_id owner; /* e.g. "example.com". string owned by task */
+    task_id class; /* e.g. "enforcer" */
+    task_id type; /* e.g. "resalt" */
+
+    /* date and time this task should execute anything. If time is in
+     * the past interpret it as *now* */
+    time_t due_date;
+
+    /* if returned time >= 0 the task is rescheduled for that time.
+     * keeping context. otherwise scheduler will free context, owner,
+     * and task. */
+    time_t (*callback)(char const *owner, void *userdata, void *context);
+
+    /* Context passed to callback. */
+    void *userdata;
+
+    /* Callback to deepfree task context. Leave NULL to not free the
+     * context. The function should accept a NULL argument just like
+     * free() does. */
+    void (*freedata)(void *userdata);
+
+    /* Lock specific for this task. It is assigned by the scheduler
+     * on scheduler_push_task(). All tasks with the same ttuple will
+     * get the same lock. */
+    pthread_mutex_t *lock;
+
     time_t backoff;
     int flush;
-    zone_type* zone;
 };
 
-/**
- * Create a new task.
- * \param[in] what task identifier
- * \param[in] when scheduled time
- * \param[in] zone zone reference
- * \return task_type* created task
- *
- */
-task_type* task_create(task_id what, time_t when, void* zone);
+extern const char* TASK_CLASS_ENFORCER;
+extern const char* TASK_CLASS_SIGNER;
 
-/**
- * Compare tasks.
- * \param[in] a one task
- * \param[in] b another task
- * \return int -1, 0 or 1
- *
+extern const char* TASK_TYPE_ENFORCE;
+extern const char* TASK_TYPE_RESALT;
+extern const char* TASK_TYPE_HSMKEYGEN;
+extern const char* TASK_TYPE_DSSUBMIT;
+extern const char* TASK_TYPE_DSRETRACT;
+extern const char* TASK_TYPE_SIGNCONF;
+
+extern const char* TASK_NONE;
+extern const char* TASK_SIGNCONF;
+extern const char* TASK_READ;
+extern const char* TASK_NSECIFY;
+extern const char* TASK_SIGN;
+extern const char* TASK_WRITE;
+
+/*
+ * owner: string is owned by task.
+ * context: also owned by task
  */
+task_type*
+task_create(const char *owner, char const *class, char const *type,
+    time_t (*callback)(char const *owner, void* userdata, void *context),
+    void *userdata, void (*freedata)(void *userdata), time_t due_date);
+
+/* Free task, owner, and context */
+void task_destroy(task_type* task);
+
+/* used in our reverse lookup structure. */
+int task_compare_ttuple(const void* a, const void* b);
+/* This is used for sorting our queue */
+int task_compare_time_then_ttuple(const void* a, const void* b);
+/* Create new task, copy ttuple from existing task. NULL on malloc
+ * failure. */
+task_type*
+task_duplicate_shallow(task_type *task);
+
+
 int task_compare(const void* a, const void* b);
-
-/**
- * Convert task to string.
- * \param[in] task task
- * \param[out] buffer to store string-based task in
- * \return string-format task
- *
- */
-char* task2str(task_type* task, char* buftask);
-
-/**
- * String-format of who.
- * \param[in] what task identifier
- * \return const char* string-format of what
- *
- */
-const char* task_what2str(task_id what);
-
-/**
- * String-format of who.
- * \param[in] task task
- * \return const char* string-format of who
- */
-const char* task_who2str(task_type* task);
-
-/**
- * Log task.
- * \param[in] task task
- *
- */
 void task_log(task_type* task);
 
-/**
- * Clean up task.
- * \param[in] task task
- *
- */
-void task_cleanup(task_type* task);
+char* task2str(task_type* task, char* buftask);
+const char* task_what2str(task_id what);
+const char* task_who2str(task_type* task);
 
 #endif /* SCHEDULER_TASK_H */

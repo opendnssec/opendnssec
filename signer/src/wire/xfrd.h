@@ -94,8 +94,8 @@ struct xfrd_struct
 {
     xfrhandler_type* xfrhandler;
     zone_type* zone;
-    lock_basic_type serial_lock; /* mutexes soa serial management */
-    lock_basic_type rw_lock; /* mutexes <zone>.xfrd file */
+    pthread_mutex_t serial_lock; /* mutexes soa serial management */
+    pthread_mutex_t rw_lock; /* mutexes <zone>.xfrd file */
 
     /* transfer request handling */
     int tcp_conn;

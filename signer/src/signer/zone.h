@@ -52,6 +52,7 @@ typedef struct zone_struct zone_type;
 #include "wire/buffer.h"
 #include "wire/notify.h"
 #include "wire/xfrd.h"
+#include "datastructure.h"
 
 struct schedule_struct;
 
@@ -83,10 +84,16 @@ struct zone_struct {
     task_type* task; /* next assigned task */
     /* statistics */
     stats_type* stats;
-    lock_basic_type zone_lock;
-    lock_basic_type xfr_lock;
+    pthread_mutex_t zone_lock;
+    pthread_mutex_t xfr_lock;
     /* backing store for rrsigs (both domain as denial) */
     collection_class rrstore;
+
+    task_id nexttask;
+    task_id interrupt;
+    task_id halted;
+    time_t when;
+    time_t halted_when;
 };
 
 /**

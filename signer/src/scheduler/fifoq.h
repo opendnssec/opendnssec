@@ -47,6 +47,7 @@
 
 typedef struct fifoq_struct fifoq_type;
 
+#include "daemon/engine.h"
 #include "daemon/worker.h"
 #include "locks.h"
 #include "status.h"
@@ -61,9 +62,9 @@ struct fifoq_struct {
     void* blob[FIFOQ_MAX_COUNT];
     worker_type* owner[FIFOQ_MAX_COUNT];
     size_t count;
-    lock_basic_type q_lock;
-    cond_basic_type q_threshold;
-    cond_basic_type q_nonfull;
+    pthread_mutex_t q_lock;
+    pthread_cond_t q_threshold;
+    pthread_cond_t q_nonfull;
 };
 
 /**

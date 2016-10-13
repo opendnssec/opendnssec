@@ -11,6 +11,7 @@
             </Validity>
             <Jitter>PT12H</Jitter>
             <InceptionOffset>PT5M</InceptionOffset>
+            <MaxZoneTTL>PT1S</MaxZoneTTL>
         </Signatures>
         <Denial>
             <NSEC3>
@@ -74,6 +75,7 @@
             </Validity>
             <Jitter>PT12H</Jitter>
             <InceptionOffset>PT5M</InceptionOffset>
+            <MaxZoneTTL>PT1S</MaxZoneTTL>
         </Signatures>
         <Denial>
             <NSEC3>
@@ -136,6 +138,7 @@
             </Validity>
             <Jitter>PT12H</Jitter>
             <InceptionOffset>PT5M</InceptionOffset>
+            <MaxZoneTTL>PT1S</MaxZoneTTL>
         </Signatures>
         <Denial>
             <NSEC3>
@@ -199,6 +202,7 @@
             </Validity>
             <Jitter>PT12H</Jitter>
             <InceptionOffset>PT5M</InceptionOffset>
+            <MaxZoneTTL>PT1S</MaxZoneTTL>
         </Signatures>
         <Denial>
             <NSEC3>

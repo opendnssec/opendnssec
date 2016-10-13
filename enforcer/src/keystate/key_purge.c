@@ -45,7 +45,7 @@ int removeDeadKeysNow(int sockfd, db_connection_t *dbconn,
 	int key_purgable, cmp;
 	int zone_key_purgable;
 	unsigned int j;
-	const key_state_t* state;
+	const key_state_t* state = NULL;
 	key_data_list_t *key_list = NULL;
 	key_data_t** keylist = NULL;
 	key_dependency_list_t *deplist = NULL;
