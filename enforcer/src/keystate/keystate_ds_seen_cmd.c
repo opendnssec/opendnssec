@@ -57,7 +57,7 @@ static void
 help(int sockfd)
 {
 	client_printf(sockfd,
-		"Issue a ds-seen to the enforcer for a KSK/ or all 'ready for ds-seen' KSKs. This command indicates to OpenDNSSEC taht a submitted DS record has appreared in the parent zone, and thereby trigger the completion of KSK rollover.\n"
+		"Issue a ds-seen to the enforcer for a KSK/ or all 'ready for ds-seen' KSKs. This command indicates to OpenDNSSEC that a submitted DS record has appreared in the parent zone, and thereby trigger the completion of KSK rollover.\n"
 		"(This command with no parameters lists eligible keys.)\n"
 		"\nOptions:\n"
 		"zone		name of the zone\n"
