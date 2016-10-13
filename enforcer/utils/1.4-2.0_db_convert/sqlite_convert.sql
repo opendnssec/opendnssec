@@ -755,20 +755,20 @@ JOIN mapping
 --Set to OMN if Tactive + Dttl < Tnow
 --This code is disabled as it causes problems for migrations still in a rollover
 --For non rollovers ZSK might be in ready instead of active afterwards.
---UPDATE keyState
---SET state = 2
---WHERE keyState.state = 1 AND keyState.type = 1 AND keyState.id IN (
-	--SELECT keyState.id
-	--FROM keyState
-	--JOIN keyData
-		--ON keyData.id = keyState.keydataId
-	--JOIN REMOTE.dnsseckeys
-		--ON REMOTE.dnsseckeys.keypair_id = keyData.hsmkeyid
-        --JOIN zone
-                --ON keyData.zoneId = zone.id
-        --JOIN policy
-                --ON policy.id = zone.policyId
-	--WHERE strftime("%s", REMOTE.dnsseckeys.active) + policy.signaturesValidityDefault < strftime("%s", "now"));
+UPDATE keyState
+SET state = 2
+WHERE keyState.state = 1 AND keyState.type = 1 AND keyState.id IN (
+        SELECT keyState.id
+        FROM keyState
+        JOIN keyData
+                ON keyData.id = keyState.keydataId
+        JOIN REMOTE.dnsseckeys
+                ON REMOTE.dnsseckeys.keypair_id = keyData.hsmkeyid
+        JOIN zone
+                ON keyData.zoneId = zone.id
+        JOIN policy
+                ON policy.id = zone.policyId
+        WHERE CAST(strftime("%s", REMOTE.dnsseckeys.active) + policy.signaturesValidityDefault as INTEGER) < strftime("%s", "now"));
 
 DROP TABLE mapping;
 
