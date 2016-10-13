@@ -119,7 +119,7 @@ task_execute(task_type *task, void *context)
     }
 
     if (!strcmp(task->class, TASK_CLASS_ENFORCER))
-        pthread_mutex_lock(&worklock);
+        pthread_mutex_unlock(&worklock);
 
     return t;
 }
