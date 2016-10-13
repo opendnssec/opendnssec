@@ -44,6 +44,7 @@
 #endif
 
 #include <ldns/ldns.h>
+#include <pthread.h>
 
 typedef struct schedule_struct schedule_type;
 

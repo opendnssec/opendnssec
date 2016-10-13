@@ -114,7 +114,10 @@ task_execute(task_type *task, void *context)
      * access. Our code is not able to handle that properly. (we can't
      * really tell the difference between an error and nodata.) Once we
      * fixed our database backend this lock can be removed.
-     * */
+     */
+    if (!strcmp(task->class, TASK_CLASS_ENFORCER))
+        pthread_mutex_lock(&worklock);
+
     if(task->lock) {
         pthread_mutex_lock(task->lock);
         t = task->callback(task->owner, task->userdata, context);
@@ -122,6 +125,9 @@ task_execute(task_type *task, void *context)
     } else {
         t = task->callback(task->owner, task->userdata, context);
     }
+
+    if (!strcmp(task->class, TASK_CLASS_ENFORCER))
+        pthread_mutex_unlock(&worklock);
 
     return t;
 }

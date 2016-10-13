@@ -660,15 +660,49 @@ JOIN REMOTE.dnsseckeys
 JOIN mapping
 	ON mapping.state = REMOTE.dnsseckeys.state;
 
-UPDATE keyState, keyData, REMOTE.dnsseckeys
-SET keyState.state = 2
-WHERE keyState.state = 1 
-	AND keyState.type = 1 
-	AND keyData.id = keyState.keydataId
-	AND REMOTE.dnsseckeys.keypair_id = keyData.hsmkeyid
-	AND REMOTE.dnsseckeys.retire IS NOT NULL;
+--Set to OMN if Tactive + Dttl < Tnow
+--This code is disabled as it causes problems for migrations still in a rollover
+--For non rollovers ZSK might be in ready instead of active afterwards.
+--UPDATE keyState, keyData, REMOTE.dnsseckeys
+--SET keyState.state = 2
+--WHERE keyState.state = 1 
+	--AND keyState.type = 1 
+	--AND keyData.id = keyState.keydataId
+	--AND REMOTE.dnsseckeys.keypair_id = keyData.hsmkeyid
+	--AND REMOTE.dnsseckeys.retire IS NOT NULL;
 
 DROP TABLE mapping;
+
+-- We need to create records in the keydependency table in case we are in a
+-- rollover. Only done for ZSK. For every introducing ZSK with RRSIG rumoured
+-- that has an outroducing ZSK with RRSIG unretentive, we add a record.
+INSERT INTO keyDependency
+SELECT NULL, 0, keyData.zoneID, SUB.IDout, keyData.id, 1
+FROM keyData
+JOIN keyState AS KS1 
+	ON KS1.keyDataId == keyData.id
+JOIN keyState AS KS2 
+	ON KS2.keyDataId == keyData.id
+JOIN (
+	SELECT keyData.id AS IDout, keyData.zoneID 
+	FROM keyData
+	JOIN keyState AS KS1 
+		ON KS1.keyDataId == keyData.id
+	JOIN keyState AS KS2 
+		ON KS2.keyDataId == keyData.id
+	WHERE KS1.type == 2 
+		AND ks1.state = 2 
+		AND KS2.type == 1 
+		AND KS2.state == 3
+		AND keyData.introducing == 0 
+		AND keyData.role == 2
+) AS SUB
+	ON SUB.zoneId == keyData.zoneId
+WHERE 
+	KS1.type == 2 
+	AND ks1.state = 2 
+	AND KS2.type == 1 
+	AND KS2.state == 1
 
 UPDATE keyState
 SET state = 4
