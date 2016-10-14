@@ -7,8 +7,8 @@ OpenDNSSEC 2.0.2 - TBA
 * OPENDNSSEC-843: MaxZoneTTL defaults to 0 instead of 1 day.
 * Migration script can handle converting a database with zones in rollover better.
 * Fixed incorrect behaviour when more than 2 ZSKs involved in roll.
-* STILL IN PR: Remove old keys from converted DB (hoda)
-* STILL IN PR: IXFR mem leak (berry)
+* SUPPORT-201: Remove old keys from converted DB.
+* OPENDNSSEC-845: Memory leak on IXFR out. 
 
 OpenDNSSEC 2.0.1 - 2016-07-21
 
