@@ -189,8 +189,8 @@ void hsm_key_factory_generate(engine_type* engine, const db_connection_t* connec
         ods_log_info("%lu zone(s) found on policy <unknown>", num_zones);
     }
     ods_log_info("[hsm_key_factory_generate] %lu keys needed for %lu "
-        "zones covering %lu seconds, generating %lu keys for policy %s",
-        generate_keys, num_zones, duration,
+        "zones covering %lld seconds, generating %lu keys for policy %s",
+        generate_keys, num_zones, (long long)duration,
         (unsigned long)(generate_keys-num_keys), /* This is safe because we checked num_keys < generate_keys */
         policy_name(policy));
     generate_keys -= num_keys;

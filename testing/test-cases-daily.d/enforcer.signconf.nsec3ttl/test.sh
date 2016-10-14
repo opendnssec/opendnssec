@@ -18,6 +18,8 @@ mkdir  gold &&
 # Start enforcer (Zones already exist and we let it generate keys itself)
 ods_start_enforcer &&
 
+sleep 1 && ods_enforcer_idle && sleep 1 &&
+
 for zone in with-ttl no-ttl with-0-ttl; do
 	# Used only to create a gold while setting up the test
 	# cp $INSTALL_ROOT/var/opendnssec/signconf/$zone.xml goldA/  &&       
@@ -26,7 +28,7 @@ done &&
 
 # compare all the signconf files for this run
 cp goldA/* gold/ &&
-log_this ods-compare-signconfs  ods_compare_gold_vs_base_signconf &&
+log_this ods-compare-signconfs1  ods_compare_gold_vs_base_signconf &&
 rm gold/* &&
 rm base/* &&
 
@@ -60,6 +62,7 @@ echo "Importing changed policies" &&
 cp kasp.reversed.xml "$INSTALL_ROOT/etc/opendnssec/kasp.xml" &&
 log_this ods-import-reversed ods-enforcer policy import && 
 
+sleep 1 && ods_enforcer_idle && sleep 1 &&
 
 for zone in with-ttl no-ttl with-0-ttl; do
 	# Used only to create a gold while setting up the test
@@ -69,9 +72,9 @@ done &&
 
 # compare all the signconf files for this run
 cp goldB/* gold/ &&
-log_this ods-compare-signconfs  ods_compare_gold_vs_base_signconf &&
-rm gold/* &&
-rm base/* &&
+log_this ods-compare-signconfs2  ods_compare_gold_vs_base_signconf &&
+#rm gold/* &&
+#rm base/* &&
 
 # Lets export the policies again and double check
 ods-enforcer policy export --all > kasp.xml.temp3~ && 
