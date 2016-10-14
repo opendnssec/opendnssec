@@ -753,8 +753,6 @@ JOIN mapping
 	ON mapping.state = REMOTE.dnsseckeys.state;
 
 --Set to OMN if Tactive + Dttl < Tnow
---This code is disabled as it causes problems for migrations still in a rollover
---For non rollovers ZSK might be in ready instead of active afterwards.
 UPDATE keyState
 SET state = 2
 WHERE keyState.state = 1 AND keyState.type = 1 AND keyState.id IN (
@@ -770,7 +768,8 @@ WHERE keyState.state = 1 AND keyState.type = 1 AND keyState.id IN (
                 ON policy.id = zone.policyId
         WHERE CAST(strftime("%s", REMOTE.dnsseckeys.active) + policy.signaturesValidityDefault as INTEGER) < strftime("%s", "now"));
 
-
+--Force the RRSIG state in omnipresent if rumoured and there is no old ZSK
+-- unretentive
 UPDATE keyState 
 SET state = 2
 WHERE keyState.id IN (
