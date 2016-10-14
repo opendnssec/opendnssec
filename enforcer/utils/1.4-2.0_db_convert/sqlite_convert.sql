@@ -770,6 +770,19 @@ WHERE keyState.state = 1 AND keyState.type = 1 AND keyState.id IN (
                 ON policy.id = zone.policyId
         WHERE CAST(strftime("%s", REMOTE.dnsseckeys.active) + policy.signaturesValidityDefault as INTEGER) < strftime("%s", "now"));
 
+
+UPDATE keyState 
+SET state = 2
+WHERE keyState.id IN (
+SELECT rs.id FROM keyState AS rs 
+JOIN keystate AS dk ON dk.keyDataId == rs.keyDataId
+WHERE rs.type == 1 AND dk.type == 2 AND rs.state == 1 AND dk.state == 2
+AND NOT EXISTS(
+	SELECT* FROM keystate AS rs2
+	JOIN keystate AS dk2 ON dk2.keyDataId == rs2.keyDataId
+	WHERE rs2.type == 1 AND dk2.type == 2 AND rs2.state == 3 AND dk2.state == 2
+));
+
 DROP TABLE mapping;
 
 -- We need to create records in the keydependency table in case we are in a
