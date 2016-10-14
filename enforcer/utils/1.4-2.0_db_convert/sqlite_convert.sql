@@ -754,22 +754,34 @@ JOIN mapping
 	ON mapping.state = REMOTE.dnsseckeys.state;
 
 --Set to OMN if Tactive + Dttl < Tnow
---This code is disabled as it causes problems for migrations still in a rollover
---For non rollovers ZSK might be in ready instead of active afterwards.
---UPDATE keyState
---SET state = 2
---WHERE keyState.state = 1 AND keyState.type = 1 AND keyState.id IN (
-	--SELECT keyState.id
-	--FROM keyState
-	--JOIN keyData
-		--ON keyData.id = keyState.keydataId
-	--JOIN REMOTE.dnsseckeys
-		--ON REMOTE.dnsseckeys.keypair_id = keyData.hsmkeyid
-        --JOIN zone
-                --ON keyData.zoneId = zone.id
-        --JOIN policy
-                --ON policy.id = zone.policyId
-	--WHERE strftime("%s", REMOTE.dnsseckeys.active) + policy.signaturesValidityDefault < strftime("%s", "now"));
+UPDATE keyState
+SET state = 2
+WHERE keyState.state = 1 AND keyState.type = 1 AND keyState.id IN (
+        SELECT keyState.id
+        FROM keyState
+        JOIN keyData
+                ON keyData.id = keyState.keydataId
+        JOIN REMOTE.dnsseckeys
+                ON REMOTE.dnsseckeys.keypair_id = keyData.hsmkeyid
+        JOIN zone
+                ON keyData.zoneId = zone.id
+        JOIN policy
+                ON policy.id = zone.policyId
+        WHERE CAST(strftime("%s", REMOTE.dnsseckeys.active) + policy.signaturesValidityDefault as INTEGER) < strftime("%s", "now"));
+
+--Force the RRSIG state in omnipresent if rumoured and there is no old ZSK
+-- unretentive
+UPDATE keyState 
+SET state = 2
+WHERE keyState.id IN (
+SELECT rs.id FROM keyState AS rs 
+JOIN keystate AS dk ON dk.keyDataId == rs.keyDataId
+WHERE rs.type == 1 AND dk.type == 2 AND rs.state == 1 AND dk.state == 2
+AND NOT EXISTS(
+	SELECT* FROM keystate AS rs2
+	JOIN keystate AS dk2 ON dk2.keyDataId == rs2.keyDataId
+	WHERE rs2.type == 1 AND dk2.type == 2 AND rs2.state == 3 AND dk2.state == 2
+));
 
 DROP TABLE mapping;
 
