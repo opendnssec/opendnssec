@@ -29,7 +29,7 @@
 			<TTL>PT10M</TTL>
 			<RetireSafety>PT10M</RetireSafety>
 			<PublishSafety>PT10M</PublishSafety>
-			<Purge>P1D</Purge>
+			<Purge>PT2H</Purge>
 			<KSK>
 				<Algorithm length="2048">7</Algorithm>
 				<Lifetime>P3D</Lifetime>
