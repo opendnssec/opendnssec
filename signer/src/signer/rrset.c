@@ -669,7 +669,7 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
     domain_type* domain = NULL;
     ldns_rr_type dstatus = LDNS_RR_TYPE_FIRST;
     ldns_rr_type delegpt = LDNS_RR_TYPE_FIRST;
-    uint8_t algorithm;
+    uint8_t algorithm = 0;
     int sigcount, keycount;
 
     ods_log_assert(ctx);
@@ -736,18 +736,21 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
             continue;
         }
 
-        /*We know this key doesn't sign the set*/
-        /*But if n_sig < n_active keys we should sign*/
-        algorithm = zone->signconf->keys->keys[i].algorithm;
-        sigcount = rrset_sigalgo_count(rrset, algorithm);
-        keycount = 0;
-        for (j = 0; j < zone->signconf->keys->count; j++) {
-            if (zone->signconf->keys->keys[j].algorithm == algorithm &&
-                    zone->signconf->keys->keys[j].zsk) /* is active */
-            {
-                keycount++;
+        /** We know this key doesn't sign the set, but only if 
+         * n_sig < n_active_keys we should sign. If we already counted active
+         * keys for this algorithm sjip counting step */
+        if (algorithm != zone->signconf->keys->keys[i].algorithm) {
+            algorithm = zone->signconf->keys->keys[i].algorithm;
+            keycount = 0;
+            for (j = 0; j < zone->signconf->keys->count; j++) {
+                if (zone->signconf->keys->keys[j].algorithm == algorithm &&
+                        zone->signconf->keys->keys[j].zsk) /* is active */
+                {
+                    keycount++;
+                }
             }
         }
+        sigcount = rrset_sigalgo_count(rrset, algorithm);
         if (rrset->rrtype != LDNS_RR_TYPE_DNSKEY && sigcount >= keycount)
             continue;
 
