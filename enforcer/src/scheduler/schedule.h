@@ -67,7 +67,6 @@ struct schedule_struct {
      * is to be done. Used by enforcer_idle. */
     int num_waiting;
     int flushcount;
-    int loading; /* to determine backoff */
 };
 
 /**
@@ -110,7 +109,7 @@ void schedule_purge_owner(schedule_type* schedule, char const *class,
  * \return ods_status status
  *
  */
-ods_status schedule_task(schedule_type* schedule, task_type* task, int log);
+ods_status schedule_task(schedule_type* schedule, task_type* task, int replace, int log);
 
 /**
  * Unschedule task.

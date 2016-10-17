@@ -78,7 +78,7 @@ signconf_task_flush_zone(engine_type *engine, db_connection_t *dbconn,
 {
     task_type* task = task_create(strdup(zonename), TASK_CLASS_ENFORCER,
         TASK_TYPE_SIGNCONF, perform, NULL, NULL, time_now());
-    (void) schedule_task(engine->taskq, task, 0);
+    (void) schedule_task(engine->taskq, task, 1, 0);
 }
 
 void

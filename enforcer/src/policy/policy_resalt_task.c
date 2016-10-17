@@ -192,7 +192,7 @@ flush_resalt_task_all(engine_type *engine, db_connection_t *dbconn)
 
 	while ((policy = policy_list_next(policylist))) {
 		task = policy_resalt_task(policy_name(policy), engine);
-		status |= schedule_task(engine->taskq, task, 0);
+		status |= schedule_task(engine->taskq, task, 1, 0);
 	}
 	policy_list_free(policylist);
 	return status;

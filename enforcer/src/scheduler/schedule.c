@@ -26,7 +26,7 @@
 
 /**
  * Task scheduling.
- * 
+ *
  * This module maintains a collection of tasks. All external functions
  * should be thread safe. Beware not to call an external function from
  * within this module, it will cause deadlocks.
@@ -46,6 +46,7 @@
 #include "duration.h"
 #include "log.h"
 #include "locks.h"
+#include "util.h"
 
 static const char* schedule_str = "scheduler";
 
@@ -54,7 +55,7 @@ static const char* schedule_str = "scheduler";
  * NULL on malloc failure
  */
 static ldns_rbnode_t*
-task2node(task_type *task)
+task2node(task_type* task)
 {
     ldns_rbnode_t* node = (ldns_rbnode_t*) malloc(sizeof(ldns_rbnode_t));
     if (node) {
@@ -67,19 +68,43 @@ task2node(task_type *task)
 /**
  * Get the first scheduled task. As long as return value is used
  * caller should hold schedule->schedule_lock.
- * 
+ *
  * \param[in] schedule schedule
  * \return task_type* first scheduled task, NULL on no task or error.
  */
 static task_type*
-get_first_task(schedule_type* schedule)
+schedule_get_first_task(schedule_type* schedule)
 {
-    ldns_rbnode_t* first_node;
-
-    if (!schedule || !schedule->tasks) return NULL;
+    ldns_rbnode_t* first_node = LDNS_RBTREE_NULL;
+    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
+    task_type* pop = NULL;
+    if (!schedule || !schedule->tasks) {
+        return NULL;
+    }
     first_node = ldns_rbtree_first(schedule->tasks);
-    if (!first_node) return NULL;
-    return (task_type*) first_node->data;
+    if (!first_node) {
+        return NULL;
+    }
+    if (schedule->flushcount > 0) {
+        /* find remaining to be flushed tasks */
+        node = first_node;
+        while (node && node != LDNS_RBTREE_NULL) {
+            pop = (task_type*) node->data;
+            if (pop->flush) {
+                return pop;
+            }
+            node = ldns_rbtree_next(node);
+        }
+        /* no more to be flushed tasks found */
+        ods_log_warning("[%s] unable to get first scheduled task: could not "
+            "find flush-task, while there should be %i flush-tasks left",
+            schedule_str, schedule->flushcount);
+        ods_log_info("[%s] reset flush count to 0", schedule_str);
+        schedule->flushcount = 0;
+    }
+    /* no more tasks to be flushed, return first task in schedule */
+    pop = (task_type*) first_node->data;
+    return pop;
 }
 
 /**
@@ -118,7 +143,7 @@ pop_first_task(schedule_type* schedule)
 static void
 task_delfunc(ldns_rbnode_t* node)
 {
-    task_type *task;
+    task_type* task;
 
     if (node && node != LDNS_RBTREE_NULL) {
         task = (task_type*) node->data;
@@ -134,25 +159,32 @@ task_delfunc(ldns_rbnode_t* node)
  * 
  * 0 on success */
 static int
-remove_node_pair(schedule_type *schedule, task_type *task,
-    ldns_rbnode_t **node1, ldns_rbnode_t **node2)
+fetch_node_pair(schedule_type *schedule, task_type *task,
+    ldns_rbnode_t **nodeFromTimeTree, ldns_rbnode_t **nodeFromNameTree, int remove)
 {
-    ldns_rbnode_t *n1, *n2;
-    task_type *t;
+    task_type *originalTask;
 
     ods_log_assert(schedule);
     ods_log_assert(task);
-    
-    n2 = ldns_rbtree_delete(schedule->tasks_by_name, task);
-    if (!n2) return 1; /* could not find task*/
-    t = (task_type*)n2->key; /* This is the original task, it has the
-                             correct time so we can find it in tasks */
-    ods_log_assert(t);
-    n1 = ldns_rbtree_delete(schedule->tasks, t);
-    ods_log_assert(n1);
-    *node1 = n1;
-    *node2 = n2;
-    return 0;
+    *nodeFromTimeTree = NULL;
+    if (remove) {
+        *nodeFromNameTree = ldns_rbtree_delete(schedule->tasks_by_name, task);
+    } else {
+        *nodeFromNameTree = ldns_rbtree_search(schedule->tasks_by_name, task);
+    }
+    if (!*nodeFromNameTree) {
+        return 1; /* could not find task*/
+    } else {
+        originalTask = (task_type*) (*nodeFromNameTree)->key; /* This is the original task, it has the correct time so we can find it in tasks */
+        ods_log_assert(originalTask);
+        if (remove) {
+            *nodeFromTimeTree = ldns_rbtree_delete(schedule->tasks, originalTask);
+        } else {
+            *nodeFromTimeTree = ldns_rbtree_search(schedule->tasks, originalTask);
+        }
+        ods_log_assert(*nodeFromTimeTree);
+        return 0;
+    }
 }
 
 /**
@@ -163,13 +195,13 @@ schedule_type*
 schedule_create()
 {
     schedule_type* schedule;
-
-    schedule = (schedule_type*) malloc(sizeof(schedule_type));
+    CHECKALLOC(schedule = (schedule_type*) malloc(sizeof(schedule_type)));
     if (!schedule) {
         ods_log_error("[%s] unable to create: malloc failed", schedule_str);
         return NULL;
     }
 
+    schedule->flushcount = 0;
     schedule->tasks = ldns_rbtree_create(task_compare_time_then_ttuple);
     schedule->tasks_by_name = ldns_rbtree_create(task_compare_ttuple);
     schedule->locks_by_name = ldns_rbtree_create(task_compare_ttuple);
@@ -192,7 +224,7 @@ schedule_cleanup(schedule_type* schedule)
     ods_log_debug("[%s] cleanup schedule", schedule_str);
 
     /* Disable any pending alarm before we destroy the pthread stuff
-     * to prevent segfaults */
+     * to prevent segfaults (TODO: still needed?) */
     alarm(0);
     
     if (schedule->tasks) {
@@ -285,7 +317,7 @@ schedule_purge_owner(schedule_type* schedule, char const *class,
 
         /* Be free my little tasks, be free! */
         for (i = 0; i<num_tasks; i++) {
-            if (!remove_node_pair(schedule, tasks[i], &n1, &n2)) {
+            if (!fetch_node_pair(schedule, tasks[i], &n1, &n2, 1)) {
                 task_destroy(tasks[i]);
                 free(n1);
                 free(n2);
@@ -297,24 +329,24 @@ schedule_purge_owner(schedule_type* schedule, char const *class,
 }
 
 ods_status
-schedule_task(schedule_type* schedule, task_type* task, int log)
+schedule_task(schedule_type* schedule, task_type* task, int replace, int log)
 {
-    ldns_rbnode_t *node1, *node2;
+    ods_status status = ODS_STATUS_OK;
+    ldns_rbnode_t* node1;
+    ldns_rbnode_t* node2;
     task_type *existing_task, *t;
 
     ods_log_assert(task);
-
     if (!schedule || !schedule->tasks) {
         ods_log_error("[%s] unable to schedule task: no schedule",
-            schedule_str);
+                schedule_str);
         return ODS_STATUS_ERR;
     }
-
-    ods_log_debug("[%s] schedule task [%s] for %s", schedule_str,
-        task->type, task->owner);
+    ods_log_debug("[%s] schedule task %s for %s", schedule_str,
+            task->type, task->owner);
 
     pthread_mutex_lock(&schedule->schedule_lock);
-    if (remove_node_pair(schedule, task, &node1, &node2)) {
+    if (fetch_node_pair(schedule, task, &node1, &node2, replace)) {
         /* Though no such task is scheduled at the moment, there could
          * be a lock for it. If task already has a lock, keep using that.
          */
@@ -332,7 +364,7 @@ schedule_task(schedule_type* schedule, task_type* task, int log)
                 node1 = task2node(t);
                 ods_log_assert(ldns_rbtree_insert(schedule->locks_by_name, node1));
             }
-            task->lock = ((task_type *)node1->key)->lock;
+            task->lock = ((task_type*)node1->key)->lock;
         }
         /* not is schedule yet */
         node1 = task2node(task);
@@ -346,45 +378,103 @@ schedule_task(schedule_type* schedule, task_type* task, int log)
         ods_log_assert(ldns_rbtree_insert(schedule->tasks, node1));
         ods_log_assert(ldns_rbtree_insert(schedule->tasks_by_name, node2));
     } else {
-        ods_log_assert(node1->key == node2->key);
-        existing_task = (task_type*)node1->key;
-        if (task->due_date < existing_task->due_date)
-            existing_task->due_date = task->due_date;
-        if (existing_task->freedata) {
-            existing_task->freedata(existing_task->userdata);
+        if (!replace) {
+            ods_log_error("[%s] unable to schedule task %s for zone %s: already present", schedule_str, task->type, task->owner);
+            status = ODS_STATUS_ERR;
+        } else {
+            ods_log_assert(node1->key == node2->key);
+            existing_task = (task_type*) node1->key;
+            if (task->due_date < existing_task->due_date)
+                existing_task->due_date = task->due_date;
+            if (existing_task->freedata)
+                existing_task->freedata(existing_task->userdata);
+            existing_task->userdata = task->userdata;
+            existing_task->freedata = task->freedata;
+            task->userdata = NULL; /* context is now assigned to existing_task, prevent it from freeing */
+            task_destroy(task);
+            ods_log_assert(ldns_rbtree_insert(schedule->tasks, node1));
+            ods_log_assert(ldns_rbtree_insert(schedule->tasks_by_name, node2));
         }
-        existing_task->userdata = task->userdata;
-        existing_task->freedata = task->freedata;
-        task->userdata = NULL; /* context is now assigned to
-            existing_task, prevent it from freeing */
-        task_destroy(task);
-        ods_log_assert(ldns_rbtree_insert(schedule->tasks, node1));
-        ods_log_assert(ldns_rbtree_insert(schedule->tasks_by_name, node2));
+    }
+    if (status == ODS_STATUS_OK) {
+        if (task->flush) {
+            schedule->flushcount++;
+        }
+        if (log) {
+            task_log(task);
+        }
     }
     pthread_cond_signal(&schedule->schedule_cond);
     pthread_mutex_unlock(&schedule->schedule_lock);
-    return ODS_STATUS_OK;
+    return status;
+}
+
+
+/**
+ * Unschedule task.
+ *
+ * \param[in] schedule schedule
+ * \return task_type* first scheduled task, NULL on no task or error.
+ */
+task_type*
+unschedule_task(schedule_type* schedule, task_type* task)
+{
+    ldns_rbnode_t* del_node = LDNS_RBTREE_NULL;
+    ldns_rbnode_t* node2 = LDNS_RBTREE_NULL;
+    task_type* del_task = NULL;
+    if (!task || !schedule || !schedule->tasks) {
+        return NULL;
+    }
+    ods_log_debug("[%s] unschedule task %s for zone %s",
+        schedule_str, task->type, task->owner);
+
+    del_node = ldns_rbtree_delete(schedule->tasks, (const void*) task);
+    if (del_node) {
+        del_task = (task_type*) del_node->data;
+        node2 = ldns_rbtree_delete(schedule->tasks_by_name, del_task);
+        if (node2 != NULL && node2 != LDNS_RBTREE_NULL) {
+            free(node2);
+        }
+        free((void*)del_node);
+    } else {
+        ods_log_warning("[%s] unable to unschedule task %s for zone %s: not "
+            "scheduled", schedule_str, task->type, task->owner);
+        return NULL;
+    }
+    if (del_task->flush) {
+        del_task->flush = 0;
+        schedule->flushcount--;
+    }
+    return del_task;
 }
 
 task_type*
 schedule_pop_task(schedule_type* schedule)
 {
-    time_t delay, now = time_now();
-    task_type *task;
+    time_t timeout, now = time_now();
+    task_type* task;
 
     pthread_mutex_lock(&schedule->schedule_lock);
-        task = get_first_task(schedule);
-        if (!task || task->due_date > now) {
-            /* nothing to do now, sleep and wait for signal */
-            schedule->num_waiting += 1;
-            delay = task?(task->due_date - now):0;
-            ods_thread_wait(&schedule->schedule_cond,
-                &schedule->schedule_lock, delay);
-            schedule->num_waiting -= 1;
-            task = NULL;
+    task = schedule_get_first_task(schedule);
+    if (task && (task->flush || task->due_date <= now)) {
+        if (task->flush) {
+            ods_log_debug("[%s] flush task for zone %s", schedule_str,
+                task->owner);
         } else {
-            task = pop_first_task(schedule);
+            ods_log_debug("[%s] pop task for zone %s", schedule_str,
+                task->owner);
         }
+        task = unschedule_task(schedule, task);
+    } else {
+        task = NULL;
+        /* nothing to do now, sleep and wait for signal */
+        schedule->num_waiting += 1;
+        timeout = clamp((task ? (task->due_date - now) : 0),
+                        ((task && !strcmp(task->class, TASK_CLASS_ENFORCER)) ? 0 : 60),
+                        ODS_SE_MAX_BACKOFF);
+        ods_thread_wait(&schedule->schedule_cond, &schedule->schedule_lock, timeout);
+        schedule->num_waiting -= 1;
+    }
     pthread_mutex_unlock(&schedule->schedule_lock);
     return task;
 }
@@ -395,7 +485,7 @@ schedule_pop_first_task(schedule_type* schedule)
     task_type *task;
 
     pthread_mutex_lock(&schedule->schedule_lock);
-        task = pop_first_task(schedule);
+    task = pop_first_task(schedule);
     pthread_mutex_unlock(&schedule->schedule_lock);
     return task;
 }
@@ -427,48 +517,6 @@ sched_flush(schedule_type* schedule, task_id override)
 }
 
 int
-schedule_flush_type(schedule_type* schedule, char const *class, char const *type)
-{
-    ldns_rbnode_t *node, *nextnode;
-    int nflushed = 0;
-
-    ods_log_debug("[%s] flush task", schedule_str);
-    if (!schedule || !schedule->tasks) return 0;
-
-    pthread_mutex_lock(&schedule->schedule_lock);
-        node = ldns_rbtree_first(schedule->tasks);
-        while (node && node != LDNS_RBTREE_NULL) {
-            nextnode = ldns_rbtree_next(node);
-            if (node->data && ((task_type*)node->data)->type == type
-                && ((task_type*)node->data)->class == class)
-            {
-                /* Merely setting flush is not enough. We must set it
-                 * to the front of the queue as well. */
-                node = ldns_rbtree_delete(schedule->tasks, node->data);
-                if (!node) break; /* strange, bail out */
-                if (node->data) { /* task */
-                    ((task_type*)node->data)->due_date = 0;
-                    if (!ldns_rbtree_insert(schedule->tasks, node)) {
-                        ods_log_crit("[%s] Could not reschedule task "
-                            "after flush. A task has been lost!",
-                            schedule_str);
-                        free(node);
-                        /* Do not free node->data it is still in use
-                         * by the other rbtree. */
-                        break;
-                    }
-                    nflushed++;
-                }
-            }
-            node = nextnode;
-        }
-        /* wakeup! work to do! */
-        pthread_cond_signal(&schedule->schedule_cond);
-    pthread_mutex_unlock(&schedule->schedule_lock);
-    return nflushed;
-}
-
-int
 schedule_info(schedule_type* schedule, time_t* firstFireTime, int* idleWorkers, int* taskCount)
 {
     task_type* task;
@@ -490,7 +538,7 @@ schedule_info(schedule_type* schedule, time_t* firstFireTime, int* idleWorkers, 
     if (idleWorkers) {
         *idleWorkers = schedule->num_waiting;
     }
-    task = get_first_task(schedule);
+    task = schedule_get_first_task(schedule);
     if (task)
         if (firstFireTime)
             *firstFireTime = sched_task_due(task);
@@ -504,6 +552,15 @@ schedule_release_all(schedule_type* schedule)
     pthread_mutex_lock(&schedule->schedule_lock);
         pthread_cond_broadcast(&schedule->schedule_cond);
     pthread_mutex_unlock(&schedule->schedule_lock);
+}
+
+void
+sched_task_destroy(schedule_type* sched, task_type* task)
+{
+    pthread_mutex_lock(&sched->schedule_lock);
+    task = unschedule_task(sched, (task_type*) task);
+    pthread_mutex_unlock(&sched->schedule_lock);
+    task_destroy(task);
 }
 
 char*

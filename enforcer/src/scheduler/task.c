@@ -137,7 +137,7 @@ task_perform(schedule_type* scheduler, task_type* task, void* context)
 {
     task->due_date = task_execute(task, context);
     if (task->due_date >= 0) {
-        (void) schedule_task(scheduler, task, 0); /* TODO unchecked error code */
+        (void) schedule_task(scheduler, task, (!strcmp(task->class, TASK_CLASS_ENFORCER) ? 1 : 0), 0); /* TODO unchecked error code */
     } else {
         task_destroy(task);
     }    
@@ -157,26 +157,6 @@ task_duplicate_shallow(task_type *task)
     dup->class = task->class;
     dup->lock = NULL;
     return dup;
-}
-
-int
-task_compare(const void* a, const void* b)
-{
-    task_type* x = (task_type*)a;
-    task_type* y = (task_type*)b;
-
-    ods_log_assert(x);
-    ods_log_assert(y);
-
-    /* order task on time, what to do, dname */
-    if (x->due_date != y->due_date) {
-        return (int) x->due_date - y->due_date;
-    }
-    if (strcmp(x->type, y->type)) {
-        return strcmp(x->type, y->type);
-    }
-    /* this is unfair, it prioritizes zones that are first in canonical line */
-    return strcmp(x->owner, y->owner);
 }
 
 int
