@@ -231,10 +231,6 @@ schedule_cleanup(schedule_type* schedule)
     if (!schedule) return;
     ods_log_debug("[%s] cleanup schedule", schedule_str);
 
-    /* Disable any pending alarm before we destroy the pthread stuff
-     * to prevent segfaults (TODO: still needed?) */
-    alarm(0);
-    
     if (schedule->tasks) {
         task_delfunc(schedule->tasks->root);
         task_delfunc2(schedule->tasks_by_name->root);
