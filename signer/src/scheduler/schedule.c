@@ -46,6 +46,7 @@
 #include "duration.h"
 #include "log.h"
 #include "locks.h"
+#include "util.h"
 
 static const char* schedule_str = "scheduler";
 
@@ -152,6 +153,14 @@ task_delfunc(ldns_rbnode_t* node)
         free((void*)node);
     }
 }
+static void
+task_delfunc2(ldns_rbnode_t* node)
+{
+    if (node && node != LDNS_RBTREE_NULL) {
+        task_delfunc(node->left);
+        task_delfunc(node->right);
+    }
+}
 
 /* Removes task from both trees and assign nodes to node1 and node2.
  * These belong to the caller now
@@ -228,7 +237,7 @@ schedule_cleanup(schedule_type* schedule)
     
     if (schedule->tasks) {
         task_delfunc(schedule->tasks->root);
-        task_delfunc(schedule->tasks_by_name->root);
+        task_delfunc2(schedule->tasks_by_name->root);
         ldns_rbtree_free(schedule->tasks);
         ldns_rbtree_free(schedule->tasks_by_name);
         schedule->tasks = NULL;
@@ -466,13 +475,13 @@ schedule_pop_task(schedule_type* schedule)
         task = unschedule_task(schedule, task);
     } else {
         task = NULL;
-            /* nothing to do now, sleep and wait for signal */
-            schedule->num_waiting += 1;
-            timeout = clamp((task ? (task->due_date - now) : 0),
-                        (!strcmp(task->class, TASK_CLASS_ENFORCER) ? 0 : 60),
+        /* nothing to do now, sleep and wait for signal */
+        schedule->num_waiting += 1;
+        timeout = clamp((task ? (task->due_date - now) : 0),
+                        ((task && !strcmp(task->class, TASK_CLASS_ENFORCER)) ? 0 : 60),
                         ODS_SE_MAX_BACKOFF);
-            ods_thread_wait(&schedule->schedule_cond, &schedule->schedule_lock, timeout);
-            schedule->num_waiting -= 1;
+        ods_thread_wait(&schedule->schedule_cond, &schedule->schedule_lock, timeout);
+        schedule->num_waiting -= 1;
     }
     pthread_mutex_unlock(&schedule->schedule_lock);
     return task;
@@ -484,7 +493,7 @@ schedule_pop_first_task(schedule_type* schedule)
     task_type *task;
 
     pthread_mutex_lock(&schedule->schedule_lock);
-        task = pop_first_task(schedule);
+    task = pop_first_task(schedule);
     pthread_mutex_unlock(&schedule->schedule_lock);
     return task;
 }
