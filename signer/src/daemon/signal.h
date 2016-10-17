@@ -36,17 +36,14 @@
 
 #include <signal.h>
 
-#define SIGNAL_RUN 0
-#define SIGNAL_INIT 1
-#define SIGNAL_RELOAD 2
-#define SIGNAL_SHUTDOWN 3
+struct engine_struct;
 
 /**
  * Set corresponding engine.
  * \param[in] engine corresponding engine
  *
  */
-void signal_set_engine(void* engine);
+void signal_set_engine(struct engine_struct* engine);
 
 /**
  * Handle signals.
@@ -54,13 +51,5 @@ void signal_set_engine(void* engine);
  *
  */
 void* signal_handler(sig_atomic_t sig);
-
-/**
- * Capture signal.
- * \param[in] dflsig default signal
- * \return sig_atomic_t captured signal
- *
- */
-sig_atomic_t signal_capture(sig_atomic_t dflsig);
 
 #endif /* DAEMON_SIGNAL_H */
