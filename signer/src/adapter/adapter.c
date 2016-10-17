@@ -127,23 +127,21 @@ adapter_load_config(adapter_type* adapter)
         case ADAPTER_DNS:
             ods_log_assert(adapter->config);
             if (adapter->inbound) {
+                dnsin = (dnsin_type*)adapter->config;
                 status = dnsin_update(&dnsin, adapter->configstr,
                     &adapter->config_last_modified);
                 if (status == ODS_STATUS_OK) {
                     ods_log_assert(dnsin);
-                    dnsin_cleanup((dnsin_type*) adapter->config);
-                    adapter->config = (void*) dnsin;
                 } else if (status != ODS_STATUS_UNCHANGED) {
                     return status;
                 }
                 return ODS_STATUS_OK;
             } else { /* outbound */
+                dnsout = (dnsout_type*)adapter->config;
                 status = dnsout_update(&dnsout, adapter->configstr,
                     &adapter->config_last_modified);
                 if (status == ODS_STATUS_OK) {
                     ods_log_assert(dnsout);
-                    dnsout_cleanup((dnsout_type*) adapter->config);
-                    adapter->config = (void*) dnsout;
                 } else if (status != ODS_STATUS_UNCHANGED) {
                     return status;
                 }
