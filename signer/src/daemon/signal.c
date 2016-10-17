@@ -30,15 +30,17 @@
  */
 
 #include "config.h"
+
+#include <pthread.h>
+#include <signal.h>
+
 #include "daemon/engine.h"
 #include "daemon/signal.h"
 #include "locks.h"
 #include "log.h"
 
-#include <signal.h>
+#include "signal.h"
 
-static int signal_hup_recvd = 0;
-static int signal_term_recvd = 0;
 static engine_type* signal_engine = NULL;
 static const char* signal_str = "signal";
 
@@ -48,7 +50,7 @@ static const char* signal_str = "signal";
  *
  */
 void
-signal_set_engine(void* engine)
+signal_set_engine(struct engine_struct* engine)
 {
     signal_engine = (engine_type*) engine;
 }
@@ -64,47 +66,27 @@ signal_handler(sig_atomic_t sig)
     switch (sig) {
         case SIGHUP:
             ods_log_debug("[%s] SIGHUP received", signal_str);
-            signal_hup_recvd++;
             if (signal_engine) {
+                signal_engine->need_to_reload = 1;
                 pthread_mutex_lock(&signal_engine->signal_lock);
-                /* [LOCK] signal */
                 pthread_cond_signal(&signal_engine->signal_cond);
-                /* [UNLOCK] signal */
                 pthread_mutex_unlock(&signal_engine->signal_lock);
             }
             break;
         case SIGINT:
         case SIGTERM:
             ods_log_debug("[%s] SIGTERM received", signal_str);
-            signal_term_recvd++;
             if (signal_engine) {
+                signal_engine->need_to_exit = 1;
                 pthread_mutex_lock(&signal_engine->signal_lock);
-                /* [LOCK] signal */
                 pthread_cond_signal(&signal_engine->signal_cond);
-                /* [UNLOCK] signal */
                 pthread_mutex_unlock(&signal_engine->signal_lock);
             }
             break;
         default:
+            ods_log_debug("[%s] Spurious signal %d received", 
+                signal_str, (int)sig);
             break;
     }
     return NULL;
-}
-
-
-/**
- * Capture signal.
- *
- */
-sig_atomic_t
-signal_capture(sig_atomic_t dflsig)
-{
-    if (signal_term_recvd) {
-        signal_term_recvd = 0;
-        return SIGNAL_SHUTDOWN;
-    } else if (signal_hup_recvd) {
-        signal_hup_recvd = 0;
-        return SIGNAL_RELOAD;
-    }
-    return dflsig;
 }

@@ -36,6 +36,7 @@
 
 #include "daemon/engine.h"
 #include "daemon/signal.h"
+#include "locks.h"
 #include "log.h"
 
 #include "signal.h"
@@ -68,7 +69,7 @@ signal_handler(sig_atomic_t sig)
             if (signal_engine) {
                 signal_engine->need_to_reload = 1;
                 pthread_mutex_lock(&signal_engine->signal_lock);
-                    pthread_cond_signal(&signal_engine->signal_cond);
+                pthread_cond_signal(&signal_engine->signal_cond);
                 pthread_mutex_unlock(&signal_engine->signal_lock);
             }
             break;
@@ -78,7 +79,7 @@ signal_handler(sig_atomic_t sig)
             if (signal_engine) {
                 signal_engine->need_to_exit = 1;
                 pthread_mutex_lock(&signal_engine->signal_lock);
-                    pthread_cond_signal(&signal_engine->signal_cond);
+                pthread_cond_signal(&signal_engine->signal_cond);
                 pthread_mutex_unlock(&signal_engine->signal_lock);
             }
             break;

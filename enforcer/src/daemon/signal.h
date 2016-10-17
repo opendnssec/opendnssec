@@ -52,12 +52,4 @@ void signal_set_engine(struct engine_struct* engine);
  */
 void* signal_handler(sig_atomic_t sig);
 
-/**
- * Capture signal.
- * \param[in] dflsig default signal
- * \return sig_atomic_t captured signal
- *
- */
-sig_atomic_t signal_capture(sig_atomic_t dflsig);
-
 #endif /* DAEMON_SIGNAL_H */
