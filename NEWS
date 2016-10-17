@@ -1,4 +1,4 @@
-OpenDNSSEC 2.0.2 - TBA
+OpenDNSSEC 2.0.3 - 2016-10-17
 
 * OpenDNSSEC-839: update all no longer deletes zones or policies. Policy import
   now has a --remove-missing-policies option. (thanks David Peall)
