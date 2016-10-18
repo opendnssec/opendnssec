@@ -20,10 +20,10 @@ fi
 # fi
 
 if [ \! -f $INSTALL_ROOT/.softhsm2.ok ] ; then
-  rm -f softhsm-2.0.0.tar.gz
-  wget 'https://dist.opendnssec.org/source/softhsm-2.0.0.tar.gz'
-  gzip -d < softhsm-2.0.0.tar.gz | tar xf -
-  cd softhsm-2.0.0
+  rm -f softhsm-2.1.0.tar.gz
+  wget 'https://dist.opendnssec.org/source/softhsm-2.1.0.tar.gz'
+  gzip -d < softhsm-2.1.0.tar.gz | tar xf -
+  cd softhsm-2.1.0
   # ./configure --prefix="$INSTALL_ROOT" \
   #             --disable-non-paged-memory \
   #             --with-migrate \
@@ -38,7 +38,7 @@ if [ \! -f $INSTALL_ROOT/.softhsm2.ok ] ; then
   make install
   cp "src/lib/common/softhsm2.conf" "$INSTALL_ROOT/etc/softhsm2.conf.build"
   touch $INSTALL_ROOT/.softhsm2.ok
-  echo "2.0.0" > $INSTALL_ROOT/.softhsm2.build
+  echo "2.1.0" > $INSTALL_ROOT/.softhsm2.build
 fi
 
 exit 0
