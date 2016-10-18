@@ -173,25 +173,6 @@ AC_ARG_ENABLE(signer,
 		[Disable signer build (default enabled)]),
 		[enable_signer="${enableval}"],
 		[enable_signer="yes"])
-AH_BOTTOM([
-	/* define before includes as it specifies what standard to use. */
-	#if (defined(HAVE_PSELECT) && !defined (HAVE_PSELECT_PROTO)) \
-		|| !defined (HAVE_CTIME_R_PROTO) \
-		|| defined (STRPTIME_NEEDS_DEFINES)
-	#  ifndef _BSD_SOURCE
-	#    define _BSD_SOURCE 1
-	#  endif
-	#  ifndef __EXTENSIONS__
-	#    define __EXTENSIONS__ 1
-	#  endif
-	#  if !defined(_STDC_C99) && !defined(__cplusplus)
-	#    define _STDC_C99 1
-	#  endif
-	#  ifndef _ALL_SOURCE
-	#    define _ALL_SOURCE 1
-	#  endif
-	#endif
-])
 AM_CONDITIONAL([ENABLE_SIGNER], [test "${enable_signer}" = "yes"])
 
 INSTALLATIONCOND=""

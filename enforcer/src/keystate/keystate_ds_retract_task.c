@@ -37,16 +37,17 @@
 #include "keystate/keystate_ds_retract_task.h"
 
 static time_t
-keystate_ds_retract_task_perform(char const *zonename, void *context,
-	db_connection_t* dbconn)
+keystate_ds_retract_task_perform(char const *zonename, void *userdata,
+	void* context)
 {
+    db_connection_t* dbconn = (db_connection_t*) context;
 	(void)change_keys_from_to(dbconn, -1, zonename, NULL, -1,
 		KEY_DATA_DS_AT_PARENT_RETRACT, KEY_DATA_DS_AT_PARENT_RETRACTED,
-		(engine_type*)context);
+		(engine_type*)userdata);
 	return -1;
 }
 
-task_t *
+task_type *
 keystate_ds_retract_task(engine_type *engine, char const *owner)
 {
 	return task_create(strdup(owner), TASK_CLASS_ENFORCER, TASK_TYPE_DSRETRACT,

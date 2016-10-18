@@ -31,6 +31,7 @@
 
 #include "config.h"
 #include "scheduler/task.h"
+#include "scheduler/schedule.h"
 #include "status.h"
 #include "duration.h"
 #include "file.h"
@@ -38,182 +39,112 @@
 #include "signer/zone.h"
 
 static const char* task_str = "task";
+static pthread_mutex_t worklock = PTHREAD_MUTEX_INITIALIZER;
 
+const char* TASK_CLASS_SIGNER = "signer";
+const char* TASK_NONE = "[ignore]";
+const char* TASK_SIGNCONF = "[configure]";
+const char* TASK_READ = "[read]";
+const char* TASK_NSECIFY = "[???]";
+const char* TASK_SIGN = "[sign]";
+const char* TASK_WRITE = "[write]";
 
-/**
- * Create a new task.
- *
- */
 task_type*
-task_create(task_id what, time_t when, void* zone)
+task_create(const char *owner, char const *class, char const *type,
+    time_t (*callback)(char const *owner, void *userdata, void *context),
+    void *userdata, void (*freedata)(void *userdata), time_t due_date)
 {
-    task_type* task = NULL;
+    task_type* task;
+    ods_log_assert(owner);
+    ods_log_assert(class);
+    ods_log_assert(type);
 
-    if (!zone) {
-        return NULL;
-    }
-    CHECKALLOC(task = (task_type*) malloc(sizeof(task_type)));
-    task->what = what;
-    task->interrupt = TASK_NONE;
-    task->halted = TASK_NONE;
-    task->when = when;
-    task->halted_when = 0;
+    CHECKALLOC(task = (task_type*) malloc(sizeof(task_type)));;
+    task->owner = owner; /* TODO: each call to task_create needs to strdup this, but the free is inside task_destroy */
+    task->class = class;
+    task->type = type;
+    task->callback = callback;
+    task->userdata = userdata;
+    task->freedata = freedata;
+    task->due_date = due_date;
+    task->lock = NULL;
+
     task->backoff = 0;
     task->flush = 0;
-    task->zone = zone;
+
     return task;
 }
 
+void
+task_destroy(task_type* task)
+{
+    ods_log_assert(task);
+    free((void*)task->owner);
+    if (task->freedata)
+        task->freedata((void*)task->userdata);
+    free(task);
+}
 
-/**
- * Compare tasks.
- *
- */
+time_t
+task_execute(task_type *task, void *context)
+{
+    time_t t;
+    ods_log_assert(task);
+    /* We'll allow a task without callback, just don't reschedule. */
+    if (!task->callback) {
+        return -1;
+    }
+    ods_log_assert(task->owner);
+
+    /*
+     * It is sad but we need worklock to prevent concurrent database
+     * access. Our code is not able to handle that properly. (we can't
+     * really tell the difference between an error and nodata.) Once we
+     * fixed our database backend this lock can be removed.
+     * */
+    if(task->lock) {
+        pthread_mutex_lock(task->lock);
+        t = task->callback(task->owner, task->userdata, context);
+        pthread_mutex_unlock(task->lock);
+    } else {
+        t = task->callback(task->owner, task->userdata, context);
+    }
+
+    return t;
+}
+
 int
 task_compare(const void* a, const void* b)
 {
     task_type* x = (task_type*)a;
     task_type* y = (task_type*)b;
-    zone_type* zx = NULL;
-    zone_type* zy = NULL;
 
     ods_log_assert(x);
     ods_log_assert(y);
-    zx = (zone_type*) x->zone;
-    zy = (zone_type*) y->zone;
-    if (!ldns_dname_compare((const void*) zx->apex,
-        (const void*) zy->apex)) {
-        /* if dname is the same, consider the same task */
-        return 0;
-    }
+
     /* order task on time, what to do, dname */
-    if (x->when != y->when) {
-        return (int) x->when - y->when;
+    if (x->due_date != y->due_date) {
+        return (int) x->due_date - y->due_date;
     }
-    if (x->what != y->what) {
-        return (int) x->what - y->what;
+    if (strcmp(x->type, y->type)) {
+        return strcmp(x->type, y->type);
     }
     /* this is unfair, it prioritizes zones that are first in canonical line */
-    return ldns_dname_compare((const void*) zx->apex,
-        (const void*) zy->apex);
+    return strcmp(x->owner, y->owner);
 }
 
-
-/**
- * String-format of what.
- *
- */
-const char*
-task_what2str(task_id what)
-{
-    switch (what) {
-        case TASK_NONE:
-            return "[ignore]";
-            break;
-        case TASK_SIGNCONF:
-            return "[configure]";
-            break;
-        case TASK_READ:
-            return "[read]";
-            break;
-        case TASK_SIGN:
-            return "[sign]";
-            break;
-        case TASK_WRITE:
-            return "[write]";
-            break;
-        default:
-            break;
-    }
-    return "[???]";
-}
-
-
-/**
- * String-format of who.
- *
- */
-const char*
-task_who2str(task_type* task)
-{
-    zone_type* zone = NULL;
-    if (task) {
-        zone = (zone_type*) task->zone;
-    }
-    if (zone && zone->name) {
-        return zone->name;
-    }
-    return "(null)";
-}
-
-
-/**
- * Convert task to string.
- *
- */
-char*
-task2str(task_type* task, char* buftask)
-{
-    char* strtime = NULL;
-    char* strtask = NULL;
-
-    if (task) {
-        strtime = ctime(&task->when);
-        if (strtime) {
-            strtime[strlen(strtime)-1] = '\0';
-        }
-        if (buftask) {
-            (void)snprintf(buftask, ODS_SE_MAXLINE, "%s %s I will %s zone %s"
-                "\n", task->flush?"Flush":"On", strtime?strtime:"(null)",
-                task_what2str(task->what), task_who2str(task));
-            return buftask;
-        } else {
-            strtask = (char*) calloc(ODS_SE_MAXLINE, sizeof(char));
-            if (strtask) {
-                snprintf(strtask, ODS_SE_MAXLINE, "%s %s I will %s zone %s\n",
-                    task->flush?"Flush":"On", strtime?strtime:"(null)",
-                    task_what2str(task->what), task_who2str(task));
-                return strtask;
-            } else {
-                ods_log_error("[%s] unable to convert task to string: malloc "
-                    "error", task_str);
-            }
-        }
-    }
-    return NULL;
-}
-
-
-/**
- * Log task.
- *
- */
 void
 task_log(task_type* task)
 {
     char* strtime = NULL;
 
     if (task) {
-        strtime = ctime(&task->when);
+        strtime = ctime(&task->due_date);
         if (strtime) {
             strtime[strlen(strtime)-1] = '\0';
         }
         ods_log_debug("[%s] %s %s I will %s zone %s", task_str,
             task->flush?"Flush":"On", strtime?strtime:"(null)",
-            task_what2str(task->what), task_who2str(task));
+            task->type, task->owner);
     }
-}
-
-
-/**
- * Clean up task.
- *
- */
-void
-task_cleanup(task_type* task)
-{
-    if (!task) {
-        return;
-    }
-    free(task);
 }

@@ -120,14 +120,14 @@ perform_enforce(int sockfd, engine_type *engine, char const *zonename,
 	/* Launch ds-submit task when one of the updated key states has the
 	 * DS_SUBMIT flag set. */
 	if (bSubmitToParent) {
-		task_t *submit = keystate_ds_submit_task(engine, zonename);
-		schedule_task(engine->taskq, submit);
+		task_type *submit = keystate_ds_submit_task(engine, zonename);
+		schedule_task(engine->taskq, submit, 0);
 	}
 	/* Launch ds-retract task when one of the updated key states has the
 	 * DS_RETRACT flag set. */
 	if (bRetractFromParent) {
-		task_t *retract = keystate_ds_retract_task(engine, zonename);
-		schedule_task(engine->taskq, retract);
+		task_type *retract = keystate_ds_retract_task(engine, zonename);
+		schedule_task(engine->taskq, retract, 0);
 	}
 
 	zone_db_free(zone);
@@ -135,12 +135,13 @@ perform_enforce(int sockfd, engine_type *engine, char const *zonename,
 }
 
 time_t
-enforce_task_perform(char const *owner, void *context, db_connection_t *dbconn)
+enforce_task_perform(char const *owner, void *userdata, void *context)
 {
-	return perform_enforce(-1, (engine_type *)context, owner, dbconn);
+    db_connection_t* dbconn = (db_connection_t*) context;
+    return perform_enforce(-1, (engine_type *)userdata, owner, dbconn);
 }
 
-task_t *
+task_type *
 enforce_task(engine_type *engine, char const *owner)
 {
 	return task_create(strdup(owner), TASK_CLASS_ENFORCER, TASK_TYPE_ENFORCE,
@@ -150,7 +151,7 @@ enforce_task(engine_type *engine, char const *owner)
 void
 enforce_task_flush_zone(engine_type *engine, char const *zonename)
 {
-	(void)schedule_task(engine->taskq, enforce_task(engine, zonename));
+	(void)schedule_task(engine->taskq, enforce_task(engine, zonename), 0);
 }
 
 void
@@ -169,7 +170,7 @@ enforce_task_flush_policy(engine_type *engine, db_connection_t *dbconn,
 		return;
 	}
 	while ((zone = zone_list_db_next(zonelist))) {
-		(void)schedule_task(engine->taskq, enforce_task(engine, zone->name));
+		(void)schedule_task(engine->taskq, enforce_task(engine, zone->name), 0);
 	}
 	zone_list_db_free(zonelist);
 }
@@ -186,7 +187,7 @@ enforce_task_flush_all(engine_type *engine, db_connection_t *dbconn)
 		ods_fatal_exit("[%s] failed to list zones from DB", module_str);
 	}
 	while ((zone = zone_list_db_next(zonelist))) {
-		(void)schedule_task(engine->taskq, enforce_task(engine, zone->name));
+		(void)schedule_task(engine->taskq, enforce_task(engine, zone->name), 0);
 	}
 	zone_list_db_free(zonelist);
 }

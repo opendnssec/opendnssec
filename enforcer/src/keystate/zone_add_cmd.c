@@ -363,7 +363,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
      */
     hsm_key_factory_generate_policy(engine, dbconn, policy, 0);
     ods_log_debug("[%s] Flushing enforce task", module_str);
-    (void)schedule_task(engine->taskq, enforce_task(engine, zone->name));
+    (void)schedule_task(engine->taskq, enforce_task(engine, zone->name), 0);
 
     policy_free(policy);
 

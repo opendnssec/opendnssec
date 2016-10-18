@@ -89,7 +89,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	const int NARGV = MAX_ARGS;
 	const char *argv[MAX_ARGS];
 	int argc, attach, cont;
-	task_t* task = NULL;
+	task_type* task = NULL;
 	(void)n;
 
 	ods_log_debug("[%s] %s command", module_str, time_leap_funcblock()->cmdname);
@@ -158,16 +158,10 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 			break;
 		if (!(task = schedule_pop_first_task(engine->taskq)))
 			break;
-		client_printf(sockfd, "[timeleap] attaching to job %s\n", task->type);
-		if (strcmp(task->type,  TASK_TYPE_ENFORCE) == 0)
+		if (sched_task_istype(task,  TASK_TYPE_ENFORCE))
 			cont = 0;
-		task->due_date = task_execute(task, dbconn);
+		task_perform(engine->taskq, task, dbconn);
 		ods_log_debug("[timeleap] finished working");
-		if (task->due_date >= 0) {
-			(void) schedule_task(engine->taskq, task); /* TODO unchecked error code */
-		} else {
-			task_deepfree(task);
-		}
 		//~ hsm_key_factory_generate_all(engine, dbconn, 0); /* should be scheduled already */
 	}
 	return 0;
