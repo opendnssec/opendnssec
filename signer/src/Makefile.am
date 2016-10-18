@@ -27,7 +27,6 @@ ods_signerd_SOURCES=		ods-signerd.c \
 				daemon/dnshandler.c daemon/dnshandler.h \
 				daemon/xfrhandler.c daemon/xfrhandler.h \
 				daemon/engine.c daemon/engine.h \
-				daemon/signal.c daemon/signal.h \
 				daemon/worker.c daemon/worker.h \
 				daemon/fifoq.c daemon/fifoq.h \
 				parser/addnsparser.c parser/addnsparser.h \

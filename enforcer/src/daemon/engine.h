@@ -88,7 +88,7 @@ db_connection_t* get_database_connection(db_configuration_list_t* dbcfg_list);
  *            for the command to a socket.
  */
 
-ods_status engine_setup(engine_type* engine);
+ods_status engine_setup(void);
 
 /**
  * Clean up engine.
