@@ -49,10 +49,9 @@ typedef struct worker_struct worker_type;
 #include "locks.h"
 
 struct worker_struct {
-    int thread_num;
-    pthread_t thread_id;
+    char* name;
+    ods_thread_type thread_id;
     engine_type* engine;
-    worker_id type;
     time_t clock_in;
     size_t jobs_appointed;
     size_t jobs_completed;
@@ -77,14 +76,15 @@ struct worker_context {
  * \return worker_type* created worker
  *
  */
-worker_type* worker_create(int num, worker_id type);
+worker_type* worker_create(char* name);
 
 /**
  * Start working.
  * \param[in] worker worker to start working
  *
  */
-void worker_start(worker_type* worker);
+void worker_drudge(worker_type* worker);
+void worker_work(worker_type* worker);
 
 /**
  * Put worker to sleep.

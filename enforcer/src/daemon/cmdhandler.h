@@ -35,6 +35,7 @@
 #include <sys/un.h>
 #include "scheduler/schedule.h"
 #include "db/db_connection.h"
+#include "janitor.h"
 
 /* Max number of not accepted connections before starting to drop. */
 #define ODS_SE_MAX_HANDLERS 5
@@ -46,7 +47,7 @@ typedef struct cmdhandler_struct cmdhandler_type;
 struct cmdhandler_struct {
     struct engine_struct* engine;
     struct sockaddr_un listen_addr;
-    pthread_t thread_id;
+    janitor_thread_t thread_id;
     int listen_fd;
     int client_fd;
     int need_to_exit;
