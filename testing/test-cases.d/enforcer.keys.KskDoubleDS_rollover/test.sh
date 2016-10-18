@@ -2,14 +2,6 @@
 
 #TEST: KSK Rollover - Double-DS Mechanism
 
-ods_signer_start () {
-        rm -f "$INSTALL_ROOT/var/opendnssec/signer/ods.backup2" 
-        rm -f "$INSTALL_ROOT/var/opendnssec/signed/ods" 
-
-        ods_start_signer &&
-        sleep 5
-}
-
 case "$DISTRIBUTION" in
         redhat )
                 append_path /usr/sbin
@@ -40,13 +32,13 @@ echo -n "LINE: ${LINENO} " && ods-enforcer key list -v -p | grep KSK | grep acti
 
 echo &&
 echo "########### VERIFY SIGNATURES IN THE SIGNED FILE ############ " &&
-echo -n "LINE: ${LINENO} " && ods_signer_start &&
+echo -n "LINE: ${LINENO} " && time=`ods-enforcer queue | grep "It is now" | cut -d " " -f9 | cut -d "(" -f2` &&
+echo -n "LINE: ${LINENO} " && ods-signerd --set-time $time && sleep 1 &&
 
 echo -n "LINE: ${LINENO} " && syslog_waitfor 60 'ods-signerd: .*\[STATS\] ods' &&
 echo -n "LINE: ${LINENO} " && test -f "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
 
-echo -n "LINE: ${LINENO} " && ldns-verify-zone "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
-echo -n "LINE: ${LINENO} " && ods_stop_signer && sleep 4 &&
+echo -n "LINE: ${LINENO} " && validns -t $time "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
 
 echo &&
 echo "############## ROLL KSK: DOUBLE-DS METHOD ############## " &&
@@ -59,8 +51,9 @@ echo -n "LINE: ${LINENO} " && KSK2=`ods-enforcer key list -v -p --all | grep "KS
 ods-enforcer key list -d -p | grep "KSK" | grep "rumoured;hidden;hidden;NA;0;0" &&
 
 echo &&
-echo "############# CHECK SIGNATURES AFTER ROLLOVER-1 ############# " &&
-echo -n "LINE: ${LINENO} " && ods_signer_start && sleep 5 &&
+echo "############# CHECK SIGNATURES AFTER ROLLOVER ############# " &&
+echo -n "LINE: ${LINENO} " && ods-signer update --all && sleep 3 &&
+echo -n "LINE: ${LINENO} " && ods-signer sign --all && sleep 3 && 
 
 # Check that there must be only one DNSKEY and one RRSIG for DNSKEY 
 echo -n "LINE: ${LINENO} " && count=`grep -c "DNSKEY[[:space:]]*257" "$INSTALL_ROOT/var/opendnssec/signed/ods"` &&
@@ -69,32 +62,73 @@ echo -n "LINE: ${LINENO} " && [ $count -eq 1 ] &&
 echo -n "LINE: ${LINENO} " && count=`grep -c "IN[[:space:]]*RRSIG[[:space:]]*DNSKEY" "$INSTALL_ROOT/var/opendnssec/signed/ods"` &&
 echo -n "LINE: ${LINENO} " && [ $count -eq 1 ] &&
 
-echo -n "LINE: ${LINENO} " && ldns-verify-zone "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
+echo -n "LINE: ${LINENO} " && validns -t $time "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
 echo -n "LINE: ${LINENO} " && ods_stop_signer && sleep 4 &&
 
 echo &&
-echo "############# CHECK SIGNATURES AFTER ROLLOVER-2 ############# " &&
+echo "######## LEAP TIME TILL THE ROLLOVER IS COMPLETED ############ " &&
 # New KSK is waiting for ds-seen 
-ods-enforcer key ds-seen -z ods --keytag $KSK2 && sleep 1 &&
+echo -n "LINE: ${LINENO} " && ods-enforcer key ds-seen -z ods --keytag $KSK2 && sleep 3 &&
 
 echo -n "LINE: ${LINENO} " && ods-enforcer time leap && sleep 1 &&
 
 echo -n "LINE: ${LINENO} " && ods-enforcer key list -d -p | grep "ods;KSK;omnipresent;rumoured;rumoured;NA;1;1" &&
 echo -n "LINE: ${LINENO} " && ods-enforcer key list -d -p | grep "ods;KSK;omnipresent;unretentive;unretentive;NA;0;0" &&
 
-echo -n "LINE: ${LINENO} " && ods_signer_start && sleep 5 &&
+echo -n "LINE: ${LINENO} " && time=`ods-enforcer queue | grep "It is now" | cut -d " " -f9 | cut -d "(" -f2` &&
+echo -n "LINE: ${LINENO} " && ods-signerd --set-time $time && sleep 1 &&
+
+echo -n "LINE: ${LINENO} " && ods-signer update --all && sleep 3 &&
+echo -n "LINE: ${LINENO} " && ods-signer sign --all && sleep 3 &&
+
 echo -n "LINE: ${LINENO} " && count=`grep -c "IN[[:space:]]*RRSIG[[:space:]]*DNSKEY" "$INSTALL_ROOT/var/opendnssec/signed/ods"` &&
 echo -n "LINE: ${LINENO} " && [ $count -eq 1 ] &&
 
 echo -n "LINE: ${LINENO} " && grep "RRSIG[[:space:]]*DNSKEY" "$INSTALL_ROOT/var/opendnssec/signed/ods" | grep $KSK2 &&
 
-echo -n "LINE: ${LINENO} " && ldns-verify-zone "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
+echo -n "LINE: ${LINENO} " && validns -t $time "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
+echo -n "LINE: ${LINENO} " && ods_stop_signer && sleep 5 &&
 
+echo -n "LINE: ${LINENO} " && ods-enforcer time leap && sleep 1 &&
+echo -n "LINE: ${LINENO} " && ods-enforcer key ds-gone -z ods --keytag $KSK1 && sleep 3 &&
+
+echo -n "LINE: ${LINENO} " && time=`ods-enforcer queue | grep "It is now" | cut -d " " -f9 | cut -d "(" -f2` &&
+echo -n "LINE: ${LINENO} " && ods-signerd --set-time $time && sleep 1 &&
+
+echo -n "LINE: ${LINENO} " && ods-signer update --all && sleep 3 &&
+echo -n "LINE: ${LINENO} " && ods-signer sign --all && sleep 3 &&
+
+echo -n "LINE: ${LINENO} " && validns -t $time "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
+echo -n "LINE: ${LINENO} " && ods_stop_signer && sleep 5 &&
+
+echo -n "LINE: ${LINENO} " && ods-enforcer time leap && sleep 1 &&
+
+echo -n "LINE: ${LINENO} " && time=`ods-enforcer queue | grep "It is now" | cut -d " " -f9 | cut -d "(" -f2` &&
+echo -n "LINE: ${LINENO} " && ods-signerd --set-time $time && sleep 1 &&
+
+echo -n "LINE: ${LINENO} " && ods-signer update --all && sleep 3 &&
+echo -n "LINE: ${LINENO} " && ods-signer sign --all && sleep 3 &&
+
+echo -n "LINE: ${LINENO} " && validns -t $time "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
+echo -n "LINE: ${LINENO} " && ods_stop_signer && sleep 5 &&
+
+echo -n "LINE: ${LINENO} " && ods-enforcer time leap && sleep 1 &&
+
+echo -n "LINE: ${LINENO} " && time=`ods-enforcer queue | grep "It is now" | cut -d " " -f9 | cut -d "(" -f2` &&
+echo -n "LINE: ${LINENO} " && ods-signerd --set-time $time && sleep 1 &&
+
+echo -n "LINE: ${LINENO} " && ods-signer update --all && sleep 3 &&
+echo -n "LINE: ${LINENO} " && ods-signer sign --all && sleep 3 &&
+
+echo -n "LINE: ${LINENO} " && validns -t $time "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
+
+echo &&
+echo "############################ STOP ############################ " &&
 echo -n "LINE: ${LINENO} " && ods_stop_ods-control &&
 return 0
 
 echo "#################### ERROR: CURRENT STATE ####################"
-echo "DEBUG: " && ods-enforcer key list -d -p
+echo "DEBUG: " && ods-enforcer key list -d
 echo "DEBUG: " && ods-enforcer key list -v
 echo "DEBUG: " && ods-enforcer queue
 
