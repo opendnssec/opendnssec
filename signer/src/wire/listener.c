@@ -57,7 +57,7 @@ listener_create()
  *
  */
 interface_type*
-listener_push(listener_type* listener, char* address, int family, char* port)
+listener_push(listener_type* listener, char* address, int family, const char* port)
 {
     interface_type* ifs_old = NULL;
     ods_log_assert(listener);

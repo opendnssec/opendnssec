@@ -101,14 +101,15 @@ to_hex(const char *buf, int len, char *out)
  * when done.
  */
 static time_t 
-perform_policy_resalt(char const *policyname, void *context,
-	db_connection_t *dbconn)
+perform_policy_resalt(char const *policyname, void *userdata,
+	void *context)
 {
 	policy_t *policy;
+        db_connection_t *dbconn = (db_connection_t *) context;
 	time_t resalt_time, now = time_now();
 	char salt[255], salthex[511];
 	int saltlength;
-	engine_type *engine = (engine_type *)context;
+	engine_type *engine = (engine_type *)userdata;
 	
 	policy = policy_new_get_by_name(dbconn, policyname);
 	if (!policy) {
@@ -162,7 +163,7 @@ perform_policy_resalt(char const *policyname, void *context,
 	return resalt_time;
 }
 
-static task_t *
+static task_type *
 policy_resalt_task(char const *owner, engine_type *engine)
 {
 	return task_create(strdup(owner), TASK_CLASS_ENFORCER, TASK_TYPE_RESALT,
@@ -178,7 +179,7 @@ flush_resalt_task_all(engine_type *engine, db_connection_t *dbconn)
 
 	policy_list_t *policylist;
 	const policy_t *policy;
-	task_t *task;
+	task_type *task;
 	int status = ODS_STATUS_OK;
 
 	policylist = policy_list_new(dbconn);
@@ -191,7 +192,7 @@ flush_resalt_task_all(engine_type *engine, db_connection_t *dbconn)
 
 	while ((policy = policy_list_next(policylist))) {
 		task = policy_resalt_task(policy_name(policy), engine);
-		status |= schedule_task(engine->taskq, task);
+		status |= schedule_task(engine->taskq, task, 0);
 	}
 	policy_list_free(policylist);
 	return status;

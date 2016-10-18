@@ -234,13 +234,11 @@ zonelist_add_zone(zonelist_type* zlist, zone_type* zone)
  * Delete zone.
  *
  */
-zone_type*
+void
 zonelist_del_zone(zonelist_type* zlist, zone_type* zone)
 {
     ldns_rbnode_t* old_node = LDNS_RBTREE_NULL;
-    if (!zone) {
-        return NULL;
-    }
+    assert(zone);
     if (!zlist || !zlist->zones) {
         goto zone_not_present;
     }
@@ -249,12 +247,11 @@ zonelist_del_zone(zonelist_type* zlist, zone_type* zone)
         goto zone_not_present;
     }
     free((void*) old_node);
-    return zone;
+    return;
 
 zone_not_present:
     ods_log_warning("[%s] unable to delete zone %s: not present", zl_str,
         zone->name);
-    return zone;
 }
 
 

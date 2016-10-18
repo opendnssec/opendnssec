@@ -93,10 +93,9 @@ zone_type* zonelist_add_zone(zonelist_type* zl, zone_type* zone);
  * Delete zone.
  * \param[in] zl zone list
  * \param[in] zone zone
- * \return zone_type* deleted zone
  *
  */
-zone_type* zonelist_del_zone(zonelist_type* zlist, zone_type* zone);
+void zonelist_del_zone(zonelist_type* zlist, zone_type* zone);
 
 /**
  * Update zonelist.
