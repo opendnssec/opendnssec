@@ -73,12 +73,14 @@ keystate(int p, int c, int introducing, key_data_ds_at_parent_t dsstate)
 		if (p == HID && c == HID) return KS_GEN;
 		if (p == HID || c == HID) return KS_PUB;
 		if (p == OMN || c == OMN) return KS_RDY;
+                if (p == RUM || c == RUM) return KS_RDY;
 		return KS_UNK;
 	} else {
 		/* retire conforms better to 1.4 terminology than dead. */
 		if (p == HID && c == HID) return KS_RET; /* dead */
 		if (p == UNR || c == UNR) return KS_RET;
 		if (p == OMN || c == OMN) return KS_RDY;
+                if (p == RUM || c == RUM) return KS_RDY;
 		return KS_RET;
 	}
 }
