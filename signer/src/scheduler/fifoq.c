@@ -132,7 +132,6 @@ fifoq_push(fifoq_type* q, void* item, worker_type* worker, int* tries)
     }
     q->blob[q->count] = item;
     assert(worker);
-    assert(worker->task);
     q->owner[q->count] = worker;
     q->count += 1;
     if (q->count == 1) {

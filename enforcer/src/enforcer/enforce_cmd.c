@@ -82,7 +82,7 @@ run(int sockfd, engine_type *engine, const char *cmd, ssize_t n,
 	db_connection_t *dbconn)
 {
 	time_t t_next;
-	task_t *task;
+	task_type *task;
 	char *buf;
 	int argc;
 	char const *argv[MAX_ARGS];
