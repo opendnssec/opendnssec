@@ -32,7 +32,6 @@
 #include "config.h"
 #include "daemon/cfg.h"
 #include "daemon/engine.h"
-#include "daemon/signal.h"
 #include "duration.h"
 #include "file.h"
 #include "str.h"
@@ -61,6 +60,7 @@
 
 static const char* engine_str = "engine";
 
+static engine_type* engine = NULL;
 
 /**
  * Create engine.
@@ -395,13 +395,39 @@ engine_wakeup_workers(engine_type* engine)
     }
 }
 
+static void *
+signal_handler(sig_atomic_t sig)
+{
+    switch (sig) {
+        case SIGHUP:
+            if (engine) {
+                engine->need_to_reload = 1;
+                pthread_mutex_lock(&engine->signal_lock);
+                pthread_cond_signal(&engine->signal_cond);
+                pthread_mutex_unlock(&engine->signal_lock);
+            }
+            break;
+        case SIGINT:
+        case SIGTERM:
+            if (engine) {
+                engine->need_to_exit = 1;
+                pthread_mutex_lock(&engine->signal_lock);
+                pthread_cond_signal(&engine->signal_cond);
+                pthread_mutex_unlock(&engine->signal_lock);
+            }
+            break;
+        default:
+            break;
+    }
+    return NULL;
+}
 
 /**
  * Set up engine.
  *
  */
 static ods_status
-engine_setup(engine_type* engine)
+engine_setup(void)
 {
     ods_status status = ODS_STATUS_OK;
     struct sigaction action;
@@ -489,7 +515,6 @@ engine_setup(engine_type* engine)
     ods_log_verbose("[%s] running as pid %lu", engine_str,
         (unsigned long) engine->pid);
     /* catch signals */
-    signal_set_engine(engine);
     action.sa_handler = (void (*)(int))signal_handler;
     sigfillset(&action.sa_mask);
     action.sa_flags = 0;
@@ -871,7 +896,6 @@ int
 engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
     int info, int single_run)
 {
-    engine_type* engine = NULL;
     ods_status zl_changed = ODS_STATUS_UNCHANGED;
     ods_status status = ODS_STATUS_OK;
 
@@ -898,7 +922,7 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
         exit(1);
     }
     /* setup */
-    status = engine_setup(engine);
+    status = engine_setup();
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] setup failed: %s", engine_str,
             ods_status2str(status));
