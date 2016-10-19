@@ -261,7 +261,7 @@ zone_reschedule_task(zone_type* zone, schedule_type* taskq, task_id what)
             zone->when = time_now();
         }
         task->due_date = time_now();
-        status = schedule_task(taskq, task, 0);
+        status = schedule_task(taskq, task, 0, 0);
     } else {
         /* task not queued, being worked on? */
         ods_log_verbose("[%s] unable to reschedule task for zone %s now: "

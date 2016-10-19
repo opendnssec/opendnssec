@@ -30,7 +30,7 @@
  */
 
 #include "config.h"
-#include "scheduler/fifoq.h"
+#include "daemon/fifoq.h"
 #include "log.h"
 
 #include <ldns/ldns.h>
@@ -143,6 +143,33 @@ fifoq_push(fifoq_type* q, void* item, worker_type* worker, int* tries)
     return ODS_STATUS_OK;
 }
 
+void
+fifoq_report(fifoq_type* q, worker_type* superior, ods_status subtaskstatus)
+{
+    pthread_mutex_lock(&q->q_lock);
+    if (subtaskstatus != ODS_STATUS_OK) {
+        superior->tasksFailed += 1;
+    }
+    superior->tasksOutstanding -= 1;
+    if (superior->tasksOutstanding == 0) {
+        pthread_cond_signal(&superior->tasksBlocker);
+    }
+    pthread_mutex_unlock(&q->q_lock);
+}
+
+void
+fifoq_waitfor(fifoq_type* q, worker_type* worker, long nsubtasks, long* nsubtasksfailed)
+{
+    pthread_mutex_lock(&q->q_lock);
+    worker->tasksOutstanding += nsubtasks;
+    while (worker->tasksOutstanding > 0 && !worker->need_to_exit) {
+        pthread_cond_wait(&worker->tasksBlocker, &q->q_lock);
+    }
+    *nsubtasksfailed = worker->tasksFailed;
+    worker->tasksFailed = 0;
+    pthread_mutex_unlock(&q->q_lock);
+}
+
 
 /**
  * Clean up queue.
@@ -158,4 +185,13 @@ fifoq_cleanup(fifoq_type* q)
     pthread_cond_destroy(&q->q_nonfull);
     pthread_mutex_destroy(&q->q_lock);
     free(q);
+}
+
+void
+fifoq_notifyall(fifoq_type* q)
+{
+    pthread_mutex_lock(&q->q_lock);
+    pthread_cond_broadcast(&q->q_threshold);
+    pthread_cond_broadcast(&q->q_nonfull);
+    pthread_mutex_unlock(&q->q_lock);
 }

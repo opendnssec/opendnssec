@@ -42,7 +42,7 @@ typedef struct engine_struct engine_type;
 #include "daemon/dnshandler.h"
 #include "daemon/xfrhandler.h"
 #include "daemon/worker.h"
-#include "scheduler/fifoq.h"
+#include "daemon/fifoq.h"
 #include "scheduler/schedule.h"
 #include "status.h"
 #include "locks.h"
@@ -74,7 +74,6 @@ struct engine_struct {
     int need_to_exit;
     int need_to_reload;
 
-    sig_atomic_t signal;
     pthread_cond_t signal_cond;
     pthread_mutex_t signal_lock;
 };

@@ -110,4 +110,8 @@ ods_status fifoq_push(fifoq_type* q, void* item, worker_type* worker,
  */
 void fifoq_cleanup(fifoq_type* q);
 
+void fifoq_report(fifoq_type* q, worker_type* superior, ods_status subtaskstatus);
+void fifoq_waitfor(fifoq_type* q, worker_type* worker, long nsubtasks, long* nsubtasksfailed);
+void fifoq_notifyall(fifoq_type* q);
+
 #endif /* SCHEDULER_FIFOQ_H */

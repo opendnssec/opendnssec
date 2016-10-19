@@ -37,7 +37,6 @@
 #include "daemon/cmdhandler.h"
 #include "clientpipe.h"
 #include "daemon/engine.h"
-#include "daemon/signal.h"
 #include "daemon/worker.h"
 #include "scheduler/schedule.h"
 #include "scheduler/task.h"
@@ -69,6 +68,8 @@
 
 static const char* engine_str = "engine";
 
+static engine_type* engine = NULL;
+
 /**
  * Create engine.
  *
@@ -76,7 +77,6 @@ static const char* engine_str = "engine";
 engine_type*
 engine_alloc(void)
 {
-    engine_type* engine;
     engine = (engine_type*) malloc(sizeof(engine_type));
     if (!engine) return NULL;
 
@@ -423,12 +423,39 @@ desetup_database(engine_type* engine)
     engine->dbcfg_list = NULL;
 }
 
+static void *
+signal_handler(sig_atomic_t sig)
+{
+    switch (sig) {
+        case SIGHUP:
+            if (engine) {
+                engine->need_to_reload = 1;
+                pthread_mutex_lock(&engine->signal_lock);
+                pthread_cond_signal(&engine->signal_cond);
+                pthread_mutex_unlock(&engine->signal_lock);
+            }
+            break;
+        case SIGINT:
+        case SIGTERM:
+            if (engine) {
+                engine->need_to_exit = 1;
+                pthread_mutex_lock(&engine->signal_lock);
+                pthread_cond_signal(&engine->signal_cond);
+                pthread_mutex_unlock(&engine->signal_lock);
+            }
+            break;
+        default:
+            break;
+    }
+    return NULL;
+}
+
 /**
  * Set up engine and return the setup status.
  *
  */
 ods_status
-engine_setup(engine_type* engine)
+engine_setup(void)
 {
     int fd;
 
@@ -577,7 +604,6 @@ engine_init(engine_type* engine, int daemonize)
     engine->need_to_reload = 0;
     engine->daemonize = daemonize;
     /* catch signals */
-    signal_set_engine(engine);
     action.sa_handler = (void (*)(int))signal_handler;
     sigfillset(&action.sa_mask);
     action.sa_flags = 0;

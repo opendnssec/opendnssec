@@ -88,6 +88,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	struct tm tm;
 	const int NARGV = MAX_ARGS;
 	const char *argv[MAX_ARGS];
+        int taskcount;
 	int argc, attach, cont;
 	task_type* task = NULL;
 	(void)n;
@@ -128,16 +129,17 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 		return 1;
 	}
 
-	/* how many tasks */
+        schedule_info(engine->taskq, &time_leap, NULL, &taskcount);
+
 	now = time_now();
 	strftime(strtime, sizeof(strtime), "%c", localtime_r(&now, &strtime_struct));
 	client_printf(sockfd, 
 		"There are %i tasks scheduled.\nIt is now       %s (%ld seconds since epoch)\n",
-		(int) schedule_taskcount(engine->taskq), strtime, (long)now);
+		taskcount, strtime, (long)now);
 	cont = 1;
 	while (cont) {
 		if (!time)
-			time_leap = schedule_time_first(engine->taskq);
+                        schedule_info(engine->taskq, &time_leap, NULL, NULL);
 
 		if (time_leap == -1) {
 			client_printf(sockfd, "No tasks in queue. Not able to leap.\n");

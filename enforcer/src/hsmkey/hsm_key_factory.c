@@ -512,7 +512,7 @@ hsm_key_factory_schedule_generate(engine_type* engine,
         hsm_key_factory_generate_cb, task2,
         free, time_now());
 
-    if (schedule_task(engine->taskq, task, 0) != ODS_STATUS_OK) {
+    if (schedule_task(engine->taskq, task, 1, 0) != ODS_STATUS_OK) {
         if (!task) {
             free(task2);
             policy_key_free(policy_key);
@@ -550,7 +550,7 @@ hsm_key_factory_schedule_generate_policy(engine_type* engine,
         hsm_key_factory_generate_policy_cb, task2,
         free, time_now());
 
-    if (schedule_task(engine->taskq, task, 0) != ODS_STATUS_OK) {
+    if (schedule_task(engine->taskq, task, 1, 0) != ODS_STATUS_OK) {
         if (!task) {
             free(task2);
             policy_free(policy);
@@ -582,7 +582,7 @@ hsm_key_factory_schedule_generate_all(engine_type* engine, time_t duration)
         hsm_key_factory_generate_all_cb, task2,
         free, time_now());
 
-    if (schedule_task(engine->taskq, task, 0) != ODS_STATUS_OK) {
+    if (schedule_task(engine->taskq, task, 1, 0) != ODS_STATUS_OK) {
         if (!task) {
             free(task2);
         }

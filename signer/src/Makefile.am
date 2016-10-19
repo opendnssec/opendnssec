@@ -27,15 +27,12 @@ ods_signerd_SOURCES=		ods-signerd.c \
 				daemon/dnshandler.c daemon/dnshandler.h \
 				daemon/xfrhandler.c daemon/xfrhandler.h \
 				daemon/engine.c daemon/engine.h \
-				daemon/signal.c daemon/signal.h \
 				daemon/worker.c daemon/worker.h \
+				daemon/fifoq.c daemon/fifoq.h \
 				parser/addnsparser.c parser/addnsparser.h \
 				parser/confparser.c parser/confparser.h \
 				parser/signconfparser.c parser/signconfparser.h \
 				parser/zonelistparser.c parser/zonelistparser.h \
-				scheduler/fifoq.c scheduler/fifoq.h \
-				scheduler/schedule.c scheduler/schedule.h \
-				scheduler/task.c scheduler/task.h \
 				signer/backup.c signer/backup.h \
 				hsm.c hsm.h \
 				signer/denial.c signer/denial.h \

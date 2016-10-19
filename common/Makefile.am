@@ -18,4 +18,6 @@ libcompat_a_SOURCES = \
 	status.c status.h \
 	str.c str.h strlcat.c strlcpy.c \
 	util.c util.h \
-	datastructure.c datastructure.h
+	datastructure.c datastructure.h \
+	scheduler/schedule.c scheduler/schedule.h \
+	scheduler/task.c scheduler/task.h

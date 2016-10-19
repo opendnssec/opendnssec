@@ -42,7 +42,7 @@
  *
  * Payload: the callback, a context passed to the callback and method
  * to free the context.
- * 
+ *
  */
 
 #ifndef SCHEDULER_TASK_H
@@ -128,8 +128,6 @@ int task_compare_time_then_ttuple(const void* a, const void* b);
 task_type*
 task_duplicate_shallow(task_type *task);
 
-
-int task_compare(const void* a, const void* b);
 void task_log(task_type* task);
 
 char* task2str(task_type* task, char* buftask);
