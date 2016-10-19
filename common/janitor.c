@@ -197,7 +197,7 @@ janitor_thread_unregister(janitor_thread_t info)
          * is satisfied and thus not really being waited upon.  If now one
          * of the threads tries to destroy the thread, while the other thread
          * did not have its turn yet on the CPU, then still the destroy call
-         * will return EBUSY.  Althrough valid, this is really a brain dead
+         * will return EBUSY.  Although valid, this is really a brain dead
          * implementation causing pain to application developers to do the
          * following every time:
          */
