@@ -39,6 +39,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include <string.h>
+#include <errno.h>
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <dlfcn.h>
@@ -175,6 +176,7 @@ threadlocatorinitialize(void)
 void
 janitor_thread_unregister(janitor_thread_t info)
 {
+    int err;
     if (info == NULL)
         return;
     CHECKFAIL(pthread_mutex_lock(&threadlock));
@@ -190,7 +192,20 @@ janitor_thread_unregister(janitor_thread_t info)
         }
         info->next = info->prev = NULL;
         free(info);
-        CHECKFAIL(pthread_barrier_destroy(&info->startbarrier));
+        /* The implementation on FreeBSD10 of pthreads is pretty brain dead.
+         * If two threads enter a barrier with count 2, then the barrier
+         * is satisfied and thus not really being waited upon.  If now one
+         * of the threads tries to destroy the thread, while the other thread
+         * did not have its turn yet on the CPU, then still the destroy call
+         * will return EBUSY.  Althrough valid, this is really a brain dead
+         * implementation causing pain to application developers to do the
+         * following every time:
+         */
+        do {
+            err = pthread_barrier_destroy(&info->startbarrier);
+            if(err == EBUSY)
+                sleep(1);
+        } while(err == EBUSY);
         CHECKFAIL(pthread_cond_signal(&threadblock));
     }
     CHECKFAIL(pthread_mutex_unlock(&threadlock));
