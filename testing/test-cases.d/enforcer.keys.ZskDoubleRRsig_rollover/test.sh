@@ -31,7 +31,7 @@ echo "########### VERIFY SIGNATURES IN THE SIGNED FILE ############ " &&
 time=`ods-enforcer queue | grep "It is now" | cut -d " " -f9 | cut -d "(" -f2` &&
 ods-signerd --set-time $time && sleep 1 &&
 
-echo -n "LINE: ${LINENO} " && syslog_waitfor 60 'ods-signerd: .*\[STATS\] ods' &&
+echo -n "LINE: ${LINENO} " && syslog_waitfor_count 60 1 'ods-signerd: .*\[STATS\] ods' &&
 echo -n "LINE: ${LINENO} " && test -f "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
 
 echo -n "LINE: ${LINENO} " && count=`grep -c "RRSIG[[:space:]]*MX" "$INSTALL_ROOT/var/opendnssec/signed/ods"` &&
@@ -53,6 +53,7 @@ echo &&
 echo "############# CHECK SIGNATURES AFTER ROLLOVER ############# " &&
 echo -n "LINE: ${LINENO} " && sleep 3 && ods-signer update --all && sleep 3 &&
 echo -n "LINE: ${LINENO} " && sleep 3 && ods-signer sign --all && sleep 3 && 
+echo -n "LINE: ${LINENO} " && syslog_waitfor_count 60 3 'ods-signerd: .*\[STATS\] ods' &&
 
 # There must be one published ZSK
 echo -n "LINE: ${LINENO} " && count=`grep -c "DNSKEY[[:space:]]*256" "$INSTALL_ROOT/var/opendnssec/signed/ods"` &&
@@ -80,6 +81,7 @@ echo -n "LINE: ${LINENO} " && ods-signerd --set-time $time && sleep 1 &&
 
 echo -n "LINE: ${LINENO} " && ods-signer update --all && sleep 5 &&
 echo -n "LINE: ${LINENO} " && ods-signer sign --all && sleep 5 &&
+echo -n "LINE: ${LINENO} " && syslog_waitfor_count 60 5 'ods-signerd: .*\[STATS\] ods' &&
 
 echo -n "LINE: ${LINENO} " && count=`grep -c "DNSKEY[[:space:]]*256" "$INSTALL_ROOT/var/opendnssec/signed/ods"` &&
 echo -n "LINE: ${LINENO} " && [ $count -eq 1 ] &&
@@ -90,33 +92,33 @@ echo -n "LINE: ${LINENO} " && ods_stop_signer && sleep 5 &&
 
 echo -n "LINE: ${LINENO} " && ods-enforcer time leap && sleep 1 &&
 echo -n "LINE: ${LINENO} " && time=`ods-enforcer queue | grep "It is now" | cut -d " " -f9 | cut -d "(" -f2` &&
-echo $time &&
 echo -n "LINE: ${LINENO} " && ods-signerd --set-time $time && sleep 1 &&
 
 echo -n "LINE: ${LINENO} " && ods-signer update --all && sleep 3 &&
 echo -n "LINE: ${LINENO} " && ods-signer sign --all && sleep 3 &&
+echo -n "LINE: ${LINENO} " && syslog_waitfor_count 60 7 'ods-signerd: .*\[STATS\] ods' &&
 
 #echo -n "LINE: ${LINENO} " && validns -t $time "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
 echo -n "LINE: ${LINENO} " && ods_stop_signer && sleep 5 &&
 
 echo -n "LINE: ${LINENO} " && ods-enforcer time leap && sleep 1 &&
 echo -n "LINE: ${LINENO} " && time=`ods-enforcer queue | grep "It is now" | cut -d " " -f9 | cut -d "(" -f2` &&
-echo $time &&
 echo -n "LINE: ${LINENO} " && ods-signerd --set-time $time && sleep 1 &&
 
 echo -n "LINE: ${LINENO} " && ods-signer update --all && sleep 3 &&
 echo -n "LINE: ${LINENO} " && ods-signer sign --all && sleep 3 &&
+echo -n "LINE: ${LINENO} " && syslog_waitfor_count 60 9 'ods-signerd: .*\[STATS\] ods' &&
 
 #echo -n "LINE: ${LINENO} " && validns -t $time "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
 echo -n "LINE: ${LINENO} " && ods_stop_signer && sleep 5 &&
 
 echo -n "LINE: ${LINENO} " && ods-enforcer time leap && sleep 1 &&
 echo -n "LINE: ${LINENO} " && time=`ods-enforcer queue | grep "It is now" | cut -d " " -f9 | cut -d "(" -f2` &&
-echo $time &&
 echo -n "LINE: ${LINENO} " && ods-signerd --set-time $time && sleep 1 &&
 
 echo -n "LINE: ${LINENO} " && ods-signer update --all && sleep 3 &&
 echo -n "LINE: ${LINENO} " && ods-signer sign --all && sleep 3 &&
+echo -n "LINE: ${LINENO} " && syslog_waitfor_count 60 10 'ods-signerd: .*\[STATS\] ods' &&
 
 #echo -n "LINE: ${LINENO} " && validns -t $time "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
 
