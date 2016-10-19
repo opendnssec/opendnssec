@@ -70,7 +70,7 @@ echo "######## LEAP TIME TILL THE ROLLOVER IS COMPLETED ############ " &&
 # New KSK is waiting for ds-seen 
 echo -n "LINE: ${LINENO} " && ods-enforcer key ds-seen -z ods --keytag $KSK2 && sleep 3 &&
 
-echo -n "LINE: ${LINENO} " && ods-enforcer time leap && sleep 1 &&
+echo -n "LINE: ${LINENO} " && ods-enforcer time leap && sleep 3 &&
 
 echo -n "LINE: ${LINENO} " && ods-enforcer key list -d -p | grep "ods;KSK;omnipresent;rumoured;rumoured;NA;1;1" &&
 echo -n "LINE: ${LINENO} " && ods-enforcer key list -d -p | grep "ods;KSK;omnipresent;unretentive;unretentive;NA;0;0" &&
@@ -78,8 +78,8 @@ echo -n "LINE: ${LINENO} " && ods-enforcer key list -d -p | grep "ods;KSK;omnipr
 echo -n "LINE: ${LINENO} " && time=`ods-enforcer queue | grep "It is now" | cut -d " " -f9 | cut -d "(" -f2` &&
 echo -n "LINE: ${LINENO} " && ods-signerd --set-time $time && sleep 1 &&
 
-echo -n "LINE: ${LINENO} " && ods-signer update --all && sleep 3 &&
-echo -n "LINE: ${LINENO} " && ods-signer sign --all && sleep 3 &&
+echo -n "LINE: ${LINENO} " && ods-signer update --all && sleep 5 &&
+echo -n "LINE: ${LINENO} " && ods-signer sign --all && sleep 5 &&
 
 echo -n "LINE: ${LINENO} " && count=`grep -c "IN[[:space:]]*RRSIG[[:space:]]*DNSKEY" "$INSTALL_ROOT/var/opendnssec/signed/ods"` &&
 echo -n "LINE: ${LINENO} " && [ $count -eq 1 ] &&
