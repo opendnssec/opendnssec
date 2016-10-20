@@ -1,3 +1,7 @@
+Unreleased:
+
+* OPENDNSSEC-778: Double NSEC3PARAM record after resalt.
+
 OpenDNSSEC 1.4.12 - 2015-10-17
 
 * OPENDNSSEC-808: Crash on query with empty query section (thanks Håvard
