@@ -80,7 +80,7 @@ echo -n "LINE: ${LINENO} " && time=`ods-enforcer queue | grep "It is now" | cut 
 echo -n "LINE: ${LINENO} " && ods-signerd --set-time $time && sleep 1 &&
 echo -n "LINE: ${LINENO} " && ods-signer update --all && sleep 5 &&
 echo -n "LINE: ${LINENO} " && ods-signer sign --all && sleep 3 &&
-echo -n "LINE: ${LINENO} " && syslog_waitfor_count 60 5 'ods-signerd: .*\[STATS\] ods' &&
+echo -n "LINE: ${LINENO} " && syslog_waitfor_count 120 5 'ods-signerd: .*\[STATS\] ods' &&
 
 # The old signature is still valid
 echo -n "LINE: ${LINENO} " && count=`grep -c "RRSIG[[:space:]]*MX" "$INSTALL_ROOT/var/opendnssec/signed/ods"` &&
@@ -101,11 +101,12 @@ echo -n "LINE: ${LINENO} " && time=`ods-enforcer queue | grep "It is now" | cut 
 echo -n "LINE: ${LINENO} " && ods-signerd --set-time $time && sleep 1 &&
 echo -n "LINE: ${LINENO} " && ods-signer update --all && sleep 5 &&
 echo -n "LINE: ${LINENO} " && ods-signer sign --all && sleep 5 &&
-echo -n "LINE: ${LINENO} " && syslog_waitfor_count 60 7 'ods-signerd: .*\[STATS\] ods' &&
+echo -n "LINE: ${LINENO} " && syslog_waitfor_count 120 7 'ods-signerd: .*\[STATS\] ods' &&
 
 echo -n "LINE: ${LINENO} " && count=`grep -c "RRSIG[[:space:]]*MX" "$INSTALL_ROOT/var/opendnssec/signed/ods"` &&
 echo -n "LINE: ${LINENO} " && [ $count -eq 1 ] &&
 
+echo "time is $time" &&
 echo -n "LINE: ${LINENO} " && validns -t $time "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
 echo -n "LINE: ${LINENO} " && ods_stop_signer && sleep 5 &&
 
@@ -115,7 +116,7 @@ echo -n "LINE: ${LINENO} " && ods-signerd --set-time $time && sleep 1 &&
 
 echo -n "LINE: ${LINENO} " && ods-signer update --all && sleep 3 &&
 echo -n "LINE: ${LINENO} " && ods-signer sign --all && sleep 3 &&
-echo -n "LINE: ${LINENO} " && syslog_waitfor_count 60 9 'ods-signerd: .*\[STATS\] ods' &&
+echo -n "LINE: ${LINENO} " && syslog_waitfor_count 120 9 'ods-signerd: .*\[STATS\] ods' &&
 
 echo -n "LINE: ${LINENO} " && validns -t $time "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
 echo -n "LINE: ${LINENO} " && ods_stop_signer && sleep 5 &&
@@ -126,7 +127,7 @@ echo -n "LINE: ${LINENO} " && ods-signerd --set-time $time && sleep 1 &&
 
 echo -n "LINE: ${LINENO} " && ods-signer update --all && sleep 3 &&
 echo -n "LINE: ${LINENO} " && ods-signer sign --all && sleep 3 &&
-echo -n "LINE: ${LINENO} " && syslog_waitfor_count 60 10 'ods-signerd: .*\[STATS\] ods' &&
+echo -n "LINE: ${LINENO} " && syslog_waitfor_count 120 10 'ods-signerd: .*\[STATS\] ods' &&
 echo -n "LINE: ${LINENO} " && validns -t $time "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
 
 echo &&
