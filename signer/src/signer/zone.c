@@ -677,7 +677,9 @@ zone_add_rr(zone_type* zone, ldns_rr* rr, int do_stats)
         record = NULL;
 
     if (record) {
-        record->is_added = 1; /* already exists, just mark added */
+        if (rrset->rrtype != LDNS_RR_TYPE_NSEC3PARAMS) {
+            record->is_added = 1; /* already exists, just mark added */
+        }
         record->is_removed = 0; /* unset is_removed */
         return ODS_STATUS_UNCHANGED;
     } else {
