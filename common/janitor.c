@@ -176,7 +176,7 @@ threadlocatorinitialize(void)
 void
 janitor_thread_unregister(janitor_thread_t info)
 {
-    int err;
+    int err, errcount;
     if (info == NULL)
         return;
     CHECKFAIL(pthread_mutex_lock(&threadlock));
@@ -201,11 +201,14 @@ janitor_thread_unregister(janitor_thread_t info)
          * implementation causing pain to application developers to do the
          * following every time:
          */
+        errcount = 0;
         do {
             err = pthread_barrier_destroy(&info->startbarrier);
-            if(err == EBUSY)
-                sleep(1);
-        } while(err == EBUSY);
+            if (err == EBUSY) {
+                ++errcount;
+                sleep(3);
+            }
+        } while(err == EBUSY && errcount <= 3);
         CHECKFAIL(pthread_cond_signal(&threadblock));
     }
     CHECKFAIL(pthread_mutex_unlock(&threadlock));
