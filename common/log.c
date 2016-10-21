@@ -134,10 +134,10 @@ ods_log_init(const char *programname, int use_syslog, const char *targetname, in
             "stderr", log_str, targetname);
     } else {
         logfile = stderr;
+        targetname = "stderr";
     }
     ods_log_verbose("[%s] switching log to %s verbosity %i (log level %i)",
-          log_str, use_syslog?"syslog":(targetname&&targetname[0]?targetname:"stderr"),
-          verbosity, verbosity+2);
+          log_str, targetname, verbosity, verbosity+2);
 
 }
 
