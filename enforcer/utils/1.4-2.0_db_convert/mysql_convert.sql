@@ -232,15 +232,29 @@ SET zoneSoaMinimum = (
 		AND REMOTE.parameters.category_id = 7
 		AND REMOTE.parameters.name = 'min');
 
+-- Temporary mapping table between 1.4 and 2.0 SOA serial strategy
+CREATE TABLE mapping (
+	soa14 INTEGER,
+	soa20 INTEGER
+);
+INSERT INTO mapping SELECT  1, 2;
+INSERT INTO mapping SELECT  2, 0;
+INSERT INTO mapping SELECT  3, 1;
+INSERT INTO mapping SELECT  4, 3;
+
 UPDATE policy
 SET zoneSoaSerial = (
-	SELECT value
+	SELECT mapping.soa20
 	FROM  REMOTE.parameters_policies
 	INNER JOIN REMOTE.parameters
 	ON REMOTE.parameters_policies.parameter_id = REMOTE.parameters.id 
+        INNER JOIN mapping
+        ON REMOTE.parameters_policies.value = mapping.soa14
 	WHERE REMOTE.parameters_policies.policy_id = policy.id 
 		AND REMOTE.parameters.category_id = 7
 		AND REMOTE.parameters.name = 'serial');
+
+DROP TABLE mapping;
 
 -- parentRegistrationDelay = 0 on 1.4
 
@@ -543,8 +557,8 @@ FROM REMOTE.dnsseckeys
 JOIN REMOTE.keypairs 
 	ON REMOTE.dnsseckeys.keypair_id = REMOTE.keypairs.id
 JOIN mapping 
-	ON REMOTE.dnsseckeys.state = mapping.state;
--- WHERE REMOTE.keypairs.generate IS NOT NULL;
+	ON REMOTE.dnsseckeys.state = mapping.state
+WHERE EXISTS(select REMOTE.zones.id FROM REMOTE.zones WHERE REMOTE.zones.id = REMOTE.dnsseckeys.zone_id);
 
 UPDATE keyData
 SET dsatparent = 0
@@ -646,15 +660,67 @@ JOIN REMOTE.dnsseckeys
 JOIN mapping
 	ON mapping.state = REMOTE.dnsseckeys.state;
 
-UPDATE keyState, keyData, REMOTE.dnsseckeys
-SET keyState.state = 2
-WHERE keyState.state = 1 
-	AND keyState.type = 1 
-	AND keyData.id = keyState.keydataId
-	AND REMOTE.dnsseckeys.keypair_id = keyData.hsmkeyid
-	AND REMOTE.dnsseckeys.retire IS NOT NULL;
+--Set to OMN if Tactive + Dttl < Tnow
+UPDATE keyState
+SET state = 2
+WHERE keyState.state = 1 AND keyState.type = 1 AND keyState.id IN (
+        SELECT keyState.id
+        FROM keyState
+        JOIN keyData
+                ON keyData.id = keyState.keydataId
+        JOIN REMOTE.dnsseckeys
+                ON REMOTE.dnsseckeys.keypair_id = keyData.hsmkeyid
+        JOIN zone
+                ON keyData.zoneId = zone.id
+        JOIN policy
+                ON policy.id = zone.policyId
+        WHERE CAST(strftime("%s", REMOTE.dnsseckeys.active) + policy.signaturesValidityDefault as INTEGER) < strftime("%s", "now"));
 
+--Force the RRSIG state in omnipresent if rumoured and there is no old ZSK
+--unretentive
+UPDATE keyState 
+SET state = 2
+WHERE keyState.id IN (
+SELECT rs.id FROM keyState AS rs 
+JOIN keystate AS dk ON dk.keyDataId == rs.keyDataId
+WHERE rs.type == 1 AND dk.type == 2 AND rs.state == 1 AND dk.state == 2
+AND NOT EXISTS(
+	SELECT* FROM keystate AS rs2
+	JOIN keystate AS dk2 ON dk2.keyDataId == rs2.keyDataId
+	WHERE rs2.type == 1 AND dk2.type == 2 AND rs2.state == 3 AND dk2.state == 2
+));
 DROP TABLE mapping;
+
+-- We need to create records in the keydependency table in case we are in a
+-- rollover. Only done for ZSK. For every introducing ZSK with RRSIG rumoured
+-- that has an outroducing ZSK with RRSIG unretentive, we add a record.
+INSERT INTO keyDependency
+SELECT NULL, 0, keyData.zoneID, SUB.IDout, keyData.id, 1
+FROM keyData
+JOIN keyState AS KS1 
+	ON KS1.keyDataId == keyData.id
+JOIN keyState AS KS2 
+	ON KS2.keyDataId == keyData.id
+JOIN (
+	SELECT keyData.id AS IDout, keyData.zoneID 
+	FROM keyData
+	JOIN keyState AS KS1 
+		ON KS1.keyDataId == keyData.id
+	JOIN keyState AS KS2 
+		ON KS2.keyDataId == keyData.id
+	WHERE KS1.type == 2 
+		AND ks1.state = 2 
+		AND KS2.type == 1 
+		AND KS2.state == 3
+		AND keyData.introducing == 0 
+		AND keyData.role == 2
+) AS SUB
+	ON SUB.zoneId == keyData.zoneId
+WHERE 
+	KS1.type == 2 
+	AND ks1.state = 2 
+	AND KS2.type == 1 
+	AND KS2.state == 1
 
 UPDATE keyState
 SET state = 4

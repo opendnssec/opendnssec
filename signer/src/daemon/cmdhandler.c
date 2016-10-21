@@ -315,9 +315,7 @@ cmdhandler_handle_cmd_sign(int sockfd, cmdhandler_type* cmdc, const char* tbd)
     engine = (engine_type*) cmdc->engine;
     ods_log_assert(engine->taskq);
     if (ods_strcmp(tbd, "--all") == 0) {
-        pthread_mutex_lock(&engine->taskq->schedule_lock);
-        schedule_flush(engine->taskq, TASK_READ);
-        pthread_mutex_unlock(&engine->taskq->schedule_lock);
+        sched_flush(engine->taskq, TASK_READ);
         engine_wakeup_workers(engine);
         (void)snprintf(buf, ODS_SE_MAXLINE, "All zones scheduled for "
             "immediate re-sign.\n");
@@ -509,6 +507,7 @@ cmdhandler_handle_cmd_queue(int sockfd, cmdhandler_type* cmdc)
     engine_type* engine = NULL;
     char* strtime = NULL;
     char buf[ODS_SE_MAXLINE];
+    char* taskdesc;
     size_t i = 0;
     time_t now = 0;
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
@@ -529,16 +528,6 @@ cmdhandler_handle_cmd_queue(int sockfd, cmdhandler_type* cmdc)
     ods_writen(sockfd, buf, strlen(buf));
     /* current work */
     pthread_mutex_lock(&engine->taskq->schedule_lock);
-    for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
-        task = engine->workers[i]->task;
-        if (task) {
-            (void)snprintf(buf, ODS_SE_MAXLINE, "Working with task %s on "
-                "zone %s\n",
-                task_what2str(engine->workers[i]->working_with),
-                task_who2str(task));
-            ods_writen(sockfd, buf, strlen(buf));
-        }
-    }
     /* how many tasks */
     (void)snprintf(buf, ODS_SE_MAXLINE, "\nThere are %i tasks scheduled.\n",
         (int) engine->taskq->tasks->count);
@@ -550,8 +539,9 @@ cmdhandler_handle_cmd_queue(int sockfd, cmdhandler_type* cmdc)
         for (i=0; i < ODS_SE_MAXLINE; i++) {
             buf[i] = 0;
         }
-        (void)task2str(task, (char*) &buf[0]);
-        ods_writen(sockfd, buf, strlen(buf));
+        taskdesc = sched_describetask(task);
+        ods_writen(sockfd, taskdesc, strlen(taskdesc));
+        free(taskdesc);
         node = ldns_rbtree_next(node);
     }
     pthread_mutex_unlock(&engine->taskq->schedule_lock);
@@ -571,9 +561,7 @@ cmdhandler_handle_cmd_flush(int sockfd, cmdhandler_type* cmdc)
     ods_log_assert(cmdc->engine);
     engine = (engine_type*) cmdc->engine;
     ods_log_assert(engine->taskq);
-    pthread_mutex_lock(&engine->taskq->schedule_lock);
-    schedule_flush(engine->taskq, TASK_NONE);
-    pthread_mutex_unlock(&engine->taskq->schedule_lock);
+    sched_flush(engine->taskq, TASK_NONE);
     engine_wakeup_workers(engine);
     (void)snprintf(buf, ODS_SE_MAXLINE, "All tasks scheduled immediately.\n");
     ods_writen(sockfd, buf, strlen(buf));

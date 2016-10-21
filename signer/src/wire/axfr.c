@@ -108,8 +108,8 @@ soa_request(query_type* q, engine_type* engine)
         expire = q->zone->xfrd->serial_xfr_acquired;
         expire += ldns_rdf2native_int32(ldns_rr_rdf(rr, SE_SOA_RDATA_EXPIRE));
         if (expire < time_now()) {
-            ods_log_warning("[%s] zone %s expired at %ld, and it is now %ld: "
-                "not serving soa", axfr_str, q->zone->name, expire, time_now());
+            ods_log_warning("[%s] zone %s expired at %lld, and it is now %lld: "
+                "not serving soa", axfr_str, q->zone->name, (long long)expire, (long long)time_now());
             ldns_rr_free(rr);
             buffer_pkt_set_rcode(q->buffer, LDNS_RCODE_SERVFAIL);
             ods_fclose(fd);
@@ -553,6 +553,8 @@ ixfr(query_type* q, engine_type* engine)
             } else {
                 ods_log_deeebug("[%s] soa serial %u not found for rr at line %d",
                     axfr_str, q->serial, l);
+                ldns_rr_free(rr);
+                rr = NULL;
                 continue;
             }
         }

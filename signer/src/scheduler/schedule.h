@@ -137,4 +137,12 @@ void schedule_print(FILE* out, schedule_type* schedule);
  */
 void schedule_cleanup(schedule_type* schedule);
 
+void sched_task_destroy(schedule_type* sched, task_type* task);
+void sched_flush(schedule_type* schedule, task_id override);
+time_t sched_task_due(task_type* task);
+int sched_task_istype(task_type* task, task_id type);
+char* sched_describetask(task_type* task);
+time_t task_execute(task_type* task, void* context);
+void task_perform(schedule_type* sched, task_type* task, void* context);
+
 #endif /* SCHEDULER_SCHEDULE_H */

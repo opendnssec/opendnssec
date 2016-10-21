@@ -42,6 +42,7 @@
 #include "clientpipe.h"
 
 #include "daemon/queue_cmd.h"
+#include "scheduler/task.h"
 
 static const char *module_str = "queue_cmd";
 
@@ -69,42 +70,18 @@ handles(const char *cmd, ssize_t n)
 	return ods_check_command(cmd, n, queue_funcblock()->cmdname)?1:0;
 }
 
-/**
- * Convert task to string.
- * buf must be at least ODS_SE_MAXLINE long.
- */
-static void
-task2str(task_t* task, char* buf, time_t now)
-{
-	char ctimebuf[32]; /* at least 26 according to docs */
-	time_t time;
-	char* strtime = NULL;
-	char* strtask = NULL;
-
-	assert(task);
-
-	time = (task->due_date < now)?now:task->due_date;
-	strtime = ctime_r(&time, ctimebuf);
-	/* We need cut off the newline */
-	if (strtime && strlen(strtime) > 0) {
-		strtime[strlen(strtime)-1] = 0;
-	}
-	(void)snprintf(buf, ODS_SE_MAXLINE, "On %s I will [%s] %s\n",
-		strtime?strtime:"(null)", task->type, task->owner);
-}
-
 static int
 run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	db_connection_t *dbconn)
 {
 	struct tm strtime_struct;
 	char strtime[64]; /* at least 26 according to docs plus a long integer */
-	char buf[ODS_SE_MAXLINE];
+    char* taskdescription;
 	size_t i = 0, count;
 	time_t now;
 	time_t nextFireTime;
 	ldns_rbnode_t* node = LDNS_RBTREE_NULL;
-	task_t* task = NULL;
+	task_type* task = NULL;
 	(void)cmd; (void)n; (void)dbconn;
 	int num_waiting;
 
@@ -140,10 +117,10 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	pthread_mutex_lock(&engine->taskq->schedule_lock);
 		node = ldns_rbtree_first(engine->taskq->tasks);
 		while (node && node != LDNS_RBTREE_NULL) {
-			task = (task_t*) node->data;
-			memset(buf, 0, ODS_SE_MAXLINE);
-			task2str(task, buf, now);
-			client_printf(sockfd, "%s", buf);
+			task = (task_type*) node->data;
+			taskdescription = sched_describetask(task);
+			client_printf(sockfd, "%s", taskdescription);
+                        free(taskdescription);
 			node = ldns_rbtree_next(node);
 		}
 	pthread_mutex_unlock(&engine->taskq->schedule_lock);
@@ -190,8 +167,8 @@ run_flush(int sockfd, engine_type *engine, const char *cmd, ssize_t n,
 	ods_log_assert(engine);
 	ods_log_assert(engine->taskq);
 
-	schedule_flush(engine->taskq);
-
+	sched_flush(engine->taskq, TASK_NONE);
+        
 	client_printf(sockfd, "All tasks scheduled immediately.\n");
 	ods_log_verbose("[cmdhandler] all tasks scheduled immediately");
 	return 0;

@@ -35,10 +35,10 @@
 #include "scheduler/task.h"
 #include "db/policy.h"
 
-task_t *enforce_task(engine_type *engine, char const *owner);
+task_type *enforce_task(engine_type *engine, char const *owner);
 
 time_t enforce_task_perform(char const *owner, void *context,
-    db_connection_t *dbconn);
+    void *dbconn);
 
 /* Schedule enforce tasks for *now* for zone. */
 void enforce_task_flush_zone(engine_type *engine, char const *zonename);
