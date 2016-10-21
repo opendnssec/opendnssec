@@ -1370,7 +1370,30 @@ xfrd_tcp_open(xfrd_type* xfrd, tcp_set_type* set)
         return 0;
     }
     to_len = xfrd_acl_sockaddr_to(xfrd->master, &to);
-    /* bind it? */
+    /* bind it */
+    interface_type interface = xfrd->xfrhandler->engine->dnshandler->interfaces->interfaces[0];
+    if (!interface.address) {
+        ods_log_error("[%s] unable to get the address of interface", xfrd_str);
+        return -1;
+    }
+    if (acl_parse_family(interface.address) == AF_INET) {
+        struct sockaddr_in addr;
+        addr.sin_family = acl_parse_family(interface.address);
+        addr.sin_addr = interface.addr.addr;
+        if (bind(fd, (struct sockaddr *) &addr, sizeof(addr)) != 0) {
+            ods_log_error("[%s] unable to bind address %s: bind failed", xfrd_str, interface.address);
+            return -1;
+        }
+    }
+    else {
+        struct sockaddr_in6 addr6;
+        addr6.sin6_family = acl_parse_family(interface.address);
+        addr6.sin6_addr = interface.addr.addr6;
+        if (bind(fd, (struct sockaddr *) &addr6, sizeof(addr6)) != 0) {
+            ods_log_error("[%s] unable to bind address %s: bind failed", xfrd_str, interface.address);
+            return -1;
+        }
+    }
 
     conn = connect(fd, (struct sockaddr*)&to, to_len);
     if (conn == -1 && errno != EINPROGRESS) {
