@@ -1988,7 +1988,7 @@ static const hsm_key_t*
 getLastReusableKey(key_data_list_t *key_list, const policy_key_t *pkey)
 {
 	const key_data_t *key;
-	const hsm_key_t *hkey, *hkey_young = NULL;
+	hsm_key_t *hkey, *hkey_young = NULL;
 	hsm_key_list_t* hsmkeylist;
 	int match;
 	int cmp;
@@ -2001,13 +2001,14 @@ getLastReusableKey(key_data_list_t *key_list, const policy_key_t *pkey)
 		hkey = hsm_key_list_get_next(hsmkeylist))
 	{
 		/** only match if the hkey has at least the role(s) of pkey */
-		if ((~hsm_key_role(hkey) & policy_key_role(pkey)) != 0)
+		if ((~hsm_key_role(hkey) & policy_key_role(pkey)) != 0 ||
+			/** hsmkey must be in use already. Allocating UNUSED keys is a
+			 * job for the keyfactory */
+			hkey->state == HSM_KEY_STATE_UNUSED )
+		{
+			hsm_key_free(hkey);
 			continue;
-
-		/** hsmkey must be in use already. Allocating UNUSED keys is a
-		 * job for the keyfactory */
-		if (hkey->state == HSM_KEY_STATE_UNUSED)
-			continue;
+		}
 
 		/** Now find out if hsmkey is in used by zone */
 		for (match = 0, key = key_data_list_begin(key_list); key; key = key_data_list_next(key_list)) {
@@ -2019,11 +2020,16 @@ getLastReusableKey(key_data_list_t *key_list, const policy_key_t *pkey)
 				break;
 			}
 		}
-		if (match) continue;
+		if (match) {
+			hsm_key_free(hkey);
+			continue;
+		}
 
 		/** This key matches, is it newer? */
-		if (!hkey_young || hsm_key_inception(hkey_young) < hsm_key_inception(hkey))
+		if (!hkey_young || hsm_key_inception(hkey_young) < hsm_key_inception(hkey)) {
+			hsm_key_free(hkey_young);
 			hkey_young = hkey;
+		}
 	}
 
 	hsm_key_list_free(hsmkeylist);
