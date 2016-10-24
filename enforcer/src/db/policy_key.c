@@ -575,7 +575,7 @@ int policy_key_set_policy_id(policy_key_t* policy_key, const db_value_t* policy_
     if (!policy_id) {
         return DB_ERROR_UNKNOWN;
     }
-    if (db_value_not_empty(policy_id)) {
+    if (db_value_empty(policy_id)) {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -708,13 +708,13 @@ int policy_key_create(policy_key_t* policy_key) {
     if (!policy_key->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!db_value_not_empty(&(policy_key->id))) {
+    if (!db_value_empty(&(policy_key->id))) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!db_value_not_empty(&(policy_key->rev))) {
+    if (!db_value_empty(&(policy_key->rev))) {
         return DB_ERROR_UNKNOWN;
     }
-    if (db_value_not_empty(&(policy_key->policy_id))) {
+    if (db_value_empty(&(policy_key->policy_id))) {
         return DB_ERROR_UNKNOWN;
     }
     if (!policy_key->repository) {
@@ -869,7 +869,7 @@ int policy_key_get_by_id(policy_key_t* policy_key, const db_value_t* id) {
     if (!id) {
         return DB_ERROR_UNKNOWN;
     }
-    if (db_value_not_empty(id)) {
+    if (db_value_empty(id)) {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -918,7 +918,7 @@ int policy_key_delete(policy_key_t* policy_key) {
     if (!policy_key->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (db_value_not_empty(&(policy_key->id))) {
+    if (db_value_empty(&(policy_key->id))) {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -1236,7 +1236,7 @@ int policy_key_list_get_by_policy_id(policy_key_list_t* policy_key_list, const d
     if (!policy_id) {
         return DB_ERROR_UNKNOWN;
     }
-    if (db_value_not_empty(policy_id)) {
+    if (db_value_empty(policy_id)) {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -1294,7 +1294,7 @@ policy_key_list_t* policy_key_list_new_get_by_policy_id(const db_connection_t* c
     if (!policy_id) {
         return NULL;
     }
-    if (db_value_not_empty(policy_id)) {
+    if (db_value_empty(policy_id)) {
         return NULL;
     }
 

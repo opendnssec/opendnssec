@@ -103,11 +103,11 @@ int db_value_cmp(const db_value_t* value_a, const db_value_t* value_b);
 db_type_t db_value_type(const db_value_t* value);
 
 /**
- * Check if a database value is not empty.
+ * Check if a database value is empty.
  * \param[in] value a db_value_t pointer.
- * \return DB_ERROR_* if empty, otherwise DB_OK.
+ * \return true if empty, otherwise false.
  */
-int db_value_not_empty(const db_value_t* value);
+int db_value_empty(const db_value_t* value);
 
 /**
  * Get the 32bit integer representation of the database value.

@@ -1570,10 +1570,10 @@ int policy_create(policy_t* policy) {
     if (!policy->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!db_value_not_empty(&(policy->id))) {
+    if (!db_value_empty(&(policy->id))) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!db_value_not_empty(&(policy->rev))) {
+    if (!db_value_empty(&(policy->rev))) {
         return DB_ERROR_UNKNOWN;
     }
     if (!policy->name) {
@@ -1999,7 +1999,7 @@ int policy_get_by_id(policy_t* policy, const db_value_t* id) {
     if (!id) {
         return DB_ERROR_UNKNOWN;
     }
-    if (db_value_not_empty(id)) {
+    if (db_value_empty(id)) {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -2121,10 +2121,10 @@ int policy_update(policy_t* policy) {
     if (!policy->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (db_value_not_empty(&(policy->id))) {
+    if (db_value_empty(&(policy->id))) {
         return DB_ERROR_UNKNOWN;
     }
-    if (db_value_not_empty(&(policy->rev))) {
+    if (db_value_empty(&(policy->rev))) {
         return DB_ERROR_UNKNOWN;
     }
     if (!policy->name) {
@@ -2579,7 +2579,7 @@ int policy_delete(policy_t* policy) {
     if (!policy->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (db_value_not_empty(&(policy->id))) {
+    if (db_value_empty(&(policy->id))) {
         return DB_ERROR_UNKNOWN;
     }
 

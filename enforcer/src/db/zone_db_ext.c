@@ -60,7 +60,7 @@ key_data_list_t* zone_db_get_keys(const zone_db_t* zone) {
     if (!zone->dbo) {
         return NULL;
     }
-    if (db_value_not_empty(&(zone->id))) {
+    if (db_value_empty(&(zone->id))) {
         return NULL;
     }
 
@@ -80,7 +80,7 @@ key_dependency_list_t* zone_db_get_key_dependencies(const zone_db_t* zone) {
     if (!zone->dbo) {
         return NULL;
     }
-    if (db_value_not_empty(&(zone->id))) {
+    if (db_value_empty(&(zone->id))) {
         return NULL;
     }
 

@@ -750,7 +750,7 @@ policy_t* zone_db_get_policy(const zone_db_t* zone) {
     if (!zone->dbo) {
         return NULL;
     }
-    if (db_value_not_empty(&(zone->policy_id))) {
+    if (db_value_empty(&(zone->policy_id))) {
         return NULL;
     }
 
@@ -922,7 +922,7 @@ int zone_db_set_policy_id(zone_db_t* zone, const db_value_t* policy_id) {
     if (!policy_id) {
         return DB_ERROR_UNKNOWN;
     }
-    if (db_value_not_empty(policy_id)) {
+    if (db_value_empty(policy_id)) {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -1185,7 +1185,7 @@ db_clause_t* zone_db_policy_id_clause(db_clause_list_t* clause_list, const db_va
     if (!policy_id) {
         return NULL;
     }
-    if (db_value_not_empty(policy_id)) {
+    if (db_value_empty(policy_id)) {
         return NULL;
     }
 
@@ -1215,13 +1215,13 @@ int zone_db_create(zone_db_t* zone) {
     if (!zone->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!db_value_not_empty(&(zone->id))) {
+    if (!db_value_empty(&(zone->id))) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!db_value_not_empty(&(zone->rev))) {
+    if (!db_value_empty(&(zone->rev))) {
         return DB_ERROR_UNKNOWN;
     }
-    if (db_value_not_empty(&(zone->policy_id))) {
+    if (db_value_empty(&(zone->policy_id))) {
         return DB_ERROR_UNKNOWN;
     }
     if (!zone->name) {
@@ -1478,7 +1478,7 @@ int zone_db_get_by_id(zone_db_t* zone, const db_value_t* id) {
     if (!id) {
         return DB_ERROR_UNKNOWN;
     }
-    if (db_value_not_empty(id)) {
+    if (db_value_empty(id)) {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -1600,13 +1600,13 @@ int zone_db_update(zone_db_t* zone) {
     if (!zone->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (db_value_not_empty(&(zone->id))) {
+    if (db_value_empty(&(zone->id))) {
         return DB_ERROR_UNKNOWN;
     }
-    if (db_value_not_empty(&(zone->rev))) {
+    if (db_value_empty(&(zone->rev))) {
         return DB_ERROR_UNKNOWN;
     }
-    if (db_value_not_empty(&(zone->policy_id))) {
+    if (db_value_empty(&(zone->policy_id))) {
         return DB_ERROR_UNKNOWN;
     }
     if (!zone->name) {
@@ -1892,7 +1892,7 @@ int zone_db_delete(zone_db_t* zone) {
     if (!zone->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (db_value_not_empty(&(zone->id))) {
+    if (db_value_empty(&(zone->id))) {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -2444,7 +2444,7 @@ int zone_list_db_get_by_policy_id(zone_list_db_t* zone_list, const db_value_t* p
     if (!policy_id) {
         return DB_ERROR_UNKNOWN;
     }
-    if (db_value_not_empty(policy_id)) {
+    if (db_value_empty(policy_id)) {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -2502,7 +2502,7 @@ zone_list_db_t* zone_list_db_new_get_by_policy_id(const db_connection_t* connect
     if (!policy_id) {
         return NULL;
     }
-    if (db_value_not_empty(policy_id)) {
+    if (db_value_empty(policy_id)) {
         return NULL;
     }
 

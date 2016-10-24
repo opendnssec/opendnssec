@@ -243,7 +243,7 @@ int test_create(test_t* test) {
     int ret = 0;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL(test);
-    CU_ASSERT_FATAL(db_value_not_empty(test->id));
+    CU_ASSERT_FATAL(db_value_empty(test->id));
     CU_ASSERT_PTR_NOT_NULL_FATAL(test->name);
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((object_field_list = db_object_field_list_new()));
@@ -278,7 +278,7 @@ int test_update(test_t* test) {
     int ret = 0;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL(test);
-    CU_ASSERT_FATAL(!db_value_not_empty(test->id));
+    CU_ASSERT_FATAL(!db_value_empty(test->id));
     CU_ASSERT_PTR_NOT_NULL_FATAL(test->name);
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
@@ -319,7 +319,7 @@ int test_delete(test_t* test) {
     int ret = 0;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL(test);
-    CU_ASSERT_FATAL(!db_value_not_empty(test->id));
+    CU_ASSERT_FATAL(!db_value_empty(test->id));
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause = db_clause_new()));
@@ -671,8 +671,8 @@ int test2_create(test2_t* test2) {
     int ret = 0;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL(test2);
-    CU_ASSERT_FATAL(db_value_not_empty(test2->id));
-    CU_ASSERT_FATAL(db_value_not_empty(test2->rev));
+    CU_ASSERT_FATAL(db_value_empty(test2->id));
+    CU_ASSERT_FATAL(db_value_empty(test2->rev));
     CU_ASSERT_PTR_NOT_NULL_FATAL(test2->name);
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((object_field_list = db_object_field_list_new()));
@@ -707,8 +707,8 @@ int test2_update(test2_t* test2) {
     int ret = 0;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL(test2);
-    CU_ASSERT_FATAL(!db_value_not_empty(test2->id));
-    CU_ASSERT_FATAL(!db_value_not_empty(test2->rev));
+    CU_ASSERT_FATAL(!db_value_empty(test2->id));
+    CU_ASSERT_FATAL(!db_value_empty(test2->rev));
     CU_ASSERT_PTR_NOT_NULL_FATAL(test2->name);
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
@@ -754,8 +754,8 @@ int test2_delete(test2_t* test2) {
     int ret = 0;
 
     CU_ASSERT_PTR_NOT_NULL_FATAL(test2);
-    CU_ASSERT_FATAL(!db_value_not_empty(test2->id));
-    CU_ASSERT_FATAL(!db_value_not_empty(test2->rev));
+    CU_ASSERT_FATAL(!db_value_empty(test2->id));
+    CU_ASSERT_FATAL(!db_value_empty(test2->rev));
 
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause_list = db_clause_list_new()));
     CU_ASSERT_PTR_NOT_NULL_FATAL((clause = db_clause_new()));

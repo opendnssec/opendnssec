@@ -165,7 +165,7 @@ db_type_t db_value_type(const db_value_t* value)
     return value->type;
 }
 
-int db_value_not_empty(const db_value_t* value)
+int db_value_empty(const db_value_t* value)
 {
     ods_log_assert(value);
     return value->type == DB_TYPE_EMPTY;

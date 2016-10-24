@@ -569,7 +569,7 @@ zone_db_t* key_data_get_zone(const key_data_t* key_data) {
     if (!key_data->dbo) {
         return NULL;
     }
-    if (db_value_not_empty(&(key_data->zone_id))) {
+    if (db_value_empty(&(key_data->zone_id))) {
         return NULL;
     }
 
@@ -649,7 +649,7 @@ hsm_key_t* key_data_get_hsm_key(const key_data_t* key_data) {
     if (!key_data->dbo) {
         return NULL;
     }
-    if (db_value_not_empty(&(key_data->hsm_key_id))) {
+    if (db_value_empty(&(key_data->hsm_key_id))) {
         return NULL;
     }
 
@@ -830,7 +830,7 @@ int key_data_set_zone_id(key_data_t* key_data, const db_value_t* zone_id) {
     if (!zone_id) {
         return DB_ERROR_UNKNOWN;
     }
-    if (db_value_not_empty(zone_id)) {
+    if (db_value_empty(zone_id)) {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -849,7 +849,7 @@ int key_data_set_hsm_key_id(key_data_t* key_data, const db_value_t* hsm_key_id) 
     if (!hsm_key_id) {
         return DB_ERROR_UNKNOWN;
     }
-    if (db_value_not_empty(hsm_key_id)) {
+    if (db_value_empty(hsm_key_id)) {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -976,7 +976,7 @@ db_clause_t* key_data_zone_id_clause(db_clause_list_t* clause_list, const db_val
     if (!zone_id) {
         return NULL;
     }
-    if (db_value_not_empty(zone_id)) {
+    if (db_value_empty(zone_id)) {
         return NULL;
     }
 
@@ -1003,7 +1003,7 @@ db_clause_t* key_data_hsm_key_id_clause(db_clause_list_t* clause_list, const db_
     if (!hsm_key_id) {
         return NULL;
     }
-    if (db_value_not_empty(hsm_key_id)) {
+    if (db_value_empty(hsm_key_id)) {
         return NULL;
     }
 
@@ -1096,16 +1096,16 @@ int key_data_create(key_data_t* key_data) {
     if (!key_data->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!db_value_not_empty(&(key_data->id))) {
+    if (!db_value_empty(&(key_data->id))) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!db_value_not_empty(&(key_data->rev))) {
+    if (!db_value_empty(&(key_data->rev))) {
         return DB_ERROR_UNKNOWN;
     }
-    if (db_value_not_empty(&(key_data->zone_id))) {
+    if (db_value_empty(&(key_data->zone_id))) {
         return DB_ERROR_UNKNOWN;
     }
-    if (db_value_not_empty(&(key_data->hsm_key_id))) {
+    if (db_value_empty(&(key_data->hsm_key_id))) {
         return DB_ERROR_UNKNOWN;
     }
     /* TODO: validate content more */
@@ -1302,7 +1302,7 @@ int key_data_get_by_id(key_data_t* key_data, const db_value_t* id) {
     if (!id) {
         return DB_ERROR_UNKNOWN;
     }
-    if (db_value_not_empty(id)) {
+    if (db_value_empty(id)) {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -1354,16 +1354,16 @@ int key_data_update(key_data_t* key_data) {
     if (!key_data->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (db_value_not_empty(&(key_data->id))) {
+    if (db_value_empty(&(key_data->id))) {
         return DB_ERROR_UNKNOWN;
     }
-    if (db_value_not_empty(&(key_data->rev))) {
+    if (db_value_empty(&(key_data->rev))) {
         return DB_ERROR_UNKNOWN;
     }
-    if (db_value_not_empty(&(key_data->zone_id))) {
+    if (db_value_empty(&(key_data->zone_id))) {
         return DB_ERROR_UNKNOWN;
     }
-    if (db_value_not_empty(&(key_data->hsm_key_id))) {
+    if (db_value_empty(&(key_data->hsm_key_id))) {
         return DB_ERROR_UNKNOWN;
     }
     /* TODO: validate content more */
@@ -1589,7 +1589,7 @@ int key_data_delete(key_data_t* key_data) {
     if (!key_data->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (db_value_not_empty(&(key_data->id))) {
+    if (db_value_empty(&(key_data->id))) {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -2160,7 +2160,7 @@ int key_data_list_get_by_zone_id(key_data_list_t* key_data_list, const db_value_
     if (!zone_id) {
         return DB_ERROR_UNKNOWN;
     }
-    if (db_value_not_empty(zone_id)) {
+    if (db_value_empty(zone_id)) {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -2218,7 +2218,7 @@ key_data_list_t* key_data_list_new_get_by_zone_id(const db_connection_t* connect
     if (!zone_id) {
         return NULL;
     }
-    if (db_value_not_empty(zone_id)) {
+    if (db_value_empty(zone_id)) {
         return NULL;
     }
 
