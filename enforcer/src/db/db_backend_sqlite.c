@@ -703,11 +703,12 @@ static db_result_t* db_backend_sqlite_next(void* data, int finish) {
             ret = sqlite3_errcode(statement->backend_sqlite->db);
             if ((ret != SQLITE_OK && ret != SQLITE_ROW && ret != SQLITE_DONE)
                 || db_value_from_int32(db_value_set_get(value_set, bind), int32)
-                || db_value_set_primary_key(db_value_set_get(value_set, bind)))
+                || !db_value_set_get(value_set, bind))
             {
                 db_result_free(result);
                 return NULL;
             }
+            db_value_set_get(value_set, bind)->primary_key = 1;
             break;
 
         case DB_TYPE_ENUM:

@@ -593,7 +593,6 @@ void test_class_db_value(void) {
     CU_ASSERT_PTR_NOT_NULL_FATAL(&value2->text);
     CU_ASSERT(!strcmp(value->text, "test"));
     CU_ASSERT(!db_value_cmp(value, value2));
-    CU_ASSERT(!db_value_set_primary_key(value));
 
     db_value_reset(value);
     CU_PASS("db_value_reset");
@@ -610,7 +609,6 @@ void test_class_db_value(void) {
     CU_ASSERT(!db_value_to_int32(value2, &int32));
     CU_ASSERT(int32 == -12345);
     CU_ASSERT(!db_value_cmp(value, value2));
-    CU_ASSERT(!db_value_set_primary_key(value));
 
     db_value_reset(value);
     CU_PASS("db_value_reset");
@@ -627,7 +625,6 @@ void test_class_db_value(void) {
     CU_ASSERT(!db_value_to_uint32(value2, &uint32));
     CU_ASSERT(uint32 == 12345);
     CU_ASSERT(!db_value_cmp(value, value2));
-    CU_ASSERT(!db_value_set_primary_key(value));
 
     db_value_reset(value);
     CU_PASS("db_value_reset");
@@ -644,7 +641,6 @@ void test_class_db_value(void) {
     CU_ASSERT(!db_value_to_int64(value2, &int64));
     CU_ASSERT(int64 == -9223372036854775800);
     CU_ASSERT(!db_value_cmp(value, value2));
-    CU_ASSERT(!db_value_set_primary_key(value));
 
     db_value_reset(value);
     CU_PASS("db_value_reset");
@@ -662,7 +658,6 @@ void test_class_db_value(void) {
     CU_ASSERT(!db_value_to_uint64(value2, &uint64));
     CU_ASSERT(uint64 == 17446744073709551615UL);
     CU_ASSERT(!db_value_cmp(value, value2));
-    CU_ASSERT(!db_value_set_primary_key(value));
 
     db_value_reset(value);
     CU_PASS("db_value_reset");
@@ -681,7 +676,6 @@ void test_class_db_value(void) {
     CU_ASSERT(!db_value_to_enum_value(value2, &ret, enum_set));
     CU_ASSERT(ret == 2);
     CU_ASSERT(!db_value_cmp(value, value2));
-    CU_ASSERT(db_value_set_primary_key(value));
 
     db_value_reset(value);
     CU_PASS("db_value_reset");

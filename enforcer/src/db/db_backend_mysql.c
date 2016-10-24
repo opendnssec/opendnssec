@@ -1201,11 +1201,12 @@ static db_result_t* db_backend_mysql_next(void* data, int finish) {
                 return NULL;
             }
             if (db_object_field_type(object_field) == DB_TYPE_PRIMARY_KEY
-                && db_value_set_primary_key(db_value_set_get(value_set, value)))
+                && !db_value_set_get(value_set, value))
             {
                 db_result_free(result);
                 return NULL;
             }
+            db_value_set_get(value_set, value)->primary_key = 1;
             break;
 
         case DB_TYPE_ENUM:

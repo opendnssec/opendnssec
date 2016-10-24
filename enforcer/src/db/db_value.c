@@ -345,40 +345,23 @@ int db_value_from_uint64(db_value_t* value, db_type_uint64_t from_uint64) {
     return DB_OK;
 }
 
-int db_value_from_text(db_value_t* value, const char* from_text) {
-    if (!value) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!from_text) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (value->type != DB_TYPE_EMPTY) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    value->text = (void*)strdup(from_text);
-    if (!value->text) {
-        return DB_ERROR_UNKNOWN;
-    }
-    value->type = DB_TYPE_TEXT;
-    return DB_OK;
+int db_value_from_text(db_value_t* value, const char* from_text)
+{
+    ods_log_assert(from_text);
+    return db_value_from_text2(value, from_text, strlen(from_text));
 }
 
-int db_value_from_text2(db_value_t* value, const char* from_text, size_t size) {
-    if (!value) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!from_text) {
-        return DB_ERROR_UNKNOWN;
-    }
+int db_value_from_text2(db_value_t* value, const char* from_text, size_t size)
+{
+    ods_log_assert(value);
+    ods_log_assert(value->type == DB_TYPE_EMPTY);
+    ods_log_assert(from_text);
+    
     if (!size) {
         return DB_ERROR_UNKNOWN;
     }
-    if (value->type != DB_TYPE_EMPTY) {
-        return DB_ERROR_UNKNOWN;
-    }
 
-    value->text = (void*)strndup(from_text, size);
+    value->text = strndup(from_text, size);
     if (!value->text) {
         return DB_ERROR_UNKNOWN;
     }
@@ -386,13 +369,11 @@ int db_value_from_text2(db_value_t* value, const char* from_text, size_t size) {
     return DB_OK;
 }
 
-int db_value_from_enum_value(db_value_t* value, int enum_value, const db_enum_t* enum_set) {
-    if (!value) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!enum_set) {
-        return DB_ERROR_UNKNOWN;
-    }
+int db_value_from_enum_value(db_value_t* value, int enum_value, const db_enum_t* enum_set)
+{
+    ods_log_assert(value);
+    ods_log_assert(enum_set);
+    
     if (value->type != DB_TYPE_EMPTY) {
         return DB_ERROR_UNKNOWN;
     }
@@ -409,177 +390,92 @@ int db_value_from_enum_value(db_value_t* value, int enum_value, const db_enum_t*
     return DB_ERROR_UNKNOWN;
 }
 
-int db_value_set_primary_key(db_value_t* value) {
-    if (!value) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (value->type == DB_TYPE_EMPTY) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (value->type == DB_TYPE_ENUM) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    value->primary_key = 1;
-    return DB_OK;
-}
-
 /* DB VALUE SET */
 
-
-
-
-
-
-
-
-
-
-
-db_value_set_t* db_value_set_new(size_t size) {
+db_value_set_t* db_value_set_new(size_t size)
+{
     db_value_set_t* value_set;
     size_t i;
 
     if (size == 0 || size > 128) {
         return NULL;
     }
-
     value_set = (db_value_set_t*)calloc(1, sizeof(db_value_set_t));
-    if (value_set) {
-        if (size <= 4) {
-            value_set->values = (db_value_t*)calloc(4, sizeof(db_value_t));
-        }
-        else if (size <= 8) {
-            value_set->values = (db_value_t*)calloc(8, sizeof(db_value_t));
-        }
-        else if (size <= 12) {
-            value_set->values = (db_value_t*)calloc(12, sizeof(db_value_t));
-        }
-        else if (size <= 16) {
-            value_set->values = (db_value_t*)calloc(16, sizeof(db_value_t));
-        }
-        else if (size <= 24) {
-            value_set->values = (db_value_t*)calloc(24, sizeof(db_value_t));
-        }
-        else if (size <= 32) {
-            value_set->values = (db_value_t*)calloc(32, sizeof(db_value_t));
-        }
-        else if (size <= 64) {
-            value_set->values = (db_value_t*)calloc(64, sizeof(db_value_t));
-        }
-        else if (size <= 128) {
-            value_set->values = (db_value_t*)calloc(128, sizeof(db_value_t));
-        }
-        if (!value_set->values) {
-            free(value_set);
-            return NULL;
-        }
-        value_set->size = size;
-        for (i=0; i<value_set->size; i++) {
-            value_set->values[i].type = DB_TYPE_EMPTY;
-        }
+    if (!value_set)
+        return NULL;
+    value_set->values = (db_value_t*)calloc(size, sizeof(db_value_t));
+    if (!value_set->values) {
+        free(value_set);
+        return NULL;
     }
-
+    value_set->size = size;
+    for (i=0; i < size; i++) {
+        value_set->values[i].type = DB_TYPE_EMPTY;
+    }
     return value_set;
 }
 
 /* TODO: unit test */
-db_value_set_t* db_value_set_new_copy(const db_value_set_t* from_value_set) {
+db_value_set_t* db_value_set_new_copy(const db_value_set_t* from_value_set)
+{
     db_value_set_t* value_set;
     size_t i;
 
-    if (!from_value_set) {
-        return NULL;
-    }
+    ods_log_assert(from_value_set);
+
     if (!from_value_set->values) {
         return NULL;
     }
 
     value_set = db_value_set_new(from_value_set->size);
-    if (value_set) {
-        for (i=0; i<from_value_set->size; i++) {
-            if (db_value_type(&from_value_set->values[i]) == DB_TYPE_EMPTY) {
-                continue;
-            }
-            if (db_value_copy(&value_set->values[i], &from_value_set->values[i])) {
-                db_value_set_free(value_set);
-                return NULL;
-            }
+    if (!value_set)
+        return NULL;
+    for (i=0; i < from_value_set->size; i++) {
+        if (db_value_type(&from_value_set->values[i]) == DB_TYPE_EMPTY)
+            continue;
+        if (db_value_copy(&value_set->values[i], &from_value_set->values[i]) != DB_OK) {
+            db_value_set_free(value_set);
+            return NULL;
         }
     }
-
     return value_set;
 }
 
-void db_value_set_free(db_value_set_t* value_set) {
-    if (value_set) {
-        if (value_set->values) {
-            size_t i;
-            for (i=0; i<value_set->size; i++) {
-                db_value_reset(&value_set->values[i]);
-            }
-
-            if (value_set->size <= 4) {
-                free(value_set->values);
-            }
-            else if (value_set->size <= 8) {
-                free(value_set->values);
-            }
-            else if (value_set->size <= 12) {
-                free(value_set->values);
-            }
-            else if (value_set->size <= 16) {
-                free(value_set->values);
-            }
-            else if (value_set->size <= 24) {
-                free(value_set->values);
-            }
-            else if (value_set->size <= 32) {
-                free(value_set->values);
-            }
-            else if (value_set->size <= 64) {
-                free(value_set->values);
-            }
-            else if (value_set->size <= 128) {
-                free(value_set->values);
-            }
+void db_value_set_free(db_value_set_t* value_set)
+{
+    size_t i;
+    
+    if (value_set && value_set->values) {
+        for (i=0; i < value_set->size; i++) {
+            free(value_set->values[i].text);
         }
-        free(value_set);
+        free(value_set->values);
     }
+    free(value_set);
 }
 
-size_t db_value_set_size(const db_value_set_t* value_set) {
-    if (!value_set) {
-        return DB_OK;
-    }
-
+size_t db_value_set_size(const db_value_set_t* value_set)
+{
+    ods_log_assert(value_set);
     return value_set->size;
 }
 
-const db_value_t* db_value_set_at(const db_value_set_t* value_set, size_t at) {
-    if (!value_set) {
-        return NULL;
-    }
-    if (!value_set->values) {
-        return NULL;
-    }
-    if (!(at < value_set->size)) {
-        return NULL;
-    }
+const db_value_t* db_value_set_at(const db_value_set_t* value_set, size_t at)
+{
+    ods_log_assert(value_set);
+    ods_log_assert(value_set->values);
 
+    if (at >= value_set->size)
+        return NULL;
     return &value_set->values[at];
 }
 
-db_value_t* db_value_set_get(db_value_set_t* value_set, size_t at) {
-    if (!value_set) {
-        return NULL;
-    }
-    if (!value_set->values) {
-        return NULL;
-    }
-    if (!(at < value_set->size)) {
-        return NULL;
-    }
+db_value_t* db_value_set_get(db_value_set_t* value_set, size_t at)
+{
+    ods_log_assert(value_set);
+    ods_log_assert(value_set->values);
 
+    if (at >= value_set->size)
+        return NULL;
     return &value_set->values[at];
 }
