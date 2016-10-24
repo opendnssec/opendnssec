@@ -159,92 +159,16 @@ int db_value_cmp(const db_value_t* value_a, const db_value_t* value_b)
     ods_log_assert(0);
 }
 
-db_type_t db_value_type(const db_value_t* value) {
-    if (!value) {
-        return DB_TYPE_EMPTY;
-    }
-
+db_type_t db_value_type(const db_value_t* value)
+{
+    ods_log_assert(value);
     return value->type;
 }
 
-const db_type_int32_t* db_value_int32(const db_value_t* value) {
-    if (!value) {
-        return NULL;
-    }
-    if (value->type != DB_TYPE_INT32) {
-        return NULL;
-    }
-
-    return &value->int32;
-}
-
-const db_type_uint32_t* db_value_uint32(const db_value_t* value) {
-    if (!value) {
-        return NULL;
-    }
-    if (value->type != DB_TYPE_UINT32) {
-        return NULL;
-    }
-
-    return &value->uint32;
-}
-
-const db_type_int64_t* db_value_int64(const db_value_t* value) {
-    if (!value) {
-        return NULL;
-    }
-    if (value->type != DB_TYPE_INT64) {
-        return NULL;
-    }
-
-    return &value->int64;
-}
-
-const db_type_uint64_t* db_value_uint64(const db_value_t* value) {
-    if (!value) {
-        return NULL;
-    }
-    if (value->type != DB_TYPE_UINT64) {
-        return NULL;
-    }
-
-    return &value->uint64;
-}
-
-const char* db_value_text(const db_value_t* value) {
-    if (!value) {
-        return NULL;
-    }
-    if (value->type != DB_TYPE_TEXT) {
-        return NULL;
-    }
-
-    return value->text;
-}
-
-int db_value_enum_value(const db_value_t* value, int* enum_value) {
-    if (!value) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!enum_value) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (value->type != DB_TYPE_ENUM) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    *enum_value = value->enum_value;
-    return DB_OK;
-}
-
-int db_value_not_empty(const db_value_t* value) {
-    if (!value) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (value->type == DB_TYPE_EMPTY) {
-        return DB_ERROR_UNKNOWN;
-    }
-    return DB_OK;
+int db_value_not_empty(const db_value_t* value)
+{
+    ods_log_assert(value);
+    return value->type == DB_TYPE_EMPTY;
 }
 
 int db_value_to_int32(const db_value_t* value, db_type_int32_t* to_int32) {
