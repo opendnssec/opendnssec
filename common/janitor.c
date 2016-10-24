@@ -206,7 +206,7 @@ janitor_thread_unregister(janitor_thread_t info)
             err = pthread_barrier_destroy(&info->startbarrier);
             if (err == EBUSY) {
                 ++errcount;
-                sleep(3);
+                sleep(1);
             }
         } while(err == EBUSY && errcount <= 3);
         CHECKFAIL(pthread_cond_signal(&threadblock));
