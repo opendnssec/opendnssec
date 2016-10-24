@@ -295,8 +295,7 @@ static void test_zone_get(void) {
     if (db_mysql) {
         CU_ASSERT(!db_value_from_uint64(&policy_id, 1));
     }
-    CU_ASSERT(!db_value_cmp(zone_db_policy_id(object), &policy_id, &ret));
-    CU_ASSERT(!ret);
+    CU_ASSERT(!db_value_cmp(zone_db_policy_id(object), &policy_id));
     CU_ASSERT_PTR_NOT_NULL_FATAL(zone_db_name(object));
     CU_ASSERT(!strcmp(zone_db_name(object), "name 1"));
     CU_ASSERT(zone_db_signconf_needs_writing(object) == 1);
@@ -616,8 +615,7 @@ static void test_zone_verify(void) {
     if (db_mysql) {
         CU_ASSERT(!db_value_from_uint64(&policy_id, 1));
     }
-    CU_ASSERT(!db_value_cmp(zone_db_policy_id(object), &policy_id, &ret));
-    CU_ASSERT(!ret);
+    CU_ASSERT(!db_value_cmp(zone_db_policy_id(object), &policy_id));
     CU_ASSERT_PTR_NOT_NULL_FATAL(zone_db_name(object));
     CU_ASSERT(!strcmp(zone_db_name(object), "name 1"));
     CU_ASSERT(zone_db_signconf_needs_writing(object) == 1);
@@ -657,8 +655,7 @@ static void test_zone_verify_name(void) {
     if (db_mysql) {
         CU_ASSERT(!db_value_from_uint64(&policy_id, 1));
     }
-    CU_ASSERT(!db_value_cmp(zone_db_policy_id(object), &policy_id, &ret));
-    CU_ASSERT(!ret);
+    CU_ASSERT(!db_value_cmp(zone_db_policy_id(object), &policy_id));
     CU_ASSERT_PTR_NOT_NULL_FATAL(zone_db_name(object));
     CU_ASSERT(!strcmp(zone_db_name(object), "name 1"));
     CU_ASSERT(zone_db_signconf_needs_writing(object) == 1);
@@ -731,8 +728,7 @@ static void test_zone_verify2(void) {
     if (db_mysql) {
         CU_ASSERT(!db_value_from_uint64(&policy_id, 1));
     }
-    CU_ASSERT(!db_value_cmp(zone_db_policy_id(object), &policy_id, &ret));
-    CU_ASSERT(!ret);
+    CU_ASSERT(!db_value_cmp(zone_db_policy_id(object), &policy_id));
     CU_ASSERT_PTR_NOT_NULL_FATAL(zone_db_name(object));
     CU_ASSERT(!strcmp(zone_db_name(object), "name 2"));
     CU_ASSERT(zone_db_signconf_needs_writing(object) == 2);
@@ -772,8 +768,7 @@ static void test_zone_verify_name2(void) {
     if (db_mysql) {
         CU_ASSERT(!db_value_from_uint64(&policy_id, 1));
     }
-    CU_ASSERT(!db_value_cmp(zone_db_policy_id(object), &policy_id, &ret));
-    CU_ASSERT(!ret);
+    CU_ASSERT(!db_value_cmp(zone_db_policy_id(object), &policy_id));
     CU_ASSERT_PTR_NOT_NULL_FATAL(zone_db_name(object));
     CU_ASSERT(!strcmp(zone_db_name(object), "name 2"));
     CU_ASSERT(zone_db_signconf_needs_writing(object) == 2);

@@ -289,8 +289,7 @@ static void test_policy_key_get(void) {
     if (db_mysql) {
         CU_ASSERT(!db_value_from_uint64(&policy_id, 1));
     }
-    CU_ASSERT(!db_value_cmp(policy_key_policy_id(object), &policy_id, &ret));
-    CU_ASSERT(!ret);
+    CU_ASSERT(!db_value_cmp(policy_key_policy_id(object), &policy_id));
     CU_ASSERT(policy_key_role(object) == POLICY_KEY_ROLE_CSK);
     CU_ASSERT_PTR_NOT_NULL_FATAL(policy_key_role_text(object));
     CU_ASSERT(!strcmp(policy_key_role_text(object), "CSK"));
@@ -384,8 +383,7 @@ static void test_policy_key_verify(void) {
     if (db_mysql) {
         CU_ASSERT(!db_value_from_uint64(&policy_id, 1));
     }
-    CU_ASSERT(!db_value_cmp(policy_key_policy_id(object), &policy_id, &ret));
-    CU_ASSERT(!ret);
+    CU_ASSERT(!db_value_cmp(policy_key_policy_id(object), &policy_id));
     CU_ASSERT(policy_key_role(object) == POLICY_KEY_ROLE_CSK);
     CU_ASSERT_PTR_NOT_NULL_FATAL(policy_key_role_text(object));
     CU_ASSERT(!strcmp(policy_key_role_text(object), "CSK"));
@@ -442,8 +440,7 @@ static void test_policy_key_verify2(void) {
     if (db_mysql) {
         CU_ASSERT(!db_value_from_uint64(&policy_id, 1));
     }
-    CU_ASSERT(!db_value_cmp(policy_key_policy_id(object), &policy_id, &ret));
-    CU_ASSERT(!ret);
+    CU_ASSERT(!db_value_cmp(policy_key_policy_id(object), &policy_id));
     CU_ASSERT(policy_key_role(object) == POLICY_KEY_ROLE_KSK);
     CU_ASSERT_PTR_NOT_NULL_FATAL(policy_key_role_text(object));
     CU_ASSERT(!strcmp(policy_key_role_text(object), "KSK"));

@@ -581,19 +581,18 @@ void test_class_db_value(void) {
     CU_ASSERT_PTR_NOT_NULL_FATAL((value = db_value_new()));
     CU_ASSERT(!db_value_from_text(value, "test"));
     CU_ASSERT(db_value_type(value) == DB_TYPE_TEXT);
-    CU_ASSERT_PTR_NOT_NULL_FATAL(db_value_text(value));
-    CU_ASSERT(!strcmp(db_value_text(value), "test"));
+    CU_ASSERT_PTR_NOT_NULL_FATAL(&value->text);
+    CU_ASSERT(!strcmp(value->text, "test"));
     CU_ASSERT(!db_value_to_text(value, &text));
     CU_ASSERT_PTR_NOT_NULL(text);
     free(text);
     text = NULL;
-    CU_ASSERT(!db_value_not_empty(value));
+    CU_ASSERT(!db_value_empty(value));
     CU_ASSERT(!db_value_copy(value2, value));
     CU_ASSERT(db_value_type(value2) == DB_TYPE_TEXT);
-    CU_ASSERT_PTR_NOT_NULL_FATAL(db_value_text(value2));
-    CU_ASSERT(!strcmp(db_value_text(value2), "test"));
-    CU_ASSERT(!db_value_cmp(value, value2, &ret));
-    CU_ASSERT(!ret);
+    CU_ASSERT_PTR_NOT_NULL_FATAL(&value2->text);
+    CU_ASSERT(!strcmp(value->text, "test"));
+    CU_ASSERT(!db_value_cmp(value, value2));
     CU_ASSERT(!db_value_set_primary_key(value));
 
     db_value_reset(value);
@@ -603,15 +602,14 @@ void test_class_db_value(void) {
     CU_ASSERT(db_value_type(value) == DB_TYPE_INT32);
     CU_ASSERT(!db_value_to_int32(value, &int32));
     CU_ASSERT(int32 == -12345);
-    CU_ASSERT(!db_value_not_empty(value));
+    CU_ASSERT(!db_value_empty(value));
     db_value_reset(value2);
     CU_PASS("db_value_reset");
     CU_ASSERT(!db_value_copy(value2, value));
     CU_ASSERT(db_value_type(value2) == DB_TYPE_INT32);
     CU_ASSERT(!db_value_to_int32(value2, &int32));
     CU_ASSERT(int32 == -12345);
-    CU_ASSERT(!db_value_cmp(value, value2, &ret));
-    CU_ASSERT(!ret);
+    CU_ASSERT(!db_value_cmp(value, value2));
     CU_ASSERT(!db_value_set_primary_key(value));
 
     db_value_reset(value);
@@ -621,15 +619,14 @@ void test_class_db_value(void) {
     CU_ASSERT(db_value_type(value) == DB_TYPE_UINT32);
     CU_ASSERT(!db_value_to_uint32(value, &uint32));
     CU_ASSERT(uint32 == 12345);
-    CU_ASSERT(!db_value_not_empty(value));
+    CU_ASSERT(!db_value_empty(value));
     db_value_reset(value2);
     CU_PASS("db_value_reset");
     CU_ASSERT(!db_value_copy(value2, value));
     CU_ASSERT(db_value_type(value2) == DB_TYPE_UINT32);
     CU_ASSERT(!db_value_to_uint32(value2, &uint32));
     CU_ASSERT(uint32 == 12345);
-    CU_ASSERT(!db_value_cmp(value, value2, &ret));
-    CU_ASSERT(!ret);
+    CU_ASSERT(!db_value_cmp(value, value2));
     CU_ASSERT(!db_value_set_primary_key(value));
 
     db_value_reset(value);
@@ -639,15 +636,14 @@ void test_class_db_value(void) {
     CU_ASSERT(db_value_type(value) == DB_TYPE_INT64);
     CU_ASSERT(!db_value_to_int64(value, &int64));
     CU_ASSERT(int64 == -9223372036854775800);
-    CU_ASSERT(!db_value_not_empty(value));
+    CU_ASSERT(!db_value_empty(value));
     db_value_reset(value2);
     CU_PASS("db_value_reset");
     CU_ASSERT(!db_value_copy(value2, value));
     CU_ASSERT(db_value_type(value2) == DB_TYPE_INT64);
     CU_ASSERT(!db_value_to_int64(value2, &int64));
     CU_ASSERT(int64 == -9223372036854775800);
-    CU_ASSERT(!db_value_cmp(value, value2, &ret));
-    CU_ASSERT(!ret);
+    CU_ASSERT(!db_value_cmp(value, value2));
     CU_ASSERT(!db_value_set_primary_key(value));
 
     db_value_reset(value);
@@ -658,15 +654,14 @@ void test_class_db_value(void) {
     CU_ASSERT(db_value_type(value) == DB_TYPE_UINT64);
     CU_ASSERT(!db_value_to_uint64(value, &uint64));
     CU_ASSERT(uint64 == 17446744073709551615UL);
-    CU_ASSERT(!db_value_not_empty(value));
+    CU_ASSERT(!db_value_empty(value));
     db_value_reset(value2);
     CU_PASS("db_value_reset");
     CU_ASSERT(!db_value_copy(value2, value));
     CU_ASSERT(db_value_type(value2) == DB_TYPE_UINT64);
     CU_ASSERT(!db_value_to_uint64(value2, &uint64));
     CU_ASSERT(uint64 == 17446744073709551615UL);
-    CU_ASSERT(!db_value_cmp(value, value2, &ret));
-    CU_ASSERT(!ret);
+    CU_ASSERT(!db_value_cmp(value, value2));
     CU_ASSERT(!db_value_set_primary_key(value));
 
     db_value_reset(value);
@@ -674,21 +669,18 @@ void test_class_db_value(void) {
 
     CU_ASSERT(!db_value_from_enum_value(value, 2, enum_set));
     CU_ASSERT(db_value_type(value) == DB_TYPE_ENUM);
-    CU_ASSERT(!db_value_enum_value(value, &ret));
-    CU_ASSERT(ret == 2);
+    CU_ASSERT(value->enum_value == 2);
     CU_ASSERT(!db_value_to_enum_value(value, &ret, enum_set));
     CU_ASSERT(ret == 2);
-    CU_ASSERT(!db_value_not_empty(value));
+    CU_ASSERT(!db_value_empty(value));
     db_value_reset(value2);
     CU_PASS("db_value_reset");
     CU_ASSERT(!db_value_copy(value2, value));
     CU_ASSERT(db_value_type(value2) == DB_TYPE_ENUM);
-    CU_ASSERT(!db_value_enum_value(value2, &ret));
-    CU_ASSERT(ret == 2);
+    CU_ASSERT(value2->enum_value == 2);
     CU_ASSERT(!db_value_to_enum_value(value2, &ret, enum_set));
     CU_ASSERT(ret == 2);
-    CU_ASSERT(!db_value_cmp(value, value2, &ret));
-    CU_ASSERT(!ret);
+    CU_ASSERT(!db_value_cmp(value, value2));
     CU_ASSERT(db_value_set_primary_key(value));
 
     db_value_reset(value);

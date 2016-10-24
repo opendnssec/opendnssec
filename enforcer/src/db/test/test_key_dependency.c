@@ -314,12 +314,9 @@ static void test_key_dependency_get(void) {
     if (db_mysql) {
         CU_ASSERT(!db_value_from_uint64(&to_key_data_id, 1));
     }
-    CU_ASSERT(!db_value_cmp(key_dependency_zone_id(object), &zone_id, &ret));
-    CU_ASSERT(!ret);
-    CU_ASSERT(!db_value_cmp(key_dependency_from_key_data_id(object), &from_key_data_id, &ret));
-    CU_ASSERT(!ret);
-    CU_ASSERT(!db_value_cmp(key_dependency_to_key_data_id(object), &to_key_data_id, &ret));
-    CU_ASSERT(!ret);
+    CU_ASSERT(!db_value_cmp(key_dependency_zone_id(object), &zone_id));
+    CU_ASSERT(!db_value_cmp(key_dependency_from_key_data_id(object), &from_key_data_id));
+    CU_ASSERT(!db_value_cmp(key_dependency_to_key_data_id(object), &to_key_data_id));
     CU_ASSERT(key_dependency_type(object) == KEY_DEPENDENCY_TYPE_RRSIGDNSKEY);
     db_value_reset(&zone_id);
     db_value_reset(&from_key_data_id);
@@ -379,12 +376,9 @@ static void test_key_dependency_verify(void) {
     if (db_mysql) {
         CU_ASSERT(!db_value_from_uint64(&to_key_data_id, 1));
     }
-    CU_ASSERT(!db_value_cmp(key_dependency_zone_id(object), &zone_id, &ret));
-    CU_ASSERT(!ret);
-    CU_ASSERT(!db_value_cmp(key_dependency_from_key_data_id(object), &from_key_data_id, &ret));
-    CU_ASSERT(!ret);
-    CU_ASSERT(!db_value_cmp(key_dependency_to_key_data_id(object), &to_key_data_id, &ret));
-    CU_ASSERT(!ret);
+    CU_ASSERT(!db_value_cmp(key_dependency_zone_id(object), &zone_id));
+    CU_ASSERT(!db_value_cmp(key_dependency_from_key_data_id(object), &from_key_data_id));
+    CU_ASSERT(!db_value_cmp(key_dependency_to_key_data_id(object), &to_key_data_id));
     CU_ASSERT(key_dependency_type(object) == KEY_DEPENDENCY_TYPE_RRSIGDNSKEY);
     db_value_reset(&zone_id);
     db_value_reset(&to_key_data_id);
@@ -456,12 +450,9 @@ static void test_key_dependency_verify2(void) {
     if (db_mysql) {
         CU_ASSERT(!db_value_from_uint64(&to_key_data_id, 1));
     }
-    CU_ASSERT(!db_value_cmp(key_dependency_zone_id(object), &zone_id, &ret));
-    CU_ASSERT(!ret);
-    CU_ASSERT(!db_value_cmp(key_dependency_from_key_data_id(object), &from_key_data_id, &ret));
-    CU_ASSERT(!ret);
-    CU_ASSERT(!db_value_cmp(key_dependency_to_key_data_id(object), &to_key_data_id, &ret));
-    CU_ASSERT(!ret);
+    CU_ASSERT(!db_value_cmp(key_dependency_zone_id(object), &zone_id));
+    CU_ASSERT(!db_value_cmp(key_dependency_from_key_data_id(object), &from_key_data_id));
+    CU_ASSERT(!db_value_cmp(key_dependency_to_key_data_id(object), &to_key_data_id));
     CU_ASSERT(key_dependency_type(object) == KEY_DEPENDENCY_TYPE_DS);
     db_value_reset(&zone_id);
     db_value_reset(&from_key_data_id);

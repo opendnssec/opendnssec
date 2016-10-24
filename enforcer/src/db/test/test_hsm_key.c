@@ -286,8 +286,8 @@ static void test_hsm_key_set(void) {
     db_value_reset(&policy_id);
 }
 
-static void test_hsm_key_get(void) {
-    int ret;
+static void test_hsm_key_get(void)
+{
     db_value_t policy_id = DB_VALUE_EMPTY;
     if (db_sqlite) {
         CU_ASSERT(!db_value_from_int32(&policy_id, 1));
@@ -295,8 +295,7 @@ static void test_hsm_key_get(void) {
     if (db_mysql) {
         CU_ASSERT(!db_value_from_uint64(&policy_id, 1));
     }
-    CU_ASSERT(!db_value_cmp(hsm_key_policy_id(object), &policy_id, &ret));
-    CU_ASSERT(!ret);
+    CU_ASSERT(!db_value_cmp(hsm_key_policy_id(object), &policy_id));
     CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_locator(object));
     CU_ASSERT(!strcmp(hsm_key_locator(object), "locator 1"));
     CU_ASSERT(hsm_key_state(object) == HSM_KEY_STATE_DELETE);
@@ -504,8 +503,8 @@ static void test_hsm_key_count(void) {
     clause_list = NULL;
 }
 
-static void test_hsm_key_verify(void) {
-    int ret;
+static void test_hsm_key_verify(void)
+{
     db_value_t policy_id = DB_VALUE_EMPTY;
     if (db_sqlite) {
         CU_ASSERT(!db_value_from_int32(&policy_id, 1));
@@ -513,8 +512,7 @@ static void test_hsm_key_verify(void) {
     if (db_mysql) {
         CU_ASSERT(!db_value_from_uint64(&policy_id, 1));
     }
-    CU_ASSERT(!db_value_cmp(hsm_key_policy_id(object), &policy_id, &ret));
-    CU_ASSERT(!ret);
+    CU_ASSERT(!db_value_cmp(hsm_key_policy_id(object), &policy_id));
     CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_locator(object));
     CU_ASSERT(!strcmp(hsm_key_locator(object), "locator 1"));
     CU_ASSERT(hsm_key_state(object) == HSM_KEY_STATE_DELETE);
@@ -532,8 +530,8 @@ static void test_hsm_key_read_by_locator(void) {
     CU_ASSERT_FATAL(!hsm_key_get_by_locator(object, "locator 1"));
 }
 
-static void test_hsm_key_verify_locator(void) {
-    int ret;
+static void test_hsm_key_verify_locator(void)
+{
     db_value_t policy_id = DB_VALUE_EMPTY;
     if (db_sqlite) {
         CU_ASSERT(!db_value_from_int32(&policy_id, 1));
@@ -541,8 +539,7 @@ static void test_hsm_key_verify_locator(void) {
     if (db_mysql) {
         CU_ASSERT(!db_value_from_uint64(&policy_id, 1));
     }
-    CU_ASSERT(!db_value_cmp(hsm_key_policy_id(object), &policy_id, &ret));
-    CU_ASSERT(!ret);
+    CU_ASSERT(!db_value_cmp(hsm_key_policy_id(object), &policy_id));
     CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_locator(object));
     CU_ASSERT(!strcmp(hsm_key_locator(object), "locator 1"));
     CU_ASSERT(hsm_key_state(object) == HSM_KEY_STATE_DELETE);
@@ -581,8 +578,8 @@ static void test_hsm_key_update(void) {
     CU_ASSERT_FATAL(!hsm_key_update(object));
 }
 
-static void test_hsm_key_verify2(void) {
-    int ret;
+static void test_hsm_key_verify2(void)
+{
     db_value_t policy_id = DB_VALUE_EMPTY;
     if (db_sqlite) {
         CU_ASSERT(!db_value_from_int32(&policy_id, 1));
@@ -590,8 +587,7 @@ static void test_hsm_key_verify2(void) {
     if (db_mysql) {
         CU_ASSERT(!db_value_from_uint64(&policy_id, 1));
     }
-    CU_ASSERT(!db_value_cmp(hsm_key_policy_id(object), &policy_id, &ret));
-    CU_ASSERT(!ret);
+    CU_ASSERT(!db_value_cmp(hsm_key_policy_id(object), &policy_id));
     CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_locator(object));
     CU_ASSERT(!strcmp(hsm_key_locator(object), "locator 2"));
     CU_ASSERT(hsm_key_state(object) == HSM_KEY_STATE_UNUSED);
@@ -615,8 +611,8 @@ static void test_hsm_key_read_by_locator2(void) {
     CU_ASSERT_FATAL(!hsm_key_get_by_locator(object, "locator 2"));
 }
 
-static void test_hsm_key_verify_locator2(void) {
-    int ret;
+static void test_hsm_key_verify_locator2(void)
+{
     db_value_t policy_id = DB_VALUE_EMPTY;
     if (db_sqlite) {
         CU_ASSERT(!db_value_from_int32(&policy_id, 1));
@@ -624,8 +620,7 @@ static void test_hsm_key_verify_locator2(void) {
     if (db_mysql) {
         CU_ASSERT(!db_value_from_uint64(&policy_id, 1));
     }
-    CU_ASSERT(!db_value_cmp(hsm_key_policy_id(object), &policy_id, &ret));
-    CU_ASSERT(!ret);
+    CU_ASSERT(!db_value_cmp(hsm_key_policy_id(object), &policy_id));
     CU_ASSERT_PTR_NOT_NULL_FATAL(hsm_key_locator(object));
     CU_ASSERT(!strcmp(hsm_key_locator(object), "locator 2"));
     CU_ASSERT(hsm_key_state(object) == HSM_KEY_STATE_UNUSED);

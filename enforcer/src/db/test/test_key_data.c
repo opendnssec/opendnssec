@@ -311,10 +311,8 @@ static void test_key_data_get(void) {
     if (db_mysql) {
         CU_ASSERT(!db_value_from_uint64(&hsm_key_id, 1));
     }
-    CU_ASSERT(!db_value_cmp(key_data_zone_id(object), &zone_id, &ret));
-    CU_ASSERT(!ret);
-    CU_ASSERT(!db_value_cmp(key_data_hsm_key_id(object), &hsm_key_id, &ret));
-    CU_ASSERT(!ret);
+    CU_ASSERT(!db_value_cmp(key_data_zone_id(object), &zone_id));
+    CU_ASSERT(!db_value_cmp(key_data_hsm_key_id(object), &hsm_key_id));
     CU_ASSERT(key_data_algorithm(object) == 1);
     CU_ASSERT(key_data_inception(object) == 1);
     CU_ASSERT(key_data_role(object) == KEY_DATA_ROLE_CSK);
@@ -644,10 +642,8 @@ static void test_key_data_verify(void) {
     if (db_mysql) {
         CU_ASSERT(!db_value_from_uint64(&hsm_key_id, 1));
     }
-    CU_ASSERT(!db_value_cmp(key_data_zone_id(object), &zone_id, &ret));
-    CU_ASSERT(!ret);
-    CU_ASSERT(!db_value_cmp(key_data_hsm_key_id(object), &hsm_key_id, &ret));
-    CU_ASSERT(!ret);
+    CU_ASSERT(!db_value_cmp(key_data_zone_id(object), &zone_id));
+    CU_ASSERT(!db_value_cmp(key_data_hsm_key_id(object), &hsm_key_id));
     CU_ASSERT(key_data_algorithm(object) == 1);
     CU_ASSERT(key_data_inception(object) == 1);
     CU_ASSERT(key_data_role(object) == KEY_DATA_ROLE_CSK);
@@ -719,10 +715,8 @@ static void test_key_data_verify2(void) {
     if (db_mysql) {
         CU_ASSERT(!db_value_from_uint64(&hsm_key_id, 1));
     }
-    CU_ASSERT(!db_value_cmp(key_data_zone_id(object), &zone_id, &ret));
-    CU_ASSERT(!ret);
-    CU_ASSERT(!db_value_cmp(key_data_hsm_key_id(object), &hsm_key_id, &ret));
-    CU_ASSERT(!ret);
+    CU_ASSERT(!db_value_cmp(key_data_zone_id(object), &zone_id));
+    CU_ASSERT(!db_value_cmp(key_data_hsm_key_id(object), &hsm_key_id));
     CU_ASSERT(key_data_algorithm(object) == 2);
     CU_ASSERT(key_data_inception(object) == 2);
     CU_ASSERT(key_data_role(object) == KEY_DATA_ROLE_KSK);
