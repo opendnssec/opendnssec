@@ -191,7 +191,6 @@ janitor_thread_unregister(janitor_thread_t info)
             }
         }
         info->next = info->prev = NULL;
-        free(info);
         /* The implementation on FreeBSD10 of pthreads is pretty brain dead.
          * If two threads enter a barrier with count 2, then the barrier
          * is satisfied and thus not really being waited upon.  If now one
@@ -209,6 +208,7 @@ janitor_thread_unregister(janitor_thread_t info)
                 sleep(1);
             }
         } while(err == EBUSY && errcount <= 3);
+        free(info);
         CHECKFAIL(pthread_cond_signal(&threadblock));
     }
     CHECKFAIL(pthread_mutex_unlock(&threadlock));
@@ -305,10 +305,10 @@ janitor_thread_start(janitor_thread_t thread)
     }
 }
 
-void
+int
 janitor_thread_join(janitor_thread_t thread)
 {
-    pthread_join(thread->thread, NULL);
+    return pthread_join(thread->thread, NULL);
 }
 
 static void

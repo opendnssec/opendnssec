@@ -203,5 +203,6 @@ main(int argc, char* argv[])
         info, single_run);
     program_teardown();
 
+    free(argv0);
     return returncode;
 }

@@ -56,7 +56,7 @@ extern void janitor_threadclass_setminstacksize(janitor_threadclass_t threadclas
 
 extern int janitor_thread_create(janitor_thread_t* thread, janitor_threadclass_t threadclass, janitor_runfn_t func, void*data);
 extern void janitor_thread_start(janitor_thread_t thread);
-extern void janitor_thread_join(janitor_thread_t thread);
+extern int janitor_thread_join(janitor_thread_t thread);
 
 extern int janitor_disablecoredump(void);
 extern int janitor_trapsignals(char* argv0);
