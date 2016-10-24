@@ -861,13 +861,8 @@ static int key_dependency_list_get_associated(key_dependency_list_t* key_depende
         cmp = 1;
         clause_walk = db_clause_list_begin(clause_list);
         while (clause_walk) {
-            if (db_value_cmp(db_clause_value(clause_walk), key_dependency_zone_id(key_dependency), &cmp)) {
-                db_clause_list_free(clause_list);
-                return DB_ERROR_UNKNOWN;
-            }
-            if (!cmp) {
-                break;
-            }
+            cmp = db_value_cmp(db_clause_value(clause_walk), key_dependency_zone_id(key_dependency));
+            if (!cmp) break;
             clause_walk = db_clause_next(clause_walk);
         }
         if (cmp) {
@@ -907,10 +902,7 @@ static int key_dependency_list_get_associated(key_dependency_list_t* key_depende
 
         zone_zone_id = zone_list_db_begin(key_dependency_list->zone_id_list);
         while (zone_zone_id) {
-            if (db_value_cmp(key_dependency_zone_id(key_dependency_list->object_list[i]), zone_db_id(zone_zone_id), &cmp)) {
-                return DB_ERROR_UNKNOWN;
-            }
-            if (!cmp) {
+            if (!db_value_cmp(key_dependency_zone_id(key_dependency_list->object_list[i]), zone_db_id(zone_zone_id))) {
                 key_dependency_list->object_list[i]->associated_zone_id = zone_zone_id;
             }
 
@@ -926,13 +918,8 @@ static int key_dependency_list_get_associated(key_dependency_list_t* key_depende
         cmp = 1;
         clause_walk = db_clause_list_begin(clause_list);
         while (clause_walk) {
-            if (db_value_cmp(db_clause_value(clause_walk), key_dependency_from_key_data_id(key_dependency), &cmp)) {
-                db_clause_list_free(clause_list);
-                return DB_ERROR_UNKNOWN;
-            }
-            if (!cmp) {
-                break;
-            }
+            cmp = db_value_cmp(db_clause_value(clause_walk), key_dependency_from_key_data_id(key_dependency));
+            if (!cmp) break;
             clause_walk = db_clause_next(clause_walk);
         }
         if (cmp) {
@@ -972,10 +959,7 @@ static int key_dependency_list_get_associated(key_dependency_list_t* key_depende
 
         key_data_from_key_data_id = key_data_list_begin(key_dependency_list->from_key_data_id_list);
         while (key_data_from_key_data_id) {
-            if (db_value_cmp(key_dependency_from_key_data_id(key_dependency_list->object_list[i]), key_data_id(key_data_from_key_data_id), &cmp)) {
-                return DB_ERROR_UNKNOWN;
-            }
-            if (!cmp) {
+            if (!db_value_cmp(key_dependency_from_key_data_id(key_dependency_list->object_list[i]), key_data_id(key_data_from_key_data_id))) {
                 key_dependency_list->object_list[i]->associated_from_key_data_id = key_data_from_key_data_id;
             }
 
@@ -991,13 +975,8 @@ static int key_dependency_list_get_associated(key_dependency_list_t* key_depende
         cmp = 1;
         clause_walk = db_clause_list_begin(clause_list);
         while (clause_walk) {
-            if (db_value_cmp(db_clause_value(clause_walk), key_dependency_to_key_data_id(key_dependency), &cmp)) {
-                db_clause_list_free(clause_list);
-                return DB_ERROR_UNKNOWN;
-            }
-            if (!cmp) {
-                break;
-            }
+            cmp = db_value_cmp(db_clause_value(clause_walk), key_dependency_to_key_data_id(key_dependency));
+            if (!cmp) break;
             clause_walk = db_clause_next(clause_walk);
         }
         if (cmp) {
@@ -1037,10 +1016,7 @@ static int key_dependency_list_get_associated(key_dependency_list_t* key_depende
 
         key_data_to_key_data_id = key_data_list_begin(key_dependency_list->to_key_data_id_list);
         while (key_data_to_key_data_id) {
-            if (db_value_cmp(key_dependency_to_key_data_id(key_dependency_list->object_list[i]), key_data_id(key_data_to_key_data_id), &cmp)) {
-                return DB_ERROR_UNKNOWN;
-            }
-            if (!cmp) {
+            if (!db_value_cmp(key_dependency_to_key_data_id(key_dependency_list->object_list[i]), key_data_id(key_data_to_key_data_id))) {
                 key_dependency_list->object_list[i]->associated_to_key_data_id = key_data_to_key_data_id;
             }
 

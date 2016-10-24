@@ -114,9 +114,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
              * or if they are not the same free the policy object to we will
              * later retrieve the correct policy
              */
-            if (db_value_cmp(policy_id(policy), zone_db_policy_id(zone), &cmp)
-                || cmp)
-            {
+            if (db_value_cmp(policy_id(policy), zone_db_policy_id(zone))) {
                 policy_free(policy);
                 policy = NULL;
             }

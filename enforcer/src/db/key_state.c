@@ -1048,13 +1048,8 @@ static int key_state_list_get_associated(key_state_list_t* key_state_list) {
         cmp = 1;
         clause_walk = db_clause_list_begin(clause_list);
         while (clause_walk) {
-            if (db_value_cmp(db_clause_value(clause_walk), key_state_key_data_id(key_state), &cmp)) {
-                db_clause_list_free(clause_list);
-                return DB_ERROR_UNKNOWN;
-            }
-            if (!cmp) {
-                break;
-            }
+            cmp = db_value_cmp(db_clause_value(clause_walk), key_state_key_data_id(key_state));
+            if (!cmp) break;
             clause_walk = db_clause_next(clause_walk);
         }
         if (cmp) {
@@ -1094,10 +1089,7 @@ static int key_state_list_get_associated(key_state_list_t* key_state_list) {
 
         key_data_key_data_id = key_data_list_begin(key_state_list->key_data_id_list);
         while (key_data_key_data_id) {
-            if (db_value_cmp(key_state_key_data_id(key_state_list->object_list[i]), key_data_id(key_data_key_data_id), &cmp)) {
-                return DB_ERROR_UNKNOWN;
-            }
-            if (!cmp) {
+            if (!db_value_cmp(key_state_key_data_id(key_state_list->object_list[i]), key_data_id(key_data_key_data_id))) {
                 key_state_list->object_list[i]->associated_key_data_id = key_data_key_data_id;
             }
 

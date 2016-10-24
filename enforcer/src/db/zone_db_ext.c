@@ -182,14 +182,7 @@ static int __xmlNode2zone(zone_db_t* zone, xmlNodePtr zone_node, int* updated) {
             ods_log_deeebug("[zone_*_from_xml] policy %s", (char*)xml_text);
             if (check_if_updated) {
                 update_this = 0;
-                if (db_value_cmp(zone_db_policy_id(zone), policy_id(policy), &ret)) {
-                    policy_free(policy);
-                    if (xml_text) {
-                        xmlFree(xml_text);
-                    }
-                    return DB_ERROR_UNKNOWN;
-                }
-                if (ret) {
+                if (db_value_cmp(zone_db_policy_id(zone), policy_id(policy))) {
                     *updated = 1;
                     update_this = 1;
                 }

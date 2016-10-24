@@ -412,17 +412,11 @@ int key_data_cmp(const key_data_t* key_data_a, const key_data_t* key_data_b) {
         return 1;
     }
 
-    ret = 0;
-    db_value_cmp(&(key_data_a->zone_id), &(key_data_b->zone_id), &ret);
-    if (ret) {
-        return ret;
-    }
+    ret = db_value_cmp(&(key_data_a->zone_id), &(key_data_b->zone_id));
+    if (ret) return ret;
 
-    ret = 0;
-    db_value_cmp(&(key_data_a->hsm_key_id), &(key_data_b->hsm_key_id), &ret);
-    if (ret) {
-        return ret;
-    }
+    ret = db_value_cmp(&(key_data_a->hsm_key_id), &(key_data_b->hsm_key_id));
+    if (ret) return ret;
 
     if (key_data_a->algorithm != key_data_b->algorithm) {
         return key_data_a->algorithm < key_data_b->algorithm ? -1 : 1;
@@ -1835,13 +1829,8 @@ static int key_data_list_get_associated(key_data_list_t* key_data_list) {
         cmp = 1;
         clause_walk = db_clause_list_begin(clause_list);
         while (clause_walk) {
-            if (db_value_cmp(db_clause_value(clause_walk), key_data_zone_id(key_data), &cmp)) {
-                db_clause_list_free(clause_list);
-                return DB_ERROR_UNKNOWN;
-            }
-            if (!cmp) {
-                break;
-            }
+            cmp = db_value_cmp(db_clause_value(clause_walk), key_data_zone_id(key_data));
+            if (!cmp) break;
             clause_walk = db_clause_next(clause_walk);
         }
         if (cmp) {
@@ -1881,10 +1870,7 @@ static int key_data_list_get_associated(key_data_list_t* key_data_list) {
 
         zone_zone_id = zone_list_db_begin(key_data_list->zone_id_list);
         while (zone_zone_id) {
-            if (db_value_cmp(key_data_zone_id(key_data_list->object_list[i]), zone_db_id(zone_zone_id), &cmp)) {
-                return DB_ERROR_UNKNOWN;
-            }
-            if (!cmp) {
+            if (!db_value_cmp(key_data_zone_id(key_data_list->object_list[i]), zone_db_id(zone_zone_id))) {
                 key_data_list->object_list[i]->associated_zone_id = zone_zone_id;
             }
 
@@ -1900,13 +1886,8 @@ static int key_data_list_get_associated(key_data_list_t* key_data_list) {
         cmp = 1;
         clause_walk = db_clause_list_begin(clause_list);
         while (clause_walk) {
-            if (db_value_cmp(db_clause_value(clause_walk), key_data_hsm_key_id(key_data), &cmp)) {
-                db_clause_list_free(clause_list);
-                return DB_ERROR_UNKNOWN;
-            }
-            if (!cmp) {
-                break;
-            }
+            cmp = db_value_cmp(db_clause_value(clause_walk), key_data_hsm_key_id(key_data));
+            if (!cmp) break;
             clause_walk = db_clause_next(clause_walk);
         }
         if (cmp) {
@@ -1946,10 +1927,7 @@ static int key_data_list_get_associated(key_data_list_t* key_data_list) {
 
         hsm_key_hsm_key_id = hsm_key_list_begin(key_data_list->hsm_key_id_list);
         while (hsm_key_hsm_key_id) {
-            if (db_value_cmp(key_data_hsm_key_id(key_data_list->object_list[i]), hsm_key_id(hsm_key_hsm_key_id), &cmp)) {
-                return DB_ERROR_UNKNOWN;
-            }
-            if (!cmp) {
+            if (!db_value_cmp(key_data_hsm_key_id(key_data_list->object_list[i]), hsm_key_id(hsm_key_hsm_key_id))) {
                 key_data_list->object_list[i]->associated_hsm_key_id = hsm_key_hsm_key_id;
             }
 
@@ -1994,12 +1972,7 @@ static int key_data_list_get_associated(key_data_list_t* key_data_list) {
         count = 0;
         key_state = key_state_list_begin(key_state_list);
         while (key_state) {
-            if (db_value_cmp(key_data_id(key_data_list->object_list[i]), key_state_key_data_id(key_state), &cmp)) {
-                key_state_list_free(key_state_list);
-                db_clause_list_free(clause_list);
-                return DB_ERROR_UNKNOWN;
-            }
-            if (!cmp) {
+            if (!db_value_cmp(key_data_id(key_data_list->object_list[i]), key_state_key_data_id(key_state))) {
                 count++;
             }
             key_state = key_state_list_next(key_state_list);
@@ -2028,12 +2001,7 @@ static int key_data_list_get_associated(key_data_list_t* key_data_list) {
                     db_clause_list_free(clause_list);
                     return DB_ERROR_UNKNOWN;
                 }
-                if (db_value_cmp(key_data_id(key_data_list->object_list[i]), key_state_key_data_id(key_state), &cmp)) {
-                    key_state_list_free(key_state_list);
-                    db_clause_list_free(clause_list);
-                    return DB_ERROR_UNKNOWN;
-                }
-                if (!cmp) {
+                if (!db_value_cmp(key_data_id(key_data_list->object_list[i]), key_state_key_data_id(key_state))) {
                     if (!(key_data_list->object_list[i]->key_state_list->object_list[j] = key_state_new_copy(key_state))) {
                         key_state_list_free(key_state_list);
                         db_clause_list_free(clause_list);

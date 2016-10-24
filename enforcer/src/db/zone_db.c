@@ -2118,13 +2118,8 @@ static int zone_list_db_get_associated(zone_list_db_t* zone_list) {
         cmp = 1;
         clause_walk = db_clause_list_begin(clause_list);
         while (clause_walk) {
-            if (db_value_cmp(db_clause_value(clause_walk), zone_db_policy_id(zone), &cmp)) {
-                db_clause_list_free(clause_list);
-                return DB_ERROR_UNKNOWN;
-            }
-            if (!cmp) {
-                break;
-            }
+            cmp = db_value_cmp(db_clause_value(clause_walk), zone_db_policy_id(zone)); 
+            if (!cmp) break;
             clause_walk = db_clause_next(clause_walk);
         }
         if (cmp) {
@@ -2164,10 +2159,7 @@ static int zone_list_db_get_associated(zone_list_db_t* zone_list) {
 
         policy_policy_id = policy_list_begin(zone_list->policy_id_list);
         while (policy_policy_id) {
-            if (db_value_cmp(zone_db_policy_id(zone_list->object_list[i]), policy_id(policy_policy_id), &cmp)) {
-                return DB_ERROR_UNKNOWN;
-            }
-            if (!cmp) {
+            if (!db_value_cmp(zone_db_policy_id(zone_list->object_list[i]), policy_id(policy_policy_id))) {
                 zone_list->object_list[i]->associated_policy_id = policy_policy_id;
             }
 
@@ -2212,12 +2204,7 @@ static int zone_list_db_get_associated(zone_list_db_t* zone_list) {
         count = 0;
         key_data = key_data_list_begin(key_data_list);
         while (key_data) {
-            if (db_value_cmp(zone_db_id(zone_list->object_list[i]), key_data_zone_id(key_data), &cmp)) {
-                key_data_list_free(key_data_list);
-                db_clause_list_free(clause_list);
-                return DB_ERROR_UNKNOWN;
-            }
-            if (!cmp) {
+            if (!db_value_cmp(zone_db_id(zone_list->object_list[i]), key_data_zone_id(key_data))) {
                 count++;
             }
             key_data = key_data_list_next(key_data_list);
@@ -2246,12 +2233,7 @@ static int zone_list_db_get_associated(zone_list_db_t* zone_list) {
                     db_clause_list_free(clause_list);
                     return DB_ERROR_UNKNOWN;
                 }
-                if (db_value_cmp(zone_db_id(zone_list->object_list[i]), key_data_zone_id(key_data), &cmp)) {
-                    key_data_list_free(key_data_list);
-                    db_clause_list_free(clause_list);
-                    return DB_ERROR_UNKNOWN;
-                }
-                if (!cmp) {
+                if (!db_value_cmp(zone_db_id(zone_list->object_list[i]), key_data_zone_id(key_data))) {
                     if (!(zone_list->object_list[i]->key_data_list->object_list[j] = key_data_new_copy(key_data))) {
                         key_data_list_free(key_data_list);
                         db_clause_list_free(clause_list);
@@ -2294,12 +2276,7 @@ static int zone_list_db_get_associated(zone_list_db_t* zone_list) {
         count = 0;
         key_dependency = key_dependency_list_begin(key_dependency_list);
         while (key_dependency) {
-            if (db_value_cmp(zone_db_id(zone_list->object_list[i]), key_dependency_zone_id(key_dependency), &cmp)) {
-                key_dependency_list_free(key_dependency_list);
-                db_clause_list_free(clause_list);
-                return DB_ERROR_UNKNOWN;
-            }
-            if (!cmp) {
+            if (!db_value_cmp(zone_db_id(zone_list->object_list[i]), key_dependency_zone_id(key_dependency))) {
                 count++;
             }
             key_dependency = key_dependency_list_next(key_dependency_list);
@@ -2328,12 +2305,7 @@ static int zone_list_db_get_associated(zone_list_db_t* zone_list) {
                     db_clause_list_free(clause_list);
                     return DB_ERROR_UNKNOWN;
                 }
-                if (db_value_cmp(zone_db_id(zone_list->object_list[i]), key_dependency_zone_id(key_dependency), &cmp)) {
-                    key_dependency_list_free(key_dependency_list);
-                    db_clause_list_free(clause_list);
-                    return DB_ERROR_UNKNOWN;
-                }
-                if (!cmp) {
+                if (!db_value_cmp(zone_db_id(zone_list->object_list[i]), key_dependency_zone_id(key_dependency))) {
                     if (!(zone_list->object_list[i]->key_dependency_list->object_list[j] = key_dependency_new_copy(key_dependency))) {
                         key_dependency_list_free(key_dependency_list);
                         db_clause_list_free(clause_list);

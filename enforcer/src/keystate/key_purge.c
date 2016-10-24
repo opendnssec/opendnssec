@@ -183,13 +183,9 @@ int removeDeadKeysNow(int sockfd, db_connection_t *dbconn,
 
 				for (j = 0; j < deplist2_size; j++) {
 					if (!deplist2[j]) continue;
-					if (db_value_cmp(key_data_id(keylist[i]), key_dependency_from_key_data_id(deplist2[j]), &cmp)) {
-					    /* TODO: better log error */
-						ods_log_error("[%s] cmp deplist from failed", scmd);
-						client_printf_err(sockfd, "[%s] cmp deplist from failed", scmd);
-						break;
+					if (db_value_cmp(key_data_id(keylist[i]), key_dependency_from_key_data_id(deplist2[j]))) {
+						continue;
 					}
-					if(cmp) continue;
 
 					if (key_dependency_delete(deplist2[j])) {
 					    /* TODO: better log error */

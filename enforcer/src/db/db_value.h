@@ -86,15 +86,14 @@ void db_value_reset(db_value_t* value);
 int db_value_copy(db_value_t* value, const db_value_t* from_value);
 
 /**
- * Compare two database values A and B. Sets `result` with less than, equal to,
- * or greater than zero if A is found, respectively, to be less than, to match,
- * or be greater than B.
+ * Compare two database values A and B. Only integer, enum and txt types
+ * are allowed. Unless DB_TYPE_EMPTY both values must be of the same type.
+ * 
  * \param[in] value_a a db_value_t pointer.
- * \param[in] value_b a db_value_t pointer.
- * \param[out] result an integer pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
+ * \param[in] value_b a db_value_t pointer of same type as value_a.
+ * \return result an integer.
  */
-int db_value_cmp(const db_value_t* value_a, const db_value_t* value_b, int* result);
+int db_value_cmp(const db_value_t* value_a, const db_value_t* value_b);
 
 /**
  * Get the type of a database value.

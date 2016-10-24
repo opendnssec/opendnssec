@@ -2813,12 +2813,7 @@ static int policy_list_get_associated(policy_list_t* policy_list) {
         count = 0;
         policy_key = policy_key_list_begin(policy_key_list);
         while (policy_key) {
-            if (db_value_cmp(policy_id(policy_list->object_list[i]), policy_key_policy_id(policy_key), &cmp)) {
-                policy_key_list_free(policy_key_list);
-                db_clause_list_free(clause_list);
-                return DB_ERROR_UNKNOWN;
-            }
-            if (!cmp) {
+            if (!db_value_cmp(policy_id(policy_list->object_list[i]), policy_key_policy_id(policy_key))) {
                 count++;
             }
             policy_key = policy_key_list_next(policy_key_list);
@@ -2847,12 +2842,7 @@ static int policy_list_get_associated(policy_list_t* policy_list) {
                     db_clause_list_free(clause_list);
                     return DB_ERROR_UNKNOWN;
                 }
-                if (db_value_cmp(policy_id(policy_list->object_list[i]), policy_key_policy_id(policy_key), &cmp)) {
-                    policy_key_list_free(policy_key_list);
-                    db_clause_list_free(clause_list);
-                    return DB_ERROR_UNKNOWN;
-                }
-                if (!cmp) {
+                if (!db_value_cmp(policy_id(policy_list->object_list[i]), policy_key_policy_id(policy_key))) {
                     if (!(policy_list->object_list[i]->policy_key_list->object_list[j] = policy_key_new_copy(policy_key))) {
                         policy_key_list_free(policy_key_list);
                         db_clause_list_free(clause_list);
@@ -2892,12 +2882,7 @@ static int policy_list_get_associated(policy_list_t* policy_list) {
         count = 0;
         zone = zone_list_db_begin(zone_list);
         while (zone) {
-            if (db_value_cmp(policy_id(policy_list->object_list[i]), zone_db_policy_id(zone), &cmp)) {
-                zone_list_db_free(zone_list);
-                db_clause_list_free(clause_list);
-                return DB_ERROR_UNKNOWN;
-            }
-            if (!cmp) {
+            if (!db_value_cmp(policy_id(policy_list->object_list[i]), zone_db_policy_id(zone))) {
                 count++;
             }
             zone = zone_list_db_next(zone_list);
@@ -2926,12 +2911,7 @@ static int policy_list_get_associated(policy_list_t* policy_list) {
                     db_clause_list_free(clause_list);
                     return DB_ERROR_UNKNOWN;
                 }
-                if (db_value_cmp(policy_id(policy_list->object_list[i]), zone_db_policy_id(zone), &cmp)) {
-                    zone_list_db_free(zone_list);
-                    db_clause_list_free(clause_list);
-                    return DB_ERROR_UNKNOWN;
-                }
-                if (!cmp) {
+                if (!db_value_cmp(policy_id(policy_list->object_list[i]), zone_db_policy_id(zone))) {
                     if (!(policy_list->object_list[i]->zone_list->object_list[j] = zone_db_new_copy(zone))) {
                         zone_list_db_free(zone_list);
                         db_clause_list_free(clause_list);
@@ -2971,12 +2951,7 @@ static int policy_list_get_associated(policy_list_t* policy_list) {
         count = 0;
         hsm_key = hsm_key_list_begin(hsm_key_list);
         while (hsm_key) {
-            if (db_value_cmp(policy_id(policy_list->object_list[i]), hsm_key_policy_id(hsm_key), &cmp)) {
-                hsm_key_list_free(hsm_key_list);
-                db_clause_list_free(clause_list);
-                return DB_ERROR_UNKNOWN;
-            }
-            if (!cmp) {
+            if (!db_value_cmp(policy_id(policy_list->object_list[i]), hsm_key_policy_id(hsm_key))) {
                 count++;
             }
             hsm_key = hsm_key_list_next(hsm_key_list);
@@ -3005,12 +2980,7 @@ static int policy_list_get_associated(policy_list_t* policy_list) {
                     db_clause_list_free(clause_list);
                     return DB_ERROR_UNKNOWN;
                 }
-                if (db_value_cmp(policy_id(policy_list->object_list[i]), hsm_key_policy_id(hsm_key), &cmp)) {
-                    hsm_key_list_free(hsm_key_list);
-                    db_clause_list_free(clause_list);
-                    return DB_ERROR_UNKNOWN;
-                }
-                if (!cmp) {
+                if (!db_value_cmp(policy_id(policy_list->object_list[i]), hsm_key_policy_id(hsm_key))) {
                     if (!(policy_list->object_list[i]->hsm_key_list->object_list[j] = hsm_key_new_copy(hsm_key))) {
                         hsm_key_list_free(hsm_key_list);
                         db_clause_list_free(clause_list);

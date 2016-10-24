@@ -369,11 +369,8 @@ int policy_key_cmp(const policy_key_t* policy_key_a, const policy_key_t* policy_
         return 1;
     }
 
-    ret = 0;
-    db_value_cmp(&(policy_key_a->policy_id), &(policy_key_b->policy_id), &ret);
-    if (ret) {
-        return ret;
-    }
+    ret = db_value_cmp(&(policy_key_a->policy_id), &(policy_key_b->policy_id));
+    if (ret) return ret;
 
     if (policy_key_a->role != policy_key_b->role) {
         return policy_key_a->role < policy_key_b->role ? -1 : 1;
@@ -1130,13 +1127,8 @@ static int policy_key_list_get_associated(policy_key_list_t* policy_key_list) {
         cmp = 1;
         clause_walk = db_clause_list_begin(clause_list);
         while (clause_walk) {
-            if (db_value_cmp(db_clause_value(clause_walk), policy_key_policy_id(policy_key), &cmp)) {
-                db_clause_list_free(clause_list);
-                return DB_ERROR_UNKNOWN;
-            }
-            if (!cmp) {
-                break;
-            }
+            cmp = db_value_cmp(db_clause_value(clause_walk), policy_key_policy_id(policy_key));
+            if (!cmp) break;
             clause_walk = db_clause_next(clause_walk);
         }
         if (cmp) {
@@ -1176,10 +1168,7 @@ static int policy_key_list_get_associated(policy_key_list_t* policy_key_list) {
 
         policy_policy_id = policy_list_begin(policy_key_list->policy_id_list);
         while (policy_policy_id) {
-            if (db_value_cmp(policy_key_policy_id(policy_key_list->object_list[i]), policy_id(policy_policy_id), &cmp)) {
-                return DB_ERROR_UNKNOWN;
-            }
-            if (!cmp) {
+            if (!db_value_cmp(policy_key_policy_id(policy_key_list->object_list[i]), policy_id(policy_policy_id))) {
                 policy_key_list->object_list[i]->associated_policy_id = policy_policy_id;
             }
 

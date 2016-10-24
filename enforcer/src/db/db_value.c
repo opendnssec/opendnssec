@@ -27,17 +27,16 @@
  *
  */
 
+#include <string.h>
+
 #include "db_value.h"
 #include "db_error.h"
-
-
-#include <string.h>
+#include "log.h"
 
 /* DB VALUE */
 
-
-
-db_value_t* db_value_new() {
+db_value_t* db_value_new()
+{
     db_value_t* value =
         (db_value_t*)calloc(1, sizeof(db_value_t));
 
@@ -48,45 +47,34 @@ db_value_t* db_value_new() {
     return value;
 }
 
-void db_value_free(db_value_t* value) {
-    if (value) {
-        if (value->text) {
-            free(value->text);
-        }
-        free(value);
-    }
+void db_value_free(db_value_t* value)
+{
+    if (value) free(value->text);
+    free(value);
 }
 
-void db_value_reset(db_value_t* value) {
-    if (value) {
-        value->type = DB_TYPE_EMPTY;
-        value->primary_key = 0;
-        if (value->text) {
-            free(value->text);
-        }
-        value->text = NULL;
-        value->int32 = 0;
-        value->uint32 = 0;
-        value->int64 = 0;
-        value->uint64 = 0;
-        value->enum_value = 0;
-        value->enum_text = NULL;
-    }
+void db_value_reset(db_value_t* value)
+{
+    ods_log_assert(value);
+
+    value->type = DB_TYPE_EMPTY;
+    value->primary_key = 0;
+    free(value->text);
+    value->text = NULL;
+    value->int32 = 0;
+    value->uint32 = 0;
+    value->int64 = 0;
+    value->uint64 = 0;
+    value->enum_value = 0;
+    value->enum_text = NULL;
 }
 
-int db_value_copy(db_value_t* value, const db_value_t* from_value) {
-    if (!value) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (value->type != DB_TYPE_EMPTY) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!from_value) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (from_value->type == DB_TYPE_EMPTY) {
-        return DB_ERROR_UNKNOWN;
-    }
+int db_value_copy(db_value_t* value, const db_value_t* from_value)
+{
+    ods_log_assert(value);
+    ods_log_assert(value->type == DB_TYPE_EMPTY);
+    ods_log_assert(from_value);
+    ods_log_assert(from_value->type != DB_TYPE_EMPTY);
 
     memcpy(value, from_value, sizeof(db_value_t));
     if (from_value->text) {
@@ -99,171 +87,76 @@ int db_value_copy(db_value_t* value, const db_value_t* from_value) {
     return DB_OK;
 }
 
-int db_value_cmp(const db_value_t* value_a, const db_value_t* value_b, int* result) {
-    if (!value_a) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!value_b) {
-        return DB_ERROR_UNKNOWN;
-    }
-    if (!result) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    if (value_a->type == DB_TYPE_EMPTY && value_b->type != DB_TYPE_EMPTY) {
-        *result = -1;
-        return DB_OK;
-    }
-    else if (value_a->type == DB_TYPE_EMPTY && value_b->type == DB_TYPE_EMPTY) {
-        *result = 0;
-        return DB_OK;
-    }
-    else if (value_a->type != DB_TYPE_EMPTY && value_b->type == DB_TYPE_EMPTY) {
-        *result = 1;
-        return DB_OK;
-    }
-
-    /* TODO: ability to compare different types to each other */
-    if (value_a->type != value_b->type) {
-        switch (value_a->type) {
-        case DB_TYPE_INT32:
-            if (value_b->type == DB_TYPE_INT64) {
-                if ((db_type_int64_t)(value_a->int32) < value_b->int64) {
-                    *result = -1;
-                }
-                else if ((db_type_int64_t)(value_a->int32) > value_b->int64) {
-                    *result = 1;
-                }
-                else {
-                    *result = 0;
-                }
-                return DB_OK;
-            }
-            break;
-
-        case DB_TYPE_INT64:
-            if (value_b->type == DB_TYPE_INT32) {
-                if (value_a->int64 < (db_type_int64_t)(value_b->int32)) {
-                    *result = -1;
-                }
-                else if (value_a->int64 > (db_type_int64_t)(value_b->int32)) {
-                    *result = 1;
-                }
-                else {
-                    *result = 0;
-                }
-                return DB_OK;
-            }
-            break;
-
-        case DB_TYPE_UINT32:
-            if (value_b->type == DB_TYPE_UINT64) {
-                if ((db_type_uint64_t)(value_a->uint32) < value_b->uint64) {
-                    *result = -1;
-                }
-                else if ((db_type_uint64_t)(value_a->uint32) > value_b->uint64) {
-                    *result = 1;
-                }
-                else {
-                    *result = 0;
-                }
-                return DB_OK;
-            }
-            break;
-
-        case DB_TYPE_UINT64:
-            if (value_b->type == DB_TYPE_UINT32) {
-                if (value_a->uint64 < (db_type_uint64_t)(value_b->uint32)) {
-                    *result = -1;
-                }
-                else if (value_a->uint64 > (db_type_uint64_t)(value_b->uint32)) {
-                    *result = 1;
-                }
-                else {
-                    *result = 0;
-                }
-                return DB_OK;
-            }
-            break;
-
-        default:
-            break;
-        }
-
-        return DB_ERROR_UNKNOWN;
-    }
+int db_value_cmp(const db_value_t* value_a, const db_value_t* value_b)
+{
+    ods_log_assert(value_a);
+    ods_log_assert(value_b);
+    
+    if (value_a->type == DB_TYPE_EMPTY && value_b->type != DB_TYPE_EMPTY)
+        return -1;
+    else if (value_a->type == DB_TYPE_EMPTY && value_b->type == DB_TYPE_EMPTY)
+        return 0;
+    else if (value_a->type != DB_TYPE_EMPTY && value_b->type == DB_TYPE_EMPTY)
+        return 1;
 
     switch (value_a->type) {
     case DB_TYPE_INT32:
-        if (value_a->int32 < value_b->int32) {
-            *result = -1;
-        }
-        else if (value_a->int32 > value_b->int32) {
-            *result = 1;
-        }
-        else {
-            *result = 0;
+        if (value_b->type == DB_TYPE_INT32) {
+            if (value_a->int32 < value_b->int32) return -1;
+            if (value_a->int32 > value_b->int32) return 1;
+            return 0;
+        } else if (value_b->type == DB_TYPE_INT64) {
+            if (value_a->int32 < value_b->int64) return -1;
+            if (value_a->int32 > value_b->int64) return 1;
+            return 0;
         }
         break;
-
     case DB_TYPE_UINT32:
-        if (value_a->uint32 < value_b->uint32) {
-            *result = -1;
-        }
-        else if (value_a->uint32 > value_b->uint32) {
-            *result = 1;
-        }
-        else {
-            *result = 0;
+        if (value_b->type == DB_TYPE_UINT32) {
+            if (value_a->uint32 < value_b->uint32) return -1;
+            if (value_a->uint32 > value_b->uint32) return 1;
+            return 0;
+        } else if (value_b->type == DB_TYPE_UINT64) {
+            if (value_a->uint32 < value_b->uint64) return -1;
+            if (value_a->uint32 > value_b->uint64) return 1;
+            return 0;
         }
         break;
-
     case DB_TYPE_INT64:
-        if (value_a->int64 < value_b->int64) {
-            *result = -1;
-        }
-        else if (value_a->int64 > value_b->int64) {
-            *result = 1;
-        }
-        else {
-            *result = 0;
+        if (value_b->type == DB_TYPE_INT64) {
+            if (value_a->int64 < value_b->int64) return -1;
+            if (value_a->int64 > value_b->int64) return 1;
+            return 0;
+        } else if (value_b->type == DB_TYPE_INT32) {
+            if (value_a->int64 < value_b->int32) return -1;
+            if (value_a->int64 > value_b->int32) return 1;
+            return 0;
         }
         break;
-
     case DB_TYPE_UINT64:
-        if (value_a->uint64 < value_b->uint64) {
-            *result = -1;
-        }
-        else if (value_a->uint64 > value_b->uint64) {
-            *result = 1;
-        }
-        else {
-            *result = 0;
+        if (value_b->type == DB_TYPE_UINT64) {
+            if (value_a->uint64 < value_b->uint64) return -1;
+            if (value_a->uint64 > value_b->uint64) return 1;
+            return 0;
+        } else if (value_b->type == DB_TYPE_UINT32) {
+            if (value_a->uint64 < value_b->uint32) return -1;
+            if (value_a->uint64 > value_b->uint32) return 1;
+            return 0;
         }
         break;
-
     case DB_TYPE_TEXT:
-        *result = strcmp(value_a->text, value_b->text);
-        break;
-
+        ods_log_assert(value_b->type == DB_TYPE_TEXT);
+        return strcmp(value_a->text, value_b->text);
     case DB_TYPE_ENUM:
+        ods_log_assert(value_b->type == DB_TYPE_ENUM);
         /* TODO: Document that enum can only really be checked if eq */
-        if (value_a->enum_value < value_b->enum_value) {
-            *result = -1;
-        }
-        else if (value_a->enum_value > value_b->enum_value) {
-            *result = 1;
-        }
-        else {
-            *result = 0;
-        }
-        break;
-
+        if (value_a->enum_value < value_b->enum_value) return -1;
+        else if (value_a->enum_value > value_b->enum_value) return 1;
+        return 0;
     default:
-        return DB_ERROR_UNKNOWN;
+        break; /* not allowed to compare any other type */
     }
-
-    return DB_OK;
+    ods_log_assert(0);
 }
 
 db_type_t db_value_type(const db_value_t* value) {

@@ -1620,13 +1620,8 @@ static int hsm_key_list_get_associated(hsm_key_list_t* hsm_key_list) {
         cmp = 1;
         clause_walk = db_clause_list_begin(clause_list);
         while (clause_walk) {
-            if (db_value_cmp(db_clause_value(clause_walk), hsm_key_policy_id(hsm_key), &cmp)) {
-                db_clause_list_free(clause_list);
-                return DB_ERROR_UNKNOWN;
-            }
-            if (!cmp) {
-                break;
-            }
+            cmp = db_value_cmp(db_clause_value(clause_walk), hsm_key_policy_id(hsm_key));
+            if (!cmp) break;
             clause_walk = db_clause_next(clause_walk);
         }
         if (cmp) {
@@ -1666,10 +1661,7 @@ static int hsm_key_list_get_associated(hsm_key_list_t* hsm_key_list) {
 
         policy_policy_id = policy_list_begin(hsm_key_list->policy_id_list);
         while (policy_policy_id) {
-            if (db_value_cmp(hsm_key_policy_id(hsm_key_list->object_list[i]), policy_id(policy_policy_id), &cmp)) {
-                return DB_ERROR_UNKNOWN;
-            }
-            if (!cmp) {
+            if (!db_value_cmp(hsm_key_policy_id(hsm_key_list->object_list[i]), policy_id(policy_policy_id))) {
                 hsm_key_list->object_list[i]->associated_policy_id = policy_policy_id;
             }
 
