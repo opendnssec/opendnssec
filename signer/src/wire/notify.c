@@ -339,7 +339,7 @@ notify_send_udp(notify_type* notify, buffer_type* buffer)
         addr.sin_family = acl_parse_family(interface.address);
         addr.sin_addr = interface.addr.addr;
         if (bind(fd, (struct sockaddr *) &addr, sizeof(addr)) != 0) {
-            ods_log_error("[%s] unable to bind address %s: bind failed", notify_str, interface.address);
+            ods_log_error("[%s] unable to bind address %s: bind failed %s", notify_str, interface.address, strerror(errno));
             return -1;
         }
     }
@@ -348,7 +348,7 @@ notify_send_udp(notify_type* notify, buffer_type* buffer)
         addr6.sin6_family = acl_parse_family(interface.address);
         addr6.sin6_addr = interface.addr.addr6;
         if (bind(fd, (struct sockaddr *) &addr6, sizeof(addr6)) != 0) {
-            ods_log_error("[%s] unable to bind address %s: bind() failed", notify_str, interface.address);
+            ods_log_error("[%s] unable to bind address %s: bind() failed %s", notify_str, interface.address, strerror(errno));
             return -1;
         }
     }
