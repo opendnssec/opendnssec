@@ -866,41 +866,17 @@ rule2(key_data_t** keylist, size_t keylist_size, struct future_key *future_key,
     int pretend_update, key_dependency_list_t* deplist)
 {
 	static const key_state_state_t mask[8][4] = {
-		/*
-		 * This indicates a good key state.
-		 */
-		{ OMNIPRESENT, OMNIPRESENT, OMNIPRESENT, NA },
-        /*
-         * This indicates an introducing DS state.
-         */
-        { RUMOURED, OMNIPRESENT, OMNIPRESENT, NA },
-        /*
-         * This indicates an outroducing DS state.
-         */
-        { UNRETENTIVE, OMNIPRESENT, OMNIPRESENT, NA },
-        /*
-         * These indicates an introducing DNSKEY state.
-         */
-        { OMNIPRESENT, RUMOURED, RUMOURED, NA },
+		{ OMNIPRESENT, OMNIPRESENT, OMNIPRESENT, NA },  /*This indicates a good key state.*/
+        { RUMOURED, OMNIPRESENT, OMNIPRESENT, NA },     /*This indicates an introducing DS state.*/
+        { UNRETENTIVE, OMNIPRESENT, OMNIPRESENT, NA },  /*This indicates an outroducing DS state.*/
+        { OMNIPRESENT, RUMOURED, RUMOURED, NA },        /*These indicates an introducing DNSKEY state.*/
         { OMNIPRESENT, OMNIPRESENT, RUMOURED, NA },
-        /*
-         * These indicates an outroducing DNSKEY state.
-         */
-        { OMNIPRESENT, UNRETENTIVE, UNRETENTIVE, NA },
+        { OMNIPRESENT, UNRETENTIVE, UNRETENTIVE, NA },  /*These indicates an outroducing DNSKEY state.*/
         { OMNIPRESENT, UNRETENTIVE, OMNIPRESENT, NA },
-	    /*
-	     * This indicates an unsigned state.
-	     */
-        { HIDDEN, OMNIPRESENT, OMNIPRESENT, NA }
+        { HIDDEN, OMNIPRESENT, OMNIPRESENT, NA }        /*This indicates an unsigned state.*/
 	};
 
-	if (!keylist) {
-		return -1;
-	}
-	if (!future_key) {
-		return -1;
-	}
-    if (!future_key->key) {
+	if (!keylist || !future_key || !future_key->key) {
         return -1;
     }
 
@@ -1101,40 +1077,27 @@ policyApproval(key_data_t** keylist, size_t keylist_size,
     struct future_key* future_key, key_dependency_list_t* deplist)
 {
     static const key_state_state_t dnskey_algorithm_rollover[4] = { OMNIPRESENT, OMNIPRESENT, OMNIPRESENT, NA };
-    static const key_state_state_t mask[6][4] = {
-        /*
-         * This indicates a good key state.
-         */
-        { NA, OMNIPRESENT, NA, OMNIPRESENT },
-        /*
-         * This indicates a introducing DNSKEY state.
-         */
-        { NA, RUMOURED, NA, OMNIPRESENT },
-        /*
-         * This indicates a outroducing DNSKEY state.
-         */
-        { NA, UNRETENTIVE, NA, OMNIPRESENT },
-        /*
-         * This indicates a introducing RRSIG state.
-         */
-        { NA, OMNIPRESENT, NA, RUMOURED },
-        /*
-         * This indicates a outroducing RRSIG state.
-         */
-        { NA, OMNIPRESENT, NA, UNRETENTIVE },
-        /*
-         * This indicates an unsigned state.
-         */
-        { NA, HIDDEN, NA, OMNIPRESENT }
+    static const key_state_state_t mask[14][4] = {
+        /*ZSK*/
+        { NA, OMNIPRESENT, NA, OMNIPRESENT },   /*This indicates a good key state.*/
+        { NA, RUMOURED,    NA, OMNIPRESENT },   /*This indicates a introducing DNSKEY state.*/
+        { NA, UNRETENTIVE, NA, OMNIPRESENT },   /*This indicates a outroducing DNSKEY state.*/
+        { NA, OMNIPRESENT, NA, RUMOURED },      /*This indicates a introducing RRSIG state.*/
+        { NA, OMNIPRESENT, NA, UNRETENTIVE },   /*This indicates a outroducing RRSIG state.*/
+        { NA, HIDDEN,      NA, OMNIPRESENT },   /*This indicates an unsigned state.*/
+
+        /*KSK*/
+        { OMNIPRESENT, OMNIPRESENT, OMNIPRESENT, NA },  /*This indicates a good key state.*/
+        { RUMOURED,    OMNIPRESENT, OMNIPRESENT, NA },  /*This indicates an introducing DS state.*/
+        { UNRETENTIVE, OMNIPRESENT, OMNIPRESENT, NA },  /*This indicates an outroducing DS state.*/
+        { OMNIPRESENT, RUMOURED,    RUMOURED,    NA },  /*These indicates an introducing DNSKEY state.*/
+        { OMNIPRESENT, OMNIPRESENT, RUMOURED,    NA },
+        { OMNIPRESENT, UNRETENTIVE, UNRETENTIVE, NA },  /*These indicates an outroducing DNSKEY state.*/
+        { OMNIPRESENT, UNRETENTIVE, OMNIPRESENT, NA },
+        { HIDDEN,      OMNIPRESENT, OMNIPRESENT, NA }   /*This indicates an unsigned state.*/
     };
     
-    if (!keylist) {
-        return -1;
-    }
-    if (!future_key) {
-        return -1;
-    }
-    if (!future_key->key) {
+    if (!keylist || !future_key || !future_key->key) {
         return -1;
     }
 
@@ -1202,7 +1165,10 @@ policyApproval(key_data_t** keylist, size_t keylist_size,
          *
          * TODO: How is this related to KSK/CSK? There are no check for key_data_role().
          */
-        if (exists(keylist, keylist_size, future_key, 1, dnskey_algorithm_rollover) > 0) {
+        if (exists(keylist, keylist_size, future_key, 1, mask[6]) > 0
+            || exists_with_successor(keylist, keylist_size, future_key, 1, mask[8], mask[7], KEY_STATE_TYPE_DS, deplist) > 0
+            || exists_with_successor(keylist, keylist_size, future_key, 1, mask[11], mask[9], KEY_STATE_TYPE_DNSKEY, deplist) > 0)
+        {
             /*
              * We found a good key, so we will not do any transition.
              */

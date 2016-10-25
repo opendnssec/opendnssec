@@ -90,6 +90,7 @@ libtool
 **/_syslog.*
 **/*~
 /build/
+/test-driver
 testing/junit.xml
 testing/test-cases.d/enforcer.timeleap.mongrel/base
 testing/test-cases.d/enforcer.ods-enforcer.zones_and_zonelist/zonelist.xml.import
