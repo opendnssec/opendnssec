@@ -293,6 +293,9 @@ echo "zones.xml contents OK" &&
 # #Finally run the signer to check all is well
 ods_start_signer 10 &&
 log_this ods-enforcer-signconf ods-enforcer signconf && 
+# The signconf will now be separate per zone, where there will now be a delay
+# where zone ods11 does not get removed because it is still busy
+ods_enforcer_idle &&
 # cp $INSTALL_root/var/opendnssec/signconf
 syslog_waitfor 300 'signconf done for zone ods1, notifying signer' &&
 syslog_waitfor 300 'signconf done for zone ods2, notifying signer' &&
