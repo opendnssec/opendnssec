@@ -37,41 +37,19 @@
 #include "signer/tools.h"
 #include "signer/zone.h"
 
-ods_lookup_table worker_str[] = {
-    { WORKER_WORKER, "worker" },
-    { WORKER_DRUDGER, "drudger" },
-    { 0, NULL }
-};
-
-/**
- * Convert worker type to string.
- *
- */
-static const char*
-worker2str(worker_id type)
-{
-    ods_lookup_table *lt = ods_lookup_by_id(worker_str, type);
-    if (lt) {
-        return lt->name;
-    }
-    return NULL;
-}
-
-
 /**
  * Create worker.
  *
  */
 worker_type*
-worker_create(int num, worker_id type)
+worker_create(char* name)
 {
     worker_type* worker;
     CHECKALLOC(worker = (worker_type*) malloc(sizeof(worker_type)));
-    ods_log_debug("[%s[%i]] create", worker2str(type), num+1);
-    worker->thread_num = num +1;
+    ods_log_debug("[%s] create", name);
+    worker->name = name;
     worker->engine = NULL;
     worker->need_to_exit = 0;
-    worker->type = type;
     worker->clock_in = 0;
     worker->tasksOutstanding = 0;
     worker->tasksFailed = 0;
@@ -88,8 +66,7 @@ static void
 worker_working_with(worker_type* worker, zone_type* zone, task_id with, task_id next,
     const char* str, const char* name)
 {
-    ods_log_verbose("[%s[%i]] %s zone %s", worker2str(worker->type),
-       worker->thread_num, str, name);
+    ods_log_verbose("[%s] %s zone %s", worker->name, str, name);
     zone->nexttask = next;
     zone->when = time_now();
 }
@@ -192,13 +169,12 @@ worker_check_jobs(worker_type* worker, task_type* task, int ntasks, long ntasksf
     ods_log_assert(worker);
     ods_log_assert(task);
     if (ntasksfailed) {
-        ods_log_error("[%s[%i]] sign zone %s failed: %ld RRsets failed",
-            worker2str(worker->type), worker->thread_num,
-            task->owner, ntasksfailed);
+        ods_log_error("[%s] sign zone %s failed: %ld RRsets failed",
+            worker->name, task->owner, ntasksfailed);
         return ODS_STATUS_ERR;
     } else if (worker->need_to_exit) {
-        ods_log_debug("[%s[%i]] sign zone %s failed: worker needs to exit",
-            worker2str(worker->type), worker->thread_num, task->owner);
+        ods_log_debug("[%s] sign zone %s failed: worker needs to exit",
+            worker->name, task->owner);
         return ODS_STATUS_ERR;
     }
     return ODS_STATUS_OK;
@@ -239,7 +215,7 @@ worker_perform_task(const char* zonename, void* zonearg, void* contextarg)
             status = tools_signconf(zone);
             if (status == ODS_STATUS_UNCHANGED) {
                 if (!zone->signconf->last_modified) {
-                    ods_log_debug("No signconf.xml for zone %s yet", task->owner);
+                    ods_log_debug("[%s] No signconf.xml for zone %s yet", worker->name, task->owner);
                     status = ODS_STATUS_ERR;
                 }
             }
@@ -261,9 +237,8 @@ worker_perform_task(const char* zonename, void* zonearg, void* contextarg)
             /* perform 'read input adapter' task */
             worker_working_with(worker, zone, TASK_READ, TASK_SIGN, "read", task->owner);
             if (!zone->signconf->last_modified) {
-                ods_log_debug("[%s[%i]] no signconf.xml for zone %s yet",
-                    worker2str(worker->type), worker->thread_num,
-                    task->owner);
+                ods_log_debug("[%s] no signconf.xml for zone %s yet",
+                    worker->name, task->owner);
                 status = ODS_STATUS_ERR;
             } else {
                 if (hsm_check_context()) {
@@ -275,9 +250,8 @@ worker_perform_task(const char* zonename, void* zonearg, void* contextarg)
                 }
             }
             if (status == ODS_STATUS_UNCHANGED) {
-                ods_log_verbose("[%s[%i]] zone %s unsigned data not changed, "
-                    "continue", worker2str(worker->type), worker->thread_num,
-                    task->owner);
+                ods_log_verbose("[%s] zone %s unsigned data not changed, "
+                    "continue", worker->name, task->owner);
                 status = ODS_STATUS_OK;
             }
             if (status == ODS_STATUS_OK) {
@@ -303,10 +277,8 @@ worker_perform_task(const char* zonename, void* zonearg, void* contextarg)
                     zone->halted = TASK_NONE;
                 }
             } else {
-                ods_log_error("[%s[%i]] unable to sign zone %s: "
-                    "failed to increment serial",
-                    worker2str(worker->type), worker->thread_num,
-                    task->owner);
+                ods_log_error("[%s] unable to sign zone %s: "
+                    "failed to increment serial", worker->name, task->owner);
                 if (zone->halted == TASK_NONE) {
                     goto task_perform_fail;
                 }
@@ -336,9 +308,8 @@ worker_perform_task(const char* zonename, void* zonearg, void* contextarg)
             if (status == ODS_STATUS_OK) {
                 /* queue menial, hard signing work */
                 worker_queue_zone(worker, engine->signq, zone, &nsubtasks);
-                ods_log_deeebug("[%s[%i]] wait until drudgers are finished "
-                    "signing zone %s", worker2str(worker->type),
-                    worker->thread_num, task->owner);
+                ods_log_deeebug("[%s] wait until drudgers are finished "
+                    "signing zone %s", worker->name, task->owner);
                 /* sleep until work is done */
                 fifoq_waitfor(worker->engine->signq, worker, nsubtasks, &nsubtasksfailed);
             }
@@ -389,28 +360,24 @@ worker_perform_task(const char* zonename, void* zonearg, void* contextarg)
                 zone->when = worker->clock_in +
                     duration2time(zone->signconf->sig_resign_interval);
             } else {
-                ods_log_error("[%s[%i]] unable to retrieve resign interval "
+                ods_log_error("[%s] unable to retrieve resign interval "
                     "for zone %s: duration2time() failed",
-                    worker2str(worker->type), worker->thread_num,
-                    task->owner);
-                ods_log_info("[%s[%i]] defaulting to 1H resign interval for "
-                    "zone %s", worker2str(worker->type), worker->thread_num,
-                    task->owner);
+                    worker->name, task->owner);
+                ods_log_info("[%s] defaulting to 1H resign interval for "
+                    "zone %s", worker->name, task->owner);
                 zone->nexttask = TASK_SIGN;
                 zone->when = worker->clock_in + 3600;
             }
             backup = 1;
     } else if (sched_task_istype(task, TASK_NONE)) {
             /* no task */
-            ods_log_warning("[%s[%i]] none task for zone %s",
-                worker2str(worker->type), worker->thread_num,
+            ods_log_warning("[%s] none task for zone %s", worker->name,
                 task->owner);
             zone->when = time_now() + never;
     } else {
             /* unknown task */
-            ods_log_warning("[%s[%i]] unknown task, trying full sign zone %s",
-                worker2str(worker->type), worker->thread_num,
-                task->owner);
+            ods_log_warning("[%s] unknown task, trying full sign zone %s",
+                worker->name, task->owner);
             zone->nexttask = TASK_SIGNCONF;
             zone->when = time_now();
     }
@@ -432,9 +399,8 @@ worker_perform_task(const char* zonename, void* zonearg, void* contextarg)
     if (backup) {
         status = zone_backup2(zone);
         if (status != ODS_STATUS_OK) {
-            ods_log_warning("[%s[%i]] unable to backup zone %s: %s",
-            worker2str(worker->type), worker->thread_num,
-            task->owner, ods_status2str(status));
+            ods_log_warning("[%s] unable to backup zone %s: %s",
+            worker->name, task->owner, ods_status2str(status));
             /* just a warning */
             status = ODS_STATUS_OK;
         }
@@ -444,20 +410,17 @@ worker_perform_task(const char* zonename, void* zonearg, void* contextarg)
 
 task_perform_fail:
     if (!zone->signconf->last_modified) {
-        ods_log_warning("[%s[%i]] WARNING: unable to sign zone %s, signconf is not ready", worker2str(worker->type), worker->thread_num, task->owner);
-    }
-    else if (status != ODS_STATUS_XFR_NOT_READY) {
+        ods_log_warning("[%s] WARNING: unable to sign zone %s, signconf is not ready", worker->name, task->owner);
+    } else if (status != ODS_STATUS_XFR_NOT_READY) {
         /* other statuses is critical, and we know it is not ODS_STATUS_OK */
-        ods_log_crit("[%s[%i]] CRITICAL: failed to sign zone %s: %s",
-            worker2str(worker->type), worker->thread_num,
-            task->owner, ods_status2str(status));
+        ods_log_crit("[%s] CRITICAL: failed to sign zone %s: %s",
+            worker->name, task->owner, ods_status2str(status));
     }
     /* in case of failure, also mark zone processed (for single run usage) */
     zone->db->is_processed = 1;
     task->backoff = clamp(task->backoff * 2, 60, ODS_SE_MAX_BACKOFF);
-    ods_log_info("[%s[%i]] backoff task %s for zone %s with %lu seconds",
-        worker2str(worker->type), worker->thread_num,
-        task->type, task->owner, (long)task->backoff);
+    ods_log_info("[%s] backoff task %s for zone %s with %lu seconds",
+        worker->name, task->type, task->owner, (long)task->backoff);
     task->due_date = time_now() + task->backoff;
     return sched_task_due(task);
 
@@ -474,7 +437,7 @@ task_perform_continue:
  * Work.
  *
  */
-static void
+void
 worker_work(worker_type* worker)
 {
     time_t nextFireTime;
@@ -485,28 +448,28 @@ worker_work(worker_type* worker)
     ods_status status = ODS_STATUS_OK;
 
     ods_log_assert(worker);
-    ods_log_assert(worker->type == WORKER_WORKER);
 
     engine = worker->engine;
     while (worker->need_to_exit == 0) {
-        ods_log_debug("[%s[%i]] report for duty", worker2str(worker->type),
-            worker->thread_num);
+        ods_log_debug("[%s] report for duty", worker->name);
         task = schedule_pop_task(engine->taskq);
         if (task) {
             zone = (zone_type*) task->userdata;
-            ods_log_debug("[%s[%i]] start working on zone %s",
-                worker2str(worker->type), worker->thread_num, zone->name);
+            ods_log_debug("[%s] start working on zone %s", worker->name, zone->name);
             pthread_mutex_lock(&zone->zone_lock);
+            ods_log_debug("[%s] start working on zone %s",
+                worker->name, zone->name);
             worker->clock_in = time_now();
             context.worker = worker;
             context.task = task;
             task_execute(task, &context);
             zone->task = task;
+            ods_log_debug("[%s] finished working on zone %s",
+                worker->name, zone->name);
             schedule_task(engine->taskq, task, 0, 1); 
             if (status != ODS_STATUS_OK) {
-                ods_log_error("[%s[%i]] unable to schedule task for zone %s: "
-                "%s", worker2str(worker->type), worker->thread_num,
-                zone->name, ods_status2str(status));
+                ods_log_error("[%s] unable to schedule task for zone %s: "
+                "%s", worker->name, zone->name, ods_status2str(status));
             }
             pthread_mutex_unlock(&zone->zone_lock);
             /** Do we need to tell the engine that we require a reload? */
@@ -524,7 +487,7 @@ worker_work(worker_type* worker)
  * Drudge.
  *
  */
-static void
+void
 worker_drudge(worker_type* worker)
 {
     engine_type* engine = NULL;
@@ -535,18 +498,15 @@ worker_drudge(worker_type* worker)
 
     ods_log_assert(worker);
     ods_log_assert(worker->engine);
-    ods_log_assert(worker->type == WORKER_DRUDGER);
 
     engine = worker->engine;
     while (worker->need_to_exit == 0) {
-        ods_log_deeebug("[%s[%i]] report for duty", worker2str(worker->type),
-            worker->thread_num);
+        ods_log_deeebug("[%s] report for duty", worker->name);
         pthread_mutex_lock(&engine->signq->q_lock);
         superior = NULL;
         rrset = (rrset_type*) fifoq_pop(engine->signq, &superior);
         if (!rrset) {
-            ods_log_deeebug("[%s[%i]] nothing to do, wait",
-                worker2str(worker->type), worker->thread_num);
+            ods_log_deeebug("[%s] nothing to do, wait", worker->name);
             /**
              * Apparently the queue is empty. Wait until new work is queued.
              * The drudger will release the signq lock while sleeping and
@@ -562,13 +522,11 @@ worker_drudge(worker_type* worker)
         if (rrset) {
             ods_log_assert(superior);
             if (!ctx) {
-                ods_log_debug("[%s[%i]] create hsm context",
-                    worker2str(worker->type), worker->thread_num);
+                ods_log_debug("[%s] create hsm context", worker->name);
                 ctx = hsm_create_context();
             }
             if (!ctx) {
-                ods_log_crit("[%s[%i]] error creating libhsm context",
-                    worker2str(worker->type), worker->thread_num);
+                ods_log_crit("[%s] error creating libhsm context", worker->name);
                 engine->need_to_reload = 1;
                 ods_log_error("signer instructed to reload due to hsm reset while signing");
                 status = ODS_STATUS_HSM_ERR;
@@ -585,29 +543,6 @@ worker_drudge(worker_type* worker)
         hsm_destroy_context(ctx);
     }
 }
-
-
-/**
- * Start worker.
- *
- */
-void
-worker_start(worker_type* worker)
-{
-    ods_log_assert(worker);
-    switch (worker->type) {
-        case WORKER_DRUDGER:
-            worker_drudge(worker);
-            break;
-        case WORKER_WORKER:
-            worker_work(worker);
-            break;
-        default:
-            ods_log_error("[worker] illegal worker (id=%i)", worker->type);
-            break;
-    }
-}
-
 
 /**
  * Clean up worker.

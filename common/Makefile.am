@@ -20,4 +20,5 @@ libcompat_a_SOURCES = \
 	util.c util.h \
 	datastructure.c datastructure.h \
 	scheduler/schedule.c scheduler/schedule.h \
-	scheduler/task.c scheduler/task.h
+	scheduler/task.c scheduler/task.h \
+	janitor.c janitor.h

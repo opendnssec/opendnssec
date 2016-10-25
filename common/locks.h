@@ -24,16 +24,12 @@
  *
  */
 
-/**
- * Threading and locking.
- *
- */
-
 #ifndef SCHEDULER_LOCKS_H
 #define SCHEDULER_LOCKS_H
 
 #include "config.h"
 #include "log.h"
+#include "janitor.h"
 
 #include <errno.h>
 #include <stdlib.h>
@@ -43,13 +39,13 @@
 /** ods-signerd will crash if the thread stacksize is too small */
 #define ODS_MINIMUM_STACKSIZE 524288
 
-int ods_thread_create(pthread_t *thr, void *(*func)(void *), void *arg);
+/** thread creation */
+typedef janitor_thread_t ods_thread_type;
+
 int ods_thread_wait(pthread_cond_t* cond, pthread_mutex_t* lock, time_t wait);
 
-/**
- * Explicitly block all signals for calling thread so we are sure any
- * signal coming from our OS will end up at the main thread.
- */
-void ods_thread_blocksigs(void);
+extern janitor_threadclass_t detachedthreadclass;
+extern janitor_threadclass_t workerthreadclass;
+extern janitor_threadclass_t handlerthreadclass;
 
 #endif /* SHARED_LOCKS_H */

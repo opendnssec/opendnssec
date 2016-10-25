@@ -13,13 +13,13 @@ log_this 01 ods-enforcer zone add -z ods &&
 syslog_waitfor 60 'ods-signerd: .*\[STATS\] ods.*RRSIG\[new=51 ' &&
 test -f "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
 log_this 02 ods-signer stop &&
-sleep 5 &&
+sleep 15 &&
 
 # Re-start signer and check that it does not give an error
 # indicating it could not used back-up files, and that the
 # signatures are mostly re-used (why not all?).
 log_this 03 ods-signer start &&
-sleep 5 &&
+sleep 15 &&
 log_this 04 ods-signer sign --all &&
 syslog_waitfor_count 60 2 'ods-signerd: .*\[STATS\] ods' &&
 ! syslog_grep "unable to recover zone ods from backup, performing full sign" &&
