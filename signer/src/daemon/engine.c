@@ -581,7 +581,6 @@ engine_run(engine_type* engine, int single_run)
     engine_start_drudgers(engine);
 
     while (!engine->need_to_exit && !engine->need_to_reload) {
-        pthread_mutex_lock(&engine->signal_lock);
         if (single_run) {
            engine->need_to_exit = engine_all_zones_processed(engine);
         }
