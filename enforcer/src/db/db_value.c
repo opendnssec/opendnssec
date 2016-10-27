@@ -356,11 +356,8 @@ int db_value_from_text2(db_value_t* value, const char* from_text, size_t size)
     ods_log_assert(value);
     ods_log_assert(value->type == DB_TYPE_EMPTY);
     ods_log_assert(from_text);
+    ods_log_assert(size >= 0);
     
-    if (!size) {
-        return DB_ERROR_UNKNOWN;
-    }
-
     value->text = strndup(from_text, size);
     if (!value->text) {
         return DB_ERROR_UNKNOWN;
