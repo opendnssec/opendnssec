@@ -535,6 +535,25 @@ rrset_sigalgo(rrset_type* rrset, uint8_t algorithm)
     return match;
 }
 
+
+/**
+ * Count the signatures with this algorithm for this RRset?
+ *
+ */
+static int
+rrset_sigalgo_count(rrset_type* rrset, uint8_t algorithm)
+{
+    rrsig_type* rrsig;
+    int match = 0;
+    if (!rrset) return 0;
+    while((rrsig = collection_iterator(rrset->rrsigs))) {
+        if (algorithm == ldns_rdf2native_int8(ldns_rr_rrsig_algorithm(rrsig->rr))) {
+            match++;
+        }
+    }
+    return match;
+}
+
 /**
  * Is the RRset signed with this locator?
  *
@@ -644,10 +663,12 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
     const char* locator = NULL;
     time_t inception = 0;
     time_t expiration = 0;
-    size_t i = 0;
+    size_t i = 0, j;
     domain_type* domain = NULL;
     ldns_rr_type dstatus = LDNS_RR_TYPE_FIRST;
     ldns_rr_type delegpt = LDNS_RR_TYPE_FIRST;
+    uint8_t algorithm = 0;
+    int sigcount, keycount;
 
     ods_log_assert(ctx);
     ods_log_assert(rrset);
@@ -715,10 +736,25 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
         if (rrset_siglocator(rrset, zone->signconf->keys->keys[i].locator)) {
             continue;
         }
-        if (rrset->rrtype != LDNS_RR_TYPE_DNSKEY &&
-	    rrset_sigalgo(rrset, zone->signconf->keys->keys[i].algorithm)) {
-            continue;
+
+        /** We know this key doesn't sign the set, but only if 
+         * n_sig < n_active_keys we should sign. If we already counted active
+         * keys for this algorithm sjip counting step */
+        if (algorithm != zone->signconf->keys->keys[i].algorithm) {
+            algorithm = zone->signconf->keys->keys[i].algorithm;
+            keycount = 0;
+            for (j = 0; j < zone->signconf->keys->count; j++) {
+                if (zone->signconf->keys->keys[j].algorithm == algorithm &&
+                        zone->signconf->keys->keys[j].zsk) /* is active */
+                {
+                    keycount++;
+                }
+            }
         }
+        sigcount = rrset_sigalgo_count(rrset, algorithm);
+        if (rrset->rrtype != LDNS_RR_TYPE_DNSKEY && sigcount >= keycount)
+            continue;
+
         /* If key has no locator, and should be pre-signed dnskey RR, skip */
         if (zone->signconf->keys->keys[i].ksk && zone->signconf->keys->keys[i].locator == NULL) {
             continue;
