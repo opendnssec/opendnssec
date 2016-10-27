@@ -10,6 +10,7 @@ UNRELEASED:
 * The <Interval> tag had been deprecrecated, and is now no longer allowed to
   be specified.
 * OPENDNSSEC-849: Crash on free of part of IXFR structure.
+* OPENDNSSEC-479: Transferring zones and sending notifies through a bound socket, using the same interface as listener
 
 OpenDNSSEC 2.0.1 - 2016-07-21
 
