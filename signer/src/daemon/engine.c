@@ -88,8 +88,6 @@ engine_create(void)
     engine->need_to_reload = 0;
     pthread_mutex_init(&engine->signal_lock, NULL);
     pthread_cond_init(&engine->signal_cond, NULL);
-    pthread_mutex_lock(&engine->signal_lock);
-    pthread_mutex_unlock(&engine->signal_lock);
     engine->zonelist = zonelist_create();
     if (!engine->zonelist) {
         engine_cleanup(engine);
