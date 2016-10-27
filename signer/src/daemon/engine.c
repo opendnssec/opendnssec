@@ -553,12 +553,13 @@ engine_run(engine_type* engine, int single_run)
     if (!engine) {
         return;
     }
-    engine_start_workers(engine);
-    engine_start_drudgers(engine);
 
     pthread_mutex_lock(&engine->signal_lock);
     engine->signal = SIGNAL_RUN;
     pthread_mutex_unlock(&engine->signal_lock);
+
+    engine_start_workers(engine);
+    engine_start_drudgers(engine);
 
     while (!engine->need_to_exit && !engine->need_to_reload) {
         pthread_mutex_lock(&engine->signal_lock);
