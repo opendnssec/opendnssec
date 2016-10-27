@@ -230,7 +230,7 @@ ods_log_get_facility(const char* facility, int* error)
 int
 ods_log_get_level()
 {
-    log_level = verbosity + 2;
+    return log_level;
 }
 
 /**
