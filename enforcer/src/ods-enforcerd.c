@@ -123,6 +123,7 @@ program_teardown()
 int
 main(int argc, char* argv[])
 {
+    char* argv0;
     ods_status status;
     engine_type *engine;
     engineconfig_type* cfg;
@@ -146,6 +147,12 @@ main(int argc, char* argv[])
         {"set-time", required_argument, 0, 256},
         { 0, 0, 0, 0}
     };
+
+    if(argv[0][0] != '/') {
+        asprintf(&argv0, "%s/%s", getcwd(NULL,0), argv[0]);
+    } else {
+        argv0 = strdup(argv[0]);
+    }
 
     /* parse the commandline */
     while ((c=getopt_long(argc, argv, "1c:dhivV",
@@ -198,6 +205,7 @@ main(int argc, char* argv[])
     fprintf(stdout, "OpenDNSSEC key and signing policy enforcer version %s\n", 
         PACKAGE_VERSION);
     
+    ods_janitor_initialize(argv0);
     program_setup(cfgfile, cmdline_verbosity); /* setup basic logging, xml, PB */
     engine = engine_alloc(); /* Let's create an engine only once */
     if (!engine) {
@@ -240,7 +248,7 @@ main(int argc, char* argv[])
         }
 
         /* do daemon housekeeping: pid, privdrop, fork, log */
-        if ((status = engine_setup(engine)) != ODS_STATUS_OK) {
+        if ((status = engine_setup()) != ODS_STATUS_OK) {
             ods_log_error("setup failed: %s", ods_status2str(status));
             if (!daemonize)
                 fprintf(stderr, "setup failed: %s\n", ods_status2str(status));

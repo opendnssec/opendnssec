@@ -41,7 +41,7 @@ sleep 10 &&
 ods-signer sign --all &&
 sleep 90 &&
 log_this 22 ods-signer stop &&
-sleep 15 &&
+sleep 25 &&
 log_this 23 perl sneakernet.pl $INSTALL_ROOT/var/opendnssec/signconf/xx.xml $INSTALL_ROOT/var/opendnssec/signer/xx.backup2 &&
 log_this 24 rm -f $INSTALL_ROOT/var/opendnssec/signer/* $INSTALL_ROOT/var/opendnssec/signed/* &&
 log_this 25 mv $INSTALL_ROOT/var/opendnssec/signconf/xx.xml.new $INSTALL_ROOT/var/opendnssec/signconf/xx.xml &&

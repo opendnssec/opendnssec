@@ -36,8 +36,8 @@
 #include "daemon/cfg.h"
 #include "daemon/cmdhandler.h"
 #include "clientpipe.h"
+#include "locks.h"
 #include "daemon/engine.h"
-#include "daemon/signal.h"
 #include "daemon/worker.h"
 #include "scheduler/schedule.h"
 #include "scheduler/task.h"
@@ -69,6 +69,8 @@
 
 static const char* engine_str = "engine";
 
+static engine_type* engine = NULL;
+
 /**
  * Create engine.
  *
@@ -76,7 +78,6 @@ static const char* engine_str = "engine";
 engine_type*
 engine_alloc(void)
 {
-    engine_type* engine;
     engine = (engine_type*) malloc(sizeof(engine_type));
     if (!engine) return NULL;
 
@@ -105,26 +106,13 @@ engine_dealloc(engine_type* engine)
     free(engine);
 }
 
-/**
- * Start command handler.
- *
- */
-static void*
-cmdhandler_thread_start(void* arg)
-{
-    ods_thread_blocksigs();
-    cmdhandler_start((cmdhandler_type*) arg);
-    return NULL;
-}
-
 static void
 engine_start_cmdhandler(engine_type* engine)
 {
     ods_log_assert(engine);
     ods_log_debug("[%s] start command handler", engine_str);
     engine->cmdhandler->engine = engine;
-    pthread_create(&engine->cmdhandler->thread_id, NULL,
-        cmdhandler_thread_start, engine->cmdhandler);
+    janitor_thread_create(&engine->cmdhandler->thread_id, workerthreadclass, (janitor_runfn_t)cmdhandler_start, engine->cmdhandler);
 }
 
 /**
@@ -171,31 +159,16 @@ engine_privdrop(engine_type* engine)
 static void
 engine_create_workers(engine_type* engine)
 {
-    size_t i = 0;
+    char* name;
+    int i = 0;
     ods_log_assert(engine);
     ods_log_assert(engine->config);
     engine->workers = (worker_type**) malloc(
         (size_t)engine->config->num_worker_threads * sizeof(worker_type*));
     for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
-        engine->workers[i] = worker_create(i);
+        asprintf(&name, "worker[%d]", i+1);
+        engine->workers[i] = worker_create(name);
     }
-}
-
-static void*
-worker_thread_start(void* arg)
-{
-    worker_type* worker = (worker_type*) arg;
-
-    ods_thread_blocksigs();
-
-    worker->dbconn = get_database_connection(worker->engine->dbcfg_list);
-    if (!worker->dbconn) {
-        ods_log_crit("Failed to start worker, could not connect to database");
-        return NULL;
-    }
-    worker_start(worker);
-    db_connection_free(worker->dbconn);
-    return NULL;
 }
 
 void
@@ -209,8 +182,7 @@ engine_start_workers(engine_type* engine)
     for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
         engine->workers[i]->need_to_exit = 0;
         engine->workers[i]->engine = (struct engine_struct*) engine;
-        pthread_create(&engine->workers[i]->thread_id, NULL,
-            worker_thread_start, engine->workers[i]);
+        janitor_thread_create(&engine->workers[i]->thread_id, workerthreadclass, (janitor_runfn_t)worker_start, engine->workers[i]);
     }
 }
 
@@ -230,7 +202,7 @@ engine_stop_workers(engine_type* engine)
     /* head count */
     for (i=0; i < engine->config->num_worker_threads; i++) {
         ods_log_debug("[%s] join worker %i", engine_str, i+1);
-        (void)pthread_join(engine->workers[i]->thread_id, NULL);
+        janitor_thread_join(engine->workers[i]->thread_id);
         engine->workers[i]->engine = NULL;
     }
 }
@@ -423,12 +395,39 @@ desetup_database(engine_type* engine)
     engine->dbcfg_list = NULL;
 }
 
+static void *
+signal_handler(sig_atomic_t sig)
+{
+    switch (sig) {
+        case SIGHUP:
+            if (engine) {
+                engine->need_to_reload = 1;
+                pthread_mutex_lock(&engine->signal_lock);
+                pthread_cond_signal(&engine->signal_cond);
+                pthread_mutex_unlock(&engine->signal_lock);
+            }
+            break;
+        case SIGINT:
+        case SIGTERM:
+            if (engine) {
+                engine->need_to_exit = 1;
+                pthread_mutex_lock(&engine->signal_lock);
+                pthread_cond_signal(&engine->signal_cond);
+                pthread_mutex_unlock(&engine->signal_lock);
+            }
+            break;
+        default:
+            break;
+    }
+    return NULL;
+}
+
 /**
  * Set up engine and return the setup status.
  *
  */
 ods_status
-engine_setup(engine_type* engine)
+engine_setup(void)
 {
     int fd;
 
@@ -577,7 +576,6 @@ engine_init(engine_type* engine, int daemonize)
     engine->need_to_reload = 0;
     engine->daemonize = daemonize;
     /* catch signals */
-    signal_set_engine(engine);
     action.sa_handler = (void (*)(int))signal_handler;
     sigfillset(&action.sa_mask);
     action.sa_flags = 0;

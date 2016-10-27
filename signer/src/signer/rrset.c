@@ -373,8 +373,7 @@ rrset_diff(rrset_type* rrset, unsigned is_ixfr, unsigned more_coming)
                 del_sigs = 1;
             }
             rrset->rrs[i].exists = 1;
-            if ((rrset->rrtype == LDNS_RR_TYPE_DNSKEY ||
-                 rrset->rrtype == LDNS_RR_TYPE_NSEC3PARAMS) && more_coming) {
+            if ((rrset->rrtype == LDNS_RR_TYPE_DNSKEY) && more_coming) {
                 continue;
             }
             rrset->rrs[i].is_added = 0;
@@ -536,6 +535,25 @@ rrset_sigalgo(rrset_type* rrset, uint8_t algorithm)
     return match;
 }
 
+
+/**
+ * Count the signatures with this algorithm for this RRset?
+ *
+ */
+static int
+rrset_sigalgo_count(rrset_type* rrset, uint8_t algorithm)
+{
+    rrsig_type* rrsig;
+    int match = 0;
+    if (!rrset) return 0;
+    while((rrsig = collection_iterator(rrset->rrsigs))) {
+        if (algorithm == ldns_rdf2native_int8(ldns_rr_rrsig_algorithm(rrsig->rr))) {
+            match++;
+        }
+    }
+    return match;
+}
+
 /**
  * Is the RRset signed with this locator?
  *
@@ -572,8 +590,6 @@ rrset2rrlist(rrset_type* rrset)
             log_rr(rrset->rrs[i].rr, "RR does not exist", LOG_WARNING);
             continue;
         }
-        /* clone if you want to keep the original format in the signed zone */
-        ldns_rr2canonical(rrset->rrs[i].rr);
         ret = (int) ldns_rr_list_push_rr(rr_list, rrset->rrs[i].rr);
         if (!ret) {
             ldns_rr_list_free(rr_list);
@@ -643,13 +659,16 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
     uint32_t reusedsigs = 0;
     ldns_rr* rrsig = NULL;
     ldns_rr_list* rr_list = NULL;
+    ldns_rr_list* rr_list_clone = NULL;
     const char* locator = NULL;
     time_t inception = 0;
     time_t expiration = 0;
-    size_t i = 0;
+    size_t i = 0, j;
     domain_type* domain = NULL;
     ldns_rr_type dstatus = LDNS_RR_TYPE_FIRST;
     ldns_rr_type delegpt = LDNS_RR_TYPE_FIRST;
+    uint8_t algorithm = 0;
+    int sigcount, keycount;
 
     ods_log_assert(ctx);
     ods_log_assert(rrset);
@@ -695,6 +714,9 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
         ldns_rr_list_free(rr_list);
         return ODS_STATUS_OK;
     }
+    /* Use rr_list_clone for signing, keep the original rr_list untouched for case preservation */
+    rr_list_clone = ldns_rr_list_clone(rr_list);
+
     /* Calculate signature validity */
     rrset_sigvalid_period(zone->signconf, rrset->rrtype, signtime,
          &inception, &expiration);
@@ -714,10 +736,25 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
         if (rrset_siglocator(rrset, zone->signconf->keys->keys[i].locator)) {
             continue;
         }
-        if (rrset->rrtype != LDNS_RR_TYPE_DNSKEY &&
-	    rrset_sigalgo(rrset, zone->signconf->keys->keys[i].algorithm)) {
-            continue;
+
+        /** We know this key doesn't sign the set, but only if 
+         * n_sig < n_active_keys we should sign. If we already counted active
+         * keys for this algorithm sjip counting step */
+        if (algorithm != zone->signconf->keys->keys[i].algorithm) {
+            algorithm = zone->signconf->keys->keys[i].algorithm;
+            keycount = 0;
+            for (j = 0; j < zone->signconf->keys->count; j++) {
+                if (zone->signconf->keys->keys[j].algorithm == algorithm &&
+                        zone->signconf->keys->keys[j].zsk) /* is active */
+                {
+                    keycount++;
+                }
+            }
         }
+        sigcount = rrset_sigalgo_count(rrset, algorithm);
+        if (rrset->rrtype != LDNS_RR_TYPE_DNSKEY && sigcount >= keycount)
+            continue;
+
         /* If key has no locator, and should be pre-signed dnskey RR, skip */
         if (zone->signconf->keys->keys[i].ksk && zone->signconf->keys->keys[i].locator == NULL) {
             continue;
@@ -726,12 +763,13 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
         /* Sign the RRset with this key */
         ods_log_deeebug("[%s] signing RRset[%i] with key %s", rrset_str,
             rrset->rrtype, zone->signconf->keys->keys[i].locator);
-        rrsig = lhsm_sign(ctx, rr_list, &zone->signconf->keys->keys[i],
+        rrsig = lhsm_sign(ctx, rr_list_clone, &zone->signconf->keys->keys[i],
             zone->apex, inception, expiration);
         if (!rrsig) {
             ods_log_crit("[%s] unable to sign RRset[%i]: lhsm_sign() failed",
                 rrset_str, rrset->rrtype);
             ldns_rr_list_free(rr_list);
+            ldns_rr_list_free(rr_list_clone);
             return ODS_STATUS_HSM_ERR;
         }
         /* Add signature */
@@ -767,6 +805,7 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
     }
     /* RRset signing completed */
     ldns_rr_list_free(rr_list);
+    ldns_rr_list_free(rr_list_clone);
     pthread_mutex_lock(&zone->stats->stats_lock);
     if (rrset->rrtype == LDNS_RR_TYPE_SOA) {
         zone->stats->sig_soa_count += newsigs;

@@ -2884,6 +2884,8 @@ static int policy_list_get_associated(policy_list_t* policy_list) {
 
     for (i = 0; i < policy_list->object_list_size; i++) {
         if (!(policy_list->object_list[i])) {
+            zone_list_db_free(zone_list);
+            db_clause_list_free(clause_list);
             return DB_ERROR_UNKNOWN;
         }
 

@@ -341,6 +341,7 @@ static int __policy_export(int sockfd, const policy_t* policy, xmlNodePtr root) 
             {
                 client_printf_err(sockfd, "Unable to create XML elements, error code %d!\n", error);
                 __free(&duration_text);
+                duration_cleanup(duration);
                 return POLICY_EXPORT_ERR_XML;
             }
             __free(&duration_text);
