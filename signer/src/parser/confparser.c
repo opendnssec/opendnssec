@@ -295,7 +295,7 @@ parse_conf_listener(const char* cfgfile)
     if (xpathObj->nodesetval && xpathObj->nodesetval->nodeNr > 0) {
         for (i = 0; i < xpathObj->nodesetval->nodeNr; i++) {
             address = NULL;
-            port = "15354";
+            port = strdup("15354");
 
             curNode = xpathObj->nodesetval->nodeTab[i]->xmlChildrenNode;
             while (curNode) {

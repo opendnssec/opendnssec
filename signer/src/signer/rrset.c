@@ -572,8 +572,6 @@ rrset2rrlist(rrset_type* rrset)
             log_rr(rrset->rrs[i].rr, "RR does not exist", LOG_WARNING);
             continue;
         }
-        /* clone if you want to keep the original format in the signed zone */
-        ldns_rr2canonical(rrset->rrs[i].rr);
         ret = (int) ldns_rr_list_push_rr(rr_list, rrset->rrs[i].rr);
         if (!ret) {
             ldns_rr_list_free(rr_list);
@@ -643,6 +641,7 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
     uint32_t reusedsigs = 0;
     ldns_rr* rrsig = NULL;
     ldns_rr_list* rr_list = NULL;
+    ldns_rr_list* rr_list_clone = NULL;
     const char* locator = NULL;
     time_t inception = 0;
     time_t expiration = 0;
@@ -695,6 +694,9 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
         ldns_rr_list_free(rr_list);
         return ODS_STATUS_OK;
     }
+    /* Use rr_list_clone for signing, keep the original rr_list untouched for case preservation */
+    rr_list_clone = ldns_rr_list_clone(rr_list);
+
     /* Calculate signature validity */
     rrset_sigvalid_period(zone->signconf, rrset->rrtype, signtime,
          &inception, &expiration);
@@ -726,12 +728,13 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
         /* Sign the RRset with this key */
         ods_log_deeebug("[%s] signing RRset[%i] with key %s", rrset_str,
             rrset->rrtype, zone->signconf->keys->keys[i].locator);
-        rrsig = lhsm_sign(ctx, rr_list, &zone->signconf->keys->keys[i],
+        rrsig = lhsm_sign(ctx, rr_list_clone, &zone->signconf->keys->keys[i],
             zone->apex, inception, expiration);
         if (!rrsig) {
             ods_log_crit("[%s] unable to sign RRset[%i]: lhsm_sign() failed",
                 rrset_str, rrset->rrtype);
             ldns_rr_list_free(rr_list);
+            ldns_rr_list_free(rr_list_clone);
             return ODS_STATUS_HSM_ERR;
         }
         /* Add signature */
@@ -767,6 +770,7 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
     }
     /* RRset signing completed */
     ldns_rr_list_free(rr_list);
+    ldns_rr_list_free(rr_list_clone);
     pthread_mutex_lock(&zone->stats->stats_lock);
     if (rrset->rrtype == LDNS_RR_TYPE_SOA) {
         zone->stats->sig_soa_count += newsigs;

@@ -114,17 +114,11 @@ ixfr_add_rr(ixfr_type* ixfr, ldns_rr* rr)
     ods_log_assert(ixfr->part[0]->plus);
 
     if (!ldns_rr_list_push_rr(ixfr->part[0]->plus, rr_copy)) {
+        ldns_rr_free(rr_copy);
         ods_fatal_exit("[%s] fatal unable to +RR: ldns_rr_list_push_rr() failed",
             ixfr_str);
     }
     if (ldns_rr_get_type(rr_copy) == LDNS_RR_TYPE_SOA) {
-        if (ixfr->part[0]->soaplus) {
-            /* This should not happen. But it does once in a while due
-             * to general buggyness of ixfr part code. Since nowadays
-             * we use copies instead of referenced lets just deal with
-             * it*/
-             ldns_rr_free(ixfr->part[0]->soaplus);
-        }
         ixfr->part[0]->soaplus = rr_copy;
     }
 }
@@ -145,18 +139,11 @@ ixfr_del_rr(ixfr_type* ixfr, ldns_rr* rr)
     ods_log_assert(ixfr->part[0]->min);
 
     if (!ldns_rr_list_push_rr(ixfr->part[0]->min, rr_copy)) {
+        ldns_rr_free(rr_copy);
         ods_fatal_exit("[%s] fatal unable to -RR: ldns_rr_list_push_rr() failed",
             ixfr_str);
     }
     if (ldns_rr_get_type(rr_copy) == LDNS_RR_TYPE_SOA) {
-        if (ixfr->part[0]->soamin) {
-            /* This should not happen. But it does once in a while due
-             * to general buggyness of ixfr part code. Since nowadays
-             * we use copies instead of referenced lets just deal with
-             * it*/
-             ldns_rr_free(ixfr->part[0]->soamin);
-
-        }
         ixfr->part[0]->soamin = rr_copy;
     }
 }

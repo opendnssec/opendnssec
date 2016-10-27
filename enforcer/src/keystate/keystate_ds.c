@@ -420,7 +420,7 @@ change_keys_from_to(db_connection_t *dbconn, int sockfd,
 	client_printf(sockfd, "%d KSK matches found.\n", key_match);
 	if (!key_match) status = 11;
 	client_printf(sockfd, "%d KSKs changed.\n", key_mod);
-	if (zone) {
+	if (zone && key_mod > 0) {
 		zone->next_change = 0; /* asap */
 		(void)zone_db_update(zone);
 	}
