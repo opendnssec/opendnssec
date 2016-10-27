@@ -32,7 +32,6 @@
 #include "config.h"
 #include "daemon/cfg.h"
 #include "daemon/engine.h"
-#include "daemon/signal.h"
 #include "duration.h"
 #include "file.h"
 #include "str.h"
@@ -61,6 +60,7 @@
 
 static const char* engine_str = "engine";
 
+static engine_type* engine = NULL;
 
 /**
  * Create engine.
@@ -89,7 +89,6 @@ engine_create(void)
     pthread_mutex_init(&engine->signal_lock, NULL);
     pthread_cond_init(&engine->signal_cond, NULL);
     pthread_mutex_lock(&engine->signal_lock);
-    engine->signal = SIGNAL_INIT;
     pthread_mutex_unlock(&engine->signal_lock);
     engine->zonelist = zonelist_create();
     if (!engine->zonelist) {
@@ -396,13 +395,39 @@ engine_wakeup_workers(engine_type* engine)
     }
 }
 
+static void *
+signal_handler(sig_atomic_t sig)
+{
+    switch (sig) {
+        case SIGHUP:
+            if (engine) {
+                engine->need_to_reload = 1;
+                pthread_mutex_lock(&engine->signal_lock);
+                pthread_cond_signal(&engine->signal_cond);
+                pthread_mutex_unlock(&engine->signal_lock);
+            }
+            break;
+        case SIGINT:
+        case SIGTERM:
+            if (engine) {
+                engine->need_to_exit = 1;
+                pthread_mutex_lock(&engine->signal_lock);
+                pthread_cond_signal(&engine->signal_cond);
+                pthread_mutex_unlock(&engine->signal_lock);
+            }
+            break;
+        default:
+            break;
+    }
+    return NULL;
+}
 
 /**
  * Set up engine.
  *
  */
 static ods_status
-engine_setup(engine_type* engine)
+engine_setup(void)
 {
     ods_status status = ODS_STATUS_OK;
     struct sigaction action;
@@ -490,7 +515,6 @@ engine_setup(engine_type* engine)
     ods_log_verbose("[%s] running as pid %lu", engine_str,
         (unsigned long) engine->pid);
     /* catch signals */
-    signal_set_engine(engine);
     action.sa_handler = (void (*)(int))signal_handler;
     sigfillset(&action.sa_mask);
     action.sa_flags = 0;
@@ -554,42 +578,21 @@ engine_run(engine_type* engine, int single_run)
         return;
     }
 
-    pthread_mutex_lock(&engine->signal_lock);
-    engine->signal = SIGNAL_RUN;
-    pthread_mutex_unlock(&engine->signal_lock);
-
-    engine_start_workers(engine);
-    engine_start_drudgers(engine);
-
     while (!engine->need_to_exit && !engine->need_to_reload) {
-        pthread_mutex_lock(&engine->signal_lock);
-        engine->signal = signal_capture(engine->signal);
-        switch (engine->signal) {
-            case SIGNAL_RUN:
-                ods_log_assert(1);
-                break;
-            case SIGNAL_RELOAD:
-                ods_log_error("signer instructed to reload due to explicit signal");
-                engine->need_to_reload = 1;
-                break;
-            case SIGNAL_SHUTDOWN:
-                engine->need_to_exit = 1;
-                break;
-            default:
-                ods_log_warning("[%s] invalid signal %d captured, "
-                    "keep running", engine_str, (int)engine->signal);
-                engine->signal = SIGNAL_RUN;
-                break;
-        }
-        pthread_mutex_unlock(&engine->signal_lock);
-
         if (single_run) {
            engine->need_to_exit = engine_all_zones_processed(engine);
         }
+        /* We must use locking here to avoid race conditions. We want
+         * to sleep indefinitely and want to wake up on signal. This
+         * is to make sure we never mis the signal. */
         pthread_mutex_lock(&engine->signal_lock);
-        if (engine->signal == SIGNAL_RUN && !single_run) {
-           ods_log_debug("[%s] taking a break", engine_str);
-           ods_thread_wait(&engine->signal_cond, &engine->signal_lock, 3600);
+        if (!engine->need_to_exit && !engine->need_to_reload && !single_run) {
+            /* TODO: this silly. We should be handling the commandhandler
+             * connections. No reason to spawn that as a thread.
+             * Also it would be easier to wake up the command hander
+             * as signals will reach it if it is the main thread! */
+            ods_log_debug("[%s] taking a break", engine_str);
+            pthread_cond_wait(&engine->signal_cond, &engine->signal_lock);
         }
         pthread_mutex_unlock(&engine->signal_lock);
     }
@@ -890,7 +893,6 @@ int
 engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
     int info, int single_run)
 {
-    engine_type* engine = NULL;
     ods_status zl_changed = ODS_STATUS_UNCHANGED;
     ods_status status = ODS_STATUS_OK;
 
@@ -917,7 +919,7 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
         exit(1);
     }
     /* setup */
-    status = engine_setup(engine);
+    status = engine_setup();
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] setup failed: %s", engine_str,
             ods_status2str(status));
