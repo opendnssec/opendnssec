@@ -315,7 +315,7 @@ engine_start_workers(engine_type* engine)
     int i;
     ods_log_assert(engine);
     ods_log_assert(engine->config);
-    ods_log_debug("[%s] start workers", engine_str);
+    ods_log_error("[%s] start %d workers", engine_str, (int)engine->config->num_worker_threads);
     for (i=0; i < engine->config->num_worker_threads; i++) {
         engine->workers[i]->need_to_exit = 0;
         engine->workers[i]->engine = (void*) engine;
@@ -328,7 +328,7 @@ engine_start_drudgers(engine_type* engine)
     int i = 0;
     ods_log_assert(engine);
     ods_log_assert(engine->config);
-    ods_log_debug("[%s] start drudgers", engine_str);
+    ods_log_error("[%s] start %d drudgers", engine_str, (int)engine->config->num_signer_threads);
     for (i=0; i < engine->config->num_signer_threads; i++) {
         engine->drudgers[i]->need_to_exit = 0;
         engine->drudgers[i]->engine = (void*) engine;
@@ -577,6 +577,8 @@ engine_run(engine_type* engine, int single_run)
     if (!engine) {
         return;
     }
+    engine_start_workers(engine);
+    engine_start_drudgers(engine);
 
     while (!engine->need_to_exit && !engine->need_to_reload) {
         if (single_run) {
