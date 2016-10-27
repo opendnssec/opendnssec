@@ -147,6 +147,12 @@ ods_log_verbosity(void)
 	return log_level-2;
 }
 
+int
+ods_log_setverbosity(int verbosity)
+{
+    log_level = verbosity + 2;
+}
+
 /**
  * Close logging.
  *
@@ -224,7 +230,7 @@ ods_log_get_facility(const char* facility, int* error)
 int
 ods_log_get_level()
 {
-    return log_level;
+    log_level = verbosity + 2;
 }
 
 /**
