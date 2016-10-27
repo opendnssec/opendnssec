@@ -2,14 +2,13 @@ UNRELEASED:
 * If listening port for signer is not set in conf file, the default value "15354" is used.
 * Enforce and signconf tasks are now scheduled individually per zone. Resign
   per policy.
-* OpenDNSSEC-839: update all no longer deletes zones or policies. Policy import
-  now has a --remove-missing-policies option. (thanks David Peall)
 * zone delete removes tasks associated with zone from queue.
 * Show help for ods-enforcer-db-setup
 * In the kasp file, KSK/ZSK section, the algorithm length must be set now.
 * signer clear <zone> would assert when signconf wasn't read yet.
 * The <Interval> tag had been deprecrecated, and is now no longer allowed to
   be specified.
+* OPENDNSSEC-849: Crash on free of part of IXFR structure.
 
 OpenDNSSEC 2.0.1 - 2016-07-21
 

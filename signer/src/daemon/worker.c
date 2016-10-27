@@ -473,7 +473,7 @@ worker_work(worker_type* worker)
             zone->task = task;
             ods_log_debug("[%s] finished working on zone %s",
                 worker->name, zone->name);
-            schedule_task(engine->taskq, task, 0, 1); 
+            status = schedule_task(engine->taskq, task, 0, 1);
             if (status != ODS_STATUS_OK) {
                 ods_log_error("[%s] unable to schedule task for zone %s: "
                 "%s", worker->name, zone->name, ods_status2str(status));
