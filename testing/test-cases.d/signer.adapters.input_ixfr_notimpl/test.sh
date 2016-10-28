@@ -17,17 +17,10 @@ ods_ldns_testns 15353 ods.datafile &&
 ## Start OpenDNSSEC
 ods_start_ods-control && 
 
-# increment verbosity to get the message in the signer caused by the
-# ldns-notify, this cannot be done too close to the ldns-notify, or
-# the signer seems not to have increased verbosity soon enough (or
-# something else is the case).
 ods-signer verbosity 5 &&
 
 ## Wait for signed zone file
 syslog_waitfor 300 'ods-signerd: .*\[STATS\] ods' &&
-
-# sleep a bit more to ensure the verbosity is really done
-sleep 30 &&
 
 ## Check signed zone file [when we decide on auditor tool]
 test -f "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
