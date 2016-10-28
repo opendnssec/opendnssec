@@ -80,12 +80,11 @@ worker_start(worker_type* worker)
         /* When no task available this call blocks and waits for event.
          * Then it will return NULL; */
         task = schedule_pop_task(worker->engine->taskq);
-        if (!task) continue;
-        
-        ods_log_debug("[%s] start working", worker->name);
-        task_perform(worker->engine->taskq, task, worker->dbconn);
-        ods_log_debug("[%s] finished working", worker->name);
-
+        if (task) {
+            ods_log_debug("[%s] start working", worker->name);
+            task_perform(worker->engine->taskq, task, worker->dbconn);
+            ods_log_debug("[%s] finished working", worker->name);
+        }
     }
     db_connection_free(worker->dbconn);
 }
