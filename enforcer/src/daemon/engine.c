@@ -550,6 +550,7 @@ engine_setup(start_cb_t start)
         }
         return ODS_STATUS_WRITE_PIDFILE_ERR;
     }
+    ods_log_info("[%s] enforcer started", engine_str);
     error = hsm_open2(engine->config->repositories, hsm_prompt_pin);
     if (error != HSM_OK) {
         char* errorstr =  hsm_get_error(NULL);
