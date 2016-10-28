@@ -4,11 +4,13 @@ UNRELEASED:
   per policy.
 * zone delete removes tasks associated with zone from queue.
 * Show help for ods-enforcer-db-setup
+* OPENDNSSEC-778: Double NSEC3PARAM record after resalt.
 * In the kasp file, KSK/ZSK section, the algorithm length must be set now.
 * signer clear <zone> would assert when signconf wasn't read yet.
 * The <Interval> tag had been deprecrecated, and is now no longer allowed to
   be specified.
 * OPENDNSSEC-849: Crash on free of part of IXFR structure.
+* OPENDNSSEC-479: Transferring zones and sending notifies through a bound socket, using the same interface as listener
 
 OpenDNSSEC 2.0.1 - 2016-07-21
 
