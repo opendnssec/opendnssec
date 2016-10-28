@@ -407,6 +407,9 @@ engine_setup(engine_type* engine)
     ods_status status = ODS_STATUS_OK;
     struct sigaction action;
     int sockets[2] = {0,0};
+    int pipefd[2];
+    char buff = '\0';
+    int fd, error;
 
     ods_log_debug("[%s] setup signer engine", engine_str);
     if (!engine || !engine->config) {
@@ -460,12 +463,17 @@ engine_setup(engine_type* engine)
     }
     /* daemonize */
     if (engine->daemonize) {
+        if (pipe(pipefd)) {
+            ods_log_error("[%s] unable to pipe: %s", engine_str, strerror(errno));
+            return ODS_STATUS_PIPE_ERR;
+        }
         switch ((engine->pid = fork())) {
             case -1: /* error */
                 ods_log_error("[%s] setup: unable to fork daemon (%s)",
                     engine_str, strerror(errno));
                 return ODS_STATUS_FORK_ERR;
             case 0: /* child */
+                close(pipefd[0]);
                 break;
             default: /* parent */
                 engine_cleanup(engine);
@@ -473,17 +481,33 @@ engine_setup(engine_type* engine)
                 xmlCleanupParser();
                 xmlCleanupGlobals();
                 xmlCleanupThreads();
-                exit(0);
+                close(pipefd[1]);
+                read(pipefd[0], &buff, 1);
+                close(pipefd[0]);
+                if (buff == '0') {
+                    ods_log_debug("[%s] signerd started successfully", engine_str);
+                    exit(0);
+                }
+                ods_log_error("[%s] fail to start signerd completely", engine_str);
+                exit(1);
         }
         if (setsid() == -1) {
             ods_log_error("[%s] setup: unable to setsid daemon (%s)",
                 engine_str, strerror(errno));
+            if (engine->daemonize) {
+                write(pipefd[1], "1", 1);
+                close(pipefd[1]);
+            }
             return ODS_STATUS_SETSID_ERR;
         }
     }
     engine->pid = getpid();
     /* write pidfile */
     if (util_write_pidfile(engine->config->pid_filename, engine->pid) == -1) {
+        if (engine->daemonize) {
+            write(pipefd[1], "1", 1);
+            close(pipefd[1]);
+        }
         return ODS_STATUS_WRITE_PIDFILE_ERR;
     }
     /* setup done */
@@ -511,6 +535,10 @@ engine_setup(engine_type* engine)
     engine_start_dnshandler(engine);
     engine_start_xfrhandler(engine);
     tsig_handler_init();
+    if (engine->daemonize) {
+        write(pipefd[1], "0", 1);
+        close(pipefd[1]);
+    }
     return ODS_STATUS_OK;
 }
 

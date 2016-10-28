@@ -248,14 +248,14 @@ main(int argc, char* argv[])
         }
 
         /* do daemon housekeeping: pid, privdrop, fork, log */
-        if ((status = engine_setup(engine)) != ODS_STATUS_OK) {
+        if ((status = engine_setup(engine, autostart)) != ODS_STATUS_OK) {
             ods_log_error("setup failed: %s", ods_status2str(status));
             if (!daemonize)
                 fprintf(stderr, "setup failed: %s\n", ods_status2str(status));
             returncode = 3;
             engine->need_to_exit = 1;
         } else {
-            if (engine_run(engine, autostart, single_run)) {
+            if (engine_run(engine, single_run)) {
                 returncode = 4;
                 engine->need_to_exit = 1;
             }

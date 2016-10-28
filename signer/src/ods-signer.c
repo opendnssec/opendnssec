@@ -35,6 +35,7 @@
 #include "log.h"
 #include "str.h"
 
+#include<signal.h>
 #include <errno.h>
 #include <fcntl.h> /* fcntl() */
 #include <stdio.h> /* fprintf() */
@@ -207,12 +208,26 @@ interface_run(FILE* fp, int sockfd, char* cmd)
                 }
                 /* written+ret < n : means partial write, requires us to loop... */
             }
-            if (ods_strcmp(buf, ODS_SE_STOP_RESPONSE) == 0 || cmd_response) {
+            if (cmd_response) {
                 fprintf(stdout, "\n");
                 return 0;
             }
+            if (ods_strcmp(buf, ODS_SE_STOP_RESPONSE) == 0) {
+                fprintf(stdout, "\n");
+                char line[80];
+                FILE *cmd2 = popen("pidof ods-signerd","r");
+                fgets(line, 80, cmd2);
+                pid_t pid = strtoul(line, NULL, 10);
+                fprintf(stdout, "pid %d\n", pid);
+                while (pid > 0) {
+                    if(kill(pid, 0) == 0)
+                       sleep(0.1);
+                    else
+                       break;
+                }
+                return 0;
+            }
         }
-
         if (FD_ISSET(fileno(fp), &rset)) {
             /* input is readable */
 

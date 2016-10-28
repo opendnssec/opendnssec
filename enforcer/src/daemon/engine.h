@@ -79,6 +79,8 @@ struct engine_struct {
  */
 db_connection_t* get_database_connection(db_configuration_list_t* dbcfg_list);
 
+typedef void (*start_cb_t)(engine_type* engine);
+
 /**
  * Setup the engine started by engine_create
  * \param[in] engine the engine returned from engine_start
@@ -88,7 +90,7 @@ db_connection_t* get_database_connection(db_configuration_list_t* dbcfg_list);
  *            for the command to a socket.
  */
 
-ods_status engine_setup(engine_type* engine);
+ods_status engine_setup(engine_type* engine, start_cb_t start);
 
 /**
  * Clean up engine.
@@ -99,7 +101,6 @@ void engine_teardown(engine_type* engine);
 
 void engine_init(engine_type* engine, int daemonize);
 
-typedef void (*start_cb_t)(engine_type* engine);
 
 /**
  * Run the engine after setting it up using engine_setup.
@@ -110,7 +111,7 @@ typedef void (*start_cb_t)(engine_type* engine);
  * \return 0 if terminated normally, 1 on unrecoverable error.
  *
  */
-int engine_run(engine_type* engine, start_cb_t start, int single_run);
+int engine_run(engine_type* engine, int single_run);
 
 /**
  * Stop the engine after engine_runloop returns.
