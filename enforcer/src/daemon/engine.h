@@ -90,7 +90,7 @@ typedef void (*start_cb_t)(engine_type* engine);
  *            for the command to a socket.
  */
 
-ods_status engine_setup(engine_type* engine, start_cb_t start);
+ods_status engine_setup(start_cb_t start);
 
 /**
  * Clean up engine.

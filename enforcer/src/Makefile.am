@@ -45,7 +45,6 @@ ods_enforcerd_SOURCES = \
 	daemon/cfg.c daemon/cfg.h \
 	daemon/cmdhandler.c daemon/cmdhandler.h \
 	daemon/engine.c daemon/engine.h \
-	daemon/signal.c daemon/signal.h \
 	daemon/worker.c daemon/worker.h \
 	daemon/help_cmd.c daemon/help_cmd.h \
 	daemon/time_leap_cmd.c daemon/time_leap_cmd.h \
@@ -135,7 +134,6 @@ ods_migrate_SOURCES = \
 	ods-migrate.c \
 	daemon/cfg.c daemon/cfg.h \
 	daemon/engine.h \
-	daemon/signal.c daemon/signal.h \
 	parser/confparser.c parser/confparser.h \
 	utils/kc_helper.c utils/kc_helper.h
 
@@ -145,8 +143,10 @@ ods_migrate_LDADD = \
 	@LDNS_LIBS@ \
 	@XML2_LIBS@ \
 	@PTHREAD_LIBS@ \
-	@RT_LIBS@ \
-	@ENFORCER_DB_LIBS@
+	@RT_LIBS@
+
+ods_migrate_LDFLAGS = \
+	-Wl,--no-as-needed @ENFORCER_DB_LIBS@ -Wl,--as-needed
 
 ods_enforcerd_LDFLAGS = \
 	$(BACKEND_LDFLAGS_CUSTOM)
