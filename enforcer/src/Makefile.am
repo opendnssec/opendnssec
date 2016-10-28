@@ -143,8 +143,10 @@ ods_migrate_LDADD = \
 	@LDNS_LIBS@ \
 	@XML2_LIBS@ \
 	@PTHREAD_LIBS@ \
-	@RT_LIBS@ \
-	@ENFORCER_DB_LIBS@
+	@RT_LIBS@
+
+ods_migrate_LDFLAGS = \
+	-Wl,--no-as-needed @ENFORCER_DB_LIBS@ -Wl,--as-needed
 
 ods_enforcerd_LDFLAGS = \
 	$(BACKEND_LDFLAGS_CUSTOM)
