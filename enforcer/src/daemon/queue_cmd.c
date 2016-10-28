@@ -77,7 +77,8 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	struct tm strtime_struct;
 	char strtime[64]; /* at least 26 according to docs plus a long integer */
     char* taskdescription;
-	size_t i = 0, count;
+	size_t i = 0;
+        int count;
 	time_t now;
 	time_t nextFireTime;
 	ldns_rbnode_t* node = LDNS_RBTREE_NULL;
@@ -93,19 +94,17 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 		return 0;
 	}
 
-	num_waiting = schedule_get_num_waiting(engine->taskq);
+        schedule_info(engine->taskq, &nextFireTime, &num_waiting, &count);
 	if (num_waiting == engine->config->num_worker_threads) {
 		client_printf(sockfd, "All worker threads idle.\n");
 	}
 
 	/* how many tasks */
-	count = schedule_taskcount(engine->taskq);
 	client_printf(sockfd, "There %s %i %s scheduled.\n",
 		(count==1)?"is":"are", (int) count, (count==1)?"task":"tasks");
 	now = time_now();
 	strftime(strtime, sizeof(strtime), "%c", localtime_r(&now, &strtime_struct));
 	client_printf(sockfd, "It is now %s (%ld seconds since epoch)\n", (strtime[0]?strtime:"(null)"), (long)now);
-	nextFireTime = schedule_time_first(engine->taskq);
 	if (nextFireTime > now) {
 			strftime(strtime, sizeof(strtime), "%c", localtime_r(&nextFireTime, &strtime_struct));
 			client_printf(sockfd, "Next task scheduled %s (%ld seconds since epoch)\n", strtime, (long)nextFireTime);

@@ -47,19 +47,13 @@ worker_create(char* name)
     worker_type* worker;
     CHECKALLOC(worker = (worker_type*) malloc(sizeof(worker_type)));
     ods_log_debug("[%s] create", name);
-    pthread_mutex_init(&worker->worker_lock, NULL);
-    pthread_cond_init(&worker->worker_alarm, NULL);
-    pthread_mutex_lock(&worker->worker_lock);
     worker->name = name;
     worker->engine = NULL;
     worker->need_to_exit = 0;
     worker->clock_in = 0;
-    worker->jobs_appointed = 0;
-    worker->jobs_completed = 0;
-    worker->jobs_failed = 0;
-    worker->sleeping = 0;
-    worker->waiting = 0;
-    pthread_mutex_unlock(&worker->worker_lock);
+    worker->tasksOutstanding = 0;
+    worker->tasksFailed = 0;
+    pthread_cond_init(&worker->tasksBlocker, NULL);
     return worker;
 }
 
@@ -79,41 +73,11 @@ worker_working_with(worker_type* worker, zone_type* zone, task_id with, task_id 
 
 
 /**
- * Has this worker measured up to all appointed jobs?
- *
- */
-static int
-worker_fulfilled(worker_type* worker)
-{
-    int ret = 0;
-    ret = (worker->jobs_completed + worker->jobs_failed) ==
-        worker->jobs_appointed;
-    return ret;
-}
-
-
-/**
- * Clear jobs.
- *
- */
-static void
-worker_clear_jobs(worker_type* worker)
-{
-    ods_log_assert(worker);
-    pthread_mutex_lock(&worker->worker_lock);
-    worker->jobs_appointed = 0;
-    worker->jobs_completed = 0;
-    worker->jobs_failed = 0;
-    pthread_mutex_unlock(&worker->worker_lock);
-}
-
-
-/**
  * Queue RRset for signing.
  *
  */
 static void
-worker_queue_rrset(worker_type* worker, fifoq_type* q, rrset_type* rrset)
+worker_queue_rrset(worker_type* worker, fifoq_type* q, rrset_type* rrset, long* nsubtasks)
 {
     ods_status status = ODS_STATUS_UNCHANGED;
     int tries = 0;
@@ -141,9 +105,7 @@ worker_queue_rrset(worker_type* worker, fifoq_type* q, rrset_type* rrset)
     pthread_mutex_unlock(&q->q_lock);
 
     ods_log_assert(status == ODS_STATUS_OK);
-    pthread_mutex_lock(&worker->worker_lock);
-    worker->jobs_appointed += 1;
-    pthread_mutex_unlock(&worker->worker_lock);
+    *nsubtasks += 1;
 }
 
 
@@ -152,7 +114,7 @@ worker_queue_rrset(worker_type* worker, fifoq_type* q, rrset_type* rrset)
  *
  */
 static void
-worker_queue_domain(worker_type* worker, fifoq_type* q, domain_type* domain)
+worker_queue_domain(worker_type* worker, fifoq_type* q, domain_type* domain, long* nsubtasks)
 {
     rrset_type* rrset = NULL;
     denial_type* denial = NULL;
@@ -161,12 +123,12 @@ worker_queue_domain(worker_type* worker, fifoq_type* q, domain_type* domain)
     ods_log_assert(domain);
     rrset = domain->rrsets;
     while (rrset) {
-        worker_queue_rrset(worker, q, rrset);
+        worker_queue_rrset(worker, q, rrset, nsubtasks);
         rrset = rrset->next;
-}
+    }
     denial = (denial_type*) domain->denial;
     if (denial && denial->rrset) {
-        worker_queue_rrset(worker, q, denial->rrset);
+        worker_queue_rrset(worker, q, denial->rrset, nsubtasks);
     }
 }
 
@@ -176,14 +138,13 @@ worker_queue_domain(worker_type* worker, fifoq_type* q, domain_type* domain)
  *
  */
 static void
-worker_queue_zone(worker_type* worker, fifoq_type* q, zone_type* zone)
+worker_queue_zone(worker_type* worker, fifoq_type* q, zone_type* zone, long* nsubtasks)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     domain_type* domain = NULL;
     ods_log_assert(worker);
     ods_log_assert(q);
     ods_log_assert(zone);
-    worker_clear_jobs(worker);
     if (!zone->db || !zone->db->domains) {
         return;
     }
@@ -192,7 +153,7 @@ worker_queue_zone(worker_type* worker, fifoq_type* q, zone_type* zone)
     }
     while (node && node != LDNS_RBTREE_NULL) {
         domain = (domain_type*) node->data;
-        worker_queue_domain(worker, q, domain);
+        worker_queue_domain(worker, q, domain, nsubtasks);
         node = ldns_rbtree_next(node);
     }
 }
@@ -203,36 +164,19 @@ worker_queue_zone(worker_type* worker, fifoq_type* q, zone_type* zone)
  *
  */
 static ods_status
-worker_check_jobs(worker_type* worker, task_type* task)
+worker_check_jobs(worker_type* worker, task_type* task, int ntasks, long ntasksfailed)
 {
     ods_log_assert(worker);
     ods_log_assert(task);
-    pthread_mutex_lock(&worker->worker_lock);
-    if (worker->jobs_failed) {
-        ods_log_error("[%s] sign zone %s failed: %lu RRsets failed",
-            worker->name, task->owner, (unsigned long)worker->jobs_failed);
-        pthread_mutex_unlock(&worker->worker_lock);
-        return ODS_STATUS_ERR;
-    } else if (worker->jobs_completed != worker->jobs_appointed) {
-        ods_log_error("[%s] sign zone %s failed: processed %lu of %lu "
-            "RRsets", worker->name,
-            task->owner, (unsigned long)worker->jobs_completed,
-            (unsigned long)worker->jobs_appointed);
-        pthread_mutex_unlock(&worker->worker_lock);
+    if (ntasksfailed) {
+        ods_log_error("[%s] sign zone %s failed: %ld RRsets failed",
+            worker->name, task->owner, ntasksfailed);
         return ODS_STATUS_ERR;
     } else if (worker->need_to_exit) {
         ods_log_debug("[%s] sign zone %s failed: worker needs to exit",
             worker->name, task->owner);
-        pthread_mutex_unlock(&worker->worker_lock);
         return ODS_STATUS_ERR;
-    } else {
-        ods_log_debug("[%s] sign zone %s ok: %lu of %lu RRsets "
-            "succeeded", worker->name,
-            task->owner, (unsigned long)worker->jobs_completed,
-            (unsigned long)worker->jobs_appointed);
-        ods_log_assert(worker->jobs_appointed == worker->jobs_completed);
     }
-    pthread_mutex_unlock(&worker->worker_lock);
     return ODS_STATUS_OK;
 }
 
@@ -257,6 +201,8 @@ worker_perform_task(const char* zonename, void* zonearg, void* contextarg)
     int backup = 0;
     time_t start = 0;
     time_t end = 0;
+    long nsubtasks = 0;
+    long nsubtasksfailed = 0;
 
     if (!worker || !worker->engine) {
         return -1;
@@ -361,19 +307,18 @@ worker_perform_task(const char* zonename, void* zonearg, void* contextarg)
             status = zone_prepare_keys(zone);
             if (status == ODS_STATUS_OK) {
                 /* queue menial, hard signing work */
-                worker_queue_zone(worker, engine->signq, zone);
+                worker_queue_zone(worker, engine->signq, zone, &nsubtasks);
                 ods_log_deeebug("[%s] wait until drudgers are finished "
                     "signing zone %s", worker->name, task->owner);
                 /* sleep until work is done */
-                worker_sleep_unless(worker);
+                fifoq_waitfor(worker->engine->signq, worker, nsubtasks, &nsubtasksfailed);
             }
             /* stop timer */
             end = time(NULL);
             /* check status and jobs */
             if (status == ODS_STATUS_OK) {
-                status = worker_check_jobs(worker, task);
+                status = worker_check_jobs(worker, task, nsubtasks, nsubtasksfailed);
             }
-            worker_clear_jobs(worker);
             if (status == ODS_STATUS_OK && zone->stats) {
                 pthread_mutex_lock(&zone->stats->stats_lock);
                 zone->stats->sig_time = (end-start);
@@ -502,8 +447,7 @@ task_perform_continue:
 void
 worker_work(worker_type* worker)
 {
-    time_t now = 0;
-    time_t timeout = 1;
+    time_t nextFireTime;
     engine_type* engine = NULL;
     zone_type* zone;
     task_type* task;
@@ -515,7 +459,6 @@ worker_work(worker_type* worker)
     engine = worker->engine;
     while (worker->need_to_exit == 0) {
         ods_log_debug("[%s] report for duty", worker->name);
-        now = time_now();
         task = schedule_pop_task(engine->taskq);
         if (task) {
             zone = (zone_type*) task->userdata;
@@ -530,32 +473,18 @@ worker_work(worker_type* worker)
             zone->task = task;
             ods_log_debug("[%s] finished working on zone %s",
                 worker->name, zone->name);
-            status = schedule_task(engine->taskq, task, 1);
+            status = schedule_task(engine->taskq, task, 0, 1);
             if (status != ODS_STATUS_OK) {
                 ods_log_error("[%s] unable to schedule task for zone %s: "
                 "%s", worker->name, zone->name, ods_status2str(status));
             }
             pthread_mutex_unlock(&zone->zone_lock);
-            timeout = 1;
             /** Do we need to tell the engine that we require a reload? */
             pthread_mutex_lock(&engine->signal_lock);
             if (engine->need_to_reload) {
                 pthread_cond_signal(&engine->signal_cond);
             }
             pthread_mutex_unlock(&engine->signal_lock);
-
-        } else {
-            ods_log_debug("[%s] nothing to do", worker->name);
-            task = schedule_get_first_task(engine->taskq);
-            if (task && !engine->taskq->loading) {
-                timeout = (sched_task_due(task) - now);
-            } else {
-                timeout *= 2;
-            }
-            if (timeout > ODS_SE_MAX_BACKOFF) {
-                timeout = ODS_SE_MAX_BACKOFF;
-            }
-            worker_sleep(worker, timeout);
         }
     }
 }
@@ -570,7 +499,7 @@ worker_drudge(worker_type* worker)
 {
     engine_type* engine = NULL;
     rrset_type* rrset = NULL;
-    ods_status status = ODS_STATUS_OK;
+    ods_status status;
     worker_type* superior = NULL;
     hsm_ctx_t* ctx = NULL;
 
@@ -580,9 +509,8 @@ worker_drudge(worker_type* worker)
     engine = worker->engine;
     while (worker->need_to_exit == 0) {
         ods_log_deeebug("[%s] report for duty", worker->name);
-        superior = NULL;
-        /* get item */
         pthread_mutex_lock(&engine->signq->q_lock);
+        superior = NULL;
         rrset = (rrset_type*) fifoq_pop(engine->signq, &superior);
         if (!rrset) {
             ods_log_deeebug("[%s] nothing to do, wait", worker->name);
@@ -592,8 +520,7 @@ worker_drudge(worker_type* worker)
              * will automatically grab the lock when the threshold is reached.
              * Threshold is at 1 and MAX (after a number of tries).
              */
-            pthread_cond_wait(&engine->signq->q_threshold,
-                &engine->signq->q_lock);
+            pthread_cond_wait(&engine->signq->q_threshold, &engine->signq->q_lock);
             if(worker->need_to_exit == 0)
                 rrset = (rrset_type*) fifoq_pop(engine->signq, &superior);
         }
@@ -609,30 +536,12 @@ worker_drudge(worker_type* worker)
                 ods_log_crit("[%s] error creating libhsm context", worker->name);
                 engine->need_to_reload = 1;
                 ods_log_error("signer instructed to reload due to hsm reset while signing");
-                pthread_mutex_lock(&superior->worker_lock);
-                superior->jobs_failed++;
-                pthread_mutex_unlock(&superior->worker_lock);
+                status = ODS_STATUS_HSM_ERR;
             } else {
-                ods_log_assert(ctx);
-                pthread_mutex_lock(&superior->worker_lock);
-                pthread_mutex_unlock(&superior->worker_lock);
                 worker->clock_in = time_now();
                 status = rrset_sign(ctx, rrset, superior->clock_in);
-                pthread_mutex_lock(&superior->worker_lock);
-                if (status == ODS_STATUS_OK) {
-                    superior->jobs_completed++;
-                } else {
-                    superior->jobs_failed++;
-                }
-                pthread_mutex_unlock(&superior->worker_lock);
             }
-            if (worker_fulfilled(superior) && superior->sleeping) {
-                ods_log_deeebug("[%s] wake up superior[%s], work is "
-                    "done", worker->name, superior->name);
-                worker_wakeup(superior);
-            }
-            superior = NULL;
-            rrset = NULL;
+            fifoq_report(engine->signq, superior, status);
         }
         /* done work */
     }
@@ -641,76 +550,6 @@ worker_drudge(worker_type* worker)
         hsm_destroy_context(ctx);
     }
 }
-
-/**
- * Put worker to sleep.
- *
- */
-void
-worker_sleep(worker_type* worker, time_t timeout)
-{
-    ods_log_assert(worker);
-    if (!worker->need_to_exit) {
-        pthread_mutex_lock(&worker->worker_lock);
-        worker->sleeping = 1;
-        ods_thread_wait(&worker->worker_alarm, &worker->worker_lock,
-            timeout);
-        pthread_mutex_unlock(&worker->worker_lock);
-    }
-}
-
-
-/**
- * Put worker to sleep unless worker has measured up to all appointed jobs.
- *
- */
-void
-worker_sleep_unless(worker_type* worker)
-{
-    ods_log_assert(worker);
-    pthread_mutex_lock(&worker->worker_lock);
-    while (!worker->need_to_exit && !worker_fulfilled(worker)) {
-        worker->sleeping = 1;
-        pthread_cond_wait(&worker->worker_alarm, &worker->worker_lock);
-        ods_log_debug("[%s] somebody poked me, check completed jobs %lu "
-           "appointed, %lu completed, %lu failed", worker->name,
-           (long)worker->jobs_appointed, (long)worker->jobs_completed,
-           (long)worker->jobs_failed);
-    }
-    pthread_mutex_unlock(&worker->worker_lock);
-}
-
-
-/**
- * Wake up worker.
- *
- */
-void
-worker_wakeup(worker_type* worker)
-{
-    ods_log_assert(worker);
-    if (worker && worker->sleeping && !worker->waiting) {
-        ods_log_debug("[%s] wake up", worker->name);
-        pthread_mutex_lock(&worker->worker_lock);
-        pthread_cond_signal(&worker->worker_alarm);
-        worker->sleeping = 0;
-        pthread_mutex_unlock(&worker->worker_lock);
-    }
-}
-
-
-/**
- * Notify all workers.
- *
- */
-void
-worker_notify_all(pthread_mutex_t* lock, pthread_cond_t* condition)
-{
-    pthread_mutex_lock(lock);
-    pthread_cond_broadcast(condition);
-    pthread_mutex_unlock(lock);
-}
-
 
 /**
  * Clean up worker.
@@ -722,7 +561,5 @@ worker_cleanup(worker_type* worker)
     if (!worker) {
         return;
     }
-    pthread_mutex_destroy(&worker->worker_lock);
-    pthread_cond_destroy(&worker->worker_alarm);
     free(worker);
 }

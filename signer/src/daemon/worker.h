@@ -53,13 +53,9 @@ struct worker_struct {
     ods_thread_type thread_id;
     engine_type* engine;
     time_t clock_in;
-    size_t jobs_appointed;
-    size_t jobs_completed;
-    size_t jobs_failed;
-    pthread_cond_t worker_alarm;
-    pthread_mutex_t worker_lock;
-    unsigned sleeping : 1;
-    unsigned waiting : 1;
+    int tasksOutstanding;
+    int tasksFailed;
+    pthread_cond_t tasksBlocker;
     unsigned need_to_exit : 1;
 };
 
@@ -85,30 +81,6 @@ worker_type* worker_create(char* name);
  */
 void worker_drudge(worker_type* worker);
 void worker_work(worker_type* worker);
-
-/**
- * Put worker to sleep.
- * \param[in] worker put this worker to sleep
- * \param[in] timeout time before alarm clock is going off,
- *            0 means no alarm clock is set.
- *
- */
-void worker_sleep(worker_type* worker, time_t timeout);
-
-/**
- * Put worker to sleep unless the worker has measured up to all
- * appointed jobs.
- * \param[in] worker put this worker to sleep
- *
- */
-void worker_sleep_unless(worker_type* worker);
-
-/**
- * Wake up worker.
- * \param[in] worker wake up this worker
- *
- */
-void worker_wakeup(worker_type* worker);
 
 /**
  * Notify all workers.

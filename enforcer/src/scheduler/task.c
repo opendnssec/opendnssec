@@ -33,10 +33,10 @@
 
 #include <string.h>
 #include <pthread.h>
-#include "db/db_connection.h"
 
 #include "scheduler/task.h"
 #include "scheduler/schedule.h"
+#include "status.h"
 #include "duration.h"
 #include "file.h"
 #include "log.h"
@@ -45,14 +45,22 @@ static const char* task_str = "task";
 static pthread_mutex_t worklock = PTHREAD_MUTEX_INITIALIZER;
 
 const char* TASK_CLASS_ENFORCER = "enforcer";
+const char* TASK_CLASS_SIGNER   = "signer";
 
-const char* TASK_NONE = "[ignore]";
+const char* TASK_NONE           = "[ignore]";
+
 const char* TASK_TYPE_ENFORCE   = "enforce";
 const char* TASK_TYPE_RESALT    = "resalt";
 const char* TASK_TYPE_HSMKEYGEN = "hsmkeygen";
 const char* TASK_TYPE_DSSUBMIT  = "ds-submit";
 const char* TASK_TYPE_DSRETRACT = "ds-retract";
 const char* TASK_TYPE_SIGNCONF  = "signconf";
+
+const char* TASK_SIGNCONF       = "[configure]";
+const char* TASK_READ           = "[read]";
+const char* TASK_NSECIFY        = "[???]";
+const char* TASK_SIGN           = "[sign]";
+const char* TASK_WRITE          = "[write]";
 
 task_type*
 task_create(const char *owner, char const *class, char const *type,
@@ -63,7 +71,7 @@ task_create(const char *owner, char const *class, char const *type,
     ods_log_assert(owner);
     ods_log_assert(class);
     ods_log_assert(type);
-    
+
     CHECKALLOC(task = (task_type*) malloc(sizeof(task_type)));;
     task->owner = owner; /* TODO: each call to task_create needs to strdup this, but the free is inside task_destroy */
     task->class = class;
@@ -112,7 +120,7 @@ task_execute(task_type *task, void *context)
 
     if(task->lock) {
         pthread_mutex_lock(task->lock);
-            t = task->callback(task->owner, task->userdata, context);
+        t = task->callback(task->owner, task->userdata, context);
         pthread_mutex_unlock(task->lock);
     } else {
         t = task->callback(task->owner, task->userdata, context);
@@ -129,7 +137,7 @@ task_perform(schedule_type* scheduler, task_type* task, void* context)
 {
     task->due_date = task_execute(task, context);
     if (task->due_date >= 0) {
-        (void) schedule_task(scheduler, task, 0); /* TODO unchecked error code */
+        (void) schedule_task(scheduler, task, (!strcmp(task->class, TASK_CLASS_ENFORCER) ? 1 : 0), 0); /* TODO unchecked error code */
     } else {
         task_destroy(task);
     }    
@@ -187,4 +195,20 @@ task_compare_time_then_ttuple(const void* a, const void* b)
         return (int) x->due_date - y->due_date;
     }
     return cmp_ttuple(x, y);
+}
+
+void
+task_log(task_type* task)
+{
+    char* strtime = NULL;
+
+    if (task) {
+        strtime = ctime(&task->due_date);
+        if (strtime) {
+            strtime[strlen(strtime)-1] = '\0';
+        }
+        ods_log_debug("[%s] %s %s I will %s zone %s", task_str,
+            task->flush?"Flush":"On", strtime?strtime:"(null)",
+            task->type, task->owner);
+    }
 }
