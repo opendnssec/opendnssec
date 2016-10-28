@@ -537,4 +537,6 @@ extern void keycache_create(hsm_ctx_t* ctx);
 extern void keycache_destroy(hsm_ctx_t* ctx);
 extern const libhsm_key_t* keycache_lookup(hsm_ctx_t* ctx, const char* locator);
 
+void keycache_precache(hsm_ctx_t *ctx, char * const *locators, size_t count);
+
 #endif /* HSM_H */

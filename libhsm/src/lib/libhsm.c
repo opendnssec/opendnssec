@@ -1138,6 +1138,8 @@ hsm_get_key_size(hsm_ctx_t *ctx, const hsm_session_t *session,
     }
 }
 
+static void hsm_hex_unparse(char *dst, const unsigned char *src, size_t len);
+
 static CK_OBJECT_HANDLE
 hsm_find_object_handle_for_id(hsm_ctx_t *ctx,
                               const hsm_session_t *session,
@@ -1146,7 +1148,7 @@ hsm_find_object_handle_for_id(hsm_ctx_t *ctx,
                               CK_ULONG id_len)
 {
     CK_ULONG objectCount;
-    CK_OBJECT_HANDLE object;
+    CK_OBJECT_HANDLE object; //stack object gets returned?
     CK_RV rv;
 
     CK_ATTRIBUTE template[] = {
@@ -1169,6 +1171,12 @@ hsm_find_object_handle_for_id(hsm_ctx_t *ctx,
         hsm_pkcs11_check_error(ctx, rv, "Find objects cleanup");
         return 0;
     }
+    
+    char *loc = malloc((id_len*2+1) * sizeof (char));
+    hsm_hex_unparse(loc, id, id_len);
+    ods_log_info("YBS2 looking %s, found %u\n", loc, objectCount);
+    free(loc);
+
 
     rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_FindObjectsFinal(session->session);
     if (hsm_pkcs11_check_error(ctx, rv, "Find object final")) {
@@ -1180,6 +1188,49 @@ hsm_find_object_handle_for_id(hsm_ctx_t *ctx,
     } else {
         return 0;
     }
+}
+
+static CK_BYTE *
+hsm_get_id_for_object(hsm_ctx_t *ctx,
+                      const hsm_session_t *session,
+                      CK_OBJECT_HANDLE object,
+                      size_t *len);
+
+static CK_ULONG
+hsm_find_object_handles_for_ids(hsm_ctx_t *ctx, const hsm_session_t *session,
+      CK_ATTRIBUTE_PTR template, CK_OBJECT_HANDLE *objects, size_t count)
+{
+    CK_RV rv;
+    CK_ULONG objectCount;
+
+    size_t i;
+    for (i = 0; i<count+1; i++) {
+        char *loc = malloc((template[i].ulValueLen*2+1) * sizeof (char));
+        hsm_hex_unparse(loc, template[i].pValue, template[i].ulValueLen);
+        ods_log_info("YBS2 looking %s\n", loc);
+    }
+
+
+    rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_FindObjectsInit(
+        session->session, template, 0);
+    if (hsm_pkcs11_check_error(ctx, rv, "Find objects init")) {
+        return 0;
+    }
+
+    rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_FindObjects(
+        session->session, objects, count, &objectCount);
+    if (hsm_pkcs11_check_error(ctx, rv, "Find object")) {
+        rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_FindObjectsFinal(session->session);
+        hsm_pkcs11_check_error(ctx, rv, "Find objects cleanup");
+        return 0;
+    }
+    ods_log_info("YBS2 found %d\n", objectCount);
+
+    rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_FindObjectsFinal(session->session);
+    if (hsm_pkcs11_check_error(ctx, rv, "Find object final")) {
+        return 0;
+    }
+    return objectCount;
 }
 
 /*
@@ -3353,26 +3404,94 @@ keycache_destroy(hsm_ctx_t* ctx)
     ldns_rbtree_free(ctx->keycache);
 }
 
+static ldns_rbnode_t *
+keycache_insert(ldns_rbtree_t* keycache, const char* locator,
+    libhsm_key_t* key)
+{
+    ldns_rbnode_t* node;
+
+    node = malloc(sizeof(ldns_rbnode_t));
+    node->key = locator;
+    node->data = key;
+    return ldns_rbtree_insert(keycache, node);
+
+}
+
 const libhsm_key_t*
 keycache_lookup(hsm_ctx_t* ctx, const char* locator)
 {
     ldns_rbnode_t* node;
+    libhsm_key_t* key;
 
     node = ldns_rbtree_search(ctx->keycache, locator);
-    if (node == LDNS_RBTREE_NULL || node == NULL) {
-        libhsm_key_t* key;
-        if ((key = hsm_find_key_by_id(ctx, locator)) == NULL) {
-            node = NULL;
-        } else {
-            node = malloc(sizeof(ldns_rbnode_t));
-            node->key = strdup(locator);
-            node->data = key;
-            node = ldns_rbtree_insert(ctx->keycache, node);
-        }
-    }  
-
-    if (node == LDNS_RBTREE_NULL || node == NULL)
-        return NULL;
-    else
+    if (node && node != LDNS_RBTREE_NULL)
         return node->data;
+    
+    key = hsm_find_key_by_id(ctx, locator);
+    if (!key) return NULL;
+    (void)keycache_insert(ctx->keycache, strdup(locator), key);
+    return key;
+}
+
+void
+keycache_precache(hsm_ctx_t *ctx, char * const *locators, size_t count)
+{
+    CK_ATTRIBUTE *template;
+    size_t i, j;
+    unsigned char *bytes;
+    size_t bytes_len;
+    CK_OBJECT_CLASS key_class = CKO_PRIVATE_KEY;
+    CK_OBJECT_HANDLE *handles, *handles_start;
+    CK_ULONG handle_count;
+    libhsm_key_t *key;
+    CK_BYTE *id;
+    size_t len;
+
+    template = calloc(count+1, sizeof (CK_ATTRIBUTE));
+    if (!template) return;
+
+    template[0].type = CKA_CLASS;
+    template[0].pValue = &key_class;
+    template[0].ulValueLen = sizeof(CKO_PRIVATE_KEY);
+
+    for (i = 0; i < count; i++) {
+        bytes = hsm_hex_parse(locators[i], &bytes_len);
+        if (!bytes) continue; /* Just leave entry blank */
+        template[i+1].type = CKA_ID;
+        template[i+1].pValue = bytes;
+        template[i+1].ulValueLen = bytes_len;
+    }
+    handles = calloc(count, sizeof (CK_OBJECT_HANDLE));
+    handles_start = handles;
+
+    for (i = 0; i < ctx->session_count; i++) {
+        handle_count = hsm_find_object_handles_for_ids(ctx, ctx->session[i],
+            template, handles_start, count); // TODO substract already found!
+
+        for (j=0; j<handle_count; j++) {
+            /* This is soooper inefficient, we need to fetch all public keys as well */
+            //~ key = libhsm_key_new_privkey_object_handle(ctx,
+                //~ ctx->session[i], handles_start[j]);
+
+            id = hsm_get_id_for_object(ctx, ctx->session[i], handles_start[j], &len);
+            key = libhsm_key_new();
+            key->modulename = strdup(ctx->session[i]->module->name);
+            key->private_key = handles_start[j];
+            
+            char *loc = calloc(2 * len, sizeof (char)+1);
+            hsm_hex_unparse(loc, id, len);
+            
+            (void)keycache_insert(ctx->keycache, loc, key);
+            ods_log_info("Precaching key %s\n", loc);
+            /* locator now owned by cache, no need to free */
+        }
+        handles_start += (size_t) handle_count;
+        ods_log_info("YBS session %d/%d, key count %d, found %ul\n", i, ctx->session_count, count, handle_count);
+    }
+    free(handles);
+
+    for (i = 0; i < count; i++) {
+        free(template[i+1].pValue);
+    }
+    free(template);
 }

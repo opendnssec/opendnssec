@@ -801,7 +801,99 @@ engine_update_zones(engine_type* engine, ods_status zl_changed)
     }
 }
 
+//need to pull this function apart later on.
+static ldns_rbtree_t *
+locators_from_backups(ldns_rbtree_t *zones)
+{
+    ldns_rbnode_t *n, *loc_node;
+    ldns_rbtree_t *locators;
+    zone_type* zone = NULL;
+    const char* token = NULL;
+    char s[4000], *start, *end, *filename;
+    FILE *fd;
 
+    locators = ldns_rbtree_create((int (*)(const void *, const void *))strcmp);
+    if (!locators) return NULL;
+
+    for (n = ldns_rbtree_first(zones); n != LDNS_RBTREE_NULL; n = ldns_rbtree_next(n)) {
+        zone = (zone_type*)n->data;
+        filename = ods_build_path(zone->name, ".backup2", 0, 1);
+        if (!filename) continue;
+        
+        if ((fd = ods_fopen(filename, NULL, "r"))) {
+            if (!backup_read_check_str(fd, ODS_SE_FILE_MAGIC_V3)) //needs include
+                continue;
+            /* now read until ;; */
+            while (fgets(s, 4000, fd) != NULL) {
+                if (!strncmp(s, ";;Key:", 6)) {
+                    start = s+15;
+                    end = strchr(start, (int)' ');
+                    if (!end) continue;
+                    *end = 0;
+                    ods_log_info("Found locator %s\n", start);
+                    loc_node = malloc(sizeof(ldns_rbnode_t));
+                    if (!loc_node)
+                        break;
+                    loc_node->key = strdup(start);
+                    loc_node->data = loc_node->key;
+                    if (!ldns_rbtree_insert(locators, loc_node)) {
+                        /* failed, probably already present. */
+                        free((void *)loc_node->key);
+                        free(loc_node);
+                    }
+                } else if (!strncmp(s, ";;\n", 3)) {
+                    break;
+                }
+            }
+            ods_fclose(fd);
+        }
+        free(filename);
+    }
+    return locators;
+}
+
+static void
+delnode(ldns_rbnode_t *n, void *arg)
+{
+    (void)arg;
+    free(n);
+}
+
+static void
+precache_keys(ldns_rbtree_t *zones)
+{
+    ldns_rbtree_t *locators;
+    size_t count, i;
+    char **hex_locators;
+    ldns_rbnode_t *n;
+    hsm_ctx_t *ctx;
+    
+    locators = locators_from_backups(zones);
+    if (!locators) return;
+
+    count = locators->count;
+    hex_locators = calloc(count, sizeof (char *));
+    if (hex_locators) {
+        i = 0;
+        for (n = ldns_rbtree_first(locators); n != LDNS_RBTREE_NULL;
+            n = ldns_rbtree_next(n))
+        {
+            hex_locators[i++] = (char *)n->key;
+        }
+    }
+    ldns_traverse_postorder(locators, delnode, NULL);
+    ldns_rbtree_free(locators);
+    if (!hex_locators) return;
+
+    if ((ctx = hsm_create_context())) {
+        keycache_precache(ctx, hex_locators, count);
+        hsm_destroy_context(ctx);
+    }
+    
+    for (i = 0; i < count; i++)
+        free(hex_locators[i]);
+    free(hex_locators);
+}
 /**
  * Try to recover from the backup files.
  *
@@ -826,6 +918,7 @@ engine_recover(engine_type* engine)
     pthread_mutex_lock(&engine->zonelist->zl_lock);
     /* [LOCK] zonelist */
     node = ldns_rbtree_first(engine->zonelist->zones);
+    precache_keys(engine->zonelist->zones);
     while (node && node != LDNS_RBTREE_NULL) {
         zone = (zone_type*) node->data;
 
