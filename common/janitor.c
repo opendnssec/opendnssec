@@ -208,7 +208,7 @@ janitor_thread_unregister(janitor_thread_t info)
                 sleep(1);
             }
         } while(err == EBUSY && errcount <= 3);
-        free(info);
+        /* free(info); // We can't do this free. If so this thread can never be joined */
         CHECKFAIL(pthread_cond_signal(&threadblock));
     }
     CHECKFAIL(pthread_mutex_unlock(&threadlock));
