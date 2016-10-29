@@ -208,7 +208,6 @@ janitor_thread_unregister(janitor_thread_t info)
                 sleep(1);
             }
         } while(err == EBUSY && errcount <= 3);
-        free(info);
         CHECKFAIL(pthread_cond_signal(&threadblock));
     }
     CHECKFAIL(pthread_mutex_unlock(&threadlock));
@@ -308,7 +307,10 @@ janitor_thread_start(janitor_thread_t thread)
 int
 janitor_thread_join(janitor_thread_t thread)
 {
-    return pthread_join(thread->thread, NULL);
+    int status;
+    status = pthread_join(thread->thread, NULL);
+    free(thread);
+    return status;
 }
 
 static void
