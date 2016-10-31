@@ -42,7 +42,7 @@ typedef struct engine_struct engine_type;
 #include "daemon/dnshandler.h"
 #include "daemon/xfrhandler.h"
 #include "daemon/worker.h"
-#include "scheduler/fifoq.h"
+#include "daemon/fifoq.h"
 #include "scheduler/schedule.h"
 #include "status.h"
 #include "locks.h"
