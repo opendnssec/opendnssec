@@ -137,7 +137,7 @@ pop_first_task(schedule_type* schedule)
 }
 
 /**
- * Internal task cleanup function.
+ * Deletes tree recursively. DO free payload.
  *
  */
 static void
@@ -150,6 +150,20 @@ task_delfunc(ldns_rbnode_t* node)
         task_delfunc(node->left);
         task_delfunc(node->right);
         task_destroy(task);
+        free((void*)node);
+    }
+}
+
+/**
+ * Deletes tree recursively. Do not free payload.
+ *
+ */
+static void
+task_delfunc2(ldns_rbnode_t* node)
+{
+    if (node && node != LDNS_RBTREE_NULL) {
+        task_delfunc2(node->left);
+        task_delfunc2(node->right);
         free((void*)node);
     }
 }
@@ -229,7 +243,7 @@ schedule_cleanup(schedule_type* schedule)
     
     if (schedule->tasks) {
         task_delfunc(schedule->tasks->root);
-        task_delfunc(schedule->tasks_by_name->root);
+        task_delfunc2(schedule->tasks_by_name->root);
         ldns_rbtree_free(schedule->tasks);
         ldns_rbtree_free(schedule->tasks_by_name);
         schedule->tasks = NULL;
