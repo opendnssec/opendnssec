@@ -1102,7 +1102,7 @@ xfrd_parse_packet(xfrd_type* xfrd, buffer_type* buffer)
                  xfrd->master->address);
             xfrd->serial_disk_acquired = xfrd_time(xfrd);
             if (xfrd->serial_xfr == serial) {
-                xfrd->serial_xfr_acquired = xfrd->serial_disk_acquired;
+                xfrd->serial_xfr_acquired = time_now();
                 if (!xfrd->serial_notify_acquired) {
                     /* not notified or anything, so stop asking around */
                     xfrd->round_num = -1; /* next try start a new round */
