@@ -292,6 +292,9 @@ echo "zones.xml contents OK" &&
 
 # #Finally run the signer to check all is well
 ods_start_signer 10 &&
+# Extra sleep to make sure signer is really started and able to receive
+# signconf command
+sleep 10 &&
 log_this ods-enforcer-signconf ods-enforcer signconf && 
 # The signconf will now be separate per zone, where there will now be a delay
 # where zone ods11 does not get removed because it is still busy
