@@ -418,14 +418,7 @@ task_perform_fail:
     }
     /* in case of failure, also mark zone processed (for single run usage) */
     zone->db->is_processed = 1;
-    if (task->backoff) {
-        task->backoff *= 2;
-    } else {
-        task->backoff = 60;
-    }
-    if (task->backoff > ODS_SE_MAX_BACKOFF) {
-        task->backoff = ODS_SE_MAX_BACKOFF;
-    }
+    task->backoff = clamp(task->backoff * 2, 60, ODS_SE_MAX_BACKOFF);
     ods_log_info("[%s] backoff task %s for zone %s with %lu seconds",
         worker->name, task->type, task->owner, (long)task->backoff);
     task->due_date = time_now() + task->backoff;
