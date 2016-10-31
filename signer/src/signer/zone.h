@@ -134,7 +134,7 @@ ods_status zone_reschedule_task(zone_type* zone, schedule_type* taskq,
  * \return ods_status status
  *
  */
-ods_status zone_publish_dnskeys(zone_type* zone);
+ods_status zone_publish_dnskeys(zone_type* zone, int skip_hsm_access);
 
 /**
  * Unlink DNSKEY RRs.

@@ -281,7 +281,7 @@ zone_reschedule_task(zone_type* zone, schedule_type* taskq, task_id what)
  *
  */
 ods_status
-zone_publish_dnskeys(zone_type* zone)
+zone_publish_dnskeys(zone_type* zone, int skip_hsm_access)
 {
     hsm_ctx_t* ctx = NULL;
     uint32_t ttl = 0;
@@ -296,11 +296,13 @@ zone_publish_dnskeys(zone_type* zone)
     ods_log_assert(zone->name);
 
     /* hsm access */
-    ctx = hsm_create_context();
-    if (ctx == NULL) {
-        ods_log_error("[%s] unable to publish keys for zone %s: "
-            "error creating libhsm context", zone_str, zone->name);
-        return ODS_STATUS_HSM_ERR;
+    if (!skip_hsm_access) {
+        ctx = hsm_create_context();
+        if (ctx == NULL) {
+            ods_log_error("[%s] unable to publish keys for zone %s: "
+                "error creating libhsm context", zone_str, zone->name);
+            return ODS_STATUS_HSM_ERR;
+        }
     }
     ttl = zone->default_ttl;
     /* dnskey ttl */
@@ -318,12 +320,14 @@ zone_publish_dnskeys(zone_type* zone)
                 if ((status = rrset_getliteralrr(&zone->signconf->keys->keys[i].dnskey, zone->signconf->keys->keys[i].resourcerecord, ttl, zone->apex)) != ODS_STATUS_OK) {
                     ods_log_error("[%s] unable to publish dnskeys for zone %s: "
                             "error decoding literal dnskey", zone_str, zone->name);
-		    hsm_destroy_context(ctx);
+                    if (!skip_hsm_access) {
+                        hsm_destroy_context(ctx);
+                    }
                     return status;
                 }
             } else {
                 status = lhsm_get_key(ctx, zone->apex,
-                        &zone->signconf->keys->keys[i]);
+                        &zone->signconf->keys->keys[i], skip_hsm_access);
                 if (status != ODS_STATUS_OK) {
                     ods_log_error("[%s] unable to publish dnskeys for zone %s: "
                             "error creating dnskey", zone_str, zone->name);
@@ -333,30 +337,34 @@ zone_publish_dnskeys(zone_type* zone)
         }
         ods_log_debug("[%s] publish %s DNSKEY locator %s", zone_str,
             zone->name, zone->signconf->keys->keys[i].locator);
-        ods_log_assert(zone->signconf->keys->keys[i].dnskey);
-        ldns_rr_set_ttl(zone->signconf->keys->keys[i].dnskey, ttl);
-        ldns_rr_set_class(zone->signconf->keys->keys[i].dnskey, zone->klass);
-        status = zone_add_rr(zone, zone->signconf->keys->keys[i].dnskey, 0);
-        if (status == ODS_STATUS_UNCHANGED) {
-            /* rr already exists, adjust pointer */
-            rrset = zone_lookup_rrset(zone, zone->apex, LDNS_RR_TYPE_DNSKEY);
-            ods_log_assert(rrset);
-            dnskey = rrset_lookup_rr(rrset,
-                zone->signconf->keys->keys[i].dnskey);
-            ods_log_assert(dnskey);
-            if (dnskey->rr != zone->signconf->keys->keys[i].dnskey) {
-                ldns_rr_free(zone->signconf->keys->keys[i].dnskey);
+        if (!skip_hsm_access) {
+            ods_log_assert(zone->signconf->keys->keys[i].dnskey);
+            ldns_rr_set_ttl(zone->signconf->keys->keys[i].dnskey, ttl);
+            ldns_rr_set_class(zone->signconf->keys->keys[i].dnskey, zone->klass);
+            status = zone_add_rr(zone, zone->signconf->keys->keys[i].dnskey, 0);
+            if (status == ODS_STATUS_UNCHANGED) {
+                /* rr already exists, adjust pointer */
+                rrset = zone_lookup_rrset(zone, zone->apex, LDNS_RR_TYPE_DNSKEY);
+                ods_log_assert(rrset);
+                dnskey = rrset_lookup_rr(rrset,
+                    zone->signconf->keys->keys[i].dnskey);
+                ods_log_assert(dnskey);
+                if (dnskey->rr != zone->signconf->keys->keys[i].dnskey) {
+                    ldns_rr_free(zone->signconf->keys->keys[i].dnskey);
+                }
+                zone->signconf->keys->keys[i].dnskey = dnskey->rr;
+                status = ODS_STATUS_OK;
+            } else if (status != ODS_STATUS_OK) {
+                ods_log_error("[%s] unable to publish dnskeys for zone %s: "
+                    "error adding dnskey", zone_str, zone->name);
+                break;
             }
-            zone->signconf->keys->keys[i].dnskey = dnskey->rr;
-            status = ODS_STATUS_OK;
-        } else if (status != ODS_STATUS_OK) {
-            ods_log_error("[%s] unable to publish dnskeys for zone %s: "
-                "error adding dnskey", zone_str, zone->name);
-            break;
         }
     }
     /* done */
-    hsm_destroy_context(ctx);
+    if (!skip_hsm_access) {
+        hsm_destroy_context(ctx);
+    }
     return status;
 }
 
@@ -512,7 +520,7 @@ zone_prepare_keys(zone_type* zone)
         if(zone->signconf->dnskey_signature != NULL && zone->signconf->keys->keys[i].ksk)
             continue;
         /* get dnskey */
-        status = lhsm_get_key(ctx, zone->apex, &zone->signconf->keys->keys[i]);
+        status = lhsm_get_key(ctx, zone->apex, &zone->signconf->keys->keys[i], 0);
         if (status != ODS_STATUS_OK) {
             ods_log_error("[%s] unable to prepare signing keys for zone %s: "
                 "error getting dnskey", zone_str, zone->name);
@@ -1044,7 +1052,7 @@ zone_recover2(zone_type* zone)
             token = NULL;
         }
         /* publish dnskeys */
-        status = zone_publish_dnskeys(zone);
+        status = zone_publish_dnskeys(zone, 1);
         if (status != ODS_STATUS_OK) {
             ods_log_error("[%s] corrupted backup file zone %s: unable to "
                 "publish dnskeys (%s)", zone_str, zone->name,
