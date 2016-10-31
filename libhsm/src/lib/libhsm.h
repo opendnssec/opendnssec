@@ -30,6 +30,7 @@
 
 #include <stdint.h>
 #include <ldns/rbtree.h>
+#include <pthread.h>
 
 #define HSM_MAX_SESSIONS 100
 /* 
@@ -140,6 +141,7 @@ typedef struct {
     char error_message[HSM_ERROR_MSGSIZE];
     
     ldns_rbtree_t* keycache;
+    pthread_mutex_t *keycache_lock;
 } hsm_ctx_t;
 
 
