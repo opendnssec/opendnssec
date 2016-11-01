@@ -10,7 +10,7 @@ ods_stop_ods-control &&
 log_this ods-enforcer-start ods-enforcer start &&
 log_this ods-enforcer-stop ods-enforcer stop &&
 log_this ods-enforcer-start ods-enforcer start &&
-log_this ods-enforcer-start ods-enforcer stop &&
+log_this ods-enforcer-stop ods-enforcer stop &&
 
 log_this ods-signer-start ods-signer start &&
 log_this ods-signer-stop ods-signer stop &&

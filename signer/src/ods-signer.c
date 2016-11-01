@@ -215,7 +215,7 @@ interface_run(FILE* fp, int sockfd, char* cmd)
             if (ods_strcmp(buf, ODS_SE_STOP_RESPONSE) == 0) {
                 fprintf(stdout, "\n");
                 char line[80];
-                FILE *cmd2 = popen("pidof ods-signerd","r");
+                FILE *cmd2 = popen("pgrep ods-signerd","r");
                 fgets(line, 80, cmd2);
                 pid_t pid = strtoul(line, NULL, 10);
                 fprintf(stdout, "pid %d\n", pid);
