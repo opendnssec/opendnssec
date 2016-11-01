@@ -41,14 +41,12 @@ rm -f $BIND9_NAMED_RUNDIR/bind.log &&
 rm -f $BIND9_NAMED_RUNDIR/update.txt &&
 rm -f $BIND9_NAMED_RUNDIR/update.log &&
 rm -f $BIND9_NAMED_RUNDIR/ods.jnl &&
-rm -f $BIND9_NAMED_RUNDIR/ods &&
 return 0
 
 ## Test failed. Kill stuff
 ods_bind9_stop || ods_process_kill '(named)'
 rm -f $BIND9_NAMED_RUNDIR/bind.log
 rm -f $BIND9_NAMED_RUNDIR/ods.jnl
-rm -f $BIND9_NAMED_RUNDIR/ods
 rm -f $BIND9_NAMED_PIDFILE
 ods_kill
 return 1

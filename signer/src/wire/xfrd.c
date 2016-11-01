@@ -1102,7 +1102,7 @@ xfrd_parse_packet(xfrd_type* xfrd, buffer_type* buffer)
                  xfrd->master->address);
             xfrd->serial_disk_acquired = xfrd_time(xfrd);
             if (xfrd->serial_xfr == serial) {
-                xfrd->serial_xfr_acquired = xfrd->serial_disk_acquired;
+                xfrd->serial_xfr_acquired = time_now();
                 if (!xfrd->serial_notify_acquired) {
                     /* not notified or anything, so stop asking around */
                     xfrd->round_num = -1; /* next try start a new round */
@@ -1370,7 +1370,32 @@ xfrd_tcp_open(xfrd_type* xfrd, tcp_set_type* set)
         return 0;
     }
     to_len = xfrd_acl_sockaddr_to(xfrd->master, &to);
-    /* bind it? */
+    /* bind it */
+    interface_type interface = xfrd->xfrhandler->engine->dnshandler->interfaces->interfaces[0];
+    if (!interface.address) {
+        ods_log_error("[%s] unable to get the address of interface", xfrd_str);
+        return -1;
+    }
+    if (acl_parse_family(interface.address) == AF_INET) {
+        struct sockaddr_in addr;
+        addr.sin_family = acl_parse_family(interface.address);
+        addr.sin_addr = interface.addr.addr;
+        addr.sin_port = 0;
+        if (bind(fd, (struct sockaddr *) &addr, sizeof(addr)) != 0) {
+            ods_log_error("[%s] unable to bind address %s: bind failed %s", xfrd_str, interface.address, strerror(errno));
+            return -1;
+        }
+    }
+    else {
+        struct sockaddr_in6 addr6;
+        addr6.sin6_family = acl_parse_family(interface.address);
+        addr6.sin6_addr = interface.addr.addr6;
+        addr6.sin6_port = 0;
+        if (bind(fd, (struct sockaddr *) &addr6, sizeof(addr6)) != 0) {
+            ods_log_error("[%s] unable to bind address %s: bind failed %s", xfrd_str, interface.address, strerror(errno));
+            return -1;
+        }
+    }
 
     conn = connect(fd, (struct sockaddr*)&to, to_len);
     if (conn == -1 && errno != EINPROGRESS) {

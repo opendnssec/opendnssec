@@ -49,7 +49,7 @@ typedef struct dnshandler_struct dnshandler_type;
 #define ODS_SE_MAX_HANDLERS 5
 
 struct dnshandler_struct {
-    pthread_t thread_id;
+    janitor_thread_t thread_id;
     engine_type* engine;
     listener_type* interfaces;
     socklist_type* socklist;

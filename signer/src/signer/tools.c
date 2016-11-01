@@ -101,7 +101,7 @@ tools_input(zone_type* zone)
     ods_log_assert(zone->adinbound);
     ods_log_assert(zone->signconf);
     /* Key Rollover? */
-    status = zone_publish_dnskeys(zone);
+    status = zone_publish_dnskeys(zone, 0);
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] unable to read zone %s: failed to "
             "publish dnskeys (%s)", tools_str, zone->name,

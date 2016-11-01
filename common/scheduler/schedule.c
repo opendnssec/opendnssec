@@ -157,8 +157,8 @@ static void
 task_delfunc2(ldns_rbnode_t* node)
 {
     if (node && node != LDNS_RBTREE_NULL) {
-        task_delfunc(node->left);
-        task_delfunc(node->right);
+        task_delfunc2(node->left);
+        task_delfunc2(node->right);
     }
 }
 
