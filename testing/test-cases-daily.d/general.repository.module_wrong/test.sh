@@ -13,10 +13,10 @@ else
 fi &&
 
 ! ods_start_enforcer &&
-syslog_waitfor 10 'ods-enforcerd: .*PKCS#11 module load failed: '"$INSTALL_ROOT/var/libsofthsm.so" &&
+syslog_waitfor 10 'ods-enforcerd: .*PKCS#11 module load failed: '"$INSTALL_ROOT/var/libsofthsm2.so" &&
 
 ! ods_start_signer &&
-syslog_waitfor 10 'ods-signerd: .*\[hsm\].*PKCS#11 module load failed: '"$INSTALL_ROOT/var/libsofthsm.so" &&
+syslog_waitfor 10 'ods-signerd: .*\[hsm\].*PKCS#11 module load failed: '"$INSTALL_ROOT/var/libsofthsm2.so" &&
 
 ! pgrep -u `id -u` '(ods-enforcerd|ods-signerd)' >/dev/null 2>/dev/null &&
 return 0
