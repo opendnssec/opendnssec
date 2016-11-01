@@ -11,8 +11,10 @@ BIND9_NAMED_PORT=10053
 BIND9_NAMED_RNDC_PORT=10953
 BIND9_NAMED_CONF=$BIND9_NAMED_CONFDIR/named.conf
 
+cp bind-zonefile bind9/ods
+
 case "$DISTRIBUTION" in
-	redhat|suse )
+	redhat|suse|slackware )
 		append_path /usr/sbin
 		;;
 esac

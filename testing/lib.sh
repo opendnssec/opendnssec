@@ -293,29 +293,6 @@ find_wget ()
 	return 1
 }
 
-find_ccache ()
-{
-	local ccache
-	local program
-	local path
-
-	for program in ccache; do
-		ccache=`find_program "$program"`
-		if [ -n "$ccache" ]; then
-			export CCACHE="$ccache"
-			for path in /usr/lib64/ccache /usr/lib/ccache /usr/local/lib64/ccache /usr/local/lib/ccache; do
-				if [ -d "$path" ]; then
-					prepend_path "$path"
-					break
-				fi
-			done
-			return 0
-		fi
-	done
-
-	return 1
-}
-
 find_cc ()
 {
 	local cc
@@ -325,22 +302,6 @@ find_cc ()
 		cc=`find_program "$program"`
 		if [ -n "$cc" ]; then
 			export CC="$cc"
-			return 0
-		fi
-	done
-
-	return 1
-}
-
-find_cxx ()
-{
-	local cxx
-	local program
-
-	for program in c++ g++; do
-		cxx=`find_program "$program"`
-		if [ -n "$cxx" ]; then
-			export CXX="$cxx"
 			return 0
 		fi
 	done
@@ -623,9 +584,7 @@ init ()
 	find_md5sum || exit 1
 	find_sha1sum || exit 1
 	find_sha256sum || exit 1
-	find_ccache # ccache needs to be found before cc/cxx
 	find_cc || exit 1
-	find_cxx || exit 1
 	find_tee || exit 1
 	find_date || exit 1
 	find_tail || exit 1
@@ -2031,6 +1990,11 @@ apply_parameter ()
 		sed 's%@'"$parameter_tag"'@%'"$parameter_value"'%g' "$file" > "$file.$$" &&
 		mv "$file.$$" "$file" ||
 		{
+			ps ux
+			sed 's%@'"$parameter_tag"'@%'"$parameter_value"'%g' "$file" >&2
+			echo $? >&2
+			ls -l "$file.$$" "$file" >&2
+			echo $? >&2
 			echo "apply_parameter: Unable to apply parameter $parameter_tag value $parameter_value to file $file" >&2
 			return 1
 		}
