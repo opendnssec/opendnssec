@@ -51,7 +51,7 @@
  * \return ods_status status
  *
  */
-ods_status lhsm_get_key(hsm_ctx_t* ctx, ldns_rdf* owner, key_type* key_id);
+ods_status lhsm_get_key(hsm_ctx_t* ctx, ldns_rdf* owner, key_type* key_id, int skip_hsm_access);
 
 /**
  * Get RRSIG from one of the HSMs, given a RRset and a key.
