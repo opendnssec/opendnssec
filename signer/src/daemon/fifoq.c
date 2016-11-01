@@ -30,7 +30,7 @@
  */
 
 #include "config.h"
-#include "scheduler/fifoq.h"
+#include "daemon/fifoq.h"
 #include "log.h"
 
 #include <ldns/ldns.h>
