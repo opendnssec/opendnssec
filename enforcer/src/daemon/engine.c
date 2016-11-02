@@ -38,7 +38,6 @@
 #include "clientpipe.h"
 #include "locks.h"
 #include "daemon/engine.h"
-#include "daemon/worker.h"
 #include "scheduler/schedule.h"
 #include "scheduler/task.h"
 #include "file.h"
@@ -167,7 +166,7 @@ engine_create_workers(engine_type* engine)
         (size_t)engine->config->num_worker_threads * sizeof(worker_type*));
     for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
         asprintf(&name, "worker[%d]", i+1);
-        engine->workers[i] = worker_create(name);
+        engine->workers[i] = worker_create(name, engine->taskq);
     }
 }
 
@@ -181,8 +180,12 @@ engine_start_workers(engine_type* engine)
     ods_log_debug("[%s] start workers", engine_str);
     for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
         engine->workers[i]->need_to_exit = 0;
-        engine->workers[i]->engine = (struct engine_struct*) engine;
-        janitor_thread_create(&engine->workers[i]->thread_id, workerthreadclass, (janitor_runfn_t)worker_start, engine->workers[i]);
+        engine->workers[i]->context = get_database_connection(engine->dbcfg_list);
+        if (!engine->workers[i]->context) {
+            ods_log_crit("Failed to start worker, could not connect to database");
+        } else {
+            janitor_thread_create(&engine->workers[i]->thread_id, workerthreadclass, (janitor_runfn_t)worker_start, engine->workers[i]);
+        }
     }
 }
 
@@ -203,7 +206,7 @@ engine_stop_workers(engine_type* engine)
     for (i=0; i < engine->config->num_worker_threads; i++) {
         ods_log_debug("[%s] join worker %i", engine_str, i+1);
         janitor_thread_join(engine->workers[i]->thread_id);
-        engine->workers[i]->engine = NULL;
+        db_connection_free(engine->workers[i]->context);
     }
 }
 
@@ -551,7 +554,7 @@ engine_teardown(engine_type* engine)
         }
         free(engine->workers);
         engine->workers = NULL;
-    }
+    } 
     if (engine->cmdhandler) {
         cmdhandler_cleanup(engine->cmdhandler);
         engine->cmdhandler = NULL;

@@ -35,7 +35,6 @@
 #include "config.h"
 #include "daemon/cfg.h"
 #include "daemon/cmdhandler.h"
-#include "daemon/worker.h"
 #include "scheduler/task.h"
 #include "db/db_configuration.h"
 #include "db/db_connection.h"

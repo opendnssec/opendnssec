@@ -41,8 +41,7 @@ typedef struct engine_struct engine_type;
 #include "daemon/cmdhandler.h"
 #include "daemon/dnshandler.h"
 #include "daemon/xfrhandler.h"
-#include "daemon/worker.h"
-#include "daemon/fifoq.h"
+#include "scheduler/worker.h"
 #include "scheduler/schedule.h"
 #include "status.h"
 #include "locks.h"
@@ -59,7 +58,6 @@ struct engine_struct {
     worker_type** drudgers;
     zonelist_type* zonelist;
     schedule_type* taskq;
-    fifoq_type* signq;
     cmdhandler_type* cmdhandler;
     dnshandler_type* dnshandler;
     xfrhandler_type* xfrhandler;

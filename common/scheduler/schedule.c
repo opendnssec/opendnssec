@@ -43,6 +43,7 @@
 
 #include "scheduler/schedule.h"
 #include "scheduler/task.h"
+#include "scheduler/fifoq.h"
 #include "duration.h"
 #include "log.h"
 #include "locks.h"
@@ -218,6 +219,8 @@ schedule_create()
     pthread_cond_init(&schedule->schedule_cond, NULL);
     schedule->num_waiting = 0;
     
+    CHECKALLOC(schedule->signq = fifoq_create());
+
     return schedule;
 }
 
@@ -238,6 +241,7 @@ schedule_cleanup(schedule_type* schedule)
         ldns_rbtree_free(schedule->tasks_by_name);
         schedule->tasks = NULL;
     }
+    fifoq_cleanup(schedule->signq);
     pthread_mutex_destroy(&schedule->schedule_lock);
     pthread_cond_destroy(&schedule->schedule_cond);
     free(schedule);
@@ -554,7 +558,7 @@ void
 schedule_release_all(schedule_type* schedule)
 {
     pthread_mutex_lock(&schedule->schedule_lock);
-        pthread_cond_broadcast(&schedule->schedule_cond);
+    pthread_cond_broadcast(&schedule->schedule_cond);
     pthread_mutex_unlock(&schedule->schedule_lock);
 }
 
