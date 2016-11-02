@@ -24,14 +24,8 @@
  *
  */
 
-/**
- * The hard workers.
- *
- */
-
-#include "daemon/engine.h"
-#include "daemon/worker.h"
 #include "scheduler/schedule.h"
+#include "scheduler/worker.h"
 #include "scheduler/task.h"
 #include "log.h"
 #include "status.h"
@@ -42,20 +36,17 @@
  *
  */
 worker_type*
-worker_create(char* name)
+worker_create(char* name, schedule_type* taskq)
 {
     worker_type* worker;
-
-    worker = (worker_type*) malloc( sizeof(worker_type) );
-    if (!worker) {
-        return NULL;
-    }
-
-    ods_log_debug("create %s", name);
+    CHECKALLOC(worker = (worker_type*) malloc(sizeof(worker_type)));
     worker->name = name;
-    worker->engine = NULL;
     worker->need_to_exit = 0;
-    worker->dbconn = NULL;
+    worker->context = NULL;
+    worker->taskq = taskq;
+    worker->tasksOutstanding = 0;
+    worker->tasksFailed = 0;
+    pthread_cond_init(&worker->tasksBlocker, NULL);
     return worker;
 }
 
@@ -69,25 +60,20 @@ worker_start(worker_type* worker)
     ods_log_assert(worker);
     task_type *task;
 
-    worker->dbconn = get_database_connection(worker->engine->dbcfg_list);
-    if (!worker->dbconn) {
-        ods_log_crit("Failed to start worker, could not connect to database");
-        return;
-    }
     while (worker->need_to_exit == 0) {
         ods_log_debug("[%s]: report for duty", worker->name);
 
         /* When no task available this call blocks and waits for event.
          * Then it will return NULL; */
-        task = schedule_pop_task(worker->engine->taskq);
+        task = schedule_pop_task(worker->taskq);
         if (task) {
             ods_log_debug("[%s] start working", worker->name);
-            task_perform(worker->engine->taskq, task, worker->dbconn);
+            task_perform(worker->taskq, task, worker->context);
             ods_log_debug("[%s] finished working", worker->name);
         }
     }
-    db_connection_free(worker->dbconn);
 }
+
 
 /**
  * Clean up worker.
@@ -96,7 +82,8 @@ worker_start(worker_type* worker)
 void
 worker_cleanup(worker_type* worker)
 {
-    // TODO What about its db connection?
-    free(worker->name);
+    if (!worker) {
+        return;
+    }
     free(worker);
 }

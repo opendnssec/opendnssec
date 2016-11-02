@@ -55,7 +55,6 @@ typedef struct engine_struct engine_type;
 struct engine_struct {
     engineconfig_type* config;
     worker_type** workers;
-    worker_type** drudgers;
     zonelist_type* zonelist;
     schedule_type* taskq;
     cmdhandler_type* cmdhandler;
