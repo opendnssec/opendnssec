@@ -71,7 +71,7 @@ struct task_struct {
     /* if returned time >= 0 the task is rescheduled for that time.
      * keeping context. otherwise scheduler will free context, owner,
      * and task. */
-    time_t (*callback)(char const *owner, void *userdata, void *context);
+    time_t (*callback)(task_type* task, char const *owner, void *userdata, void *context);
 
     /* Context passed to callback. */
     void *userdata;
@@ -113,7 +113,7 @@ extern const char* TASK_WRITE;
  */
 task_type*
 task_create(const char *owner, char const *class, char const *type,
-    time_t (*callback)(char const *owner, void* userdata, void *context),
+    time_t (*callback)(task_type* task, char const *owner, void* userdata, void *context),
     void *userdata, void (*freedata)(void *userdata), time_t due_date);
 
 /* Free task, owner, and context */
