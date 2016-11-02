@@ -560,6 +560,7 @@ schedule_release_all(schedule_type* schedule)
     pthread_mutex_lock(&schedule->schedule_lock);
     pthread_cond_broadcast(&schedule->schedule_cond);
     pthread_mutex_unlock(&schedule->schedule_lock);
+    fifoq_notifyall(schedule->signq);
 }
 
 void

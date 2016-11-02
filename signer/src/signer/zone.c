@@ -40,6 +40,7 @@
 #include "signer/zone.h"
 #include "wire/netio.h"
 #include "compat.h"
+#include "daemon/signertasks.h"
 
 #include <ldns/ldns.h>
 
@@ -1083,6 +1084,7 @@ zone_recover2(zone_type* zone)
                 "create task", zone_str, zone->name);
             goto recover_error2;
         }
+        task->lock = &zone->zone_lock;
         zone->task = task;
         free((void*)filename);
         ods_fclose(fd);

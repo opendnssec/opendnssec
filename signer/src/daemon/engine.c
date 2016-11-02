@@ -285,13 +285,13 @@ engine_create_workers(engine_type* engine)
     ods_log_assert(engine->config);
     numTotalWorkers = engine->config->num_worker_threads + engine->config->num_signer_threads;
     CHECKALLOC(engine->workers = (worker_type**) malloc(numTotalWorkers * sizeof(worker_type*)));
-    for (i=0; i < engine->config->num_worker_threads; i++,threadCount++) {
+    for (i=0; i < engine->config->num_worker_threads; i++) {
         asprintf(&name, "worker[%d]", i+1);
-        engine->workers[threadCount] = worker_create(name, engine->taskq);
+        engine->workers[threadCount++] = worker_create(name, engine->taskq);
     }
-    for (i=0; i < engine->config->num_signer_threads; i++,threadCount++) {
+    for (i=0; i < engine->config->num_signer_threads; i++) {
         asprintf(&name, "drudger[%d]", i+1);
-        engine->workers[threadCount] = worker_create(name, engine->taskq);
+        engine->workers[threadCount++] = worker_create(name, engine->taskq);
     }
 }
 
@@ -333,7 +333,6 @@ engine_stop_threads(engine_type* engine)
     }
     ods_log_debug("[%s] notify workers and drudgers", engine_str);
     schedule_release_all(engine->taskq);
-    fifoq_notifyall(engine->signq);
 
     for (i=0; i < numTotalWorkers; i++) {
         ods_log_debug("[%s] join worker %d", engine_str, i+1);
@@ -715,6 +714,7 @@ engine_update_zones(engine_type* engine, ods_status zl_changed)
             }
             /* create task */
             task = task_create(strdup(zone->name), TASK_CLASS_SIGNER, TASK_SIGNCONF, worker_perform_task, zone, NULL, now);
+            task->lock = &zone->zone_lock;
             pthread_mutex_unlock(&zone->zone_lock);
             if (!task) {
                 ods_log_crit("[%s] unable to create task for zone %s: "
