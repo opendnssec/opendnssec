@@ -790,6 +790,7 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
             if ((status = rrset_getliteralrr(&rrsig, zone->signconf->dnskey_signature[i], duration2time(zone->signconf->dnskey_ttl), zone->apex)) != ODS_STATUS_OK) {
                     ods_log_error("[%s] unable to publish dnskeys for zone %s: "
                             "error decoding literal dnskey", rrset_str, zone->name);
+                    ldns_rr_list_deep_free(rr_list_clone);
                     return status;
             }
             /* Add signature */
@@ -805,7 +806,7 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
     }
     /* RRset signing completed */
     ldns_rr_list_free(rr_list);
-    ldns_rr_list_free(rr_list_clone);
+    ldns_rr_list_deep_free(rr_list_clone);
     pthread_mutex_lock(&zone->stats->stats_lock);
     if (rrset->rrtype == LDNS_RR_TYPE_SOA) {
         zone->stats->sig_soa_count += newsigs;
