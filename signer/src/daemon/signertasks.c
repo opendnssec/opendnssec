@@ -219,6 +219,9 @@ worker_perform_task(task_type* task, const char* zonename, void* zonearg, void* 
                 if (hsm_check_context()) {
                     ods_log_error("signer instructed to reload due to hsm reset in read task");
                     engine->need_to_reload = 1;
+                    pthread_mutex_lock(&engine->signal_lock);
+                    pthread_cond_signal(&engine->signal_cond);
+                    pthread_mutex_unlock(&engine->signal_lock);
                     status = ODS_STATUS_ERR;
                 } else {
                     status = tools_input(zone);
@@ -277,6 +280,9 @@ worker_perform_task(task_type* task, const char* zonename, void* zonearg, void* 
             if (hsm_check_context()) {
                 ods_log_error("signer instructed to reload due to hsm reset in sign task");
                 engine->need_to_reload = 1;
+                pthread_mutex_lock(&engine->signal_lock);
+                pthread_cond_signal(&engine->signal_cond);
+                pthread_mutex_unlock(&engine->signal_lock);
                 goto task_perform_fail;
             }
             /* prepare keys */
