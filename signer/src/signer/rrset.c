@@ -740,9 +740,9 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
         /** We know this key doesn't sign the set, but only if 
          * n_sig < n_active_keys we should sign. If we already counted active
          * keys for this algorithm sjip counting step */
+        keycount = 0;
         if (algorithm != zone->signconf->keys->keys[i].algorithm) {
             algorithm = zone->signconf->keys->keys[i].algorithm;
-            keycount = 0;
             for (j = 0; j < zone->signconf->keys->count; j++) {
                 if (zone->signconf->keys->keys[j].algorithm == algorithm &&
                         zone->signconf->keys->keys[j].zsk) /* is active */
