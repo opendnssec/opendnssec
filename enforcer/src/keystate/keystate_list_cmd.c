@@ -32,6 +32,7 @@
 #include "daemon/cmdhandler.h"
 #include "daemon/engine.h"
 #include "file.h"
+#include "duration.h"
 #include "log.h"
 #include "str.h"
 #include "clientpipe.h"

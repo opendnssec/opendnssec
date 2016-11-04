@@ -35,7 +35,7 @@ AC_DEFUN([ACX_SSL], [
             if test x_$ssldir = x_/usr/sfw; then
                 SSL_LIBS="$SSL_LIBS -R$ssldir/lib";
             fi
-            AC_CHECK_LIB(crypto, HMAC_CTX_init,, [
+            AC_CHECK_LIB(crypto, HMAC_CTX_reset,, [
                     AC_MSG_ERROR([OpenSSL found in $ssldir, but version 0.9.7 or higher is required])
             ])
             AC_CHECK_FUNCS([EVP_sha1 EVP_sha256])

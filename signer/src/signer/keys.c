@@ -169,6 +169,7 @@ key_delfunc(key_type* key)
     /* ldns_rr_free(key->dnskey); */
     hsm_sign_params_free(key->params);
     free((void*) key->locator);
+    ldns_rr_free(key->dnskey);
 }
 
 

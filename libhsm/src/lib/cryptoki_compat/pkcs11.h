@@ -1186,7 +1186,7 @@ struct ck_c_initialize_args
 #define CKR_MUTEX_BAD				(0x1a0)
 #define CKR_MUTEX_NOT_LOCKED			(0x1a1)
 #define CKR_FUNCTION_REJECTED			(0x200)
-#define CKR_VENDOR_DEFINED			((unsigned long) (1 << 31))
+#define CKR_VENDOR_DEFINED			(0x80000000)
 
 
 
