@@ -126,7 +126,11 @@ static void
 cleanup_context(void *data)
 {
     HMAC_CTX* context = (HMAC_CTX*) data;
+#ifdef HAVE_SSL_NEW_HMAC
+    HMAC_CTX_free(context);
+#else
     HMAC_CTX_cleanup(context);
+#endif
 }
 
 static void
@@ -146,8 +150,13 @@ static void*
 create_context()
 {
     HMAC_CTX* context;
+#ifdef HAVE_SSL_NEW_HMAC
+    CHECKALLOC(context = HMAC_CTX_new());
+    HMAC_CTX_reset(context);
+#else
     CHECKALLOC(context = (HMAC_CTX*) malloc(sizeof(HMAC_CTX)));
     HMAC_CTX_init(context);
+#endif
     context_add_cleanup(context);
     return context;
 }
