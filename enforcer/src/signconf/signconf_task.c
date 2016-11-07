@@ -37,7 +37,7 @@
 static const char *module_str = "signconf_cmd";
 
 static time_t
-perform(char const *zonename, void *userdata, void *context)
+perform(task_type* task, char const *zonename, void *userdata, void *context)
 {
     (void)userdata;
     int ret;

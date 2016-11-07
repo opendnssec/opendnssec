@@ -43,6 +43,7 @@
 
 #include "scheduler/schedule.h"
 #include "scheduler/task.h"
+#include "scheduler/fifoq.h"
 #include "duration.h"
 #include "log.h"
 #include "locks.h"
@@ -218,6 +219,8 @@ schedule_create()
     pthread_cond_init(&schedule->schedule_cond, NULL);
     schedule->num_waiting = 0;
     
+    CHECKALLOC(schedule->signq = fifoq_create());
+
     return schedule;
 }
 
@@ -238,6 +241,7 @@ schedule_cleanup(schedule_type* schedule)
         ldns_rbtree_free(schedule->tasks_by_name);
         schedule->tasks = NULL;
     }
+    fifoq_cleanup(schedule->signq);
     pthread_mutex_destroy(&schedule->schedule_lock);
     pthread_cond_destroy(&schedule->schedule_cond);
     free(schedule);
@@ -398,6 +402,7 @@ schedule_task(schedule_type* schedule, task_type* task, int replace, int log)
             task_destroy(task);
             ods_log_assert(ldns_rbtree_insert(schedule->tasks, node1));
             ods_log_assert(ldns_rbtree_insert(schedule->tasks_by_name, node2));
+            task = existing_task;
         }
     }
     if (status == ODS_STATUS_OK) {
@@ -420,7 +425,7 @@ schedule_task(schedule_type* schedule, task_type* task, int replace, int log)
  * \param[in] schedule schedule
  * \return task_type* first scheduled task, NULL on no task or error.
  */
-task_type*
+static task_type*
 unschedule_task(schedule_type* schedule, task_type* task)
 {
     ldns_rbnode_t* del_node = LDNS_RBTREE_NULL;
@@ -450,6 +455,14 @@ unschedule_task(schedule_type* schedule, task_type* task)
         schedule->flushcount--;
     }
     return del_task;
+}
+
+task_type*
+schedule_unschedule(schedule_type* schedule, task_type* task)
+{
+    pthread_mutex_lock(&schedule->schedule_lock);
+    unschedule_task(schedule, task);
+    pthread_mutex_unlock(&schedule->schedule_lock);
 }
 
 task_type*
@@ -554,8 +567,9 @@ void
 schedule_release_all(schedule_type* schedule)
 {
     pthread_mutex_lock(&schedule->schedule_lock);
-        pthread_cond_broadcast(&schedule->schedule_cond);
+    pthread_cond_broadcast(&schedule->schedule_cond);
     pthread_mutex_unlock(&schedule->schedule_lock);
+    fifoq_notifyall(schedule->signq);
 }
 
 void

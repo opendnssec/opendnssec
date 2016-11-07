@@ -32,8 +32,8 @@
 #ifndef DAEMON_WORKER_H
 #define DAEMON_WORKER_H
 
+#include "janitor.h"
 #include "scheduler/task.h"
-#include "db/db_connection.h"
 
 //~ #include <time.h>
 
@@ -42,11 +42,13 @@ struct engine_struct;
 typedef struct worker_struct worker_type;
 struct worker_struct {
     char* name;
-    int thread_num;
+    schedule_type* taskq;
     janitor_thread_t thread_id;
-    struct engine_struct* engine;
     int need_to_exit;
-    db_connection_t* dbconn;
+    void* context;
+    int tasksOutstanding;
+    int tasksFailed;
+    pthread_cond_t tasksBlocker;
 };
 
 /**
@@ -56,7 +58,7 @@ struct worker_struct {
  * \return worker_type* created worker
  *
  */
-worker_type* worker_create(char* name);
+worker_type* worker_create(char* name, schedule_type* taskq);
 
 /**
  * Start working.
