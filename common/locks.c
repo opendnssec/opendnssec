@@ -193,7 +193,7 @@ alertsyslog(const char* format, ...)
     } else {
         strcpy(&buffer.buffer[buffer.index - strlen("...\n") -1], "...\n");
     }
-    write(2, buffer.buffer, strlen(buffer.buffer));
+    (void)write(2, buffer.buffer, strlen(buffer.buffer));
     syslog(LOG_CRIT, "%s", buffer.buffer);
 }
 
