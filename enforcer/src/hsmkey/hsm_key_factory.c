@@ -403,7 +403,7 @@ void hsm_key_factory_generate_all(engine_type* engine, const db_connection_t* co
 }
 
 static time_t
-hsm_key_factory_generate_cb(char const *owner, void* userdata, void* context)
+hsm_key_factory_generate_cb(task_type* task, char const *owner, void* userdata, void* context)
 {
     struct __hsm_key_factory_task* task2;
     policy_t* policy;
@@ -434,7 +434,7 @@ hsm_key_factory_generate_cb(char const *owner, void* userdata, void* context)
 }
 
 static time_t
-hsm_key_factory_generate_policy_cb(char const *owner, void *userdata,
+hsm_key_factory_generate_policy_cb(task_type* task, char const *owner, void *userdata,
     void *context)
 {
     struct __hsm_key_factory_task* task2;
@@ -455,7 +455,7 @@ hsm_key_factory_generate_policy_cb(char const *owner, void *userdata,
 }
 
 static time_t
-hsm_key_factory_generate_all_cb(char const *owner, void *userdata,
+hsm_key_factory_generate_all_cb(task_type* task, char const *owner, void *userdata,
     void* context)
 {
     struct __hsm_key_factory_task* task2;

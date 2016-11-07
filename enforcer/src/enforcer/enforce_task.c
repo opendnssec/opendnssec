@@ -135,7 +135,7 @@ perform_enforce(int sockfd, engine_type *engine, char const *zonename,
 }
 
 time_t
-enforce_task_perform(char const *owner, void *userdata, void *context)
+enforce_task_perform(task_type* task, char const *owner, void *userdata, void *context)
 {
     db_connection_t* dbconn = (db_connection_t*) context;
     return perform_enforce(-1, (engine_type *)userdata, owner, dbconn);

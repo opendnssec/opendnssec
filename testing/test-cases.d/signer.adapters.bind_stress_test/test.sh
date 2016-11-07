@@ -2,6 +2,8 @@
 
 #TEST: Stresstest OpenDNSSEC: Many notifies and no updates may go missing.
 
+PATH=$PATH:/usr/sbin
+
 # Start with some BIND9 config
 BIND9_TEST_ROOTDIR=`pwd`
 BIND9_NAMED_CONFDIR=$BIND9_TEST_ROOTDIR/bind9

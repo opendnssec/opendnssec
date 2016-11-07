@@ -44,6 +44,7 @@
 #include "signer/zonelist.h"
 #include "wire/tsig.h"
 #include "libhsm.h"
+#include "signertasks.h"
 
 #include <errno.h>
 #include <libxml/parser.h>
@@ -73,13 +74,11 @@ engine_create(void)
     CHECKALLOC(engine = (engine_type*) malloc(sizeof(engine_type)));
     engine->config = NULL;
     engine->workers = NULL;
-    engine->drudgers = NULL;
     engine->cmdhandler = NULL;
     engine->cmdhandler_done = 0;
     engine->dnshandler = NULL;
     engine->xfrhandler = NULL;
     engine->taskq = NULL;
-    engine->signq = NULL;
     engine->pid = -1;
     engine->uid = -1;
     engine->gid = -1;
@@ -95,11 +94,6 @@ engine_create(void)
     }
     engine->taskq = schedule_create();
     if (!engine->taskq) {
-        engine_cleanup(engine);
-        return NULL;
-    }
-    engine->signq = fifoq_create();
-    if (!engine->signq) {
         engine_cleanup(engine);
         return NULL;
     }
@@ -285,25 +279,19 @@ engine_create_workers(engine_type* engine)
 {
     char* name;
     int i;
+    int numTotalWorkers;
+    int threadCount = 0;
     ods_log_assert(engine);
     ods_log_assert(engine->config);
-    CHECKALLOC(engine->workers = (worker_type**) malloc(((size_t)engine->config->num_worker_threads) * sizeof(worker_type*)));
+    numTotalWorkers = engine->config->num_worker_threads + engine->config->num_signer_threads;
+    CHECKALLOC(engine->workers = (worker_type**) malloc(numTotalWorkers * sizeof(worker_type*)));
     for (i=0; i < engine->config->num_worker_threads; i++) {
         asprintf(&name, "worker[%d]", i+1);
-        engine->workers[i] = worker_create(name);
+        engine->workers[threadCount++] = worker_create(name, engine->taskq);
     }
-}
-static void
-engine_create_drudgers(engine_type* engine)
-{
-    char* name;
-    int i;
-    ods_log_assert(engine);
-    ods_log_assert(engine->config);
-    CHECKALLOC(engine->drudgers = (worker_type**) malloc(((size_t)engine->config->num_signer_threads) * sizeof(worker_type*)));
     for (i=0; i < engine->config->num_signer_threads; i++) {
         asprintf(&name, "drudger[%d]", i+1);
-        engine->drudgers[i] = worker_create(name);
+        engine->workers[threadCount++] = worker_create(name, engine->taskq);
     }
 }
 
@@ -311,54 +299,44 @@ static void
 engine_start_workers(engine_type* engine)
 {
     int i;
+    int threadCount = 0;
+    struct worker_context* context;
     ods_log_assert(engine);
     ods_log_assert(engine->config);
     ods_log_debug("[%s] start workers", engine_str);
-    for (i=0; i < engine->config->num_worker_threads; i++) {
-        engine->workers[i]->need_to_exit = 0;
-        engine->workers[i]->engine = (void*) engine;
-        janitor_thread_create(&engine->workers[i]->thread_id, workerthreadclass, (janitor_runfn_t)worker_work, engine->workers[i]);
+    for (i=0; i < engine->config->num_worker_threads; i++,threadCount++) {
+        CHECKALLOC(context = malloc(sizeof(struct worker_context)));
+        context->engine = engine;
+        context->worker = engine->workers[threadCount];
+        context->signq = engine->taskq->signq;
+        engine->workers[threadCount]->need_to_exit = 0;
+        engine->workers[threadCount]->context = context;
+        janitor_thread_create(&engine->workers[threadCount]->thread_id, workerthreadclass, (janitor_runfn_t)worker_start, engine->workers[threadCount]);
+    }
+    for (i=0; i < engine->config->num_signer_threads; i++,threadCount++) {
+        engine->workers[threadCount]->need_to_exit = 0;
+        janitor_thread_create(&engine->workers[threadCount]->thread_id, workerthreadclass, (janitor_runfn_t)drudge, engine->workers[threadCount]);
     }
 }
-void
-engine_start_drudgers(engine_type* engine)
-{
-    int i = 0;
-    ods_log_assert(engine);
-    ods_log_assert(engine->config);
-    ods_log_debug("[%s] start drudgers", engine_str);
-    for (i=0; i < engine->config->num_signer_threads; i++) {
-        engine->drudgers[i]->need_to_exit = 0;
-        engine->drudgers[i]->engine = (void*) engine;
-        janitor_thread_create(&engine->drudgers[i]->thread_id, workerthreadclass, (janitor_runfn_t)worker_drudge, engine->drudgers[i]);
-    }
-}
+
 static void
 engine_stop_threads(engine_type* engine)
 {
     int i;
+    int numTotalWorkers;
     ods_log_assert(engine);
     ods_log_assert(engine->config);
     ods_log_debug("[%s] stop workers and drudgers", engine_str);
-    for (i=0; i < engine->config->num_worker_threads; i++) {
+    numTotalWorkers = engine->config->num_worker_threads + engine->config->num_signer_threads;
+    for (i=0; i < numTotalWorkers; i++) {
         engine->workers[i]->need_to_exit = 1;
-    }
-    for (i=0; i < engine->config->num_signer_threads; i++) {
-        engine->drudgers[i]->need_to_exit = 1;
     }
     ods_log_debug("[%s] notify workers and drudgers", engine_str);
     schedule_release_all(engine->taskq);
-    fifoq_notifyall(engine->signq);
 
-    for (i=0; i < engine->config->num_worker_threads; i++) {
+    for (i=0; i < numTotalWorkers; i++) {
         ods_log_debug("[%s] join worker %d", engine_str, i+1);
         janitor_thread_join(engine->workers[i]->thread_id);
-        engine->workers[i]->engine = NULL;
-    }
-    for (i=0; i < engine->config->num_signer_threads; i++) {
-        ods_log_debug("[%s] join drudger %d", engine_str, i+1);
-        janitor_thread_join(engine->drudgers[i]->thread_id);
-        engine->drudgers[i]->engine = NULL;
     }
 }
 
@@ -512,7 +490,6 @@ engine_setup(void)
     sigaction(SIGPIPE, &action, NULL);
     /* create workers/drudgers */
     engine_create_workers(engine);
-    engine_create_drudgers(engine);
     /* start cmd/dns/xfr handlers */
     engine_start_cmdhandler(engine);
     engine_start_dnshandler(engine);
@@ -561,7 +538,6 @@ engine_run(engine_type* engine, int single_run)
         return;
     }
     engine_start_workers(engine);
-    engine_start_drudgers(engine);
 
     while (!engine->need_to_exit && !engine->need_to_reload) {
         if (single_run) {
@@ -738,6 +714,7 @@ engine_update_zones(engine_type* engine, ods_status zl_changed)
             }
             /* create task */
             task = task_create(strdup(zone->name), TASK_CLASS_SIGNER, TASK_SIGNCONF, worker_perform_task, zone, NULL, now);
+            task->lock = &zone->zone_lock;
             pthread_mutex_unlock(&zone->zone_lock);
             if (!task) {
                 ods_log_crit("[%s] unable to create task for zone %s: "
@@ -927,7 +904,6 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
         /* start/reload */
         if (engine->need_to_reload) {
             ods_log_info("[%s] signer reloading", engine_str);
-            fifoq_wipe(engine->signq);
             engine->need_to_reload = 0;
         } else {
             ods_log_info("[%s] signer started (version %s), pid %u",
@@ -991,26 +967,21 @@ earlyexit:
 void
 engine_cleanup(engine_type* engine)
 {
-    size_t i = 0;
+    int i;
+    int numTotalWorkers;
 
     if (!engine) {
         return;
     }
+    numTotalWorkers = engine->config->num_worker_threads + engine->config->num_signer_threads;
     if (engine->workers && engine->config) {
-        for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
+        for (i=0; i < (size_t) numTotalWorkers; i++) {
             worker_cleanup(engine->workers[i]);
         }
         free(engine->workers);
     }
-    if (engine->drudgers && engine->config) {
-       for (i=0; i < (size_t) engine->config->num_signer_threads; i++) {
-           worker_cleanup(engine->drudgers[i]);
-       }
-       free(engine->drudgers);
-    }
     zonelist_cleanup(engine->zonelist);
     schedule_cleanup(engine->taskq);
-    fifoq_cleanup(engine->signq);
     cmdhandler_cleanup(engine->cmdhandler);
     dnshandler_cleanup(engine->dnshandler);
     xfrhandler_cleanup(engine->xfrhandler);

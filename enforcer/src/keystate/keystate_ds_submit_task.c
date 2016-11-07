@@ -39,7 +39,7 @@
 #include "keystate/keystate_ds_submit_task.h"
 
 static time_t
-keystate_ds_submit_task_perform(char const *zonename, void *userdata,
+keystate_ds_submit_task_perform(task_type* task, char const *zonename, void *userdata,
 	void* context)
 {
     db_connection_t* dbconn = (db_connection_t*) context;

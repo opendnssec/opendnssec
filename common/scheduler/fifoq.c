@@ -30,7 +30,7 @@
  */
 
 #include "config.h"
-#include "daemon/fifoq.h"
+#include "scheduler/fifoq.h"
 #include "log.h"
 
 #include <ldns/ldns.h>
@@ -81,7 +81,7 @@ fifoq_wipe(fifoq_type* q)
  *
  */
 void*
-fifoq_pop(fifoq_type* q, worker_type** worker)
+fifoq_pop(fifoq_type* q, void** context)
 {
     void* pop = NULL;
     size_t i = 0;
@@ -89,7 +89,7 @@ fifoq_pop(fifoq_type* q, worker_type** worker)
         return NULL;
     }
     pop = q->blob[0];
-    *worker = q->owner[0];
+    *context = q->owner[0];
     for (i = 0; i < q->count-1; i++) {
         q->blob[i] = q->blob[i+1];
         q->owner[i] = q->owner[i+1];
@@ -111,9 +111,9 @@ fifoq_pop(fifoq_type* q, worker_type** worker)
  *
  */
 ods_status
-fifoq_push(fifoq_type* q, void* item, worker_type* worker, int* tries)
+fifoq_push(fifoq_type* q, void* item, void* context, int* tries)
 {
-    if (!q || !item || !worker) {
+    if (!q || !item) {
         return ODS_STATUS_ASSERT_ERR;
     }
     if (q->count >= FIFOQ_MAX_COUNT) {
@@ -131,8 +131,7 @@ fifoq_push(fifoq_type* q, void* item, worker_type* worker, int* tries)
         return ODS_STATUS_UNCHANGED;
     }
     q->blob[q->count] = item;
-    assert(worker);
-    q->owner[q->count] = worker;
+    q->owner[q->count] = context;
     q->count += 1;
     if (q->count == 1) {
         ods_log_deeebug("[%s] threshold %lu reached, notify drudgers",
