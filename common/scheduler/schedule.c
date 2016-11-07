@@ -425,13 +425,6 @@ schedule_task(schedule_type* schedule, task_type* task, int replace, int log)
  * \param[in] schedule schedule
  * \return task_type* first scheduled task, NULL on no task or error.
  */
-task_type*
-schedule_unschedule(schedule_type* schedule, task_type* task)
-{
-    pthread_mutex_lock(&schedule->schedule_lock);
-    unschedule_task(schedule, task)
-    pthread_mutex_unlock(&schedule->schedule_lock);
-}
 static task_type*
 unschedule_task(schedule_type* schedule, task_type* task)
 {
@@ -462,6 +455,14 @@ unschedule_task(schedule_type* schedule, task_type* task)
         schedule->flushcount--;
     }
     return del_task;
+}
+
+task_type*
+schedule_unschedule(schedule_type* schedule, task_type* task)
+{
+    pthread_mutex_lock(&schedule->schedule_lock);
+    unschedule_task(schedule, task);
+    pthread_mutex_unlock(&schedule->schedule_lock);
 }
 
 task_type*
