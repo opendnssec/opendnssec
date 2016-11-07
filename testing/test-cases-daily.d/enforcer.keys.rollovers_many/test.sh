@@ -24,8 +24,8 @@ ods_reset_env -n &&
 
 echo "################## ZONE ADD ###########################" &&
 echo -n "LINE: ${LINENO} " && log_this 00_zone_add ods-enforcer zone add --zone \
-	ods --input $install_root/var/opendnssec/unsigned/ods.xml --policy Policy1 --signerconf \
-	$install_root/var/opendnssec/signconf/ods.xml &&
+	ods --input $INSTALL_ROOT/var/opendnssec/unsigned/ods.xml --policy Policy1 --signerconf \
+	$INSTALL_ROOT/var/opendnssec/signconf/ods.xml &&
 
 echo "################## PROPAGATE ###########################" &&
 echo -n "LINE: ${LINENO} " && visual_sleep 4 &&
