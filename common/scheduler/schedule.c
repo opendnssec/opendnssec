@@ -402,6 +402,7 @@ schedule_task(schedule_type* schedule, task_type* task, int replace, int log)
             task_destroy(task);
             ods_log_assert(ldns_rbtree_insert(schedule->tasks, node1));
             ods_log_assert(ldns_rbtree_insert(schedule->tasks_by_name, node2));
+            task = existing_task;
         }
     }
     if (status == ODS_STATUS_OK) {
@@ -424,7 +425,7 @@ schedule_task(schedule_type* schedule, task_type* task, int replace, int log)
  * \param[in] schedule schedule
  * \return task_type* first scheduled task, NULL on no task or error.
  */
-task_type*
+static task_type*
 unschedule_task(schedule_type* schedule, task_type* task)
 {
     ldns_rbnode_t* del_node = LDNS_RBTREE_NULL;
@@ -454,6 +455,14 @@ unschedule_task(schedule_type* schedule, task_type* task)
         schedule->flushcount--;
     }
     return del_task;
+}
+
+task_type*
+schedule_unschedule(schedule_type* schedule, task_type* task)
+{
+    pthread_mutex_lock(&schedule->schedule_lock);
+    unschedule_task(schedule, task);
+    pthread_mutex_unlock(&schedule->schedule_lock);
 }
 
 task_type*

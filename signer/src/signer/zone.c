@@ -248,7 +248,7 @@ zone_reschedule_task(zone_type* zone, schedule_type* taskq, task_id what)
     ods_log_assert(zone->name);
     ods_log_debug("[%s] reschedule task for zone %s", zone_str, zone->name);
     /* postpone a later task or bring forward an earlier task */
-    task = unschedule_task(taskq, zone->task);
+    task = schedule_unschedule(taskq, zone->task);
     if (task != NULL) {
         taskorder = sched_task_comparetype(zone->task, what, taskordering);
         if (taskorder != 0) {

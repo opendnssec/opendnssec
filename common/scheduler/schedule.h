@@ -118,7 +118,7 @@ ods_status schedule_task(schedule_type* schedule, task_type* task, int replace, 
  * \return task_type* task, if it was scheduled
  *
  */
-task_type* unschedule_task(schedule_type* schedule, task_type* task);
+task_type* schedule_unschedule(schedule_type* schedule, task_type* task);
 
 /**
  * Pop the first scheduled task that is due. If an item is directly

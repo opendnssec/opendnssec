@@ -46,7 +46,7 @@
 	</Keys>
 	
 	<Zone>
-		<PropagationDelay>PT0S</PropagationDelay>
+		<PropagationDelay>PT10S</PropagationDelay>
 		<SOA>
 			<TTL>PT0M</TTL>
 			<Minimum>PT0M</Minimum>
