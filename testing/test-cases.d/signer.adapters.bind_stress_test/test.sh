@@ -13,6 +13,12 @@ BIND9_NAMED_PORT=10053
 BIND9_NAMED_RNDC_PORT=10953
 BIND9_NAMED_CONF=$BIND9_NAMED_CONFDIR/named.conf
 
+if named -V | grep -q "^BIND 9.8.2rc1-RedHat" ; then
+	# This test will fail on old, no longer in LTS RedHat version
+	# that cannot be updated.  The bind actually core dumps
+	return 0
+fi
+
 case "$DISTRIBUTION" in
 	redhat|suse )
 		append_path /usr/sbin
