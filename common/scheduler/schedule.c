@@ -402,6 +402,7 @@ schedule_task(schedule_type* schedule, task_type* task, int replace, int log)
             task_destroy(task);
             ods_log_assert(ldns_rbtree_insert(schedule->tasks, node1));
             ods_log_assert(ldns_rbtree_insert(schedule->tasks_by_name, node2));
+            task = existing_task;
         }
     }
     if (status == ODS_STATUS_OK) {
