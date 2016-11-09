@@ -1189,6 +1189,7 @@ struct ck_c_initialize_args
 #define CKR_VENDOR_DEFINED			((unsigned long) (1 << 31))
 
 
+
 
 /* Compatibility layer.  */
 

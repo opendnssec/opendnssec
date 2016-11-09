@@ -215,7 +215,7 @@ int ods_find_arg_and_param(int *pargc, const char *argv[],
     /* check that the argv entry is not an option itself. */
     if (a[0] == '-') {
         *pvalue = NULL;
-        return i;
+        return -1;
     }
     /* set the value to the argv */
     *pvalue = a;

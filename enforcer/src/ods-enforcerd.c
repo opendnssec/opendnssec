@@ -37,6 +37,7 @@
 #include "daemon/engine.h"
 #include "log.h"
 #include "duration.h"
+#include "locks.h"
 #include "enforcer/autostart_cmd.h"
 #include "parser/confparser.h"
 

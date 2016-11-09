@@ -740,9 +740,9 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
         /** We know this key doesn't sign the set, but only if 
          * n_sig < n_active_keys we should sign. If we already counted active
          * keys for this algorithm sjip counting step */
+        keycount = 0;
         if (algorithm != zone->signconf->keys->keys[i].algorithm) {
             algorithm = zone->signconf->keys->keys[i].algorithm;
-            keycount = 0;
             for (j = 0; j < zone->signconf->keys->count; j++) {
                 if (zone->signconf->keys->keys[j].algorithm == algorithm &&
                         zone->signconf->keys->keys[j].zsk) /* is active */
@@ -790,6 +790,7 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
             if ((status = rrset_getliteralrr(&rrsig, zone->signconf->dnskey_signature[i], duration2time(zone->signconf->dnskey_ttl), zone->apex)) != ODS_STATUS_OK) {
                     ods_log_error("[%s] unable to publish dnskeys for zone %s: "
                             "error decoding literal dnskey", rrset_str, zone->name);
+                    ldns_rr_list_deep_free(rr_list_clone);
                     return status;
             }
             /* Add signature */
@@ -805,7 +806,7 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
     }
     /* RRset signing completed */
     ldns_rr_list_free(rr_list);
-    ldns_rr_list_free(rr_list_clone);
+    ldns_rr_list_deep_free(rr_list_clone);
     pthread_mutex_lock(&zone->stats->stats_lock);
     if (rrset->rrtype == LDNS_RR_TYPE_SOA) {
         zone->stats->sig_soa_count += newsigs;

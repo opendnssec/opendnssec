@@ -33,6 +33,7 @@
 #include "duration.h"
 #include "hsm.h"
 #include "locks.h"
+#include "util.h"
 #include "log.h"
 #include "status.h"
 #include "signer/tools.h"
