@@ -101,7 +101,7 @@ to_hex(const char *buf, int len, char *out)
  * when done.
  */
 static time_t 
-perform_policy_resalt(char const *policyname, void *userdata,
+perform_policy_resalt(task_type* task, char const *policyname, void *userdata,
 	void *context)
 {
 	policy_t *policy;
