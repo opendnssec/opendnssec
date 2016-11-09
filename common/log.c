@@ -147,7 +147,7 @@ ods_log_verbosity(void)
 	return log_level-2;
 }
 
-int
+void
 ods_log_setverbosity(int verbosity)
 {
     log_level = verbosity + 2;

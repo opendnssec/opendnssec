@@ -736,9 +736,9 @@ engine_update_zones(engine_type* engine, ods_status zl_changed)
             if (engine->config->notify_command && !zone->notify_ns) {
                 set_notify_ns(zone, engine->config->notify_command);
             }
+            pthread_mutex_unlock(&zone->zone_lock);
             /* create task */
             task = task_create(strdup(zone->name), TASK_CLASS_SIGNER, TASK_SIGNCONF, worker_perform_task, zone, NULL, now);
-            pthread_mutex_unlock(&zone->zone_lock);
             if (!task) {
                 ods_log_crit("[%s] unable to create task for zone %s: "
                     "task_create() failed", engine_str, zone->name);

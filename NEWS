@@ -13,6 +13,7 @@ UNRELEASED:
 * OPENDNSSEC-759: Reduce HSM access during ods-signerd start. Daemon should
   start quicker and earlier available for user input.
 * OPENDNSSEC-479: Transferring zones and sending notifies through a bound socket, using the same interface as listener
+* Various memory leaks
 
 OpenDNSSEC 2.0.1 - 2016-07-21
 
