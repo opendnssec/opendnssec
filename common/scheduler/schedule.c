@@ -159,6 +159,7 @@ task_delfunc2(ldns_rbnode_t* node)
     if (node && node != LDNS_RBTREE_NULL) {
         task_delfunc2(node->left);
         task_delfunc2(node->right);
+        free((void*)node);
     }
 }
 
@@ -304,7 +305,7 @@ schedule_purge_owner(schedule_type* schedule, char const *class,
          * tree. That is not save and might mess up our iteration. */
         node = ldns_rbtree_first(schedule->tasks_by_name);
         while (node != LDNS_RBTREE_NULL) {
-            task = node->key;
+            task = (task_type *) node->key;
             node = ldns_rbtree_next(node);
             if (!strcmp(task->owner, owner) && !strcmp(task->class, class)) {
                 tasks[num_tasks++] = task;

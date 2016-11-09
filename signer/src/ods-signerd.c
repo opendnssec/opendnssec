@@ -30,6 +30,7 @@
  */
 
 #include "config.h"
+#include "locks.h"
 #include "daemon/engine.h"
 
 #include <getopt.h>

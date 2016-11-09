@@ -176,7 +176,10 @@ ldns_pkcs11_rv_str(CK_RV rv)
             return "CKR_WRAPPING_KEY_TYPE_INCONSISTENT";
         case CKR_RANDOM_SEED_NOT_SUPPORTED:
             return "CKR_RANDOM_SEED_NOT_SUPPORTED";
-        case CKR_VENDOR_DEFINED:
+        /*CKR_VENDOR_DEFINED is not a constant but a macro which expands in to an */
+        /*expression. Which we are not allowed to use in a switch.*/
+        /*case CKR_VENDOR_DEFINED:*/
+        case 0x80000000:
             return "CKR_VENDOR_DEFINED";
         case CKR_BUFFER_TOO_SMALL:
             return "CKR_BUFFER_TOO_SMALL";

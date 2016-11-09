@@ -332,6 +332,7 @@ notify_send_udp(notify_type* notify, buffer_type* buffer)
     interface_type interface = notify->xfrhandler->engine->dnshandler->interfaces->interfaces[0];
     if (!interface.address) {
         ods_log_error("[%s] unable to get the address of interface", notify_str);
+        close(fd);
         return -1;
     }
     if (acl_parse_family(interface.address) == AF_INET) {
@@ -341,6 +342,7 @@ notify_send_udp(notify_type* notify, buffer_type* buffer)
         addr.sin_port = 0;
         if (bind(fd, (struct sockaddr *) &addr, sizeof(addr)) != 0) {
             ods_log_error("[%s] unable to bind address %s: bind failed %s", notify_str, interface.address, strerror(errno));
+            close(fd);
             return -1;
         }
     }
@@ -351,6 +353,7 @@ notify_send_udp(notify_type* notify, buffer_type* buffer)
         addr6.sin6_port = 0;
         if (bind(fd, (struct sockaddr *) &addr6, sizeof(addr6)) != 0) {
             ods_log_error("[%s] unable to bind address %s: bind() failed %s", notify_str, interface.address, strerror(errno));
+            close(fd);
             return -1;
         }
     }

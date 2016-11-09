@@ -67,7 +67,7 @@ void ods_log_init(const char *program_name, int use_syslog, const char *target_n
  * 
  */
 int ods_log_verbosity(void);
-int ods_log_setverbosity(int verbosity);
+void ods_log_setverbosity(int verbosity);
 
 /**
  * Close logging.

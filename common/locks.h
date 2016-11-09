@@ -44,6 +44,7 @@ typedef janitor_thread_t ods_thread_type;
 
 int ods_thread_wait(pthread_cond_t* cond, pthread_mutex_t* lock, time_t wait);
 
+void ods_janitor_initialize(char*argv0);
 extern janitor_threadclass_t detachedthreadclass;
 extern janitor_threadclass_t workerthreadclass;
 extern janitor_threadclass_t handlerthreadclass;

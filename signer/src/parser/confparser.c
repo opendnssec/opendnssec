@@ -302,6 +302,7 @@ parse_conf_listener(const char* cfgfile)
                 if (xmlStrEqual(curNode->name, (const xmlChar *)"Address")) {
                     address = (char *) xmlNodeGetContent(curNode);
                 } else if (xmlStrEqual(curNode->name, (const xmlChar *)"Port")) {
+                    free((char *)port);
                     port = (char *) xmlNodeGetContent(curNode);
                 }
                 curNode = curNode->next;

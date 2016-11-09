@@ -471,7 +471,7 @@ janitor_trapsignals(char* argv0)
     struct sigaction newsigaction;
 
 #ifdef HAVE_BACKTRACE_FULL
-    CHECKFAIL((state = backtrace_create_state(argv0, 0, &errorhandler, NULL)) == NULL);
+    CHECKFAIL((state = backtrace_create_state(argv0, 0, errorhandler, NULL)) == NULL);
 #else
     (void) argv0;
 #endif
