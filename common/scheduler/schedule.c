@@ -460,7 +460,11 @@ unschedule_task(schedule_type* schedule, task_type* task)
 task_type*
 schedule_unschedule(schedule_type* schedule, task_type* task)
 {
-    unschedule_task(schedule, task);
+    task_type* originalTask;
+    pthread_mutex_lock(&schedule->schedule_lock);
+    originalTask = unschedule_task(schedule, task);
+    pthread_mutex_unlock(&schedule->schedule_lock);
+    return originalTask;
 }
 
 task_type*
