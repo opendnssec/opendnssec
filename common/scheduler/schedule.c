@@ -486,7 +486,6 @@ schedule_pop_task(schedule_type* schedule)
         }
         task = unschedule_task(schedule, task);
     } else {
-        task = NULL;
         /* nothing to do now, sleep and wait for signal */
         schedule->num_waiting += 1;
         timeout = clamp((task ? (task->due_date - now) : 0),
@@ -494,6 +493,7 @@ schedule_pop_task(schedule_type* schedule)
                         ODS_SE_MAX_BACKOFF);
         ods_thread_wait(&schedule->schedule_cond, &schedule->schedule_lock, timeout);
         schedule->num_waiting -= 1;
+        task = NULL;
     }
     pthread_mutex_unlock(&schedule->schedule_lock);
     return task;
