@@ -83,6 +83,7 @@ task_create(const char *owner, char const *class, char const *type,
     task->lock = NULL;
 
     task->backoff = 0;
+    task->flush = 0;
 
     return task;
 }
@@ -202,7 +203,8 @@ task_log(task_type* task)
         if (strtime) {
             strtime[strlen(strtime)-1] = '\0';
         }
-        ods_log_debug("[%s] On %s I will %s zone %s", task_str,
-            strtime?strtime:"(null)", task->type, task->owner);
+        ods_log_debug("[%s] %s %s I will %s zone %s", task_str,
+            task->flush?"Flush":"On", strtime?strtime:"(null)",
+            task->type, task->owner);
     }
 }

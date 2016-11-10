@@ -61,15 +61,15 @@ worker_start(worker_type* worker)
     task_type *task;
 
     while (worker->need_to_exit == 0) {
-        ods_log_error("[%s]: report for duty", worker->name);
+        ods_log_debug("[%s]: report for duty", worker->name);
 
         /* When no task available this call blocks and waits for event.
          * Then it will return NULL; */
         task = schedule_pop_task(worker->taskq);
         if (task) {
-            ods_log_error("[%s] start working", worker->name);
+            ods_log_debug("[%s] start working", worker->name);
             task_perform(worker->taskq, task, worker->context);
-            ods_log_error("[%s] finished working", worker->name);
+            ods_log_debug("[%s] finished working", worker->name);
         }
     }
 }
