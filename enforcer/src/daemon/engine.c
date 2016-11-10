@@ -427,7 +427,7 @@ signal_handler(sig_atomic_t sig)
  *
  */
 ods_status
-engine_setup(start_cb_t start)
+engine_setup()
 {
     int fd, error, create_pipe;
     int pipefd[2];
@@ -508,7 +508,7 @@ engine_setup(start_cb_t start)
                     close(pipefd[1]);
                     read(pipefd[0], &buff, 1);
                     close(pipefd[0]);
-                    if (buff == '0') {
+                    if (buff == '1') {
                         ods_log_debug("[%s] enforcerd started successfully", engine_str);
                         exit(0);
                     }
@@ -520,10 +520,8 @@ engine_setup(start_cb_t start)
             if (setsid() == -1) {
                 ods_log_error("[%s] unable to setsid daemon (%s)",
                     engine_str, strerror(errno));
-                if(create_pipe) {
-                    write(pipefd[1], "1", 1);
-                    close(pipefd[1]);
-                }
+                write(pipefd[1], "0", 1);
+                close(pipefd[1]);
                 return ODS_STATUS_SETSID_ERR;
             }
         }
@@ -545,7 +543,7 @@ engine_setup(start_cb_t start)
         hsm_close();
         ods_log_error("[%s] unable to write pid file", engine_str);
         if (create_pipe) {
-            write(pipefd[1], "1", 1);
+            write(pipefd[1], "0", 1);
             close(pipefd[1]);
         }
         return ODS_STATUS_WRITE_PIDFILE_ERR;
@@ -562,19 +560,16 @@ engine_setup(start_cb_t start)
                 error);
         }
         if (create_pipe) {
-            write(pipefd[1], "1", 1);
+            write(pipefd[1], "0", 1);
             close(pipefd[1]);
         }
         return ODS_STATUS_HSM_ERR;
     }
     engine->need_to_reload = 0;
     engine_start_cmdhandler(engine);
-    engine_start_workers(engine);
 
-    /* call the external start callback function */
-    start(engine);
     if (create_pipe) {
-        write(pipefd[1], "0", 1);
+        write(pipefd[1], "1", 1);
         close(pipefd[1]);
     }
     return ODS_STATUS_OK;
@@ -643,11 +638,15 @@ engine_init(engine_type* engine, int daemonize)
  *
  */
 int
-engine_run(engine_type* engine, int single_run)
+engine_run(engine_type* engine, start_cb_t start, int single_run)
 {
     int error;
     ods_log_assert(engine);
-    
+
+    engine_start_workers(engine);
+
+    /* call the external start callback function */
+    start(engine);
 
     while (!engine->need_to_exit && !engine->need_to_reload) {
         if (single_run) {
