@@ -87,7 +87,6 @@ struct task_struct {
     pthread_mutex_t *lock;
 
     time_t backoff;
-    int flush;
 };
 
 extern const char* TASK_CLASS_ENFORCER;
