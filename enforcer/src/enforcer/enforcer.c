@@ -2414,7 +2414,7 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t const *polic
 			policy_parent_ds_ttl(policy) + policy_keys_ttl(policy) >=
 			policy_key_lifetime(pkey))
 		{
-			ods_log_crit("[%s] %s: For policy %s %s key lifetime of %d "
+			ods_log_error("[%s] %s: For policy %s %s key lifetime of %d "
 				"is unreasonably short with respect to sum of parent "
 				"TTL (%d) and key TTL (%d). Will not insert key!",
 				module_str, scmd, policy_name(policy), policy_key_role_text(pkey),
