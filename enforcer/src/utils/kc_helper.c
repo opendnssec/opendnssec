@@ -1609,7 +1609,7 @@ int check_conf(const char *conf, char **kasp, char **zonelist,
     /* Check signer workdirectory is not as same as the one of enforcer*/
     xexpr = (xmlChar *)"//Configuration/Signer/WorkingDirectory";
     xpath_obj = xmlXPathEvalExpression(xexpr, xpath_ctx);
-    if (NULL == xpath_obj) {
+    if (NULL == xpath_obj || xpath_obj->nodesetval->nodeNr == 0) {
         signer_dir = (char*) OPENDNSSEC_STATE_DIR "/signer";
         signer_dir_default = 1;
     }
@@ -1619,7 +1619,7 @@ int check_conf(const char *conf, char **kasp, char **zonelist,
     }
     xexpr = (xmlChar *)"//Configuration/Enforcer/WorkingDirectory";
     xpath_obj = xmlXPathEvalExpression(xexpr, xpath_ctx);
-    if (NULL == xpath_obj) {
+    if (NULL == xpath_obj || xpath_obj->nodesetval->nodeNr == 0) {
         enforcer_dir = (char*) OPENDNSSEC_STATE_DIR "/enforcer";
         enforcer_dir_default = 1;
     }
