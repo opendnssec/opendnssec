@@ -66,7 +66,6 @@ struct schedule_struct {
     /* For testing. So we can verify al workers are waiting and nothing
      * is to be done. Used by enforcer_idle. */
     int num_waiting;
-    int flushcount;
 };
 
 /**
