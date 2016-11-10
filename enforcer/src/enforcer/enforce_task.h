@@ -37,7 +37,7 @@
 
 task_type *enforce_task(engine_type *engine, char const *owner);
 
-time_t enforce_task_perform(char const *owner, void *context,
+time_t enforce_task_perform(task_type* task, char const *owner, void *context,
     void *dbconn);
 
 /* Schedule enforce tasks for *now* for zone. */

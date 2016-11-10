@@ -2,6 +2,8 @@
 
 #TEST: Stresstest OpenDNSSEC: Many notifies and no updates may go missing.
 
+PATH=$PATH:/usr/sbin
+
 # Start with some BIND9 config
 BIND9_TEST_ROOTDIR=`pwd`
 BIND9_NAMED_CONFDIR=$BIND9_TEST_ROOTDIR/bind9
@@ -11,7 +13,11 @@ BIND9_NAMED_PORT=10053
 BIND9_NAMED_RNDC_PORT=10953
 BIND9_NAMED_CONF=$BIND9_NAMED_CONFDIR/named.conf
 
-cp bind-zonefile bind9/ods
+if named -V | grep -q "^BIND 9.8.2rc1-RedHat" ; then
+	# This test will fail on old, no longer in LTS RedHat version
+	# that cannot be updated.  The bind actually core dumps
+	return 0
+fi
 
 case "$DISTRIBUTION" in
 	redhat|suse|slackware )
@@ -26,7 +32,7 @@ fi &&
 ods_reset_env &&
 
 ## Start master name server
-cp ods $BIND9_NAMED_RUNDIR/ods
+cp bind-zonefile bind9/ods
 ods_bind9_info &&
 ods_bind9_start &&
 
