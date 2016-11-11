@@ -14,7 +14,7 @@ UNRELEASED:
   start quicker and earlier available for user input.
 * OPENDNSSEC-479: Transferring zones and sending notifies through a bound socket, using the same interface as listener
 * Various memory leaks
-* OenDNSSEC-601: signer and enforcer working dir would not properly fallback to
+* OPENDNSSEC-601: signer and enforcer working dir would not properly fallback to
   default when not specified.
 
 OpenDNSSEC 2.0.1 - 2016-07-21
