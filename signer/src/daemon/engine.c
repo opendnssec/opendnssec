@@ -715,14 +715,13 @@ engine_update_zones(engine_type* engine, ods_status zl_changed)
             pthread_mutex_unlock(&zone->zone_lock);
             /* create task */
             task = task_create(strdup(zone->name), TASK_CLASS_SIGNER, TASK_SIGNCONF, worker_perform_task, zone, NULL, now);
-            task->lock = &zone->zone_lock;
-            pthread_mutex_unlock(&zone->zone_lock);
             if (!task) {
                 ods_log_crit("[%s] unable to create task for zone %s: "
                     "task_create() failed", engine_str, zone->name);
                 node = ldns_rbtree_next(node);
                 continue;
             }
+            task->lock = &zone->zone_lock;
         }
         /* load adapter config */
         status = adapter_load_config(zone->adinbound);
