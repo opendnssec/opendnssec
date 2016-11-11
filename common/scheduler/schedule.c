@@ -86,23 +86,6 @@ schedule_get_first_task(schedule_type* schedule)
     if (!first_node) {
         return NULL;
     }
-    if (schedule->flushcount > 0) {
-        /* find remaining to be flushed tasks */
-        node = first_node;
-        while (node && node != LDNS_RBTREE_NULL) {
-            pop = (task_type*) node->data;
-            if (pop->flush) {
-                return pop;
-            }
-            node = ldns_rbtree_next(node);
-        }
-        /* no more to be flushed tasks found */
-        ods_log_warning("[%s] unable to get first scheduled task: could not "
-            "find flush-task, while there should be %i flush-tasks left",
-            schedule_str, schedule->flushcount);
-        ods_log_info("[%s] reset flush count to 0", schedule_str);
-        schedule->flushcount = 0;
-    }
     /* no more tasks to be flushed, return first task in schedule */
     pop = (task_type*) first_node->data;
     return pop;
@@ -211,7 +194,6 @@ schedule_create()
         return NULL;
     }
 
-    schedule->flushcount = 0;
     schedule->tasks = ldns_rbtree_create(task_compare_time_then_ttuple);
     schedule->tasks_by_name = ldns_rbtree_create(task_compare_ttuple);
     schedule->locks_by_name = ldns_rbtree_create(task_compare_ttuple);
@@ -407,9 +389,6 @@ schedule_task(schedule_type* schedule, task_type* task, int replace, int log)
         }
     }
     if (status == ODS_STATUS_OK) {
-        if (task->flush) {
-            schedule->flushcount++;
-        }
         if (log) {
             task_log(task);
         }
@@ -451,10 +430,6 @@ unschedule_task(schedule_type* schedule, task_type* task)
             "scheduled", schedule_str, task->type, task->owner);
         return NULL;
     }
-    if (del_task->flush) {
-        del_task->flush = 0;
-        schedule->flushcount--;
-    }
     return del_task;
 }
 
@@ -476,14 +451,8 @@ schedule_pop_task(schedule_type* schedule)
 
     pthread_mutex_lock(&schedule->schedule_lock);
     task = schedule_get_first_task(schedule);
-    if (task && (task->flush || task->due_date <= now)) {
-        if (task->flush) {
-            ods_log_debug("[%s] flush task for zone %s", schedule_str,
-                task->owner);
-        } else {
-            ods_log_debug("[%s] pop task for zone %s", schedule_str,
-                task->owner);
-        }
+    if (task && (task->due_date <= now)) {
+        ods_log_debug("[%s] pop task for zone %s", schedule_str, task->owner);
         task = unschedule_task(schedule, task);
     } else {
         /* nothing to do now, sleep and wait for signal */
@@ -520,18 +489,29 @@ sched_flush(schedule_type* schedule, task_id override)
     if (!schedule || !schedule->tasks) return;
 
     pthread_mutex_lock(&schedule->schedule_lock);
-    node = ldns_rbtree_first(schedule->tasks);
-    while (node && node != LDNS_RBTREE_NULL) {
-        task = (task_type*) node->data;
-        task->flush = 1;
-        schedule->flushcount++;
-        if (override != TASK_NONE) {
-            task->type = override;
+    do {
+        node = ldns_rbtree_last(schedule->tasks);
+        if (node && node != LDNS_RBTREE_NULL) {
+            task = (task_type*) node->data;
+            if (task->due_date > time_now()) {
+                /* we only need to delete the node from the tasks tree as we
+                 * are immediately inserting it again.
+                 */
+                ldns_rbtree_delete(schedule->tasks, task);
+                task->due_date = time_now();
+                if (override != TASK_NONE) {
+                    task->type = override;
+                }
+                ldns_rbtree_insert(schedule->tasks, node);
+            } else {
+                /* the last in the ordered tree is already executing
+                 * immediately so this means that all of them are, we can abort
+                 * the loop as if we just hit the last one in the tree.
+                 */
+                node = NULL;
+            }
         }
-        ((task_type*) node->data)->due_date = 0;
-        node = ldns_rbtree_next(node);
-    }
-    /* wakeup! work to do! */
+    } while (node && node != LDNS_RBTREE_NULL);
     pthread_cond_signal(&schedule->schedule_cond);
     pthread_mutex_unlock(&schedule->schedule_lock);
 }
@@ -600,9 +580,8 @@ sched_describetask(task_type* task)
         }
         strtask = (char*) calloc(ODS_SE_MAXLINE, sizeof(char));
         if (strtask) {
-            snprintf(strtask, ODS_SE_MAXLINE, "%s %s I will %s zone %s\n",
-                    task->flush ? "Flush" : "On", strtime ? strtime : "(null)",
-                    task->type, task->owner);
+            snprintf(strtask, ODS_SE_MAXLINE, "On %s I will %s zone %s\n",
+                    strtime ? strtime : "(null)", task->type, task->owner);
             return strtask;
         } else {
             ods_log_error("unable to convert task to string: malloc error");
