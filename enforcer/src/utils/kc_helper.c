@@ -728,6 +728,12 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 				curkey->life, policy_name, ttl, maxzone_ttl);
 			status++;
 		}
+		if ((curkey->type & ZSK) && defalt > curkey->life) {
+                        dual_log("WARNING: ZSK/Lifetime (%d seconds) for policy '%s' "
+                                 "is less than Validity/Default (%d seconds), this might "
+                                 "be a configuration error.",
+                                curkey->life, policy_name, defalt);
+                }
 	}
 	/* For all policies, check that the "Re-sign" interval is less 
 	 * than the "Refresh" interval. */
