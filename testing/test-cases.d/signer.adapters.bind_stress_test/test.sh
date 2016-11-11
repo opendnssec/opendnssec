@@ -33,7 +33,7 @@ fi &&
 ods_reset_env &&
 
 ## Start master name server
-cp ods $BIND9_NAMED_RUNDIR/ods
+cp bind-zonefile bind9/ods
 ods_bind9_info &&
 ods_bind9_start &&
 
