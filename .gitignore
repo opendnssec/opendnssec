@@ -93,7 +93,9 @@ libtool
 /test-driver
 testing/junit.xml
 testing/test-cases.d/enforcer.timeleap.mongrel/base
-testing/test-cases.d/enforcer.ods-enforcer.zones_and_zonelist/zonelist.xml.import
 testing/test-cases.d/signer.zones.validate_many_zones/kasp.xml_orig
+testing/test-cases.d/enforcer.ods-enforcer.zones_and_zonelist/zonelist.xml.import
+testing/test-cases.d/enforcer.ods-enforcer.zones_and_zonelist/zonelist.xml.temp*
+testing/test-cases.d/enforcer.ods-enforcer.zones_and_zonelist/zonelist.xml.test_local
+testing/test-cases.d/signer.adapters.bind_stress_test/bind9/ods
 nbproject
-

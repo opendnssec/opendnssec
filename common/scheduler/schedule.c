@@ -43,6 +43,7 @@
 
 #include "scheduler/schedule.h"
 #include "scheduler/task.h"
+#include "scheduler/fifoq.h"
 #include "duration.h"
 #include "log.h"
 #include "locks.h"
@@ -159,6 +160,7 @@ task_delfunc2(ldns_rbnode_t* node)
     if (node && node != LDNS_RBTREE_NULL) {
         task_delfunc2(node->left);
         task_delfunc2(node->right);
+        free((void*)node);
     }
 }
 
@@ -218,6 +220,8 @@ schedule_create()
     pthread_cond_init(&schedule->schedule_cond, NULL);
     schedule->num_waiting = 0;
     
+    CHECKALLOC(schedule->signq = fifoq_create());
+
     return schedule;
 }
 
@@ -238,6 +242,7 @@ schedule_cleanup(schedule_type* schedule)
         ldns_rbtree_free(schedule->tasks_by_name);
         schedule->tasks = NULL;
     }
+    fifoq_cleanup(schedule->signq);
     pthread_mutex_destroy(&schedule->schedule_lock);
     pthread_cond_destroy(&schedule->schedule_cond);
     free(schedule);
@@ -304,7 +309,7 @@ schedule_purge_owner(schedule_type* schedule, char const *class,
          * tree. That is not save and might mess up our iteration. */
         node = ldns_rbtree_first(schedule->tasks_by_name);
         while (node != LDNS_RBTREE_NULL) {
-            task = node->key;
+            task = (task_type *) node->key;
             node = ldns_rbtree_next(node);
             if (!strcmp(task->owner, owner) && !strcmp(task->class, class)) {
                 tasks[num_tasks++] = task;
@@ -398,6 +403,7 @@ schedule_task(schedule_type* schedule, task_type* task, int replace, int log)
             task_destroy(task);
             ods_log_assert(ldns_rbtree_insert(schedule->tasks, node1));
             ods_log_assert(ldns_rbtree_insert(schedule->tasks_by_name, node2));
+            task = existing_task;
         }
     }
     if (status == ODS_STATUS_OK) {
@@ -420,7 +426,7 @@ schedule_task(schedule_type* schedule, task_type* task, int replace, int log)
  * \param[in] schedule schedule
  * \return task_type* first scheduled task, NULL on no task or error.
  */
-task_type*
+static task_type*
 unschedule_task(schedule_type* schedule, task_type* task)
 {
     ldns_rbnode_t* del_node = LDNS_RBTREE_NULL;
@@ -453,6 +459,16 @@ unschedule_task(schedule_type* schedule, task_type* task)
 }
 
 task_type*
+schedule_unschedule(schedule_type* schedule, task_type* task)
+{
+    task_type* originalTask;
+    pthread_mutex_lock(&schedule->schedule_lock);
+    originalTask = unschedule_task(schedule, task);
+    pthread_mutex_unlock(&schedule->schedule_lock);
+    return originalTask;
+}
+
+task_type*
 schedule_pop_task(schedule_type* schedule)
 {
     time_t timeout, now = time_now();
@@ -470,7 +486,6 @@ schedule_pop_task(schedule_type* schedule)
         }
         task = unschedule_task(schedule, task);
     } else {
-        task = NULL;
         /* nothing to do now, sleep and wait for signal */
         schedule->num_waiting += 1;
         timeout = clamp((task ? (task->due_date - now) : 0),
@@ -478,6 +493,7 @@ schedule_pop_task(schedule_type* schedule)
                         ODS_SE_MAX_BACKOFF);
         ods_thread_wait(&schedule->schedule_cond, &schedule->schedule_lock, timeout);
         schedule->num_waiting -= 1;
+        task = NULL;
     }
     pthread_mutex_unlock(&schedule->schedule_lock);
     return task;
@@ -554,8 +570,9 @@ void
 schedule_release_all(schedule_type* schedule)
 {
     pthread_mutex_lock(&schedule->schedule_lock);
-        pthread_cond_broadcast(&schedule->schedule_cond);
+    pthread_cond_broadcast(&schedule->schedule_cond);
     pthread_mutex_unlock(&schedule->schedule_lock);
+    fifoq_notifyall(schedule->signq);
 }
 
 void

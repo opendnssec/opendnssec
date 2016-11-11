@@ -29,74 +29,25 @@
  *
  */
 
-#ifndef DAEMON_WORKER_H
-#define DAEMON_WORKER_H
+#ifndef SIGNERTASKS_H
+#define SIGNERTASKS_H
 
 #include "config.h"
 #include <time.h>
 
-enum worker_enum {
-    WORKER_NONE = 0,
-    WORKER_WORKER = 1,
-    WORKER_DRUDGER
-};
-typedef enum worker_enum worker_id;
-
-typedef struct worker_struct worker_type;
-
 #include "scheduler/task.h"
+#include "scheduler/fifoq.h"
 #include "status.h"
 #include "locks.h"
 
-struct worker_struct {
-    char* name;
-    ods_thread_type thread_id;
-    engine_type* engine;
-    time_t clock_in;
-    int tasksOutstanding;
-    int tasksFailed;
-    pthread_cond_t tasksBlocker;
-    unsigned need_to_exit : 1;
-};
-
 struct worker_context {
+    engine_type* engine;
     worker_type* worker;
-    task_type* task;
+    fifoq_type* signq;
+    time_t clock_in;
 };
 
-/**
- * Create worker.
- * \param[in] allocator memory allocator
- * \param[in] num thread number
- * \param[in] type type of worker
- * \return worker_type* created worker
- *
- */
-worker_type* worker_create(char* name);
+time_t worker_perform_task(task_type* task, const char* zonename, void* zonearg, void* contextarg);
+void drudge(worker_type* worker);
 
-/**
- * Start working.
- * \param[in] worker worker to start working
- *
- */
-void worker_drudge(worker_type* worker);
-void worker_work(worker_type* worker);
-
-/**
- * Notify all workers.
- * \param[in] lock lock to use
- * \param[in] condition condition that has been met
- *
- */
-void worker_notify_all(pthread_mutex_t* lock, pthread_cond_t* condition);
-
-/**
- * Clean up worker.
- * \param[in] worker worker to clean up
- *
- */
-void worker_cleanup(worker_type* worker);
-
-time_t worker_perform_task(const char* zonename, void* zonearg, void* contextarg);
-
-#endif /* DAEMON_WORKER_H */
+#endif /* SIGNERTASKS_H */

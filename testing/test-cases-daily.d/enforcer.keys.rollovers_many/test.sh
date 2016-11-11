@@ -24,20 +24,20 @@ ods_reset_env -n &&
 
 echo "################## ZONE ADD ###########################" &&
 echo -n "LINE: ${LINENO} " && log_this 00_zone_add ods-enforcer zone add --zone \
-	ods --input $install_root/var/opendnssec/unsigned/ods.xml --policy Policy1 --signerconf \
-	$install_root/var/opendnssec/signconf/ods.xml &&
+	ods --input $INSTALL_ROOT/var/opendnssec/unsigned/ods.xml --policy Policy1 --signerconf \
+	$INSTALL_ROOT/var/opendnssec/signconf/ods.xml &&
 
 echo "################## PROPAGATE ###########################" &&
-echo -n "LINE: ${LINENO} " && visual_sleep 4 &&
+echo -n "LINE: ${LINENO} " && ods_enforcer_leap_over 4 &&
 echo -n "LINE: ${LINENO} " && KSK1_ID=`ods-enforcer key list -d -p | grep KSK |cut -d ";" -f 9` &&
 echo -n "LINE: ${LINENO} " && ZSK1_ID=`ods-enforcer key list -d -p | grep ZSK |cut -d ";" -f 9` &&
-echo -n "LINE: ${LINENO} " && test -n $KSK1_ID &&
-echo -n "LINE: ${LINENO} " && test -n $ZSK1_ID &&
+echo -n "LINE: ${LINENO} " && test -n "$KSK1_ID" &&
+echo -n "LINE: ${LINENO} " && test -n "$ZSK1_ID" &&
 echo -n "LINE: ${LINENO} " && ods-enforcer key list -v | grep $KSK1_ID | grep publish &&
 echo -n "LINE: ${LINENO} " && ods-enforcer key list -v | grep $ZSK1_ID | grep ready &&
 
 echo "################## DS-SEEN ###########################" &&
-echo -n "LINE: ${LINENO} " && visual_sleep 22 &&
+echo -n "LINE: ${LINENO} " && ods_enforcer_leap_over 22 &&
 
 echo -n "LINE: ${LINENO} " && ods-enforcer key list -v | grep $KSK1_ID | grep ready &&
 echo -n "LINE: ${LINENO} " && ods-enforcer key list -v | grep $KSK1_ID | grep ds-seen &&
@@ -48,27 +48,27 @@ echo -n "LINE: ${LINENO} " && ods-enforcer key list -v | grep $KSK1_ID | grep ac
 echo -n "LINE: ${LINENO} " && ods-enforcer key list -v | grep $ZSK1_ID | grep active &&
 
 echo "################## NEW ZSK ###########################" &&
-echo -n "LINE: ${LINENO} " && visual_sleep 160 &&
+echo -n "LINE: ${LINENO} " && ods_enforcer_leap_over 120 &&
 
 echo -n "LINE: ${LINENO} " && ZSK2_ID=`ods-enforcer key list -d -p | grep ZSK |grep hidden |cut -d ";" -f 9` &&
 echo -n "LINE: ${LINENO} " && ods-enforcer key list -v | grep $ZSK1_ID | grep active &&
 echo -n "LINE: ${LINENO} " && ods-enforcer key list -v | grep $ZSK2_ID | grep publish &&
 
 echo "################## ZSK RETIRE ###########################" &&
-echo -n "LINE: ${LINENO} " && visual_sleep 35 &&
+echo -n "LINE: ${LINENO} " && ods_enforcer_leap_over 35 &&
 
 echo -n "LINE: ${LINENO} " && ods-enforcer key list -v | grep $ZSK1_ID | grep retire &&
 echo -n "LINE: ${LINENO} " && ods-enforcer key list -v | grep $ZSK2_ID | grep active &&
 
 echo "################## NEW KSK ###########################" &&
-echo -n "LINE: ${LINENO} " && visual_sleep 85 &&
+echo -n "LINE: ${LINENO} " && ods_enforcer_leap_over 55 &&
 
 echo -n "LINE: ${LINENO} " && KSK2_ID=`ods-enforcer key list -d -p | grep KSK |grep hidden |cut -d ";" -f 9` &&
-echo -n "LINE: ${LINENO} " && ods-enforcer key list -v | grep $KSK1_ID | grep active &&
-echo -n "LINE: ${LINENO} " && ods-enforcer key list -v | grep $KSK2_ID | grep publish &&
+echo -n "LINE: ${LINENO} " && ods-enforcer key list -v | grep "$KSK1_ID" | grep active &&
+echo -n "LINE: ${LINENO} " && ods-enforcer key list -v | grep "$KSK2_ID" | grep publish &&
 
 echo "################## KSK RETIRE ###########################" &&
-echo -n "LINE: ${LINENO} " && visual_sleep 22 &&
+echo -n "LINE: ${LINENO} " && ods_enforcer_leap_over 22 &&
 
 echo -n "LINE: ${LINENO} " && ods-enforcer key list -v | grep $KSK1_ID | grep retire &&
 echo -n "LINE: ${LINENO} " && ods-enforcer key list -v | grep $KSK2_ID | grep ready &&
@@ -77,7 +77,7 @@ echo -n "LINE: ${LINENO} " && ods-enforcer key list -v | grep $KSK2_ID | grep ds
 
 echo -n "LINE: ${LINENO} " && ods-enforcer key ds-seen -z ods -k $KSK2_ID &&
 ## ds-gone fails on busy DB if ds-seen still running
-echo -n "LINE: ${LINENO} " && visual_sleep 2 &&
+echo -n "LINE: ${LINENO} " && ods_enforcer_leap_over 2 &&
 echo -n "LINE: ${LINENO} " && ods-enforcer key ds-gone -z ods -k $KSK1_ID &&
 
 echo "################## FINAL CHECK ###########################" &&

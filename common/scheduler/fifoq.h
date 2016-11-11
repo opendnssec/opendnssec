@@ -35,20 +35,18 @@
 #include "config.h"
 #include <stdio.h>
 #include <time.h>
-
 #ifdef HAVE_SYS_TYPES_H
 # include <sys/types.h>
 #endif
 #ifdef HAVE_UNISTD_H
 # include <unistd.h>
 #endif
-
 #include <ldns/ldns.h>
 
 typedef struct fifoq_struct fifoq_type;
 
-#include "daemon/engine.h"
-#include "daemon/worker.h"
+#include "scheduler/schedule.h"
+#include "worker.h"
 #include "locks.h"
 #include "status.h"
 
@@ -60,7 +58,7 @@ typedef struct fifoq_struct fifoq_type;
  */
 struct fifoq_struct {
     void* blob[FIFOQ_MAX_COUNT];
-    worker_type* owner[FIFOQ_MAX_COUNT];
+    void* owner[FIFOQ_MAX_COUNT];
     size_t count;
     pthread_mutex_t q_lock;
     pthread_cond_t q_threshold;
@@ -89,7 +87,7 @@ void fifoq_wipe(fifoq_type* q);
  * \return void* popped item
  *
  */
-void* fifoq_pop(fifoq_type* q, worker_type** worker);
+void* fifoq_pop(fifoq_type* q, void** worker);
 
 /**
  * Push item to queue.
@@ -100,8 +98,7 @@ void* fifoq_pop(fifoq_type* q, worker_type** worker);
  * \return ods_status status
  *
  */
-ods_status fifoq_push(fifoq_type* q, void* item, worker_type* worker,
-    int* tries);
+ods_status fifoq_push(fifoq_type* q, void* item, void* worker, int* tries);
 
 /**
  * Clean up queue.
