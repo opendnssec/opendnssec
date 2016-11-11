@@ -31,18 +31,11 @@
 
 #include "config.h"
 
-#include "kaspcheck.h"
 #include "kc_helper.h"
 
-#include <libxml/tree.h>
 #include <libxml/parser.h>
-#include <libxml/xpath.h>
-#include <libxml/xpathInternals.h>
-#include <libxml/relaxng.h>
 
 const char *progname = NULL;
-
-#define StrFree(ptr) {if(ptr != NULL) {free(ptr); (ptr) = NULL;}}
 
 /*
  * Display usage
@@ -139,17 +132,18 @@ int main (int argc, char *argv[])
 	/* 3) Checks on zonelist.xml */
 	status += check_zonelist(zonelistfile, verbose, policy_names, policy_count);
 
-    for (i = 0; i < policy_count; i++) {
-        free(policy_names[i]);
-    }
-    free(policy_names);
+	for (i = 0; i < policy_count; i++) {
+		free(policy_names[i]);
+	}
+	free(policy_names);
 
 	xmlCleanupParser();
-	for (i = 0; i < repo_count; i++) StrFree(repo_list[i]);
-	StrFree(repo_list);
-	StrFree(conffile);
-	StrFree(kaspfile);
-	StrFree(zonelistfile);
+	for (i = 0; i < repo_count; i++)
+		free(repo_list[i]);
+	free(repo_list);
+	free(conffile);
+	free(kaspfile);
+	free(zonelistfile);
 
 	if (verbose)
 		dual_log("DEBUG: finished %d", status);
