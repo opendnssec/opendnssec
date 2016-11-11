@@ -730,7 +730,8 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 		}
 		if ((curkey->type & ZSK) && defalt > curkey->life) {
                         dual_log("WARNING: ZSK/Lifetime (%d seconds) for policy '%s' "
-                                 "should be greater than or equal to the Validity/Default (%d seconds).",
+                                 "is less than Validity/Default (%d seconds), this might "
+                                 "be a configuration error.",
                                 curkey->life, policy_name, defalt);
                 }
 	}
