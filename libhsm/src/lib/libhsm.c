@@ -176,7 +176,10 @@ ldns_pkcs11_rv_str(CK_RV rv)
             return "CKR_WRAPPING_KEY_TYPE_INCONSISTENT";
         case CKR_RANDOM_SEED_NOT_SUPPORTED:
             return "CKR_RANDOM_SEED_NOT_SUPPORTED";
-        case CKR_VENDOR_DEFINED:
+        /*CKR_VENDOR_DEFINED is not a constant but a macro which expands in to an */
+        /*expression. Which we are not allowed to use in a switch.*/
+        /*case CKR_VENDOR_DEFINED:*/
+        case 0x80000000:
             return "CKR_VENDOR_DEFINED";
         case CKR_BUFFER_TOO_SMALL:
             return "CKR_BUFFER_TOO_SMALL";
@@ -678,7 +681,6 @@ hsm_ctx_new()
         memset(ctx->session, 0, HSM_MAX_SESSIONS);
         ctx->session_count = 0;
         ctx->error = 0;
-        keycache_create(ctx);
     }
     return ctx;
 }
@@ -693,7 +695,6 @@ hsm_ctx_free(hsm_ctx_t *ctx)
         for (i = 0; i < ctx->session_count; i++) {
             hsm_session_free(ctx->session[i]);
         }
-        keycache_destroy(ctx);
         free(ctx);
     }
 }
@@ -791,6 +792,8 @@ hsm_ctx_clone(hsm_ctx_t *ctx)
             }
             hsm_ctx_add_session(new_ctx, new_session);
         }
+        new_ctx->keycache = ctx->keycache;
+        new_ctx->keycache_lock = ctx->keycache_lock;
     }
     return new_ctx;
 }
@@ -2197,7 +2200,9 @@ hsm_open2(hsm_repository_t* rlist,
     pthread_mutex_lock(&_hsm_ctx_mutex);
     /* create an internal context with an attached session for each
      * configured HSM. */
-    _hsm_ctx = hsm_ctx_new();
+    if ((_hsm_ctx = hsm_ctx_new())) {
+        keycache_create(_hsm_ctx);
+    }
 
     repo = rlist;
     while (repo) {
@@ -2250,6 +2255,7 @@ void
 hsm_close()
 {
     pthread_mutex_lock(&_hsm_ctx_mutex);
+    keycache_destroy(_hsm_ctx);
     hsm_ctx_close(_hsm_ctx, 1);
     _hsm_ctx = NULL;
     pthread_mutex_unlock(&_hsm_ctx_mutex);
@@ -3344,6 +3350,8 @@ void
 keycache_create(hsm_ctx_t* ctx)
 {
     ctx->keycache = ldns_rbtree_create(keycache_cmpfunc);
+    _hsm_ctx->keycache_lock = malloc(sizeof (pthread_mutex_t));
+    pthread_mutex_init(_hsm_ctx->keycache_lock, NULL);
 }
 
 void
@@ -3351,6 +3359,9 @@ keycache_destroy(hsm_ctx_t* ctx)
 {
     ldns_traverse_postorder(ctx->keycache, keycache_delfunc, NULL);
     ldns_rbtree_free(ctx->keycache);
+    pthread_mutex_destroy(ctx->keycache_lock);
+    free(ctx->keycache_lock);
+    ctx->keycache_lock = NULL;
 }
 
 const libhsm_key_t*
@@ -3358,7 +3369,9 @@ keycache_lookup(hsm_ctx_t* ctx, const char* locator)
 {
     ldns_rbnode_t* node;
 
-    node = ldns_rbtree_search(ctx->keycache, locator);
+    pthread_mutex_lock(ctx->keycache_lock);
+        node = ldns_rbtree_search(ctx->keycache, locator);
+    pthread_mutex_unlock(ctx->keycache_lock);
     if (node == LDNS_RBTREE_NULL || node == NULL) {
         libhsm_key_t* key;
         if ((key = hsm_find_key_by_id(ctx, locator)) == NULL) {
@@ -3367,7 +3380,9 @@ keycache_lookup(hsm_ctx_t* ctx, const char* locator)
             node = malloc(sizeof(ldns_rbnode_t));
             node->key = strdup(locator);
             node->data = key;
-            node = ldns_rbtree_insert(ctx->keycache, node);
+            pthread_mutex_lock(ctx->keycache_lock);
+                node = ldns_rbtree_insert(ctx->keycache, node);
+            pthread_mutex_unlock(ctx->keycache_lock);
         }
     }  
 

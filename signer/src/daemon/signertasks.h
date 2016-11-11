@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Nominet UK. All rights reserved.
+ * Copyright (c) 2009 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -21,10 +21,33 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
  */
 
-#ifndef KASPCHECK_H
-#define KASPCHECK_H
+/**
+ * The hard workers.
+ *
+ */
 
+#ifndef SIGNERTASKS_H
+#define SIGNERTASKS_H
 
-#endif /* KASPCHECK_H */
+#include "config.h"
+#include <time.h>
+
+#include "scheduler/task.h"
+#include "scheduler/fifoq.h"
+#include "status.h"
+#include "locks.h"
+
+struct worker_context {
+    engine_type* engine;
+    worker_type* worker;
+    fifoq_type* signq;
+    time_t clock_in;
+};
+
+time_t worker_perform_task(task_type* task, const char* zonename, void* zonearg, void* contextarg);
+void drudge(worker_type* worker);
+
+#endif /* SIGNERTASKS_H */

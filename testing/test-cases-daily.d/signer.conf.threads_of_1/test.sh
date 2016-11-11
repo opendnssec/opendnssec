@@ -11,11 +11,11 @@ ods_reset_env &&
 
 ods_start_ods-control &&
 
-syslog_waitfor 10 'ods-signerd: .*\[worker\[1\]\] report for duty' &&
+syslog_waitfor 10 'ods-signerd: .*\[worker\[1\]\].*report for duty' &&
 
 ods_stop_ods-control &&
 
-! syslog_grep 'ods-signerd: .*\[worker\[2\]\] report for duty' &&
+! syslog_grep 'ods-signerd: .*\[worker\[2\]\].*report for duty' &&
 return 0
 
 ods_kill

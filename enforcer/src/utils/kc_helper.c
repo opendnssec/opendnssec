@@ -728,6 +728,12 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 				curkey->life, policy_name, ttl, maxzone_ttl);
 			status++;
 		}
+		if ((curkey->type & ZSK) && defalt > curkey->life) {
+                        dual_log("WARNING: ZSK/Lifetime (%d seconds) for policy '%s' "
+                                 "is less than Validity/Default (%d seconds), this might "
+                                 "be a configuration error.",
+                                curkey->life, policy_name, defalt);
+                }
 	}
 	/* For all policies, check that the "Re-sign" interval is less 
 	 * than the "Refresh" interval. */
@@ -1609,7 +1615,7 @@ int check_conf(const char *conf, char **kasp, char **zonelist,
     /* Check signer workdirectory is not as same as the one of enforcer*/
     xexpr = (xmlChar *)"//Configuration/Signer/WorkingDirectory";
     xpath_obj = xmlXPathEvalExpression(xexpr, xpath_ctx);
-    if (NULL == xpath_obj) {
+    if (NULL == xpath_obj || xpath_obj->nodesetval->nodeNr == 0) {
         signer_dir = (char*) OPENDNSSEC_STATE_DIR "/signer";
         signer_dir_default = 1;
     }
@@ -1619,7 +1625,7 @@ int check_conf(const char *conf, char **kasp, char **zonelist,
     }
     xexpr = (xmlChar *)"//Configuration/Enforcer/WorkingDirectory";
     xpath_obj = xmlXPathEvalExpression(xexpr, xpath_ctx);
-    if (NULL == xpath_obj) {
+    if (NULL == xpath_obj || xpath_obj->nodesetval->nodeNr == 0) {
         enforcer_dir = (char*) OPENDNSSEC_STATE_DIR "/enforcer";
         enforcer_dir_default = 1;
     }

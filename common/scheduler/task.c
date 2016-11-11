@@ -64,7 +64,7 @@ const char* TASK_WRITE          = "[write]";
 
 task_type*
 task_create(const char *owner, char const *class, char const *type,
-    time_t (*callback)(char const *owner, void *userdata, void *context),
+    time_t (*callback)(task_type* task, char const *owner, void *userdata, void *context),
     void *userdata, void (*freedata)(void *userdata), time_t due_date)
 {
     task_type* task;
@@ -83,7 +83,6 @@ task_create(const char *owner, char const *class, char const *type,
     task->lock = NULL;
 
     task->backoff = 0;
-    task->flush = 0;
 
     return task;
 }
@@ -98,46 +97,42 @@ task_destroy(task_type* task)
     free(task);
 }
 
-time_t
-task_execute(task_type *task, void *context)
-{
-    time_t t;
-    ods_log_assert(task);
-    /* We'll allow a task without callback, just don't reschedule. */
-    if (!task->callback) {
-        return -1;
-    }
-    ods_log_assert(task->owner);
-
-    /*
-     * It is sad but we need worklock to prevent concurrent database
-     * access. Our code is not able to handle that properly. (we can't
-     * really tell the difference between an error and nodata.) Once we
-     * fixed our database backend this lock can be removed.
-     */
-    if (!strcmp(task->class, TASK_CLASS_ENFORCER))
-        pthread_mutex_lock(&worklock);
-
-    if(task->lock) {
-        pthread_mutex_lock(task->lock);
-        t = task->callback(task->owner, task->userdata, context);
-        pthread_mutex_unlock(task->lock);
-    } else {
-        t = task->callback(task->owner, task->userdata, context);
-    }
-
-    if (!strcmp(task->class, TASK_CLASS_ENFORCER))
-        pthread_mutex_unlock(&worklock);
-
-    return t;
-}
-
 void
 task_perform(schedule_type* scheduler, task_type* task, void* context)
 {
-    task->due_date = task_execute(task, context);
-    if (task->due_date >= 0) {
-        (void) schedule_task(scheduler, task, (!strcmp(task->class, TASK_CLASS_ENFORCER) ? 1 : 0), 0); /* TODO unchecked error code */
+    time_t rescheduleTime;
+    ods_status status;
+
+    if (task->callback) {
+        /*
+         * It is sad but we need worklock to prevent concurrent database
+         * access. Our code is not able to handle that properly. (we can't
+         * really tell the difference between an error and nodata.) Once we
+         * fixed our database backend this lock can be removed.
+         */
+        ods_log_assert(task->owner);
+        if (!strcmp(task->class, TASK_CLASS_ENFORCER))
+            pthread_mutex_lock(&worklock);
+        if (task->lock) {
+            pthread_mutex_lock(task->lock);
+            rescheduleTime = task->callback(task, task->owner, task->userdata, context);
+            pthread_mutex_unlock(task->lock);
+        } else {
+            rescheduleTime = task->callback(task, task->owner, task->userdata, context);
+        }
+        if (!strcmp(task->class, TASK_CLASS_ENFORCER))
+            pthread_mutex_unlock(&worklock);
+    } else {
+        /* We'll allow a task without callback, just don't reschedule. */
+        rescheduleTime = -1;
+    }
+    if (rescheduleTime >= 0) {
+        task->due_date = rescheduleTime;
+        status = schedule_task(scheduler, task, (!strcmp(task->class, TASK_CLASS_ENFORCER) ? 1 : 0),
+                                                (!strcmp(task->class, TASK_CLASS_SIGNER) ? 1 : 0));
+        if (status != ODS_STATUS_OK) {
+            ods_log_error("[%s] unable to schedule task for zone %s: %s", task_str, task->owner, ods_status2str(status));
+        }
     } else {
         task_destroy(task);
     }    
@@ -207,8 +202,7 @@ task_log(task_type* task)
         if (strtime) {
             strtime[strlen(strtime)-1] = '\0';
         }
-        ods_log_debug("[%s] %s %s I will %s zone %s", task_str,
-            task->flush?"Flush":"On", strtime?strtime:"(null)",
-            task->type, task->owner);
+        ods_log_debug("[%s] On %s I will %s zone %s", task_str,
+            strtime?strtime:"(null)", task->type, task->owner);
     }
 }

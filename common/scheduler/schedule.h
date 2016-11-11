@@ -35,7 +35,8 @@
 #include "config.h"
 #include <stdio.h>
 #include <time.h>
-
+#include <ldns/ldns.h>
+#include <pthread.h>
 #ifdef HAVE_SYS_TYPES_H
 # include <sys/types.h>
 #endif
@@ -43,11 +44,9 @@
 # include <unistd.h>
 #endif
 
-#include <ldns/ldns.h>
-#include <pthread.h>
-
 typedef struct schedule_struct schedule_type;
 
+#include "fifoq.h"
 #include "scheduler/task.h"
 #include "locks.h"
 #include "status.h"
@@ -61,12 +60,12 @@ struct schedule_struct {
     ldns_rbtree_t* tasks_by_name;
     /* For every ttuple contains a task structure with an unique lock */
     ldns_rbtree_t* locks_by_name;
+    fifoq_type* signq;
     pthread_cond_t schedule_cond;
     pthread_mutex_t schedule_lock;
     /* For testing. So we can verify al workers are waiting and nothing
      * is to be done. Used by enforcer_idle. */
     int num_waiting;
-    int flushcount;
 };
 
 /**
@@ -118,7 +117,7 @@ ods_status schedule_task(schedule_type* schedule, task_type* task, int replace, 
  * \return task_type* task, if it was scheduled
  *
  */
-task_type* unschedule_task(schedule_type* schedule, task_type* task);
+task_type* schedule_unschedule(schedule_type* schedule, task_type* task);
 
 /**
  * Pop the first scheduled task that is due. If an item is directly
