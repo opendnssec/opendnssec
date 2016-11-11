@@ -79,7 +79,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     ods_log_debug("[%s] %s command", module_str, policy_export_funcblock()->cmdname);
     cmd = ods_check_command(cmd, n, policy_export_funcblock()->cmdname);
 
-    if (!(buf = strdup(cmd))) {
+    if (!cmd || !(buf = strdup(cmd))) {
         client_printf_err(sockfd, "memory error\n");
         return -1;
     }
