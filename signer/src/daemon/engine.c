@@ -973,8 +973,10 @@ engine_cleanup(engine_type* engine)
     if (!engine) {
         return;
     }
+    ods_log_assert(engine->config);
+
     numTotalWorkers = engine->config->num_worker_threads + engine->config->num_signer_threads;
-    if (engine->workers && engine->config) {
+    if (engine->workers) {
         for (i=0; i < (size_t) numTotalWorkers; i++) {
             worker_cleanup(engine->workers[i]);
         }
