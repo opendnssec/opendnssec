@@ -447,9 +447,10 @@ tsig_rr_find(tsig_rr_type* trr, buffer_type* buffer)
     saved_pos = buffer_position(buffer);
     rrcount = buffer_pkt_qdcount(buffer) + buffer_pkt_ancount(buffer) +
         buffer_pkt_nscount(buffer) + buffer_pkt_arcount(buffer);
+    rrcount &= 0x3FFFF; /* un-taint rrcount */
     buffer_set_position(buffer, BUFFER_PKT_HEADER_SIZE);
     for (i=0; i < rrcount - 1; i++) {
-        if (!buffer_skip_rr(buffer, i < buffer_pkt_qdcount(buffer))) {
+        if (!buffer_skip_rr(buffer, i < (buffer_pkt_qdcount(buffer)&0xFFFF))) {
              buffer_set_position(buffer, saved_pos);
              return 0;
         }
