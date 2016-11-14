@@ -709,7 +709,12 @@ ods_ods-control_start ()
 		exit 1
 	fi
 
-	if ! log_this_timeout ods_ods-control_start "$ODS_ODS_CONTROL_WAIT_START" ods-control start ; then
+	local timeout="$1"
+	if [ -z "$timeout" ]; then
+		timeout="$ODS_ODS_CONTROL_WAIT_START"
+	fi
+
+	if ! log_this_timeout ods_ods-control_start "$timeout" ods-control start ; then
 		echo "ods_ods-control_start: Could not start ods-control" >&2
 		return 1
 	fi
@@ -1058,7 +1063,7 @@ ods_start_ods-control ()
 
  	ods_signer_count_starts &&
  	ods_enforcer_count_starts &&
-	ods_ods-control_start &&
+	ods_ods-control_start "$timeout" &&
 	ods_signer_waitfor_starts "$(( ODS_SIGNER_START_COUNT + 1 ))" "$timeout" &&
 	ods_enforcer_waitfor_starts "$(( ODS_ENFORCER_START_COUNT + 1 ))" "$timeout" &&
 
