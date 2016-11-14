@@ -20,7 +20,7 @@ if named -V | grep -q "^BIND 9.8.2rc1-RedHat" ; then
 fi
 
 case "$DISTRIBUTION" in
-	redhat|suse )
+	redhat|suse|slackware )
 		append_path /usr/sbin
 		;;
 esac
@@ -32,7 +32,7 @@ fi &&
 ods_reset_env &&
 
 ## Start master name server
-cp ods $BIND9_NAMED_RUNDIR/ods
+cp bind-zonefile bind9/ods
 ods_bind9_info &&
 ods_bind9_start &&
 

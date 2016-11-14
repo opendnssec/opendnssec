@@ -24,7 +24,7 @@
 # IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-# export SOFTHSM_CONF=/etc/softhsm.conf
+# export SOFTHSM2_CONF=/etc/softhsm2.conf
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:@OPENDNSSEC_LIB_DIR@
 
 signer_bin_file="@OPENDNSSEC_SBIN_DIR@/ods-signerd"
