@@ -357,12 +357,13 @@ interface_start(const char* cmd, const char* servsock_filename)
         pid_t pid = strtoul(line, NULL, 10);
         fprintf(stdout, "pid %d\n", pid);
         int time = 0;
+        error = 0;
         while (pid > 0) {
            if(kill(pid, 0) == 0){
                sleep(1);
                time += 1;
                if (time>20) {
-                  fprintf(stdout, "more than 20 seconds");
+                  fprintf(stdout, "enforcer needs more seconds to stop");
                   fflush(stdout);
                   time = 0;
                }
