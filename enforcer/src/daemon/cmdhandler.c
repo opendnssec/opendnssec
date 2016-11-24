@@ -68,13 +68,26 @@ static char const * module_str = "cmdhandler";
 
 typedef struct cmd_func_block* (*fbgetfunctype)(void);
 
+static int
+defaulthandles(const char* cmdname, const char* cmd)
+{
+    int len = strlen(cmdname);
+    if (!strncmp(cmdname, cmd, len) && (isspace(cmd[len]) || cmd[len] == '\0')) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
 void
 cmdhandler_get_usage(int sockfd, cmdhandler_type* cmdc)
 {
     int i;
     for(i=0; cmdc->commands[i]; i++) {
-        if (!(cmdc->commands[i]->handles ? cmdc->commands[i]->handles("time leap") : !strcmp(cmdc->commands[i]->cmdname, "time leap"))) {
+        if (!(cmdc->commands[i]->handles ? cmdc->commands[i]->handles("time leap") : defaulthandles(cmdc->commands[i]->cmdname, "time leap"))) {
+            if (cmdc->commands[i]->usage) {
             cmdc->commands[i]->usage(sockfd);
+            }
         }
     }
 }
@@ -82,9 +95,11 @@ cmdhandler_get_usage(int sockfd, cmdhandler_type* cmdc)
 struct cmd_func_block*
 get_funcblock(const char *cmd, cmdhandler_type* cmdc)
 {
-    int i;
+    int cmdlen, i;
+    for (cmdlen=0; cmd[cmdlen] && !isspace(cmd[cmdlen]); cmdlen++)
+        ;
     for(i=0; cmdc->commands[i]; i++) {
-        if (cmdc->commands[i]->handles ? cmdc->commands[i]->handles(cmd) : !strcmp(cmdc->commands[i]->cmdname, cmd)) {
+        if (cmdc->commands[i]->handles ? cmdc->commands[i]->handles(cmd) : defaulthandles(cmdc->commands[i]->cmdname, cmd)) {
             return cmdc->commands[i];
         }
     }
@@ -293,7 +308,6 @@ cmdhandler_create(const char* filename, struct cmd_func_block** commands, void* 
         ods_log_error("[%s] unable to create: no socket filename", module_str);
         return NULL;
     }
-
     /* new socket */
     ods_log_debug("[%s] create socket %s", module_str, filename);
     listenfd = socket(AF_UNIX, SOCK_STREAM, 0);
@@ -336,7 +350,6 @@ cmdhandler_create(const char* filename, struct cmd_func_block** commands, void* 
         close(listenfd);
         return NULL;
     }
-    /* all ok */
     CHECKALLOC(cmdh = (cmdhandler_type*) malloc(sizeof(cmdhandler_type)));
     cmdh->listen_fd = listenfd;
     cmdh->listen_addr = servaddr;
