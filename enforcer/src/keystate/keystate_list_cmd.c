@@ -250,12 +250,6 @@ help(int sockfd)
 		"all		print keys in all states (including generate) \n\n");
 }
 
-static int
-handles(const char *cmd, ssize_t n)
-{
-	return ods_check_command(cmd, n, key_list_funcblock()->cmdname)?1:0;
-}
-
 static void
 printcompatheader(int sockfd) {
     client_printf(sockfd, "Keys:\n");
@@ -394,8 +388,8 @@ tokenizeparam(char *argument)
 }
 
 static int
-run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
-	db_connection_t *dbconn) {
+run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+{
     char buf[ODS_SE_MAXLINE];
 #define NARGV 12
     const char *argv[NARGV];
@@ -406,11 +400,11 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     const char* filterZone; /* NULL if no filtering on zone, otherwise zone to match */
     char** filterKeytype; /* NULL if no filtering on key type, NULL terminated list of key types to filter */
     char** filterKeystate; /* NULL if no filtering on key state, NULL terminated list of key states to filter */
-    (void) engine;
+    db_connection_t* dbconn = getconnectioncontext(context);
 
-    ods_log_debug("[%s] %s command", module_str, key_list_funcblock()->cmdname);
+    ods_log_debug("[%s] %s command", module_str, key_list_funcblock.cmdname);
 
-    cmd = ods_check_command(cmd, n, key_list_funcblock()->cmdname);
+    cmd = ods_check_command(cmd, key_list_funcblock.cmdname);
     /* Use buf as an intermediate buffer for the command. */
     strncpy(buf, cmd, sizeof (buf));
     buf[sizeof (buf) - 1] = '\0';
@@ -419,7 +413,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     argc = ods_str_explode(buf, NARGV, argv);
     if (argc > NARGV) {
         ods_log_warning("[%s] too many arguments for %s command",
-                module_str, key_list_funcblock()->cmdname);
+                module_str, key_list_funcblock.cmdname);
         client_printf(sockfd, "too many arguments\n");
         return -1;
     }
@@ -445,7 +439,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     }
 
     if (argc) {
-        ods_log_warning("[%s] unknown arguments for %s command", module_str, key_list_funcblock()->cmdname);
+        ods_log_warning("[%s] unknown arguments for %s command", module_str, key_list_funcblock.cmdname);
         client_printf(sockfd, "unknown arguments\n");
         return -1;
     }
@@ -496,12 +490,6 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     return success;
 }
 
-static struct cmd_func_block funcblock = {
-	"key list", &usage, &help, &handles, &run
+struct cmd_func_block key_list_funcblock = {
+	"key list", &usage, &help, NULL, &run
 };
-
-struct cmd_func_block*
-key_list_funcblock(void)
-{
-	return &funcblock;
-}

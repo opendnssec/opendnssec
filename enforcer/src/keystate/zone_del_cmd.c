@@ -66,12 +66,6 @@ help(int sockfd)
     );
 }
 
-static int
-handles(const char *cmd, ssize_t n)
-{
-    return ods_check_command(cmd, n, zone_del_funcblock()->cmdname)?1:0;
-}
-
 static int delete_key_data(zone_db_t* zone, db_connection_t *dbconn, int sockfd) {
     int successful;
     key_data_list_t* key_data_list;
@@ -122,8 +116,7 @@ static int delete_key_data(zone_db_t* zone, db_connection_t *dbconn, int sockfd)
 }
 
 static int
-run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
-    db_connection_t *dbconn)
+run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 {
     char* buf;
     const char* argv[17];
@@ -136,9 +129,11 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     int ret = 0;
     char path[PATH_MAX];
     char *signconf_del = NULL;
+    db_connection_t* dbconn = getconnectioncontext(context);;
+    engine_type* engine = getglobalcontext(context);
 
-    ods_log_debug("[%s] %s command", module_str, zone_del_funcblock()->cmdname);
-    cmd = ods_check_command(cmd, n, zone_del_funcblock()->cmdname);
+    ods_log_debug("[%s] %s command", module_str, zone_del_funcblock.cmdname);
+    cmd = ods_check_command(cmd, zone_del_funcblock.cmdname);
 
     if (!(buf = strdup(cmd))) {
         client_printf_err(sockfd, "memory error\n");
@@ -293,12 +288,6 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     return ret;
 }
 
-static struct cmd_func_block funcblock = {
-    "zone delete", &usage, &help, &handles, &run
+struct cmd_func_block zone_del_funcblock = {
+    "zone delete", &usage, &help, NULL, &run
 };
-
-struct cmd_func_block*
-zone_del_funcblock(void)
-{
-    return &funcblock;
-}

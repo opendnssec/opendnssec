@@ -96,19 +96,14 @@ check_all(int sockfd, engine_type* engine)
 }
 
 static int
-handles(const char *cmd, ssize_t n)
-{
-	return ods_check_command(cmd, n, update_all_funcblock()->cmdname)?1:0;
-}
-
-static int
-run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
-	db_connection_t *dbconn)
+run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 {
 	int error;
-	(void)cmd; (void)n;
+        db_connection_t* dbconn = getconnectioncontext(context);
+        engine_type* engine = getglobalcontext(context);
+	(void)cmd;
 
-	ods_log_debug("[%s] %s command", module_str, update_all_funcblock()->cmdname);
+	ods_log_debug("[%s] %s command", module_str, update_all_funcblock.cmdname);
 
 	/*
 	 * Check conf.xml, KASP and zonelist. If there are no errors we stop all
@@ -136,12 +131,6 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	return error;
 }
 
-static struct cmd_func_block funcblock = {
-	"update all", &usage, &help, &handles, &run
+struct cmd_func_block update_all_funcblock = {
+	"update all", &usage, &help, NULL, &run
 };
-
-struct cmd_func_block*
-update_all_funcblock(void)
-{
-	return &funcblock;
-}

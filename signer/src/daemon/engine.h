@@ -61,7 +61,6 @@ struct engine_struct {
     dnshandler_type* dnshandler;
     xfrhandler_type* xfrhandler;
     edns_data_type edns;
-    int cmdhandler_done;
 
     pid_t pid;
     uid_t uid;

@@ -165,24 +165,17 @@ help(int sockfd)
 }
 
 static int
-handles(const char *cmd, ssize_t n)
-{
-	return ods_check_command(cmd, n, rollover_list_funcblock()->cmdname)?1:0;
-}
-
-static int
-run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
-	db_connection_t *dbconn)
+run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 {
 	#define NARGV 8
 	char buf[ODS_SE_MAXLINE];
 	const char *argv[NARGV];
 	int argc;
 	const char *zone = NULL;
-	(void)engine;
+        db_connection_t* dbconn = getconnectioncontext(context);
 	
-	ods_log_debug("[%s] %s command", module_str, rollover_list_funcblock()->cmdname);
-	cmd = ods_check_command(cmd, n, rollover_list_funcblock()->cmdname);
+	ods_log_debug("[%s] %s command", module_str, rollover_list_funcblock.cmdname);
+	cmd = ods_check_command(cmd, rollover_list_funcblock.cmdname);
 	
 	/* Use buf as an intermediate buffer for the command.*/
 	strncpy(buf, cmd,sizeof(buf));
@@ -192,7 +185,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	argc = ods_str_explode(buf, NARGV, argv);
 	if (argc > NARGV) {
 		ods_log_warning("[%s] too many arguments for %s command",
-						module_str, rollover_list_funcblock()->cmdname);
+						module_str, rollover_list_funcblock.cmdname);
 		client_printf(sockfd,"too many arguments\n");
 		return -1;
 	}
@@ -200,19 +193,13 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	(void)ods_find_arg_and_param(&argc,argv,"zone","z",&zone);
 	if (argc) {
 		ods_log_warning("[%s] unknown arguments for %s command",
-						module_str, rollover_list_funcblock()->cmdname);
+						module_str, rollover_list_funcblock.cmdname);
 		client_printf(sockfd,"unknown arguments\n");
 		return -1;
 	}
 	return perform_rollover_list(sockfd, zone, dbconn);
 }
 
-static struct cmd_func_block funcblock = {
-	"rollover list", &usage, &help, &handles, &run
+struct cmd_func_block rollover_list_funcblock = {
+	"rollover list", &usage, &help, NULL, &run
 };
-
-struct cmd_func_block*
-rollover_list_funcblock(void)
-{
-	return &funcblock;
-}

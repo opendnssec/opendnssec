@@ -78,6 +78,30 @@ client_msg(int sockfd, char opc, const char *cmd, int count)
 	return (ods_writen(sockfd, cmd, count) != -1);
 }
 
+void
+client_raw(int sockfd, const char* format, ...)
+{
+	char buf[ODS_SE_MAXLINE];
+	int msglen; /* len w/o \0 */
+	va_list ap;
+
+	va_start(ap, format);
+		msglen = vsnprintf(buf, ODS_SE_MAXLINE, format, ap);
+	va_end(ap);
+	if (msglen < 0) {
+		ods_log_error("Failed parsing vsnprintf format.");
+		return;
+	}
+
+	if (msglen >= ODS_SE_MAXLINE) {
+		ods_log_error("[file] vsnprintf buffer too small. "
+			"Want to write %d bytes but only %d available.", 
+			msglen+1, ODS_SE_MAXLINE);
+		msglen = ODS_SE_MAXLINE;
+	}
+    ods_writen(sockfd, buf, msglen);
+}
+
 int
 client_stdin(int sockfd, const char *cmd, int count)
 {

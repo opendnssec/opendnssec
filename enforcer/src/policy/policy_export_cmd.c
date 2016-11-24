@@ -59,25 +59,20 @@ help(int sockfd)
 }
 
 static int
-handles(const char *cmd, ssize_t n)
-{
-    return ods_check_command(cmd, n, policy_export_funcblock()->cmdname) ? 1 : 0;
-}
-
-static int
-run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
-    db_connection_t *dbconn)
+run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 {
     char* buf;
     const char* argv[2];
+    int returnCode;
     int argc;
     const char* policy_name = NULL;
     int all = 0;
     policy_t* policy;
-    (void)engine; (void)cmd; (void)n;
+    db_connection_t* dbconn = getconnectioncontext(context);;
+    engine_type* engine = getglobalcontext(context);
 
-    ods_log_debug("[%s] %s command", module_str, policy_export_funcblock()->cmdname);
-    cmd = ods_check_command(cmd, n, policy_export_funcblock()->cmdname);
+    ods_log_debug("[%s] %s command", module_str, policy_export_funcblock.cmdname);
+    cmd = ods_check_command(cmd, policy_export_funcblock.cmdname);
 
     if (!cmd || !(buf = strdup(cmd))) {
         client_printf_err(sockfd, "memory error\n");
@@ -134,12 +129,6 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     return 0;
 }
 
-static struct cmd_func_block funcblock = {
-    "policy export", &usage, &help, &handles, &run
+struct cmd_func_block policy_export_funcblock = {
+    "policy export", &usage, &help, NULL, &run
 };
-
-struct cmd_func_block*
-policy_export_funcblock(void)
-{
-    return &funcblock;
-}

@@ -56,5 +56,6 @@ int client_exit(int sockfd, char exitcode);
 int client_stdin(int sockfd, const char *cmd, int count);
 int client_stdout(int sockfd, const char *cmd, int count);
 int client_stderr(int sockfd, const char *cmd, int count);
+void client_raw(int sockfd, const char* format, ...);
 
 #endif /* DAEMON_CLIENTPIPE_H */

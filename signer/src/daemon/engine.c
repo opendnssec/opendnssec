@@ -45,6 +45,7 @@
 #include "wire/tsig.h"
 #include "libhsm.h"
 #include "signertasks.h"
+#include "signercommands.h"
 
 #include <errno.h>
 #include <libxml/parser.h>
@@ -75,7 +76,6 @@ engine_create(void)
     engine->config = NULL;
     engine->workers = NULL;
     engine->cmdhandler = NULL;
-    engine->cmdhandler_done = 0;
     engine->dnshandler = NULL;
     engine->xfrhandler = NULL;
     engine->taskq = NULL;
@@ -106,7 +106,6 @@ engine_start_cmdhandler(engine_type* engine)
 {
     ods_log_assert(engine);
     ods_log_debug("[%s] start command handler", engine_str);
-    engine->cmdhandler->engine = engine;
     janitor_thread_create(&engine->cmdhandler->thread_id, detachedthreadclass, (janitor_runfn_t)cmdhandler_start, engine->cmdhandler);
 }
 
@@ -151,16 +150,16 @@ self_pipe_trick(engine_type* engine)
  *
  */
 static void
-engine_stop_cmdhandler(engine_type* engine)
+engine_stop_cmdhandler(cmdhandler_type* cmdhandler)
 {
     ods_log_assert(engine);
-    if (!engine->cmdhandler || engine->cmdhandler_done) {
+    if (!cmdhandler || cmdhandler->stopped) {
         return;
     }
     ods_log_debug("[%s] stop command handler", engine_str);
-    engine->cmdhandler->need_to_exit = 1;
+    cmdhandler->need_to_exit = 1;
     if (self_pipe_trick(engine) == 0) {
-        while (!engine->cmdhandler_done) {
+        while (!cmdhandler->stopped) {
             ods_log_debug("[%s] waiting for command handler to exit...",
                 engine_str);
             sleep(1);
@@ -402,7 +401,7 @@ engine_setup(void)
     edns_init(&engine->edns, EDNS_MAX_MESSAGE_LEN);
 
     /* create command handler (before chowning socket file) */
-    engine->cmdhandler = cmdhandler_create(engine->config->clisock_filename);
+    engine->cmdhandler = cmdhandler_create(engine->config->clisock_filename, signercommands, engine, NULL, NULL);
     if (!engine->cmdhandler) {
         return ODS_STATUS_CMDHANDLER_ERR;
     }
@@ -884,10 +883,6 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] setup failed: %s", engine_str,
             ods_status2str(status));
-        if (status != ODS_STATUS_WRITE_PIDFILE_ERR) {
-            /* command handler had not yet been started */
-            engine->cmdhandler_done = 1;
-        }
         goto earlyexit;
     }
 
@@ -939,7 +934,7 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
 
     /* shutdown */
     ods_log_info("[%s] signer shutdown", engine_str);
-    engine_stop_cmdhandler(engine);
+    engine_stop_cmdhandler(engine->cmdhandler);
     engine_stop_xfrhandler(engine);
     engine_stop_dnshandler(engine);
 

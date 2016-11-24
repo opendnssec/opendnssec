@@ -1,8 +1,5 @@
 /*
- * Copyright (c) 2011 Surfnet 
- * Copyright (c) 2011 .SE (The Internet Infrastructure Foundation).
- * Copyright (c) 2011 OpenDNSSEC AB (svb)
- * All rights reserved.
+ * Copyright (c) 2016 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -27,9 +24,19 @@
  *
  */
 
-#ifndef _KEYSTATE_ZONE_LIST_CMD_H_
-#define _KEYSTATE_ZONE_LIST_CMD_H_
+/**
+ * Command handler.
+ *
+ */
 
-struct cmd_func_block zone_list_funcblock;
+#ifndef DAEMON_SIGNERCOMMANDS_H
+#define DAEMON_SIGNERCOMMANDS_H
 
-#endif /* _KEYSTATE_ZONE_LIST_CMD_H_ */
+#include "config.h"
+#include "cmdhandler.h"
+
+struct cmd_func_block** signercommands;
+
+extern engine_type* getglobalcontext(cmdhandler_ctx_type*);
+
+#endif

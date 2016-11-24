@@ -84,14 +84,7 @@ help(int sockfd)
 }
 
 static int
-handles(const char *cmd, ssize_t n)
-{
-	return ods_check_command(cmd, n, zone_add_funcblock()->cmdname)?1:0;
-}
-
-static int
-run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
-	db_connection_t *dbconn)
+run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 {
     char* buf;
     const char* argv[18];
@@ -109,10 +102,11 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     zone_db_t* zone;
     int ret = 0;
     int suspend;
-    (void)engine;
+    db_connection_t* dbconn = getconnectioncontext(context);
+    engine_type* engine = getglobalcontext(context);
 
-	ods_log_debug("[%s] %s command", module_str, zone_add_funcblock()->cmdname);
-    cmd = ods_check_command(cmd, n, zone_add_funcblock()->cmdname);
+	ods_log_debug("[%s] %s command", module_str, zone_add_funcblock.cmdname);
+    cmd = ods_check_command(cmd, zone_add_funcblock.cmdname);
 
     if (!(buf = strdup(cmd))) {
         client_printf_err(sockfd, "memory error\n");
@@ -372,12 +366,6 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     return ret;
 }
 
-static struct cmd_func_block funcblock = {
-	"zone add", &usage, &help, &handles, &run
+struct cmd_func_block zone_add_funcblock = {
+	"zone add", &usage, &help, NULL, &run
 };
-
-struct cmd_func_block*
-zone_add_funcblock(void)
-{
-	return &funcblock;
-}

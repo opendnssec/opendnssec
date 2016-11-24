@@ -376,14 +376,7 @@ help(int sockfd)
 }
 
 static int
-handles(const char *cmd, ssize_t n)
-{
-    return ods_check_command(cmd, n, key_import_funcblock()->cmdname)?1:0;
-}
-
-static int
-run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
-	db_connection_t *dbconn)
+run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 {
     #define NARGV 16
     char buf[ODS_SE_MAXLINE];
@@ -400,13 +393,13 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     zone_db_t *zone = NULL;
     time_t inception = 0;
     struct tm tm;
-    (void)engine;
     int setmin;
     db_value_t *hsmkey_id;
     policy_key_t *policy_key;
+    db_connection_t* dbconn = getconnectioncontext(context);
 	
-    ods_log_debug("[%s] %s command", module_str, key_import_funcblock()->cmdname);
-    cmd = ods_check_command(cmd, n, key_import_funcblock()->cmdname);
+    ods_log_debug("[%s] %s command", module_str, key_import_funcblock.cmdname);
+    cmd = ods_check_command(cmd, key_import_funcblock.cmdname);
 	
     /* Use buf as an intermediate buffer for the command.*/
     strncpy(buf, cmd, sizeof(buf));
@@ -415,7 +408,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     /* separate the arguments*/
     argc = ods_str_explode(buf, NARGV, argv);
     if (argc > NARGV) {
-        ods_log_error("[%s] too many arguments for %s command", module_str, key_import_funcblock()->cmdname);
+        ods_log_error("[%s] too many arguments for %s command", module_str, key_import_funcblock.cmdname);
         client_printf_err(sockfd,"too many arguments\n");
         return -1;
     }
@@ -446,13 +439,13 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     }
 
     if (argc) {
-        ods_log_error("[%s] unknown arguments for %s command", module_str, key_import_funcblock()->cmdname);
+        ods_log_error("[%s] unknown arguments for %s command", module_str, key_import_funcblock.cmdname);
         client_printf_err(sockfd,"unknown arguments\n");
         return -1;
     }
 
     if (!zonename) {
-        ods_log_error("[%s] expected --zone for %s command", module_str, key_import_funcblock()->cmdname);
+        ods_log_error("[%s] expected --zone for %s command", module_str, key_import_funcblock.cmdname);
         client_printf_err(sockfd, "expected --zone \n");
         return -1;
     }
@@ -526,13 +519,6 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     return 0;
 }
 
-static struct cmd_func_block funcblock = {
-    "key import", &usage, &help, &handles, &run
+struct cmd_func_block key_import_funcblock = {
+    "key import", &usage, &help, NULL, &run
 };
-
-struct cmd_func_block*
-key_import_funcblock(void)
-{
-    return &funcblock;
-}
-

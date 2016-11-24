@@ -33,20 +33,16 @@
 #define DAEMON_ENGINE_H
 
 #include "config.h"
+#include <signal.h>
+
+typedef struct engine_struct engine_type;
+
 #include "daemon/cfg.h"
 #include "daemon/cmdhandler.h"
 #include "scheduler/task.h"
+#include "scheduler/schedule.h"
 #include "db/db_configuration.h"
 #include "db/db_connection.h"
-
-#include <signal.h>
-
-/**
- * Engine stuff.
- *
- */
-
-typedef struct engine_struct engine_type;
 
 struct engine_struct {
     engineconfig_type* config;
@@ -76,7 +72,7 @@ struct engine_struct {
  * \param dbcfg_list, database configuration list
  * \return connection on success, NULL on failure.
  */
-db_connection_t* get_database_connection(db_configuration_list_t* dbcfg_list);
+db_connection_t* get_database_connection(engine_type* dbcfg_list);
 
 /**
  * Setup the engine started by engine_create

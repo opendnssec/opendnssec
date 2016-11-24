@@ -70,15 +70,9 @@ help(int sockfd)
 }
 
 static int
-handles(const char *cmd, ssize_t n)
+run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 {
-	return ods_check_command(cmd, n, time_leap_funcblock()->cmdname)?1:0;
-}
-
-static int
-run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
-	db_connection_t *dbconn)
-{
+    db_connection_t* dbconn;
 	struct tm strtime_struct;
 	char strtime[64]; /* at least 26 according to docs plus a long integer */
 	char buf[ODS_SE_MAXLINE];
@@ -91,9 +85,9 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
         int taskcount;
 	int argc, attach, cont;
 	task_type* task = NULL;
-	(void)n;
+        engine_type* engine = getglobalcontext(context);
 
-	ods_log_debug("[%s] %s command", module_str, time_leap_funcblock()->cmdname);
+	ods_log_debug("[%s] %s command", module_str, time_leap_funcblock.cmdname);
 
 	strncpy(buf, cmd, sizeof(buf));
 	buf[sizeof(buf)-1] = '\0';
@@ -137,6 +131,11 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 		"There are %i tasks scheduled.\nIt is now       %s (%ld seconds since epoch)\n",
 		taskcount, strtime, (long)now);
 	cont = 1;
+    if (!(dbconn = get_database_connection(engine))) {
+        client_printf_err(sockfd, "Failed to open DB connection.\n");
+        client_exit(sockfd, 1);
+        return -1;
+    }
 	while (cont) {
 		if (!time)
                         schedule_info(engine->taskq, &time_leap, NULL, NULL);
@@ -166,16 +165,11 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 		ods_log_debug("[timeleap] finished working");
 		//~ hsm_key_factory_generate_all(engine, dbconn, 0); /* should be scheduled already */
 	}
+    db_connection_free(dbconn);
 	return 0;
 }
 
 
-static struct cmd_func_block funcblock = {
-	"time leap", &usage, &help, &handles, &run
+struct cmd_func_block time_leap_funcblock = {
+	"time leap", &usage, &help, NULL, &run
 };
-
-struct cmd_func_block*
-time_leap_funcblock(void)
-{
-	return &funcblock;
-}

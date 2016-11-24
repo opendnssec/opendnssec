@@ -70,16 +70,11 @@ help(int sockfd)
 
 
 static int
-handles(const char *cmd, ssize_t n)
+run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 {
-    return ods_check_command(cmd, n, policy_import_funcblock()->cmdname) ? 1 : 0;
-}
-
-static int
-run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
-    db_connection_t *dbconn)
-{
-    #define NARGV 8
+    db_connection_t* dbconn = getconnectioncontext(context);;
+    engine_type* engine = getglobalcontext(context);
+#define NARGV 8
 
     int remove_missing_policies, argc;
     char buf[ODS_SE_MAXLINE];
@@ -91,9 +86,9 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
         return 1;
     }
 
-    ods_log_debug("[%s] %s command", module_str, policy_import_funcblock()->cmdname);
+    ods_log_debug("[%s] %s command", module_str, policy_import_funcblock.cmdname);
 
-    cmd = ods_check_command(cmd, n, policy_import_funcblock()->cmdname);
+    cmd = ods_check_command(cmd, policy_import_funcblock.cmdname);
     if (!cmd) return -1;
     strncpy(buf, cmd, sizeof(buf));
     buf[sizeof(buf)-1] = '\0';
@@ -101,14 +96,14 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     argc = ods_str_explode(buf, NARGV, argv);
     if (argc > NARGV) {
         ods_log_warning("[%s] too many arguments for %s command",
-                        module_str, policy_import_funcblock()->cmdname);
+                        module_str, policy_import_funcblock.cmdname);
         client_printf(sockfd,"too many arguments\n");
         return -1;
     }
     remove_missing_policies = (ods_find_arg(&argc, argv, "remove-missing-policies", "r") >= 0);
     if (argc) {
         ods_log_warning("[%s] unknown arguments for %s command",
-                        module_str, policy_import_funcblock()->cmdname);
+                        module_str, policy_import_funcblock.cmdname);
         client_printf(sockfd,"unknown arguments\n");
         return -1;
     }
@@ -137,12 +132,6 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     return 1;
 }
 
-static struct cmd_func_block funcblock = {
-    "policy import", &usage, &help, &handles, &run
+struct cmd_func_block policy_import_funcblock = {
+    "policy import", &usage, &help, NULL, &run
 };
-
-struct cmd_func_block*
-policy_import_funcblock(void)
-{
-    return &funcblock;
-}
