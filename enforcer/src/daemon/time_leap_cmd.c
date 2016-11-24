@@ -164,7 +164,6 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 			cont = 0;
 		task_perform(engine->taskq, task, dbconn);
 		ods_log_debug("[timeleap] finished working");
-		//~ hsm_key_factory_generate_all(engine, dbconn, 0); /* should be scheduled already */
 	}
 	return 0;
 }
