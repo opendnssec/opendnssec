@@ -74,6 +74,7 @@ struct engine_struct {
  */
 db_connection_t* get_database_connection(engine_type* dbcfg_list);
 
+
 /**
  * Setup the engine started by engine_create
  * \param[in] engine the engine returned from engine_start
