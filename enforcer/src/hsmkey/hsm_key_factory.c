@@ -243,7 +243,30 @@ hsm_key_factory_generate(engine_type* engine, const db_connection_t* connection,
             return 1;
         }
 
-        if ((key = hsm_generate_rsa_key(hsm_ctx, policy_key_repository(policy_key), policy_key_bits(policy_key)))) {
+        switch(policy_key_algorithm(policy_key)) {
+            case LDNS_DSA: /* */
+                key = hsm_generate_dsa_key(hsm_ctx, policy_key_repository(policy_key), policy_key_bits(policy_key));
+                break;
+            case LDNS_RSASHA1:
+            case LDNS_RSASHA1_NSEC3:
+            case LDNS_RSASHA256:
+            case LDNS_RSASHA512:
+                key = hsm_generate_rsa_key(hsm_ctx, policy_key_repository(policy_key), policy_key_bits(policy_key));
+                break;
+            case LDNS_ECC_GOST:
+                key = hsm_generate_gost_key(hsm_ctx, policy_key_repository(policy_key));
+                break;
+            case LDNS_ECDSAP256SHA256:
+                key = hsm_generate_ecdsa_key(hsm_ctx, policy_key_repository(policy_key), "P-256");
+                break;
+            case LDNS_ECDSAP384SHA384:
+                key = hsm_generate_ecdsa_key(hsm_ctx, policy_key_repository(policy_key), "P-384");
+                break;
+            default:
+                key = NULL;
+        }
+
+        if (key) {
             /*
              * The key ID is the locator and we check first that we can get it
              */
