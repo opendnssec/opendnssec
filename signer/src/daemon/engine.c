@@ -104,72 +104,9 @@ engine_create(void)
 static void
 engine_start_cmdhandler(engine_type* engine)
 {
-    ods_log_assert(engine);
     ods_log_debug("[%s] start command handler", engine_str);
-    janitor_thread_create(&engine->cmdhandler->thread_id, detachedthreadclass, (janitor_runfn_t)cmdhandler_start, engine->cmdhandler);
+    janitor_thread_create(&engine->cmdhandler->thread_id, workerthreadclass, (janitor_runfn_t)cmdhandler_start, engine->cmdhandler);
 }
-
-/**
- * Self pipe trick (see Unix Network Programming).
- *
- */
-static int
-self_pipe_trick(engine_type* engine)
-{
-    int sockfd, ret;
-    struct sockaddr_un servaddr;
-    const char* servsock_filename = ODS_SE_SOCKFILE;
-    ods_log_assert(engine);
-    ods_log_assert(engine->cmdhandler);
-    sockfd = socket(AF_UNIX, SOCK_STREAM, 0);
-    if (sockfd < 0) {
-        ods_log_error("[%s] unable to connect to command handler: "
-            "socket() failed (%s)", engine_str, strerror(errno));
-        return 1;
-    } else {
-        bzero(&servaddr, sizeof(servaddr));
-        servaddr.sun_family = AF_UNIX;
-        strncpy(servaddr.sun_path, servsock_filename, sizeof(servaddr.sun_path)-1);
-        ret = connect(sockfd, (const struct sockaddr*) &servaddr,
-            sizeof(servaddr));
-        if (ret != 0) {
-            ods_log_error("[%s] unable to connect to command handler: "
-                "connect() failed (%s)", engine_str, strerror(errno));
-            close(sockfd);
-            return 1;
-        } else {
-            /* self-pipe trick */
-            ods_writen(sockfd, "", 1);
-            close(sockfd);
-        }
-    }
-    return 0;
-}
-/**
- * Stop command handler.
- *
- */
-static void
-engine_stop_cmdhandler(cmdhandler_type* cmdhandler)
-{
-    ods_log_assert(engine);
-    if (!cmdhandler || cmdhandler->stopped) {
-        return;
-    }
-    ods_log_debug("[%s] stop command handler", engine_str);
-    cmdhandler->need_to_exit = 1;
-    if (self_pipe_trick(engine) == 0) {
-        while (!cmdhandler->stopped) {
-            ods_log_debug("[%s] waiting for command handler to exit...",
-                engine_str);
-            sleep(1);
-        }
-    } else {
-        ods_log_error("[%s] command handler self pipe trick failed, "
-            "unclean shutdown", engine_str);
-    }
-}
-
 
 /**
  * Start/stop dnshandler.
@@ -960,7 +897,7 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
 
     /* shutdown */
     ods_log_info("[%s] signer shutdown", engine_str);
-    engine_stop_cmdhandler(engine->cmdhandler);
+    cmdhandler_stop(engine->cmdhandler);
     engine_stop_xfrhandler(engine);
     engine_stop_dnshandler(engine);
 

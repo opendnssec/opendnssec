@@ -30,6 +30,7 @@
 #include "config.h"
 
 #include "daemon/cmdhandler.h"
+#include "daemon/enforcercommands.h"
 #include "policy/policy_resalt_task.h"
 #include "duration.h"
 #include "file.h"

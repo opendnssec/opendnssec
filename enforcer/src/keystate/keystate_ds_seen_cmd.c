@@ -31,6 +31,7 @@
 
 #include "daemon/engine.h"
 #include "daemon/cmdhandler.h"
+#include "daemon/enforcercommands.h"
 #include "enforcer/enforce_task.h"
 #include "file.h"
 #include "log.h"

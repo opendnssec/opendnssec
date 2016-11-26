@@ -159,6 +159,7 @@ struct janitor_thread_struct {
     int isstarted;
     int blocksignals;
     pthread_barrier_t startbarrier;
+    janitor_threadclass_t threadclass;
 };
 
 static pthread_mutex_t threadlock = PTHREAD_MUTEX_INITIALIZER;
@@ -272,6 +273,7 @@ janitor_thread_create(janitor_thread_t* thread, janitor_threadclass_t threadclas
     info->rundata = data;
     info->blocksignals = 0;
     info->isstarted = 0;
+    info->threadclass = threadclass;
     CHECKFAIL(pthread_barrier_init(&info->startbarrier, NULL, 2));
     CHECKFAIL(pthread_create(&info->thread, ((threadclass && threadclass->hasattr) ? &threadclass->attr : NULL), runthread, info));
     janitor_thread_register(info);
@@ -311,6 +313,31 @@ janitor_thread_join(janitor_thread_t thread)
     status = pthread_join(thread->thread, NULL);
     free(thread);
     return status;
+}
+
+void
+janitor_thread_joinall(janitor_threadclass_t threadclass)
+{
+    struct janitor_thread_struct* thread;
+    struct janitor_thread_struct* foundthread;
+    do {
+        foundthread = NULL;
+        pthread_mutex_lock(&threadlock);
+        thread = threadlist;
+        if (thread) {
+            do {
+                if (thread->threadclass == threadclass) {
+                    foundthread = thread;
+                    break;
+                }
+                thread = thread->next;
+            } while (thread != threadlist);
+        }
+        pthread_mutex_unlock(&threadlock);
+        if (foundthread) {
+            janitor_thread_join(thread);
+        }
+    } while(foundthread);
 }
 
 static void

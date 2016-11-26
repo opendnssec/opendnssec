@@ -9,6 +9,7 @@
 #include "daemon/engine.h"
 #include "daemon/cmdhandler.h"
 #include "signercommands.h"
+#include "clientpipe.h"
 
 static char const * cmdh_str = "cmdhandler";
 
@@ -53,7 +54,7 @@ cmdhandler_handle_cmd_help(int sockfd, cmdhandler_ctx_type* context, const char 
         "sign --all                  Read all zones and schedule all for "
                                     "immediate (re-)sign.\n"
     );
-    ods_writen(sockfd, buf, strlen(buf));
+    client_printf(sockfd, buf);
 
     (void) snprintf(buf, ODS_SE_MAXLINE,
         "clear <zone>                Delete the internal storage of this "
@@ -64,7 +65,7 @@ cmdhandler_handle_cmd_help(int sockfd, cmdhandler_ctx_type* context, const char 
         "flush                       Execute all scheduled tasks "
                                     "immediately.\n"
     );
-    ods_writen(sockfd, buf, strlen(buf));
+    client_printf(sockfd, buf);
 
     (void) snprintf(buf, ODS_SE_MAXLINE,
         "update <zone>               Update this zone signer "
@@ -78,7 +79,7 @@ cmdhandler_handle_cmd_help(int sockfd, cmdhandler_ctx_type* context, const char 
         "stop                        Stop the engine.\n"
         "verbosity <nr>              Set verbosity.\n"
     );
-    ods_writen(sockfd, buf, strlen(buf));
+    client_printf(sockfd, buf);
     return 0;
 }
 
@@ -98,14 +99,14 @@ cmdhandler_handle_cmd_zones(int sockfd, cmdhandler_ctx_type* context, const char
     engine = getglobalcontext(context);
     if (!engine->zonelist || !engine->zonelist->zones) {
         (void)snprintf(buf, ODS_SE_MAXLINE, "There are no zones configured\n");
-        ods_writen(sockfd, buf, strlen(buf));
+        client_printf(sockfd, buf);
         return 0;
     }
     /* how many zones */
     pthread_mutex_lock(&engine->zonelist->zl_lock);
     (void)snprintf(buf, ODS_SE_MAXLINE, "There are %i zones configured\n",
         (int) engine->zonelist->zones->count);
-    ods_writen(sockfd, buf, strlen(buf));
+    client_printf(sockfd, buf);
     /* list zones */
     node = ldns_rbtree_first(engine->zonelist->zones);
     while (node && node != LDNS_RBTREE_NULL) {
@@ -114,7 +115,7 @@ cmdhandler_handle_cmd_zones(int sockfd, cmdhandler_ctx_type* context, const char
             buf[i] = 0;
         }
         (void)snprintf(buf, ODS_SE_MAXLINE, "- %s\n", zone->name);
-        ods_writen(sockfd, buf, strlen(buf));
+        client_printf(sockfd, buf);
         node = ldns_rbtree_next(node);
     }
     pthread_mutex_unlock(&engine->zonelist->zl_lock);
@@ -143,18 +144,18 @@ cmdhandler_handle_cmd_update(int sockfd, cmdhandler_ctx_type* context, const cha
         if (zl_changed == ODS_STATUS_UNCHANGED) {
             (void)snprintf(buf, ODS_SE_MAXLINE, "Zone list has not changed."
                 " Signer configurations updated.\n");
-            ods_writen(sockfd, buf, strlen(buf));
+            client_printf(sockfd, buf);
         } else if (zl_changed == ODS_STATUS_OK) {
             (void)snprintf(buf, ODS_SE_MAXLINE, "Zone list updated: %i "
             "removed, %i added, %i updated.\n",
                 engine->zonelist->just_removed,
                 engine->zonelist->just_added,
                 engine->zonelist->just_updated);
-            ods_writen(sockfd, buf, strlen(buf));
+            client_printf(sockfd, buf);
         } else {
             pthread_mutex_unlock(&engine->zonelist->zl_lock);
             (void)snprintf(buf, ODS_SE_MAXLINE, "Zone list has errors.\n");
-            ods_writen(sockfd, buf, strlen(buf));
+            client_printf(sockfd, buf);
         }
         if (zl_changed == ODS_STATUS_OK ||
             zl_changed == ODS_STATUS_UNCHANGED) {
@@ -183,7 +184,7 @@ cmdhandler_handle_cmd_update(int sockfd, cmdhandler_ctx_type* context, const cha
         if (!zone) {
             (void)snprintf(buf, ODS_SE_MAXLINE, "Error: Zone %s not found.\n",
                 cmdargument(cmd, NULL, ""));
-            ods_writen(sockfd, buf, strlen(buf));
+            client_printf(sockfd, buf);
             /* update all */
             cmdhandler_handle_cmd_update(sockfd, context, "update --all");
             return -1;
@@ -196,13 +197,13 @@ cmdhandler_handle_cmd_update(int sockfd, cmdhandler_ctx_type* context, const cha
         if (status != ODS_STATUS_OK) {
             (void)snprintf(buf, ODS_SE_MAXLINE, "Error: Unable to reschedule "
                 "task for zone %s.\n", cmdargument(cmd, NULL, ""));
-            ods_writen(sockfd, buf, strlen(buf));
+            client_printf(sockfd, buf);
             ods_log_crit("[%s] unable to reschedule task for zone %s: %s",
                 cmdh_str, zone->name, ods_status2str(status));
         } else {
             (void)snprintf(buf, ODS_SE_MAXLINE, "Zone %s config being updated.\n",
             cmdargument(cmd, NULL, ""));
-            ods_writen(sockfd, buf, strlen(buf));
+            client_printf(sockfd, buf);
             ods_log_verbose("[%s] zone %s scheduled for immediate update signconf",
                 cmdh_str, cmdargument(cmd, NULL, ""));
             engine_wakeup_workers(engine);
@@ -238,12 +239,12 @@ cmdhandler_handle_cmd_retransfer(int sockfd, cmdhandler_ctx_type* context, const
     if (!zone) {
         (void)snprintf(buf, ODS_SE_MAXLINE, "Error: Zone %s not found.\n",
             cmdargument(cmd, NULL, ""));
-        ods_writen(sockfd, buf, strlen(buf));
+        client_printf(sockfd, buf);
     } else if (zone->adinbound->type != ADAPTER_DNS) {
         (void)snprintf(buf, ODS_SE_MAXLINE,
             "Error: Zone %s not configured to use DNS input adapter.\n",
             cmdargument(cmd, NULL, ""));
-        ods_writen(sockfd, buf, strlen(buf));
+        client_printf(sockfd, buf);
     } else {
         zone->xfrd->serial_retransfer = 1;
         xfrd_set_timer_now(zone->xfrd);
@@ -251,7 +252,7 @@ cmdhandler_handle_cmd_retransfer(int sockfd, cmdhandler_ctx_type* context, const
         dnshandler_fwd_notify(engine->dnshandler,
             (uint8_t*) ODS_SE_NOTIFY_CMD, strlen(ODS_SE_NOTIFY_CMD));
         (void)snprintf(buf, ODS_SE_MAXLINE, "Zone %s being retransferred.\n", cmdargument(cmd, NULL, ""));
-        ods_writen(sockfd, buf, strlen(buf));
+        client_printf(sockfd, buf);
         ods_log_verbose("[%s] zone %s being retransferred", cmdh_str, cmdargument(cmd, NULL, ""));
     }
     return 0;
@@ -284,7 +285,7 @@ cmdhandler_handle_cmd_sign(int sockfd, cmdhandler_ctx_type* context, const char 
         engine_wakeup_workers(engine);
         (void)snprintf(buf, ODS_SE_MAXLINE, "All zones scheduled for "
             "immediate re-sign.\n");
-        ods_writen(sockfd, buf, strlen(buf));
+        client_printf(sockfd, buf);
         ods_log_verbose("[%s] all zones scheduled for immediate re-sign",
             cmdh_str);
     } else {
@@ -298,20 +299,20 @@ cmdhandler_handle_cmd_sign(int sockfd, cmdhandler_ctx_type* context, const char 
             if (strncmp(delim1+1, "--serial ", 9) != 0) {
                 (void)snprintf(buf, ODS_SE_MAXLINE, "Error: Expecting <zone> "
                     "--serial <nr>, got %s.\n", cmdargument(cmd, NULL, ""));
-                ods_writen(sockfd, buf, strlen(buf));
+                client_printf(sockfd, buf);
                 return -1;
             }
             delim2 = strchr(delim1+1, ' ');
             if (!delim2) {
                 (void)snprintf(buf, ODS_SE_MAXLINE, "Error: Expecting serial.\n");
-                ods_writen(sockfd, buf, strlen(buf));
+                client_printf(sockfd, buf);
                 return -1;
             }
             serial = (uint32_t) strtol(delim2+1, &end, 10);
             if (*end != '\0') {
                 (void)snprintf(buf, ODS_SE_MAXLINE, "Error: Expecting serial, "
                     "got %s.\n", delim2+1);
-                ods_writen(sockfd, buf, strlen(buf));
+                client_printf(sockfd, buf);
                 return -1;
             }
             force_serial = 1;
@@ -331,7 +332,7 @@ cmdhandler_handle_cmd_sign(int sockfd, cmdhandler_ctx_type* context, const char 
         if (!zone) {
             (void)snprintf(buf, ODS_SE_MAXLINE, "Error: Zone %s not found.\n",
                 cmdargument(cmd, NULL, ""));
-            ods_writen(sockfd, buf, strlen(buf));
+            client_printf(sockfd, buf);
             return -1;
         }
 
@@ -343,7 +344,7 @@ cmdhandler_handle_cmd_sign(int sockfd, cmdhandler_ctx_type* context, const char 
                 pthread_mutex_unlock(&zone->zone_lock);
                 (void)snprintf(buf, ODS_SE_MAXLINE, "Error: Unable to enforce "
                     "serial %u for zone %s.\n", serial, cmdargument(cmd, NULL, ""));
-                ods_writen(sockfd, buf, strlen(buf));
+                client_printf(sockfd, buf);
                 return -1;
             }
             zone->db->altserial = serial;
@@ -355,13 +356,13 @@ cmdhandler_handle_cmd_sign(int sockfd, cmdhandler_ctx_type* context, const char 
         if (status != ODS_STATUS_OK) {
             (void)snprintf(buf, ODS_SE_MAXLINE, "Error: Unable to reschedule "
                 "task for zone %s.\n", cmdargument(cmd, NULL, ""));
-            ods_writen(sockfd, buf, strlen(buf));
+            client_printf(sockfd, buf);
             ods_log_crit("[%s] unable to reschedule task for zone %s: %s",
                 cmdh_str, zone->name, ods_status2str(status));
         } else {
             (void)snprintf(buf, ODS_SE_MAXLINE, "Zone %s scheduled for "
                 "immediate re-sign.\n", cmdargument(cmd, NULL, ""));
-            ods_writen(sockfd, buf, strlen(buf));
+            client_printf(sockfd, buf);
             ods_log_verbose("[%s] zone %s scheduled for immediate re-sign",
                 cmdh_str, cmdargument(cmd, NULL, ""));
             engine_wakeup_workers(engine);
@@ -456,7 +457,7 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_ctx_type* context, const char
         ods_log_warning("[%s] cannot clear zone %s, zone not found",
             cmdh_str, cmdargument(cmd, NULL, ""));
     }
-    ods_writen(sockfd, buf, strlen(buf));
+    client_printf(sockfd, buf);
     return 0;
 }
 
@@ -479,7 +480,7 @@ cmdhandler_handle_cmd_queue(int sockfd, cmdhandler_ctx_type* context, const char
     engine = getglobalcontext(context);
     if (!engine->taskq || !engine->taskq->tasks) {
         (void)snprintf(buf, ODS_SE_MAXLINE, "There are no tasks scheduled.\n");
-        ods_writen(sockfd, buf, strlen(buf));
+        client_printf(sockfd, buf);
         return 0;
     }
     /* current time */
@@ -487,13 +488,13 @@ cmdhandler_handle_cmd_queue(int sockfd, cmdhandler_ctx_type* context, const char
     strtime = ctime(&now);
     (void)snprintf(buf, ODS_SE_MAXLINE, "It is now %s",
         strtime?strtime:"(null)");
-    ods_writen(sockfd, buf, strlen(buf));
+    client_printf(sockfd, buf);
     /* current work */
     pthread_mutex_lock(&engine->taskq->schedule_lock);
     /* how many tasks */
     (void)snprintf(buf, ODS_SE_MAXLINE, "\nThere are %i tasks scheduled.\n",
         (int) engine->taskq->tasks->count);
-    ods_writen(sockfd, buf, strlen(buf));
+    client_printf(sockfd, buf);
     /* list tasks */
     node = ldns_rbtree_first(engine->taskq->tasks);
     while (node && node != LDNS_RBTREE_NULL) {
@@ -502,7 +503,7 @@ cmdhandler_handle_cmd_queue(int sockfd, cmdhandler_ctx_type* context, const char
             buf[i] = 0;
         }
         taskdesc = sched_describetask(task);
-        ods_writen(sockfd, taskdesc, strlen(taskdesc));
+        client_printf(sockfd, taskdesc);
         free(taskdesc);
         node = ldns_rbtree_next(node);
     }
@@ -525,7 +526,7 @@ cmdhandler_handle_cmd_flush(int sockfd, cmdhandler_ctx_type* context, const char
     sched_flush(engine->taskq, TASK_NONE);
     engine_wakeup_workers(engine);
     (void)snprintf(buf, ODS_SE_MAXLINE, "All tasks scheduled immediately.\n");
-    ods_writen(sockfd, buf, strlen(buf));
+    client_printf(sockfd, buf);
     ods_log_verbose("[%s] all tasks scheduled immediately", cmdh_str);
     return 0;
 }
@@ -547,7 +548,7 @@ cmdhandler_handle_cmd_reload(int sockfd, cmdhandler_ctx_type* context, const cha
     pthread_cond_signal(&engine->signal_cond);
     pthread_mutex_unlock(&engine->signal_lock);
     (void)snprintf(buf, ODS_SE_MAXLINE, "Reloading engine.\n");
-    ods_writen(sockfd, buf, strlen(buf));
+    client_printf(sockfd, buf);
     return 0;
 }
 
@@ -567,7 +568,7 @@ cmdhandler_handle_cmd_stop(int sockfd, cmdhandler_ctx_type* context, const char 
     pthread_cond_signal(&engine->signal_cond);
     pthread_mutex_unlock(&engine->signal_lock);
     (void)snprintf(buf, ODS_SE_MAXLINE, ODS_SE_STOP_RESPONSE);
-    ods_writen(sockfd, buf, strlen(buf));
+    client_printf(sockfd, buf);
     return 0;
 }
 
@@ -581,7 +582,7 @@ cmdhandler_handle_cmd_start(int sockfd, cmdhandler_ctx_type* context, const char
 {
     char buf[ODS_SE_MAXLINE];
     (void)snprintf(buf, ODS_SE_MAXLINE, "Engine already running.\n");
-    ods_writen(sockfd, buf, strlen(buf));
+    client_printf(sockfd, buf);
     return 0;
 }
 
@@ -595,7 +596,7 @@ cmdhandler_handle_cmd_running(int sockfd, cmdhandler_ctx_type* context, const ch
 {
     char buf[ODS_SE_MAXLINE];
     (void)snprintf(buf, ODS_SE_MAXLINE, "Engine running.\n");
-    ods_writen(sockfd, buf, strlen(buf));
+    client_printf(sockfd, buf);
     return 0;
 }
 
@@ -612,7 +613,7 @@ cmdhandler_handle_cmd_verbosity(int sockfd, cmdhandler_ctx_type* context, const 
     val = atoi(cmdargument(cmd, NULL, "1"));
     ods_log_setverbosity(val);
     (void)snprintf(buf, ODS_SE_MAXLINE, "Verbosity level set to %i.\n", val);
-    ods_writen(sockfd, buf, strlen(buf));
+    client_printf(sockfd, buf);
     return 0;
 }
 
@@ -626,7 +627,7 @@ cmdhandler_handle_cmd_error(int sockfd, cmdhandler_ctx_type* context, const char
 {
     char buf[ODS_SE_MAXLINE];
     (void)snprintf(buf, ODS_SE_MAXLINE, "Error: %s.\n", str?str:"(null)");
-    ods_writen(sockfd, buf, strlen(buf));
+    client_printf(sockfd, buf);
 }
 
 
@@ -640,7 +641,7 @@ cmdhandler_handle_cmd_unknown(int sockfd, cmdhandler_ctx_type* context, const ch
     char buf[ODS_SE_MAXLINE];
     (void)snprintf(buf, ODS_SE_MAXLINE, "Unknown command %s.\n",
         str?str:"(null)");
-    ods_writen(sockfd, buf, strlen(buf));
+    client_printf(sockfd, buf);
 }
 
 

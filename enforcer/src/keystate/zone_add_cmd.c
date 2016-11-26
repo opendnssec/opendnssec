@@ -30,6 +30,7 @@
 
 #include "daemon/engine.h"
 #include "daemon/cmdhandler.h"
+#include "daemon/enforcercommands.h"
 #include "file.h"
 #include "str.h"
 #include "log.h"

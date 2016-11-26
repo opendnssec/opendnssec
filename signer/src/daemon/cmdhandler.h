@@ -45,6 +45,7 @@ typedef struct cmdhandler_ctx_struct {
     void* globalcontext;
     void* localcontext;
     cmdhandler_type* cmdhandler;
+    janitor_thread_t thread_id;
 } cmdhandler_ctx_type;
 
 struct cmd_func_block {
@@ -76,13 +77,12 @@ struct cmdhandler_struct {
     struct sockaddr_un listen_addr;
     janitor_thread_t thread_id;
     int listen_fd;
-    int client_fd;
     int need_to_exit;
     int stopped;
     struct cmd_func_block** commands;
     void* globalcontext;
     void* (*createlocalcontext)(void*);
-    void* (*destroylocalcontext)(void*);
+    void  (*destroylocalcontext)(void*);
 };
 
 /**
@@ -91,7 +91,7 @@ struct cmdhandler_struct {
  * \return cmdhandler_type* created command handler
  *
  */
-cmdhandler_type* cmdhandler_create(const char* filename, struct cmd_func_block** functions, void* globalcontext, void*(*createlocalcontext)(void*globalcontext),void*(*destroylocalcontext)(void*localcontext));
+cmdhandler_type* cmdhandler_create(const char* filename, struct cmd_func_block** functions, void* globalcontext, void*(*createlocalcontext)(void*globalcontext),void(*destroylocalcontext)(void*localcontext));
 
 /**
  * Cleanup command handler.
@@ -137,7 +137,5 @@ struct cmd_func_block* get_funcblock(const char *cmd, cmdhandler_type* cmdc);
  * \return Pointer to arguments within cmd. NULL if scmd not found.
  */
 const char *ods_check_command(const char *cmd, const char *scmd);
-
-#include "signercommands.h"
 
 #endif /* DAEMON_CMDHANDLER_H */

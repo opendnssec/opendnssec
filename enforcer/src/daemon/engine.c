@@ -107,11 +107,10 @@ engine_dealloc(engine_type* engine)
 }
 
 static void
-engine_start_cmdhandler(void* context)
+engine_start_cmdhandler(engine_type* engine)
 {
     ods_log_assert(engine);
     ods_log_debug("[%s] start command handler", engine_str);
-    engine->cmdhandler->globalcontext = context;
     janitor_thread_create(&engine->cmdhandler->thread_id, workerthreadclass, (janitor_runfn_t)cmdhandler_start, engine->cmdhandler);
 }
 
@@ -455,7 +454,7 @@ engine_setup()
     }
 
     /* create command handler (before chowning socket file) */
-    engine->cmdhandler = cmdhandler_create(engine->config->clisock_filename, enforcercommands, engine, &get_database_connection, &db_connection_free);
+    engine->cmdhandler = cmdhandler_create(engine->config->clisock_filename, enforcercommands, engine, (void*(*)(void*)) (void(*)(void*))&get_database_connection, &db_connection_free);
     if (!engine->cmdhandler) {
         ods_log_error("[%s] create command handler to %s failed",
             engine_str, engine->config->clisock_filename);
@@ -539,9 +538,6 @@ engine_setup()
     /* create workers */
     engine_create_workers(engine);
 
-    /* start command handler */
-    engine->cmdhandler_done = 0;
-
     /* write pidfile */
     if (util_write_pidfile(engine->config->pid_filename, engine->pid) == -1) {
         hsm_close();
@@ -619,7 +615,6 @@ engine_init(engine_type* engine, int daemonize)
     engine->config = NULL;
     engine->workers = NULL;
     engine->cmdhandler = NULL;
-    engine->cmdhandler_done = 1;
     engine->init_setup_done = 0;
     engine->pid = getpid(); /* We need to do this again after fork() */
     engine->uid = -1;

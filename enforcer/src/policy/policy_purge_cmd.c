@@ -1,5 +1,6 @@
 #include "daemon/engine.h"
 #include "daemon/cmdhandler.h"
+#include "daemon/enforcercommands.h"
 #include "log.h"
 #include "str.h"
 #include "clientpipe.h"

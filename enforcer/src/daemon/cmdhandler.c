@@ -83,10 +83,10 @@ void
 cmdhandler_get_usage(int sockfd, cmdhandler_type* cmdc)
 {
     int i;
-    for(i=0; cmdc->commands[i]; i++) {
+    for (i=0; cmdc->commands[i]; i++) {
         if (!(cmdc->commands[i]->handles ? cmdc->commands[i]->handles("time leap") : defaulthandles(cmdc->commands[i]->cmdname, "time leap"))) {
             if (cmdc->commands[i]->usage) {
-            cmdc->commands[i]->usage(sockfd);
+                cmdc->commands[i]->usage(sockfd);
             }
         }
     }
@@ -98,7 +98,7 @@ get_funcblock(const char *cmd, cmdhandler_type* cmdc)
     int cmdlen, i;
     for (cmdlen=0; cmd[cmdlen] && !isspace(cmd[cmdlen]); cmdlen++)
         ;
-    for(i=0; cmdc->commands[i]; i++) {
+    for (i=0; cmdc->commands[i]; i++) {
         if (cmdc->commands[i]->handles ? cmdc->commands[i]->handles(cmd) : defaulthandles(cmdc->commands[i]->cmdname, cmd)) {
             return cmdc->commands[i];
         }
@@ -116,18 +116,18 @@ get_funcblock(const char *cmd, cmdhandler_type* cmdc)
  * \return exit code for client, 0 for no errors, -1 for syntax errors
  */
 static int
-cmdhandler_perform_command(cmdhandler_type* cmdc, const char *cmd, struct cmdhandler_ctx_struct* context)
+cmdhandler_perform_command(const char *cmd, struct cmdhandler_ctx_struct* context)
 {
     time_t tstart = time(NULL);
     struct cmd_func_block* fb;
     int ret;
-    int sockfd = cmdc->client_fd;
+    int sockfd = context->sockfd;
 
     ods_log_verbose("received command %s", cmd);
     if (strlen(cmd) == 0) return 0;
 
     /* Find function claiming responsibility */
-    if ((fb = get_funcblock(cmd, cmdc))) {
+    if ((fb = get_funcblock(cmd, context->cmdhandler))) {
         ods_log_debug("[%s] %s command", module_str, fb->cmdname);
         ret = fb->run(sockfd, context, cmd);
         if (ret == -1) {
@@ -146,7 +146,7 @@ cmdhandler_perform_command(cmdhandler_type* cmdc, const char *cmd, struct cmdhan
         /* Unhandled command, print general error */
         client_printf_err(sockfd, "Unknown command %s.\n", cmd?cmd:"(null)");
         client_printf(sockfd, "Commands:\n");
-        cmdhandler_get_usage(sockfd, cmdc);
+        cmdhandler_get_usage(sockfd, context->cmdhandler);
         return 1;
     }
 }
@@ -170,7 +170,7 @@ cmdhandler_perform_command(cmdhandler_type* cmdc, const char *cmd, struct cmdhan
  * \return 0: waiting for more data. 1: exit code is set.
  */
 static int
-extract_msg(char* buf, int *pos, int buflen, int *exitcode, cmdhandler_type* cmdc, struct cmdhandler_ctx_struct* context)
+extract_msg(char* buf, int *pos, int buflen, int *exitcode, struct cmdhandler_ctx_struct* context)
 {
     char data[ODS_SE_MAXLINE+1], opc;
     int datalen;
@@ -194,7 +194,7 @@ extract_msg(char* buf, int *pos, int buflen, int *exitcode, cmdhandler_type* cmd
             ods_str_trim(data, 0);
 
             if (opc == CLIENT_OPC_STDIN) {
-                *exitcode = cmdhandler_perform_command(cmdc, data, context);
+                *exitcode = cmdhandler_perform_command(data, context);
                 return 1;
             }
         } else if (datalen+3 > buflen) {
@@ -217,7 +217,7 @@ extract_msg(char* buf, int *pos, int buflen, int *exitcode, cmdhandler_type* cmd
  * \param cmdc, command handler data, must not be NULL
  */
 static void
-cmdhandler_handle_client_conversation(cmdhandler_type* cmdc, struct cmdhandler_ctx_struct* context)
+cmdhandler_handle_client_conversation(struct cmdhandler_ctx_struct* context)
 {
     char buf[ODS_SE_MAXLINE+4]; /* enough space for hdr and \0 */
     int bufpos, r, numread;
@@ -225,7 +225,7 @@ cmdhandler_handle_client_conversation(cmdhandler_type* cmdc, struct cmdhandler_c
 
     bufpos = 0;
     for (;;) {
-        numread = read(cmdc->client_fd, &buf[bufpos], ODS_SE_MAXLINE - bufpos + 3);
+        numread = read(context->sockfd, &buf[bufpos], ODS_SE_MAXLINE - bufpos + 3);
         if (numread == 0) {
             /* client closed pipe */
             break;
@@ -242,12 +242,12 @@ cmdhandler_handle_client_conversation(cmdhandler_type* cmdc, struct cmdhandler_c
             }
         } else {
             bufpos += numread;
-            r = extract_msg(buf, &bufpos, ODS_SE_MAXLINE, &exitcode, cmdc, context);
+            r = extract_msg(buf, &bufpos, ODS_SE_MAXLINE, &exitcode, context);
             if (r == -1) {
                 ods_log_error("[%s] Error receiving message from client.", module_str);
                 break;
             } else if (r == 1) {
-                if (!client_exit(cmdc->client_fd, exitcode)) {
+                if (!client_exit(context->sockfd, exitcode)) {
                     ods_log_error("[%s] Error sending message to client.", module_str);
                 }
             }
@@ -263,32 +263,27 @@ static void
 cmdhandler_accept_client(void* arg)
 {
     int err;
-    cmdhandler_type* cmdc = (cmdhandler_type*) arg;
-    struct cmdhandler_ctx_struct context;
+    cmdhandler_ctx_type* context = (cmdhandler_ctx_type*) arg;
 
-    ods_log_debug("[%s] accept client %i", module_str, cmdc->client_fd);
+    ods_log_debug("[%s] accept client %i", module_str, context->sockfd);
 
-    context.cmdhandler = cmdc;
-    context.sockfd = cmdc->client_fd;
-    context.globalcontext = cmdc->globalcontext;
-    if (cmdc->createlocalcontext) {
-        context.localcontext = cmdc->createlocalcontext(cmdc->globalcontext);
-        if (!context.localcontext) {
-            client_printf_err(cmdc->client_fd, "Failed to open DB connection.\n");
-            client_exit(cmdc->client_fd, 1);
+    if (context->cmdhandler->createlocalcontext) {
+        context->localcontext = context->cmdhandler->createlocalcontext(context->globalcontext);
+        if (!context->localcontext) {
+            client_printf_err(context->sockfd, "Failed to open DB connection.\n");
+            client_exit(context->sockfd, 1);
             return;
         }
     }
 
-    cmdhandler_handle_client_conversation(cmdc, &context);
-    if (cmdc->client_fd) {
-        shutdown(cmdc->client_fd, SHUT_RDWR);
-        close(cmdc->client_fd);
+    cmdhandler_handle_client_conversation(context);
+    if (context->sockfd) {
+        shutdown(context->sockfd, SHUT_RDWR);
+        close(context->sockfd);
     }
-    if (cmdc->destroylocalcontext) {
-        cmdc->destroylocalcontext(context.localcontext);
+    if (context->cmdhandler->destroylocalcontext) {
+        context->cmdhandler->destroylocalcontext(context->localcontext);
     }
-    cmdc->stopped = 1;
 }
 
 /**
@@ -296,7 +291,7 @@ cmdhandler_accept_client(void* arg)
  *
  */
 cmdhandler_type*
-cmdhandler_create(const char* filename, struct cmd_func_block** commands, void* globalcontext, void*(*createlocalcontext)(void*globalcontext),void*(*destroylocalcontext)(void*localcontext))
+cmdhandler_create(const char* filename, struct cmd_func_block** commands, void* globalcontext, void*(*createlocalcontext)(void*globalcontext),void(*destroylocalcontext)(void*localcontext))
 {
     cmdhandler_type* cmdh = NULL;
     struct sockaddr_un servaddr;
@@ -381,11 +376,11 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
 {
     struct sockaddr_un cliaddr;
     socklen_t clilen;
-    cmdhandler_type* cmdc = NULL;
+    cmdhandler_ctx_type* cmdc = NULL;
     fd_set rset;
     int flags, connfd = 0, ret = 0;
     ssize_t thread_index = 0, i;
-    cmdhandler_type cmdcs[MAX_CLIENT_CONN];
+    cmdhandler_ctx_type cmdcs[MAX_CLIENT_CONN];
 
     ods_log_assert(cmdhandler);
     ods_log_debug("[%s] start", module_str);
@@ -400,7 +395,6 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
 
         /* Opportunistic join threads LIFO. */
         for (i = thread_index-1; i>0; i--) {
-            if (!cmdcs[i].stopped) break;
             janitor_thread_join(cmdcs[i].thread_id);
             thread_index--;
         }
@@ -438,17 +432,11 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
             }
             /* client accepted, create new thread */
             cmdc = &cmdcs[thread_index];
-            cmdc->stopped = 0;
-            cmdc->listen_fd = cmdhandler->listen_fd;
-            cmdc->client_fd = connfd;
-            cmdc->listen_addr = cmdhandler->listen_addr;
+            cmdc->cmdhandler = cmdhandler;
+            cmdc->sockfd = connfd;
             cmdc->globalcontext = cmdhandler->globalcontext;
-            cmdc->createlocalcontext = cmdhandler->createlocalcontext;
-            cmdc->destroylocalcontext = cmdhandler->destroylocalcontext;
-            cmdc->globalcontext = cmdhandler->globalcontext;
-            cmdc->commands = cmdhandler->commands;
-            cmdc->need_to_exit = cmdhandler->need_to_exit;
-            if (!janitor_thread_create(&(cmdcs[thread_index].thread_id), workerthreadclass, &cmdhandler_accept_client, (void*) cmdc)) {
+            cmdc->localcontext = NULL;
+            if (!janitor_thread_create(&cmdc->thread_id, cmdhandlerthreadclass, &cmdhandler_accept_client, (void*) cmdc)) {
                 thread_index++;
             }
             ods_log_debug("[%s] %lu clients in progress...", module_str, thread_index);
@@ -469,25 +457,17 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
  *
  */
 static int
-self_pipe_trick()
+self_pipe_trick(cmdhandler_type* cmdhandler)
 {
     int sockfd, ret;
-    struct sockaddr_un servaddr;
-    const char* servsock_filename = OPENDNSSEC_ENFORCER_SOCKETFILE;
-
     sockfd = socket(AF_UNIX, SOCK_STREAM, 0);
     if (sockfd < 0) {
         ods_log_error("[engine] cannot connect to command handler: "
             "socket() failed: %s\n", strerror(errno));
         return 1;
     } else {
-        bzero(&servaddr, sizeof(servaddr));
-        servaddr.sun_family = AF_UNIX;
-        strncpy(servaddr.sun_path, servsock_filename,
-            sizeof(servaddr.sun_path) - 1);
-
-        ret = connect(sockfd, (const struct sockaddr*) &servaddr,
-            sizeof(servaddr));
+        ret = connect(sockfd, (const struct sockaddr*) &cmdhandler->listen_addr,
+            sizeof(cmdhandler->listen_addr));
         if (ret != 0) {
             ods_log_error("[engine] cannot connect to command handler: "
                 "connect() failed: %s\n", strerror(errno));
@@ -511,7 +491,7 @@ cmdhandler_stop(cmdhandler_type* cmdhandler)
 {
     ods_log_debug("[engine] stop command handler");
     cmdhandler->need_to_exit = 1;
-    if (self_pipe_trick() == 0) {
+    if (self_pipe_trick(cmdhandler) == 0) {
         while (!cmdhandler->stopped) {
             ods_log_debug("[engine] waiting for command handler to exit...");
             sleep(1);

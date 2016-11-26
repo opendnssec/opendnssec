@@ -30,6 +30,7 @@
 #include "config.h"
 
 #include "daemon/cmdhandler.h"
+#include "daemon/enforcercommands.h"
 #include "daemon/engine.h"
 #include "signconf/signconf_task.h"
 #include "file.h"

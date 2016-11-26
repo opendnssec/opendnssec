@@ -29,6 +29,7 @@
 #include "config.h"
 
 #include "daemon/cmdhandler.h"
+#include "daemon/enforcercommands.h"
 #include "daemon/engine.h"
 #include "file.h"
 #include "log.h"
