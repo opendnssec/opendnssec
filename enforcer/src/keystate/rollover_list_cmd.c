@@ -31,7 +31,7 @@
 
 #include "db/zone_db.h"
 #include "daemon/engine.h"
-#include "daemon/cmdhandler.h"
+#include "cmdhandler.h"
 #include "daemon/enforcercommands.h"
 #include "file.h"
 #include "log.h"

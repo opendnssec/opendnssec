@@ -326,7 +326,7 @@ interface_start(const char* cmd, const char* servsock_filename)
     if ((cmd && !strncmp(cmd, "stop", 4)) || 
         (strlen(userbuf) != 0 && !strncmp(userbuf, "stop", 4))) {
         char line[80];
-        FILE *cmd2 = popen("pgrep ods-enforcerd","r");
+        FILE *cmd2 = popen("pgrep ods-signerd","r");
         fgets(line, 80, cmd2);
         pid_t pid = strtoul(line, NULL, 10);
         fprintf(stdout, "pid %d\n", pid);
@@ -337,7 +337,7 @@ interface_start(const char* cmd, const char* servsock_filename)
                sleep(1);
                time += 1;
                if (time>20) {
-                  fprintf(stdout, "enforcer needs more seconds to stop");
+                  fprintf(stdout, "signer needs more seconds to stop");
                   fflush(stdout);
                   time = 0;
                }

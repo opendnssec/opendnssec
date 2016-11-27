@@ -24,7 +24,6 @@ ods_signerd_SOURCES=		ods-signerd.c \
 				adapter/adutil.c adapter/adutil.h \
 				daemon/cfg.c daemon/cfg.h \
 				daemon/signercommands.c daemon/signercommands.h \
-				daemon/cmdhandler.c daemon/cmdhandler.h \
 				daemon/dnshandler.c daemon/dnshandler.h \
 				daemon/xfrhandler.c daemon/xfrhandler.h \
 				daemon/engine.c daemon/engine.h \

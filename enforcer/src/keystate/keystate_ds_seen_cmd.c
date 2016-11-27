@@ -30,7 +30,7 @@
 #include "config.h"
 
 #include "daemon/engine.h"
-#include "daemon/cmdhandler.h"
+#include "cmdhandler.h"
 #include "daemon/enforcercommands.h"
 #include "enforcer/enforce_task.h"
 #include "file.h"

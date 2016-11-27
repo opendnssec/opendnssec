@@ -34,9 +34,9 @@
 #include <pthread.h>
 
 #include "daemon/cfg.h"
-#include "daemon/cmdhandler.h"
 #include "daemon/enforcercommands.h"
 #include "clientpipe.h"
+#include "cmdhandler.h"
 #include "locks.h"
 #include "daemon/engine.h"
 #include "scheduler/schedule.h"

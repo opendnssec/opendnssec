@@ -29,7 +29,7 @@
 
 #include <sys/stat.h>
 
-#include "daemon/cmdhandler.h"
+#include "cmdhandler.h"
 #include "daemon/engine.h"
 #include "enforcer/enforce_task.h"
 #include "file.h"

@@ -43,7 +43,6 @@ endif
 ods_enforcerd_SOURCES = \
 	ods-enforcerd.c \
 	daemon/cfg.c daemon/cfg.h \
-	daemon/cmdhandler.c daemon/cmdhandler.h \
 	daemon/enforcercommands.c daemon/enforcercommands.h \
 	daemon/engine.c daemon/engine.h \
 	daemon/help_cmd.c daemon/help_cmd.h \

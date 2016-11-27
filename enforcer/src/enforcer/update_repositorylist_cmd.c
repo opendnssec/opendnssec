@@ -31,7 +31,7 @@
 
 #include <pthread.h>
 
-#include "daemon/cmdhandler.h"
+#include "cmdhandler.h"
 #include "daemon/enforcercommands.h"
 #include "str.h"
 #include "log.h"

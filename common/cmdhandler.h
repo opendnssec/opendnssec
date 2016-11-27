@@ -38,7 +38,6 @@
 typedef struct cmdhandler_struct cmdhandler_type;
 
 #include "janitor.h"
-#include "engine.h"
 
 typedef struct cmdhandler_ctx_struct {
     int sockfd;
@@ -62,9 +61,9 @@ struct cmd_func_block {
     /** Run the handler
      * 
      * \param sockfd, pipe to client,
-     * \param engine, daemon information must not be NULL.
-     * \param cmd, command and args for additional parsing.
-     * \param n, length of cmd.
+     * \param ctx, the client context
+     * \param cmd, command and args for additional parsing null character
+     *        terminated
      * \param dbconn, connection to the database.
      * \return 0 command executed, all OK
      *      -1 Errors parsing commandline / missing params

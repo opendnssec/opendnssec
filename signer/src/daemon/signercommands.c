@@ -7,7 +7,7 @@
 #include "status.h"
 #include "util.h"
 #include "daemon/engine.h"
-#include "daemon/cmdhandler.h"
+#include "cmdhandler.h"
 #include "signercommands.h"
 #include "clientpipe.h"
 

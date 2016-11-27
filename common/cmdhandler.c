@@ -57,8 +57,7 @@
 #include "status.h"
 #include "util.h"
 #include "clientpipe.h"
-#include "daemon/cmdhandler.h"
-#include "daemon/engine.h"
+#include "cmdhandler.h"
 
 #define SE_CMDH_CMDLEN 7
 #define MAX_CLIENT_CONN 8
@@ -132,10 +131,12 @@ cmdhandler_perform_command(const char *cmd, struct cmdhandler_ctx_struct* contex
         ret = fb->run(sockfd, context, cmd);
         if (ret == -1) {
             /* Syntax error, print usage for cmd */
-            client_printf_err(sockfd, "Error parsing arguments\n",
-                fb->cmdname, time(NULL) - tstart);
-            client_printf(sockfd, "Usage:\n\n");
-            fb->usage(sockfd);
+            client_printf_err(sockfd, "Error parsing arguments %s command line %s\n",
+                fb->cmdname, cmd);
+            if (fb->usage != NULL) {
+                client_printf(sockfd, "Usage:\n\n");
+                fb->usage(sockfd);
+            }
         } else if (ret == 0) { /* success */
             client_printf_err(sockfd, "%s completed in %ld seconds.\n",
                 fb->cmdname, time(NULL) - tstart);

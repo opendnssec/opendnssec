@@ -33,7 +33,7 @@
 #include "file.h"
 #include "log.h"
 #include "str.h"
-#include "daemon/cmdhandler.h"
+#include "cmdhandler.h"
 #include "daemon/engine.h"
 #include "clientpipe.h"
 

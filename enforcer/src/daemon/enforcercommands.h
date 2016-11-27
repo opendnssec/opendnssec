@@ -34,6 +34,7 @@
 
 #include "config.h"
 #include "cmdhandler.h"
+#include "engine.h"
 #include "db/db_connection.h"
 
 struct cmd_func_block** enforcercommands;

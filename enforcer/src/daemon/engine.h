@@ -38,7 +38,7 @@
 typedef struct engine_struct engine_type;
 
 #include "daemon/cfg.h"
-#include "daemon/cmdhandler.h"
+#include "cmdhandler.h"
 #include "scheduler/task.h"
 #include "scheduler/schedule.h"
 #include "db/db_configuration.h"

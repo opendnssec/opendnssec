@@ -36,7 +36,7 @@
 #include "str.h"
 #include "duration.h"
 #include "scheduler/schedule.h"
-#include "daemon/cmdhandler.h"
+#include "cmdhandler.h"
 #include "daemon/enforcercommands.h"
 #include "daemon/engine.h"
 #include "clientpipe.h"
