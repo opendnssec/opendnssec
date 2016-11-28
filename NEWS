@@ -14,6 +14,8 @@ UNRELEASED:
   start quicker and earlier available for user input.
 * OPENDNSSEC-479: Transferring zones and sending notifies through a bound socket, using the same interface as listener
 * Key cache is now shared between threads.
+* OPENDNSSEC-858: Don't print "completed in x seconds" to stderr for enforcer
+  commands.
 * Various memory leaks
 * OPENDNSSEC-601: signer and enforcer working dir would not properly fallback to
   default when not specified.
