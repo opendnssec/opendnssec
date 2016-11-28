@@ -357,8 +357,7 @@ interface_start(const char* cmd, const char* servsock_filename)
                sleep(1);
                time += 1;
                if (time>20) {
-                  fprintf(stdout, "enforcer needs more seconds to stop");
-                  fflush(stdout);
+                  printf("enforcer needs more time to stop...\n");
                   time = 0;
                }
            }
