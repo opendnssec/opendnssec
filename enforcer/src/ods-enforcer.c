@@ -333,7 +333,7 @@ interface_start(const char* cmd, const char* servsock_filename)
                     else if (strlen(userbuf) != 0)
                         /* we are interactive so print response.
                          * But also suppress when no command is given. */
-                        fprintf(stderr, "Daemon exit code: %d\n", exitcode);
+                        fprintf(stderr, "Command exit code: %d\n", exitcode);
                     break;
                 }
             }

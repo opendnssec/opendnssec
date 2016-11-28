@@ -115,7 +115,6 @@ get_funcblock(const char *cmd, cmdhandler_type* cmdc)
 static int
 cmdhandler_perform_command(const char *cmd, struct cmdhandler_ctx_struct* context)
 {
-    time_t tstart = time(NULL);
     struct cmd_func_block* fb;
     int ret;
     int sockfd = context->sockfd;
@@ -135,9 +134,9 @@ cmdhandler_perform_command(const char *cmd, struct cmdhandler_ctx_struct* contex
                 client_printf(sockfd, "Usage:\n\n");
                 fb->usage(sockfd);
             }
-        } else if (ret == 0) { /* success */
-            client_printf_err(sockfd, "%s completed in %ld seconds.\n",
-                fb->cmdname, time(NULL) - tstart);
+            client_printf_err(sockfd, "Error parsing arguments\n");
+            client_printf(sockfd, "Usage:\n\n");
+            fb->usage(sockfd);
         }
         ods_log_debug("[%s] done handling command %s", module_str, cmd);
         return ret;

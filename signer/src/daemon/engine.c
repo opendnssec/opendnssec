@@ -404,9 +404,12 @@ engine_setup(void)
                 xmlCleanupGlobals();
                 xmlCleanupThreads();
                 close(pipefd[1]);
-                read(pipefd[0], &buff, 1);
+                while (read(pipefd[0], &buff, 1) != -1) {
+                    if (buff <= 1) break;
+                    printf("%c", buff);
+                }
                 close(pipefd[0]);
-                if (buff == '1') {
+                if (buff == '\1') {
                     ods_log_debug("[%s] signerd started successfully", engine_str);
                     exit(0);
                 }
@@ -416,7 +419,10 @@ engine_setup(void)
         if (setsid() == -1) {
             ods_log_error("[%s] setup: unable to setsid daemon (%s)",
                 engine_str, strerror(errno));
-            write(pipefd[1], "0", 1);
+            char *err = "unable to setsid daemon: ";
+            ods_writen(pipefd[1], err, strlen(err));
+            ods_writeln(pipefd[1], strerror(errno));
+            write(pipefd[1], "\0", 1);
             close(pipefd[1]);
             return ODS_STATUS_SETSID_ERR;
         }
@@ -425,7 +431,8 @@ engine_setup(void)
     /* write pidfile */
     if (util_write_pidfile(engine->config->pid_filename, engine->pid) == -1) {
         if (engine->daemonize) {
-            write(pipefd[1], "0", 1);
+            ods_writeln(pipefd[1], "Unable to write pid file");
+            write(pipefd[1], "\0", 1);
             close(pipefd[1]);
         }
         return ODS_STATUS_WRITE_PIDFILE_ERR;
@@ -454,7 +461,7 @@ engine_setup(void)
     engine_start_xfrhandler(engine);
     tsig_handler_init();
     if (engine->daemonize) {
-        write(pipefd[1], "1", 1);
+        write(pipefd[1], "\1", 1);
         close(pipefd[1]);
     }
     return ODS_STATUS_OK;

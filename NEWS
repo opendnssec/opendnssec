@@ -9,11 +9,15 @@ UNRELEASED:
 * signer clear <zone> would assert when signconf wasn't read yet.
 * The <Interval> tag had been deprecrecated, and is now no longer allowed to
   be specified.
+* OPENDNSSEC-681: After fork() allow child process to pass error messages to
+  parent so they can be printed to the console in case of failed start.
 * OPENDNSSEC-849: Crash on free of part of IXFR structure.
 * OPENDNSSEC-759: Reduce HSM access during ods-signerd start. Daemon should
   start quicker and earlier available for user input.
 * OPENDNSSEC-479: Transferring zones and sending notifies through a bound socket, using the same interface as listener
 * Key cache is now shared between threads.
+* OPENDNSSEC-858: Don't print "completed in x seconds" to stderr for enforcer
+  commands.
 * Various memory leaks
 * OPENDNSSEC-601: signer and enforcer working dir would not properly fallback to
   default when not specified.
