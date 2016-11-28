@@ -8,15 +8,23 @@ ods_start_ods-control &&
 ods_stop_ods-control &&
 
 log_this ods-enforcer-start ods-enforcer start &&
+sleep 5 &&
 log_this ods-enforcer-stop ods-enforcer stop &&
+sleep 5 &&
 log_this ods-enforcer-start ods-enforcer start &&
+sleep 5 &&
 
 log_this ods-signer-start ods-signer start &&
+sleep 5 &&
 log_this ods-signer-stop ods-signer stop &&
+sleep 5 &&
 log_this ods-signer-start ods-signer start &&
+sleep 5 &&
 
 log_this ods-control-stop ods-control stop &&
+sleep 5 &&
 log_this ods-control-start ods-control start &&
+sleep 5 &&
 log_this ods-control-stop ods-control stop &&
 return 0
 
