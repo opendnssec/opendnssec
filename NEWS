@@ -1,6 +1,7 @@
 Unreleased:
 
 * OPENDNSSEC-778: Double NSEC3PARAM record after resalt.
+* OPENDNSSEC-853: Fixed serial_xfr_acquired not updated in state file.
 
 OpenDNSSEC 1.4.12 - 2015-10-17
 
