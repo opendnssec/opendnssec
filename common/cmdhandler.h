@@ -44,7 +44,6 @@ typedef struct cmdhandler_ctx_struct {
     void* globalcontext;
     void* localcontext;
     cmdhandler_type* cmdhandler;
-    janitor_thread_t thread_id;
 } cmdhandler_ctx_type;
 
 struct cmd_func_block {

@@ -60,8 +60,6 @@
 #include "cmdhandler.h"
 
 #define SE_CMDH_CMDLEN 7
-#define MAX_CLIENT_CONN 8
-#define ODS_SE_MAX_HANDLERS 5
 
 static char const * module_str = "cmdhandler";
 
@@ -340,7 +338,7 @@ cmdhandler_create(const char* filename, struct cmd_func_block** commands, void* 
         close(listenfd);
         return NULL;
     }
-    ret = listen(listenfd, ODS_SE_MAX_HANDLERS);
+    ret = listen(listenfd, 5);
     if (ret != 0) {
         ods_log_error("[%s] unable to create cmdhandler: listen() failed: %s", module_str, strerror(errno));
         close(listenfd);
@@ -377,11 +375,11 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
 {
     struct sockaddr_un cliaddr;
     socklen_t clilen;
-    cmdhandler_ctx_type* cmdc = NULL;
+    cmdhandler_ctx_type* cmdclient;
+    janitor_thread_t cmdclientthread;
     fd_set rset;
     int flags, connfd = 0, ret = 0;
-    ssize_t thread_index = 0, i;
-    cmdhandler_ctx_type cmdcs[MAX_CLIENT_CONN];
+    ssize_t i;
 
     ods_log_assert(cmdhandler);
     ods_log_debug("[%s] start", module_str);
@@ -395,10 +393,7 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
          * removes the delay of the self_pipe_trick*/
 
         /* Opportunistic join threads LIFO. */
-        for (i = thread_index-1; i>0; i--) {
-            janitor_thread_join(cmdcs[i].thread_id);
-            thread_index--;
-        }
+        janitor_thread_tryjoinall(cmdhandlerthreadclass);
 
         if (cmdhandler->need_to_exit) break;
         if (ret < 0) {
@@ -408,7 +403,7 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
             }
             continue;
         }
-        if (FD_ISSET(cmdhandler->listen_fd, &rset) && thread_index < MAX_CLIENT_CONN) {
+        if (FD_ISSET(cmdhandler->listen_fd, &rset)) {
             connfd = accept(cmdhandler->listen_fd, (struct sockaddr *) &cliaddr, &clilen);
             if (connfd < 0) {
                 if (errno != EINTR && errno != EWOULDBLOCK) {
@@ -432,22 +427,17 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
                 continue;
             }
             /* client accepted, create new thread */
-            cmdc = &cmdcs[thread_index];
-            cmdc->cmdhandler = cmdhandler;
-            cmdc->sockfd = connfd;
-            cmdc->globalcontext = cmdhandler->globalcontext;
-            cmdc->localcontext = NULL;
-            if (!janitor_thread_create(&cmdc->thread_id, cmdhandlerthreadclass, &cmdhandler_accept_client, (void*) cmdc)) {
-                thread_index++;
-            }
-            ods_log_debug("[%s] %lu clients in progress...", module_str, thread_index);
+            cmdclient = malloc(sizeof(cmdhandler_ctx_type));
+            cmdclient->cmdhandler = cmdhandler;
+            cmdclient->sockfd = connfd;
+            cmdclient->globalcontext = cmdhandler->globalcontext;
+            cmdclient->localcontext = NULL;
+            janitor_thread_create(&cmdclientthread, cmdhandlerthreadclass, &cmdhandler_accept_client, (void*) cmdclient);
         }
     }
 
-    /* join threads LIFO. */
-    for (i = thread_index-1; i>0; i--) {
-        janitor_thread_join(cmdcs[i].thread_id);
-    }
+    /* join threads */
+    janitor_thread_joinall(cmdhandlerthreadclass);
 
     ods_log_debug("[%s] done", module_str);
     cmdhandler->stopped = 1;

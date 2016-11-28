@@ -163,7 +163,8 @@ struct janitor_thread_struct {
 };
 
 static pthread_mutex_t threadlock = PTHREAD_MUTEX_INITIALIZER;
-static struct janitor_thread_struct *threadlist = NULL;
+static struct janitor_thread_struct *threadlist = NULL; /* running threads */
+static struct janitor_thread_struct *finishedthreadlist = NULL; /* threads waiting to be joined */
 static pthread_once_t threadlocatorinitializeonce = PTHREAD_ONCE_INIT;
 static pthread_key_t threadlocator;
 static pthread_cond_t threadblock = PTHREAD_COND_INITIALIZER;
@@ -174,7 +175,7 @@ threadlocatorinitialize(void)
     pthread_key_create(&threadlocator, NULL);
 }
 
-void
+static void
 janitor_thread_unregister(janitor_thread_t info)
 {
     int err, errcount;
@@ -182,8 +183,6 @@ janitor_thread_unregister(janitor_thread_t info)
         return;
     CHECKFAIL(pthread_mutex_lock(&threadlock));
     if (threadlist != NULL) {
-        info->next->prev = info->prev;
-        info->prev->next = info->next;
         if (threadlist == info) {
             if (info->next == info) {
                 threadlist = NULL;
@@ -191,6 +190,8 @@ janitor_thread_unregister(janitor_thread_t info)
                 threadlist = info->next;
             }
         }
+        info->next->prev = info->prev;
+        info->prev->next = info->next;
         info->next = info->prev = NULL;
         /* The implementation on FreeBSD10 of pthreads is pretty brain dead.
          * If two threads enter a barrier with count 2, then the barrier
@@ -216,7 +217,31 @@ fail:
     ;
 }
 
-void
+static void
+janitor_thread_dispose(janitor_thread_t info)
+{
+    if (info == NULL)
+        return;
+    if (info->threadclass || !info->threadclass->detached) {
+        pthread_mutex_lock(&threadlock);
+        if (finishedthreadlist != NULL) {
+            if (finishedthreadlist == info) {
+                if (info->next == info) {
+                    finishedthreadlist = NULL;
+                } else {
+                    finishedthreadlist = info->next;
+                }
+            }
+            info->next->prev = info->prev;
+            info->prev->next = info->next;
+            info->next = info->prev = NULL;
+        }
+        pthread_mutex_unlock(&threadlock);
+    }
+    free(info);
+}
+
+static void
 janitor_thread_register(janitor_thread_t info)
 {
     pthread_mutex_lock(&threadlock);
@@ -231,6 +256,24 @@ janitor_thread_register(janitor_thread_t info)
     }
     threadlist = info;
     pthread_mutex_unlock(&threadlock);
+}
+
+static void
+janitor_thread_finished(janitor_thread_t info)
+{
+    if (!info->threadclass->detached) {
+        pthread_mutex_lock(&threadlock);
+        if (finishedthreadlist != NULL) {
+            info->next = finishedthreadlist;
+            info->prev = finishedthreadlist->prev;
+            finishedthreadlist->prev->next = info;
+            finishedthreadlist->prev = info;
+        } else {
+            info->next = info->prev = info;
+        }
+        finishedthreadlist = info;
+        pthread_mutex_unlock(&threadlock);
+    }
 }
 
 static void*
@@ -261,6 +304,7 @@ runthread(void* data)
     }
     info->runfunc(info->rundata);
     janitor_thread_unregister(info);
+    janitor_thread_finished(info);
     return NULL;
 }
 
@@ -309,21 +353,24 @@ janitor_thread_start(janitor_thread_t thread)
 int
 janitor_thread_join(janitor_thread_t thread)
 {
+    janitor_thread_t info;
     int status;
     status = pthread_join(thread->thread, NULL);
-    free(thread);
+    janitor_thread_dispose(thread);
     return status;
 }
 
-void
-janitor_thread_joinall(janitor_threadclass_t threadclass)
+
+int
+janitor_thread_tryjoinall(janitor_threadclass_t threadclass)
 {
     struct janitor_thread_struct* thread;
     struct janitor_thread_struct* foundthread;
+
     do {
         foundthread = NULL;
         pthread_mutex_lock(&threadlock);
-        thread = threadlist;
+        thread = finishedthreadlist;
         if (thread) {
             do {
                 if (thread->threadclass == threadclass) {
@@ -331,13 +378,51 @@ janitor_thread_joinall(janitor_threadclass_t threadclass)
                     break;
                 }
                 thread = thread->next;
-            } while (thread != threadlist);
+            } while (thread != finishedthreadlist);
         }
         pthread_mutex_unlock(&threadlock);
         if (foundthread) {
-            janitor_thread_join(thread);
+            janitor_thread_join(foundthread);
         }
     } while(foundthread);
+
+    pthread_mutex_lock(&threadlock);
+    foundthread = NULL;
+    thread = finishedthreadlist;
+    if (thread) {
+        do {
+            if (thread->threadclass == threadclass) {
+                foundthread = thread;
+                break;
+            }
+            thread = thread->next;
+        } while (thread != finishedthreadlist);
+    }
+    thread = threadlist;
+    if (!foundthread && thread) {
+        do {
+            if (thread->threadclass == threadclass) {
+                foundthread = thread;
+                break;
+            }
+            thread = thread->next;
+        } while (thread != threadlist);
+    }
+    pthread_mutex_unlock(&threadlock);
+    if (foundthread) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+void
+janitor_thread_joinall(janitor_threadclass_t threadclass)
+{
+    int moreleft;
+    do {
+        moreleft = janitor_thread_tryjoinall(threadclass);
+    } while(moreleft);
 }
 
 static void
