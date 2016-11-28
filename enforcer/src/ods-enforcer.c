@@ -353,24 +353,21 @@ interface_start(const char* cmd, const char* servsock_filename)
         (strlen(userbuf) != 0 && !strncmp(userbuf, "stop", 4))) {
         char line[80];
         FILE *cmd2 = popen("pgrep ods-enforcerd","r");
-        fgets(line, 80, cmd2);
-        pid_t pid = strtoul(line, NULL, 10);
-        fprintf(stdout, "pid %d\n", pid);
-        int time = 0;
-        error = 0;
-        while (pid > 0) {
-           if(kill(pid, 0) == 0){
+        if (fgets(line, 80, cmd2)) {
+            pid_t pid = strtoul(line, NULL, 10);
+            fprintf(stdout, "pid %d\n", pid);
+            int time = 0;
+            error = 0;
+            while (pid > 0) {
+               if(kill(pid, 0) != 0) break;
                sleep(1);
-               time += 1;
-               if (time>20) {
+               if (++time>20) {
                   fprintf(stdout, "enforcer needs more seconds to stop");
                   fflush(stdout);
                   time = 0;
                }
            }
-           else
-               break;
-       }
+        }
     }
 
 #ifdef HAVE_READLINE
