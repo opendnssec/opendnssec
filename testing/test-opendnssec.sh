@@ -7,6 +7,11 @@ require opendnssec
 check_if_tested opendnssec && exit 0
 start_test opendnssec
 
+if [ "`uname -n`" = "ubuntu10-ods01" ]; then
+  set_test_ok opendnssec-mysql || exit 1
+  exit 0
+fi
+
 PRE_TEST=ods_pre_test
 POST_TEST=ods_post_test
 INTERRUPT_TEST=ods_interrupt_test
