@@ -36,7 +36,7 @@ echo -n "LINE: ${LINENO} " && ods-enforcer key list -v -p | grep KSK | grep acti
 echo &&
 echo "########### VERIFY SIGNATURES IN THE SIGNED FILE ############ " &&
 echo -n "LINE: ${LINENO} " && time=`ods-enforcer queue | grep "It is now" | cut -d "(" -f2 | cut -d " " -f1` &&
-echo -n "LINE: ${LINENO} " && ods-signerd --set-time $time && sleep 6 && ods-signer queue &&
+echo -n "LINE: ${LINENO} " && ods-signerd --set-time $time && sleep 10 && ods-signer queue &&
 
 echo -n "LINE: ${LINENO} " && syslog_waitfor_count 900 1 'ods-signerd: .*\[STATS\] ods' &&
 echo -n "LINE: ${LINENO} " && test -f "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
@@ -76,7 +76,7 @@ echo -n "LINE: ${LINENO} " && ods-enforcer key list -d -p | grep "ods;KSK;rumour
 echo -n "LINE: ${LINENO} " && ods-enforcer key list -d -p | grep "ods;KSK;unretentive;omnipresent;omnipresent;NA;1;1;$KSK1" &&
 
 echo -n "LINE: ${LINENO} " && time=`ods-enforcer queue | grep "It is now" | cut -d "(" -f2 | cut -d " " -f1` &&
-echo -n "LINE: ${LINENO} " && ods-signerd --set-time $time && sleep 6 && ods-signer queue &&
+echo -n "LINE: ${LINENO} " && ods-signerd --set-time $time && sleep 10 && ods-signer queue &&
 
 echo -n "LINE: ${LINENO} " && sleep 2 && ods-signer update --all && sleep 10 &&
 echo -n "LINE: ${LINENO} " && sleep 2 && ods-signer sign --all && sleep 5 &&
@@ -98,7 +98,7 @@ echo -n "LINE: ${LINENO} " && ods-enforcer key ds-seen -z ods --cka_id $KSK2 && 
 echo -n "LINE: ${LINENO} " && ods-enforcer key ds-gone -z ods --cka_id $KSK1 && sleep 5 &&
 echo -n "LINE: ${LINENO} " && sleep 2 && ods-enforcer time leap && sleep 3 &&
 echo -n "LINE: ${LINENO} " && time=`ods-enforcer queue | grep "It is now" | cut -d "(" -f2 | cut -d " " -f1` &&
-echo -n "LINE: ${LINENO} " && ods-signerd --set-time $time && sleep 6 && ods-signer queue &&
+echo -n "LINE: ${LINENO} " && ods-signerd --set-time $time && sleep 10 && ods-signer queue &&
 
 echo -n "LINE: ${LINENO} " && sleep 2 && ods-signer update --all && sleep 10 &&
 echo -n "LINE: ${LINENO} " && sleep 2 && ods-signer sign --all && sleep 3 &&
@@ -109,7 +109,7 @@ echo -n "LINE: ${LINENO} " && ods_stop_signer && sleep 5 &&
 
 echo -n "LINE: ${LINENO} " && sleep 2 && ods-enforcer time leap && sleep 3 &&
 echo -n "LINE: ${LINENO} " && time=`ods-enforcer queue | grep "It is now" | cut -d "(" -f2 | cut -d " " -f1` &&
-echo -n "LINE: ${LINENO} " && ods-signerd --set-time $time && sleep 6 && ods-signer queue &&
+echo -n "LINE: ${LINENO} " && ods-signerd --set-time $time && sleep 10 && ods-signer queue &&
 
 echo -n "LINE: ${LINENO} " && sleep 2 && ods-signer update --all && sleep 10 &&
 echo -n "LINE: ${LINENO} " && sleep 2 && ods-signer sign --all && sleep 3 &&
@@ -120,7 +120,7 @@ echo -n "LINE: ${LINENO} " && ods_stop_signer && sleep 5 &&
 
 echo -n "LINE: ${LINENO} " && ods-enforcer time leap && sleep 1 &&
 echo -n "LINE: ${LINENO} " && time=`ods-enforcer queue | grep "It is now" | cut -d "(" -f2 | cut -d " " -f1` &&
-echo -n "LINE: ${LINENO} " && ods-signerd --set-time $time && sleep 6 && ods-signer queue &&
+echo -n "LINE: ${LINENO} " && ods-signerd --set-time $time && sleep 10 && ods-signer queue &&
 
 echo -n "LINE: ${LINENO} " && sleep 2 && ods-signer update --all && sleep 10 &&
 echo -n "LINE: ${LINENO} " && sleep 2 && ods-signer sign --all && sleep 3 &&
