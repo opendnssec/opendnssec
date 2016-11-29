@@ -134,9 +134,6 @@ cmdhandler_perform_command(const char *cmd, struct cmdhandler_ctx_struct* contex
                 client_printf(sockfd, "Usage:\n\n");
                 fb->usage(sockfd);
             }
-            client_printf_err(sockfd, "Error parsing arguments\n");
-            client_printf(sockfd, "Usage:\n\n");
-            fb->usage(sockfd);
         }
         ods_log_debug("[%s] done handling command %s", module_str, cmd);
         return ret;
