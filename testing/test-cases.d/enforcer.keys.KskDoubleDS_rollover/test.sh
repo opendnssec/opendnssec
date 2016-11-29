@@ -80,6 +80,7 @@ echo -n "LINE: ${LINENO} " && ods-enforcer key list -d -p | grep "ods;KSK;omnipr
 echo -n "LINE: ${LINENO} " && time=`ods-enforcer queue | grep "It is now" | cut -d "(" -f2 | cut -d " " -f1` &&
 echo -n "LINE: ${LINENO} " && ods-signerd --set-time $time && sleep 3 &&
 
+echo -n "LINE: ${LINENO} " && sleep 2 && ods-signer queue && sleep 15 && ods-signer queue &&
 echo -n "LINE: ${LINENO} " && sleep 2 && ods-signer update --all && sleep 5 &&
 echo -n "LINE: ${LINENO} " && sleep 2 && ods-signer sign --all && sleep 5 &&
 echo -n "LINE: ${LINENO} " && sleep 2 && ods-signer queue &&
