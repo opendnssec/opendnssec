@@ -2,7 +2,9 @@
 
 #TEST: Start and stop using ods-control and default conf files. Check the deamons behave.
 
-sleep 60 &&
+if [ -n "$HAVE_MYSQL" ]; then
+        ods_setup_conf conf.xml conf-mysql.xml
+fi &&
 echo -n "LINE: ${LINENO} " && ods_reset_env &&
 
 echo -n "LINE: ${LINENO} " && ods_start_ods-control &&
