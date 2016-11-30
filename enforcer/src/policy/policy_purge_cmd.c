@@ -1,5 +1,6 @@
 #include "daemon/engine.h"
-#include "daemon/cmdhandler.h"
+#include "cmdhandler.h"
+#include "daemon/enforcercommands.h"
 #include "log.h"
 #include "str.h"
 #include "clientpipe.h"
@@ -25,12 +26,6 @@ help(int sockfd)
 		"This command will remove any policies from the database which have no\n"
 		"associated zones. Use with caution.\n\n"
 	);
-}
-
-static int
-handles(const char *cmd, ssize_t n)
-{
-	return ods_check_command(cmd, n, policy_purge_funcblock()->cmdname) ? 1 : 0;
 }
 
 /**
@@ -80,23 +75,16 @@ purge_policies(int sockfd, db_connection_t *dbconn)
 }
 
 static int
-run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
-	db_connection_t *dbconn)
+run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 {
-	(void)cmd; (void)n; (void)engine;
+    db_connection_t* dbconn = getconnectioncontext(context);;
+    engine_type* engine = getglobalcontext(context);
+    (void) cmd;
 
-	ods_log_debug("[%s] %s command", module_str, policy_purge_funcblock()->cmdname);
-	if (!dbconn) return 1;
+    ods_log_debug("[%s] %s command", module_str, policy_purge_funcblock.cmdname);
 	return purge_policies(sockfd, dbconn);
 }
 
-static struct cmd_func_block funcblock = {
-	"policy purge", &usage, &help, &handles, &run
+struct cmd_func_block policy_purge_funcblock = {
+	"policy purge", &usage, &help, NULL, &run
 };
-
-struct cmd_func_block*
-policy_purge_funcblock(void)
-{
-	return &funcblock;
-}
-

@@ -1,5 +1,6 @@
 #include "daemon/engine.h"
-#include "daemon/cmdhandler.h"
+#include "cmdhandler.h"
+#include "daemon/enforcercommands.h"
 #include "log.h"
 #include "str.h"
 #include "clientpipe.h"
@@ -33,12 +34,6 @@ help(int sockfd)
 	);
 }
 
-static int
-handles(const char *cmd, ssize_t n)
-{
-	return ods_check_command(cmd, n, key_purge_funcblock()->cmdname) ? 1 : 0;
-}
-
 
 /**
  * Purge
@@ -48,8 +43,7 @@ handles(const char *cmd, ssize_t n)
  */
 
 static int
-run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
-	db_connection_t *dbconn)
+run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 {
 	zone_db_t *zone;
 	policy_t *policy;
@@ -59,12 +53,12 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	int argc;
 	const char *argv[MAX_ARGS];
 	int error = 0;
-	(void)engine;
+        db_connection_t* dbconn = getconnectioncontext(context);
 
         if (!dbconn) return 1;
 
-	ods_log_debug("[%s] %s command", module_str, key_purge_funcblock()->cmdname);
-	cmd = ods_check_command(cmd, n, key_purge_funcblock()->cmdname);
+	ods_log_debug("[%s] %s command", module_str, key_purge_funcblock.cmdname);
+	cmd = ods_check_command(cmd, key_purge_funcblock.cmdname);
 
 	if (!(buf = strdup(cmd))) {
         	client_printf_err(sockfd, "memory error\n");
@@ -122,12 +116,6 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	return error;
 }
 
-static struct cmd_func_block funcblock = {
-	"key purge", &usage, &help, &handles, &run
+struct cmd_func_block key_purge_funcblock = {
+	"key purge", &usage, &help, NULL, &run
 };
-
-struct cmd_func_block*
-key_purge_funcblock(void)
-{
-	return &funcblock;
-}

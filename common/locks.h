@@ -48,5 +48,6 @@ void ods_janitor_initialize(char*argv0);
 extern janitor_threadclass_t detachedthreadclass;
 extern janitor_threadclass_t workerthreadclass;
 extern janitor_threadclass_t handlerthreadclass;
+extern janitor_threadclass_t cmdhandlerthreadclass;
 
 #endif /* SHARED_LOCKS_H */

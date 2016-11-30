@@ -58,9 +58,6 @@
 #include "str.h"
 #include "clientpipe.h"
 
-#define AUTHOR_NAME "Matthijs Mekking, Yuri Schaeffer, René Post"
-#define COPYRIGHT_STR "Copyright (C) 2010-2011 NLnet Labs OpenDNSSEC"
-
 static const char* PROMPT = "cmd> ";
 static const char* cli_str = "client";
 
@@ -98,9 +95,6 @@ static void
 version(FILE* out)
 {
     fprintf(out, "%s version %s\n", PACKAGE_NAME, PACKAGE_VERSION);
-    fprintf(out, "Written by %s.\n\n", AUTHOR_NAME);
-    fprintf(out, "%s.  This is free software.\n", COPYRIGHT_STR);
-    fprintf(out, "See source files for more license information\n");
     exit(0);
 }
 
@@ -362,8 +356,7 @@ interface_start(const char* cmd, const char* servsock_filename)
                if(kill(pid, 0) != 0) break;
                sleep(1);
                if (++time>20) {
-                  fprintf(stdout, "enforcer needs more seconds to stop");
-                  fflush(stdout);
+                  printf("enforcer needs more time to stop...\n");
                   time = 0;
                }
            }
@@ -377,9 +370,6 @@ interface_start(const char* cmd, const char* servsock_filename)
     return error;
 }
 
-/**
- * Main. start interface tool.
- */
 int
 main(int argc, char* argv[])
 {

@@ -32,28 +32,19 @@
 #ifndef DAEMON_CMDHANDLER_H
 #define DAEMON_CMDHANDLER_H
 
+#include "config.h"
 #include <sys/un.h>
-#include "scheduler/schedule.h"
-#include "db/db_connection.h"
-#include "janitor.h"
-
-/* Max number of not accepted connections before starting to drop. */
-#define ODS_SE_MAX_HANDLERS 5
-
-struct engine_struct;
-struct client_conn;
 
 typedef struct cmdhandler_struct cmdhandler_type;
-struct cmdhandler_struct {
-    struct engine_struct* engine;
-    struct sockaddr_un listen_addr;
-    janitor_thread_t thread_id;
-    int listen_fd;
-    int client_fd;
-    int need_to_exit;
-    int stopped;
-    db_connection_t* dbconn;
-};
+
+#include "janitor.h"
+
+typedef struct cmdhandler_ctx_struct {
+    int sockfd;
+    void* globalcontext;
+    void* localcontext;
+    cmdhandler_type* cmdhandler;
+} cmdhandler_ctx_type;
 
 struct cmd_func_block {
     /* Name of command */
@@ -65,20 +56,31 @@ struct cmd_func_block {
     void (*help)(int sockfd);
     /* 1 if module claims responibility for command
      * 0 otherwise */
-    int (*handles)(const char *cmd, ssize_t n);
+    int (*handles)(const char *cmd);
     /** Run the handler
      * 
      * \param sockfd, pipe to client,
-     * \param engine, daemon information must not be NULL.
-     * \param cmd, command and args for additional parsing.
-     * \param n, length of cmd.
+     * \param ctx, the client context
+     * \param cmd, command and args for additional parsing null character
+     *        terminated
      * \param dbconn, connection to the database.
      * \return 0 command executed, all OK
      *      -1 Errors parsing commandline / missing params
      *       positive error code to return to user.
      */
-    int (*run)(int sockfd, struct engine_struct* engine,
-        const char *cmd, ssize_t n, db_connection_t *dbconn);
+    int (*run)(int sockfd, cmdhandler_ctx_type*, const char *cmd);
+};
+
+struct cmdhandler_struct {
+    struct sockaddr_un listen_addr;
+    janitor_thread_t thread_id;
+    int listen_fd;
+    int need_to_exit;
+    int stopped;
+    struct cmd_func_block** commands;
+    void* globalcontext;
+    void* (*createlocalcontext)(void*);
+    void  (*destroylocalcontext)(void*);
 };
 
 /**
@@ -87,7 +89,7 @@ struct cmd_func_block {
  * \return cmdhandler_type* created command handler
  *
  */
-cmdhandler_type* cmdhandler_create(const char* filename);
+cmdhandler_type* cmdhandler_create(const char* filename, struct cmd_func_block** functions, void* globalcontext, void*(*createlocalcontext)(void*globalcontext),void(*destroylocalcontext)(void*localcontext));
 
 /**
  * Cleanup command handler.
@@ -102,7 +104,7 @@ void cmdhandler_cleanup(cmdhandler_type* cmdhandler);
  *
  */
 void cmdhandler_start(cmdhandler_type* cmdhandler);
-void cmdhandler_stop(struct engine_struct* engine);
+void cmdhandler_stop(cmdhandler_type* cmdhandler);
 
 /**
  * Print usage of all known commands to file descriptor
@@ -110,7 +112,7 @@ void cmdhandler_stop(struct engine_struct* engine);
  * \param[in] sockfd, file descriptor to print to.
  * 
  */
-void cmdhandler_get_usage(int sockfd);
+void cmdhandler_get_usage(int sockfd, cmdhandler_type* cmdc);
 
 /**
  * Retrieve function block responsible for cmd
@@ -123,6 +125,15 @@ void cmdhandler_get_usage(int sockfd);
  * \param[in] n, length of cmd string.
  * \return function block or NULL
  */
-struct cmd_func_block* get_funcblock(const char *cmd, ssize_t n);
+struct cmd_func_block* get_funcblock(const char *cmd, cmdhandler_type* cmdc);
+
+/**
+ * Compare commandline with command, return arguments if found.
+ *
+ * \param[in] cmd, commandline to test
+ * \param[in] scmd, command to look for
+ * \return Pointer to arguments within cmd. NULL if scmd not found.
+ */
+const char *ods_check_command(const char *cmd, const char *scmd);
 
 #endif /* DAEMON_CMDHANDLER_H */
