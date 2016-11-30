@@ -29,7 +29,8 @@
 
 #include "config.h"
 
-#include "daemon/cmdhandler.h"
+#include "cmdhandler.h"
+#include "daemon/enforcercommands.h"
 #include "daemon/engine.h"
 #include "enforcer/enforce_task.h"
 #include "file.h"
@@ -67,19 +68,12 @@ help(int sockfd)
 	);
 }
 
-static int
-handles(const char *cmd, ssize_t n)
-{
-	return ods_check_command(cmd, n, enforce_funcblock()->cmdname)?1:0;
-}
-
 /**
  * Handle the 'enforce' command.
  *
  */
 static int
-run(int sockfd, engine_type *engine, const char *cmd, ssize_t n,
-	db_connection_t *dbconn)
+run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 {
 	time_t t_next;
 	task_type *task;
@@ -88,10 +82,12 @@ run(int sockfd, engine_type *engine, const char *cmd, ssize_t n,
 	char const *argv[MAX_ARGS];
 	char const *zone_name = NULL;
 	int pos;
+        db_connection_t* dbconn = getconnectioncontext(context);
+        engine_type* engine = getglobalcontext(context);
 
-	ods_log_debug("[%s] %s command", module_str, enforce_funcblock()->cmdname);
+	ods_log_debug("[%s] %s command", module_str, enforce_funcblock.cmdname);
 
-	cmd = ods_check_command(cmd, n, enforce_funcblock()->cmdname);
+	cmd = ods_check_command(cmd, enforce_funcblock.cmdname);
 	if (!cmd) return -1;
 
 	if (!(buf = strdup(cmd))) {
@@ -116,12 +112,6 @@ run(int sockfd, engine_type *engine, const char *cmd, ssize_t n,
 	return 0;
 }
 
-static struct cmd_func_block funcblock = {
-	"enforce", &usage, &help, &handles, &run
+struct cmd_func_block enforce_funcblock = {
+	"enforce", &usage, &help, NULL, &run
 };
-
-struct cmd_func_block*
-enforce_funcblock(void)
-{
-	return &funcblock;
-}

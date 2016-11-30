@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 NLNet Labs. All rights reserved.
+ * Copyright (c) 2016 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -29,51 +29,14 @@
  *
  */
 
-#ifndef DAEMON_CMDHANDLER_H
-#define DAEMON_CMDHANDLER_H
+#ifndef DAEMON_SIGNERCOMMANDS_H
+#define DAEMON_SIGNERCOMMANDS_H
 
 #include "config.h"
-#include <sys/un.h>
+#include "cmdhandler.h"
 
-typedef struct cmdhandler_struct cmdhandler_type;
+struct cmd_func_block** signercommands;
 
-#include "status.h"
-#include "locks.h"
-#include "engine.h"
+extern engine_type* getglobalcontext(cmdhandler_ctx_type*);
 
-
-#define ODS_SE_MAX_HANDLERS 5
-
-struct cmdhandler_struct {
-    engine_type* engine;
-    struct sockaddr_un listen_addr;
-    janitor_thread_t thread_id;
-    int listen_fd;
-    int client_fd;
-    int need_to_exit;
-};
-
-/**
- * Create command handler.
- * \param[in] allocator memory allocator
- * \param[in] filename socket file name
- * \return cmdhandler_type* created command handler
- *
- */
-cmdhandler_type* cmdhandler_create(const char* filename);
-
-/**
- * Start command handler.
- * \param[in] cmdhandler_type* command handler
- *
- */
-void cmdhandler_start(cmdhandler_type* cmdhandler);
-
-/**
- * Cleanup command handler.
- * \param[in] cmdhandler_type* command handler
- *
- */
-void cmdhandler_cleanup(cmdhandler_type* cmdhandler);
-
-#endif /* DAEMON_CMDHANDLER_H */
+#endif

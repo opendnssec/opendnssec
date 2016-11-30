@@ -36,7 +36,8 @@
 #include "str.h"
 #include "duration.h"
 #include "scheduler/schedule.h"
-#include "daemon/cmdhandler.h"
+#include "cmdhandler.h"
+#include "daemon/enforcercommands.h"
 #include "daemon/engine.h"
 #include "clientpipe.h"
 #include "clientpipe.h"
@@ -65,14 +66,7 @@ help(int sockfd)
 }
 
 static int
-handles(const char *cmd, ssize_t n)
-{
-	return ods_check_command(cmd, n, queue_funcblock()->cmdname)?1:0;
-}
-
-static int
-run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
-	db_connection_t *dbconn)
+run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 {
 	struct tm strtime_struct;
 	char strtime[64]; /* at least 26 according to docs plus a long integer */
@@ -83,8 +77,9 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	time_t nextFireTime;
 	ldns_rbnode_t* node = LDNS_RBTREE_NULL;
 	task_type* task = NULL;
-	(void)cmd; (void)n; (void)dbconn;
 	int num_waiting;
+        engine_type* engine = getglobalcontext(context);
+	(void)cmd;
 
 	ods_log_debug("[%s] list tasks command", module_str);
 
@@ -126,15 +121,9 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	return 0;
 }
 
-static struct cmd_func_block funcblock = {
-	"queue", &usage, &help, &handles, &run
+struct cmd_func_block queue_funcblock = {
+	"queue", &usage, &help, NULL, &run
 };
-
-struct cmd_func_block*
-queue_funcblock(void)
-{
-	return &funcblock;
-}
 
 static void
 usage_flush(int sockfd)
@@ -152,16 +141,10 @@ help_flush(int sockfd)
 }
 
 static int
-handles_flush(const char *cmd, ssize_t n)
+run_flush(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 {
-	return ods_check_command(cmd, n, flush_funcblock()->cmdname)?1:0;
-}
-
-static int
-run_flush(int sockfd, engine_type *engine, const char *cmd, ssize_t n,
-	db_connection_t *dbconn)
-{
-	(void)cmd; (void)n;  (void)dbconn;
+        engine_type* engine = getglobalcontext(context);
+	(void)cmd;
 	ods_log_debug("[%s] flush tasks command", module_str);
 	ods_log_assert(engine);
 	ods_log_assert(engine->taskq);
@@ -173,12 +156,6 @@ run_flush(int sockfd, engine_type *engine, const char *cmd, ssize_t n,
 	return 0;
 }
 
-static struct cmd_func_block funcblock_flush = {
-	"flush", &usage_flush, &help_flush, &handles_flush, &run_flush
+struct cmd_func_block flush_funcblock = {
+	"flush", &usage_flush, &help_flush, NULL, &run_flush
 };
-
-struct cmd_func_block*
-flush_funcblock(void)
-{
-	return &funcblock_flush;
-}

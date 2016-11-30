@@ -29,7 +29,7 @@
 
 #include <sys/stat.h>
 
-#include "daemon/cmdhandler.h"
+#include "cmdhandler.h"
 #include "daemon/engine.h"
 #include "enforcer/enforce_task.h"
 #include "file.h"
@@ -429,14 +429,13 @@ change_keys_from_to(db_connection_t *dbconn, int sockfd,
 }
 
 static int
-get_args(int sockfd, const char *cmd, ssize_t n, const char **zone,
+get_args(int sockfd, const char *cmd, const char **zone,
 	const char **cka_id, int *keytag, int *all, char *buf)
 {
 
 	#define NARGV 6
 	const char *argv[NARGV], *tag;
 	int argc;
-	(void)n;
 
 	*keytag = -1;
 	*zone = NULL;
@@ -481,7 +480,7 @@ get_args(int sockfd, const char *cmd, ssize_t n, const char **zone,
 }
 
 int
-run_ds_cmd(int sockfd, const char *cmd, ssize_t n,
+run_ds_cmd(int sockfd, const char *cmd,
 	db_connection_t *dbconn, key_data_ds_at_parent_t state_from,
 	key_data_ds_at_parent_t state_to, engine_type *engine)
 {
@@ -493,7 +492,7 @@ run_ds_cmd(int sockfd, const char *cmd, ssize_t n,
 	zone_db_t* zone = NULL;
 	int all;
 
-	if (get_args(sockfd, cmd, n, &zonename, &cka_id, &keytag, &all, buf)) {
+	if (get_args(sockfd, cmd, &zonename, &cka_id, &keytag, &all, buf)) {
 		return -1;
 	}
 

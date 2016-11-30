@@ -29,7 +29,8 @@
 
 #include "config.h"
 
-#include "daemon/cmdhandler.h"
+#include "cmdhandler.h"
+#include "daemon/enforcercommands.h"
 #include "daemon/engine.h"
 #include "enforcer/enforce_task.h"
 #include "log.h"
@@ -65,18 +66,13 @@ help(int sockfd)
 }
 
 static int
-handles(const char *cmd, ssize_t n)
-{
-	return ods_check_command(cmd, n, key_ds_submit_funcblock()->cmdname)?1:0;
-}
-
-static int
-run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
-	db_connection_t *dbconn)
+run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 {
 	int error;
+        db_connection_t* dbconn = getconnectioncontext(context);
+        engine_type* engine = getglobalcontext(context);
 	/* TODO, this changes the state, but sbmt cmd is not exec. */
-	error = run_ds_cmd(sockfd, cmd, n, dbconn,
+	error = run_ds_cmd(sockfd, cmd, dbconn,
 		KEY_DATA_DS_AT_PARENT_SUBMIT,
 		KEY_DATA_DS_AT_PARENT_SUBMITTED, engine);
 	if (error == 0) {
@@ -87,12 +83,6 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 
 }
 
-static struct cmd_func_block funcblock = {
-	"key ds-submit", &usage, &help, &handles, &run
+struct cmd_func_block key_ds_submit_funcblock = {
+	"key ds-submit", &usage, &help, NULL, &run
 };
-
-struct cmd_func_block*
-key_ds_submit_funcblock(void)
-{
-	return &funcblock;
-}

@@ -122,18 +122,11 @@ help(int sockfd)
 }
 
 static int
-handles(const char *cmd, ssize_t n)
+run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 {
-	return ods_check_command(cmd, n, repositorylist_funcblock()->cmdname)?1:0;
-}
-
-static int
-run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
-	db_connection_t *dbconn)
-{
-	(void)cmd; (void)n; (void)dbconn; (void)engine;
+	(void)cmd;
 	ods_log_debug("[%s] %s command", module_str, 
-		repositorylist_funcblock()->cmdname);
+		repositorylist_funcblock.cmdname);
 
 	if (perform_repositorylist(sockfd)) {
 		ods_log_error_and_printf(sockfd, module_str,
@@ -143,12 +136,6 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	return 0;
 }
 
-static struct cmd_func_block funcblock = {
-	"repository list", &usage, &help, &handles, &run
+struct cmd_func_block repositorylist_funcblock = {
+	"repository list", &usage, &help, NULL, &run
 };
-
-struct cmd_func_block*
-repositorylist_funcblock(void)
-{
-	return &funcblock;
-}

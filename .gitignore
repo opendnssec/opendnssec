@@ -92,6 +92,8 @@ libtool
 /build/
 /test-driver
 testing/junit.xml
+testing/junit.xml.head
+testing/junit.xml.test
 testing/test-cases.d/enforcer.timeleap.mongrel/base
 testing/test-cases.d/signer.zones.validate_many_zones/kasp.xml_orig
 testing/test-cases.d/enforcer.ods-enforcer.zones_and_zonelist/zonelist.xml.import

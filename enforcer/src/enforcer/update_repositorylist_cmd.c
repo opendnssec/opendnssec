@@ -31,7 +31,8 @@
 
 #include <pthread.h>
 
-#include "daemon/cmdhandler.h"
+#include "cmdhandler.h"
+#include "daemon/enforcercommands.h"
 #include "str.h"
 #include "log.h"
 #include "file.h"
@@ -123,18 +124,12 @@ help(int sockfd)
 }
 
 static int
-handles(const char *cmd, ssize_t n)
+run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 {
-	return ods_check_command(cmd, n, update_repositorylist_funcblock()->cmdname)?1:0;
-}
-
-static int
-run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
-	db_connection_t *dbconn)
-{
-	(void)cmd; (void)n, (void)dbconn;
+        engine_type* engine = getglobalcontext(context);
+        (void)cmd;
 	ods_log_debug("[%s] %s command", module_str, 
-		update_repositorylist_funcblock()->cmdname);
+		update_repositorylist_funcblock.cmdname);
 
 	if (!perform_update_repositorylist(sockfd, engine)) {
 		ods_log_error_and_printf(sockfd, module_str,
@@ -144,12 +139,6 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	return 0;
 }
 
-static struct cmd_func_block funcblock = {
-	"update repositorylist", &usage, &help, &handles, &run
+struct cmd_func_block update_repositorylist_funcblock = {
+	"update repositorylist", &usage, &help, NULL, &run
 };
-
-struct cmd_func_block*
-update_repositorylist_funcblock(void)
-{
-	return &funcblock;
-}
