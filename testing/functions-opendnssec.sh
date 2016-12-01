@@ -1455,7 +1455,7 @@ ods_bind9_dynupdate ()
 		fi
 	done
 
-	# do updates
+	# do and check updates
 	echo "ods_bind9_dynupdate: do $update_total updates in zone $zone_name"
 	update_iter=0
 	while [ "$update_iter" -lt "$update_total" ]; do
@@ -1475,9 +1475,18 @@ ods_bind9_dynupdate ()
 			fi
 
 			rm -rf "$update_file"
+		echo "ods_bind9_dynupdate: check $update_iter updates in zone $zone_name"
+		if ! waitfor_this "$INSTALL_ROOT/var/opendnssec/signed/$zone_name" 900 "test`expr $update_iter - 1`\.$zone_name\..*7200.*IN.*NS.*ns1\.test`expr $update_iter - 1`\.$zone_name\." >/dev/null 2>/dev/null; then
+                        echo "ods_bind9_dynupdate: update failed, test`expr $update_iter - 1`.$zone_name. NS not in signed zonefile" >&2
+                        return 1
+                fi
+                if ! waitfor_this "$INSTALL_ROOT/var/opendnssec/signed/$zone_name" 10 "ns1\.test`expr $update_iter - 1`\.$zone_name\..*7200.*IN.*A.*1\.2\.3\.4" >/dev/null 2>/dev/null; then
+                        echo "ods_bind9_dynupdate: update failed, ns1.test`expr $update_iter - 1`.$zone_name. A not in signed zonefile" >&2
+                        return 1
+                fi
+
 	done
 
-	# check updates
 	echo "ods_bind9_dynupdate: wait for last update to get processed"
 
 	if [ ! -f "$INSTALL_ROOT/var/opendnssec/signed/$zone_name" ]; then
@@ -1488,23 +1497,7 @@ ods_bind9_dynupdate ()
 	# wait for last one, which should probably come in last and makes sure the other updates are likely to be in
 	waitfor_this "$INSTALL_ROOT/var/opendnssec/signed/$zone_name" 300 "test`expr $update_total - 1`\.$zone_name\..*7200.*IN.*NS.*ns1\.test`expr $update_total - 1`\.$zone_name\."
 
-	# check updates
-	echo "ods_bind9_dynupdate: check $update_total updates in zone $zone_name"
 
-	update_iter=0
-	while [ "$update_iter" -lt "$update_total" ] 2>/dev/null; do
-		if ! waitfor_this "$INSTALL_ROOT/var/opendnssec/signed/$zone_name" 900 "test$update_iter\.$zone_name\..*7200.*IN.*NS.*ns1\.test$update_iter\.$zone_name\." >/dev/null 2>/dev/null; then
-			echo "ods_bind9_dynupdate: update failed, test$update_iter.$zone_name. NS not in signed zonefile" >&2
-			return 1
-		fi
-		if ! waitfor_this "$INSTALL_ROOT/var/opendnssec/signed/$zone_name" 10 "ns1\.test$update_iter\.$zone_name\..*7200.*IN.*A.*1\.2\.3\.4" >/dev/null 2>/dev/null; then
-			echo "ods_bind9_dynupdate: update failed, ns1.test$update_iter.$zone_name. A not in signed zonefile" >&2
-			return 1
-		fi
-
-		# next update
-		update_iter=$(( update_iter + 1 ))
-	done
 
 	rm -rf "$update_file" "$log_file"
 	return 0
