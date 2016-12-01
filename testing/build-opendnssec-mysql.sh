@@ -7,7 +7,8 @@ source `dirname "$0"`/lib.sh && init || exit 1
 # Jenkins will allow for a more flexible set-up we just use a
 # temporary make script to build botan and softhsm2.
 # the LD_LIBRARY_PATH is necessary too unfortunately.
-if [ -x `dirname "$0"`/make.sh ] ; then
+chmod +x `dirname "$0"`/make.sh
+#if [ -x `dirname "$0"`/make.sh ] ; then
   if [ "`uname -n`" = "ubuntu10-ods01" ]; then
     # OPENDNSSEC-755
     # Old, no longer in LTS Ubuntu 10 machine will fail due to historic
@@ -22,7 +23,7 @@ if [ -x `dirname "$0"`/make.sh ] ; then
   export INSTALL_TAG INSTALL_ROOT WORKSPACE
   LD_LIBRARY_PATH=$INSTALL_ROOT/lib
   `dirname "$0"`/make.sh
-fi
+#fi
 
 require softhsm2
 
