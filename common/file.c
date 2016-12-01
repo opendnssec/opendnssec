@@ -257,6 +257,14 @@ ods_writen(int fd, const void* vptr, size_t n)
     return n;
 }
 
+ssize_t
+ods_writeln(int fd, char const *str)
+{
+    size_t len = strlen(str);
+    if (ods_writen(fd, str, len) == -1 || ods_writen(fd, "\n", 1) == -1)
+        return -1;
+    return len+1;
+}
 
 /**
  * Get file last modified.

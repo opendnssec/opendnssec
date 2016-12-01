@@ -125,6 +125,11 @@ ods_nuke_env ()
 			mkdir -p "$INSTALL_ROOT/var/lib/softhsm/tokens"
 		)
 	fi &&
+	if [ \! -d "$INSTALL_ROOT/var/lib/softhsm/tokens" ]; then
+		(
+			mkdir -p "$INSTALL_ROOT/var/lib/softhsm/tokens"
+ 		)
+	fi &&
 	if [ -n "$HAVE_MYSQL" ]; then
 		for database in test build; do
 			drop_table_count=0

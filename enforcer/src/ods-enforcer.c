@@ -31,6 +31,7 @@
 
 #include "config.h"
 
+#include <signal.h>
 #include <errno.h>
 #include <fcntl.h> /* fcntl() */
 #include <stdio.h> /* fprintf() */
@@ -338,13 +339,40 @@ interface_start(const char* cmd, const char* servsock_filename)
                     else if (strlen(userbuf) != 0)
                         /* we are interactive so print response.
                          * But also suppress when no command is given. */
-                        fprintf(stderr, "Daemon exit code: %d\n", exitcode);
+                        fprintf(stderr, "Command exit code: %d\n", exitcode);
                     break;
                 }
             }
         }
+        if (strlen(userbuf) != 0 && !strncmp(userbuf, "stop", 4))
+            break;
     } while (error == 0 && !cmd);
     close(sockfd);
+
+    if ((cmd && !strncmp(cmd, "stop", 4)) || 
+        (strlen(userbuf) != 0 && !strncmp(userbuf, "stop", 4))) {
+        char line[80];
+        FILE *cmd2 = popen("pgrep ods-enforcerd","r");
+        fgets(line, 80, cmd2);
+        pid_t pid = strtoul(line, NULL, 10);
+        fprintf(stdout, "pid %d\n", pid);
+        int time = 0;
+        error = 0;
+        while (pid > 0) {
+           if(kill(pid, 0) == 0){
+               sleep(1);
+               time += 1;
+               if (time>20) {
+                  fprintf(stdout, "enforcer needs more seconds to stop");
+                  fflush(stdout);
+                  time = 0;
+               }
+           }
+           else
+               break;
+       }
+    }
+
 #ifdef HAVE_READLINE
     clear_history();
     rl_free_undo_list();

@@ -430,9 +430,11 @@ signal_handler(sig_atomic_t sig)
  *
  */
 ods_status
-engine_setup(void)
+engine_setup()
 {
-    int fd;
+    int fd, error;
+    int pipefd[2];
+    char buff = '\0';
 
     ods_log_debug("[%s] enforcer setup", engine_str);
 
@@ -484,6 +486,10 @@ engine_setup(void)
 
         /* daemonize */
         if (engine->daemonize) {
+            if(pipe(pipefd)) {
+                ods_log_error("[%s] unable to pipe: %s", engine_str, strerror(errno));
+                return ODS_STATUS_PIPE_ERR;
+            }
             switch (fork()) {
                 case -1: /* error */
                     ods_log_error("[%s] unable to fork daemon: %s",
@@ -496,14 +502,31 @@ engine_setup(void)
                         (void)dup2(fd, STDERR_FILENO);
                         if (fd > 2) (void)close(fd);
                     }
-                    engine->daemonize = 0; /* don't fork again on reload */
+                    close(pipefd[0]);
                     break;
                 default: /* parent */
+                    close(pipefd[1]);
+                    /* Print messages the child may have send us. */
+                    while (read(pipefd[0], &buff, 1) != -1) {
+                        if (buff <= 1) break;
+                        printf("%c", buff);
+                    }
+                    close(pipefd[0]);
+                    if (buff != '\1') {
+                        ods_log_error("[%s] fail to start enforcerd completely", engine_str);
+                        exit(1);
+                    }
+                    ods_log_debug("[%s] enforcerd started successfully", engine_str);
                     exit(0);
             }
             if (setsid() == -1) {
                 ods_log_error("[%s] unable to setsid daemon (%s)",
                     engine_str, strerror(errno));
+                char *err = "unable to setsid daemon: ";
+                ods_writen(pipefd[1], err, strlen(err));
+                ods_writeln(pipefd[1], strerror(errno));
+                write(pipefd[1], "\0", 1);
+                close(pipefd[1]);
                 return ODS_STATUS_SETSID_ERR;
             }
         }
@@ -524,9 +547,37 @@ engine_setup(void)
     if (util_write_pidfile(engine->config->pid_filename, engine->pid) == -1) {
         hsm_close();
         ods_log_error("[%s] unable to write pid file", engine_str);
+        if (engine->daemonize) {
+            ods_writeln(pipefd[1], "unable to write pid file");
+            write(pipefd[1], "\0", 1);
+            close(pipefd[1]);
+        }
         return ODS_STATUS_WRITE_PIDFILE_ERR;
     }
+    ods_log_info("[%s] enforcer started", engine_str);
+    error = hsm_open2(engine->config->repositories, hsm_prompt_pin);
+    if (error != HSM_OK) {
+        char* errorstr =  hsm_get_error(NULL);
+        if (!errorstr)
+            (void)asprintf(&errorstr, "error opening libhsm (errno %i)", error);
+        if (errorstr)
+            ods_log_error("[%s] %s", engine_str, errorstr);
+        if (engine->daemonize) {
+            if (errorstr) ods_writeln(pipefd[1], errorstr);
+            write(pipefd[1], "\0", 1);
+            close(pipefd[1]);
+        }
+        free(errorstr);
+        return ODS_STATUS_HSM_ERR;
+    }
+    engine->need_to_reload = 0;
+    engine_start_cmdhandler(engine);
 
+    if (engine->daemonize) {
+        write(pipefd[1], "\1", 1);
+        close(pipefd[1]);
+    }
+    engine->daemonize = 0; /* don't fork again on reload */
     return ODS_STATUS_OK;
 }
 
@@ -597,28 +648,12 @@ engine_run(engine_type* engine, start_cb_t start, int single_run)
 {
     int error;
     ods_log_assert(engine);
-    ods_log_info("[%s] enforcer started", engine_str);
-    
-    error = hsm_open2(engine->config->repositories, hsm_prompt_pin);
-    if (error != HSM_OK) {
-        char* errorstr =  hsm_get_error(NULL);
-        if (errorstr != NULL) {
-            ods_log_error("[%s] %s", engine_str, errorstr);
-            free(errorstr);
-        } else {
-            ods_log_crit("[%s] error opening libhsm (errno %i)", engine_str,
-                error);
-        }
-        return 1;
-    }
-    
-    engine->need_to_reload = 0;
-    engine_start_cmdhandler(engine);
+
     engine_start_workers(engine);
 
     /* call the external start callback function */
     start(engine);
-    
+
     while (!engine->need_to_exit && !engine->need_to_reload) {
         if (single_run) {
             engine->need_to_exit = 1;

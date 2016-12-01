@@ -393,6 +393,9 @@ engine_setup(void)
     ods_status status = ODS_STATUS_OK;
     struct sigaction action;
     int sockets[2] = {0,0};
+    int pipefd[2];
+    char buff = '\0';
+    int fd, error;
 
     ods_log_debug("[%s] setup signer engine", engine_str);
     if (!engine || !engine->config) {
@@ -446,12 +449,17 @@ engine_setup(void)
     }
     /* daemonize */
     if (engine->daemonize) {
+        if (pipe(pipefd)) {
+            ods_log_error("[%s] unable to pipe: %s", engine_str, strerror(errno));
+            return ODS_STATUS_PIPE_ERR;
+        }
         switch ((engine->pid = fork())) {
             case -1: /* error */
                 ods_log_error("[%s] setup: unable to fork daemon (%s)",
                     engine_str, strerror(errno));
                 return ODS_STATUS_FORK_ERR;
             case 0: /* child */
+                close(pipefd[0]);
                 break;
             default: /* parent */
                 engine_cleanup(engine);
@@ -459,17 +467,38 @@ engine_setup(void)
                 xmlCleanupParser();
                 xmlCleanupGlobals();
                 xmlCleanupThreads();
-                exit(0);
+                close(pipefd[1]);
+                while (read(pipefd[0], &buff, 1) != -1) {
+                    if (buff <= 1) break;
+                    printf("%c", buff);
+                }
+                close(pipefd[0]);
+                if (buff == '\1') {
+                    ods_log_debug("[%s] signerd started successfully", engine_str);
+                    exit(0);
+                }
+                ods_log_error("[%s] fail to start signerd completely", engine_str);
+                exit(1);
         }
         if (setsid() == -1) {
             ods_log_error("[%s] setup: unable to setsid daemon (%s)",
                 engine_str, strerror(errno));
+            char *err = "unable to setsid daemon: ";
+            ods_writen(pipefd[1], err, strlen(err));
+            ods_writeln(pipefd[1], strerror(errno));
+            write(pipefd[1], "\0", 1);
+            close(pipefd[1]);
             return ODS_STATUS_SETSID_ERR;
         }
     }
     engine->pid = getpid();
     /* write pidfile */
     if (util_write_pidfile(engine->config->pid_filename, engine->pid) == -1) {
+        if (engine->daemonize) {
+            ods_writeln(pipefd[1], "Unable to write pid file");
+            write(pipefd[1], "\0", 1);
+            close(pipefd[1]);
+        }
         return ODS_STATUS_WRITE_PIDFILE_ERR;
     }
     /* setup done */
@@ -495,6 +524,10 @@ engine_setup(void)
     engine_start_dnshandler(engine);
     engine_start_xfrhandler(engine);
     tsig_handler_init();
+    if (engine->daemonize) {
+        write(pipefd[1], "\1", 1);
+        close(pipefd[1]);
+    }
     return ODS_STATUS_OK;
 }
 
@@ -715,14 +748,13 @@ engine_update_zones(engine_type* engine, ods_status zl_changed)
             pthread_mutex_unlock(&zone->zone_lock);
             /* create task */
             task = task_create(strdup(zone->name), TASK_CLASS_SIGNER, TASK_SIGNCONF, worker_perform_task, zone, NULL, now);
-            task->lock = &zone->zone_lock;
-            pthread_mutex_unlock(&zone->zone_lock);
             if (!task) {
                 ods_log_crit("[%s] unable to create task for zone %s: "
                     "task_create() failed", engine_str, zone->name);
                 node = ldns_rbtree_next(node);
                 continue;
             }
+            task->lock = &zone->zone_lock;
         }
         /* load adapter config */
         status = adapter_load_config(zone->adinbound);
@@ -974,8 +1006,10 @@ engine_cleanup(engine_type* engine)
     if (!engine) {
         return;
     }
+    ods_log_assert(engine->config);
+
     numTotalWorkers = engine->config->num_worker_threads + engine->config->num_signer_threads;
-    if (engine->workers && engine->config) {
+    if (engine->workers) {
         for (i=0; i < (size_t) numTotalWorkers; i++) {
             worker_cleanup(engine->workers[i]);
         }
