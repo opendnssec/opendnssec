@@ -13,9 +13,9 @@ if [ -x `dirname "$0"`/make.sh ] ; then
     # Old, no longer in LTS Ubuntu 10 machine will fail due to historic
     # version of libbotan (1.8.2) and pre 1.0 version of OpenSSL, where
     # SoftHSM requires at least one of them working.
-    check_if_built opendnssec-mysql && exit 0
-    start_build opendnssec-mysql
-    set_build_ok opendnssec-mysql || exit 1
+    check_if_built opendnssec && exit 0
+    start_build opendnssec
+    set_build_ok opendnssec || exit 1
     exit 0
   fi
 

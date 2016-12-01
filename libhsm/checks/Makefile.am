@@ -13,7 +13,6 @@ AM_CPPFLAGS = \
 
 AM_CFLAGS =	-std=c99
 
-
 EXTRA_DIST =	*.xml $(srcdir)/softhsm2.conf
 
 noinst_PROGRAMS = hsmcheck
@@ -26,6 +25,8 @@ SOFTHSM_ENV = SOFTHSM2_CONF=$(srcdir)/softhsm2.conf
 
 
 tokens:
+	rm -rf tokens
+	mkdir tokens
 	env $(SOFTHSM_ENV) \
 	softhsm2-util --slot 0 --init-token --label softHSM \
 		--so-pin 12345678 --pin 123456
