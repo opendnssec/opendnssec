@@ -77,7 +77,7 @@ fi &&
 
 echo -n "LINE: ${LINENO} " && ods-migrate &&
 
-echo -n "LINE: ${LINENO} " && ods-enforcerd --set-time "2001-01-01-01:01:01:01"
+echo -n "LINE: ${LINENO} " && ods-enforcerd --set-time "2001-01-01-01:01:01" &&
 echo -n "LINE: ${LINENO} " && unset KSK1 &&
 echo -n "LINE: ${LINENO} " && unset ZSK1 &&
 echo -n "LINE: ${LINENO} " && unset KSK2 &&

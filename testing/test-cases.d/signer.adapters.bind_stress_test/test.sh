@@ -35,10 +35,11 @@ ods_reset_env &&
 ## Start master name server
 cp bind-zonefile bind9/ods
 ods_bind9_info &&
-ods_bind9_start &&
 
 ## Start OpenDNSSEC
 ods_start_ods-control &&
+
+ods_bind9_start &&
 
 ## Send updates
 ods_bind9_dynupdate 100 1000 ods &&
