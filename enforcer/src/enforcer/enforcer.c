@@ -1327,6 +1327,7 @@ isSuccessable(struct future_key* future_key)
 
 /**
  * Establish relationships between keys in keylist and the future_key.
+ * Also remove relationships not longer relevant for future_key.
  *
  * \return A positive value if keys where successfully marked, zero if the
  * future_key can not be a successor and a negative value if an error occurred.
@@ -1338,23 +1339,30 @@ markSuccessors(db_connection_t *dbconn, key_data_t** keylist,
 {
     static const char *scmd = "markSuccessors";
     size_t i;
-    key_dependency_t* key_dependency;
+    key_dependency_t *key_dependency, *kd;
     key_dependency_type_t key_dependency_type;
+    int cmp;
 
-    if (!dbconn) {
+    if (!dbconn || !keylist || !future_key || !deplist || !zone) {
         return -1;
     }
-    if (!keylist) {
-        return -1;
-    }
-    if (!future_key) {
-        return -1;
-    }
-    if (!deplist) {
-        return -1;
-    }
-    if (!zone) {
-        return -1;
+
+    /* If key,type in deplist and new state is omnipresent it is no
+     * longer relevant for the dependencies */
+    if (future_key->next_state == OMNIPRESENT) {
+        /* Remove any entries for this key,type tuple from successors */
+        for (kd = key_dependency_list_get_begin(deplist); kd;
+            key_dependency_free(kd),
+            kd = key_dependency_list_get_next(deplist))
+        {
+            if (db_value_cmp(key_data_id(future_key->key),
+                    key_dependency_to_key_data_id(kd), &cmp) == DB_OK &&
+                !cmp && kd->type == future_key->type)
+            {
+                    key_dependency_delete(kd);
+            }
+
+        }
     }
 
     if (isSuccessable(future_key) < 1) {
@@ -1944,7 +1952,7 @@ updateZone(db_connection_t *dbconn, policy_t const *policy, zone_db_t* zone,
 		    key_state_free(key_state);
                     break;
                 }
-		key_state_free(key_state);
+                key_state_free(key_state);
 
                 if (!zone_db_signconf_needs_writing(zone)) {
                     if (zone_db_set_signconf_needs_writing(zone, 1)) {
