@@ -448,9 +448,6 @@ dumpthreads(void)
 #ifdef HAVE_BACKTRACE_FULL
 static struct backtrace_state *state;
 
-static int callback(void* data, uintptr_t pc, const char *filename, int lineno, const char *function);
-static void errorhandler(void* data, const char *msg, int errno);
-
 static int
 callback(void* data, uintptr_t pc, const char *filename, int lineno, const char *function)
 {
@@ -466,7 +463,7 @@ callback(void* data, uintptr_t pc, const char *filename, int lineno, const char 
 }
 
 static void
-errorhandler(void* data, const char *msg, int errno)
+errorhandler(void* data, const char *msg, int xerrno)
 {
     int len = strlen(msg);
     (void) (write(2, msg, len));
