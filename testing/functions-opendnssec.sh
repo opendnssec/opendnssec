@@ -1524,6 +1524,24 @@ ods_compare_gold_vs_base_signconf ()
 	local replace_string
 	local i
 
+	cat <<-END > diff.xsl~
+		<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0">
+		<xsl:output method="xml"/>
+		  <xsl:template match="Keys">
+		    <xsl:copy>
+		      <xsl:apply-templates>
+        	        <xsl:sort/>
+	              </xsl:apply-templates>
+        	    </xsl:copy>
+	          </xsl:template>
+        	  <xsl:template match="*">
+	            <xsl:copy>
+        	      <xsl:apply-templates/>
+	            </xsl:copy>
+        	  </xsl:template>
+		</xsl:stylesheet>
+	END
+
 	for test_dir in gold base; do
 		if [ ! -d "$test_dir" ]; then
 			echo "ods_compare_gold_vs_base_signconf: directory $test_dir no found" >&2
@@ -1555,9 +1573,13 @@ ods_compare_gold_vs_base_signconf ()
 				return 1
 			fi
 
+                        for file in ${files[@]}; do
+                                xsltproc ../diff.xsl~ "$file" | xmllint --c14n - | xmllint --format - > "../$temp_dir/$file.1"
+                        done
+
 			# fish out the key locators
 			for file in ${files[@]}; do
-				all_locators+=( $($GREP -- "<Locator>" "$file" | awk -F">" '{print $2}' | awk -F"<" '{print $1}' ) )
+				all_locators+=( $($GREP -- "<Locator>" "../$temp_dir/$file.1" | awk -F">" '{print $2}' | awk -F"<" '{print $1}' ) )
 			done
 
 			# remove duplicates, retaining order (OpenBSD doesn't support nl utility add line numbers the long way)
@@ -1583,7 +1605,8 @@ ods_compare_gold_vs_base_signconf ()
 
 			#apply to each of the files
 			for file in ${files[@]}; do
-				eval $replace_string "$file" > "../$temp_dir/$file"
+				eval $replace_string "../$temp_dir/$file.1" > "../$temp_dir/$file"
+				rm "../$temp_dir/$file.1"
 			done
 		)
 		# Exit subshell

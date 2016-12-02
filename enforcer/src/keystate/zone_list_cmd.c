@@ -28,7 +28,8 @@
 
 #include "config.h"
 
-#include "daemon/cmdhandler.h"
+#include "cmdhandler.h"
+#include "daemon/enforcercommands.h"
 #include "daemon/engine.h"
 #include "file.h"
 #include "log.h"
@@ -59,14 +60,7 @@ help(int sockfd)
 }
 
 static int
-handles(const char *cmd, ssize_t n)
-{
-	return ods_check_command(cmd, n, zone_list_funcblock()->cmdname)?1:0;
-}
-
-static int
-run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
-	db_connection_t *dbconn)
+run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 {
     const char* fmt = "%-31s %-13s %-26s %-34s\n";
     zone_list_db_t* zone_list;
@@ -75,9 +69,11 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     const char* nctime;
     char buf[32];
     int cmp;
-	(void)cmd; (void)n;
+    db_connection_t* dbconn = getconnectioncontext(context);
+    engine_type* engine = getglobalcontext(context);
+    (void)cmd;
 
-	ods_log_debug("[%s] %s command", module_str, zone_list_funcblock()->cmdname);
+	ods_log_debug("[%s] %s command", module_str, zone_list_funcblock.cmdname);
 
 	if (!(zone_list = zone_list_db_new_get(dbconn))) {
 	    client_printf_err(sockfd, "Unable to get list of zones, memory allocation or database error!\n");
@@ -136,15 +132,9 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     policy_free(policy);
     zone_list_db_free(zone_list);
 
-	return 0;
+    return 0;
 }
 
-static struct cmd_func_block funcblock = {
-	"zone list", &usage, &help, &handles, &run
+struct cmd_func_block zone_list_funcblock = {
+	"zone list", &usage, &help, NULL, &run
 };
-
-struct cmd_func_block*
-zone_list_funcblock(void)
-{
-	return &funcblock;
-}

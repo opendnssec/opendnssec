@@ -29,7 +29,8 @@
 
 #include "config.h"
 
-#include "daemon/cmdhandler.h"
+#include "cmdhandler.h"
+#include "daemon/enforcercommands.h"
 #include "policy/policy_resalt_task.h"
 #include "duration.h"
 #include "file.h"
@@ -57,26 +58,15 @@ help(int sockfd)
 }
 
 static int
-handles(const char *cmd, ssize_t n)
+run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 {
-	return ods_check_command(cmd, n, resalt_funcblock()->cmdname)?1:0;
-}
-
-static int
-run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
-	db_connection_t *dbconn)
-{
-	(void)cmd; (void)n;
+    db_connection_t* dbconn = getconnectioncontext(context);;
+    engine_type* engine = getglobalcontext(context);
+    (void)cmd;
 	
 	return flush_resalt_task_all(engine, dbconn);
 }
 
-static struct cmd_func_block funcblock = {
-	"policy resalt", &usage, &help, &handles, &run
+struct cmd_func_block resalt_funcblock = {
+	"policy resalt", &usage, &help, NULL, &run
 };
-
-struct cmd_func_block*
-resalt_funcblock(void)
-{
-	return &funcblock;
-}

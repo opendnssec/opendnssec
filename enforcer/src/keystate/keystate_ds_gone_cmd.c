@@ -29,7 +29,8 @@
 
 #include "config.h"
 
-#include "daemon/cmdhandler.h"
+#include "cmdhandler.h"
+#include "daemon/enforcercommands.h"
 #include "daemon/engine.h"
 #include "enforcer/enforce_task.h"
 #include "log.h"
@@ -68,17 +69,12 @@ help(int sockfd)
 }
 
 static int
-handles(const char *cmd, ssize_t n)
-{
-	return ods_check_command(cmd, n, key_ds_gone_funcblock()->cmdname)?1:0;
-}
-
-static int
-run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
-	db_connection_t *dbconn)
+run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 {
 	int error;
-	error = run_ds_cmd(sockfd, cmd, n, dbconn,
+        db_connection_t* dbconn = getconnectioncontext(context);
+        engine_type* engine = getglobalcontext(context);
+	error = run_ds_cmd(sockfd, cmd, dbconn,
 		KEY_DATA_DS_AT_PARENT_RETRACTED,
 		KEY_DATA_DS_AT_PARENT_UNSUBMITTED, engine);
 	if (error == 0) {
@@ -88,12 +84,6 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	return error;
 }
 
-static struct cmd_func_block funcblock = {
-	"key ds-gone", &usage, &help, &handles, &run
+struct cmd_func_block key_ds_gone_funcblock = {
+	"key ds-gone", &usage, &help, NULL, &run
 };
-
-struct cmd_func_block*
-key_ds_gone_funcblock(void)
-{
-	return &funcblock;
-}

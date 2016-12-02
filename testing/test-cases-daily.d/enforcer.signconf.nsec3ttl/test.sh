@@ -93,6 +93,7 @@ ods_stop_enforcer &&
 rm -rf base &&
 rm -rf gold &&
 rm kasp.xml.temp* &&
+rm *~ &&
 
 
 echo &&
@@ -100,6 +101,10 @@ echo "************ OK ******************" &&
 echo &&
 return 0
 
+echo "################## ERROR: CURRENT STATE ###########################"
+echo "DEBUG: " && ods-enforcer key list -d
+echo "DEBUG: " && ods-enforcer key list -v
+echo "DEBUG: " && ods-enforcer queue
 echo
 echo "************ERROR******************"
 echo

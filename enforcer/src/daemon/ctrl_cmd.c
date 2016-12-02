@@ -33,7 +33,8 @@
 #include "file.h"
 #include "log.h"
 #include "str.h"
-#include "daemon/cmdhandler.h"
+#include "cmdhandler.h"
+#include "daemon/enforcercommands.h"
 #include "daemon/engine.h"
 #include "clientpipe.h"
 
@@ -62,31 +63,30 @@ help(int sockfd)
 }
 
 static int
-handles(const char *cmd, ssize_t n)
+handles(const char *cmd)
 {
-	if (ods_check_command(cmd, n, "stop")) return 1;
-	if (ods_check_command(cmd, n, "reload")) return 1;
-	if (ods_check_command(cmd, n, "running")) return 1;
-	if (ods_check_command(cmd, n, "start")) return 1;
+	if (ods_check_command(cmd, "stop")) return 1;
+	if (ods_check_command(cmd, "reload")) return 1;
+	if (ods_check_command(cmd, "running")) return 1;
+	if (ods_check_command(cmd, "start")) return 1;
 	return 0;
 }
 
 
 static int
-run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
-	db_connection_t *dbconn)
+run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 {
-	(void) dbconn;
-	if (ods_check_command(cmd, n, "start")) {
+        engine_type* engine = getglobalcontext(context);
+	if (ods_check_command(cmd, "start")) {
 		ods_log_debug("[cmdhandler] start command");
 		client_printf(sockfd, "Engine already running.\n");
 		/* if you asked us to start, we are already started */
 		return 1; /* error */
-	} else if (ods_check_command(cmd, n, "running")) {
+	} else if (ods_check_command(cmd, "running")) {
 		ods_log_debug("[cmdhandler] running command");
 		client_printf(sockfd, "Engine running.\n");
 		return 0;
-	} else if (ods_check_command(cmd, n, "reload")) {
+	} else if (ods_check_command(cmd, "reload")) {
 		ods_log_debug("[cmdhandler] reload command");
 		ods_log_assert(engine);
 		engine->need_to_reload = 1;
@@ -95,7 +95,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 		pthread_mutex_unlock(&engine->signal_lock);
 		client_printf(sockfd, "Reloading engine.\n");
 		return 0;
-	} else if (ods_check_command(cmd, n, "stop")) {
+	} else if (ods_check_command(cmd, "stop")) {
 		ods_log_debug("[cmdhandler] stop command");
 		ods_log_assert(engine);
 		engine->need_to_exit = 1;
@@ -109,12 +109,6 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	}
 }
 
-static struct cmd_func_block funcblock = {
+struct cmd_func_block ctrl_funcblock = {
 	"ctrl", &usage, &help, &handles, &run
 };
-
-struct cmd_func_block*
-ctrl_funcblock(void)
-{
-	return &funcblock;
-}

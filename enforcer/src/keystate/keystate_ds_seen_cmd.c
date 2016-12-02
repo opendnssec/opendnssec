@@ -30,7 +30,8 @@
 #include "config.h"
 
 #include "daemon/engine.h"
-#include "daemon/cmdhandler.h"
+#include "cmdhandler.h"
+#include "daemon/enforcercommands.h"
 #include "enforcer/enforce_task.h"
 #include "file.h"
 #include "log.h"
@@ -66,17 +67,12 @@ help(int sockfd)
 }
 
 static int
-handles(const char *cmd, ssize_t n)
-{
-	return ods_check_command(cmd, n, key_ds_seen_funcblock()->cmdname)?1:0;
-}
-
-static int
-run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
-	db_connection_t *dbconn)
+run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 {
 	int error;
-	error = run_ds_cmd(sockfd, cmd, n, dbconn,
+        db_connection_t* dbconn = getconnectioncontext(context);
+        engine_type* engine = getglobalcontext(context);
+	error = run_ds_cmd(sockfd, cmd, dbconn,
 		KEY_DATA_DS_AT_PARENT_SUBMITTED,
 		KEY_DATA_DS_AT_PARENT_SEEN, engine);
 	if (error == 0) {
@@ -87,12 +83,6 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 
 }
 
-static struct cmd_func_block funcblock = {
-	"key ds-seen", &usage, &help, &handles, &run
+struct cmd_func_block key_ds_seen_funcblock = {
+	"key ds-seen", &usage, &help, NULL, &run
 };
-
-struct cmd_func_block*
-key_ds_seen_funcblock(void)
-{
-	return &funcblock;
-}
