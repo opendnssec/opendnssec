@@ -25,17 +25,17 @@ test -f "$SIGNED_ZONE" &&
 echo "Zone originally signed with serial 1001" &&
 
 ##################  Sign with higher serial ###########################
-log_this signer-sign-serial	ods-signer sign ods --serial 2000 &&
-log_this signer-sign-serial	ods-signer flush &&
+log_this signer-sign-serial ods-signer sign ods --serial 2000 &&
+log_this signer-sign-serial ods-signer flush &&
 syslog_waitfor_count 60 2 'ods-signerd: .*\[STATS\] ods' &&
 test -f "$SIGNED_ZONE" &&
 `$GREP -q -- "IN[[:space:]]SOA[[:space:]]ns1.ods.[[:space:]]postmaster.ods.[[:space:]]2000[[:space:]]" $SIGNED_ZONE` &&
 echo "Zone now signed with serial 2000" &&
 
 ##################  Sign with lower serial ###########################
-log_this signer-sign-serial_fail	ods-signer sign ods --serial 500 &&
-log_this signer-sign-serial_fail	ods-signer flush &&
-log_grep signer-sign-serial_fail    stdout "Error: Unable to enforce serial 500 for zone ods." && 
+! log_this signer-sign-serial_fail ods-signer sign ods --serial 500 &&
+log_this signer-sign-serial_fail ods-signer flush &&
+log_grep signer-sign-serial_fail stdout "Error: Unable to enforce serial 500 for zone ods." &&
 
 
 ods_stop_ods-control && 
