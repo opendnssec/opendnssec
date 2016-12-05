@@ -21,6 +21,7 @@ UNRELEASED:
 * Various memory leaks
 * OPENDNSSEC-601: signer and enforcer working dir would not properly fallback to
   default when not specified.
+* OPENDNSSEC-503: Speed up initial signing and algorithm rollover
 
 OpenDNSSEC 2.0.1 - 2016-07-21
 
