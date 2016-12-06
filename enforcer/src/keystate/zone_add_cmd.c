@@ -44,6 +44,7 @@
 #include "keystate/zone_add_cmd.h"
 
 #include <limits.h>
+#include <getopt.h>
 
 static const char *module_str = "zone_add_cmd";
 
@@ -87,9 +88,10 @@ help(int sockfd)
 static int
 run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 {
+    #define NARGV 18
     char* buf;
-    const char* argv[18];
-    int argc;
+    const char* argv[NARGV];
+    int argc = 0;
     const char *zone_name = NULL;
     const char *policy_name = NULL;
     const char *signconf = NULL;
@@ -98,44 +100,73 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
     const char *input_type = NULL;
     const char *output_type = NULL;
     char path[PATH_MAX];
-    int write_xml;
+    int write_xml = 0;
     policy_t* policy;
     zone_db_t* zone;
     int ret = 0;
-    int suspend;
+    int suspend = 0;
+    int long_index = 0, opt = 0;
     db_connection_t* dbconn = getconnectioncontext(context);
     engine_type* engine = getglobalcontext(context);
 
-	ods_log_debug("[%s] %s command", module_str, zone_add_funcblock.cmdname);
-    cmd = ods_check_command(cmd, zone_add_funcblock.cmdname);
+    static struct option long_options[] = {
+        {"zone", required_argument, 0, 'z'},
+        {"policy", required_argument, 0, 'p'},
+        {"signerconf", required_argument, 0, 's'},
+        {"input", required_argument, 0, 'i'},
+        {"output", required_argument, 0, 'o'},
+        {"in-type", required_argument, 0, 'j'},
+        {"out-type", required_argument, 0, 'q'},
+        {"xml", no_argument, 0, 'u'},
+        {"suspend", no_argument, 0, 'n'},
+        {0, 0, 0, 0}
+    };
+
+    ods_log_debug("[%s] %s command", module_str, zone_add_funcblock.cmdname);
 
     if (!(buf = strdup(cmd))) {
         client_printf_err(sockfd, "memory error\n");
         return -1;
     }
+    argc = ods_str_explode(buf, NARGV, argv);
 
-    argc = ods_str_explode(buf, 18, argv);
-    if (argc > 17) {
-        client_printf_err(sockfd, "too many arguments\n");
-        free(buf);
-        return -1;
+    optind = 1;
+    while ((opt = getopt_long(argc, argv, "z:p:s:i:o:j:q:un", long_options, &long_index)) != -1) {
+        switch (opt) {
+            case 'z':
+                zone_name = optarg;
+                break;
+            case 'p':
+                policy_name = optarg;
+                break;
+            case 's':
+                signconf = optarg;
+                break;
+            case 'i':
+                input = optarg;
+                break;
+            case 'o':
+                output = optarg;
+                break;
+            case 'j':
+                input_type = optarg;
+                break;
+            case 'q':
+                output_type = optarg;
+                break;
+            case 'u':
+                write_xml = 1;
+                break;
+            case 'n':
+                suspend = 1;
+                break;
+            default:
+                client_printf_err(sockfd, "unknown arguments\n");
+                free(buf);
+                return -1;
+        }
     }
 
-    ods_find_arg_and_param(&argc, argv, "zone", "z", &zone_name);
-    ods_find_arg_and_param(&argc, argv, "policy", "p", &policy_name);
-    ods_find_arg_and_param(&argc, argv, "signerconf", "s", &signconf);
-    ods_find_arg_and_param(&argc, argv, "input", "i", &input);
-    ods_find_arg_and_param(&argc, argv, "output", "o", &output);
-    ods_find_arg_and_param(&argc, argv, "in-type", "j", &input_type);
-    ods_find_arg_and_param(&argc, argv, "out-type", "q", &output_type);
-    write_xml = ods_find_arg(&argc, argv, "xml", "u") > -1 ? 1 : 0;
-    suspend = ods_find_arg(&argc, argv, "suspend", "n") > -1 ? 1 : 0;
-
-    if (argc) {
-        client_printf_err(sockfd, "unknown arguments\n");
-        free(buf);
-        return -1;
-    }
     if (!zone_name) {
         client_printf_err(sockfd, "expected option --zone <zone>\n");
         free(buf);
