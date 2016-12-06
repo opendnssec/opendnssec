@@ -201,6 +201,8 @@ schedule_create()
     pthread_mutex_init(&schedule->schedule_lock, NULL);
     pthread_cond_init(&schedule->schedule_cond, NULL);
     schedule->num_waiting = 0;
+    schedule->handlers = NULL;
+    schedule->nhandlers = 0;
     
     CHECKALLOC(schedule->signq = fifoq_create());
 
@@ -227,6 +229,7 @@ schedule_cleanup(schedule_type* schedule)
     fifoq_cleanup(schedule->signq);
     pthread_mutex_destroy(&schedule->schedule_lock);
     pthread_cond_destroy(&schedule->schedule_cond);
+    free(schedule->handlers);
     free(schedule);
 }
 
@@ -425,12 +428,10 @@ unschedule_task(schedule_type* schedule, task_type* task)
             free(node2);
         }
         free((void*)del_node);
+        return del_task;
     } else {
-        ods_log_warning("[%s] unable to unschedule task %s for zone %s: not "
-            "scheduled", schedule_str, task->type, task->owner);
         return NULL;
     }
-    return del_task;
 }
 
 task_type*
@@ -480,7 +481,7 @@ schedule_pop_first_task(schedule_type* schedule)
 }
 
 void
-sched_flush(schedule_type* schedule, task_id override)
+schedule_flush(schedule_type* schedule)
 {
     ldns_rbnode_t *node;
     task_type* task;
@@ -499,9 +500,6 @@ sched_flush(schedule_type* schedule, task_id override)
                  */
                 ldns_rbtree_delete(schedule->tasks, task);
                 task->due_date = time_now();
-                if (override != TASK_NONE) {
-                    task->type = override;
-                }
                 ldns_rbtree_insert(schedule->tasks, node);
             } else {
                 /* the last in the ordered tree is already executing
@@ -541,7 +539,7 @@ schedule_info(schedule_type* schedule, time_t* firstFireTime, int* idleWorkers, 
     task = schedule_get_first_task(schedule);
     if (task)
         if (firstFireTime)
-            *firstFireTime = sched_task_due(task);
+            *firstFireTime = task->due_date;
     pthread_mutex_unlock(&schedule->schedule_lock);
     return 0;
 }
@@ -556,7 +554,7 @@ schedule_release_all(schedule_type* schedule)
 }
 
 void
-sched_task_destroy(schedule_type* sched, task_type* task)
+schedule_task_destroy(schedule_type* sched, task_type* task)
 {
     pthread_mutex_lock(&sched->schedule_lock);
     task = unschedule_task(sched, (task_type*) task);
@@ -565,7 +563,7 @@ sched_task_destroy(schedule_type* sched, task_type* task)
 }
 
 char*
-sched_describetask(task_type* task)
+schedule_describetask(task_type* task)
 {
     char ctimebuf[32]; /* at least 26 according to docs */
     char* strtime = NULL;
@@ -573,7 +571,7 @@ sched_describetask(task_type* task)
     time_t time;
 
     if (task) {
-	time = (task->due_date < time_now()) ? time_now() : sched_task_due(task);
+	time = (task->due_date < time_now()) ? time_now() : task->due_date;
         strtime = ctime_r(&time, ctimebuf);
         if (strtime) {
             strtime[strlen(strtime)-1] = '\0';
@@ -591,14 +589,52 @@ sched_describetask(task_type* task)
     return strtask;
 }
 
-time_t
-sched_task_due(task_type* task)
-{
-    return task->due_date;
-}
-
 int
-sched_task_istype(task_type* task, task_id type)
+schedule_task_istype(task_type* task, task_id type)
 {
     return !strcmp(task->type, type);
+}
+
+void
+schedule_registertask(schedule_type* schedule, task_id taskclass, task_id tasktype, time_t (*callback)(task_type* task, char const *owner, void *userdata, void *context))
+{
+    struct schedule_handler* handlers;
+    handlers = realloc(schedule->handlers, sizeof(struct schedule_handler)*(schedule->nhandlers+1));
+    if (handlers != NULL) {
+        handlers[schedule->nhandlers].class    = taskclass;
+        handlers[schedule->nhandlers].type     = tasktype;
+        handlers[schedule->nhandlers].callback = callback;
+        schedule->handlers = handlers;
+        schedule->nhandlers += 1;
+    }
+}
+
+void
+schedule_scheduletask(schedule_type* schedule, task_id type, const char* owner, void* userdata, pthread_mutex_t* resource, time_t when)
+{
+    int i;
+    task_type* task;
+    struct schedule_handler* handler = NULL;
+    for (i = 0; i < schedule->nhandlers; i++) {
+        if (schedule->handlers[i].type == type) {
+            handler = &schedule->handlers[i];
+        }
+    }
+    if (handler) {
+        task = task_create(strdup(owner), handler->class, type, handler->callback, userdata, NULL, when);
+        task->lock = resource;
+        schedule_task(schedule, task, 0, 0);
+    }
+}
+
+void
+schedule_unscheduletask(schedule_type* schedule, task_id type, const char* owner)
+{
+    task_type* match;
+    task_type* found;
+    match = task_create(strdup(owner), TASK_CLASS_SIGNER, type, NULL, NULL, NULL, schedule_WHENEVER);
+    do {
+        found = unschedule_task(schedule, match);
+    } while(found != NULL);
+    free(match); /* do not perform a destroy, this is a temporary, internal, flat task only */
 }

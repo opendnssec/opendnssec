@@ -61,6 +61,8 @@ const char* TASK_READ           = "[read]";
 const char* TASK_NSECIFY        = "[???]";
 const char* TASK_SIGN           = "[sign]";
 const char* TASK_WRITE          = "[write]";
+const char* TASK_FORCESIGNCONF  = "[forcesignconf]";
+const char* TASK_FORCEREAD      = "[forceread]";
 
 task_type*
 task_create(const char *owner, char const *class, char const *type,
@@ -124,7 +126,16 @@ task_perform(schedule_type* scheduler, task_type* task, void* context)
             pthread_mutex_unlock(&worklock);
     } else {
         /* We'll allow a task without callback, just don't reschedule. */
-        rescheduleTime = -1;
+        rescheduleTime = schedule_SUCCESS;
+    }
+    if (rescheduleTime == schedule_PROMPTLY) {
+        rescheduleTime = time_now();
+    } else if (rescheduleTime == schedule_IMMEDIATELY) {
+        rescheduleTime = 0;
+    } else if (rescheduleTime == schedule_DEFER) {
+        task->backoff = clamp(task->backoff * 2, 60, ODS_SE_MAX_BACKOFF);
+        ods_log_info("back-off task %s for zone %s with %lu seconds", task->type, task->owner, (long) task->backoff);
+        rescheduleTime = time_now() + task->backoff;
     }
     if (rescheduleTime >= 0) {
         task->due_date = rescheduleTime;
@@ -161,9 +172,11 @@ cmp_ttuple(task_type *x, task_type *y)
     cmp = strcmp(x->owner, y->owner);
     if (cmp != 0)
         return cmp;
-    cmp = strcmp(x->type, y->type);
-    if (cmp != 0)
-        return cmp;
+    if(strcmp(x->type, schedule_WHATEVER) && strcmp(y->type, schedule_WHATEVER)) {
+        cmp = strcmp(x->type, y->type);
+        if (cmp != 0)
+            return cmp;
+    }
     return strcmp(x->class, y->class);
 }
 
@@ -186,7 +199,7 @@ task_compare_time_then_ttuple(const void* a, const void* b)
     ods_log_assert(a);
     ods_log_assert(b);
 
-    if (x->due_date != y->due_date) {
+    if (x->due_date != y->due_date && x->due_date != schedule_WHENEVER && y->due_date != schedule_WHENEVER) {
         return (int) x->due_date - y->due_date;
     }
     return cmp_ttuple(x, y);

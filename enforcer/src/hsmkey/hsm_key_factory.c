@@ -411,7 +411,7 @@ hsm_key_factory_generate_cb(task_type* task, char const *owner, void* userdata, 
     (void)owner;
 
     if (!userdata) {
-        return -1;
+        return schedule_SUCCESS;
     }
     task2 = (struct __hsm_key_factory_task*) userdata;
 
@@ -430,7 +430,7 @@ hsm_key_factory_generate_cb(task_type* task, char const *owner, void* userdata, 
     if (task2->reschedule_enforce_task && policy)
         enforce_task_flush_policy(task2->engine, dbconn, policy);
     policy_free(policy);
-    return -1;
+    return schedule_SUCCESS;
 }
 
 static time_t
@@ -442,7 +442,7 @@ hsm_key_factory_generate_policy_cb(task_type* task, char const *owner, void *use
     (void)owner;
 
     if (!userdata) {
-        return -1;
+        return schedule_SUCCESS;
     }
     task2 = (struct __hsm_key_factory_task*)userdata;
 
@@ -451,7 +451,7 @@ hsm_key_factory_generate_policy_cb(task_type* task, char const *owner, void *use
     ods_log_debug("[hsm_key_factory_generate_policy_cb] generate for policy done");
     if (task2->reschedule_enforce_task && task2->policy)
         enforce_task_flush_policy(task2->engine, dbconn, task2->policy);
-    return -1;
+    return schedule_SUCCESS;
 }
 
 static time_t
@@ -463,7 +463,7 @@ hsm_key_factory_generate_all_cb(task_type* task, char const *owner, void *userda
     (void)owner;
     
     if (!userdata) {
-        return -1;
+        return schedule_SUCCESS;
     }
     task2 = (struct __hsm_key_factory_task*)userdata;
     
@@ -472,7 +472,7 @@ hsm_key_factory_generate_all_cb(task_type* task, char const *owner, void *userda
     ods_log_debug("[hsm_key_factory_generate_all_cb] generate for all policies done");
     if (task2->reschedule_enforce_task)
         enforce_task_flush_all(task2->engine, dbconn);
-    return -1;
+    return schedule_SUCCESS;
 }
 
 /**

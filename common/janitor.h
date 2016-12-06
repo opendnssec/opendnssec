@@ -63,6 +63,8 @@ extern void janitor_thread_joinall(janitor_threadclass_t threadclass);
 extern int janitor_disablecoredump(void);
 extern int janitor_trapsignals(char* argv0);
 
+extern void janitor_backtrace(void);
+
 extern void janitor_thread_signal(janitor_thread_t thread);
 
 #endif

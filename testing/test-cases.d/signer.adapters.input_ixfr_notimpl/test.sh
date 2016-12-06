@@ -37,7 +37,7 @@ syslog_waitfor 60 'ods-signerd: .*\[xfrd\] zone ods request axfr to 127\.0\.0\.1
 
 ## Do a ods-signer sign ("key rollover"), and don't fail reading because of missing xfr.
 ods-signer sign ods &&
-syslog_waitfor 60 'ods-signerd: .*\[worker\[.*\]\] zone ods unsigned data not changed, continue' &&
+syslog_waitfor 60 'ods-signerd: .*zone ods unsigned data not changed, continue' &&
 
 ## Stop
 ods_stop_ods-control && 

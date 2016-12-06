@@ -360,7 +360,6 @@ janitor_thread_join(janitor_thread_t thread)
     return status;
 }
 
-
 int
 janitor_thread_tryjoinall(janitor_threadclass_t threadclass)
 {
@@ -446,7 +445,9 @@ dumpthreads(void)
 }
 
 #ifdef HAVE_BACKTRACE_FULL
-static struct backtrace_state *state;
+static struct backtrace_state *state  = NULL;
+static struct backtrace_state *frames = NULL;
+static pthread_mutex_t frameslock = PTHREAD_MUTEX_INITIALIZER;
 
 static int callback(void* data, uintptr_t pc, const char *filename, int lineno, const char *function);
 static void errorhandler(void* data, const char *msg, int errno);
@@ -473,6 +474,54 @@ errorhandler(void* data, const char *msg, int errno)
     (void) (write(2, "\n", 1));
 }
 #endif
+
+static void
+outputbacktrace(int skips, struct backtrace_state *state)
+{
+#ifndef HAVE_BACKTRACE_FULL
+#ifdef HAVE_BACKTRACE
+    void *bt[20];
+    int count, i;
+#else
+#ifdef HAVE_LIBUNWIND
+    unw_context_t ctx;
+    unw_cursor_t cursor;
+    char symbol[256];
+    unw_word_t offset;
+#endif
+#endif
+#endif
+#ifdef HAVE_BACKTRACE_FULL
+    backtrace_full(state, skips, (backtrace_full_callback) callback, (backtrace_error_callback) errorhandler, NULL);
+#else
+#ifdef HAVE_BACKTRACE
+    count = outputbacktrace(bt, sizeof (bt) / sizeof (void*));
+    for (i = skips; i < count; i++) {
+        dladdr(bt[i], &btinfo);
+        if (btinfo.dli_sname != NULL) {
+            alert("  %s\n", btinfo.dli_sname);
+            if (!strcmp(btinfo.dli_sname, "main"))
+                break;
+        } else
+            alert("  unknown\n");
+    }
+#else
+#ifdef HAVE_LIBUNWIND
+    unw_getcontext(&ctx);
+    unw_init_local(&cursor, &ctx);
+    if (unw_step(&cursor)) {
+        /* skip the first one */
+        while (unw_step(&cursor)) {
+            unw_get_proc_name(&cursor, symbol, sizeof (symbol) - (skips-1), &offset);
+            alert("  %s\n", symbol);
+            if (!strcmp(symbol, "main"))
+                break;
+        }
+    }
+#endif
+#endif
+#endif
+}
 
 static void
 handlesignal(int signal, siginfo_t* info, void* data)
@@ -532,39 +581,18 @@ handlesignal(int signal, siginfo_t* info, void* data)
         alert("%s", signalname);
 #ifdef HAVE_BACKTRACE_FULL
     alert(":\n");
-    backtrace_full(state, 2, callback, errorhandler, NULL);
 #else
 #ifdef HAVE_BACKTRACE
     alert(":\n");
-    count = backtrace(bt, sizeof (bt) / sizeof (void*));
-    for (i = 2; i < count; i++) {
-        dladdr(bt[i], &btinfo);
-        if (btinfo.dli_sname != NULL) {
-            alert("  %s\n", btinfo.dli_sname);
-            if (!strcmp(btinfo.dli_sname, "main"))
-                break;
-        } else
-            alert("  unknown\n");
-    }
 #else
 #ifdef HAVE_LIBUNWIND
     alert(":\n");
-    unw_getcontext(&ctx);
-    unw_init_local(&cursor, &ctx);
-    if (unw_step(&cursor)) {
-        /* skip the first one */
-        while (unw_step(&cursor)) {
-            unw_get_proc_name(&cursor, symbol, sizeof (symbol) - 1, &offset);
-            alert("  %s\n", symbol);
-            if (!strcmp(symbol, "main"))
-                break;
-        }
-    }
 #else
     alert("\n");
 #endif
 #endif
 #endif
+    outputbacktrace(2, state);
     if (info->si_signo == SIGQUIT) {
         pthread_mutex_lock(&threadlock);
         pthread_cond_signal(&threadblock);
@@ -575,15 +603,28 @@ handlesignal(int signal, siginfo_t* info, void* data)
     }
 }
 
+void
+janitor_backtrace(void)
+{
+    if(frames == NULL) {
+        frames = backtrace_create_state(NULL, 0, (backtrace_error_callback) errorhandler, NULL);
+    }
+    pthread_mutex_lock(&frameslock);
+    outputbacktrace(1, frames);
+    pthread_mutex_unlock(&frameslock);
+}
+
 int
 janitor_trapsignals(char* argv0)
 {
     sigset_t mask;
     stack_t ss;
     struct sigaction newsigaction;
+    static struct backtrace_state *frames;
 
 #ifdef HAVE_BACKTRACE_FULL
-    CHECKFAIL((state = backtrace_create_state(argv0, 0, errorhandler, NULL)) == NULL);
+    CHECKFAIL((state  = backtrace_create_state(argv0, 0, (backtrace_error_callback)errorhandler, NULL)) == NULL);
+    CHECKFAIL((frames = backtrace_create_state(argv0, 0, (backtrace_error_callback)errorhandler, NULL)) == NULL);
 #else
     (void) argv0;
 #endif
