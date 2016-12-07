@@ -217,7 +217,7 @@ cmdhandler_handle_cmd_update(int sockfd, cmdhandler_ctx_type* context, const cha
  * Handle the 'retransfer' command.
  *
  */
-static void
+static int
 cmdhandler_handle_cmd_retransfer(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 {
     engine_type* engine;
