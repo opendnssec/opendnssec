@@ -476,10 +476,13 @@ errorhandler(void* data, const char *msg, int errno)
 #endif
 
 static void
-outputbacktrace(int skips, struct backtrace_state *state)
+outputbacktrace(int skips, void *workaround)
 {
-#ifndef HAVE_BACKTRACE_FULL
+#ifdef HAVE_BACKTRACE_FULL
+    struct backtrace_state *state = (struct backtrace_state*) workaround;
+#else
 #ifdef HAVE_BACKTRACE
+    Dl_info btinfo;
     void *bt[20];
     int count, i;
 #else
@@ -495,7 +498,7 @@ outputbacktrace(int skips, struct backtrace_state *state)
     backtrace_full(state, skips, (backtrace_full_callback) callback, (backtrace_error_callback) errorhandler, NULL);
 #else
 #ifdef HAVE_BACKTRACE
-    count = outputbacktrace(bt, sizeof (bt) / sizeof (void*));
+    count = backtrace(bt, sizeof (bt) / sizeof (void*));
     for (i = skips; i < count; i++) {
         dladdr(bt[i], &btinfo);
         if (btinfo.dli_sname != NULL) {
@@ -592,7 +595,11 @@ handlesignal(int signal, siginfo_t* info, void* data)
 #endif
 #endif
 #endif
+#ifdef HAVE_BACKTRACE_FULL
     outputbacktrace(2, state);
+#else
+    outputbacktrace(2, NULL);
+#endif
     if (info->si_signo == SIGQUIT) {
         pthread_mutex_lock(&threadlock);
         pthread_cond_signal(&threadblock);
@@ -606,12 +613,16 @@ handlesignal(int signal, siginfo_t* info, void* data)
 void
 janitor_backtrace(void)
 {
+#ifdef HAVE_BACKTRACE_FULL
     if(frames == NULL) {
         frames = backtrace_create_state(NULL, 0, (backtrace_error_callback) errorhandler, NULL);
     }
     pthread_mutex_lock(&frameslock);
     outputbacktrace(1, frames);
     pthread_mutex_unlock(&frameslock);
+#else
+    outputbacktrace(1, NULL);
+#endif
 }
 
 int
