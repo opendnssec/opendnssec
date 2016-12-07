@@ -28,6 +28,7 @@
  */
 
 #include "config.h"
+#include <getopt.h>
 
 #include "cmdhandler.h"
 #include "daemon/enforcercommands.h"
@@ -261,38 +262,62 @@ help(int sockfd)
 static int
 run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 {
-    #define NARGV 8
+    #define NARGV 10
     char buf[ODS_SE_MAXLINE];
     const char *argv[NARGV];
-    int argc;
+    int argc = 0;
     const char *zonename = NULL;
     const char* keytype = NULL;
     const char* keystate = NULL;
     zone_db_t * zone = NULL;
     int all = 0;
+    int ds = 0;
+    int long_index = 0, opt = 0;
     db_connection_t* dbconn = getconnectioncontext(context);
+
+    static struct option long_options[] = {
+        {"zone", required_argument, 0, 'z'},
+        {"keytype", required_argument, 0, 't'},
+        {"keystate", required_argument, 0, 'e'},
+        {"all", no_argument, 0, 'a'},
+        {"ds", no_argument, 0, 'd'},
+        {0, 0, 0, 0}
+    };
 	
     ods_log_debug("[%s] %s command", module_str, key_export_funcblock.cmdname);
-    cmd = ods_check_command(cmd, key_export_funcblock.cmdname);
-	
+
     /* Use buf as an intermediate buffer for the command.*/
     strncpy(buf, cmd, sizeof(buf));
     buf[sizeof(buf)-1] = '\0';
-	
+
     /* separate the arguments*/
     argc = ods_str_explode(buf, NARGV, argv);
-    if (argc > NARGV) {
-        ods_log_error("[%s] too many arguments for %s command",
-                           module_str, key_export_funcblock.cmdname);
-        client_printf_err(sockfd,"too many arguments\n");
-        return -1;
+
+    optind = 0;
+    while ((opt = getopt_long(argc, (char* const*)argv, "z:t:e:ad", long_options, &long_index)) != -1) {
+        switch (opt) {
+            case 'z':
+                zonename = optarg;
+                break;
+            case 't':
+                keytype = optarg;
+                break;
+            case 'e':
+                keystate = optarg;
+                break;
+            case 'a':
+                all = 1;
+                break;
+            case 'd':
+                ds = 1;
+                break;
+            default:
+                client_printf_err(sockfd, "unknown arguments\n");
+                ods_log_warning("[%s] unknown arguments for %s command",
+                                module_str, key_export_funcblock.cmdname);
+                return -1;
+        }
     }
-	
-    bool bds = 0;
-    (void)ods_find_arg_and_param(&argc,argv,"zone","z",&zonename);
-    (void)ods_find_arg_and_param(&argc, argv, "keytype", "t", &keytype);
-    (void)ods_find_arg_and_param(&argc, argv, "keystate", "e", &keystate);
-    all = ods_find_arg(&argc, argv, "all", "a") > -1 ? 1 : 0;
 
     if (keytype) {
         if (strcasecmp(keytype, "KSK") && strcasecmp(keytype, "ZSK") && strcasecmp(keytype, "CSK")) {
@@ -308,16 +333,6 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
             client_printf_err(sockfd, "unknown keystate\n");
             return -1;
         }
-    }
-
-    if (ods_find_arg(&argc,argv,"ds","d") >= 0)
-        bds = 1;
-
-    if (argc) {
-        ods_log_error("[%s] unknown arguments for %s command",
-                              module_str, key_export_funcblock.cmdname);
-        client_printf_err(sockfd,"unknown arguments\n");
-        return -1;
     }
 
     if ((!zonename && !all) || (zonename && all)) {
@@ -344,7 +359,7 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
     }
 
     /* perform task immediately */
-    return perform_keystate_export(sockfd, dbconn, zonename, (const char*) keytype, (const char*) keystate, all, bds?1:0);
+    return perform_keystate_export(sockfd, dbconn, zonename, (const char*) keytype, (const char*) keystate, all, ds);
 }
 
 struct cmd_func_block key_export_funcblock = {

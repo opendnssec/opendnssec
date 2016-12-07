@@ -28,6 +28,7 @@
 
 #include "config.h"
 #include <limits.h>
+#include <getopt.h>
 
 #include "daemon/engine.h"
 #include "cmdhandler.h"
@@ -70,12 +71,19 @@ static int
 run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 {
     char path[PATH_MAX], buf[ODS_SE_MAXLINE];
-    int ret, argc, remove_missing_zones;
-    #define NARGV 8
+    int ret, argc = 0, remove_missing_zones = 0;
+    #define NARGV 5
+    int long_index = 0, opt = 0;
     const char *argv[NARGV];
     const char* zonelist_path = NULL;
     db_connection_t* dbconn = getconnectioncontext(context);
     engine_type* engine = getglobalcontext(context);
+
+    static struct option long_options[] = {
+        {"remove-missing-zones", no_argument, 0, 'r'},
+        {"file", required_argument, 0, 'f'},
+        {0, 0, 0, 0}
+    };
 
     ods_log_debug("[%s] %s command", module_str, zonelist_import_funcblock.cmdname);
 
@@ -85,26 +93,28 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
         return 1;
     }
 
-    cmd = ods_check_command(cmd, zonelist_import_funcblock.cmdname);
     if (!cmd) return -1;
     /* Use buf as an intermediate buffer for the command.*/
     strncpy(buf, cmd, sizeof(buf));
     buf[sizeof(buf)-1] = '\0';
     /* separate the arguments*/
     argc = ods_str_explode(buf, NARGV, argv);
-    if (argc > NARGV) {
-        ods_log_warning("[%s] too many arguments for %s command",
-                        module_str, zonelist_import_funcblock.cmdname);
-        client_printf(sockfd,"too many arguments\n");
-        return -1;
-    }
-    remove_missing_zones = (ods_find_arg(&argc, argv, "remove-missing-zones", "r") >= 0);
-    (void)ods_find_arg_and_param(&argc, argv, "file", "f", &zonelist_path);
-    if (argc) {
-        ods_log_warning("[%s] unknown arguments for %s command",
-                        module_str, zonelist_import_funcblock.cmdname);
-        client_printf(sockfd,"unknown arguments\n");
-        return -1;
+
+    optind = 0;
+    while ((opt = getopt_long(argc, (char* const*)argv, "rf:", long_options, &long_index)) != -1) {
+        switch (opt) {
+            case 'r':
+                remove_missing_zones = 1;
+                break;
+            case 'f':
+                zonelist_path = optarg;
+                break;
+            default:
+                client_printf_err(sockfd, "unknown arguments\n");
+                ods_log_warning("[%s] unknown arguments for %s command",
+                                module_str, zonelist_import_funcblock.cmdname);
+                return -1;
+        }
     }
 
     ret = zonelist_import(sockfd, engine, dbconn, remove_missing_zones, zonelist_path);

@@ -43,6 +43,7 @@
 #include "keystate/zone_del_cmd.h"
 
 #include <limits.h>
+#include <getopt.h>
 
 static const char *module_str = "zone_del_cmd";
 
@@ -119,12 +120,14 @@ static int delete_key_data(zone_db_t* zone, db_connection_t *dbconn, int sockfd)
 static int
 run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 {
+    #define NARGV 6
     char* buf;
-    const char* argv[17];
-    int argc;
+    const char* argv[NARGV];
+    int argc = 0;
     const char *zone_name2 = NULL;
-    int all;
-    int write_xml;
+    int all = 0;
+    int write_xml = 0;
+    int long_index = 0, opt = 0;
     zone_list_db_t* zone_list;
     zone_db_t* zone;
     int ret = 0;
@@ -133,29 +136,41 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
     db_connection_t* dbconn = getconnectioncontext(context);;
     engine_type* engine = getglobalcontext(context);
 
+    static struct option long_options[] = {
+        {"zone", required_argument, 0, 'z'},
+        {"all", no_argument, 0, 'a'},
+        {"xml", no_argument, 0, 'u'},
+        {0, 0, 0, 0}
+    };
+
     ods_log_debug("[%s] %s command", module_str, zone_del_funcblock.cmdname);
-    cmd = ods_check_command(cmd, zone_del_funcblock.cmdname);
 
     if (!(buf = strdup(cmd))) {
         client_printf_err(sockfd, "memory error\n");
         return -1;
     }
 
-    argc = ods_str_explode(buf, 17, argv);
-    if (argc > 17) {
-        client_printf_err(sockfd, "too many arguments\n");
-        free(buf);
-        return -1;
-    }
+    argc = ods_str_explode(buf, NARGV, argv);
 
-    ods_find_arg_and_param(&argc, argv, "zone", "z", &zone_name2);
-    all = ods_find_arg(&argc, argv, "all", "a") > -1 ? 1 : 0;
-    write_xml = ods_find_arg(&argc, argv, "xml", "u") > -1 ? 1 : 0;
-
-    if (argc) {
-        client_printf_err(sockfd, "unknown arguments\n");
-        free(buf);
-        return -1;
+    optind = 0;
+    while ((opt = getopt_long(argc, (char* const*)argv, "z:au", long_options, &long_index)) != -1) {
+        switch (opt) {
+            case 'z':
+                zone_name2 = optarg;
+                break;
+            case 'a':
+                all = 1;
+                break;
+            case 'u':
+                write_xml = 1;
+                break;
+           default:
+               client_printf_err(sockfd, "unknown arguments\n");
+               ods_log_warning("[%s] unknown arguments for %s command",
+                                module_str, zone_del_funcblock.cmdname);
+               free(buf);
+               return -1;
+        }
     }
 
     if (zone_name2 && !all) {
