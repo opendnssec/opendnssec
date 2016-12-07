@@ -73,7 +73,14 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 	        return -1;
    	}
 
-    	argc = ods_str_explode(buf, MAX_ARGS, argv);
+	argc = ods_str_explode(buf, MAX_ARGS, argv);
+	if (argc == -1) {
+	client_printf_err(sockfd, "too many arguments\n");
+	ods_log_error("[%s] too many arguments for %s command",
+                      module_str, key_purge_funcblock.cmdname);
+        free(buf);
+        return -1;
+	}
 
 	optind = 0;
 	while ((opt = getopt_long(argc, (char* const*)argv, "z:p:", long_options, &long_index)) != -1) {
@@ -86,7 +93,7 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 				break;
 			default:
 				client_printf_err(sockfd, "unknown arguments\n");
-				ods_log_warning("[%s] too many arguments for %s command",
+				ods_log_error("[%s] unknown arguments for %s command",
 						module_str, key_purge_funcblock.cmdname);
 				free(buf);
 				return -1;
@@ -100,12 +107,6 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
                 return -1;
         }
 	
-        if (argc) {
-                client_printf_err(sockfd, "unknown arguments\n");
-                free(buf);
-                return -1;
-        }
-
 	if (zone_name) {
 		zone = zone_db_new(dbconn);
 		if (zone_db_get_by_name(zone, zone_name)) {

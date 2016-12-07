@@ -27,6 +27,7 @@
  *
  */
 
+#include <getopt.h>
 #include "config.h"
 
 #include "cmdhandler.h"
@@ -42,7 +43,7 @@
 
 static const char *module_str = "enforce_cmd";
 
-#define MAX_ARGS 16
+#define MAX_ARGS 4
 
 /**
  * Print help for the 'enforce' command
@@ -78,16 +79,21 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 	time_t t_next;
 	task_type *task;
 	char *buf;
-	int argc;
+	int argc = 0;
 	char const *argv[MAX_ARGS];
+	int long_index = 0, opt = 0;
 	char const *zone_name = NULL;
 	int pos;
         db_connection_t* dbconn = getconnectioncontext(context);
         engine_type* engine = getglobalcontext(context);
 
+	static struct option long_options[] = {
+		{"zone", required_argument, 0, 'z'},
+		{0, 0, 0, 0}
+	};
+
 	ods_log_debug("[%s] %s command", module_str, enforce_funcblock.cmdname);
 
-	cmd = ods_check_command(cmd, enforce_funcblock.cmdname);
 	if (!cmd) return -1;
 
 	if (!(buf = strdup(cmd))) {
@@ -95,12 +101,27 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 		return -1;
 	}
 	argc = ods_str_explode(buf, MAX_ARGS, argv);
-
-	pos = ods_find_arg_and_param(&argc, argv, "zone", "z", &zone_name);
-	if (argc > 0) {
-		client_printf_err(sockfd, "Too many arguments.\n");
+	if (argc == -1) {
+		client_printf_err(sockfd, "too many arguments\n");
+		ods_log_error("[%s] too many arguments for %s command",
+				module_str, enforce_funcblock.cmdname);
 		free(buf);
 		return -1;
+	}
+
+	optind = 0;
+	while ((opt = getopt_long(argc, (char* const*)argv, "z:", long_options, &long_index)) != -1) {
+		switch (opt) {
+			case 'z':
+				zone_name = optarg;
+				break;
+			default:
+				client_printf_err(sockfd, "unknown arguments\n");
+				ods_log_error("[%s] unknown arguments for %s command",
+						module_str, enforce_funcblock.cmdname);
+				return -1;
+
+		}
 	}
 
 	if (pos != -1) {

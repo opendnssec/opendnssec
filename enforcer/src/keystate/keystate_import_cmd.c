@@ -26,6 +26,7 @@
  */
 
 #include "config.h"
+#include <getopt.h>
 
 #include "cmdhandler.h"
 #include "daemon/enforcercommands.h"
@@ -379,10 +380,10 @@ help(int sockfd)
 static int
 run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 {
-    #define NARGV 16
+    #define NARGV 18
     char buf[ODS_SE_MAXLINE];
     const char *argv[NARGV];
-    int argc;
+    int argc = 0, long_index = 0, opt = 0;
     const char *ckaid = NULL;
     const char *repository = NULL;
     const char *zonename = NULL;
@@ -398,9 +399,20 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
     db_value_t *hsmkey_id;
     policy_key_t *policy_key;
     db_connection_t* dbconn = getconnectioncontext(context);
+
+    static struct option long_options[] = {
+        {"zone", required_argument, 0, 'z'},
+        {"cka_id", required_argument, 0, 'k'},
+        {"repository", required_argument, 0, 'r'},
+        {"bits", required_argument, 0, 'b'},
+        {"algorithm", required_argument, 0, 'g'},
+        {"keytype", required_argument, 0, 't'},
+        {"keystate", required_argument, 0, 'e'},
+        {"inception_time", required_argument, 0, 'w'},
+        {0, 0, 0, 0}
+    };
 	
     ods_log_debug("[%s] %s command", module_str, key_import_funcblock.cmdname);
-    cmd = ods_check_command(cmd, key_import_funcblock.cmdname);
 	
     /* Use buf as an intermediate buffer for the command.*/
     strncpy(buf, cmd, sizeof(buf));
@@ -408,20 +420,47 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 	
     /* separate the arguments*/
     argc = ods_str_explode(buf, NARGV, argv);
-    if (argc > NARGV) {
-        ods_log_error("[%s] too many arguments for %s command", module_str, key_import_funcblock.cmdname);
-        client_printf_err(sockfd,"too many arguments\n");
+    if (argc == -1) {
+        client_printf_err(sockfd, "too many arguments\n");
+        ods_log_error("[%s] too many arguments for %s command",
+                      module_str, key_import_funcblock.cmdname);
         return -1;
     }
-	
-    (void)ods_find_arg_and_param(&argc,argv, "cka_id","k",&ckaid);
-    (void)ods_find_arg_and_param(&argc,argv, "repository","r",&repository);
-    (void)ods_find_arg_and_param(&argc,argv, "bits","b",&bits);
-    (void)ods_find_arg_and_param(&argc,argv, "algorithm","g",&algorithm);
-    (void)ods_find_arg_and_param(&argc,argv,"zone","z",&zonename);
-    (void)ods_find_arg_and_param(&argc, argv, "keytype", "t", &keytype);
-    (void)ods_find_arg_and_param(&argc, argv, "keystate", "e", &keystate);
-    (void)ods_find_arg_and_param(&argc,argv, "inception_time","w",&time);
+
+    optind = 0;
+    while ((opt = getopt_long(argc, (char* const*)argv, "z:k:r:b:g:t:e:w:", long_options, &long_index)) != -1) {
+        switch (opt) {
+            case 'z':
+                zonename = optarg;
+                break;
+            case 'k':
+                ckaid = optarg;
+                break;
+            case 'r':
+                repository = optarg;
+                break;
+            case 'b':
+                bits = optarg;
+                break;
+            case 'g':
+                algorithm = optarg;
+                break;
+            case 't':
+                keytype = optarg;
+                break;
+            case 'e':
+                keystate = optarg;
+                break;
+            case 'w':
+                time = optarg;
+                break;
+            default:
+                client_printf_err(sockfd, "unknown arguments\n");
+                ods_log_error("[%s] unknown arguments for %s command",
+                                module_str, key_import_funcblock.cmdname);
+                return -1;
+        }
+    }
 
     if (keytype) {
         if (strcasecmp(keytype, "KSK") && strcasecmp(keytype, "ZSK") && strcasecmp(keytype, "CSK")) {

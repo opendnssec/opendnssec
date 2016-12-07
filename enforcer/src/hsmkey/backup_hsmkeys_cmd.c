@@ -27,6 +27,7 @@
  *
  */
 
+#include<getopt.h>
 #include "config.h"
 
 #include "cmdhandler.h"
@@ -186,38 +187,48 @@ handles(const char *cmd)
     return 0;
 }
 
-static const char *
-get_repo_param(const char *cmd, char *buf, size_t buflen)
-{
-    #define NARGV 8
-    const char *argv[NARGV];
-    int argc;
-    const char *repository = NULL;
-
-    strncpy(buf, cmd, buflen);
-    argc = ods_str_explode(buf, NARGV, argv);
-    buf[sizeof(buf)-1] = '\0';
-    if (argc > NARGV) {
-        ods_log_warning("[%s] too many arguments for %s command",
-            module_str,cmd);
-        return NULL;
-    }
-    (void)ods_find_arg_and_param(&argc, argv, "repository", "r",
-        &repository);
-    return repository; /* ptr in buf */
-}
-
 static int
 run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 {
+    #define NARGV 4
+    const char *argv[NARGV];
+    int argc = 0, long_index = 0, opt = 0;
+    const char *repository = NULL;
     char buf[ODS_SE_MAXLINE];
     int status;
-    const char *repository;
     db_clause_list_t* clause_list;
-    db_connection_t* dbconn = getconnectioncontext(context);;
+    db_connection_t* dbconn = getconnectioncontext(context);
 
-    repository = get_repo_param(cmd, buf, ODS_SE_MAXLINE);
-    
+    static struct option long_options[] = {
+        {"repository", required_argument, 0, 'r'},
+        {0, 0, 0, 0}
+    };
+
+    strncpy(buf, cmd, ODS_SE_MAXLINE);
+    buf[sizeof(buf)-1] = '\0';
+
+    argc = ods_str_explode(buf, NARGV, argv);
+    if (argc == -1) {
+        client_printf_err(sockfd, "too many arguments\n");
+        ods_log_error("[%s] too many arguments for %s command",
+                      module_str, backup_funcblock.cmdname);
+        return -1;
+    }
+
+    optind = 0;
+    while ((opt = getopt_long(argc, (char* const*)argv, "r:", long_options, &long_index)) != -1) {
+        switch (opt) {
+            case 'r':
+                repository = optarg;
+                break;
+            default:
+                client_printf_err(sockfd, "unknown arguments\n");
+                ods_log_error("[%s] unknown arguments for %s command",
+                               module_str, backup_funcblock.cmdname);
+                return -1;
+        }
+    }
+
     /* iterate the keys */
     if (!(clause_list = db_clause_list_new())) {
         ods_log_error("[%s] database error", module_str);

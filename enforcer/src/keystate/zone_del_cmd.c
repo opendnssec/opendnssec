@@ -151,6 +151,13 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
     }
 
     argc = ods_str_explode(buf, NARGV, argv);
+    if (argc == -1) {
+        client_printf_err(sockfd, "too many arguments\n");
+        ods_log_error("[%s] too many arguments for %s command",
+                      module_str, zone_del_funcblock.cmdname);
+        free(buf);
+        return -1;
+    }
 
     optind = 0;
     while ((opt = getopt_long(argc, (char* const*)argv, "z:au", long_options, &long_index)) != -1) {
@@ -166,7 +173,7 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
                 break;
            default:
                client_printf_err(sockfd, "unknown arguments\n");
-               ods_log_warning("[%s] unknown arguments for %s command",
+               ods_log_error("[%s] unknown arguments for %s command",
                                 module_str, zone_del_funcblock.cmdname);
                free(buf);
                return -1;
