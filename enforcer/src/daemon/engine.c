@@ -454,7 +454,7 @@ engine_setup()
     }
 
     /* create command handler (before chowning socket file) */
-    engine->cmdhandler = cmdhandler_create(engine->config->clisock_filename, enforcercommands, engine, (void*(*)(void*)) (void(*)(void*))&get_database_connection, &db_connection_free);
+    engine->cmdhandler = cmdhandler_create(engine->config->clisock_filename, enforcercommands, engine, (void*(*)(void*)) (void(*)(void*))&get_database_connection, (void(*)(void*))&db_connection_free);
     if (!engine->cmdhandler) {
         ods_log_error("[%s] create command handler to %s failed",
             engine_str, engine->config->clisock_filename);
@@ -522,7 +522,7 @@ engine_setup()
             if (setsid() == -1) {
                 ods_log_error("[%s] unable to setsid daemon (%s)",
                     engine_str, strerror(errno));
-                char *err = "unable to setsid daemon: ";
+                const char *err = "unable to setsid daemon: ";
                 ods_writen(pipefd[1], err, strlen(err));
                 ods_writeln(pipefd[1], strerror(errno));
                 write(pipefd[1], "\0", 1);
