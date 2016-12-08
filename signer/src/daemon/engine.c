@@ -45,6 +45,7 @@
 #include "wire/tsig.h"
 #include "libhsm.h"
 #include "signertasks.h"
+#include "signercommands.h"
 
 #include <errno.h>
 #include <libxml/parser.h>
@@ -75,7 +76,6 @@ engine_create(void)
     engine->config = NULL;
     engine->workers = NULL;
     engine->cmdhandler = NULL;
-    engine->cmdhandler_done = 0;
     engine->dnshandler = NULL;
     engine->xfrhandler = NULL;
     engine->taskq = NULL;
@@ -104,73 +104,9 @@ engine_create(void)
 static void
 engine_start_cmdhandler(engine_type* engine)
 {
-    ods_log_assert(engine);
     ods_log_debug("[%s] start command handler", engine_str);
-    engine->cmdhandler->engine = engine;
-    janitor_thread_create(&engine->cmdhandler->thread_id, detachedthreadclass, (janitor_runfn_t)cmdhandler_start, engine->cmdhandler);
+    janitor_thread_create(&engine->cmdhandler->thread_id, workerthreadclass, (janitor_runfn_t)cmdhandler_start, engine->cmdhandler);
 }
-
-/**
- * Self pipe trick (see Unix Network Programming).
- *
- */
-static int
-self_pipe_trick(engine_type* engine)
-{
-    int sockfd, ret;
-    struct sockaddr_un servaddr;
-    const char* servsock_filename = ODS_SE_SOCKFILE;
-    ods_log_assert(engine);
-    ods_log_assert(engine->cmdhandler);
-    sockfd = socket(AF_UNIX, SOCK_STREAM, 0);
-    if (sockfd < 0) {
-        ods_log_error("[%s] unable to connect to command handler: "
-            "socket() failed (%s)", engine_str, strerror(errno));
-        return 1;
-    } else {
-        bzero(&servaddr, sizeof(servaddr));
-        servaddr.sun_family = AF_UNIX;
-        strncpy(servaddr.sun_path, servsock_filename, sizeof(servaddr.sun_path)-1);
-        ret = connect(sockfd, (const struct sockaddr*) &servaddr,
-            sizeof(servaddr));
-        if (ret != 0) {
-            ods_log_error("[%s] unable to connect to command handler: "
-                "connect() failed (%s)", engine_str, strerror(errno));
-            close(sockfd);
-            return 1;
-        } else {
-            /* self-pipe trick */
-            ods_writen(sockfd, "", 1);
-            close(sockfd);
-        }
-    }
-    return 0;
-}
-/**
- * Stop command handler.
- *
- */
-static void
-engine_stop_cmdhandler(engine_type* engine)
-{
-    ods_log_assert(engine);
-    if (!engine->cmdhandler || engine->cmdhandler_done) {
-        return;
-    }
-    ods_log_debug("[%s] stop command handler", engine_str);
-    engine->cmdhandler->need_to_exit = 1;
-    if (self_pipe_trick(engine) == 0) {
-        while (!engine->cmdhandler_done) {
-            ods_log_debug("[%s] waiting for command handler to exit...",
-                engine_str);
-            sleep(1);
-        }
-    } else {
-        ods_log_error("[%s] command handler self pipe trick failed, "
-            "unclean shutdown", engine_str);
-    }
-}
-
 
 /**
  * Start/stop dnshandler.
@@ -393,6 +329,9 @@ engine_setup(void)
     ods_status status = ODS_STATUS_OK;
     struct sigaction action;
     int sockets[2] = {0,0};
+    int pipefd[2];
+    char buff = '\0';
+    int fd, error;
 
     ods_log_debug("[%s] setup signer engine", engine_str);
     if (!engine || !engine->config) {
@@ -402,7 +341,7 @@ engine_setup(void)
     edns_init(&engine->edns, EDNS_MAX_MESSAGE_LEN);
 
     /* create command handler (before chowning socket file) */
-    engine->cmdhandler = cmdhandler_create(engine->config->clisock_filename);
+    engine->cmdhandler = cmdhandler_create(engine->config->clisock_filename, signercommands, engine, NULL, NULL);
     if (!engine->cmdhandler) {
         return ODS_STATUS_CMDHANDLER_ERR;
     }
@@ -446,12 +385,17 @@ engine_setup(void)
     }
     /* daemonize */
     if (engine->daemonize) {
+        if (pipe(pipefd)) {
+            ods_log_error("[%s] unable to pipe: %s", engine_str, strerror(errno));
+            return ODS_STATUS_PIPE_ERR;
+        }
         switch ((engine->pid = fork())) {
             case -1: /* error */
                 ods_log_error("[%s] setup: unable to fork daemon (%s)",
                     engine_str, strerror(errno));
                 return ODS_STATUS_FORK_ERR;
             case 0: /* child */
+                close(pipefd[0]);
                 break;
             default: /* parent */
                 engine_cleanup(engine);
@@ -459,17 +403,38 @@ engine_setup(void)
                 xmlCleanupParser();
                 xmlCleanupGlobals();
                 xmlCleanupThreads();
-                exit(0);
+                close(pipefd[1]);
+                while (read(pipefd[0], &buff, 1) != -1) {
+                    if (buff <= 1) break;
+                    printf("%c", buff);
+                }
+                close(pipefd[0]);
+                if (buff == '\1') {
+                    ods_log_debug("[%s] signerd started successfully", engine_str);
+                    exit(0);
+                }
+                ods_log_error("[%s] fail to start signerd completely", engine_str);
+                exit(1);
         }
         if (setsid() == -1) {
             ods_log_error("[%s] setup: unable to setsid daemon (%s)",
                 engine_str, strerror(errno));
+            char *err = "unable to setsid daemon: ";
+            ods_writen(pipefd[1], err, strlen(err));
+            ods_writeln(pipefd[1], strerror(errno));
+            write(pipefd[1], "\0", 1);
+            close(pipefd[1]);
             return ODS_STATUS_SETSID_ERR;
         }
     }
     engine->pid = getpid();
     /* write pidfile */
     if (util_write_pidfile(engine->config->pid_filename, engine->pid) == -1) {
+        if (engine->daemonize) {
+            ods_writeln(pipefd[1], "Unable to write pid file");
+            write(pipefd[1], "\0", 1);
+            close(pipefd[1]);
+        }
         return ODS_STATUS_WRITE_PIDFILE_ERR;
     }
     /* setup done */
@@ -495,6 +460,10 @@ engine_setup(void)
     engine_start_dnshandler(engine);
     engine_start_xfrhandler(engine);
     tsig_handler_init();
+    if (engine->daemonize) {
+        write(pipefd[1], "\1", 1);
+        close(pipefd[1]);
+    }
     return ODS_STATUS_OK;
 }
 
@@ -884,10 +853,6 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] setup failed: %s", engine_str,
             ods_status2str(status));
-        if (status != ODS_STATUS_WRITE_PIDFILE_ERR) {
-            /* command handler had not yet been started */
-            engine->cmdhandler_done = 1;
-        }
         goto earlyexit;
     }
 
@@ -939,7 +904,7 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
 
     /* shutdown */
     ods_log_info("[%s] signer shutdown", engine_str);
-    engine_stop_cmdhandler(engine);
+    cmdhandler_stop(engine->cmdhandler);
     engine_stop_xfrhandler(engine);
     engine_stop_dnshandler(engine);
 

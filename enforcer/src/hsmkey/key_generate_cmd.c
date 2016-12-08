@@ -27,7 +27,8 @@
  */
 
 #include "daemon/engine.h"
-#include "daemon/cmdhandler.h"
+#include "cmdhandler.h"
+#include "daemon/enforcercommands.h"
 #include "log.h"
 #include "str.h"
 #include "clientpipe.h"
@@ -62,14 +63,7 @@ help(int sockfd)
 }
 
 static int
-handles(const char *cmd, ssize_t n)
-{
-    return ods_check_command(cmd, n, key_generate_funcblock()->cmdname) ? 1 : 0;
-}
-
-static int
-run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
-    db_connection_t *dbconn)
+run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 {
     char* buf;
     const char* argv[6];
@@ -80,9 +74,11 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     duration_type* duration = NULL;
     int all = 0;
     policy_t* policy;
+    db_connection_t* dbconn = getconnectioncontext(context);
+    engine_type* engine = getglobalcontext(context);
 
-    ods_log_debug("[%s] %s command", module_str, key_generate_funcblock()->cmdname);
-    cmd = ods_check_command(cmd, n, key_generate_funcblock()->cmdname);
+    ods_log_debug("[%s] %s command", module_str, key_generate_funcblock.cmdname);
+    cmd = ods_check_command(cmd, key_generate_funcblock.cmdname);
 
     if (!(buf = strdup(cmd))) {
         client_printf_err(sockfd, "memory error\n");
@@ -141,12 +137,6 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     return 0;
 }
 
-static struct cmd_func_block funcblock = {
-    "key generate", &usage, &help, &handles, &run
+struct cmd_func_block key_generate_funcblock = {
+    "key generate", &usage, &help, NULL, &run
 };
-
-struct cmd_func_block*
-key_generate_funcblock(void)
-{
-    return &funcblock;
-}

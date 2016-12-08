@@ -48,7 +48,7 @@ autostart(engine_type* engine)
 	db_connection_t* dbconn;
 
 	ods_log_debug("[%s] autostart", module_str);
-	dbconn = get_database_connection(engine->dbcfg_list);
+	dbconn = get_database_connection(engine);
 
 	schedule_purge(engine->taskq); /* Remove old tasks in queue */
 

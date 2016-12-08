@@ -31,6 +31,7 @@
 
 #include "config.h"
 
+#include <signal.h>
 #include <errno.h>
 #include <fcntl.h> /* fcntl() */
 #include <stdio.h> /* fprintf() */
@@ -56,9 +57,6 @@
 #include "log.h"
 #include "str.h"
 #include "clientpipe.h"
-
-#define AUTHOR_NAME "Matthijs Mekking, Yuri Schaeffer, René Post"
-#define COPYRIGHT_STR "Copyright (C) 2010-2011 NLnet Labs OpenDNSSEC"
 
 static const char* PROMPT = "cmd> ";
 static const char* cli_str = "client";
@@ -97,9 +95,6 @@ static void
 version(FILE* out)
 {
     fprintf(out, "%s version %s\n", PACKAGE_NAME, PACKAGE_VERSION);
-    fprintf(out, "Written by %s.\n\n", AUTHOR_NAME);
-    fprintf(out, "%s.  This is free software.\n", COPYRIGHT_STR);
-    fprintf(out, "See source files for more license information\n");
     exit(0);
 }
 
@@ -338,13 +333,36 @@ interface_start(const char* cmd, const char* servsock_filename)
                     else if (strlen(userbuf) != 0)
                         /* we are interactive so print response.
                          * But also suppress when no command is given. */
-                        fprintf(stderr, "Daemon exit code: %d\n", exitcode);
+                        fprintf(stderr, "Command exit code: %d\n", exitcode);
                     break;
                 }
             }
         }
+        if (strlen(userbuf) != 0 && !strncmp(userbuf, "stop", 4))
+            break;
     } while (error == 0 && !cmd);
     close(sockfd);
+
+    if ((cmd && !strncmp(cmd, "stop", 4)) || 
+        (strlen(userbuf) != 0 && !strncmp(userbuf, "stop", 4))) {
+        char line[80];
+        FILE *cmd2 = popen("pgrep ods-enforcerd","r");
+        error = 0;
+        if (fgets(line, 80, cmd2)) {
+            pid_t pid = strtoul(line, NULL, 10);
+            fprintf(stdout, "pid %d\n", pid);
+            int time = 0;
+            while (pid > 0) {
+               if(kill(pid, 0) != 0) break;
+               sleep(1);
+               if (++time>20) {
+                  printf("enforcer needs more time to stop...\n");
+                  time = 0;
+               }
+           }
+        }
+    }
+
 #ifdef HAVE_READLINE
     clear_history();
     rl_free_undo_list();
@@ -352,9 +370,6 @@ interface_start(const char* cmd, const char* servsock_filename)
     return error;
 }
 
-/**
- * Main. start interface tool.
- */
 int
 main(int argc, char* argv[])
 {

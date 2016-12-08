@@ -31,7 +31,7 @@
 #include "file.h"
 #include "log.h"
 #include "str.h"
-#include "daemon/cmdhandler.h"
+#include "cmdhandler.h"
 #include "daemon/engine.h"
 #include "clientpipe.h"
 
@@ -59,30 +59,24 @@ help(int sockfd)
 }
 
 static int
-handles(const char *cmd, ssize_t n)
+handles(const char *cmd)
 {
-	return ods_check_command(cmd, n, help_funcblock()->cmdname)?1:0;
+	return ods_check_command(cmd, help_funcblock.cmdname)? 1 : 0;
 }
 
 static int
-run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
-	db_connection_t *dbconn)
+run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 {
 	struct cmd_func_block* fb;
-	(void) engine;
-	(void) dbconn;
 
 	ods_log_debug("[%s] help command", module_str);
 	
-	if (n < 4) return -1;
-	if (strncmp(cmd, help_funcblock()->cmdname, 4) != 0) return -1;
-	
-	if (n < 6) {
+	if (strlen(cmd) < 6) {
 		/* Anouncement */
 		client_printf(sockfd, "\nCommands:\n");
-		cmdhandler_get_usage(sockfd);
+		cmdhandler_get_usage(sockfd, context->cmdhandler);
 	} else {
-		if ((fb = get_funcblock(cmd+5, n-5))) {
+		if ((fb = get_funcblock(&cmd[5], context->cmdhandler))) {
 			client_printf(sockfd, "Usage:\n");
 			fb->usage(sockfd);
 			client_printf(sockfd, "\nHelp:\n");
@@ -103,12 +97,6 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	return 0;
 }
 
-static struct cmd_func_block funcblock = {
+struct cmd_func_block help_funcblock = {
 	"help", &usage, &help, &handles, &run
 };
-
-struct cmd_func_block*
-help_funcblock(void)
-{
-	return &funcblock;
-}
