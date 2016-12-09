@@ -187,7 +187,7 @@ cmdhandler_handle_cmd_update(int sockfd, cmdhandler_ctx_type* context, const cha
             client_printf(sockfd, buf);
             /* update all */
             cmdhandler_handle_cmd_update(sockfd, context, "update --all");
-            return -1;
+            return 1;
         }
 
         pthread_mutex_lock(&zone->zone_lock);
@@ -333,7 +333,7 @@ cmdhandler_handle_cmd_sign(int sockfd, cmdhandler_ctx_type* context, const char 
             (void)snprintf(buf, ODS_SE_MAXLINE, "Error: Zone %s not found.\n",
                 cmdargument(cmd, NULL, ""));
             client_printf(sockfd, buf);
-            return -1;
+            return 1;
         }
 
         pthread_mutex_lock(&zone->zone_lock);
@@ -345,7 +345,7 @@ cmdhandler_handle_cmd_sign(int sockfd, cmdhandler_ctx_type* context, const char 
                 (void)snprintf(buf, ODS_SE_MAXLINE, "Error: Unable to enforce "
                     "serial %u for zone %s.\n", serial, cmdargument(cmd, NULL, ""));
                 client_printf(sockfd, buf);
-                return -1;
+                return 1;
             }
             zone->db->altserial = serial;
             zone->db->force_serial = 1;
@@ -426,7 +426,7 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_ctx_type* context, const char
         if (!zone->signconf || !zone->ixfr || !zone->db) {
             ods_fatal_exit("[%s] unable to clear zone %s: failed to recreate"
             "signconf, ixfr of db structure (out of memory?)", cmdh_str, cmdargument(cmd, NULL, ""));
-            return -1;
+            return 1;
         }
         /* restore serial management */
         zone->db->inbserial = inbserial;
