@@ -625,6 +625,12 @@ janitor_backtrace(void)
 #endif
 }
 
+void
+janitor_backtrace_all(void)
+{
+    dumpthreads();
+}
+
 int
 janitor_trapsignals(char* argv0)
 {

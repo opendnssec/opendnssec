@@ -191,7 +191,7 @@ cmdhandler_handle_cmd_update(int sockfd, cmdhandler_ctx_type* context, const cha
         }
 
         pthread_mutex_lock(&zone->zone_lock);
-        schedule_scheduletask(engine->taskq, TASK_SIGNCONF, zone->name, zone, &zone->zone_lock, schedule_PROMPTLY);
+        schedule_scheduletask(engine->taskq, TASK_FORCESIGNCONF, zone->name, zone, &zone->zone_lock, schedule_PROMPTLY);
         pthread_mutex_unlock(&zone->zone_lock);
 
         if (status != ODS_STATUS_OK) {

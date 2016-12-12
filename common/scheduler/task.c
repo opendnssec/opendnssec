@@ -172,7 +172,7 @@ cmp_ttuple(task_type *x, task_type *y)
     cmp = strcmp(x->owner, y->owner);
     if (cmp != 0)
         return cmp;
-    if(strcmp(x->type, schedule_WHATEVER) && strcmp(y->type, schedule_WHATEVER)) {
+    if (strcmp(x->type, schedule_WHATEVER) && strcmp(y->type, schedule_WHATEVER)) {
         cmp = strcmp(x->type, y->type);
         if (cmp != 0)
             return cmp;
@@ -199,8 +199,10 @@ task_compare_time_then_ttuple(const void* a, const void* b)
     ods_log_assert(a);
     ods_log_assert(b);
 
-    if (x->due_date != y->due_date && x->due_date != schedule_WHENEVER && y->due_date != schedule_WHENEVER) {
-        return (int) x->due_date - y->due_date;
+    if (x->due_date != schedule_WHENEVER && y->due_date != schedule_WHENEVER) {
+        if (x->due_date != y->due_date) {
+            return (int) x->due_date - y->due_date;
+        }
     }
     return cmp_ttuple(x, y);
 }

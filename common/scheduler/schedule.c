@@ -630,11 +630,17 @@ schedule_scheduletask(schedule_type* schedule, task_id type, const char* owner, 
 void
 schedule_unscheduletask(schedule_type* schedule, task_id type, const char* owner)
 {
+    ldns_rbnode_t* node1;
+    ldns_rbnode_t* node2;
     task_type* match;
     task_type* found;
-    match = task_create(strdup(owner), TASK_CLASS_SIGNER, type, NULL, NULL, NULL, schedule_WHENEVER);
-    do {
-        found = unschedule_task(schedule, match);
-    } while(found != NULL);
+    match = task_create(owner, TASK_CLASS_SIGNER, type, NULL, NULL, NULL, schedule_WHENEVER);
+    pthread_mutex_lock(&schedule->schedule_lock);
+    while (fetch_node_pair(schedule, match, &node1, &node2, 0) == 0) {
+        ods_log_assert(node1->key == node2->key);
+        found = (task_type*) node1->key;
+        unschedule_task(schedule, found);
+    }
+    pthread_mutex_unlock(&schedule->schedule_lock);
     free(match); /* do not perform a destroy, this is a temporary, internal, flat task only */
 }

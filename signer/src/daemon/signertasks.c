@@ -220,6 +220,7 @@ do_readsignconf(task_type* task, const char* zonename, void* zonearg, void *cont
     }
     if (status == ODS_STATUS_OK || status == ODS_STATUS_UNCHANGED) {
         /* status unchanged not really possible */
+        schedule_unscheduletask(engine->taskq, TASK_READ, zone->name);
         schedule_scheduletask(engine->taskq, TASK_READ, zone->name, zone, &zone->zone_lock, schedule_PROMPTLY);
         zone->zoneconfigvalid = 1;
         return schedule_SUCCESS;
@@ -247,6 +248,7 @@ do_forcereadsignconf(task_type* task, const char* zonename, void* zonearg, void 
         schedule_unscheduletask(engine->taskq, TASK_SIGNCONF, zone->name);
         if(!zone->zoneconfigvalid) {
             zone->zoneconfigvalid = 1;
+            schedule_unscheduletask(engine->taskq, TASK_READ, zone->name);
             schedule_scheduletask(engine->taskq, TASK_READ, zone->name, zone, &zone->zone_lock, schedule_PROMPTLY);
         }
         return schedule_SUCCESS;
