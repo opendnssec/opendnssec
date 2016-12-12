@@ -424,7 +424,7 @@ engine_setup(void)
         if (setsid() == -1) {
             ods_log_error("[%s] setup: unable to setsid daemon (%s)",
                 engine_str, strerror(errno));
-            char *err = "unable to setsid daemon: ";
+            const char *err = "unable to setsid daemon: ";
             ods_writen(pipefd[1], err, strlen(err));
             ods_writeln(pipefd[1], strerror(errno));
             write(pipefd[1], "\0", 1);

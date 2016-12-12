@@ -449,9 +449,6 @@ static struct backtrace_state *state  = NULL;
 static struct backtrace_state *frames = NULL;
 static pthread_mutex_t frameslock = PTHREAD_MUTEX_INITIALIZER;
 
-static int callback(void* data, uintptr_t pc, const char *filename, int lineno, const char *function);
-static void errorhandler(void* data, const char *msg, int errno);
-
 static int
 callback(void* data, uintptr_t pc, const char *filename, int lineno, const char *function)
 {
@@ -467,7 +464,7 @@ callback(void* data, uintptr_t pc, const char *filename, int lineno, const char 
 }
 
 static void
-errorhandler(void* data, const char *msg, int errno)
+errorhandler(void* data, const char *msg, int xerrno)
 {
     int len = strlen(msg);
     (void) (write(2, msg, len));
