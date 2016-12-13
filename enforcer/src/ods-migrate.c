@@ -115,7 +115,7 @@ dblayer_sqlite3_initialize(void)
     dblayer_sqlite3.sqlite3_free = (int(*)(void*)) functioncast(dlsym(handle, "sqlite3_free"));
 
     if (!dblayer_sqlite3.sqlite3_open) {
-	    printf("Failed to load sqlite3 library.\n",);
+	    printf("Failed to load sqlite3 library.\n");
 	    exit(1);
     }
 }
