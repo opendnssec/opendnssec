@@ -93,16 +93,28 @@ struct dblayer_sqlite3_struct dblayer_sqlite3;
 static void
 dblayer_sqlite3_initialize(void)
 {
-    dblayer_sqlite3.sqlite3_prepare_v2 = (int(*)(sqlite3*, const char*, int, sqlite3_stmt**, const char **))functioncast(dlsym(RTLD_DEFAULT, "sqlite3_prepare_v2"));
-    dblayer_sqlite3.sqlite3_reset = (int(*)(sqlite3_stmt*)) functioncast(dlsym(RTLD_DEFAULT, "sqlite3_reset"));
-    dblayer_sqlite3.sqlite3_bind_int = (int(*)(sqlite3_stmt*, int, int))functioncast(dlsym(RTLD_DEFAULT, "sqlite3_bind_int"));
-    dblayer_sqlite3.sqlite3_finalize = (int(*)(sqlite3_stmt*))functioncast(dlsym(RTLD_DEFAULT, "sqlite3_finalize"));
-    dblayer_sqlite3.sqlite3_open = (int(*)(const char*, sqlite3**)) functioncast(dlsym(RTLD_DEFAULT, "sqlite3_open"));
-    dblayer_sqlite3.sqlite3_exec = (int(*)(sqlite3*, const char*, int(*)(void*, int, char**, char**), void*, char **)) functioncast(dlsym(RTLD_DEFAULT, "sqlite3_exec"));
-    dblayer_sqlite3.sqlite3_step = (int(*)(sqlite3_stmt*)) functioncast(dlsym(RTLD_DEFAULT, "sqlite3_step"));
-    dblayer_sqlite3.sqlite3_close = (int(*)(sqlite3*)) functioncast(dlsym(RTLD_DEFAULT, "sqlite3_close"));
-    dblayer_sqlite3.sqlite3_errmsg = (const char*(*)(sqlite3*)) functioncast(dlsym(RTLD_DEFAULT, "sqlite3_errmsg"));
-    dblayer_sqlite3.sqlite3_free = (int(*)(void*)) functioncast(dlsym(RTLD_DEFAULT, "sqlite3_free"));
+    void *handle;
+    char const *error;
+
+    dlerror();
+    handle = dlopen("libsqlite3.so", RTLD_NOW);
+    if ((error = dlerror()) != NULL) {
+	    printf("Failed to load sqlite3 library. dlerror(): %s\n", error);
+	    exit(1);
+    }
+
+    dblayer_sqlite3.sqlite3_prepare_v2 = (int(*)(sqlite3*, const char*, int, sqlite3_stmt**, const char **))functioncast(dlsym(handle, "sqlite3_prepare_v2"));
+    dblayer_sqlite3.sqlite3_reset = (int(*)(sqlite3_stmt*)) functioncast(dlsym(handle, "sqlite3_reset"));
+    dblayer_sqlite3.sqlite3_bind_int = (int(*)(sqlite3_stmt*, int, int))functioncast(dlsym(handle, "sqlite3_bind_int"));
+    dblayer_sqlite3.sqlite3_finalize = (int(*)(sqlite3_stmt*))functioncast(dlsym(handle, "sqlite3_finalize"));
+    dblayer_sqlite3.sqlite3_open = (int(*)(const char*, sqlite3**)) functioncast(dlsym(handle, "sqlite3_open"));
+    dblayer_sqlite3.sqlite3_exec = (int(*)(sqlite3*, const char*, int(*)(void*, int, char**, char**), void*, char **)) functioncast(dlsym(handle, "sqlite3_exec"));
+    dblayer_sqlite3.sqlite3_step = (int(*)(sqlite3_stmt*)) functioncast(dlsym(handle, "sqlite3_step"));
+    dblayer_sqlite3.sqlite3_close = (int(*)(sqlite3*)) functioncast(dlsym(handle, "sqlite3_close"));
+    dblayer_sqlite3.sqlite3_errmsg = (const char*(*)(sqlite3*)) functioncast(dlsym(handle, "sqlite3_errmsg"));
+    dblayer_sqlite3.sqlite3_free = (int(*)(void*)) functioncast(dlsym(handle, "sqlite3_free"));
+
+    (void)dlclose(handle);
 }
 
 static void
