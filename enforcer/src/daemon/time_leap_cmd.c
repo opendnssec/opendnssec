@@ -160,7 +160,7 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 			break;
 		if (!(task = schedule_pop_first_task(engine->taskq)))
 			break;
-		if (sched_task_istype(task,  TASK_TYPE_ENFORCE))
+		if (schedule_task_istype(task,  TASK_TYPE_ENFORCE))
 			cont = 0;
 		task_perform(engine->taskq, task, dbconn);
 		ods_log_debug("[timeleap] finished working");

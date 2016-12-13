@@ -83,7 +83,7 @@ struct engine_struct {
  *
  */
 int engine_start(const char* cfgfile, int cmdline_verbosity,
-    int daemonize, int info, int single_run);
+    int daemonize, int info);
 
 /**
  * Wake up workers.

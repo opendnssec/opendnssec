@@ -52,6 +52,12 @@ typedef struct schedule_struct schedule_type;
 #include "status.h"
 #include "task.h"
 
+struct schedule_handler {
+    task_id type;
+    task_id class;
+    time_t (*callback)(task_type* task, char const *owner, void *userdata, void *context);
+};
+
 struct schedule_struct {
     /* Contains all tasks sorted by due_date so we can quickly find
      * the first task. */
@@ -66,6 +72,8 @@ struct schedule_struct {
     /* For testing. So we can verify al workers are waiting and nothing
      * is to be done. Used by enforcer_idle. */
     int num_waiting;
+    struct schedule_handler* handlers;
+    int nhandlers;
 };
 
 /**
@@ -81,6 +89,9 @@ schedule_type* schedule_create(void);
  *
  */
 void schedule_cleanup(schedule_type* schedule);
+
+void schedule_registertask(schedule_type* schedule, task_id class, task_id type, time_t (*callback)(task_type* task, char const *owner, void *userdata, void *context));
+
 
 /**
  * purge schedule. All tasks will be thrashed.
@@ -109,15 +120,14 @@ void schedule_purge_owner(schedule_type* schedule, char const *class,
  *
  */
 ods_status schedule_task(schedule_type* schedule, task_type* task, int replace, int log);
+void schedule_scheduletask(schedule_type* schedule, task_id task, const char* owner, void* userdata, pthread_mutex_t* resource, time_t when);
 
 /**
  * Unschedule task.
- * \param[in] schedule schedule
- * \param[in] task task to delete
  * \return task_type* task, if it was scheduled
  *
  */
-task_type* schedule_unschedule(schedule_type* schedule, task_type* task);
+void schedule_unscheduletask(schedule_type* schedule, task_id task, const char* userdata);
 
 /**
  * Pop the first scheduled task that is due. If an item is directly
@@ -140,14 +150,7 @@ task_type* schedule_pop_task(schedule_type* schedule);
  */
 task_type* schedule_pop_first_task(schedule_type* schedule);
 
-void sched_flush(schedule_type* schedule, task_id override);
-
-/**
- * Flush schedule for a specific type of task.
- * \param[in] schedule schedule to be flushed
- * \return number of tasks flushed
- */
-int schedule_flush_type(schedule_type* schedule, char const *class, char const *type);
+void schedule_flush(schedule_type* schedule);
 
 int schedule_info(schedule_type* schedule, time_t* firstFireTime, int* idleWorkers, int* taskCount);
 
@@ -156,11 +159,18 @@ int schedule_info(schedule_type* schedule, time_t* firstFireTime, int* idleWorke
  */
 void schedule_release_all(schedule_type* schedule);
 
-void sched_task_destroy(schedule_type* sched, task_type* task);
+void schedule_task_destroy(schedule_type* sched, task_type* task);
 time_t sched_task_due(task_type* task);
-int sched_task_istype(task_type* task, task_id type);
-char* sched_describetask(task_type* task);
-time_t task_execute(task_type* task, void* context);
+int schedule_task_istype(task_type* task, task_id type);
+char* schedule_describetask(task_type* task);
 void task_perform(schedule_type* sched, task_type* task, void* context);
+
+#define schedule_PROMPTLY     1
+#define schedule_IMMEDIATELY  0
+#define schedule_SUCCESS     -1
+#define schedule_DEFER       -2
+#define schedule_FAILED      -3
+#define schedule_WHATEVER    "[any]"
+#define schedule_WHENEVER    -1
 
 #endif /* SCHEDULER_SCHEDULE_H */

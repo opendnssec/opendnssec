@@ -707,13 +707,8 @@ xfrd_commit_packet(xfrd_type* xfrd)
             zone->name, xfrd->serial_disk,
             (unsigned long)xfrd->serial_disk_acquired, xfrd->serial_xfr,
             (unsigned long)xfrd->serial_xfr_acquired);
-        ret = zone_reschedule_task(zone, engine->taskq, TASK_READ);
-        if (ret != ODS_STATUS_OK) {
-            ods_log_crit("[%s] unable to reschedule task for zone %s: %s",
-                xfrd_str, zone->name, ods_status2str(ret));
-        } else {
-            engine_wakeup_workers(engine);
-        }
+        schedule_scheduletask(engine->taskq, TASK_FORCEREAD, zone->name, zone, &zone->zone_lock, schedule_IMMEDIATELY);
+        engine_wakeup_workers(engine);
     }
     /* reset retransfer */
     xfrd->msg_do_retransfer = 0;
