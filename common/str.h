@@ -83,11 +83,4 @@ char* ods_str_trim(char* str, int keep_newline);
  */
 char *ods_ctime_r(char *buf, size_t nbuf, time_t t);
 
-int ods_find_arg(int *pargc, const char *argv[],
-                 const char *longname, const char *shortname);
-
-int ods_find_arg_and_param(int *pargc, const char *argv[],
-                           const char *longname, const char *shortname,
-                           const char **pvalue);
-
 #endif /* SHARED_STR_H */

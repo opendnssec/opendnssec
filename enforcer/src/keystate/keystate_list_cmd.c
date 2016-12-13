@@ -345,46 +345,6 @@ printdebugparsablekey(int sockfd, zone_db_t* zone, key_data_t* key, char* tchang
             hsm_key_locator(hsmkey));
 }
 
-static char **
-tokenizeparam(char *argument)
-{
-    char** tokenized;
-    char** newtokenized;
-    int argCount;
-    char* argString;
-    char* argSavePtr = NULL;
-    int argSize = 8;
-
-    if ((argString = strtok_r(argument, ",", &argSavePtr)) != NULL) {
-        if ((tokenized = malloc(sizeof (char*)*argSize)) == NULL) {
-            return NULL;
-        }
-        argCount = 0;
-        do {
-            if (strcmp(argString, "")) {
-                tokenized[argCount] = argString;
-                ++argCount;
-                if (argCount == argSize) {
-                    argSize *= 2;
-                    if ((newtokenized = realloc(tokenized, sizeof (char*)*argSize)) == NULL) {
-                        free(tokenized);
-                        return NULL;
-                    }
-                    tokenized = newtokenized;
-                }
-            }
-        } while (strtok_r(NULL, ",", &argSavePtr) != NULL);
-        tokenized[argCount] = NULL;
-    } else {
-        if ((tokenized = malloc(sizeof (char*)*2)) == NULL) {
-            return NULL;
-        }
-        tokenized[0] = argument;
-        tokenized[1] = NULL;
-    }
-    return tokenized;
-}
-
 static int
 run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 {

@@ -38,10 +38,8 @@ echo "################## INTRODUCE ZSK ###########################" &&
 echo -n "LINE: ${LINENO} " && ods-enforcer time leap --attach &&
 ## find new ZSK
 echo -n "LINE: ${LINENO} " && ZSK2=`ods-enforcer key list -d -p | grep ods1 | grep -v $ZSK1 | grep ZSK |cut -d ";" -f 9` &&
-echo -n "LINE: ${LINENO} " && KSK2=`ods-enforcer key list -d -p | grep ods1 | grep -v $KSK1 | grep KSK |cut -d ";" -f 9` &&
 
-echo "################## MAY NOT BE NEW KSK ###########################" &&
-echo -n "LINE: ${LINENO} " && test -z "$KSK2" &&
+echo "################## NEW ZSK ###########################" &&
 echo -n "LINE: ${LINENO} " && test -n "$ZSK2" &&
 
 
