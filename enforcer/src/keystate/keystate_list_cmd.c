@@ -173,7 +173,6 @@ perform_keystate_list(int sockfd, db_connection_t *dbconn,
     char* tchange;
     hsm_key_t *hsmkey;
     int cmp;
-    int skipPrintKey;
 
     if (!(key_list = key_data_list_new_get(dbconn))) {
         client_printf_err(sockfd, "Unable to get list of keys, memory "
@@ -199,18 +198,8 @@ perform_keystate_list(int sockfd, db_connection_t *dbconn,
         hsmkey = key_data_get_hsm_key(key);
         key_data_cache_key_states(key);
         tchange = map_keytime(zone, key); /* allocs */
-        skipPrintKey = 0;
-        if (printkey == NULL)
-            skipPrintKey = 1;
-        if (zonename && strcmp(zone_db_name(zone), zonename))
-            skipPrintKey = 1;
-        if (keytype && strcasecmp(keytype,key_data_role_text(key)))
-            skipPrintKey = 1;
-        if (keystate && strcasecmp(keystate, map_keystate(key)))
-            skipPrintKey = 1;
-        if (!skipPrintKey) {
+        if ((printkey != NULL) && (!zonename || !strcmp(zone_db_name(zone), zonename)) && (!keytype || !strcasecmp(keytype,key_data_role_text(key))) && (!keystate || !strcasecmp(keystate, map_keystate(key))))
             (*printkey)(sockfd, zone, key, tchange, hsmkey);
-        }
         free(tchange);
         hsm_key_free(hsmkey);
         key_data_free(key);
