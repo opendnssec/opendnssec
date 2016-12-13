@@ -187,11 +187,11 @@ cmdhandler_handle_cmd_update(int sockfd, cmdhandler_ctx_type* context, const cha
             client_printf(sockfd, buf);
             /* update all */
             cmdhandler_handle_cmd_update(sockfd, context, "update --all");
-            return -1;
+            return 1;
         }
 
         pthread_mutex_lock(&zone->zone_lock);
-        status = zone_reschedule_task(zone, engine->taskq, TASK_SIGNCONF);
+        schedule_scheduletask(engine->taskq, TASK_FORCESIGNCONF, zone->name, zone, &zone->zone_lock, schedule_PROMPTLY);
         pthread_mutex_unlock(&zone->zone_lock);
 
         if (status != ODS_STATUS_OK) {
@@ -251,9 +251,9 @@ cmdhandler_handle_cmd_retransfer(int sockfd, cmdhandler_ctx_type* context, const
         ods_log_debug("[%s] forward a notify", cmdh_str);
         dnshandler_fwd_notify(engine->dnshandler,
             (uint8_t*) ODS_SE_NOTIFY_CMD, strlen(ODS_SE_NOTIFY_CMD));
-        (void)snprintf(buf, ODS_SE_MAXLINE, "Zone %s being retransferred.\n", cmdargument(cmd, NULL, ""));
+        (void)snprintf(buf, ODS_SE_MAXLINE, "Zone %s being re-transfered.\n", cmdargument(cmd, NULL, ""));
         client_printf(sockfd, buf);
-        ods_log_verbose("[%s] zone %s being retransferred", cmdh_str, cmdargument(cmd, NULL, ""));
+        ods_log_verbose("[%s] zone %s being re-transfered", cmdh_str, cmdargument(cmd, NULL, ""));
     }
     return 0;
 }
@@ -265,6 +265,24 @@ max(uint32_t a, uint32_t b)
     return (a<b?b:a);
 }
 
+static ods_status
+forceread(engine_type* engine, zone_type* zone, int force_serial, uint32_t serial, int sockfd)
+{
+        pthread_mutex_lock(&zone->zone_lock);
+        if (force_serial) {
+            ods_log_assert(zone->db);
+            if (!util_serial_gt(serial, max(zone->db->outserial,
+                zone->db->inbserial))) {
+                pthread_mutex_unlock(&zone->zone_lock);
+                client_printf(sockfd, "Error: Unable to enforce serial %u for zone %s.\n", serial, zone->name);
+                return 1;
+            }
+            zone->db->altserial = serial;
+            zone->db->force_serial = 1;
+        }
+        schedule_scheduletask(engine->taskq, TASK_FORCEREAD, zone->name, zone, &zone->zone_lock, schedule_IMMEDIATELY);
+        pthread_mutex_unlock(&zone->zone_lock);
+}
 
 /**
  * Handle the 'sign' command.
@@ -281,13 +299,15 @@ cmdhandler_handle_cmd_sign(int sockfd, cmdhandler_ctx_type* context, const char 
     engine = getglobalcontext(context);
     ods_log_assert(engine->taskq);
     if (cmdargument(cmd, "--all", NULL)) {
-        sched_flush(engine->taskq, TASK_READ);
+        pthread_mutex_lock(&engine->zonelist->zl_lock);
+        ldns_rbnode_t* node;
+        for (node = ldns_rbtree_first(engine->zonelist->zones); node != LDNS_RBTREE_NULL && node != NULL; node = ldns_rbtree_next(node)) {
+            zone = node->data;
+            forceread(engine, zone, 0, 0, sockfd);
+        }
+        pthread_mutex_unlock(&engine->zonelist->zl_lock);
         engine_wakeup_workers(engine);
-        (void)snprintf(buf, ODS_SE_MAXLINE, "All zones scheduled for "
-            "immediate re-sign.\n");
-        client_printf(sockfd, buf);
-        ods_log_verbose("[%s] all zones scheduled for immediate re-sign",
-            cmdh_str);
+        client_printf(sockfd, "All zones scheduled for immediate re-sign.\n");
     } else {
         char* delim1 = strchr(cmdargument(cmd, NULL, ""), ' ');
         char* delim2 = NULL;
@@ -333,44 +353,16 @@ cmdhandler_handle_cmd_sign(int sockfd, cmdhandler_ctx_type* context, const char 
             (void)snprintf(buf, ODS_SE_MAXLINE, "Error: Zone %s not found.\n",
                 cmdargument(cmd, NULL, ""));
             client_printf(sockfd, buf);
-            return -1;
+            return 1;
         }
 
-        pthread_mutex_lock(&zone->zone_lock);
-        if (force_serial) {
-            ods_log_assert(zone->db);
-            if (!util_serial_gt(serial, max(zone->db->outserial,
-                zone->db->inbserial))) {
-                pthread_mutex_unlock(&zone->zone_lock);
-                (void)snprintf(buf, ODS_SE_MAXLINE, "Error: Unable to enforce "
-                    "serial %u for zone %s.\n", serial, cmdargument(cmd, NULL, ""));
-                client_printf(sockfd, buf);
-                return -1;
-            }
-            zone->db->altserial = serial;
-            zone->db->force_serial = 1;
-        }
-        status = zone_reschedule_task(zone, engine->taskq, TASK_READ);
-        pthread_mutex_unlock(&zone->zone_lock);
-
-        if (status != ODS_STATUS_OK) {
-            (void)snprintf(buf, ODS_SE_MAXLINE, "Error: Unable to reschedule "
-                "task for zone %s.\n", cmdargument(cmd, NULL, ""));
-            client_printf(sockfd, buf);
-            ods_log_crit("[%s] unable to reschedule task for zone %s: %s",
-                cmdh_str, zone->name, ods_status2str(status));
-        } else {
-            (void)snprintf(buf, ODS_SE_MAXLINE, "Zone %s scheduled for "
-                "immediate re-sign.\n", cmdargument(cmd, NULL, ""));
-            client_printf(sockfd, buf);
-            ods_log_verbose("[%s] zone %s scheduled for immediate re-sign",
-                cmdh_str, cmdargument(cmd, NULL, ""));
-            engine_wakeup_workers(engine);
-        }
+        forceread(engine, zone, force_serial, serial, sockfd);
+        engine_wakeup_workers(engine);
+        client_printf(sockfd, "Zone %s scheduled for immediate re-sign.\n", cmdargument(cmd, NULL, ""));
+        ods_log_verbose("zone %s scheduled for immediate re-sign", cmdargument(cmd, NULL, ""));
     }
     return 0;
 }
-
 
 /**
  * Unlink backup file.
@@ -426,7 +418,7 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_ctx_type* context, const char
         if (!zone->signconf || !zone->ixfr || !zone->db) {
             ods_fatal_exit("[%s] unable to clear zone %s: failed to recreate"
             "signconf, ixfr of db structure (out of memory?)", cmdh_str, cmdargument(cmd, NULL, ""));
-            return -1;
+            return 1;
         }
         /* restore serial management */
         zone->db->inbserial = inbserial;
@@ -436,8 +428,7 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_ctx_type* context, const char
 
         /* If a zone does not have a task we probably never read a signconf
          * for it. Skip reschedule step */
-        if (zone->task)
-            status = zone_reschedule_task(zone, engine->taskq, TASK_SIGNCONF);
+        schedule_scheduletask(engine->taskq, TASK_FORCESIGNCONF, zone->name, zone, &zone->zone_lock, schedule_IMMEDIATELY);
         pthread_mutex_unlock(&zone->zone_lock);
 
         if (status != ODS_STATUS_OK) {
@@ -502,7 +493,7 @@ cmdhandler_handle_cmd_queue(int sockfd, cmdhandler_ctx_type* context, const char
         for (i=0; i < ODS_SE_MAXLINE; i++) {
             buf[i] = 0;
         }
-        taskdesc = sched_describetask(task);
+        taskdesc = schedule_describetask(task);
         client_printf(sockfd, taskdesc);
         free(taskdesc);
         node = ldns_rbtree_next(node);
@@ -523,7 +514,7 @@ cmdhandler_handle_cmd_flush(int sockfd, cmdhandler_ctx_type* context, const char
     char buf[ODS_SE_MAXLINE];
     engine = getglobalcontext(context);
     ods_log_assert(engine->taskq);
-    sched_flush(engine->taskq, TASK_NONE);
+    schedule_flush(engine->taskq);
     engine_wakeup_workers(engine);
     (void)snprintf(buf, ODS_SE_MAXLINE, "All tasks scheduled immediately.\n");
     client_printf(sockfd, buf);

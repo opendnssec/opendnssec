@@ -46,7 +46,7 @@ keystate_ds_submit_task_perform(task_type* task, char const *zonename, void *use
 	(void)change_keys_from_to(dbconn, -1, zonename, NULL, -1,
 		KEY_DATA_DS_AT_PARENT_SUBMIT, KEY_DATA_DS_AT_PARENT_SUBMITTED,
 		(engine_type*)userdata);
-	return -1;
+	return schedule_SUCCESS;
 }
 
 task_type *

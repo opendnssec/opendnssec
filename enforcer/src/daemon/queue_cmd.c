@@ -112,7 +112,7 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 		node = ldns_rbtree_first(engine->taskq->tasks);
 		while (node && node != LDNS_RBTREE_NULL) {
 			task = (task_type*) node->data;
-			taskdescription = sched_describetask(task);
+			taskdescription = schedule_describetask(task);
 			client_printf(sockfd, "%s", taskdescription);
                         free(taskdescription);
 			node = ldns_rbtree_next(node);
@@ -149,7 +149,7 @@ run_flush(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 	ods_log_assert(engine);
 	ods_log_assert(engine->taskq);
 
-	sched_flush(engine->taskq, TASK_NONE);
+	schedule_flush(engine->taskq);
         
 	client_printf(sockfd, "All tasks scheduled immediately.\n");
 	ods_log_verbose("[cmdhandler] all tasks scheduled immediately");

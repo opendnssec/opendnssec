@@ -123,7 +123,7 @@ valert(struct alertbuffer_struct* buffer, const char* format, va_list args)
                     stringarg = va_arg(args, char*);
                     if (stringarg == NULL)
                         stringarg = "(null)";
-                    while(stringarg)
+                    while(*stringarg)
                         if(alertoutput(buffer, *(stringarg++)))
                             break;
                     idx += 2;
@@ -223,8 +223,5 @@ ods_janitor_initialize(char*argv0)
     janitor_threadclass_setblockedsignals(workerthreadclass);
     janitor_threadclass_setminstacksize(cmdhandlerthreadclass, ODS_MINIMUM_STACKSIZE);
 
-    /* disable fancy core dumps for now, perhaps this should not be
-     * a default operation?
-     *     janitor_trapsignals(argv0);
-     */
+    janitor_trapsignals(argv0);
 }
