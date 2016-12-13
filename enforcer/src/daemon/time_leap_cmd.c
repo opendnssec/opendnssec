@@ -85,7 +85,7 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 	const int NARGV = MAX_ARGS;
 	const char *argv[MAX_ARGS];
         int taskcount;
-	int argc = 0, attach, cont;
+	int argc = 0, attach = 0, cont;
 	int long_index = 0, opt = 0;
 	task_type* task = NULL;
         engine_type* engine = getglobalcontext(context);

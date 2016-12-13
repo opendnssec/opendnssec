@@ -27,6 +27,7 @@
  *
  */
 
+#include <getopt.h>
 #include "config.h"
 
 #include "cmdhandler.h"
@@ -163,16 +164,16 @@ map_keytime(const zone_db_t *zone, const key_data_t *key)
 
 static int
 perform_keystate_list(int sockfd, db_connection_t *dbconn,
-        const char* filterZone, char** filterKeytype, char** filterKeystate,
-        void (printheader)(int sockfd),
-        void (printkey)(int sockfd, zone_db_t* zone, key_data_t* key, char*tchange, hsm_key_t* hsmKey)) {
+    const char* zonename, const char* keytype, const char* keystate,
+    void (printheader)(int sockfd),
+    void (printkey)(int sockfd, zone_db_t* zone, key_data_t* key, char* tchange, hsm_key_t* hsmKey)) {
     key_data_list_t* key_list;
     key_data_t* key;
     zone_db_t *zone = NULL;
     char* tchange;
     hsm_key_t *hsmkey;
     int cmp;
-    int i, skipPrintKey;
+    int skipPrintKey;
 
     if (!(key_list = key_data_list_new_get(dbconn))) {
         client_printf_err(sockfd, "Unable to get list of keys, memory "
@@ -199,19 +200,13 @@ perform_keystate_list(int sockfd, db_connection_t *dbconn,
         key_data_cache_key_states(key);
         tchange = map_keytime(zone, key); /* allocs */
         skipPrintKey = 0;
-        if(printkey == NULL)
+        if (printkey == NULL)
             skipPrintKey = 1;
-        if(filterZone != NULL && strcmp(zone_db_name(zone), filterZone))
+        if (zonename && strcmp(zone_db_name(zone), zonename))
             skipPrintKey = 1;
-        for(i=0; filterKeytype && filterKeytype[i]; i++)
-            if(!strcasecmp(filterKeytype[i],key_data_role_text(key)))
-                break;
-        if(filterKeytype && filterKeytype[i] == NULL)
+        if (keytype && strcasecmp(keytype,key_data_role_text(key)))
             skipPrintKey = 1;
-        for(i=0; filterKeystate && filterKeystate[i]; i++)
-            if(!strcasecmp(filterKeystate[i],map_keystate(key)))
-                break;
-        if(filterKeystate && filterKeystate[i] == NULL)
+        if (keystate && strcasecmp(keystate, map_keystate(key)))
             skipPrintKey = 1;
         if (!skipPrintKey) {
             (*printkey)(sockfd, zone, key, tchange, hsmkey);
@@ -261,7 +256,7 @@ printcompatheader(int sockfd) {
 }
 
 static void
-printcompatkey(int sockfd, zone_db_t* zone, key_data_t* key, char*tchange, hsm_key_t* hsmkey) {
+printcompatkey(int sockfd, zone_db_t* zone, key_data_t* key, char* tchange, hsm_key_t* hsmkey) {
     (void)hsmkey;
     client_printf(sockfd,
             "%-31s %-8s %-9s %s\n",
@@ -394,102 +389,96 @@ static int
 run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 {
     char buf[ODS_SE_MAXLINE];
-#define NARGV 12
+    #define NARGV 12
     const char *argv[NARGV];
     int success, argIndex;
-    int argc, bVerbose, bDebug, bParsable, bAll;
-    char* keytypeParam;
-    char* keystateParam;
-    const char* filterZone; /* NULL if no filtering on zone, otherwise zone to match */
-    char** filterKeytype; /* NULL if no filtering on key type, NULL terminated list of key types to filter */
-    char** filterKeystate; /* NULL if no filtering on key state, NULL terminated list of key states to filter */
+    int argc = 0, bVerbose = 0, bDebug = 0, bParsable = 0, bAll = 0;
+    int long_index = 0, opt = 0;
+    const char* keytype = NULL;
+    const char* keystate = NULL;
+    const char* zonename = NULL;
     db_connection_t* dbconn = getconnectioncontext(context);
+
+    static struct option long_options[] = {
+        {"verbose", no_argument, 0, 'v'},
+        {"debug", no_argument, 0, 'd'},
+        {"parsable", no_argument, 0, 'p'},
+        {"zone", required_argument, 0, 'z'},
+        {"keytype", required_argument, 0, 't'},
+        {"keystate", required_argument, 0, 'e'},
+        {"all", no_argument, 0, 'a'},
+        {0, 0, 0, 0}
+    };
 
     ods_log_debug("[%s] %s command", module_str, key_list_funcblock.cmdname);
 
-    cmd = ods_check_command(cmd, key_list_funcblock.cmdname);
     /* Use buf as an intermediate buffer for the command. */
     strncpy(buf, cmd, sizeof (buf));
     buf[sizeof (buf) - 1] = '\0';
 
     /* separate the arguments */
     argc = ods_str_explode(buf, NARGV, argv);
-    if (argc > NARGV) {
-        ods_log_warning("[%s] too many arguments for %s command",
+    if (argc == -1) {
+        ods_log_error("[%s] too many arguments for %s command",
                 module_str, key_list_funcblock.cmdname);
-        client_printf(sockfd, "too many arguments\n");
+        client_printf_err(sockfd, "too many arguments\n");
         return -1;
     }
-
-    bVerbose = ods_find_arg(&argc, argv, "verbose", "v") != -1;
-    bDebug = ods_find_arg(&argc, argv, "debug", "d") != -1;
-    bParsable = ods_find_arg(&argc, argv, "parsable", "p") != -1;
-    if ((argIndex = ods_find_arg_and_param(&argc, argv, "zone", "z", &filterZone)) == -1) {
-        filterZone = NULL;
+    optind = 0;
+    while ((opt = getopt_long(argc, (char* const*)argv, "vdpz:t:e:a", long_options, &long_index) ) != -1) {
+        switch (opt) {
+            case 'v':
+                bVerbose = 1;
+                break;
+            case 'd':
+                bDebug = 1;
+                break;
+            case 'p':
+                bParsable = 1;
+                break;
+            case 'z':
+                zonename = optarg;
+                break;
+            case 't':
+                keytype = optarg;
+                break;
+            case 'e':
+                keystate = optarg;
+                break;
+            case 'a':
+                bAll = 1;
+                break;
+            default:
+                client_printf_err(sockfd, "unknown arguments\n");
+                ods_log_error("[%s] unknown arguments for %s command",
+                              module_str, key_list_funcblock.cmdname);
+                return -1;
+        }
     }
-    if (ods_find_arg_and_param(&argc, argv, "keytype", "k", (const char **)&keytypeParam) == -1) {
-        keytypeParam = NULL;
-    }
-    if (ods_find_arg_and_param(&argc, argv, "keystate", "e", (const char **)&keystateParam) == -1) {
-        keystateParam = NULL;
-    }
 
-    bAll = (ods_find_arg(&argc, argv, "all", "a") != -1);
-
-    if (keystateParam != NULL && bAll) {
+    if (keystate != NULL && bAll) {
         client_printf(sockfd, "Error: --keystate and --all option cannot be given together\n");
         return -1;
     }
 
-    if (argc) {
-        ods_log_warning("[%s] unknown arguments for %s command", module_str, key_list_funcblock.cmdname);
-        client_printf(sockfd, "unknown arguments\n");
-        return -1;
-    }
-
-    if (keytypeParam)
-        filterKeytype = tokenizeparam(keytypeParam);
-    else
-        filterKeytype = NULL;
-
-    if (keystateParam) {
-        filterKeystate = tokenizeparam(keystateParam);
-    } else
-        filterKeystate = NULL;
-
-    if(!bAll && filterKeystate == NULL) {
-        if ((filterKeystate = malloc(sizeof (char*) * 6))) {
-            filterKeystate[0] = (char *)"publish";
-            filterKeystate[1] = (char *)"ready";
-            filterKeystate[2] = (char *)"active";
-            filterKeystate[3] = (char *)"retire";
-            filterKeystate[4] = (char *)"mixed";
-            filterKeystate[5] = NULL;
-        } /* else emit error */
-    }
-
     if (bDebug) {
         if (bParsable) {
-            success = perform_keystate_list(sockfd, dbconn, filterZone, filterKeytype, filterKeystate, NULL, &printdebugparsablekey);
+            success = perform_keystate_list(sockfd, dbconn, zonename, keytype, keystate, NULL, &printdebugparsablekey);
         } else {
-            success = perform_keystate_list(sockfd, dbconn, filterZone, filterKeytype, filterKeystate, &printdebugheader, &printdebugkey);
+            success = perform_keystate_list(sockfd, dbconn, zonename, keytype, keystate, &printdebugheader, &printdebugkey);
         }
     } else if (bVerbose) {
         if (bParsable) {
-            success = perform_keystate_list(sockfd, dbconn, filterZone, filterKeytype, filterKeystate, NULL, &printverboseparsablekey);
+            success = perform_keystate_list(sockfd, dbconn, zonename, keytype, keystate, NULL, &printverboseparsablekey);
         } else {
-            success = perform_keystate_list(sockfd, dbconn, filterZone, filterKeytype, filterKeystate, &printverboseheader, &printverbosekey);
+            success = perform_keystate_list(sockfd, dbconn, zonename, keytype, keystate, &printverboseheader, &printverbosekey);
         }
     } else {
         if (bParsable)
             client_printf_err(sockfd, "-p option only available in combination with -v and -d.\n");
-        success = perform_keystate_list(sockfd, dbconn, filterZone, filterKeytype, filterKeystate, &printcompatheader, &printcompatkey);
+        success = perform_keystate_list(sockfd, dbconn, zonename, keytype, keystate, &printcompatheader, &printcompatkey);
     }
 
-    if (filterKeytype)
-        free(filterKeytype);
-    if (filterKeystate)
-        free(filterKeystate);
     return success;
 }
 

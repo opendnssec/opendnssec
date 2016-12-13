@@ -124,7 +124,7 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 		}
 	}
 
-	if (pos != -1) {
+	if (zone_name) {
 		enforce_task_flush_zone(engine, zone_name);
 	} else {
 		enforce_task_flush_all(engine, dbconn);

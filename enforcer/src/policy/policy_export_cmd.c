@@ -97,7 +97,7 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
     }
 
     optind = 0;
-    while ((opt == getopt_long(argc, (char* const*)argv, "p:a", long_options, &long_index)) != -1) {
+    while ((opt = getopt_long(argc, (char* const*)argv, "p:a", long_options, &long_index)) != -1) {
         switch (opt) {
             case 'p':
                 policy_name = optarg;
