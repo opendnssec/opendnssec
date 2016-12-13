@@ -32,13 +32,12 @@ fi &&
 ods_reset_env &&
 
 ## Start master name server
-cp bind-zonefile bind9/ods
+cp ods $BIND9_NAMED_RUNDIR/ods
 ods_bind9_info &&
+ods_bind9_start &&
 
 ## Start OpenDNSSEC
 ods_start_ods-control &&
-
-ods_bind9_start &&
 
 ## Send updates
 ods_bind9_dynupdate 100 10000 ods &&
@@ -49,7 +48,9 @@ ods_bind9_stop &&
 rm -f $BIND9_NAMED_RUNDIR/bind.log &&
 rm -f $BIND9_NAMED_RUNDIR/update.txt &&
 rm -f $BIND9_NAMED_RUNDIR/update.log &&
-rm -f $BIND9_NAMED_RUNDIR/ods.jnl &&
+rm -f $BIND9_NAMED_RUNDIR/ods.jnl
+
+ods_process_kill '(named)'
 return 0
 
 ## Test failed. Kill stuff
