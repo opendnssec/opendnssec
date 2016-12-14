@@ -175,7 +175,7 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 		ods_log_info("Time leap: Leaping to time %s\n", strtime);
 		if (!(task = schedule_pop_first_task(engine->taskq)))
 			break;
-		if (sched_task_istype(task,  TASK_TYPE_ENFORCE))
+		if (schedule_task_istype(task,  TASK_TYPE_ENFORCE))
 			processed_enforce = 1;
 		task_perform(engine->taskq, task, dbconn);
 		ods_log_debug("[timeleap] finished working");

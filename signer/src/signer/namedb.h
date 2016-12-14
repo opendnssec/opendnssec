@@ -55,7 +55,6 @@ struct namedb_struct {
     uint32_t outserial;
     uint32_t altserial;
     unsigned is_initialized : 1;
-    unsigned is_processed : 1;
     unsigned serial_updated : 1;
     unsigned force_serial : 1;
     unsigned have_serial : 1;

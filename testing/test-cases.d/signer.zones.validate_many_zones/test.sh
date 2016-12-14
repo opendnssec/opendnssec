@@ -83,7 +83,7 @@ log_this ods-update-policy ods_setup_conf kasp.xml &&
 log_this_timeout ods-update-policy 10 ods-enforcer policy import &&
 #syslog_waitfor 300 'ods-enforcerd: .*Called signer engine:.*ods-signer update all.rr.org' &&
 syslog_waitfor 300 'ods-enforcerd: .*\[enforcer\] updateZone: processing all.rr.org with policyName default' &&
-syslog_waitfor 300 'ods-signerd: \[cmdhandler\] zone all.rr.org scheduled for immediate re-sign' &&
+syslog_waitfor 300 'ods-signerd: .*zone all.rr.org scheduled for immediate .*' &&
 sleep 5 &&
 $GREP -q -- "<Minimum>PT10M</Minimum>" "$INSTALL_ROOT/var/opendnssec/signconf/all.rr.org" &&
 syslog_waitfor_count 300 `expr $num_signedzones + 2` 'ods-signerd: .*\[STATS\] all.rr.org' &&
