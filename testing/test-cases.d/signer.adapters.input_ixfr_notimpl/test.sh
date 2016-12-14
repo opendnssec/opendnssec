@@ -15,7 +15,7 @@ ods_reset_env &&
 ods_ldns_testns 15353 ods.datafile &&
 
 ## Start OpenDNSSEC
-ods_start_ods-control && 
+ods_start_ods-control 360 &&
 
 ods-signer verbosity 5 &&
 

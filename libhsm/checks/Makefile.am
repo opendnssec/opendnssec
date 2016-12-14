@@ -1,3 +1,5 @@
+.PHONY: tokens
+
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 CLEANFILES = token.db othertoken.db
 
@@ -11,8 +13,7 @@ AM_CPPFLAGS = \
 
 AM_CFLAGS =	-std=c99
 
-
-EXTRA_DIST =	*.xml $(srcdir)/softhsm.conf
+EXTRA_DIST =	*.xml $(srcdir)/softhsm2.conf
 
 noinst_PROGRAMS = hsmcheck
  
@@ -20,15 +21,17 @@ hsmcheck_SOURCES = hsmcheck.c confparser.c
 hsmcheck_LDADD = ../src/lib/libhsm.a @LDNS_LIBS@ @XML2_LIBS@ $(LIBCOMPAT)
 hsmcheck_LDFLAGS = -no-install
 
-SOFTHSM_ENV = SOFTHSM_CONF=$(srcdir)/softhsm.conf
+SOFTHSM_ENV = SOFTHSM2_CONF=$(srcdir)/softhsm2.conf
 
 
-token.db othertoken.db:
+tokens:
+	rm -rf tokens
+	mkdir tokens
 	env $(SOFTHSM_ENV) \
-	softhsm --slot 0 --init-token --label softHSM \
+	softhsm2-util --slot 0 --init-token --label softHSM \
 		--so-pin 12345678 --pin 123456
 	env $(SOFTHSM_ENV) \
-	softhsm --slot 1 --init-token --label xyzzy \
+	softhsm2-util --slot 1 --init-token --label xyzzy \
 		--so-pin 12345678 --pin 123456
 
 check: regress-softhsm
@@ -42,7 +45,7 @@ regress-aepkeyper: hsmcheck
 regress-sca6000: hsmcheck
 	./hsmcheck -c conf-sca6000.xml -gsdr
 
-regress-softhsm: hsmcheck token.db
+regress-softhsm: hsmcheck tokens
 	env $(SOFTHSM_ENV) \
 	./hsmcheck -c conf-softhsm.xml -gsdr
 
@@ -55,7 +58,7 @@ regress-opensc: hsmcheck
 regress-ncipher: hsmcheck
 	./hsmcheck -c conf-ncipher.xml -gsdr
 
-regress-multi: hsmcheck token.db othertoken.db
+regress-multi: hsmcheck tokens
 	env $(SOFTHSM_ENV) \
 	./hsmcheck -c conf-multi.xml -gsdr
 

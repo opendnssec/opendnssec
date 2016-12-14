@@ -69,55 +69,60 @@ ods_nuke_env ()
 	if [ -n "$kasp_files" ]; then
 		(
 			cd "$INSTALL_ROOT/var/opendnssec/" &&
-			rm -rf -- $kasp_files 2>/dev/null
+			rm -rf -- $kasp_files
 		)
 	fi &&
 	if [ -n "$tmp_files" ]; then
 		(
 			cd "$INSTALL_ROOT/var/opendnssec/signer/" &&
-			rm -rf -- $tmp_files 2>/dev/null
+			rm -rf -- $tmp_files
 		)
 	fi &&
 	if [ -n "$tmp_files2" ]; then
 		(
 			cd "$INSTALL_ROOT/var/opendnssec/tmp/" &&
-			rm -rf -- $tmp_files2 2>/dev/null
+			rm -rf -- $tmp_files2
 		)
 	fi &&
 	if [ -n "$tmp_files3" ]; then
 		(
 			cd "$INSTALL_ROOT/var/opendnssec/enforcer/" &&
-			rm -rf -- $tmp_files3 2>/dev/null
+			rm -rf -- $tmp_files3
 		)
 	fi &&
 	if [ -n "$unsigned_files" ]; then
 		(
 			cd "$INSTALL_ROOT/var/opendnssec/unsigned/" &&
-			rm -f -- $unsigned_files 2>/dev/null
+			rm -f -- $unsigned_files
 		)
 	fi &&
 	if [ -n "$signed_files" ]; then
 		(
 			cd "$INSTALL_ROOT/var/opendnssec/signed/" &&
-			rm -f -- $signed_files 2>/dev/null
+			rm -f -- $signed_files
 		)
 	fi &&
 	if [ -n "$signconf_files" ]; then
 		(
 			cd "$INSTALL_ROOT/var/opendnssec/signconf/" &&
-			rm -f -- $signconf_files 2>/dev/null
+			rm -f -- $signconf_files
 		)
 	fi &&
 	if [ -n "$softhsm_files" ]; then
 		(
 			cd "$INSTALL_ROOT/var/softhsm/" &&
-			rm -f -- $softhsm_files 2>/dev/null
+			rm -rf -- $softhsm_files
 		)
 	fi &&
 	if [ -n "$softhsm_files2" ]; then
 		(
 			cd "$INSTALL_ROOT/var/lib/softhsm/" &&
-			rm -f -- $softhsm_files2 2>/dev/null
+			rm -rf -- $softhsm_files2
+		)
+	fi &&
+	if [ \! -d "$INSTALL_ROOT/var/lib/softhsm/tokens" ]; then
+		(
+			mkdir -p "$INSTALL_ROOT/var/lib/softhsm/tokens"
 		)
 	fi &&
 	if [ -n "$HAVE_MYSQL" ]; then
@@ -152,7 +157,7 @@ ods_setup_conf ()
 
 	if [ -n "$conf" ]; then
 		case "$conf" in
-			softhsm.conf | addns.xml | conf.xml | kasp.xml | zonelist.xml )
+			softhsm2.conf | addns.xml | conf.xml | kasp.xml | zonelist.xml )
 				;;
 			* )
 				echo "ods_setup_conf: Unknown conf file specified: $conf" >&2
@@ -167,7 +172,7 @@ ods_setup_conf ()
 	fi
 
 	# Conf files under /etc
-	for conf_file in softhsm.conf; do
+	for conf_file in softhsm2.conf; do
 		if [ -n "$conf" -a "$conf" != "$conf_file" ]; then
 			continue
 		fi
@@ -200,17 +205,17 @@ ods_setup_conf ()
 		fi
 
 		if [ -n "$file" ]; then
-			if ! cp -- "$file" "$INSTALL_ROOT/etc/opendnssec/$conf_file" 2>/dev/null; then
+			if ! cp -- "$file" "$INSTALL_ROOT/etc/opendnssec/$conf_file" ; then
 				echo "ods_setup_conf: unable to copy/install test specific $file to $INSTALL_ROOT/etc/opendnssec/$conf_file" >&2
 				return 1
 			fi
 		elif [ -f "$conf_file" ]; then
-			if ! cp -- "$conf_file" "$INSTALL_ROOT/etc/opendnssec/$conf_file" 2>/dev/null; then
+			if ! cp -- "$conf_file" "$INSTALL_ROOT/etc/opendnssec/$conf_file" ; then
 				echo "ods_setup_conf: unable to copy/install test specific $conf_file to $INSTALL_ROOT/etc/opendnssec/$conf_file" >&2
 				return 1
 			fi
 		else
-			if ! cp -- "$INSTALL_ROOT/etc/opendnssec/$conf_file.build" "$INSTALL_ROOT/etc/opendnssec/$conf_file" 2>/dev/null; then
+			if ! cp -- "$INSTALL_ROOT/etc/opendnssec/$conf_file.build" "$INSTALL_ROOT/etc/opendnssec/$conf_file" ; then
 				echo "ods_setup_conf: unable to copy/install build default $INSTALL_ROOT/etc/opendnssec/$conf_file.build to $INSTALL_ROOT/etc/opendnssec/$conf_file" >&2
 				return 1
 			fi
@@ -234,7 +239,7 @@ ods_setup_zone ()
 	fi
 
 	if [ -n "$zone" ]; then
-		if ! cp -- "$zone" "$INSTALL_ROOT/var/opendnssec/unsigned/" 2>/dev/null; then
+		if ! cp -- "$zone" "$INSTALL_ROOT/var/opendnssec/unsigned/" ; then
 			echo "ods_setup_zone: unable to copy/install zone file $zone to $INSTALL_ROOT/var/opendnssec/unsigned/" >&2
 			return 1
 		fi
@@ -245,7 +250,7 @@ ods_setup_zone ()
 	if [ -d unsigned ]; then
 		ls -1 unsigned/ | while read zone; do
 			if [ -f "unsigned/$zone" ]; then
-				if ! cp -- "unsigned/$zone" "$INSTALL_ROOT/var/opendnssec/unsigned/" 2>/dev/null; then
+				if ! cp -- "unsigned/$zone" "$INSTALL_ROOT/var/opendnssec/unsigned/" ; then
 					echo "ods_setup_zone: unable to copy/install zone file $zone to $INSTALL_ROOT/var/opendnssec/unsigned/" >&2
 					return 1
 				fi
@@ -357,7 +362,7 @@ ods_setup_env ()
 # returns true if enforcer is running
 ods_is_enforcer_running ()
 {
-	if $PGREP -u `id -u` 'ods-enforcerd' >/dev/null 2>/dev/null; then
+	if $PGREP -u `id -u` 'ods-enforcerd' >/dev/null ; then
 		return 0
 	fi
 	return 1
@@ -366,7 +371,7 @@ ods_is_enforcer_running ()
 # returns true if signer is running
 ods_is_signer_running ()
 {
-	if $PGREP -u `id -u` 'ods-signerd' >/dev/null 2>/dev/null; then
+	if $PGREP -u `id -u` 'ods-signerd' >/dev/null ; then
 		return 0
 	fi
 	return 1
@@ -374,7 +379,7 @@ ods_is_signer_running ()
 
 ods_ods-control_enforcer_start ()
 {
-	if [ "$ODS_ENFORCER_WAIT_START" -lt 1 ] 2>/dev/null; then
+	if [ "$ODS_ENFORCER_WAIT_START" -lt 1 ] ; then
 		echo "ods_ods-control_enforcer_start: ODS_ENFORCER_WAIT_START not set" >&2
 		exit 1
 	fi
@@ -388,7 +393,7 @@ ods_ods-control_enforcer_start ()
 
 ods_ods-control_enforcer_stop ()
 {
-	if [ "$ODS_ENFORCER_WAIT_STOP" -lt 1 ] 2>/dev/null; then
+	if [ "$ODS_ENFORCER_WAIT_STOP" -lt 1 ] ; then
 		echo "ods_ods-control_enforcer_stop: ODS_ENFORCER_WAIT_STOP not set" >&2
 		exit 1
 	fi
@@ -704,7 +709,12 @@ ods_ods-control_start ()
 		exit 1
 	fi
 
-	if ! log_this_timeout ods_ods-control_start "$ODS_ODS_CONTROL_WAIT_START" ods-control start ; then
+	local timeout="$1"
+	if [ -z "$timeout" ]; then
+		timeout="$ODS_ODS_CONTROL_WAIT_START"
+	fi
+
+	if ! log_this_timeout ods_ods-control_start "$timeout" ods-control start ; then
 		echo "ods_ods-control_start: Could not start ods-control" >&2
 		return 1
 	fi
@@ -1053,7 +1063,7 @@ ods_start_ods-control ()
 
  	ods_signer_count_starts &&
  	ods_enforcer_count_starts &&
-	ods_ods-control_start &&
+	ods_ods-control_start "$timeout" &&
 	ods_signer_waitfor_starts "$(( ODS_SIGNER_START_COUNT + 1 ))" "$timeout" &&
 	ods_enforcer_waitfor_starts "$(( ODS_ENFORCER_START_COUNT + 1 ))" "$timeout" &&
 
@@ -1212,7 +1222,7 @@ ods_softhsm_init_token ()
 
 	if [ "$slot" -ge 0 -a "$slot" -lt 20 ] 2>/dev/null; then
 		log_remove "softhsm-init-token-$slot" &&
-		log_this "softhsm-init-token-$slot" softhsm --init-token --slot "$slot" --label "$label" --pin "$pin" --so-pin "$so_pin" ||
+		log_this "softhsm-init-token-$slot" softhsm2-util --init-token --slot "$slot" --label "$label" --pin "$pin" --so-pin "$so_pin" ||
 		return 1
 
 		if ! log_grep "softhsm-init-token-$slot" stdout "The token has been initialized."; then
@@ -1231,11 +1241,13 @@ ods_find_softhsm_module ()
 	local path
 
 	for path in lib64/softhsm lib/softhsm lib64 lib; do
-		if [ -f "$INSTALL_ROOT/$path/libsofthsm.so" ]; then
-			export SOFTHSM_MODULE="$INSTALL_ROOT/$path/libsofthsm.so"
+		if [ -f "$INSTALL_ROOT/$path/libsofthsm2.so" ]; then
+			export SOFTHSM_MODULE="$INSTALL_ROOT/$path/libsofthsm2.so"
 			return 0
 		fi
 	done
+
+	export SOFTHSM2_CONF=$INSTALL_ROOT/etc/softhsm2.conf
 
 	return 1
 }
@@ -1423,12 +1435,10 @@ ods_bind9_dynupdate ()
 		return 1
 	fi
 
-	# do updates
-	echo "ods_bind9_dynupdate: do $update_total updates in zone $zone_name"
 	rm -rf "$update_file"
 	update_iter=0
 	update_iterrun=0
-	while [ "$update_iter" -lt "$update_total" ] 2>/dev/null; do
+	while [ "$update_iter" -lt "$update_total" ]; do
 		# write file
 		echo "rr_add test$update_iter.$zone_name. 7200 NS ns1.test$update_iter.$zone_name." >> "$update_file"
 		echo "rr_add ns1.test$update_iter.$zone_name. 7200 A 1.2.3.4" >> "$update_file"
@@ -1437,7 +1447,24 @@ ods_bind9_dynupdate ()
 		update_iter=$(( update_iter + 1 ))
 		update_iterrun=$(( update_iterrun + 1 ))
 
-		if [ "$update_iterrun" -ge "$update_perrun" ] 2>/dev/null; then
+		if [ "$update_iterrun" -ge "$update_perrun" ]; then
+			mv "$update_file" "$update_file.$update_iter"
+			rm -rf "$update_file"
+			update_iterrun=0
+			rm -rf "$update_file"
+		fi
+	done
+
+	# do updates
+	echo "ods_bind9_dynupdate: do $update_total updates in zone $zone_name"
+	update_iter=0
+	while [ "$update_iter" -lt "$update_total" ]; do
+
+		# next update
+		update_iter=$(( update_iter + update_perrun ))
+		rm -rf "$update_file"
+		mv "$update_file.$update_iter" "$update_file"
+
 			# call perl script
 			"$BIND9_TEST_ROOTDIR/send_update.pl" -z "$zone_name." -k "$BIND9_NAMED_CONF" -u "$update_file" -l "$log_file" >/dev/null 2>/dev/null
 			exit_code="$?"
@@ -1447,22 +1474,26 @@ ods_bind9_dynupdate ()
 				return 1
 			fi
 
-			update_iterrun=0
 			rm -rf "$update_file"
-		fi
 	done
 
 	# check updates
-	echo "ods_bind9_dynupdate: check $update_total updates in zone $zone_name"
+	echo "ods_bind9_dynupdate: wait for last update to get processed"
 
 	if [ ! -f "$INSTALL_ROOT/var/opendnssec/signed/$zone_name" ]; then
 		echo "ods_bind9_dynupdate: zone file $zone_name not found under $INSTALL_ROOT/var/opendnssec/signed" >&2
 		return 1
 	fi
 
+	# wait for last one, which should probably come in last and makes sure the other updates are likely to be in
+	waitfor_this "$INSTALL_ROOT/var/opendnssec/signed/$zone_name" 300 "test`expr $update_total - 1`\.$zone_name\..*7200.*IN.*NS.*ns1\.test`expr $update_total - 1`\.$zone_name\."
+
+	# check updates
+	echo "ods_bind9_dynupdate: check $update_total updates in zone $zone_name"
+
 	update_iter=0
 	while [ "$update_iter" -lt "$update_total" ] 2>/dev/null; do
-		if ! waitfor_this "$INSTALL_ROOT/var/opendnssec/signed/$zone_name" 10 "test$update_iter\.$zone_name\..*7200.*IN.*NS.*ns1\.test$update_iter\.$zone_name\." >/dev/null 2>/dev/null; then
+		if ! waitfor_this "$INSTALL_ROOT/var/opendnssec/signed/$zone_name" 900 "test$update_iter\.$zone_name\..*7200.*IN.*NS.*ns1\.test$update_iter\.$zone_name\." >/dev/null 2>/dev/null; then
 			echo "ods_bind9_dynupdate: update failed, test$update_iter.$zone_name. NS not in signed zonefile" >&2
 			return 1
 		fi

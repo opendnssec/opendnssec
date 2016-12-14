@@ -134,7 +134,7 @@ HSM
 ---
 You will need to set up an HSM module. If you use SoftHSM, you will
 need to make sure that a token is initialized, and that the correct
-softhsm.conf file is set in the environment variable $SOFTHSM_CONF.
+softhsm2.conf file is set in the environment variable $SOFTHSM2_CONF.
 
 Some keys should be present in the token. If not, you can generate
 them with the hsm-toolkit from OpenDNSSEC.
@@ -147,7 +147,7 @@ You will need to either create or update the
 <prefix>/etc/opendnssec/conf.xml file to your
 settings; the <Repository> element should contain the name of the
 token you have initialized in your HSM, the complete path of the
-module library (e.g. <prefix>/lib/libsofthsm.so). Optionally you
+module library (e.g. <prefix>/lib/libsofthsm2.so). Optionally you
 can use a PIN value here too. If you do not specify it, the engine
 will prompt for it.
 
