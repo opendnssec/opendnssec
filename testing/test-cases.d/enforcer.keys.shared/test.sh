@@ -39,7 +39,7 @@ echo -n "LINE: ${LINENO} " && visual_sleep 4 &&
 
 echo -n "LINE: ${LINENO} " && KSK1=`ods-enforcer key list -d -p | grep ods1 | grep KSK |cut -d ";" -f 9` &&
 echo -n "LINE: ${LINENO} " && ZSK1=`ods-enforcer key list -d -p | grep ods1 | grep ZSK |cut -d ";" -f 9` &&
-echo -n "LINE: ${LINENO} " && KSK2=`ods-enforcer key list -d -p | grep ods2 | grep KSK | grep ";1;0;" | cut -d ";" -f 9` &&
+echo -n "LINE: ${LINENO} " && KSK2=`ods-enforcer key list -d -p | grep ods2 | grep KSK | grep ";0;0;" | cut -d ";" -f 9` &&
 echo -n "LINE: ${LINENO} " && ZSK2=`ods-enforcer key list -d -p | grep ods2 | grep ZSK |cut -d ";" -f 9` &&
 echo -n "LINE: ${LINENO} " && KSK3=`ods-enforcer key list -d -p | grep ods2 | grep KSK | grep ";1;1;" | cut -d ";" -f 9` &&
 
