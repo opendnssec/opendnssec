@@ -47,8 +47,9 @@ echo "#################### CHANGE ALGORITHM ################## " &&
 echo -n "LINE: ${LINENO} " && cp kasp2.xml "$INSTALL_ROOT/etc/opendnssec/kasp.xml" &&
 echo -n "LINE: ${LINENO} " && ods-enforcer policy import && sleep 5 &&
 # Now the new keys with new algorithm must be introduced
-echo -n "LINE: ${LINENO} " && ZSK2=`ods-enforcer key list -v -p | grep "ZSK" | grep "publish" | cut -d ";" -f7` &&
-echo -n "LINE: ${LINENO} " && KSK2=`ods-enforcer key list -v -p --all | grep "KSK" | grep "generate" | cut -d ";" -f7` &&
+ods-enforcer key list -v &&
+echo -n "LINE: ${LINENO} " && ZSK2=`ods-enforcer key list -v -p | grep "ZSK" | grep "ready" | cut -d ";" -f7` &&
+echo -n "LINE: ${LINENO} " && KSK2=`ods-enforcer key list -v -p --all | grep "KSK" | grep "publish" | cut -d ";" -f7` &&
 
 echo -n "LINE: ${LINENO} " && ods-enforcer key list -d -p --all &&
 echo -n "LINE: ${LINENO} " && ods-enforcer key list -v -p --all | grep "$ZSK1" | grep "1024;7;" &&
