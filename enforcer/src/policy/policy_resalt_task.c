@@ -116,15 +116,15 @@ perform_policy_resalt(task_type* task, char const *policyname, void *userdata,
 		ods_log_error("[%s] could not fetch policy %s from database,"
 			" rescheduling", module_str, policyname);
 		/* TODO: figure out if it was a database error. if it is truly
-		 * not in database we should just return -1 */
-		return 60;
+		 * not in database we should just return schedule_SUCCESS */
+		return schedule_DEFER;
 	}
 
 	if  (policy_denial_type(policy) != POLICY_DENIAL_TYPE_NSEC3
 		|| policy_passthrough(policy))
 	{
 		policy_free(policy);
-		return -1;
+		return schedule_SUCCESS;
 	}
 	resalt_time = policy_denial_salt_last_change(policy) +
 		policy_denial_resalt(policy);
@@ -135,7 +135,7 @@ perform_policy_resalt(task_type* task, char const *policyname, void *userdata,
 			ods_log_error("[%s] policy %s has an invalid salt length. "
 				"Must be in range [0..255]", module_str, policy_name(policy));
 			policy_free(policy);
-			return -1; /* no point in rescheduling */
+			return schedule_SUCCESS; /* no point in rescheduling */
 		}
 
 #ifndef HAVE_ARC4RANDOM
@@ -152,7 +152,7 @@ perform_policy_resalt(task_type* task, char const *policyname, void *userdata,
 		{
 			ods_log_error("[%s] db error", module_str);
 			policy_free(policy);
-			return 60;
+			return schedule_DEFER;
 		}
 		resalt_time = now + policy_denial_resalt(policy);
 		ods_log_debug("[%s] policy %s resalted successfully", module_str, policy_name(policy));

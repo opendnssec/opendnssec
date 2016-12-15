@@ -2,6 +2,8 @@ UNRELEASED:
 * If listening port for signer is not set in conf file, the default value "15354" is used.
 * Enforce and signconf tasks are now scheduled individually per zone. Resign
   per policy.
+* OPENDNSSEC-450: Implement support for ECDSA P-256, P-384, GOST. Notice:
+  SoftHSMv1 only supports RSA. SoftHSMv2 can be compiled with support for these.
 * zone delete removes tasks associated with zone from queue.
 * Show help for ods-enforcer-db-setup
 * OPENDNSSEC-778: Double NSEC3PARAM record after resalt.
@@ -21,6 +23,8 @@ UNRELEASED:
 * Various memory leaks
 * OPENDNSSEC-601: signer and enforcer working dir would not properly fallback to
   default when not specified.
+* A bash autocompletion script is included in contrib for ods-enforcer and
+  ods-signer.
 
 OpenDNSSEC 2.0.1 - 2016-07-21
 

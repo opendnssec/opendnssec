@@ -68,4 +68,4 @@ ods_signer_SOURCES=		ods-signer.c
 
 ods_signer_LDADD=		$(LIBHSM)
 ods_signer_LDADD+=		$(LIBCOMPAT)
-ods_signer_LDADD+=		@LDNS_LIBS@ @XML2_LIBS@
+ods_signer_LDADD+=		@LDNS_LIBS@ @XML2_LIBS@ @READLINE_LIBS@

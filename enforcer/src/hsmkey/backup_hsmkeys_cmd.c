@@ -241,7 +241,7 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
     else
         status = -1;
 
-        db_clause_list_free(clause_list);
+    db_clause_list_free(clause_list);
     return status;
 }
 

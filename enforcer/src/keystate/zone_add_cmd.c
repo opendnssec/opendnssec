@@ -356,7 +356,7 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
     /*
      * On successful generate HSM keys and add/flush enforce task.
      */
-    hsm_key_factory_generate_policy(engine, dbconn, policy, 0);
+    (void)hsm_key_factory_generate_policy(engine, dbconn, policy, 0);
     ods_log_debug("[%s] Flushing enforce task", module_str);
     (void)schedule_task(engine->taskq, enforce_task(engine, zone->name), 1, 0);
 
