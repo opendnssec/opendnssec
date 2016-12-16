@@ -23,6 +23,7 @@ UNRELEASED:
 * Various memory leaks
 * OPENDNSSEC-601: signer and enforcer working dir would not properly fallback to
   default when not specified.
+* OPENDNSSEC-503: Speed up initial signing and algorithm rollover
 * A bash autocompletion script is included in contrib for ods-enforcer and
   ods-signer.
 

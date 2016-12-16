@@ -811,6 +811,29 @@ unsignedOk(key_data_t** keylist, size_t keylist_size,
     return 1;
 }
 
+/* Check if ALL DS records for this algorithm are hidden
+ *
+ * \return 0 if !HIDDEN DS is found, 1 if no such DS where found */
+static int
+all_DS_hidden(key_data_t** keylist, size_t keylist_size,
+    struct future_key *future_key)
+{
+    size_t i;
+    key_state_state_t state;
+
+    assert(keylist);
+    assert(future_key);
+    assert(future_key->key);
+
+    for (i = 0; i < keylist_size; i++) {
+        /*If not same algorithm. Doesn't affect us.*/
+        if (key_data_algorithm(keylist[i]) != key_data_algorithm(future_key->key)) continue;
+        state = getState(keylist[i], KEY_STATE_TYPE_DS, future_key);
+        if (state != HIDDEN && state != NA) return 0; /*Test failed. Found DS.*/
+    }
+    return 1; /*No DS where found.*/
+}
+
 /**
  * Checks for existence of DS.
  *
@@ -821,38 +844,20 @@ static int
 rule1(key_data_t** keylist, size_t keylist_size, struct future_key *future_key,
     int pretend_update)
 {
-	static const key_state_state_t mask[2][4] = {
-		/*
-		 * This indicates a good key state.
-		 */
-		{ OMNIPRESENT, NA, NA, NA },
-		/*
-		 * This indicates that the DS is introducing.
-		 */
-		{ RUMOURED, NA, NA, NA }
-	};
+    static const key_state_state_t mask[2][4] = {
+        { OMNIPRESENT, NA, NA, NA },/* a good key state.  */
+        { RUMOURED,    NA, NA, NA } /* the DS is introducing.  */
+    };
 
-	if (!keylist) {
-		return -1;
-	}
-	if (!future_key) {
-		return -1;
-	}
-    if (!future_key->key) {
+    if (!keylist || !future_key || !future_key->key) {
         return -1;
     }
 
     future_key->pretend_update = pretend_update;
 
-	/*
-	 * Return positive value if any of the masks are found.
-	 */
-	if (exists(keylist, keylist_size, future_key, 0, mask[0]) > 0
-		|| exists(keylist, keylist_size, future_key, 0, mask[1]) > 0)
-	{
-		return 1;
-	}
-	return 0;
+    /* Return positive value if any of the masks are found.  */
+    return (exists(keylist, keylist_size, future_key, 0, mask[0]) > 0
+        || exists(keylist, keylist_size, future_key, 0, mask[1]) > 0);
 }
 
 /**
@@ -865,37 +870,31 @@ static int
 rule2(key_data_t** keylist, size_t keylist_size, struct future_key *future_key,
     int pretend_update, key_dependency_list_t* deplist)
 {
-	static const key_state_state_t mask[8][4] = {
-		{ OMNIPRESENT, OMNIPRESENT, OMNIPRESENT, NA },  /*This indicates a good key state.*/
-        { RUMOURED, OMNIPRESENT, OMNIPRESENT, NA },     /*This indicates an introducing DS state.*/
-        { UNRETENTIVE, OMNIPRESENT, OMNIPRESENT, NA },  /*This indicates an outroducing DS state.*/
-        { OMNIPRESENT, RUMOURED, RUMOURED, NA },        /*These indicates an introducing DNSKEY state.*/
-        { OMNIPRESENT, OMNIPRESENT, RUMOURED, NA },
-        { OMNIPRESENT, UNRETENTIVE, UNRETENTIVE, NA },  /*These indicates an outroducing DNSKEY state.*/
+    static const key_state_state_t mask[8][4] = {
+        { OMNIPRESENT, OMNIPRESENT, OMNIPRESENT, NA },/*good key state.*/
+        { RUMOURED,    OMNIPRESENT, OMNIPRESENT, NA },/*introducing DS state.*/
+        { UNRETENTIVE, OMNIPRESENT, OMNIPRESENT, NA },/*outroducing DS state.*/
+        { OMNIPRESENT, RUMOURED,    RUMOURED,    NA },/*introducing DNSKEY state.*/
+        { OMNIPRESENT, OMNIPRESENT, RUMOURED,    NA },
+        { OMNIPRESENT, UNRETENTIVE, UNRETENTIVE, NA },/*outroducing DNSKEY state.*/
         { OMNIPRESENT, UNRETENTIVE, OMNIPRESENT, NA },
-        { HIDDEN, OMNIPRESENT, OMNIPRESENT, NA }        /*This indicates an unsigned state.*/
-	};
+        { HIDDEN,      OMNIPRESENT, OMNIPRESENT, NA } /*unsigned state.*/
+    };
 
-	if (!keylist || !future_key || !future_key->key) {
+    if (!keylist || !future_key || !future_key->key) {
         return -1;
     }
 
     future_key->pretend_update = pretend_update;
 
-    /*
-     * Return positive value if any of the masks are found.
-     */
-	if (exists(keylist, keylist_size, future_key, 1, mask[0]) > 0
-	    || exists_with_successor(keylist, keylist_size, future_key, 1, mask[2], mask[1], KEY_STATE_TYPE_DS, deplist) > 0
+    /* Return positive value if any of the masks are found.  */
+    return (exists(keylist, keylist_size, future_key, 1, mask[0]) > 0
+        || exists_with_successor(keylist, keylist_size, future_key, 1, mask[2], mask[1], KEY_STATE_TYPE_DS, deplist) > 0
         || exists_with_successor(keylist, keylist_size, future_key, 1, mask[5], mask[3], KEY_STATE_TYPE_DNSKEY, deplist) > 0
         || exists_with_successor(keylist, keylist_size, future_key, 1, mask[5], mask[4], KEY_STATE_TYPE_DNSKEY, deplist) > 0
         || exists_with_successor(keylist, keylist_size, future_key, 1, mask[6], mask[3], KEY_STATE_TYPE_DNSKEY, deplist) > 0
         || exists_with_successor(keylist, keylist_size, future_key, 1, mask[6], mask[4], KEY_STATE_TYPE_DNSKEY, deplist) > 0
-        || unsignedOk(keylist, keylist_size, future_key, mask[7], KEY_STATE_TYPE_DS) > 0)
-	{
-		return 1;
-	}
-	return 0;
+        || unsignedOk(keylist, keylist_size, future_key, mask[7], KEY_STATE_TYPE_DS) > 0);
 }
 
 /**
@@ -908,56 +907,27 @@ static int
 rule3(key_data_t** keylist, size_t keylist_size, struct future_key *future_key,
     int pretend_update, key_dependency_list_t* deplist)
 {
-	static const key_state_state_t mask[6][4] = {
-		/*
-		 * This indicates a good key state.
-		 */
-		{ NA, OMNIPRESENT, NA, OMNIPRESENT },
-        /*
-         * This indicates a introducing DNSKEY state.
-         */
-		{ NA, RUMOURED, NA, OMNIPRESENT },
-        /*
-         * This indicates a outroducing DNSKEY state.
-         */
-        { NA, UNRETENTIVE, NA, OMNIPRESENT },
-        /*
-         * This indicates a introducing RRSIG state.
-         */
-        { NA, OMNIPRESENT, NA, RUMOURED },
-        /*
-         * This indicates a outroducing RRSIG state.
-         */
-        { NA, OMNIPRESENT, NA, UNRETENTIVE },
-        /*
-         * This indicates an unsigned state.
-         */
-        { NA, HIDDEN, NA, OMNIPRESENT }
-	};
+    static const key_state_state_t mask[6][4] = {
+        { NA, OMNIPRESENT, NA, OMNIPRESENT },/* good key state. */
+        { NA, RUMOURED,    NA, OMNIPRESENT },/* introducing DNSKEY state. */
+        { NA, UNRETENTIVE, NA, OMNIPRESENT },/* outroducing DNSKEY state. */
+        { NA, OMNIPRESENT, NA, RUMOURED    },/* introducing RRSIG state. */
+        { NA, OMNIPRESENT, NA, UNRETENTIVE },/* outroducing RRSIG state. */
+        { NA, HIDDEN,      NA, OMNIPRESENT } /* unsigned state. */
+    };
 
-	if (!keylist) {
-		return -1;
-	}
-    if (!future_key) {
-        return -1;
-    }
-    if (!future_key->key) {
+    if (!keylist || !future_key || !future_key->key) {
         return -1;
     }
 
     future_key->pretend_update = pretend_update;
 
-    /*
-     * Return positive value if any of the masks are found.
-     */
-	if (exists(keylist, keylist_size, future_key, 1, mask[0]) > 0
+    /* Return positive value if any of the masks are found. */
+    return (exists(keylist, keylist_size, future_key, 1, mask[0]) > 0
         || exists_with_successor(keylist, keylist_size, future_key, 1, mask[2], mask[1], KEY_STATE_TYPE_DNSKEY, deplist) > 0
         || exists_with_successor(keylist, keylist_size, future_key, 1, mask[4], mask[3], KEY_STATE_TYPE_RRSIG, deplist) > 0
-        || unsignedOk(keylist, keylist_size, future_key, mask[5], KEY_STATE_TYPE_DNSKEY) > 0)
-	{
-		return 1;
-	}
-	return 0;
+        || unsignedOk(keylist, keylist_size, future_key, mask[5], KEY_STATE_TYPE_DNSKEY) > 0
+        || all_DS_hidden(keylist, keylist_size, future_key) > 0);
 }
 
 /**
