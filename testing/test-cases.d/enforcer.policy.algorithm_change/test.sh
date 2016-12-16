@@ -16,7 +16,6 @@ echo -n "LINE: ${LINENO} " && ods-enforcer zone add --zone ods1 &&
 echo "################## LEAP TO OMNIPRESENT ZSK DNSKEY ###########################" &&
 echo -n "LINE: ${LINENO} " && ods-enforcer time leap --attach &&
 echo -n "LINE: ${LINENO} " && ods-enforcer time leap --attach &&
-echo -n "LINE: ${LINENO} " && ods-enforcer time leap --attach &&
 
 echo -n "LINE: ${LINENO} " && KSK1=`ods-enforcer key list -d -p | grep ods1 | grep KSK |cut -d ";" -f 9` &&
 echo -n "LINE: ${LINENO} " && ZSK1=`ods-enforcer key list -d -p | grep ods1 | grep ZSK |cut -d ";" -f 9` &&
@@ -55,7 +54,6 @@ echo -n "LINE: ${LINENO} " && ods-enforcer key list -d -p | grep $KSK1 | grep "u
 echo -n "LINE: ${LINENO} " && ods-enforcer key list -d -p | grep $ZSK2 | grep "NA;omnipresent;NA;omnipresent;" &&
 echo -n "LINE: ${LINENO} " && ods-enforcer key list -d -p | grep $KSK2 | grep "rumoured;omnipresent;omnipresent;NA;" &&
 
-echo -n "LINE: ${LINENO} " && ods-enforcer time leap --attach &&
 echo -n "LINE: ${LINENO} " && ods-enforcer key ds-gone -z ods1 -k $KSK1 &&
 echo -n "LINE: ${LINENO} " && ods-enforcer key ds-seen -z ods1 -k $KSK2 &&
 echo -n "LINE: ${LINENO} " && ods-enforcer time leap --attach &&
