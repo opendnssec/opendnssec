@@ -13,7 +13,7 @@
 			</Validity>
 			<Jitter>PT1M</Jitter>
 			<InceptionOffset>PT1M</InceptionOffset>
-			<MaxZoneTTL>PT10M</MaxZoneTTL>
+			<MaxZoneTTL>PT9M</MaxZoneTTL>
 		</Signatures>
 		<Denial>
 			<NSEC3>
@@ -76,7 +76,7 @@
 			</Validity>
 			<Jitter>PT1M</Jitter>
 			<InceptionOffset>PT1M</InceptionOffset>
-			<MaxZoneTTL>PT10M</MaxZoneTTL>
+			<MaxZoneTTL>PT13M</MaxZoneTTL>
 		</Signatures>
 		<Denial>
 			<NSEC3>
@@ -90,7 +90,7 @@
 			</NSEC3>
 		</Denial>
 		<Keys>
-			<TTL>PT10M</TTL>
+			<TTL>PT11M</TTL>
 			<RetireSafety>PT10M</RetireSafety>
 			<PublishSafety>PT10M</PublishSafety>
 			<ShareKeys/>
@@ -133,7 +133,7 @@
 			</Validity>
 			<Jitter>PT1M</Jitter>
 			<InceptionOffset>PT1M</InceptionOffset>
-			<MaxZoneTTL>PT10M</MaxZoneTTL>
+			<MaxZoneTTL>PT14M</MaxZoneTTL>
 		</Signatures>
 		<Denial>
 			<NSEC3>
@@ -147,7 +147,7 @@
 			</NSEC3>
 		</Denial>
 		<Keys>
-			<TTL>PT10M</TTL>
+			<TTL>PT12M</TTL>
 			<RetireSafety>PT10M</RetireSafety>
 			<PublishSafety>PT10M</PublishSafety>
 			<Purge>P1D</Purge>
@@ -189,7 +189,7 @@
 			</Validity>
 			<Jitter>PT1M</Jitter>
 			<InceptionOffset>PT1M</InceptionOffset>
-			<MaxZoneTTL>PT10M</MaxZoneTTL>
+			<MaxZoneTTL>PT16M</MaxZoneTTL>
 		</Signatures>
 		<Denial>
 			<NSEC3>
@@ -203,19 +203,19 @@
 			</NSEC3>
 		</Denial>
 		<Keys>
-			<TTL>PT10M</TTL>
+			<TTL>PT13M</TTL>
 			<RetireSafety>PT10M</RetireSafety>
 			<PublishSafety>PT10M</PublishSafety>
 			<Purge>P1D</Purge>
 			<CSK>
 				<Algorithm length="2048">7</Algorithm>
-				<Lifetime>P3D</Lifetime>
+				<Lifetime>PT73H17M19S</Lifetime>
 				<Repository>SoftHSM</Repository>
 				<Standby>0</Standby>
 			</CSK>
 			<CSK>
 				<Algorithm length="1024">8</Algorithm>
-				<Lifetime>P2D</Lifetime>
+				<Lifetime>PT49H19M17S</Lifetime>
 				<Repository>SoftHSM</Repository>
 				<Standby>0</Standby>
 			</CSK>

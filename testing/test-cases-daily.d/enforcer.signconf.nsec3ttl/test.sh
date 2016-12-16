@@ -60,9 +60,7 @@ test -f "$INSTALL_ROOT/var/opendnssec/signed/with-0-ttl" &&
 # with-0-ttl  -> change <TTL>PT0S</TTL> to <TTL>PT3600S</TTL>  
 echo "Importing changed policies" &&
 cp kasp.reversed.xml "$INSTALL_ROOT/etc/opendnssec/kasp.xml" &&
-sleep 1 && log_this ods-import-reversed ods-enforcer policy import &&
-
-sleep 3 && ods_enforcer_idle && sleep 1 &&
+log_this ods-import-reversed ods-enforcer policy import && sleep 3 &&
 
 for zone in with-ttl no-ttl with-0-ttl; do
 	# Used only to create a gold while setting up the test

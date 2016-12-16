@@ -19,6 +19,7 @@ echo "##################  SETUP ###########################"
 echo -n "LINE: ${LINENO} " && ods_start_ods-control &&
 
 ## Wait for signed zone file
+
 echo -n "LINE: ${LINENO} " && syslog_waitfor 60 'ods-signerd: .*\[STATS\] ods' &&
 echo -n "LINE: ${LINENO} " && test -f "$SIGNED_ZONE" &&
 echo -n "LINE: ${LINENO} " && `$GREP -q -- "IN[[:space:]]SOA[[:space:]]ns1.ods.[[:space:]]postmaster.ods.[[:space:]]1001[[:space:]]" $SIGNED_ZONE` &&
