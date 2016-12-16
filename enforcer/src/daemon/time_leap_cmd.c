@@ -85,8 +85,9 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 	const int NARGV = MAX_ARGS;
 	const char *argv[MAX_ARGS];
         int taskcount;
-	int argc = 0, attach = 0, cont;
+	int argc = 0, attach = 0;
 	int long_index = 0, opt = 0;
+	int processed_enforce;
 	task_type* task = NULL;
         engine_type* engine = getglobalcontext(context);
 
@@ -144,23 +145,45 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 		return 1;
 	}
 
-        schedule_info(engine->taskq, &time_leap, NULL, &taskcount);
-
+	schedule_info(engine->taskq, &time_leap, NULL, &taskcount);
 	now = time_now();
 	strftime(strtime, sizeof(strtime), "%c", localtime_r(&now, &strtime_struct));
 	client_printf(sockfd, 
 		"There are %i tasks scheduled.\nIt is now       %s (%ld seconds since epoch)\n",
 		taskcount, strtime, (long)now);
-	cont = 1;
+
+    if (!time) schedule_info(engine->taskq, &time_leap, NULL, NULL);
+    if (time_leap == -1) {
+        client_printf(sockfd, "No tasks in queue. Not able to leap.\n");
+        return 0;
+    }
+
+    if (!attach) {
+        set_time_now(time_leap);
+		strftime(strtime, sizeof(strtime), "%c", localtime_r(&time_leap, &strtime_struct));
+		client_printf(sockfd,  "Leaping to time %s (%ld seconds since epoch)\n",
+			(strtime[0]?strtime:"(null)"), (long)time_leap);
+		ods_log_info("Time leap: Leaping to time %s\n", strtime);
+		/* Wake up all workers and let them reevaluate wether their
+		 tasks need to be executed */
+		client_printf(sockfd, "Waking up workers\n");
+		engine_wakeup_workers(engine);
+        return 0;
+    }
+
     if (!(dbconn = get_database_connection(engine))) {
         client_printf_err(sockfd, "Failed to open DB connection.\n");
         client_exit(sockfd, 1);
         return -1;
     }
-	while (cont) {
-		if (!time)
-                        schedule_info(engine->taskq, &time_leap, NULL, NULL);
-
+    /* Keep looping until an enforce task is found, then loop but don't advance time */
+    processed_enforce = 0;
+	while (1) {
+        /*if time is set never advance time but only consume all task <= time*/
+		if (!time) {
+            schedule_info(engine->taskq, &time_leap, NULL, NULL);
+            if (processed_enforce && time_leap > time_now()) break;
+        }
 		if (time_leap == -1) {
 			client_printf(sockfd, "No tasks in queue. Not able to leap.\n");
 			break;
@@ -168,20 +191,13 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 
 		set_time_now(time_leap);
 		strftime(strtime, sizeof(strtime), "%c", localtime_r(&time_leap, &strtime_struct));
-
 		client_printf(sockfd,  "Leaping to time %s (%ld seconds since epoch)\n", 
 			(strtime[0]?strtime:"(null)"), (long)time_leap);
 		ods_log_info("Time leap: Leaping to time %s\n", strtime);
-		/* Wake up all workers and let them reevaluate wether their
-		 tasks need to be executed */
-		client_printf(sockfd, "Waking up workers\n");
-		engine_wakeup_workers(engine);
-		if (!attach)
-			break;
 		if (!(task = schedule_pop_first_task(engine->taskq)))
 			break;
-		if (sched_task_istype(task,  TASK_TYPE_ENFORCE))
-			cont = 0;
+		if (schedule_task_istype(task,  TASK_TYPE_ENFORCE))
+			processed_enforce = 1;
 		task_perform(engine->taskq, task, dbconn);
 		ods_log_debug("[timeleap] finished working");
 	}

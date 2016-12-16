@@ -105,6 +105,8 @@ extern const char* TASK_READ;
 extern const char* TASK_NSECIFY;
 extern const char* TASK_SIGN;
 extern const char* TASK_WRITE;
+extern const char* TASK_FORCESIGNCONF;
+extern const char* TASK_FORCEREAD;
 
 /*
  * owner: string is owned by task.

@@ -17,50 +17,50 @@ ods_reset_env &&
 ##################  SETUP ###########################
 # Start enforcer (Zone already exists and we let it generate keys itself)
 
-ods_start_enforcer &&
+echo -n "LINE: ${LINENO} " && ods_start_enforcer &&
 
 # Check that we have 2 keys
-log_this ods-enforcer-key-list1 ods-enforcer key list --all &&
-log_grep ods-enforcer-key-list1 stdout 'ods[[:space:]]*KSK[[:space:]]*generate' &&
-log_grep ods-enforcer-key-list1 stdout 'ods[[:space:]]*ZSK[[:space:]]*publish' &&
+echo -n "LINE: ${LINENO} " && log_this ods-enforcer-key-list1 ods-enforcer key list --all &&
+echo -n "LINE: ${LINENO} " && log_grep ods-enforcer-key-list1 stdout 'ods[[:space:]]*KSK[[:space:]]*publish' &&
+echo -n "LINE: ${LINENO} " && log_grep ods-enforcer-key-list1 stdout 'ods[[:space:]]*ZSK[[:space:]]*ready' &&
 
 # Grab the KEYTAG of the KSK
-log_this ods-enforcer-keytag ods-enforcer key list --verbose --all &&
-KSK_KEYTAG=`log_grep -o ods-enforcer-keytag stdout "ods[[:space:]]*KSK[[:space:]]*generate" | awk '{print $10}'` &&
+echo -n "LINE: ${LINENO} " && log_this ods-enforcer-keytag ods-enforcer key list --verbose --all &&
+echo -n "LINE: ${LINENO} " && KSK_KEYTAG=`log_grep -o ods-enforcer-keytag stdout "ods[[:space:]]*KSK[[:space:]]*publish" | awk '{print $10}'` &&
 
 ## Jump forward one hour so the KSK will be ready, obviosuly depends on Propagation Time and TTL 
 ##################  STEP 1: Time = 4 hr ###########################
 
-log_this ods-enforcer-time-leap ods_enforcer_leap_to 14400 &&
+echo -n "LINE: ${LINENO} " && log_this ods-enforcer-time-leap ods_enforcer_leap_to 14400 &&
 
 
 
 # We should be ready for a ds-seen on ods
-syslog_grep "\[enforce_task\] please submit DS with keytag $KSK_KEYTAG for zone ods" &&
+echo -n "LINE: ${LINENO} " && syslog_grep "\[enforce_task\] please submit DS with keytag $KSK_KEYTAG for zone ods" &&
 
 
 # Check that dssub.out file exists
-echo "Testing dssub command ran" &&
-test -f "$INSTALL_ROOT/var/opendnssec/enforcer/dssub.out" &&
+echo -n "LINE: ${LINENO} " && echo "Testing dssub command ran" &&
+echo -n "LINE: ${LINENO} " && test -f "$INSTALL_ROOT/var/opendnssec/enforcer/dssub.out" &&
 
-echo "Testing contents of dssub.out" &&
-grep "ods. 600 IN DNSKEY 257 3 7 AwEAA.*" "$INSTALL_ROOT/var/opendnssec/enforcer/dssub.out" &&
-! grep "; {cka_id = .*}" "$INSTALL_ROOT/var/opendnssec/enforcer/dssub.out" &&
+echo -n "LINE: ${LINENO} " && echo "Testing contents of dssub.out" &&
+echo -n "LINE: ${LINENO} " && grep "ods. 600 IN DNSKEY 257 3 7 AwEAA.*" "$INSTALL_ROOT/var/opendnssec/enforcer/dssub.out" &&
+echo -n "LINE: ${LINENO} " && ! grep "; {cka_id = .*}" "$INSTALL_ROOT/var/opendnssec/enforcer/dssub.out" &&
 
 # Also export the key to double check the TTL 
-log_this ods-enforcer-key-export 'ods-enforcer key export -z ods' &&
-log_grep ods-enforcer-key-export stdout 'ods.	600	IN	DNSKEY	257 3 7 AwEAA' &&
+echo -n "LINE: ${LINENO} " && log_this ods-enforcer-key-export 'ods-enforcer key export -z ods' &&
+echo -n "LINE: ${LINENO} " && log_grep ods-enforcer-key-export stdout 'ods.	600	IN	DNSKEY	257 3 7 AwEAA' &&
 
-log_this ods-enforcer-key-export-ds 'ods-enforcer key export -z ods --ds ' &&
-log_grep ods-enforcer-key-export-ds stdout 'ods.	300	IN	DS	' &&
+echo -n "LINE: ${LINENO} " && log_this ods-enforcer-key-export-ds 'ods-enforcer key export -z ods --ds ' &&
+echo -n "LINE: ${LINENO} " && log_grep ods-enforcer-key-export-ds stdout 'ods.	300	IN	DS	' &&
 
 # Clean up
-echo "Cleaning up files" &&
-rm -f "$INSTALL_ROOT/var/opendnssec/enforcer/dssub.pl" &&
-rm -f "$INSTALL_ROOT/var/opendnssec/enforcer/dssub.out" &&
+echo -n "LINE: ${LINENO} " && echo "Cleaning up files" &&
+echo -n "LINE: ${LINENO} " && rm -f "$INSTALL_ROOT/var/opendnssec/enforcer/dssub.pl" &&
+echo -n "LINE: ${LINENO} " && rm -f "$INSTALL_ROOT/var/opendnssec/enforcer/dssub.out" &&
 
-ods_stop_enforcer &&
-return 0
+echo -n "LINE: ${LINENO} " && ods_stop_enforcer &&
+echo -n "LINE: ${LINENO} " && return 0
 
 # Something went wrong, make sure clean up tmp if nothing else
 rm -f "$INSTALL_ROOT/var/opendnssec/enforcer/dssub.pl"
