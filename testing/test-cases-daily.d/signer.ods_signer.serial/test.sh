@@ -34,7 +34,7 @@ echo -n "LINE: ${LINENO} " && `$GREP -q -- "IN[[:space:]]SOA[[:space:]]ns1.ods.[
 echo -n "LINE: ${LINENO} " && echo "Zone now signed with serial 2000" &&
 
 echo "##################  Sign with lower serial ###########################"
-echo -n "LINE: ${LINENO} " && !(log_this signer-sign-serial_fail	ods-signer sign ods --serial 500) &&
+echo -n "LINE: ${LINENO} " && log_this signer-sign-serial_fail	ods-signer sign ods --serial 500 &&
 echo -n "LINE: ${LINENO} " && log_this signer-sign-serial_fail	ods-signer flush &&
 echo -n "LINE: ${LINENO} " && log_grep signer-sign-serial_fail    stdout "Error: Unable to enforce serial 500 for zone ods." &&
 
