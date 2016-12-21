@@ -1,11 +1,9 @@
 zone0a;KSK;active;date time;2048;7;SoftHSM
 zone0a;ZSK;active;date time;1024;7;SoftHSM
-zone0a;ZSK;publish;date time;1024;7;SoftHSM
 zone0a;ZSK;retire;date time;1024;7;SoftHSM
 zone0a;ZSK;retire;date time;1024;7;SoftHSM
 zone0b;KSK;active;date time;2048;7;SoftHSM
 zone0b;ZSK;active;date time;1024;7;SoftHSM
-zone0b;ZSK;publish;date time;1024;7;SoftHSM
 zone0b;ZSK;retire;date time;1024;7;SoftHSM
 zone0b;ZSK;retire;date time;1024;7;SoftHSM
 zone1;CSK;active;date time;2048;7;SoftHSM
