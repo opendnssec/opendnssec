@@ -1321,7 +1321,7 @@ xfrd_tcp_write(xfrd_type* xfrd, tcp_set_type* set)
         }
         if (error != 0) {
             ods_log_error("[%s] zone %s cannot tcp connect to %s: %s",
-                xfrd_str, zone->name, xfrd->master->address, strerror(errno));
+                xfrd_str, zone->name, xfrd->master->address, strerror(error));
             xfrd_set_timer_now(xfrd);
             xfrd_tcp_release(xfrd, set, 1);
             return;
