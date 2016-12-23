@@ -9,6 +9,6 @@ zone0b;ZSK;NA;omnipresent;NA;omnipresent;1;1
 zone1;CSK;omnipresent;omnipresent;omnipresent;omnipresent;1;1
 zone2a;CSK;omnipresent;omnipresent;omnipresent;omnipresent;1;1
 zone2b;CSK;omnipresent;omnipresent;omnipresent;omnipresent;1;1
-zone3;CSK;hidden;omnipresent;omnipresent;rumoured;1;1
-zone3;CSK;hidden;unretentive;unretentive;unretentive;0;0
+zone3;CSK;hidden;hidden;hidden;hidden;0;0
 zone3;CSK;omnipresent;omnipresent;omnipresent;omnipresent;1;1
+zone3;CSK;rumoured;omnipresent;omnipresent;omnipresent;1;1
