@@ -1304,7 +1304,7 @@ markSuccessors(db_connection_t *dbconn, key_data_t** keylist,
         {
             if (db_value_cmp(key_data_id(future_key->key),
                     key_dependency_to_key_data_id(kd), &cmp) == DB_OK &&
-                !cmp && kd->type == future_key->type)
+                !cmp && kd->type == (key_dependency_type_t)future_key->type)
             {
                     key_dependency_delete(kd);
             }
