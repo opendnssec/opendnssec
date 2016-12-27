@@ -314,32 +314,16 @@ static int
 exists(key_data_t** keylist, size_t keylist_size, struct future_key *future_key,
 	int same_algorithm, const key_state_state_t mask[4])
 {
-	size_t i;
-
-	if (!keylist) {
-		return -1;
-	}
-	if (!future_key) {
-		return -1;
-	}
-    if (!future_key->key) {
+    size_t i;
+    if (!keylist || !future_key || !future_key->key)
         return -1;
+    /* Check the states against the mask. If we have a match we return a
+    * positive value. */
+    for (i = 0; i < keylist_size; i++) {
+        if (match(keylist[i], future_key, same_algorithm, mask) > 0)
+            return 1;
     }
-
-	for (i = 0; i < keylist_size; i++) {
-		/*
-		 * Check the states against the mask. If we have a match we return a
-		 * positive value.
-		 */
-		if (match(keylist[i], future_key, same_algorithm, mask) > 0) {
-	        return 1;
-		}
-	}
-
-	/*
-	 * We got no match, return zero.
-	 */
-	return 0;
+    return 0; /* We've got no match. */
 }
 
 /**
@@ -352,18 +336,11 @@ static int
 isPotentialSuccessor(key_data_t* successor_key, key_data_t* predecessor_key,
     struct future_key *future_key, key_state_type_t type)
 {
-    if (!successor_key) {
+    if (!successor_key || !predecessor_key || !future_key)
         return -1;
-    }
-    if (!predecessor_key) {
-        return -1;
-    }
-    if (!future_key) {
-        return -1;
-    }
 
-	/* You can't be a successor of yourself */
-	if (!key_data_cmp(successor_key, predecessor_key)) return 0;
+    /* You can't be a successor of yourself */
+    if (!key_data_cmp(successor_key, predecessor_key)) return 0;
 
     /*
      * TODO
@@ -1749,9 +1726,19 @@ updateZone(db_connection_t *dbconn, policy_t const *policy, zone_db_t* zone,
                  * state is a certain state, wait an additional signature
                  * lifetime to allow for 'smooth rollover'.
                  */
+                static const key_state_state_t mask[2][4] = {
+                    {NA, OMNIPRESENT, NA, UNRETENTIVE},
+                    {NA, OMNIPRESENT, NA, RUMOURED}
+                };
+                int zsk_out = exists(keylist, keylist_size, &future_key,
+                    1, mask[0]);
+                int zsk_in = exists(keylist, keylist_size, &future_key,
+                    1, mask[1]);
+
                 if (type[j] == KEY_STATE_TYPE_RRSIG
                     && key_state_state(key_data_cached_dnskey(keylist[i])) == OMNIPRESENT
-                    && (next_state == OMNIPRESENT || next_state == HIDDEN))
+                    && ((next_state == OMNIPRESENT && zsk_out)
+                        || (next_state == HIDDEN && zsk_in)))
                 {
                     returntime_key = addtime(returntime_key,
                         policy_signatures_jitter(policy)

@@ -12,9 +12,9 @@ zone0b;ZSK;NA;omnipresent;NA;rumoured;1;1
 zone0b;ZSK;NA;omnipresent;NA;unretentive;1;0
 zone1;CSK;hidden;omnipresent;hidden;unretentive;1;0
 zone1;CSK;omnipresent;omnipresent;omnipresent;rumoured;1;1
-zone2a;CSK;hidden;omnipresent;unretentive;unretentive;1;0
+zone2a;CSK;hidden;omnipresent;hidden;unretentive;1;0
 zone2a;CSK;omnipresent;omnipresent;omnipresent;rumoured;1;1
-zone2b;CSK;hidden;omnipresent;unretentive;unretentive;1;0
+zone2b;CSK;hidden;omnipresent;hidden;unretentive;1;0
 zone2b;CSK;omnipresent;omnipresent;omnipresent;rumoured;1;1
 zone3;CSK;hidden;hidden;hidden;hidden;0;0
 zone3;CSK;hidden;omnipresent;omnipresent;rumoured;1;1

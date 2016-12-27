@@ -18,5 +18,5 @@ zone2b;CSK;mixed;date time;2048;7;SoftHSM
 zone2b;CSK;mixed;date time;2048;7;SoftHSM
 zone3;CSK;active;date time;1024;8;SoftHSM
 zone3;CSK;mixed;date time;2048;7;SoftHSM
-zone3;CSK;publish;date time;2048;7;SoftHSM
 zone3;CSK;retire;date time;1024;8;SoftHSM
+zone3;CSK;retire;date time;2048;7;SoftHSM
