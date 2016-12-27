@@ -1076,52 +1076,32 @@ policyApproval(key_data_t** keylist, size_t keylist_size,
 
     case KEY_STATE_TYPE_DNSKEY:
         if (!key_state_minimize(key_data_cached_dnskey(future_key->key))) {
-            /*
-             * There are no restrictions for the DNSKEY transition so we can
-             * just continue.
-             */
-            break;
+            /* There are no restrictions for the DNSKEY transition so we can
+             * just continue. */
+            return 1;
         }
-
-        /*
-         * Check that signatures has been propagated for CSK/ZSK.
-         *
-         * TODO: How is this related to CSK/ZSK, there is no check for key_data_role().
-         */
-        if (key_state_state(key_data_cached_rrsig(future_key->key)) != OMNIPRESENT
-            && key_state_state(key_data_cached_rrsig(future_key->key)) != NA)
-        {
-            /*
-             * RRSIG not fully propagated so we will not do any transitions.
-             */
-            return 0;
+        /* Check that signatures has been propagated for CSK/ZSK. */
+        if (key_data_role(future_key->key) & KEY_DATA_ROLE_ZSK ) {
+            if (key_state_state(key_data_cached_rrsig(future_key->key)) == OMNIPRESENT
+                || key_state_state(key_data_cached_rrsig(future_key->key)) == NA)
+            {
+                /* RRSIG fully propagated so we will do the transitions. */
+                return 1;
+            }
         }
-
-        /*
-         * Check if the DS is introduced and continue if it is.
-         */
-        if (key_state_state(key_data_cached_ds(future_key->key)) == OMNIPRESENT
-            || key_state_state(key_data_cached_ds(future_key->key)) == NA)
-        {
-            break;
+        /* Check if the DS is introduced and continue if it is. */
+        if (key_data_role(future_key->key) & KEY_DATA_ROLE_KSK ) {
+            if (key_state_state(key_data_cached_ds(future_key->key)) == OMNIPRESENT
+                || key_state_state(key_data_cached_ds(future_key->key)) == NA)
+            {
+                return 1;
+            }
         }
-
-        /*
-         * We might be doing an algorithm rollover so we check if there are
-         * no other good KSK available and ignore the minimize flag if so.
-         *
-         * TODO: How is this related to KSK/CSK? There are no check for key_data_role().
-         */
-        if (exists(keylist, keylist_size, future_key, 1, mask[6]) > 0
+        /* We might be doing an algorithm rollover so we check if there are
+         * no other good KSK available and ignore the minimize flag if so. */
+        return !(exists(keylist, keylist_size, future_key, 1, mask[6]) > 0
             || exists_with_successor(keylist, keylist_size, future_key, 1, mask[8], mask[7], KEY_STATE_TYPE_DS, deplist) > 0
-            || exists_with_successor(keylist, keylist_size, future_key, 1, mask[11], mask[9], KEY_STATE_TYPE_DNSKEY, deplist) > 0)
-        {
-            /*
-             * We found a good key, so we will not do any transition.
-             */
-            return 0;
-        }
-        break;
+            || exists_with_successor(keylist, keylist_size, future_key, 1, mask[11], mask[9], KEY_STATE_TYPE_DNSKEY, deplist) > 0);
 
     case KEY_STATE_TYPE_RRSIGDNSKEY:
         /*
@@ -1304,7 +1284,7 @@ markSuccessors(db_connection_t *dbconn, key_data_t** keylist,
         {
             if (db_value_cmp(key_data_id(future_key->key),
                     key_dependency_to_key_data_id(kd), &cmp) == DB_OK &&
-                !cmp && kd->type == future_key->type)
+                !cmp && kd->type == (key_dependency_type_t)future_key->type)
             {
                     key_dependency_delete(kd);
             }
