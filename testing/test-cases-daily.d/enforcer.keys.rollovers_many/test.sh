@@ -37,7 +37,7 @@ echo -n "LINE: ${LINENO} " && ods-enforcer key list -v | grep $KSK1_ID | grep pu
 echo -n "LINE: ${LINENO} " && ods-enforcer key list -v | grep $ZSK1_ID | grep ready &&
 
 echo "################## DS-SEEN ###########################" &&
-echo -n "LINE: ${LINENO} " && ods_enforcer_leap_over 22 &&
+echo -n "LINE: ${LINENO} " && ods_enforcer_leap_over 4 &&
 
 echo -n "LINE: ${LINENO} " && ods-enforcer key list -v | grep $KSK1_ID | grep ready &&
 echo -n "LINE: ${LINENO} " && ods-enforcer key list -v | grep $KSK1_ID | grep ds-seen &&
@@ -48,7 +48,7 @@ echo -n "LINE: ${LINENO} " && ods-enforcer key list -v | grep $KSK1_ID | grep ac
 echo -n "LINE: ${LINENO} " && ods-enforcer key list -v | grep $ZSK1_ID | grep active &&
 
 echo "################## NEW ZSK ###########################" &&
-echo -n "LINE: ${LINENO} " && ods_enforcer_leap_over 120 &&
+echo -n "LINE: ${LINENO} " && ods_enforcer_leap_over 80 &&
 
 echo -n "LINE: ${LINENO} " && ZSK2_ID=`ods-enforcer key list -d -p | grep ZSK |grep hidden |cut -d ";" -f 9` &&
 echo -n "LINE: ${LINENO} " && ods-enforcer key list -v | grep $ZSK1_ID | grep active &&
