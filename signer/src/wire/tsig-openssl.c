@@ -131,8 +131,11 @@ static void
 cleanup_context(void *data)
 {
     HMAC_CTX* context = (HMAC_CTX*) data;
+#ifdef HAVE_SSL_NEW_HMAC
+    HMAC_CTX_free(context);
+#else
     HMAC_CTX_cleanup(context);
-    return;
+#endif
 }
 
 static void
@@ -155,9 +158,15 @@ context_add_cleanup(void* context)
 static void*
 create_context(allocator_type* allocator)
 {
-    HMAC_CTX* context = (HMAC_CTX*) allocator_alloc(allocator,
-        sizeof(HMAC_CTX));
+    HMAC_CTX* context;
+#ifdef HAVE_SSL_NEW_HMAC
+    context = HMAC_CTX_new();
+    if (!context) return NULL;
+    HMAC_CTX_reset(context);
+#else
+    context = (HMAC_CTX*) allocator_alloc(allocator, sizeof(HMAC_CTX));
     HMAC_CTX_init(context);
+#endif
     context_add_cleanup(context);
     return context;
 }

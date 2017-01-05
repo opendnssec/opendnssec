@@ -2,6 +2,8 @@ Unreleased:
 
 * OPENDNSSEC-778: Double NSEC3PARAM record after resalt.
 * OPENDNSSEC-853: Fixed serial_xfr_acquired not updated in state file.
+* Wrong error was sometimes being print on failing TCP connect.
+* Add support for OpenSSL 1.1.0.
 
 OpenDNSSEC 1.4.12 - 2015-10-17
 
