@@ -1,1 +1,1 @@
-define([OPENDNSSEC_VERSION], [2.0.3])
+define([OPENDNSSEC_VERSION], [2.0.4])
