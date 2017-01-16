@@ -29,6 +29,12 @@ if [ -z $DB_OUT ]; then
 	exit 1
 fi
 
+DB_VERSION=`sqlite3 $DB_IN "SELECT version FROM dbadmin;"`
+if [ ! $DB_VERSION -eq 4 ]; then
+    echo "ERROR: Old database (version $DB_VERSION). Please upgrade to version 4 before migration"
+    exit 1
+fi
+
 # Look for zones without an active key.
 Z=`sqlite3 $DB_IN < find_problematic_zones.sql`
 if [[ $Z = *[![:space:]]* ]]; then
