@@ -305,6 +305,7 @@ runthread(void* data)
     info->runfunc(info->rundata);
     janitor_thread_unregister(info);
     janitor_thread_finished(info);
+    free(ss.ss_sp);
     return NULL;
 }
 
