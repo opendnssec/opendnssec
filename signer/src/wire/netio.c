@@ -343,7 +343,7 @@ netio_cleanup(netio_type* netio)
         handler = netio->handlers;
         netio->handlers = netio->handlers->next;
         free(handler->handler->user_data);
-        free(handler->handler);
+        /*free(handler->handler);*/
         free(handler);
     }
     free(netio);
