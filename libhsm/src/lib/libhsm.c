@@ -1849,7 +1849,7 @@ hsm_create_prefix(CK_ULONG digest_len,
     const CK_BYTE RSA_SHA256_ID[] = { 0x30, 0x31, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x01, 0x05, 0x00, 0x04, 0x20 };
     const CK_BYTE RSA_SHA512_ID[] = { 0x30, 0x51, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x03, 0x05, 0x00, 0x04, 0x40 };
 
-    switch(algorithm) {
+    switch((ldns_signing_algorithm)algorithm) {
         case LDNS_SIGN_RSAMD5:
             *data_size = sizeof(RSA_MD5_ID) + digest_len;
             data = malloc(*data_size);
@@ -1948,7 +1948,7 @@ hsm_sign_buffer(hsm_ctx_t *ctx,
     /* some HSMs don't really handle CKM_SHA1_RSA_PKCS well, so
      * we'll do the hashing manually */
     /* When adding algorithms, remember there is another switch below */
-    switch (algorithm) {
+    switch ((ldns_signing_algorithm)algorithm) {
         case LDNS_SIGN_RSAMD5:
             digest_len = 16;
             digest = hsm_digest_through_hsm(ctx, session,
@@ -2018,7 +2018,7 @@ hsm_sign_buffer(hsm_ctx_t *ctx,
 
     sign_mechanism.pParameter = NULL;
     sign_mechanism.ulParameterLen = 0;
-    switch(algorithm) {
+    switch((ldns_signing_algorithm)algorithm) {
         case LDNS_SIGN_RSAMD5:
         case LDNS_SIGN_RSASHA1:
         case LDNS_SIGN_RSASHA1_NSEC3:
