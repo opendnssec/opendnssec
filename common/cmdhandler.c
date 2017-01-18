@@ -139,7 +139,7 @@ cmdhandler_perform_command(const char *cmd, struct cmdhandler_ctx_struct* contex
         return ret;
     } else {
         /* Unhandled command, print general error */
-        client_printf_err(sockfd, "Unknown command %s.\n", cmd?cmd:"(null)");
+        client_printf_err(sockfd, "Unknown command %s.\n", cmd);
         client_printf(sockfd, "Commands:\n");
         cmdhandler_get_usage(sockfd, context->cmdhandler);
         return 1;
