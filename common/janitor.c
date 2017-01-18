@@ -222,7 +222,7 @@ janitor_thread_dispose(janitor_thread_t info)
 {
     if (info == NULL)
         return;
-    if (info->threadclass || !info->threadclass->detached) {
+    if (!info->threadclass || !info->threadclass->detached) {
         pthread_mutex_lock(&threadlock);
         if (finishedthreadlist != NULL) {
             if (finishedthreadlist == info) {
