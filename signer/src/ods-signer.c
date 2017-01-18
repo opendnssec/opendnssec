@@ -330,6 +330,7 @@ interface_start(const char* cmd, const char* servsock_filename)
         char line[80];
         FILE *cmd2 = popen("pgrep ods-signerd","r");
         fgets(line, 80, cmd2);
+        (void) pclose(cmd2);
         pid_t pid = strtoul(line, NULL, 10);
         fprintf(stdout, "pid %d\n", pid);
         int time = 0;
