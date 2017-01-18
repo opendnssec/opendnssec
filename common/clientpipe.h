@@ -29,6 +29,8 @@
 #ifndef DAEMON_CLIENTPIPE_H
 #define DAEMON_CLIENTPIPE_H
 
+#include <stdint.h>
+
 /* 1 on succes 0 on fail*/
 int client_printf(int sockfd, const char * format, ...);
 int client_printf_err(int sockfd, const char * format, ...);
@@ -53,8 +55,8 @@ enum msg_type {
 
 /* 1 on succes, 0 on fail */
 int client_exit(int sockfd, char exitcode);
-int client_stdin(int sockfd, const char *cmd, int count);
-int client_stdout(int sockfd, const char *cmd, int count);
-int client_stderr(int sockfd, const char *cmd, int count);
+int client_stdin(int sockfd, const char *cmd, uint16_t count);
+int client_stdout(int sockfd, const char *cmd, uint16_t count);
+int client_stderr(int sockfd, const char *cmd, uint16_t count);
 
 #endif /* DAEMON_CLIENTPIPE_H */

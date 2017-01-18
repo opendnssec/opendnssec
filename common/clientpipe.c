@@ -34,6 +34,7 @@
 #include <assert.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <arpa/inet.h>
 
 #include "log.h"
 #include "file.h"
@@ -48,12 +49,10 @@
  * \param datalen: length of payload, MUST be in range 0..2^16-1
  * */
 static void
-header(char *buf, enum msg_type opc, int datalen) {
+header(char *buf, enum msg_type opc, uint16_t datalen) {
 	assert(buf);
-	assert(0 <= datalen && datalen <= 65535);
 	buf[0] = opc;
-	buf[1] = (datalen>>8) & 0xFF;
-	buf[2] = datalen & 0xFF;
+        *(uint16_t *)(buf+1) = htons(datalen);
 }
 
 /* 1 on succes, 0 on fail */
@@ -68,28 +67,28 @@ client_exit(int sockfd, char exitcode)
 
 /* 1 on succes, 0 on fail */
 static int
-client_msg(int sockfd, char opc, const char *cmd, int count)
+client_msg(int sockfd, char opc, const char *cmd, uint16_t count)
 {
 	char ctrl[3];
 	if (sockfd == -1) return 0;
 	header(ctrl, opc, count);
 	if (ods_writen(sockfd, ctrl, 3) == -1)
 		return 0;
-	return (ods_writen(sockfd, cmd, count) != -1);
+	return (ods_writen(sockfd, cmd, (size_t)count) != -1);
 }
 
 int
-client_stdin(int sockfd, const char *cmd, int count)
+client_stdin(int sockfd, const char *cmd, uint16_t count)
 {
 	return client_msg(sockfd, CLIENT_OPC_STDIN, cmd, count);
 }
 int
-client_stdout(int sockfd, const char *cmd, int count)
+client_stdout(int sockfd, const char *cmd, uint16_t count)
 {
 	return client_msg(sockfd, CLIENT_OPC_STDOUT, cmd, count);
 }
 int
-client_stderr(int sockfd, const char *cmd, int count)
+client_stderr(int sockfd, const char *cmd, uint16_t count)
 {
 	return client_msg(sockfd, CLIENT_OPC_STDERR, cmd, count);
 }
