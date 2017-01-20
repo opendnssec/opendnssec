@@ -114,6 +114,7 @@ program_teardown()
 
     xmlCleanupParser();
     xmlCleanupGlobals();
+    xmlCleanupThreads();
 }
 
 /**

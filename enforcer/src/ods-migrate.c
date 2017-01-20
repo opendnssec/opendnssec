@@ -419,6 +419,7 @@ main(int argc, char* argv[])
 
     xmlCleanupParser();
     xmlCleanupGlobals();
+    xmlCleanupThreads();
 
     return 0;
 }
