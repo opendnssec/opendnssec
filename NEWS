@@ -4,6 +4,7 @@ Unreleased:
 * OPENDNSSEC-853: Fixed serial_xfr_acquired not updated in state file.
 * Wrong error was sometimes being print on failing TCP connect.
 * Add support for OpenSSL 1.1.0.
+* OPENDNSSEC-866: Script for migration between MySQL and SQLite was outdated.
 
 OpenDNSSEC 1.4.12 - 2015-10-17
 
