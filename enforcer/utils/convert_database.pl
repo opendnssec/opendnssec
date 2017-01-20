@@ -158,7 +158,7 @@ $sth->finish;
 #
 
 my $from_version_valid = 0;
-if ($from_version == 3) {
+if ($from_version == 4) {
     $from_version_valid = 1;
 }
 
@@ -447,7 +447,7 @@ if ($from_version == 3) {
         { dnsseckeys => {
             delete => 'DELETE FROM dnsseckeys',
             select => 'SELECT * FROM dnsseckeys',
-            insert => 'INSERT INTO dnsseckeys VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )'
+            insert => 'INSERT INTO dnsseckeys VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )'
         }},
         { parameters_policies => {
             delete => 'DELETE FROM parameters_policies',
