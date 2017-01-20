@@ -601,7 +601,7 @@ successor_rec(key_data_t** keylist, size_t keylist_size,
                 {
                     continue;
                 }
-                if (successor_rec(keylist, keylist_size, successor_key, keylist[i], future_key, type, deplist_ext) > 0) {
+                if (successor_rec(keylist+1, keylist_size-1, successor_key, keylist[i], future_key, type, deplist_ext) > 0) {
                     return 1;
                 }
             }
@@ -655,7 +655,6 @@ successor(key_data_t** keylist, size_t keylist_size, key_data_t* successor_key,
             return 0;
         }
     }
-
     return successor_rec(keylist, keylist_size, successor_key, predecessor_key, future_key, type, deplist);
 }
 
