@@ -1,4 +1,12 @@
-OpenDNSSEC 1.4.12 - 2015-10-17
+OpenDNSSEC 1.4.13 - 2017-01-20
+
+* OPENDNSSEC-778: Double NSEC3PARAM record after resalt.
+* OPENDNSSEC-853: Fixed serial_xfr_acquired not updated in state file.
+* Wrong error was sometimes being print on failing TCP connect.
+* Add support for OpenSSL 1.1.0.
+* OPENDNSSEC-866: Script for migration between MySQL and SQLite was outdated.
+
+OpenDNSSEC 1.4.12 - 2016-10-17
 
 * OPENDNSSEC-808: Crash on query with empty query section (thanks Håvard
   Eidnes).

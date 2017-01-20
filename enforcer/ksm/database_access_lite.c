@@ -41,6 +41,8 @@
 #include <time.h>
 #include <unistd.h>
 
+#include <sys/select.h>
+
 #include <sqlite3.h>
 
 #include "ksm/dbsdef.h"
