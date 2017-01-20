@@ -407,7 +407,6 @@ engine_setup(void)
                 engine = NULL;
                 xmlCleanupParser();
                 xmlCleanupGlobals();
-                xmlCleanupThreads();
                 close(pipefd[1]);
                 while (read(pipefd[0], &buff, 1) != -1) {
                     if (buff <= 1) break;
