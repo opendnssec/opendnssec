@@ -194,20 +194,12 @@ cmdhandler_handle_cmd_update(int sockfd, cmdhandler_ctx_type* context, const cha
         schedule_scheduletask(engine->taskq, TASK_FORCESIGNCONF, zone->name, zone, &zone->zone_lock, schedule_PROMPTLY);
         pthread_mutex_unlock(&zone->zone_lock);
 
-        if (status != ODS_STATUS_OK) {
-            (void)snprintf(buf, ODS_SE_MAXLINE, "Error: Unable to reschedule "
-                "task for zone %s.\n", cmdargument(cmd, NULL, ""));
-            client_printf(sockfd, buf);
-            ods_log_crit("[%s] unable to reschedule task for zone %s: %s",
-                cmdh_str, zone->name, ods_status2str(status));
-        } else {
-            (void)snprintf(buf, ODS_SE_MAXLINE, "Zone %s config being updated.\n",
-            cmdargument(cmd, NULL, ""));
-            client_printf(sockfd, buf);
-            ods_log_verbose("[%s] zone %s scheduled for immediate update signconf",
-                cmdh_str, cmdargument(cmd, NULL, ""));
-            engine_wakeup_workers(engine);
-        }
+        (void)snprintf(buf, ODS_SE_MAXLINE, "Zone %s config being updated.\n",
+        cmdargument(cmd, NULL, ""));
+        client_printf(sockfd, buf);
+        ods_log_verbose("[%s] zone %s scheduled for immediate update signconf",
+            cmdh_str, cmdargument(cmd, NULL, ""));
+        engine_wakeup_workers(engine);
     }
     return 0;
 }
@@ -293,7 +285,6 @@ cmdhandler_handle_cmd_sign(int sockfd, cmdhandler_ctx_type* context, const char 
 {
     engine_type* engine;
     zone_type* zone = NULL;
-    ods_status status = ODS_STATUS_OK;
     char buf[ODS_SE_MAXLINE];
 
     engine = getglobalcontext(context);
@@ -386,7 +377,6 @@ unlink_backup_file(const char* filename, const char* extension)
 static int
 cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 {
-    ods_status status = ODS_STATUS_OK;
     engine_type* engine;
     char buf[ODS_SE_MAXLINE];
     zone_type* zone = NULL;
@@ -431,17 +421,10 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_ctx_type* context, const char
         schedule_scheduletask(engine->taskq, TASK_FORCESIGNCONF, zone->name, zone, &zone->zone_lock, schedule_IMMEDIATELY);
         pthread_mutex_unlock(&zone->zone_lock);
 
-        if (status != ODS_STATUS_OK) {
-            (void)snprintf(buf, ODS_SE_MAXLINE, "Error: Unable to reschedule "
-                "task for zone %s.\n", cmdargument(cmd, NULL, ""));
-            ods_log_crit("[%s] unable to reschedule task for zone %s: %s",
-                cmdh_str, zone->name, ods_status2str(status));
-        } else {
-            (void)snprintf(buf, ODS_SE_MAXLINE, "Internal zone information about "
-                "%s cleared", cmdargument(cmd, NULL, ""));
-            ods_log_info("[%s] internal zone information about %s cleared",
-                cmdh_str, cmdargument(cmd, NULL, ""));
-        }
+        (void)snprintf(buf, ODS_SE_MAXLINE, "Internal zone information about "
+            "%s cleared", cmdargument(cmd, NULL, ""));
+        ods_log_info("[%s] internal zone information about %s cleared",
+            cmdh_str, cmdargument(cmd, NULL, ""));
     } else {
         (void)snprintf(buf, ODS_SE_MAXLINE, "Cannot clear zone %s, zone not "
             "found", cmdargument(cmd, NULL, ""));
