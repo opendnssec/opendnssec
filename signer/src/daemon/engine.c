@@ -92,17 +92,16 @@ engine_create(void)
         engine_cleanup(engine);
         return NULL;
     }
-    engine->taskq = schedule_create();
+    if (!(engine->taskq = schedule_create())) {
+        engine_cleanup(engine);
+        return NULL;
+    }
     schedule_registertask(engine->taskq, TASK_CLASS_SIGNER, TASK_SIGNCONF, do_readsignconf);
     schedule_registertask(engine->taskq, TASK_CLASS_SIGNER, TASK_FORCESIGNCONF, do_forcereadsignconf);
     schedule_registertask(engine->taskq, TASK_CLASS_SIGNER, TASK_READ, do_readzone);
     schedule_registertask(engine->taskq, TASK_CLASS_SIGNER, TASK_FORCEREAD, do_forcereadzone);
     schedule_registertask(engine->taskq, TASK_CLASS_SIGNER, TASK_SIGN, do_signzone);
     schedule_registertask(engine->taskq, TASK_CLASS_SIGNER, TASK_WRITE, do_writezone);
-    if (!engine->taskq) {
-        engine_cleanup(engine);
-        return NULL;
-    }
     return engine;
 }
 

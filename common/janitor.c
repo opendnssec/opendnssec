@@ -222,7 +222,7 @@ janitor_thread_dispose(janitor_thread_t info)
 {
     if (info == NULL)
         return;
-    if (info->threadclass || !info->threadclass->detached) {
+    if (!info->threadclass || !info->threadclass->detached) {
         pthread_mutex_lock(&threadlock);
         if (finishedthreadlist != NULL) {
             if (finishedthreadlist == info) {
@@ -283,12 +283,13 @@ runthread(void* data)
     sigset_t sigset;
     struct janitor_thread_struct* info;
     stack_t ss;
+    stack_t prevss;
     info = (struct janitor_thread_struct*) data;
     pthread_setspecific(threadlocator, info);
     ss.ss_sp = malloc(SIGSTKSZ);
     ss.ss_size = SIGSTKSZ;
     ss.ss_flags = 0;
-    sigaltstack(&ss, NULL);
+    sigaltstack(&ss, &prevss);
     pthread_barrier_wait(&info->startbarrier);
     if (info->blocksignals) {
         sigfillset(&sigset);
@@ -303,6 +304,7 @@ runthread(void* data)
             report("pthread_sigmask: %s (%d)", strerror(err), err);
     }
     info->runfunc(info->rundata);
+    sigaltstack(&prevss, NULL);
     janitor_thread_unregister(info);
     janitor_thread_finished(info);
     free(ss.ss_sp);
