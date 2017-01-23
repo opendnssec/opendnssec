@@ -1,0 +1,18 @@
+$ORIGIN .
+$TTL 600	; 10 minutes
+ods			IN SOA	ns1.ods. postmaster.ods. (
+				1010       ; serial
+				1200       ; refresh (20 minutes)
+				180        ; retry (3 minutes)
+				1209600    ; expire (2 weeks)
+				3600       ; minimum (1 hour)
+				)
+			NS	ns1.ods.
+			NS	ns2.ods.
+			A	192.0.2.1
+			MX	10 mail.ods.
+$ORIGIN ods.
+mail			A	192.0.2.1
+ns1			A	192.0.2.1
+ns2			A	192.0.2.1
+$TTL 7200	; 2 hours
