@@ -305,9 +305,9 @@ runthread(void* data)
     }
     info->runfunc(info->rundata);
     sigaltstack(&prevss, NULL);
+    free(ss.ss_sp);
     janitor_thread_unregister(info);
     janitor_thread_finished(info);
-    free(ss.ss_sp);
     return NULL;
 }
 

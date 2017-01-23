@@ -49,6 +49,7 @@
 /* According to earlier standards: select() sys/time.h sys/types.h unistd.h */
 #include <sys/time.h>
 #include <sys/types.h>
+#include <arpa/inet.h>
 
 #include "file.h"
 #include "str.h"
