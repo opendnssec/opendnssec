@@ -150,7 +150,9 @@ main(int argc, char* argv[])
     };
 
     if(argv[0][0] != '/') {
-        asprintf(&argv0, "%s/%s", getcwd(NULL,0), argv[0]);
+        char *path = getcwd(NULL,0);
+        asprintf(&argv0, "%s/%s", path, argv[0]);
+        free(path);
     } else {
         argv0 = strdup(argv[0]);
     }

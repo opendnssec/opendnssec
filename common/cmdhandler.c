@@ -49,6 +49,7 @@
 /* According to earlier standards: select() sys/time.h sys/types.h unistd.h */
 #include <sys/time.h>
 #include <sys/types.h>
+#include <arpa/inet.h>
 
 #include "file.h"
 #include "str.h"
@@ -343,6 +344,7 @@ cmdhandler_create(const char* filename, struct cmd_func_block** commands, void* 
     cmdh->listen_fd = listenfd;
     cmdh->listen_addr = servaddr;
     cmdh->need_to_exit = 0;
+    cmdh->stopped = 0;
     cmdh->commands = commands;
     cmdh->globalcontext = globalcontext;
     cmdh->createlocalcontext = createlocalcontext;
