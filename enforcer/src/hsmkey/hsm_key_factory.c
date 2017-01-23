@@ -278,7 +278,7 @@ hsm_key_factory_generate(engine_type* engine, const db_connection_t* connection,
                 else {
                     ods_log_error("[hsm_key_factory_generate] unable to get the ID of the key generated");
                 }
-                free(key);
+                libhsm_key_free(key);
                 hsm_destroy_context(hsm_ctx);
                 pthread_mutex_unlock(__hsm_key_factory_lock);
                 return 1;
@@ -313,7 +313,7 @@ hsm_key_factory_generate(engine_type* engine, const db_connection_t* connection,
 
             hsm_key_free(hsm_key);
             free(key_id);
-            free(key);
+            libhsm_key_free(key);
         }
         else {
             if ((hsm_err = hsm_get_error(hsm_ctx))) {

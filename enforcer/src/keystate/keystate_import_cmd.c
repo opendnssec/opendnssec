@@ -92,7 +92,7 @@ perform_hsmkey_import(int sockfd, db_connection_t *dbconn,
 	hsm_destroy_context(hsm_ctx);
 	return -1;
     }
-    free(libhsmkey);
+    libhsm_key_free(libhsmkey);
     hsm_key = hsm_key_new_get_by_locator(dbconn, ckaid);
     if (hsm_key) {
         ods_log_error("[%s] Error: Already used this key with this locator: %s", module_str, ckaid);
@@ -165,7 +165,7 @@ perform_keydata_import(int sockfd, db_connection_t *dbconn,
         hsm_destroy_context(hsm_ctx);
         return -1;
     }
-    free(libhsmkey);
+    libhsm_key_free(libhsmkey);
     if (!(hsmkey = hsm_key_new_get_by_locator(dbconn, ckaid))) {
         ods_log_error("[%s] Error: Cannot get hsmkey %s from database, database error", module_str, ckaid);
         hsm_destroy_context(hsm_ctx);
@@ -246,7 +246,7 @@ perform_keystate_import(int sockfd, db_connection_t *dbconn,
         hsm_destroy_context(hsm_ctx);
         return -1;
     }
-    free(libhsmkey);
+    libhsm_key_free(libhsmkey);
     key = key_data_new_get_by_hsm_key_id(dbconn, hsmkeyid);
     keydataid = key_data_id(key);
 

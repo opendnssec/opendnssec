@@ -2361,6 +2361,13 @@ hsm_sign_params_free(hsm_sign_params_t *params)
     }
 }
 
+void
+libhsm_key_free(libhsm_key_t *key)
+{
+    free(key->modulename);
+    free(key);
+}
+
 libhsm_key_t **
 hsm_list_keys(hsm_ctx_t *ctx, size_t *count)
 {
@@ -2427,7 +2434,7 @@ generate_unique_id(hsm_ctx_t *ctx, unsigned char *buf, size_t bufsize)
     /* check whether this key doesn't happen to exist already */
     hsm_random_buffer(ctx, buf, bufsize);
     while ((key = hsm_find_key_by_id_bin(ctx, buf, bufsize))) {
-	free(key);
+	libhsm_key_free(key);
 	hsm_random_buffer(ctx, buf, bufsize);
     }
 
@@ -2835,8 +2842,7 @@ libhsm_key_list_free(libhsm_key_t **key_list, size_t count)
 {
     size_t i;
     for (i = 0; i < count; i++) {
-        free((void*)key_list[i]->modulename);
-        free(key_list[i]);
+        libhsm_key_free(key_list[i]);
     }
     free(key_list);
 }
@@ -3028,7 +3034,7 @@ hsm_keytag(const char* loc, int alg, int ksk, uint16_t* keytag)
 
 	dnskey_rr = hsm_get_dnskey(hsm_ctx, hsmkey, sign_params);
 	if (!dnskey_rr) {
-		free(hsmkey);
+		libhsm_key_free(hsmkey);
 		hsm_sign_params_free(sign_params);
 		hsm_destroy_context(hsm_ctx);
 		return 1;
@@ -3037,7 +3043,7 @@ hsm_keytag(const char* loc, int alg, int ksk, uint16_t* keytag)
 	tag = ldns_calc_keytag(dnskey_rr);
 
 	ldns_rr_free(dnskey_rr);
-	free(hsmkey);
+	libhsm_key_free(hsmkey);
 	hsm_sign_params_free(sign_params);
 	hsm_destroy_context(hsm_ctx);
 

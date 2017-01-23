@@ -165,7 +165,7 @@ main (int argc, char *argv[])
                 printf("Got no key ID (broken key?), skipped...\n");
             }
 
-            free(keys[i]);
+            libhsm_key_free(keys[i]);
         }
         free(keys);
 
