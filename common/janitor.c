@@ -384,6 +384,7 @@ janitor_thread_tryjoinall(janitor_threadclass_t threadclass)
         }
         pthread_mutex_unlock(&threadlock);
         if (foundthread) {
+            free(foundthread->rundata);
             janitor_thread_join(foundthread);
         }
     } while(foundthread);
