@@ -277,6 +277,7 @@ engine_stop_threads(engine_type* engine)
     for (i=0; i < numTotalWorkers; i++) {
         ods_log_debug("[%s] join worker %d", engine_str, i+1);
         janitor_thread_join(engine->workers[i]->thread_id);
+        free(engine->workers[i]->context);
     }
 }
 

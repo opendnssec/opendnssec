@@ -305,6 +305,7 @@ runthread(void* data)
     }
     info->runfunc(info->rundata);
     sigaltstack(&prevss, NULL);
+    free(ss.ss_sp);
     janitor_thread_unregister(info);
     janitor_thread_finished(info);
     return NULL;
@@ -383,6 +384,7 @@ janitor_thread_tryjoinall(janitor_threadclass_t threadclass)
         }
         pthread_mutex_unlock(&threadlock);
         if (foundthread) {
+            free(foundthread->rundata);
             janitor_thread_join(foundthread);
         }
     } while(foundthread);

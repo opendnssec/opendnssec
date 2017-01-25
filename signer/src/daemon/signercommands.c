@@ -258,7 +258,7 @@ max(uint32_t a, uint32_t b)
 }
 
 static ods_status
-forceread(engine_type* engine, zone_type* zone, int force_serial, uint32_t serial, int sockfd)
+forceread(engine_type* engine, zone_type *zone, int force_serial, uint32_t serial, int sockfd)
 {
         pthread_mutex_lock(&zone->zone_lock);
         if (force_serial) {
@@ -274,6 +274,7 @@ forceread(engine_type* engine, zone_type* zone, int force_serial, uint32_t seria
         }
         schedule_scheduletask(engine->taskq, TASK_FORCEREAD, zone->name, zone, &zone->zone_lock, schedule_IMMEDIATELY);
         pthread_mutex_unlock(&zone->zone_lock);
+        return 0;
 }
 
 /**
@@ -284,7 +285,8 @@ static int
 cmdhandler_handle_cmd_sign(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 {
     engine_type* engine;
-    zone_type* zone = NULL;
+    zone_type *zone = NULL;
+    ods_status status = ODS_STATUS_OK;
     char buf[ODS_SE_MAXLINE];
 
     engine = getglobalcontext(context);
@@ -293,7 +295,7 @@ cmdhandler_handle_cmd_sign(int sockfd, cmdhandler_ctx_type* context, const char 
         pthread_mutex_lock(&engine->zonelist->zl_lock);
         ldns_rbnode_t* node;
         for (node = ldns_rbtree_first(engine->zonelist->zones); node != LDNS_RBTREE_NULL && node != NULL; node = ldns_rbtree_next(node)) {
-            zone = node->data;
+            zone = (zone_type*)node->data;
             forceread(engine, zone, 0, 0, sockfd);
         }
         pthread_mutex_unlock(&engine->zonelist->zl_lock);

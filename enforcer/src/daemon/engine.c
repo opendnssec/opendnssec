@@ -533,7 +533,6 @@ engine_setup()
         }
     }
     engine->init_setup_done = 1;
-    if (!engine->daemonize) close(pipefd[0]);
     
     engine->pid = getpid();
     ods_log_info("[%s] running as pid %lu", engine_str,
@@ -574,6 +573,7 @@ engine_setup()
 
     write(pipefd[1], "\1", 1);
     close(pipefd[1]);
+    if (!engine->daemonize) close(pipefd[0]);
     engine->daemonize = 0; /* don't fork again on reload */
     return ODS_STATUS_OK;
 }
