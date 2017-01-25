@@ -360,8 +360,7 @@ rrset_diff(rrset_type* rrset, unsigned is_ixfr, unsigned more_coming)
                 del_sigs = 1;
             }
             rrset->rrs[i].exists = 1;
-            if ((rrset->rrtype == LDNS_RR_TYPE_DNSKEY ||
-                 rrset->rrtype == LDNS_RR_TYPE_NSEC3PARAMS) && more_coming) {
+            if ((rrset->rrtype == LDNS_RR_TYPE_DNSKEY) && more_coming) {
                 continue;
             }
             rrset->rrs[i].is_added = 0;

@@ -574,9 +574,15 @@ dnsin_read(dnsin_type* addns, const char* filename)
     }
     fd = ods_fopen(filename, NULL, "r");
     if (fd) {
+        if (addns->tsig)
+            tsig_cleanup(addns->tsig, addns->allocator);
         addns->tsig = parse_addns_tsig(addns->allocator, filename);
+        if (addns->request_xfr)
+            acl_cleanup(addns->request_xfr, addns->allocator);
         addns->request_xfr = parse_addns_request_xfr(addns->allocator,
             filename, addns->tsig);
+        if (addns->allow_notify)
+            acl_cleanup(addns->allow_notify, addns->allocator);
         addns->allow_notify = parse_addns_allow_notify(addns->allocator,
             filename, addns->tsig);
         ods_fclose(fd);
@@ -595,7 +601,6 @@ dnsin_read(dnsin_type* addns, const char* filename)
 ods_status
 dnsin_update(dnsin_type** addns, const char* filename, time_t* last_mod)
 {
-    dnsin_type* new_addns = NULL;
     time_t st_mtime = 0;
     ods_status status = ODS_STATUS_OK;
 
@@ -603,20 +608,12 @@ dnsin_update(dnsin_type** addns, const char* filename, time_t* last_mod)
         return ODS_STATUS_UNCHANGED;
     }
     /* read the new signer configuration */
-    new_addns = dnsin_create();
-    if (!new_addns) {
-        ods_log_error("[%s] unable to update dnsin: dnsin_create() "
-            "failed", adapter_str);
-        return ODS_STATUS_ERR;
-    }
-    status = dnsin_read(new_addns, filename);
+    status = dnsin_read(*addns, filename);
     if (status == ODS_STATUS_OK) {
-        *addns = new_addns;
         *last_mod = st_mtime;
     } else {
         ods_log_error("[%s] unable to update dnsin: dnsin_read(%s) "
             "failed (%s)", adapter_str, filename, ods_status2str(status));
-        dnsin_cleanup(new_addns);
     }
     return status;
 }
@@ -643,9 +640,15 @@ dnsout_read(dnsout_type* addns, const char* filename)
     }
     fd = ods_fopen(filename, NULL, "r");
     if (fd) {
+        if (addns->tsig)
+            tsig_cleanup(addns->tsig, addns->allocator);
         addns->tsig = parse_addns_tsig(addns->allocator, filename);
+        if (addns->provide_xfr)
+            acl_cleanup(addns->provide_xfr, addns->allocator);
         addns->provide_xfr = parse_addns_provide_xfr(addns->allocator,
             filename, addns->tsig);
+        if (addns->do_notify)
+            acl_cleanup(addns->do_notify, addns->allocator);
         addns->do_notify = parse_addns_do_notify(addns->allocator, filename,
             addns->tsig);
         ods_fclose(fd);
@@ -664,7 +667,6 @@ dnsout_read(dnsout_type* addns, const char* filename)
 ods_status
 dnsout_update(dnsout_type** addns, const char* filename, time_t* last_mod)
 {
-    dnsout_type* new_addns = NULL;
     time_t st_mtime = 0;
     ods_status status = ODS_STATUS_OK;
 
@@ -672,23 +674,12 @@ dnsout_update(dnsout_type** addns, const char* filename, time_t* last_mod)
         return ODS_STATUS_UNCHANGED;
     }
     /* read the new signer configuration */
-    new_addns = dnsout_create();
-    if (!new_addns) {
-        ods_log_error("[%s] unable to update dnsout: dnsout_create() "
-            "failed", adapter_str);
-        return ODS_STATUS_ERR;
-    }
-    status = dnsout_read(new_addns, filename);
+    status = dnsout_read(*addns, filename);
     if (status == ODS_STATUS_OK) {
-        *addns = new_addns;
         *last_mod = st_mtime;
     } else {
         ods_log_error("[%s] unable to update dnsout: dnsout_read(%s) "
             "failed (%s)", adapter_str, filename, ods_status2str(status));
-        /* Don't do this cleanup. Signer will crash on exit and will
-         * access the wrong memory runtime. Leak is only once per badly
-         * configured adapter. */
-        /* dnsout_cleanup(*addns); */
     }
     return status;
 }

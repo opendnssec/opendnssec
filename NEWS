@@ -1,5 +1,31 @@
-* OPENDNSSEC-808: Crash on query with empty query section (thanks Håvard Eidnes)
-* SUPPORT-191: Regression, Must accept notify without SOA (thanks Christos Trochalakis)
+OpenDNSSEC 1.4.13 - 2017-01-20
+
+* OPENDNSSEC-778: Double NSEC3PARAM record after resalt.
+* OPENDNSSEC-853: Fixed serial_xfr_acquired not updated in state file.
+* Wrong error was sometimes being print on failing TCP connect.
+* Add support for OpenSSL 1.1.0.
+* OPENDNSSEC-866: Script for migration between MySQL and SQLite was outdated.
+
+OpenDNSSEC 1.4.12 - 2016-10-17
+
+* OPENDNSSEC-808: Crash on query with empty query section (thanks Håvard
+  Eidnes).
+* SUPPORT-191: Regression, Must accept notify without SOA (thanks Christos
+  Trochalakis)
+* OPENDNSSEC-845: memory leak occuring when responding to IXFR out when
+  having had multiple updates.
+* OPENDNSSEC-805: Avoid full resign due to mismatch in backup file when
+  upgrading from 1.4.8 or later.
+* OPENDNSSEC-828: parsing zone list could show data from next zone when
+  zones iterated on single line.
+* OPENDNSSEC-811,OPENDNSSEC-827,e.o.: compiler warnings and other static 
+  code analysis cleanup
+* OPENDNSSEC-847: Broken DNS IN notifications when pkt answer section is empty
+* OPENDNSSEC-838: Crash in signer after having removed a zone.
+* Update dependency to ldns to version 1.6.17 enabling the DNS HIP record.
+* Prevent responding to queries when not fully started yet.
+
+OpenDNSSEC 1.4.11 - Skipped
 
 OpenDNSSEC 1.4.10 - 2016-05-02
 

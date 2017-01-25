@@ -653,14 +653,13 @@ static void
 hsm_ctx_free(hsm_ctx_t *ctx)
 {
     unsigned int i;
+    keycache_destroy(ctx);
     if (ctx) {
         for (i = 0; i < ctx->session_count; i++) {
             hsm_session_free(ctx->session[i]);
         }
         free(ctx);
     }
-
-    keycache_destroy(ctx);
 }
 
 /* close the session, and free the allocated data
@@ -3400,7 +3399,7 @@ keycache_lookup(hsm_ctx_t* ctx, const char* locator)
         }
     }  
 
-    if (node == LDNS_RBTREE_NULL)
+    if (node == LDNS_RBTREE_NULL || node == NULL)
         return NULL;
     else
         return node->data;

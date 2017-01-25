@@ -1128,7 +1128,7 @@ xfrd_parse_packet(xfrd_type* xfrd, buffer_type* buffer)
                  xfrd->master->address);
             xfrd->serial_disk_acquired = xfrd_time(xfrd);
             if (xfrd->serial_xfr == serial) {
-                xfrd->serial_xfr_acquired = xfrd->serial_disk_acquired;
+                xfrd->serial_xfr_acquired = time_now();
                 if (!xfrd->serial_notify_acquired) {
                     /* not notified or anything, so stop asking around */
                     xfrd->round_num = -1; /* next try start a new round */
@@ -1321,7 +1321,7 @@ xfrd_tcp_write(xfrd_type* xfrd, tcp_set_type* set)
         }
         if (error != 0) {
             ods_log_error("[%s] zone %s cannot tcp connect to %s: %s",
-                xfrd_str, zone->name, xfrd->master->address, strerror(errno));
+                xfrd_str, zone->name, xfrd->master->address, strerror(error));
             xfrd_set_timer_now(xfrd);
             xfrd_tcp_release(xfrd, set, 1);
             return;

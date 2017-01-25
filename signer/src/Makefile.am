@@ -133,7 +133,7 @@ ods_signer_SOURCES=		ods-signer.c \
 				wire/xfrd.c wire/xfrd.h
 
 ods_signer_LDADD=		$(LIBHSM)
-ods_signer_LDADD+=		@LDNS_LIBS@ @XML2_LIBS@ @RT_LIBS@
+ods_signer_LDADD+=		@LDNS_LIBS@ @XML2_LIBS@ @RT_LIBS@ @SSL_LIBS@ 
 ods_signer_LDADD+=		$(LIBCOMPAT)
 
 ods_getconf_SOURCES=		ods-getconf.c \
@@ -193,5 +193,5 @@ ods_getconf_SOURCES=		ods-getconf.c \
 				wire/xfrd.c wire/xfrd.h
 
 ods_getconf_LDADD=		$(LIBHSM)
-ods_getconf_LDADD+=		@LDNS_LIBS@ @XML2_LIBS@ @RT_LIBS@
+ods_getconf_LDADD+=		@SSL_LIBS@ @LDNS_LIBS@ @XML2_LIBS@ @RT_LIBS@
 ods_getconf_LDADD+=		$(LIBCOMPAT)
