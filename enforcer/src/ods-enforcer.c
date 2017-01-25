@@ -58,9 +58,6 @@
 #include "str.h"
 #include "clientpipe.h"
 
-#define AUTHOR_NAME "Matthijs Mekking, Yuri Schaeffer, René Post"
-#define COPYRIGHT_STR "Copyright (C) 2010-2011 NLnet Labs OpenDNSSEC"
-
 static const char* PROMPT = "cmd> ";
 static const char* cli_str = "client";
 
@@ -98,9 +95,6 @@ static void
 version(FILE* out)
 {
     fprintf(out, "%s version %s\n", PACKAGE_NAME, PACKAGE_VERSION);
-    fprintf(out, "Written by %s.\n\n", AUTHOR_NAME);
-    fprintf(out, "%s.  This is free software.\n", COPYRIGHT_STR);
-    fprintf(out, "See source files for more license information\n");
     exit(0);
 }
 
@@ -353,24 +347,20 @@ interface_start(const char* cmd, const char* servsock_filename)
         (strlen(userbuf) != 0 && !strncmp(userbuf, "stop", 4))) {
         char line[80];
         FILE *cmd2 = popen("pgrep ods-enforcerd","r");
-        fgets(line, 80, cmd2);
-        pid_t pid = strtoul(line, NULL, 10);
-        fprintf(stdout, "pid %d\n", pid);
-        int time = 0;
         error = 0;
-        while (pid > 0) {
-           if(kill(pid, 0) == 0){
+        if (fgets(line, 80, cmd2)) {
+            pid_t pid = strtoul(line, NULL, 10);
+            fprintf(stdout, "pid %d\n", pid);
+            int time = 0;
+            while (pid > 0) {
+               if(kill(pid, 0) != 0) break;
                sleep(1);
-               time += 1;
-               if (time>20) {
-                  fprintf(stdout, "enforcer needs more seconds to stop");
-                  fflush(stdout);
+               if (++time>20) {
+                  printf("enforcer needs more time to stop...\n");
                   time = 0;
                }
            }
-           else
-               break;
-       }
+        }
     }
 
 #ifdef HAVE_READLINE
@@ -380,9 +370,6 @@ interface_start(const char* cmd, const char* servsock_filename)
     return error;
 }
 
-/**
- * Main. start interface tool.
- */
 int
 main(int argc, char* argv[])
 {

@@ -159,10 +159,12 @@ struct janitor_thread_struct {
     int isstarted;
     int blocksignals;
     pthread_barrier_t startbarrier;
+    janitor_threadclass_t threadclass;
 };
 
 static pthread_mutex_t threadlock = PTHREAD_MUTEX_INITIALIZER;
-static struct janitor_thread_struct *threadlist = NULL;
+static struct janitor_thread_struct *threadlist = NULL; /* running threads */
+static struct janitor_thread_struct *finishedthreadlist = NULL; /* threads waiting to be joined */
 static pthread_once_t threadlocatorinitializeonce = PTHREAD_ONCE_INIT;
 static pthread_key_t threadlocator;
 static pthread_cond_t threadblock = PTHREAD_COND_INITIALIZER;
@@ -173,7 +175,7 @@ threadlocatorinitialize(void)
     pthread_key_create(&threadlocator, NULL);
 }
 
-void
+static void
 janitor_thread_unregister(janitor_thread_t info)
 {
     int err, errcount;
@@ -181,8 +183,6 @@ janitor_thread_unregister(janitor_thread_t info)
         return;
     CHECKFAIL(pthread_mutex_lock(&threadlock));
     if (threadlist != NULL) {
-        info->next->prev = info->prev;
-        info->prev->next = info->next;
         if (threadlist == info) {
             if (info->next == info) {
                 threadlist = NULL;
@@ -190,6 +190,8 @@ janitor_thread_unregister(janitor_thread_t info)
                 threadlist = info->next;
             }
         }
+        info->next->prev = info->prev;
+        info->prev->next = info->next;
         info->next = info->prev = NULL;
         /* The implementation on FreeBSD10 of pthreads is pretty brain dead.
          * If two threads enter a barrier with count 2, then the barrier
@@ -215,7 +217,31 @@ fail:
     ;
 }
 
-void
+static void
+janitor_thread_dispose(janitor_thread_t info)
+{
+    if (info == NULL)
+        return;
+    if (!info->threadclass || !info->threadclass->detached) {
+        pthread_mutex_lock(&threadlock);
+        if (finishedthreadlist != NULL) {
+            if (finishedthreadlist == info) {
+                if (info->next == info) {
+                    finishedthreadlist = NULL;
+                } else {
+                    finishedthreadlist = info->next;
+                }
+            }
+            info->next->prev = info->prev;
+            info->prev->next = info->next;
+            info->next = info->prev = NULL;
+        }
+        pthread_mutex_unlock(&threadlock);
+    }
+    free(info);
+}
+
+static void
 janitor_thread_register(janitor_thread_t info)
 {
     pthread_mutex_lock(&threadlock);
@@ -232,6 +258,24 @@ janitor_thread_register(janitor_thread_t info)
     pthread_mutex_unlock(&threadlock);
 }
 
+static void
+janitor_thread_finished(janitor_thread_t info)
+{
+    if (!info->threadclass->detached) {
+        pthread_mutex_lock(&threadlock);
+        if (finishedthreadlist != NULL) {
+            info->next = finishedthreadlist;
+            info->prev = finishedthreadlist->prev;
+            finishedthreadlist->prev->next = info;
+            finishedthreadlist->prev = info;
+        } else {
+            info->next = info->prev = info;
+        }
+        finishedthreadlist = info;
+        pthread_mutex_unlock(&threadlock);
+    }
+}
+
 static void*
 runthread(void* data)
 {
@@ -239,12 +283,13 @@ runthread(void* data)
     sigset_t sigset;
     struct janitor_thread_struct* info;
     stack_t ss;
+    stack_t prevss;
     info = (struct janitor_thread_struct*) data;
     pthread_setspecific(threadlocator, info);
     ss.ss_sp = malloc(SIGSTKSZ);
     ss.ss_size = SIGSTKSZ;
     ss.ss_flags = 0;
-    sigaltstack(&ss, NULL);
+    sigaltstack(&ss, &prevss);
     pthread_barrier_wait(&info->startbarrier);
     if (info->blocksignals) {
         sigfillset(&sigset);
@@ -259,7 +304,10 @@ runthread(void* data)
             report("pthread_sigmask: %s (%d)", strerror(err), err);
     }
     info->runfunc(info->rundata);
+    sigaltstack(&prevss, NULL);
+    free(ss.ss_sp);
     janitor_thread_unregister(info);
+    janitor_thread_finished(info);
     return NULL;
 }
 
@@ -272,6 +320,7 @@ janitor_thread_create(janitor_thread_t* thread, janitor_threadclass_t threadclas
     info->rundata = data;
     info->blocksignals = 0;
     info->isstarted = 0;
+    info->threadclass = threadclass;
     CHECKFAIL(pthread_barrier_init(&info->startbarrier, NULL, 2));
     CHECKFAIL(pthread_create(&info->thread, ((threadclass && threadclass->hasattr) ? &threadclass->attr : NULL), runthread, info));
     janitor_thread_register(info);
@@ -307,10 +356,76 @@ janitor_thread_start(janitor_thread_t thread)
 int
 janitor_thread_join(janitor_thread_t thread)
 {
+    janitor_thread_t info;
     int status;
     status = pthread_join(thread->thread, NULL);
-    free(thread);
+    janitor_thread_dispose(thread);
     return status;
+}
+
+int
+janitor_thread_tryjoinall(janitor_threadclass_t threadclass)
+{
+    struct janitor_thread_struct* thread;
+    struct janitor_thread_struct* foundthread;
+
+    do {
+        foundthread = NULL;
+        pthread_mutex_lock(&threadlock);
+        thread = finishedthreadlist;
+        if (thread) {
+            do {
+                if (thread->threadclass == threadclass) {
+                    foundthread = thread;
+                    break;
+                }
+                thread = thread->next;
+            } while (thread != finishedthreadlist);
+        }
+        pthread_mutex_unlock(&threadlock);
+        if (foundthread) {
+            free(foundthread->rundata);
+            janitor_thread_join(foundthread);
+        }
+    } while(foundthread);
+
+    pthread_mutex_lock(&threadlock);
+    foundthread = NULL;
+    thread = finishedthreadlist;
+    if (thread) {
+        do {
+            if (thread->threadclass == threadclass) {
+                foundthread = thread;
+                break;
+            }
+            thread = thread->next;
+        } while (thread != finishedthreadlist);
+    }
+    thread = threadlist;
+    if (!foundthread && thread) {
+        do {
+            if (thread->threadclass == threadclass) {
+                foundthread = thread;
+                break;
+            }
+            thread = thread->next;
+        } while (thread != threadlist);
+    }
+    pthread_mutex_unlock(&threadlock);
+    if (foundthread) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+void
+janitor_thread_joinall(janitor_threadclass_t threadclass)
+{
+    int moreleft;
+    do {
+        moreleft = janitor_thread_tryjoinall(threadclass);
+    } while(moreleft);
 }
 
 static void
@@ -334,10 +449,9 @@ dumpthreads(void)
 }
 
 #ifdef HAVE_BACKTRACE_FULL
-static struct backtrace_state *state;
-
-static int callback(void* data, uintptr_t pc, const char *filename, int lineno, const char *function);
-static void errorhandler(void* data, const char *msg, int errno);
+static struct backtrace_state *state  = NULL;
+static struct backtrace_state *frames = NULL;
+static pthread_mutex_t frameslock = PTHREAD_MUTEX_INITIALIZER;
 
 static int
 callback(void* data, uintptr_t pc, const char *filename, int lineno, const char *function)
@@ -354,13 +468,64 @@ callback(void* data, uintptr_t pc, const char *filename, int lineno, const char 
 }
 
 static void
-errorhandler(void* data, const char *msg, int errno)
+errorhandler(void* data, const char *msg, int xerrno)
 {
     int len = strlen(msg);
     (void) (write(2, msg, len));
     (void) (write(2, "\n", 1));
 }
 #endif
+
+static void
+outputbacktrace(int skips, void *workaround)
+{
+#ifdef HAVE_BACKTRACE_FULL
+    struct backtrace_state *state = (struct backtrace_state*) workaround;
+#else
+#ifdef HAVE_BACKTRACE
+    Dl_info btinfo;
+    void *bt[20];
+    int count, i;
+#else
+#ifdef HAVE_LIBUNWIND
+    unw_context_t ctx;
+    unw_cursor_t cursor;
+    char symbol[256];
+    unw_word_t offset;
+#endif
+#endif
+#endif
+#ifdef HAVE_BACKTRACE_FULL
+    backtrace_full(state, skips, (backtrace_full_callback) callback, (backtrace_error_callback) errorhandler, NULL);
+#else
+#ifdef HAVE_BACKTRACE
+    count = backtrace(bt, sizeof (bt) / sizeof (void*));
+    for (i = skips; i < count; i++) {
+        dladdr(bt[i], &btinfo);
+        if (btinfo.dli_sname != NULL) {
+            alert("  %s\n", btinfo.dli_sname);
+            if (!strcmp(btinfo.dli_sname, "main"))
+                break;
+        } else
+            alert("  unknown\n");
+    }
+#else
+#ifdef HAVE_LIBUNWIND
+    unw_getcontext(&ctx);
+    unw_init_local(&cursor, &ctx);
+    if (unw_step(&cursor)) {
+        /* skip the first one */
+        while (unw_step(&cursor)) {
+            unw_get_proc_name(&cursor, symbol, sizeof (symbol) - (skips-1), &offset);
+            alert("  %s\n", symbol);
+            if (!strcmp(symbol, "main"))
+                break;
+        }
+    }
+#endif
+#endif
+#endif
+}
 
 static void
 handlesignal(int signal, siginfo_t* info, void* data)
@@ -420,38 +585,21 @@ handlesignal(int signal, siginfo_t* info, void* data)
         alert("%s", signalname);
 #ifdef HAVE_BACKTRACE_FULL
     alert(":\n");
-    backtrace_full(state, 2, callback, errorhandler, NULL);
 #else
 #ifdef HAVE_BACKTRACE
     alert(":\n");
-    count = backtrace(bt, sizeof (bt) / sizeof (void*));
-    for (i = 2; i < count; i++) {
-        dladdr(bt[i], &btinfo);
-        if (btinfo.dli_sname != NULL) {
-            alert("  %s\n", btinfo.dli_sname);
-            if (!strcmp(btinfo.dli_sname, "main"))
-                break;
-        } else
-            alert("  unknown\n");
-    }
 #else
 #ifdef HAVE_LIBUNWIND
     alert(":\n");
-    unw_getcontext(&ctx);
-    unw_init_local(&cursor, &ctx);
-    if (unw_step(&cursor)) {
-        /* skip the first one */
-        while (unw_step(&cursor)) {
-            unw_get_proc_name(&cursor, symbol, sizeof (symbol) - 1, &offset);
-            alert("  %s\n", symbol);
-            if (!strcmp(symbol, "main"))
-                break;
-        }
-    }
 #else
     alert("\n");
 #endif
 #endif
+#endif
+#ifdef HAVE_BACKTRACE_FULL
+    outputbacktrace(2, state);
+#else
+    outputbacktrace(2, NULL);
 #endif
     if (info->si_signo == SIGQUIT) {
         pthread_mutex_lock(&threadlock);
@@ -463,15 +611,38 @@ handlesignal(int signal, siginfo_t* info, void* data)
     }
 }
 
+void
+janitor_backtrace(void)
+{
+#ifdef HAVE_BACKTRACE_FULL
+    if(frames == NULL) {
+        frames = backtrace_create_state(NULL, 0, (backtrace_error_callback) errorhandler, NULL);
+    }
+    pthread_mutex_lock(&frameslock);
+    outputbacktrace(1, frames);
+    pthread_mutex_unlock(&frameslock);
+#else
+    outputbacktrace(1, NULL);
+#endif
+}
+
+void
+janitor_backtrace_all(void)
+{
+    dumpthreads();
+}
+
 int
 janitor_trapsignals(char* argv0)
 {
     sigset_t mask;
     stack_t ss;
     struct sigaction newsigaction;
+    static struct backtrace_state *frames;
 
 #ifdef HAVE_BACKTRACE_FULL
-    CHECKFAIL((state = backtrace_create_state(argv0, 0, errorhandler, NULL)) == NULL);
+    CHECKFAIL((state  = backtrace_create_state(argv0, 0, (backtrace_error_callback)errorhandler, NULL)) == NULL);
+    CHECKFAIL((frames = backtrace_create_state(argv0, 0, (backtrace_error_callback)errorhandler, NULL)) == NULL);
 #else
     (void) argv0;
 #endif

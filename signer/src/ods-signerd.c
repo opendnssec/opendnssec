@@ -122,13 +122,11 @@ main(int argc, char* argv[])
     int c, returncode;
     int options_index = 0;
     int info = 0;
-    int single_run = 0;
     int daemonize = 1;
     int cmdline_verbosity = 0;
     char *time_arg = NULL;
     const char* cfgfile = ODS_SE_CFGFILE;
     static struct option long_options[] = {
-        {"single-run", no_argument, 0, '1'},
         {"config", required_argument, 0, 'c'},
         {"no-daemon", no_argument, 0, 'd'},
         {"help", no_argument, 0, 'h'},
@@ -140,18 +138,17 @@ main(int argc, char* argv[])
     };
 
     if(argv[0][0] != '/') {
-        asprintf(&argv0, "%s/%s", getcwd(NULL,0), argv[0]);
+        char *path = getcwd(NULL,0);
+        asprintf(&argv0, "%s/%s", path, argv[0]);
+        free(path);
     } else {
         argv0 = strdup(argv[0]);
     }
 
     /* parse the commandline */
-    while ((c=getopt_long(argc, argv, "1c:dhivV",
+    while ((c=getopt_long(argc, argv, "c:dhivV",
         long_options, &options_index)) != -1) {
         switch (c) {
-            case '1':
-                single_run = 1;
-                break;
             case 'c':
                 cfgfile = optarg;
                 break;
@@ -200,8 +197,7 @@ main(int argc, char* argv[])
 
     ods_janitor_initialize(argv0);
     program_setup(cfgfile, cmdline_verbosity);
-    returncode = engine_start(cfgfile, cmdline_verbosity, daemonize,
-        info, single_run);
+    returncode = engine_start(cfgfile, cmdline_verbosity, daemonize, info);
     program_teardown();
 
     free(argv0);

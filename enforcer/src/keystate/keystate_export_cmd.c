@@ -29,7 +29,8 @@
 
 #include "config.h"
 
-#include "daemon/cmdhandler.h"
+#include "cmdhandler.h"
+#include "daemon/enforcercommands.h"
 #include "daemon/engine.h"
 #include "file.h"
 #include "log.h"
@@ -82,7 +83,7 @@ get_dnskey(const char *id, const char *zone, const char *keytype, int alg, uint3
     /* Get the DNSKEY record */
     dnskey_rr = hsm_get_dnskey(hsm_ctx, key, sign_params);
 
-    free(key);
+    libhsm_key_free(key);
     hsm_sign_params_free(sign_params);
     hsm_destroy_context(hsm_ctx);
 	
@@ -146,7 +147,7 @@ print_ds_from_id(int sockfd, key_data_t *key, const char *zone,
         (void)client_printf(sockfd, ";%s %s DS record (SHA256):\n%s", state, key_data_role_text(key), rrstr);
         LDNS_FREE(rrstr);
     } else {
-        rrstr = ldns_rr2str(dnskey_rr);
+        rrstr = ldns_rr2str_fmt(ldns_output_format_nocomments, dnskey_rr);
         /* TODO log error on failure */
         (void)client_printf(sockfd, "%s", rrstr);
         LDNS_FREE(rrstr);
@@ -258,14 +259,7 @@ help(int sockfd)
 }
 
 static int
-handles(const char *cmd, ssize_t n)
-{
-    return ods_check_command(cmd, n, key_export_funcblock()->cmdname)?1:0;
-}
-
-static int
-run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
-	db_connection_t *dbconn)
+run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 {
     #define NARGV 8
     char buf[ODS_SE_MAXLINE];
@@ -276,10 +270,10 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     const char* keystate = NULL;
     zone_db_t * zone = NULL;
     int all = 0;
-    (void)engine;
+    db_connection_t* dbconn = getconnectioncontext(context);
 	
-    ods_log_debug("[%s] %s command", module_str, key_export_funcblock()->cmdname);
-    cmd = ods_check_command(cmd, n, key_export_funcblock()->cmdname);
+    ods_log_debug("[%s] %s command", module_str, key_export_funcblock.cmdname);
+    cmd = ods_check_command(cmd, key_export_funcblock.cmdname);
 	
     /* Use buf as an intermediate buffer for the command.*/
     strncpy(buf, cmd, sizeof(buf));
@@ -289,7 +283,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     argc = ods_str_explode(buf, NARGV, argv);
     if (argc > NARGV) {
         ods_log_error("[%s] too many arguments for %s command",
-                           module_str, key_export_funcblock()->cmdname);
+                           module_str, key_export_funcblock.cmdname);
         client_printf_err(sockfd,"too many arguments\n");
         return -1;
     }
@@ -321,13 +315,13 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 
     if (argc) {
         ods_log_error("[%s] unknown arguments for %s command",
-                              module_str, key_export_funcblock()->cmdname);
+                              module_str, key_export_funcblock.cmdname);
         client_printf_err(sockfd,"unknown arguments\n");
         return -1;
     }
 
     if ((!zonename && !all) || (zonename && all)) {
-        ods_log_error("[%s] expected either --zone or --all for %s command", module_str, key_export_funcblock()->cmdname);
+        ods_log_error("[%s] expected either --zone or --all for %s command", module_str, key_export_funcblock.cmdname);
         client_printf_err(sockfd, "expected either --zone or --all \n");
         return -1;
     }
@@ -353,12 +347,6 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     return perform_keystate_export(sockfd, dbconn, zonename, (const char*) keytype, (const char*) keystate, all, bds?1:0);
 }
 
-static struct cmd_func_block funcblock = {
-    "key export", &usage, &help, &handles, &run
+struct cmd_func_block key_export_funcblock = {
+    "key export", &usage, &help, NULL, &run
 };
-
-struct cmd_func_block*
-key_export_funcblock(void)
-{
-    return &funcblock;
-}

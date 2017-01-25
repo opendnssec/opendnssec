@@ -66,6 +66,7 @@ ods_thread_wait(pthread_cond_t* cond, pthread_mutex_t* lock, time_t wait)
 janitor_threadclass_t detachedthreadclass;
 janitor_threadclass_t workerthreadclass;
 janitor_threadclass_t handlerthreadclass;
+janitor_threadclass_t cmdhandlerthreadclass;
 
 struct alertbuffer_struct {
     char buffer[1024];
@@ -122,7 +123,7 @@ valert(struct alertbuffer_struct* buffer, const char* format, va_list args)
                     stringarg = va_arg(args, char*);
                     if (stringarg == NULL)
                         stringarg = "(null)";
-                    while(stringarg)
+                    while(*stringarg)
                         if(alertoutput(buffer, *(stringarg++)))
                             break;
                     idx += 2;
@@ -201,20 +202,26 @@ void
 ods_janitor_initialize(char*argv0)
 {
     janitor_initialize(alertsyslog, ods_log_error);
+
     janitor_threadclass_create(&detachedthreadclass, "daemonthreads");
     janitor_threadclass_setautorun(detachedthreadclass);
     janitor_threadclass_setblockedsignals(detachedthreadclass);
     janitor_threadclass_setdetached(detachedthreadclass);
     janitor_threadclass_setminstacksize(detachedthreadclass, ODS_MINIMUM_STACKSIZE);
+
     janitor_threadclass_create(&workerthreadclass, "workerthreads");
     janitor_threadclass_setautorun(workerthreadclass);
     janitor_threadclass_setblockedsignals(workerthreadclass);
     janitor_threadclass_setminstacksize(workerthreadclass, ODS_MINIMUM_STACKSIZE);
+
     janitor_threadclass_create(&handlerthreadclass, "handlerthreads");
     janitor_threadclass_setautorun(handlerthreadclass);
     janitor_threadclass_setminstacksize(handlerthreadclass, ODS_MINIMUM_STACKSIZE);
-    /* disable fancy core dumps for now, perhaps this should not be
-     * a default operation?
-     *     janitor_trapsignals(argv0);
-     */
+
+    janitor_threadclass_create(&cmdhandlerthreadclass, "cmdhandlerthreads");
+    janitor_threadclass_setautorun(cmdhandlerthreadclass);
+    janitor_threadclass_setblockedsignals(workerthreadclass);
+    janitor_threadclass_setminstacksize(cmdhandlerthreadclass, ODS_MINIMUM_STACKSIZE);
+
+    janitor_trapsignals(argv0);
 }

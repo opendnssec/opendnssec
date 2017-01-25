@@ -96,7 +96,6 @@ zone_create(char* name, ldns_rr_class klass)
     zone->adinbound = NULL;
     zone->adoutbound = NULL;
     zone->zl_status = ZONE_ZL_OK;
-    zone->task = NULL;
     zone->xfrd = NULL;
     zone->notify = NULL;
     zone->db = namedb_create((void*)zone);
@@ -113,6 +112,7 @@ zone_create(char* name, ldns_rr_class klass)
         zone_cleanup(zone);
         return NULL;
     }
+    zone->zoneconfigvalid = 0;
     zone->signconf = signconf_create();
     if (!zone->signconf) {
         ods_log_error("[%s] unable to create zone %s: signconf_create() "
@@ -122,11 +122,6 @@ zone_create(char* name, ldns_rr_class klass)
     }
     zone->stats = stats_create();
     zone->rrstore = rrset_store_initialize();
-    zone->nexttask = TASK_NONE;
-    zone->interrupt = TASK_NONE;
-    zone->halted = TASK_NONE;
-    zone->when = 0;
-    zone->halted_when = 0;
     return zone;
 }
 
@@ -182,100 +177,6 @@ zone_load_signconf(zone_type* zone, signconf_type** new_signconf)
     }
     return status;
 }
-
-int
-sched_task_comparetype(task_type* task, task_id other, task_id* sequence)
-{
-    int taskidx, otheridx;
-    for (taskidx = 0; sequence[taskidx] != NULL; taskidx++) {
-        if (sched_task_istype(task, sequence[taskidx]))
-            break;
-    }
-    if (sequence[taskidx] != NULL) {
-        for (otheridx=0; otheridx<taskidx; otheridx++) {
-            if (!strcmp(other, sequence[otheridx])) {
-                return -1;
-            }
-        }
-        if (!strcmp(other, sequence[taskidx])) {
-            return 0;
-        } else {
-            return 1;
-        }
-    } else {
-        return -1;
-    }
-}
-
-int
-sched_task_comparetype2(task_id task, task_id other, task_id* sequence)
-{
-    int taskidx, otheridx;
-    for (taskidx = 0; sequence[taskidx] != NULL; taskidx++) {
-        if (!strcmp(task, sequence[taskidx]))
-            break;
-    }
-    if (sequence[taskidx] != NULL) {
-        for (otheridx=0; otheridx<taskidx; otheridx++) {
-            if (!strcmp(other, sequence[otheridx])) {
-                return -1;
-            }
-        }
-        if (!strcmp(other, sequence[taskidx])) {
-            return 0;
-        } else {
-            return 1;
-        }
-    } else {
-        return -1;
-    }
-}
-/**
- * Reschedule task for zone.
- *
- */
-ods_status
-zone_reschedule_task(zone_type* zone, schedule_type* taskq, task_id what)
-{
-    task_id taskordering[] = { TASK_NONE, TASK_SIGNCONF, TASK_READ, TASK_NSECIFY, TASK_SIGN, TASK_WRITE, NULL };
-    int taskorder;
-
-    task_type* task = NULL;
-    ods_status status = ODS_STATUS_OK;
-
-    ods_log_assert(taskq);
-    ods_log_assert(zone);
-    ods_log_assert(zone->name);
-    ods_log_debug("[%s] reschedule task for zone %s", zone_str, zone->name);
-    /* postpone a later task or bring forward an earlier task */
-    task = schedule_unschedule(taskq, zone->task);
-    if (task != NULL) {
-        taskorder = sched_task_comparetype(zone->task, what, taskordering);
-        if (taskorder != 0) {
-            zone->halted = task->type;
-            zone->halted_when = sched_task_due(task);
-            zone->interrupt = what;
-        }
-        /** Only reschedule if what to do is lower than what was scheduled. */
-        if (taskorder < 0) {
-            task->type = what;
-            zone->when = time_now();
-        }
-        task->due_date = time_now();
-        status = schedule_task(taskq, task, 0, 0);
-    } else {
-        /* task not queued, being worked on? */
-        ods_log_verbose("[%s] unable to reschedule task for zone %s now: "
-                "task is not queued (task will be rescheduled when it is put "
-                "back on the queue)", zone_str, zone->name);
-        task = zone->task;
-        zone->interrupt = what;
-        /* task->halted(_when) set by worker */
-    }
-    zone->task = task;
-    return status;
-}
-
 
 /**
  * Publish the keys as indicated by the signer configuration.
@@ -872,6 +773,7 @@ zone_cleanup(zone_type* zone)
     if (!zone) {
         return;
     }
+pthread_mutex_lock(&zone->zone_lock);
     ldns_rdf_deep_free(zone->apex);
     adapter_cleanup(zone->adinbound);
     adapter_cleanup(zone->adoutbound);
@@ -880,6 +782,7 @@ zone_cleanup(zone_type* zone)
     xfrd_cleanup(zone->xfrd, 1);
     notify_cleanup(zone->notify);
     signconf_cleanup(zone->signconf);
+pthread_mutex_unlock(&zone->zone_lock);
     stats_cleanup(zone->stats);
     free(zone->notify_command);
     free(zone->notify_args);
@@ -898,13 +801,12 @@ zone_cleanup(zone_type* zone)
  *
  */
 ods_status
-zone_recover2(zone_type* zone)
+zone_recover2(engine_type* engine, zone_type* zone)
 {
     char* filename = NULL;
     FILE* fd = NULL;
     const char* token = NULL;
     time_t when = 0;
-    task_type* task = NULL;
     ods_status status = ODS_STATUS_OK;
     /* zone part */
     int klass = 0;
@@ -1018,7 +920,7 @@ zone_recover2(zone_type* zone)
             free((void*) salt);
             salt = NULL;
             zone->signconf->nsec3params = nsec3params_create(
-                (void*) zone->signconf,
+                zone->signconf,
                 (uint8_t) zone->signconf->nsec3_algo,
                 (uint8_t) zone->signconf->nsec3_optout,
                 (uint16_t) zone->signconf->nsec3_iterations,
@@ -1030,6 +932,7 @@ zone_recover2(zone_type* zone)
             }
         }
         zone->signconf->last_modified = lastmod;
+        zone->zoneconfigvalid = 1;
         zone->default_ttl = (uint32_t) duration2time(zone->signconf->soa_min);
         /* keys part */
         zone->signconf->keys = keylist_create((void*) zone->signconf);
@@ -1078,14 +981,7 @@ zone_recover2(zone_type* zone)
             goto recover_error2;
         }
         /* task */
-        task = task_create(strdup(zone->name), TASK_CLASS_SIGNER, TASK_SIGN, worker_perform_task, zone, NULL, when);
-        if (!task) {
-            ods_log_error("[%s] failed to restore zone %s: unable to "
-                "create task", zone_str, zone->name);
-            goto recover_error2;
-        }
-        task->lock = &zone->zone_lock;
-        zone->task = task;
+        schedule_scheduletask(engine->taskq, TASK_SIGN, zone->name, zone, &zone->zone_lock, schedule_PROMPTLY);
         free((void*)filename);
         ods_fclose(fd);
         zone->db->is_initialized = 1;
@@ -1153,12 +1049,11 @@ recover_error2:
  *
  */
 ods_status
-zone_backup2(zone_type* zone)
+zone_backup2(zone_type* zone, time_t nextResign)
 {
     char* filename = NULL;
     char* tmpfile = NULL;
     FILE* fd = NULL;
-    task_type* task = NULL;
     int ret = 0;
     ods_status status = ODS_STATUS_OK;
 
@@ -1177,8 +1072,7 @@ zone_backup2(zone_type* zone)
     fd = ods_fopen(tmpfile, NULL, "w");
     if (fd) {
         fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC_V3);
-        task = zone->task;
-        fprintf(fd, ";;Time: %u\n", (unsigned) sched_task_due(task));
+        fprintf(fd, ";;Time: %u\n", (unsigned) nextResign);
         /** Backup zone */
         fprintf(fd, ";;Zone: name %s class %i inbound %u internal %u "
             "outbound %u\n", zone->name, (int) zone->klass,

@@ -314,32 +314,16 @@ static int
 exists(key_data_t** keylist, size_t keylist_size, struct future_key *future_key,
 	int same_algorithm, const key_state_state_t mask[4])
 {
-	size_t i;
-
-	if (!keylist) {
-		return -1;
-	}
-	if (!future_key) {
-		return -1;
-	}
-    if (!future_key->key) {
+    size_t i;
+    if (!keylist || !future_key || !future_key->key)
         return -1;
+    /* Check the states against the mask. If we have a match we return a
+    * positive value. */
+    for (i = 0; i < keylist_size; i++) {
+        if (match(keylist[i], future_key, same_algorithm, mask) > 0)
+            return 1;
     }
-
-	for (i = 0; i < keylist_size; i++) {
-		/*
-		 * Check the states against the mask. If we have a match we return a
-		 * positive value.
-		 */
-		if (match(keylist[i], future_key, same_algorithm, mask) > 0) {
-	        return 1;
-		}
-	}
-
-	/*
-	 * We got no match, return zero.
-	 */
-	return 0;
+    return 0; /* We've got no match. */
 }
 
 /**
@@ -352,18 +336,11 @@ static int
 isPotentialSuccessor(key_data_t* successor_key, key_data_t* predecessor_key,
     struct future_key *future_key, key_state_type_t type)
 {
-    if (!successor_key) {
+    if (!successor_key || !predecessor_key || !future_key)
         return -1;
-    }
-    if (!predecessor_key) {
-        return -1;
-    }
-    if (!future_key) {
-        return -1;
-    }
 
-	/* You can't be a successor of yourself */
-	if (!key_data_cmp(successor_key, predecessor_key)) return 0;
+    /* You can't be a successor of yourself */
+    if (!key_data_cmp(successor_key, predecessor_key)) return 0;
 
     /*
      * TODO
@@ -624,7 +601,7 @@ successor_rec(key_data_t** keylist, size_t keylist_size,
                 {
                     continue;
                 }
-                if (successor_rec(keylist, keylist_size, successor_key, keylist[i], future_key, type, deplist_ext) > 0) {
+                if (successor_rec(keylist+1, keylist_size-1, successor_key, keylist[i], future_key, type, deplist_ext) > 0) {
                     return 1;
                 }
             }
@@ -678,7 +655,6 @@ successor(key_data_t** keylist, size_t keylist_size, key_data_t* successor_key,
             return 0;
         }
     }
-
     return successor_rec(keylist, keylist_size, successor_key, predecessor_key, future_key, type, deplist);
 }
 
@@ -811,6 +787,29 @@ unsignedOk(key_data_t** keylist, size_t keylist_size,
     return 1;
 }
 
+/* Check if ALL DS records for this algorithm are hidden
+ *
+ * \return 0 if !HIDDEN DS is found, 1 if no such DS where found */
+static int
+all_DS_hidden(key_data_t** keylist, size_t keylist_size,
+    struct future_key *future_key)
+{
+    size_t i;
+    key_state_state_t state;
+
+    assert(keylist);
+    assert(future_key);
+    assert(future_key->key);
+
+    for (i = 0; i < keylist_size; i++) {
+        /*If not same algorithm. Doesn't affect us.*/
+        if (key_data_algorithm(keylist[i]) != key_data_algorithm(future_key->key)) continue;
+        state = getState(keylist[i], KEY_STATE_TYPE_DS, future_key);
+        if (state != HIDDEN && state != NA) return 0; /*Test failed. Found DS.*/
+    }
+    return 1; /*No DS where found.*/
+}
+
 /**
  * Checks for existence of DS.
  *
@@ -821,38 +820,20 @@ static int
 rule1(key_data_t** keylist, size_t keylist_size, struct future_key *future_key,
     int pretend_update)
 {
-	static const key_state_state_t mask[2][4] = {
-		/*
-		 * This indicates a good key state.
-		 */
-		{ OMNIPRESENT, NA, NA, NA },
-		/*
-		 * This indicates that the DS is introducing.
-		 */
-		{ RUMOURED, NA, NA, NA }
-	};
+    static const key_state_state_t mask[2][4] = {
+        { OMNIPRESENT, NA, NA, NA },/* a good key state.  */
+        { RUMOURED,    NA, NA, NA } /* the DS is introducing.  */
+    };
 
-	if (!keylist) {
-		return -1;
-	}
-	if (!future_key) {
-		return -1;
-	}
-    if (!future_key->key) {
+    if (!keylist || !future_key || !future_key->key) {
         return -1;
     }
 
     future_key->pretend_update = pretend_update;
 
-	/*
-	 * Return positive value if any of the masks are found.
-	 */
-	if (exists(keylist, keylist_size, future_key, 0, mask[0]) > 0
-		|| exists(keylist, keylist_size, future_key, 0, mask[1]) > 0)
-	{
-		return 1;
-	}
-	return 0;
+    /* Return positive value if any of the masks are found.  */
+    return (exists(keylist, keylist_size, future_key, 0, mask[0]) > 0
+        || exists(keylist, keylist_size, future_key, 0, mask[1]) > 0);
 }
 
 /**
@@ -865,37 +846,31 @@ static int
 rule2(key_data_t** keylist, size_t keylist_size, struct future_key *future_key,
     int pretend_update, key_dependency_list_t* deplist)
 {
-	static const key_state_state_t mask[8][4] = {
-		{ OMNIPRESENT, OMNIPRESENT, OMNIPRESENT, NA },  /*This indicates a good key state.*/
-        { RUMOURED, OMNIPRESENT, OMNIPRESENT, NA },     /*This indicates an introducing DS state.*/
-        { UNRETENTIVE, OMNIPRESENT, OMNIPRESENT, NA },  /*This indicates an outroducing DS state.*/
-        { OMNIPRESENT, RUMOURED, RUMOURED, NA },        /*These indicates an introducing DNSKEY state.*/
-        { OMNIPRESENT, OMNIPRESENT, RUMOURED, NA },
-        { OMNIPRESENT, UNRETENTIVE, UNRETENTIVE, NA },  /*These indicates an outroducing DNSKEY state.*/
+    static const key_state_state_t mask[8][4] = {
+        { OMNIPRESENT, OMNIPRESENT, OMNIPRESENT, NA },/*good key state.*/
+        { RUMOURED,    OMNIPRESENT, OMNIPRESENT, NA },/*introducing DS state.*/
+        { UNRETENTIVE, OMNIPRESENT, OMNIPRESENT, NA },/*outroducing DS state.*/
+        { OMNIPRESENT, RUMOURED,    RUMOURED,    NA },/*introducing DNSKEY state.*/
+        { OMNIPRESENT, OMNIPRESENT, RUMOURED,    NA },
+        { OMNIPRESENT, UNRETENTIVE, UNRETENTIVE, NA },/*outroducing DNSKEY state.*/
         { OMNIPRESENT, UNRETENTIVE, OMNIPRESENT, NA },
-        { HIDDEN, OMNIPRESENT, OMNIPRESENT, NA }        /*This indicates an unsigned state.*/
-	};
+        { HIDDEN,      OMNIPRESENT, OMNIPRESENT, NA } /*unsigned state.*/
+    };
 
-	if (!keylist || !future_key || !future_key->key) {
+    if (!keylist || !future_key || !future_key->key) {
         return -1;
     }
 
     future_key->pretend_update = pretend_update;
 
-    /*
-     * Return positive value if any of the masks are found.
-     */
-	if (exists(keylist, keylist_size, future_key, 1, mask[0]) > 0
-	    || exists_with_successor(keylist, keylist_size, future_key, 1, mask[2], mask[1], KEY_STATE_TYPE_DS, deplist) > 0
+    /* Return positive value if any of the masks are found.  */
+    return (exists(keylist, keylist_size, future_key, 1, mask[0]) > 0
+        || exists_with_successor(keylist, keylist_size, future_key, 1, mask[2], mask[1], KEY_STATE_TYPE_DS, deplist) > 0
         || exists_with_successor(keylist, keylist_size, future_key, 1, mask[5], mask[3], KEY_STATE_TYPE_DNSKEY, deplist) > 0
         || exists_with_successor(keylist, keylist_size, future_key, 1, mask[5], mask[4], KEY_STATE_TYPE_DNSKEY, deplist) > 0
         || exists_with_successor(keylist, keylist_size, future_key, 1, mask[6], mask[3], KEY_STATE_TYPE_DNSKEY, deplist) > 0
         || exists_with_successor(keylist, keylist_size, future_key, 1, mask[6], mask[4], KEY_STATE_TYPE_DNSKEY, deplist) > 0
-        || unsignedOk(keylist, keylist_size, future_key, mask[7], KEY_STATE_TYPE_DS) > 0)
-	{
-		return 1;
-	}
-	return 0;
+        || unsignedOk(keylist, keylist_size, future_key, mask[7], KEY_STATE_TYPE_DS) > 0);
 }
 
 /**
@@ -908,56 +883,27 @@ static int
 rule3(key_data_t** keylist, size_t keylist_size, struct future_key *future_key,
     int pretend_update, key_dependency_list_t* deplist)
 {
-	static const key_state_state_t mask[6][4] = {
-		/*
-		 * This indicates a good key state.
-		 */
-		{ NA, OMNIPRESENT, NA, OMNIPRESENT },
-        /*
-         * This indicates a introducing DNSKEY state.
-         */
-		{ NA, RUMOURED, NA, OMNIPRESENT },
-        /*
-         * This indicates a outroducing DNSKEY state.
-         */
-        { NA, UNRETENTIVE, NA, OMNIPRESENT },
-        /*
-         * This indicates a introducing RRSIG state.
-         */
-        { NA, OMNIPRESENT, NA, RUMOURED },
-        /*
-         * This indicates a outroducing RRSIG state.
-         */
-        { NA, OMNIPRESENT, NA, UNRETENTIVE },
-        /*
-         * This indicates an unsigned state.
-         */
-        { NA, HIDDEN, NA, OMNIPRESENT }
-	};
+    static const key_state_state_t mask[6][4] = {
+        { NA, OMNIPRESENT, NA, OMNIPRESENT },/* good key state. */
+        { NA, RUMOURED,    NA, OMNIPRESENT },/* introducing DNSKEY state. */
+        { NA, UNRETENTIVE, NA, OMNIPRESENT },/* outroducing DNSKEY state. */
+        { NA, OMNIPRESENT, NA, RUMOURED    },/* introducing RRSIG state. */
+        { NA, OMNIPRESENT, NA, UNRETENTIVE },/* outroducing RRSIG state. */
+        { NA, HIDDEN,      NA, OMNIPRESENT } /* unsigned state. */
+    };
 
-	if (!keylist) {
-		return -1;
-	}
-    if (!future_key) {
-        return -1;
-    }
-    if (!future_key->key) {
+    if (!keylist || !future_key || !future_key->key) {
         return -1;
     }
 
     future_key->pretend_update = pretend_update;
 
-    /*
-     * Return positive value if any of the masks are found.
-     */
-	if (exists(keylist, keylist_size, future_key, 1, mask[0]) > 0
+    /* Return positive value if any of the masks are found. */
+    return (exists(keylist, keylist_size, future_key, 1, mask[0]) > 0
         || exists_with_successor(keylist, keylist_size, future_key, 1, mask[2], mask[1], KEY_STATE_TYPE_DNSKEY, deplist) > 0
         || exists_with_successor(keylist, keylist_size, future_key, 1, mask[4], mask[3], KEY_STATE_TYPE_RRSIG, deplist) > 0
-        || unsignedOk(keylist, keylist_size, future_key, mask[5], KEY_STATE_TYPE_DNSKEY) > 0)
-	{
-		return 1;
-	}
-	return 0;
+        || unsignedOk(keylist, keylist_size, future_key, mask[5], KEY_STATE_TYPE_DNSKEY) > 0
+        || all_DS_hidden(keylist, keylist_size, future_key) > 0);
 }
 
 /**
@@ -1129,52 +1075,32 @@ policyApproval(key_data_t** keylist, size_t keylist_size,
 
     case KEY_STATE_TYPE_DNSKEY:
         if (!key_state_minimize(key_data_cached_dnskey(future_key->key))) {
-            /*
-             * There are no restrictions for the DNSKEY transition so we can
-             * just continue.
-             */
-            break;
+            /* There are no restrictions for the DNSKEY transition so we can
+             * just continue. */
+            return 1;
         }
-
-        /*
-         * Check that signatures has been propagated for CSK/ZSK.
-         *
-         * TODO: How is this related to CSK/ZSK, there is no check for key_data_role().
-         */
-        if (key_state_state(key_data_cached_rrsig(future_key->key)) != OMNIPRESENT
-            && key_state_state(key_data_cached_rrsig(future_key->key)) != NA)
-        {
-            /*
-             * RRSIG not fully propagated so we will not do any transitions.
-             */
-            return 0;
+        /* Check that signatures has been propagated for CSK/ZSK. */
+        if (key_data_role(future_key->key) & KEY_DATA_ROLE_ZSK ) {
+            if (key_state_state(key_data_cached_rrsig(future_key->key)) == OMNIPRESENT
+                || key_state_state(key_data_cached_rrsig(future_key->key)) == NA)
+            {
+                /* RRSIG fully propagated so we will do the transitions. */
+                return 1;
+            }
         }
-
-        /*
-         * Check if the DS is introduced and continue if it is.
-         */
-        if (key_state_state(key_data_cached_ds(future_key->key)) == OMNIPRESENT
-            || key_state_state(key_data_cached_ds(future_key->key)) == NA)
-        {
-            break;
+        /* Check if the DS is introduced and continue if it is. */
+        if (key_data_role(future_key->key) & KEY_DATA_ROLE_KSK ) {
+            if (key_state_state(key_data_cached_ds(future_key->key)) == OMNIPRESENT
+                || key_state_state(key_data_cached_ds(future_key->key)) == NA)
+            {
+                return 1;
+            }
         }
-
-        /*
-         * We might be doing an algorithm rollover so we check if there are
-         * no other good KSK available and ignore the minimize flag if so.
-         *
-         * TODO: How is this related to KSK/CSK? There are no check for key_data_role().
-         */
-        if (exists(keylist, keylist_size, future_key, 1, mask[6]) > 0
+        /* We might be doing an algorithm rollover so we check if there are
+         * no other good KSK available and ignore the minimize flag if so. */
+        return !(exists(keylist, keylist_size, future_key, 1, mask[6]) > 0
             || exists_with_successor(keylist, keylist_size, future_key, 1, mask[8], mask[7], KEY_STATE_TYPE_DS, deplist) > 0
-            || exists_with_successor(keylist, keylist_size, future_key, 1, mask[11], mask[9], KEY_STATE_TYPE_DNSKEY, deplist) > 0)
-        {
-            /*
-             * We found a good key, so we will not do any transition.
-             */
-            return 0;
-        }
-        break;
+            || exists_with_successor(keylist, keylist_size, future_key, 1, mask[11], mask[9], KEY_STATE_TYPE_DNSKEY, deplist) > 0);
 
     case KEY_STATE_TYPE_RRSIGDNSKEY:
         /*
@@ -1327,6 +1253,7 @@ isSuccessable(struct future_key* future_key)
 
 /**
  * Establish relationships between keys in keylist and the future_key.
+ * Also remove relationships not longer relevant for future_key.
  *
  * \return A positive value if keys where successfully marked, zero if the
  * future_key can not be a successor and a negative value if an error occurred.
@@ -1338,23 +1265,30 @@ markSuccessors(db_connection_t *dbconn, key_data_t** keylist,
 {
     static const char *scmd = "markSuccessors";
     size_t i;
-    key_dependency_t* key_dependency;
+    key_dependency_t *key_dependency, *kd;
     key_dependency_type_t key_dependency_type;
+    int cmp;
 
-    if (!dbconn) {
+    if (!dbconn || !keylist || !future_key || !deplist || !zone) {
         return -1;
     }
-    if (!keylist) {
-        return -1;
-    }
-    if (!future_key) {
-        return -1;
-    }
-    if (!deplist) {
-        return -1;
-    }
-    if (!zone) {
-        return -1;
+
+    /* If key,type in deplist and new state is omnipresent it is no
+     * longer relevant for the dependencies */
+    if (future_key->next_state == OMNIPRESENT) {
+        /* Remove any entries for this key,type tuple from successors */
+        for (kd = key_dependency_list_get_begin(deplist); kd;
+            key_dependency_free(kd),
+            kd = key_dependency_list_get_next(deplist))
+        {
+            if (db_value_cmp(key_data_id(future_key->key),
+                    key_dependency_to_key_data_id(kd), &cmp) == DB_OK &&
+                !cmp && kd->type == (key_dependency_type_t)future_key->type)
+            {
+                    key_dependency_delete(kd);
+            }
+
+        }
     }
 
     if (isSuccessable(future_key) < 1) {
@@ -1771,9 +1705,19 @@ updateZone(db_connection_t *dbconn, policy_t const *policy, zone_db_t* zone,
                  * state is a certain state, wait an additional signature
                  * lifetime to allow for 'smooth rollover'.
                  */
+                static const key_state_state_t mask[2][4] = {
+                    {NA, OMNIPRESENT, NA, UNRETENTIVE},
+                    {NA, OMNIPRESENT, NA, RUMOURED}
+                };
+                int zsk_out = exists(keylist, keylist_size, &future_key,
+                    1, mask[0]);
+                int zsk_in = exists(keylist, keylist_size, &future_key,
+                    1, mask[1]);
+
                 if (type[j] == KEY_STATE_TYPE_RRSIG
                     && key_state_state(key_data_cached_dnskey(keylist[i])) == OMNIPRESENT
-                    && (next_state == OMNIPRESENT || next_state == HIDDEN))
+                    && ((next_state == OMNIPRESENT && zsk_out)
+                        || (next_state == HIDDEN && zsk_in)))
                 {
                     returntime_key = addtime(returntime_key,
                         policy_signatures_jitter(policy)
@@ -1944,7 +1888,7 @@ updateZone(db_connection_t *dbconn, policy_t const *policy, zone_db_t* zone,
 		    key_state_free(key_state);
                     break;
                 }
-		key_state_free(key_state);
+                key_state_free(key_state);
 
                 if (!zone_db_signconf_needs_writing(zone)) {
                     if (zone_db_set_signconf_needs_writing(zone, 1)) {

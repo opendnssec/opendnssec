@@ -39,19 +39,7 @@
 #include "signer/tools.h"
 #include "signer/zone.h"
 #include "util.h"
-
-/**
- * Worker working with...
- *
- */
-static void
-worker_working_with(worker_type* worker, zone_type* zone, task_id with, task_id next,
-    const char* str, const char* name)
-{
-    ods_log_verbose("[%s] %s zone %s", worker->name, str, name);
-    zone->nexttask = next;
-    zone->when = time_now();
-}
+#include "signertasks.h"
 
 /**
  * Queue RRset for signing.
@@ -153,268 +141,11 @@ worker_check_jobs(worker_type* worker, task_type* task, int ntasks, long ntasksf
             worker->name, task->owner, ntasksfailed);
         return ODS_STATUS_ERR;
     } else if (worker->need_to_exit) {
-        ods_log_debug("[%s] sign zone %s failed: worker needs to exit",
+        ods_log_error("[%s] sign zone %s failed: worker needs to exit",
             worker->name, task->owner);
         return ODS_STATUS_ERR;
     }
     return ODS_STATUS_OK;
-}
-
-int sched_task_comparetype2(task_id task, task_id other, task_id* sequence);
-
-/**
- * Perform task.
- *
- */
-time_t
-worker_perform_task(task_type* task, const char* zonename, void* zonearg, void* contextarg)
-{
-    task_id taskordering[] = { TASK_NONE, TASK_SIGNCONF, TASK_READ, TASK_NSECIFY, TASK_SIGN, TASK_WRITE, NULL };
-    int taskorder;
-    zone_type* zone = zonearg;
-    struct worker_context* context = contextarg;
-    engine_type* engine = context->engine;
-    worker_type* worker = context->worker;
-    time_t never = (3600*24*365);
-    ods_status status = ODS_STATUS_OK;
-    int backup = 0;
-    time_t start = 0;
-    time_t end = 0;
-    long nsubtasks = 0;
-    long nsubtasksfailed = 0;
-
-    ods_log_debug("[%s] start working on zone %s", worker->name, zonename);
-    /* do what you have been told to do */
-    if (sched_task_istype(task, TASK_SIGNCONF)) {
-            /* perform 'load signconf' task */
-            worker_working_with(worker, zone, TASK_SIGNCONF, TASK_READ, "configure", task->owner);
-            status = tools_signconf(zone);
-            if (status == ODS_STATUS_UNCHANGED) {
-                if (!zone->signconf->last_modified) {
-                    ods_log_debug("[%s] No signconf.xml for zone %s yet", worker->name, task->owner);
-                    status = ODS_STATUS_ERR;
-                }
-            }
-            if (status == ODS_STATUS_UNCHANGED) {
-                if (zone->halted != TASK_NONE && zone->halted != TASK_SIGNCONF) {
-                    goto task_perform_continue;
-                }
-                status = ODS_STATUS_OK;
-            } else if (status == ODS_STATUS_OK) {
-                zone->interrupt = TASK_NONE;
-                zone->halted = TASK_NONE;
-            } else {
-                if (zone->halted == TASK_NONE) {
-                    goto task_perform_fail;
-                }
-                goto task_perform_continue;
-            }
-    } else if (sched_task_istype(task, TASK_READ)) {
-            /* perform 'read input adapter' task */
-            worker_working_with(worker, zone, TASK_READ, TASK_SIGN, "read", task->owner);
-            if (!zone->signconf->last_modified) {
-                ods_log_debug("[%s] no signconf.xml for zone %s yet",
-                    worker->name, task->owner);
-                status = ODS_STATUS_ERR;
-            } else {
-                if (hsm_check_context()) {
-                    ods_log_error("signer instructed to reload due to hsm reset in read task");
-                    engine->need_to_reload = 1;
-                    pthread_mutex_lock(&engine->signal_lock);
-                    pthread_cond_signal(&engine->signal_cond);
-                    pthread_mutex_unlock(&engine->signal_lock);
-                    status = ODS_STATUS_ERR;
-                } else {
-                    status = tools_input(zone);
-                }
-            }
-            if (status == ODS_STATUS_UNCHANGED) {
-                ods_log_verbose("[%s] zone %s unsigned data not changed, "
-                    "continue", worker->name, task->owner);
-                status = ODS_STATUS_OK;
-            }
-            if (status == ODS_STATUS_OK) {
-                taskorder = sched_task_comparetype2(zone->interrupt, TASK_SIGNCONF, taskordering);
-                if (taskorder < 0) {
-                    zone->interrupt = TASK_NONE;
-                    zone->halted = TASK_NONE;
-                }
-            } else {
-                if (zone->halted == TASK_NONE) {
-                    goto task_perform_fail;
-                }
-                goto task_perform_continue;
-            }
-    } else if (sched_task_istype(task, TASK_SIGN)) {
-            context->clock_in = time_now();
-            /* perform 'sign' task */
-            worker_working_with(worker, zone, TASK_SIGN, TASK_WRITE, "sign", task->owner);
-            status = zone_update_serial(zone);
-            if (status == ODS_STATUS_OK) {
-                taskorder = sched_task_comparetype2(zone->interrupt, TASK_SIGNCONF, taskordering);
-                if (taskorder < 0) {
-                    zone->interrupt = TASK_NONE;
-                    zone->halted = TASK_NONE;
-                }
-            } else {
-                ods_log_error("[%s] unable to sign zone %s: "
-                    "failed to increment serial", worker->name, task->owner);
-                if (zone->halted == TASK_NONE) {
-                    goto task_perform_fail;
-                }
-                goto task_perform_continue;
-            }
-            /* start timer */
-            start = time(NULL);
-            if (zone->stats) {
-                pthread_mutex_lock(&zone->stats->stats_lock);
-                if (!zone->stats->start_time) {
-                    zone->stats->start_time = start;
-                }
-                zone->stats->sig_count = 0;
-                zone->stats->sig_soa_count = 0;
-                zone->stats->sig_reuse = 0;
-                zone->stats->sig_time = 0;
-                pthread_mutex_unlock(&zone->stats->stats_lock);
-            }
-            /* check the HSM connection before queuing sign operations */
-            if (hsm_check_context()) {
-                ods_log_error("signer instructed to reload due to hsm reset in sign task");
-                engine->need_to_reload = 1;
-                pthread_mutex_lock(&engine->signal_lock);
-                pthread_cond_signal(&engine->signal_cond);
-                pthread_mutex_unlock(&engine->signal_lock);
-                goto task_perform_fail;
-            }
-            /* prepare keys */
-            status = zone_prepare_keys(zone);
-            if (status == ODS_STATUS_OK) {
-                /* queue menial, hard signing work */
-                worker_queue_zone(context, worker->taskq->signq, zone, &nsubtasks);
-                ods_log_deeebug("[%s] wait until drudgers are finished "
-                    "signing zone %s", worker->name, task->owner);
-                /* sleep until work is done */
-                fifoq_waitfor(context->signq, worker, nsubtasks, &nsubtasksfailed);
-            }
-            /* stop timer */
-            end = time(NULL);
-            /* check status and jobs */
-            if (status == ODS_STATUS_OK) {
-                status = worker_check_jobs(worker, task, nsubtasks, nsubtasksfailed);
-            }
-            if (status == ODS_STATUS_OK && zone->stats) {
-                pthread_mutex_lock(&zone->stats->stats_lock);
-                zone->stats->sig_time = (end-start);
-                pthread_mutex_unlock(&zone->stats->stats_lock);
-            }
-            if (status != ODS_STATUS_OK) {
-                if (zone->halted == TASK_NONE) {
-                    goto task_perform_fail;
-                }
-                goto task_perform_continue;
-            } else {
-                taskorder = sched_task_comparetype2(zone->interrupt, TASK_SIGNCONF, taskordering);
-                if (taskorder < 0) {
-                    zone->interrupt = TASK_NONE;
-                    zone->halted = TASK_NONE;
-                }
-            }
-    } else if (sched_task_istype(task, TASK_WRITE)) {
-            context->clock_in = time_now(); /* TODO this means something different */
-            /* perform 'write to output adapter' task */
-            worker_working_with(worker, zone, TASK_WRITE, TASK_SIGN, "write", task->owner);
-            status = tools_output(zone, engine);
-            if (status == ODS_STATUS_OK) {
-                taskorder = sched_task_comparetype2(zone->interrupt, TASK_SIGNCONF, taskordering);
-                if (taskorder < 0) {
-                    zone->interrupt = TASK_NONE;
-                    zone->halted = TASK_NONE;
-                }
-            } else {
-                /* clear signatures? */
-                if (zone->halted == TASK_NONE) {
-                    goto task_perform_fail;
-                }
-                goto task_perform_continue;
-            }
-            zone->db->is_processed = 1;
-            if (zone->signconf &&
-                duration2time(zone->signconf->sig_resign_interval)) {
-                zone->nexttask = TASK_SIGN;
-                zone->when = context->clock_in +
-                    duration2time(zone->signconf->sig_resign_interval);
-            } else {
-                ods_log_error("[%s] unable to retrieve resign interval "
-                    "for zone %s: duration2time() failed",
-                    worker->name, task->owner);
-                ods_log_info("[%s] defaulting to 1H resign interval for "
-                    "zone %s", worker->name, task->owner);
-                zone->nexttask = TASK_SIGN;
-                zone->when = context->clock_in + 3600;
-            }
-            backup = 1;
-    } else if (sched_task_istype(task, TASK_NONE)) {
-            /* no task */
-            ods_log_warning("[%s] none task for zone %s", worker->name,
-                task->owner);
-            zone->when = time_now() + never;
-    } else {
-            /* unknown task */
-            ods_log_warning("[%s] unknown task, trying full sign zone %s",
-                worker->name, task->owner);
-            zone->nexttask = TASK_SIGNCONF;
-            zone->when = time_now();
-    }
-    /* no error */
-    task->backoff = 0;
-    if (zone->interrupt != TASK_NONE && zone->interrupt != zone->nexttask) {
-        zone->halted = zone->nexttask;
-        zone->halted_when = zone->when;
-        task->type = zone->interrupt;
-        task->due_date = time_now();
-    } else {
-        task->type = zone->nexttask;
-        task->due_date = zone->when;
-        zone->interrupt = TASK_NONE;
-        zone->halted = TASK_NONE;
-        zone->halted_when = 0;
-    }
-    /* backup the last successful run */
-    if (backup) {
-        status = zone_backup2(zone);
-        if (status != ODS_STATUS_OK) {
-            ods_log_warning("[%s] unable to backup zone %s: %s",
-            worker->name, task->owner, ods_status2str(status));
-            /* just a warning */
-            status = ODS_STATUS_OK;
-        }
-        backup = 0;
-    }
-    return sched_task_due(task);
-
-task_perform_fail:
-    if (!zone->signconf->last_modified) {
-        ods_log_warning("[%s] WARNING: unable to sign zone %s, signconf is not ready", worker->name, task->owner);
-    } else if (status != ODS_STATUS_XFR_NOT_READY) {
-        /* other statuses is critical, and we know it is not ODS_STATUS_OK */
-        ods_log_crit("[%s] CRITICAL: failed to sign zone %s: %s",
-            worker->name, task->owner, ods_status2str(status));
-    }
-    /* in case of failure, also mark zone processed (for single run usage) */
-    zone->db->is_processed = 1;
-    task->backoff = clamp(task->backoff * 2, 60, ODS_SE_MAX_BACKOFF);
-    ods_log_info("[%s] backoff task %s for zone %s with %lu seconds",
-        worker->name, task->type, task->owner, (long)task->backoff);
-    task->due_date = time_now() + task->backoff;
-    return sched_task_due(task);
-
-task_perform_continue:
-    task->type = zone->halted;
-    task->due_date = zone->halted_when;
-    zone->interrupt = TASK_NONE;
-    zone->halted = TASK_NONE;
-    zone->halted_when = 0;
-    return sched_task_due(task);
 }
 
 void
@@ -472,4 +203,262 @@ drudge(worker_type* worker)
     if (ctx) {
         hsm_destroy_context(ctx);
     }
+}
+
+time_t
+do_readsignconf(task_type* task, const char* zonename, void* zonearg, void *contextarg)
+{
+    struct worker_context* context = contextarg;
+    engine_type* engine = context->engine;
+    zone_type* zone = zonearg;
+    ods_status status;
+    status = tools_signconf(zone);
+    if (status == ODS_STATUS_UNCHANGED && !zone->signconf->last_modified) {
+        ods_log_debug("No signconf.xml for zone %s yet", task->owner);
+        status = ODS_STATUS_ERR;
+        zone->zoneconfigvalid = 0;
+    }
+    if (status == ODS_STATUS_OK || status == ODS_STATUS_UNCHANGED) {
+        /* status unchanged not really possible */
+        schedule_unscheduletask(engine->taskq, TASK_READ, zone->name);
+        schedule_scheduletask(engine->taskq, TASK_READ, zone->name, zone, &zone->zone_lock, schedule_PROMPTLY);
+        zone->zoneconfigvalid = 1;
+        return schedule_SUCCESS;
+    } else {
+        zone->zoneconfigvalid = 0;
+        if (!zone->signconf->last_modified) {
+            ods_log_warning("WARNING: unable to sign zone %s, signconf is not ready", task->owner);
+        } else {
+            ods_log_crit("CRITICAL: failed to sign zone %s: %s", task->owner, ods_status2str(status));
+        }
+        return schedule_DEFER;
+    }
+}
+
+time_t
+do_forcereadsignconf(task_type* task, const char* zonename, void* zonearg, void *contextarg)
+{
+    struct worker_context* context = contextarg;
+    engine_type* engine = context->engine;
+    zone_type* zone = zonearg;
+    ods_status status;
+    /* perform 'load signconf' task */
+    status = tools_signconf(zone);
+    if (status == ODS_STATUS_UNCHANGED) {
+        schedule_unscheduletask(engine->taskq, TASK_SIGNCONF, zone->name);
+        if(!zone->zoneconfigvalid) {
+            zone->zoneconfigvalid = 1;
+            schedule_unscheduletask(engine->taskq, TASK_READ, zone->name);
+            schedule_scheduletask(engine->taskq, TASK_READ, zone->name, zone, &zone->zone_lock, schedule_PROMPTLY);
+        }
+        return schedule_SUCCESS;
+    } else if (status == ODS_STATUS_OK) {
+        schedule_unscheduletask(engine->taskq, TASK_SIGNCONF, zone->name);
+        schedule_unscheduletask(engine->taskq, TASK_READ, zone->name);
+        schedule_unscheduletask(engine->taskq, TASK_SIGN, zone->name);
+        schedule_unscheduletask(engine->taskq, TASK_WRITE, zone->name);
+        schedule_scheduletask(engine->taskq, TASK_READ, zone->name, zone, &zone->zone_lock, schedule_PROMPTLY);
+        return schedule_SUCCESS;
+    } else {
+        return schedule_SUCCESS;
+    }
+}
+
+time_t
+do_signzone(task_type* task, const char* zonename, void* zonearg, void *contextarg)
+{
+    struct worker_context* context = contextarg;
+    engine_type* engine = context->engine;
+    worker_type* worker = context->worker;
+    zone_type* zone = zonearg;
+    ods_status status;
+    time_t start = 0;
+    time_t end = 0;
+    long nsubtasks = 0;
+    long nsubtasksfailed = 0;
+    context->clock_in = time_now();
+    status = zone_update_serial(zone);
+    if (status != ODS_STATUS_OK) {
+        ods_log_error("[%s] unable to sign zone %s: failed to increment serial", worker->name, task->owner);
+        ods_log_crit("[%s] CRITICAL: failed to sign zone %s: %s",
+                worker->name, task->owner, ods_status2str(status));
+        return schedule_DEFER; /* backoff */
+    }
+    /* start timer */
+    start = time(NULL);
+    if (zone->stats) {
+        pthread_mutex_lock(&zone->stats->stats_lock);
+        if (!zone->stats->start_time) {
+            zone->stats->start_time = start;
+        }
+        zone->stats->sig_count = 0;
+        zone->stats->sig_soa_count = 0;
+        zone->stats->sig_reuse = 0;
+        zone->stats->sig_time = 0;
+        pthread_mutex_unlock(&zone->stats->stats_lock);
+    }
+    /* check the HSM connection before queuing sign operations */
+    if (hsm_check_context()) {
+        ods_log_error("signer instructed to reload due to hsm reset in sign task");
+        engine->need_to_reload = 1;
+        pthread_mutex_lock(&engine->signal_lock);
+        pthread_cond_signal(&engine->signal_cond);
+        pthread_mutex_unlock(&engine->signal_lock);
+        ods_log_crit("[%s] CRITICAL: failed to sign zone %s: %s",
+                worker->name, task->owner, ods_status2str(status));
+        return schedule_DEFER; /* backoff */
+    }
+    /* prepare keys */
+    status = zone_prepare_keys(zone);
+    if (status == ODS_STATUS_OK) {
+        /* queue menial, hard signing work */
+        worker_queue_zone(context, worker->taskq->signq, zone, &nsubtasks);
+        ods_log_deeebug("[%s] wait until drudgers are finished "
+                "signing zone %s", worker->name, task->owner);
+        /* sleep until work is done */
+        fifoq_waitfor(context->signq, worker, nsubtasks, &nsubtasksfailed);
+    }
+    /* stop timer */
+    end = time(NULL);
+    /* check status and jobs */
+    if (status == ODS_STATUS_OK) {
+        status = worker_check_jobs(worker, task, nsubtasks, nsubtasksfailed);
+    }
+    if (status == ODS_STATUS_OK && zone->stats) {
+        pthread_mutex_lock(&zone->stats->stats_lock);
+        zone->stats->sig_time = (end - start);
+        pthread_mutex_unlock(&zone->stats->stats_lock);
+    }
+    if (status != ODS_STATUS_OK) {
+        ods_log_crit("[%s] CRITICAL: failed to sign zone %s: %s",
+                worker->name, task->owner, ods_status2str(status));
+        return schedule_DEFER; /* backoff */
+    }
+
+    schedule_scheduletask(engine->taskq, TASK_WRITE, zone->name, zone, &zone->zone_lock, schedule_PROMPTLY);
+    return schedule_SUCCESS;
+}
+
+time_t
+do_readzone(task_type* task, const char* zonename, void* zonearg, void *contextarg)
+{
+    ods_status status = ODS_STATUS_OK;
+    struct worker_context* context = contextarg;
+    engine_type* engine = context->engine;
+    zone_type* zone = zonearg;
+    /* perform 'read input adapter' task */
+    if (!zone->signconf->last_modified) {
+        ods_log_debug("no signconf.xml for zone %s yet", task->owner);
+        status = ODS_STATUS_ERR;
+    }
+    if (status == ODS_STATUS_OK) {
+        status = tools_input(zone);
+        if (status == ODS_STATUS_UNCHANGED) {
+            ods_log_verbose("zone %s unsigned data not changed, continue", task->owner);
+            status = ODS_STATUS_OK;
+        }
+    }
+    if (status != ODS_STATUS_OK) {
+        if (!zone->signconf->last_modified) {
+            ods_log_warning("WARNING: unable to sign zone %s, signconf is not ready", task->owner);
+        } else if (status != ODS_STATUS_XFR_NOT_READY) {
+            /* other statuses is critical, and we know it is not ODS_STATUS_OK */
+            ods_log_crit("CRITICAL: failed to sign zone %s: %s", task->owner, ods_status2str(status));
+        }
+        return schedule_DEFER;
+    } else {
+        /* unscheduling an existing sign task should no be necessary.  After a read (this action)
+         * the logical next step is a sign.  No other regular procedure that does not explicitly
+         * remove a sign task could create a sign task for this zone.  So here we would be able
+         * to assume there is no sign task.  However it occurs.  The original code before refactoring
+         * also removed sign tasks.  My premis this is caused by the locking code.  A task actually
+         * starts executing even though the zone is being processed from another task.  So for
+         * instance performing a force signconf just before a read task starts, can load to the read
+         * task to start executing even though the signconf task was still running.  The forced signconf
+         * task cannot remove the read task (it is no longer queued), but will schedule a sign task.
+         * The read task can then continue, finding the just created sign task in its path.
+         */
+        schedule_unscheduletask(engine->taskq, TASK_SIGN, zone->name);
+        schedule_scheduletask(engine->taskq, TASK_SIGN, zone->name, zone, &zone->zone_lock, schedule_PROMPTLY);
+        return schedule_SUCCESS;
+    }
+}
+
+time_t
+do_forcereadzone(task_type* task, const char* zonename, void* zonearg, void *contextarg)
+{
+    ods_status status = ODS_STATUS_OK;
+    struct worker_context* context = contextarg;
+    engine_type* engine = context->engine;
+    zone_type* zone = zonearg;
+    /* perform 'read input adapter' task */
+    if (!zone->signconf->last_modified) {
+        ods_log_debug("no signconf.xml for zone %s yet", task->owner);
+        status = ODS_STATUS_ERR;
+    }
+    if (status == ODS_STATUS_OK) {
+        status = tools_input(zone);
+        if (status == ODS_STATUS_UNCHANGED) {
+            ods_log_verbose("zone %s unsigned data not changed, continue", task->owner);
+            status = ODS_STATUS_OK;
+        }
+    }
+    if (status != ODS_STATUS_OK) {
+        if (!zone->signconf->last_modified) {
+            ods_log_warning("WARNING: unable to sign zone %s, signconf is not ready", task->owner);
+        } else if (status != ODS_STATUS_XFR_NOT_READY) {
+            /* other statuses is critical, and we know it is not ODS_STATUS_OK */
+            ods_log_crit("CRITICAL: failed to sign zone %s: %s", task->owner, ods_status2str(status));
+        }
+        return schedule_SUCCESS;
+    } else {
+        schedule_unscheduletask(engine->taskq, TASK_SIGNCONF, zone->name);
+        schedule_unscheduletask(engine->taskq, TASK_FORCEREAD, zone->name);
+        schedule_unscheduletask(engine->taskq, TASK_READ, zone->name);
+        schedule_unscheduletask(engine->taskq, TASK_SIGN, zone->name);
+        schedule_unscheduletask(engine->taskq, TASK_WRITE, zone->name);
+        schedule_scheduletask(engine->taskq, TASK_SIGN, zone->name, zone, &zone->zone_lock, schedule_PROMPTLY);
+        return schedule_SUCCESS;
+    }
+}
+
+time_t
+do_writezone(task_type* task, const char* zonename, void* zonearg, void *contextarg)
+{
+    struct worker_context* context = contextarg;
+    engine_type* engine = context->engine;
+    worker_type* worker = context->worker;
+    zone_type* zone = zonearg;
+    ods_status status;
+    time_t resign;
+    context->clock_in = time_now(); /* TODO this means something different */
+    /* perform write to output adapter task */
+    status = tools_output(zone, engine);
+    if (status != ODS_STATUS_OK) {
+        ods_log_crit("[%s] CRITICAL: failed to sign zone %s: %s",
+                worker->name, task->owner, ods_status2str(status));
+        return schedule_DEFER;
+    }
+    if (zone->signconf &&
+            duration2time(zone->signconf->sig_resign_interval)) {
+        resign = context->clock_in +
+                duration2time(zone->signconf->sig_resign_interval);
+    } else {
+        ods_log_error("[%s] unable to retrieve resign interval "
+                "for zone %s: duration2time() failed",
+                worker->name, task->owner);
+        ods_log_info("[%s] defaulting to 1H resign interval for "
+                "zone %s", worker->name, task->owner);
+        resign = context->clock_in + 3600;
+    }
+    /* backup the last successful run */
+    status = zone_backup2(zone, resign);
+    if (status != ODS_STATUS_OK) {
+        ods_log_warning("[%s] unable to backup zone %s: %s",
+                worker->name, task->owner, ods_status2str(status));
+        /* just a warning */
+        status = ODS_STATUS_OK;
+    }
+    schedule_scheduletask(engine->taskq, TASK_SIGN, zone->name, zone, &zone->zone_lock, resign);
+    return schedule_SUCCESS;
 }

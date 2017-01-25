@@ -53,6 +53,7 @@ typedef struct zone_struct zone_type;
 #include "wire/notify.h"
 #include "wire/xfrd.h"
 #include "datastructure.h"
+#include "daemon/engine.h"
 
 struct schedule_struct;
 
@@ -80,21 +81,15 @@ struct zone_struct {
     /* zone transfers */
     xfrd_type* xfrd;
     notify_type* notify;
-    /* worker variables */
-    task_type* task; /* next assigned task */
     /* statistics */
     stats_type* stats;
     pthread_mutex_t zone_lock;
     pthread_mutex_t xfr_lock;
     /* backing store for rrsigs (both domain as denial) */
     collection_class rrstore;
-
-    task_id nexttask;
-    task_id interrupt;
-    task_id halted;
-    time_t when;
-    time_t halted_when;
+    int zoneconfigvalid; /* flag indicating whether the signconf has at least once been read */
 };
+
 
 /**
  * Create a new zone.
@@ -242,13 +237,13 @@ void zone_cleanup(zone_type* zone);
  * \return ods_status status
  *
  */
-ods_status zone_backup2(zone_type* zone);
+ods_status zone_backup2(zone_type* zone, time_t nextResign);
 
 /**
  * Recover zone from backup.
  * \param[in] zone corresponding zone
  *
  */
-ods_status zone_recover2(zone_type* zone);
+ods_status zone_recover2(engine_type* engine, zone_type* zone);
 
 #endif /* SIGNER_ZONE_H */

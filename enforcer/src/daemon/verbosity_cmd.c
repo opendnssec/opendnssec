@@ -33,7 +33,7 @@
 #include "file.h"
 #include "log.h"
 #include "str.h"
-#include "daemon/cmdhandler.h"
+#include "cmdhandler.h"
 #include "daemon/engine.h"
 #include "clientpipe.h"
 
@@ -59,14 +59,7 @@ help(int sockfd)
 }
 
 static int
-handles(const char *cmd, ssize_t n)
-{
-	return ods_check_command(cmd, n, verbosity_funcblock()->cmdname)?1:0;
-}
-
-static int
-run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
-	db_connection_t *dbconn)
+run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 {
 	const int NARGV = MAX_ARGS;
 	const char *argv[MAX_ARGS];
@@ -74,7 +67,6 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	int argc;
 	long val;
 	char *endptr, *errorstr;
-	(void)n; (void)dbconn;
 
 	strncpy(buf, cmd, sizeof(buf));
 	buf[sizeof(buf)-1] = '\0';
@@ -111,8 +103,6 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 			client_printf(sockfd, "Error parsing verbosity value: must be >= 0.\n");
 			return -1;
 		}
-		ods_log_assert(engine);
-		ods_log_assert(engine->config);
 		ods_log_setverbosity(val);
 		client_printf(sockfd, "Verbosity level set to %i.\n", val);
 		return 0;
@@ -123,12 +113,6 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 }
 
 
-static struct cmd_func_block funcblock = {
-	"verbosity", &usage, &help, &handles, &run
+struct cmd_func_block verbosity_funcblock = {
+	"verbosity", &usage, &help, NULL, &run
 };
-
-struct cmd_func_block*
-verbosity_funcblock(void)
-{
-	return &funcblock;
-}

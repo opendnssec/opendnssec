@@ -202,7 +202,7 @@ hsm_test (const char *repository, hsm_ctx_t* ctx)
             printf("OK\n");
         }
 
-        free(key);
+        libhsm_key_free(key);
 
         printf("\n");
     }
@@ -257,7 +257,7 @@ hsm_test (const char *repository, hsm_ctx_t* ctx)
             printf("OK\n");
         }
 
-        free(key);
+        libhsm_key_free(key);
 
         printf("\n");
     }
@@ -310,7 +310,7 @@ hsm_test (const char *repository, hsm_ctx_t* ctx)
             printf("OK\n");
         }
 
-        free(key);
+        libhsm_key_free(key);
 
         printf("\n");
     }
@@ -381,7 +381,7 @@ hsm_test (const char *repository, hsm_ctx_t* ctx)
             printf("OK\n");
         }
 
-        free(key);
+        libhsm_key_free(key);
 
         printf("\n");
     }

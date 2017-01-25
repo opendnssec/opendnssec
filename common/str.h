@@ -83,17 +83,6 @@ char* ods_str_trim(char* str, int keep_newline);
  */
 char *ods_ctime_r(char *buf, size_t nbuf, time_t t);
 
-/**
- * Compare commandline with command, return arguments if found.
- *
- * \param[in] cmd, commandline to test
- * \param[in] cmdsize, string length of cmd
- * \param[in] scmd, command to look for
- * \return Pointer to arguments within cmd. NULL if scmd not found.
- */
-const char *ods_check_command(const char *cmd, int cmdsize, 
-                              const char *scmd);
-
 int ods_find_arg(int *pargc, const char *argv[],
                  const char *longname, const char *shortname);
 

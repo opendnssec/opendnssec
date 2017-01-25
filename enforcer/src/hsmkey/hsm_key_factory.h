@@ -38,21 +38,24 @@
 void hsm_key_factory_deinit(void);
 /**
  * TODO
+ * \return 0 success, 1 error
  */
-void hsm_key_factory_generate(engine_type* engine,
+int hsm_key_factory_generate(engine_type* engine,
     const db_connection_t* connection, const policy_t* policy, const policy_key_t* policy_key,
     time_t duration);
 
 /**
  * TODO
+ * \return 0 success, 1 error
  */
-void hsm_key_factory_generate_policy(engine_type* engine,
+int hsm_key_factory_generate_policy(engine_type* engine,
     const db_connection_t* connection, const policy_t* policy, time_t duration);
 
 /**
  * TODO
+ * \return 0 success, 1 error
  */
-void hsm_key_factory_generate_all(engine_type* engine,
+int hsm_key_factory_generate_all(engine_type* engine,
     const db_connection_t* connection, time_t duration);
 
 

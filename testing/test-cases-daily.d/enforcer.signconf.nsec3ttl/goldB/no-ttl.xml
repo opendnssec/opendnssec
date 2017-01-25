@@ -29,12 +29,15 @@
         <Flags>257</Flags>
         <Algorithm>7</Algorithm>
         <Locator>b0b158f5c9e38abb16289ba7a8ec424a</Locator>
+        <KSK/>
+        <Publish/>
       </Key>
       <Key>
         <Flags>256</Flags>
         <Algorithm>7</Algorithm>
         <Locator>fbfa084014cf0cd260bd9f25d598272a</Locator>
         <ZSK/>
+        <Publish/>
       </Key>
     </Keys>
     <SOA>

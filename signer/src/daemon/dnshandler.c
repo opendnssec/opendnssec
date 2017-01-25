@@ -205,7 +205,7 @@ dnshandler_start(dnshandler_type* dnshandler)
     }
     /* shutdown */
     ods_log_debug("[%s] shutdown", dnsh_str);
-    free(tcp_accept_handlers);
+    /*free(tcp_accept_handlers);*/
  /*   for (i=0; i < dnshandler->interfaces->count; i++) {
         if (dnshandler->socklist->udp[i].s != -1) {
             close(dnshandler->socklist->udp[i].s);
