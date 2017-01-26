@@ -146,6 +146,7 @@ ACX_RT
 ACX_LIBC
 ACX_SSL
 ACX_CUNIT
+ACX_JANITOR
 
 # cunit
 AM_CONDITIONAL([WITH_CUNIT], [test "${with_cunit}" != "no" -a -n "$CUNIT_LIBS"])

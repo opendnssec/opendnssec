@@ -27,9 +27,6 @@
 #ifndef DEBUG_H
 #define DEBUG_H
 
-//#define HAVE_JANITOR
-#undef HAVE_JANITOR
-
 #ifdef HAVE_JANITOR
 
 #include <pthread.h>
