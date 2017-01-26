@@ -364,6 +364,13 @@ cmdhandler_cleanup(cmdhandler_type* cmdhandler)
     free(cmdhandler);
 }
 
+#ifndef HAVE_JANITOR
+struct client {
+    pthread_t thr;
+    struct client *next;
+};
+#endif
+
 /**
  * Start command handler.
  *
@@ -378,7 +385,7 @@ cmdhandler_start(void *arg)
 #ifdef HAVE_JANITOR
     janitor_thread_t cmdclientthread;
 #else
-    pthread_t cmdclientthread;
+    struct client *cmdh = NULL;
 #endif
     fd_set rset;
     int flags, connfd = 0, ret = 0;
@@ -399,7 +406,9 @@ cmdhandler_start(void *arg)
 #ifdef HAVE_JANITOR
         janitor_thread_tryjoinall(cmdhandlerthreadclass);
 #else
-    //YBSTODO
+        /* there is NO reliable + portable way to /try/ to join a thread.
+         * Janitor solution is not reliable, even with its lock. We will just 
+         * keep them around for now. We'll join them at program exit. */
 #endif
 
         if (cmdhandler->need_to_exit) break;
@@ -442,7 +451,10 @@ cmdhandler_start(void *arg)
 #ifdef HAVE_JANITOR
             janitor_thread_create(&cmdclientthread, cmdhandlerthreadclass, &cmdhandler_accept_client, (void*) cmdclient);
 #else
-            pthread_create(&cmdclientthread, NULL, &cmdhandler_accept_client, (void*) cmdclient);
+            struct client *c = malloc(sizeof c);
+            pthread_create(&c->thr, NULL, &cmdhandler_accept_client, (void*) cmdclient);
+            c->next = cmdh;
+            cmdh = c;
 #endif
         }
     }
@@ -451,7 +463,13 @@ cmdhandler_start(void *arg)
 #ifdef HAVE_JANITOR
     janitor_thread_joinall(cmdhandlerthreadclass);
 #else
-    //YBSTODO
+    struct client *c;
+    while (cmdh) {
+        c = cmdh;
+        cmdh = cmdh->next;
+        (void)pthread_join(c->thr, NULL);
+        free(c);
+    }
 #endif
 
     ods_log_debug("[%s] done", module_str);
