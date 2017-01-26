@@ -239,7 +239,7 @@ janitor_thread_dispose(janitor_thread_t info)
         }
         pthread_mutex_unlock(&threadlock);
     }
-    free(info);
+    /*free(info);*/
 }
 
 static void
@@ -306,7 +306,7 @@ runthread(void* data)
     }
     info->runfunc(info->rundata);
     sigaltstack(&prevss, NULL);
-    free(ss.ss_sp);
+    /*free(ss.ss_sp);*/ //Can't free this, libxml tries to access it?
     janitor_thread_unregister(info);
     janitor_thread_finished(info);
     return NULL;
