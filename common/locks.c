@@ -63,10 +63,12 @@ ods_thread_wait(pthread_cond_t* cond, pthread_mutex_t* lock, time_t wait)
     return pthread_cond_timedwait(cond, lock, &ts);
 }
 
+#ifdef HAVE_JANITOR
 janitor_threadclass_t detachedthreadclass;
 janitor_threadclass_t workerthreadclass;
 janitor_threadclass_t handlerthreadclass;
 janitor_threadclass_t cmdhandlerthreadclass;
+#endif
 
 struct alertbuffer_struct {
     char buffer[1024];
@@ -198,6 +200,7 @@ alertsyslog(const char* format, ...)
     syslog(LOG_CRIT, "%s", buffer.buffer);
 }
 
+#ifdef HAVE_JANITOR
 void
 ods_janitor_initialize(char*argv0)
 {
@@ -225,3 +228,4 @@ ods_janitor_initialize(char*argv0)
 
     janitor_trapsignals(argv0);
 }
+#endif

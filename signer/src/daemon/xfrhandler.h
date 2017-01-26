@@ -51,7 +51,11 @@ typedef struct xfrhandler_struct xfrhandler_type;
  */
 struct xfrhandler_struct {
     /* Engine reference */
+#ifdef HAVE_JANITOR
     janitor_thread_t thread_id;
+#else
+    pthread_t thread_id;
+#endif
     engine_type* engine;
     /* Start time */
     time_t start_time;
@@ -86,7 +90,8 @@ xfrhandler_type* xfrhandler_create(void);
  * \param[in] xfrhandler_type* zone transfer handler
  *
  */
-void xfrhandler_start(xfrhandler_type* xfrhandler);
+void *
+xfrhandler_start(void *arg);
 
 /**
  * Get current time from the zone transfer handler.

@@ -34,6 +34,9 @@
 
 #include "config.h"
 #include <sys/un.h>
+#ifndef HAVE_JANITOR
+#include <pthread.h>
+#endif
 
 typedef struct cmdhandler_struct cmdhandler_type;
 
@@ -73,7 +76,11 @@ struct cmd_func_block {
 
 struct cmdhandler_struct {
     struct sockaddr_un listen_addr;
+#ifdef HAVE_JANITOR
     janitor_thread_t thread_id;
+#else
+    pthread_t thread_id;
+#endif
     int listen_fd;
     int need_to_exit;
     int stopped;
@@ -103,7 +110,7 @@ void cmdhandler_cleanup(cmdhandler_type* cmdhandler);
  * \param[in] cmdhandler_type* command handler
  *
  */
-void cmdhandler_start(cmdhandler_type* cmdhandler);
+void* cmdhandler_start(void *arg);
 void cmdhandler_stop(cmdhandler_type* cmdhandler);
 
 /**

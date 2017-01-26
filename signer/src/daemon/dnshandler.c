@@ -120,10 +120,11 @@ dnshandler_listen(dnshandler_type* dnshandler)
  * Start dns handler.
  *
  */
-void
-dnshandler_start(dnshandler_type* dnshandler)
+void *
+dnshandler_start(void *arg)
 {
     size_t i = 0;
+    dnshandler_type* dnshandler = (dnshandler_type*)arg;
     engine_type* engine = NULL;
     netio_handler_type* tcp_accept_handlers = NULL;
 
@@ -176,7 +177,7 @@ dnshandler_start(dnshandler_type* dnshandler)
                 "failed", dnsh_str);
             dnshandler->thread_id = 0;
             engine->need_to_exit = 1;
-            return;
+            return NULL;
         }
         data->engine = dnshandler->engine;
         data->socket = &dnshandler->socklist->udp[i];
@@ -216,6 +217,7 @@ dnshandler_start(dnshandler_type* dnshandler)
             freeaddrinfo((void*)dnshandler->socklist->tcp[i].addr);
         }
     }*/
+    return NULL;
 }
 
 
@@ -227,7 +229,11 @@ void
 dnshandler_signal(dnshandler_type* dnshandler)
 {
     if (dnshandler && dnshandler->thread_id) {
+#ifdef HAVE_JANITOR
         janitor_thread_signal(dnshandler->thread_id);
+#else
+        pthread_kill(dnshandler->thread_id, SIGHUP);
+#endif
     }
 }
 

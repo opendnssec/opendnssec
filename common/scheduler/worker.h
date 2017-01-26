@@ -43,7 +43,11 @@ typedef struct worker_struct worker_type;
 struct worker_struct {
     char* name;
     schedule_type* taskq;
+#ifdef HAVE_JANITOR
     janitor_thread_t thread_id;
+#else
+    pthread_t thread_id;
+#endif
     int need_to_exit;
     void* context;
     int tasksOutstanding;
@@ -65,7 +69,8 @@ worker_type* worker_create(char* name, schedule_type* taskq);
  * \param[in] worker worker to start working
  *
  */
-void worker_start(worker_type* worker);
+void *
+worker_start(void *arg);
 
 /**
  * Clean up worker.

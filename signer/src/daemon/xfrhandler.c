@@ -105,9 +105,10 @@ xfrhandler_create()
  * Start zone transfer handler.
  *
  */
-void
-xfrhandler_start(xfrhandler_type* xfrhandler)
+void *
+xfrhandler_start(void *arg)
 {
+    xfrhandler_type* xfrhandler = (xfrhandler_type*)arg;
     ods_log_assert(xfrhandler);
     ods_log_assert(xfrhandler->engine);
     ods_log_debug("[%s] start", xfrh_str);
@@ -129,6 +130,7 @@ xfrhandler_start(xfrhandler_type* xfrhandler)
     }
     /* shutdown */
     ods_log_debug("[%s] shutdown", xfrh_str);
+    return NULL;
 }
 
 
@@ -158,7 +160,11 @@ void
 xfrhandler_signal(xfrhandler_type* xfrhandler)
 {
     if (xfrhandler && xfrhandler->started) {
+#ifdef HAVE_JANITOR
         janitor_thread_signal(xfrhandler->thread_id);
+#else
+        pthread_kill(xfrhandler->thread_id, SIGHUP);
+#endif
     }
 }
 

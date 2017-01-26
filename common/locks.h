@@ -39,15 +39,17 @@
 /** ods-signerd will crash if the thread stacksize is too small */
 #define ODS_MINIMUM_STACKSIZE 524288
 
+int ods_thread_wait(pthread_cond_t* cond, pthread_mutex_t* lock, time_t wait);
+
+#ifdef HAVE_JANITOR
 /** thread creation */
 typedef janitor_thread_t ods_thread_type;
-
-int ods_thread_wait(pthread_cond_t* cond, pthread_mutex_t* lock, time_t wait);
 
 void ods_janitor_initialize(char*argv0);
 extern janitor_threadclass_t detachedthreadclass;
 extern janitor_threadclass_t workerthreadclass;
 extern janitor_threadclass_t handlerthreadclass;
 extern janitor_threadclass_t cmdhandlerthreadclass;
+#endif
 
 #endif /* SHARED_LOCKS_H */

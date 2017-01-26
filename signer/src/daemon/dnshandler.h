@@ -49,7 +49,11 @@ typedef struct dnshandler_struct dnshandler_type;
 #define ODS_SE_MAX_HANDLERS 5
 
 struct dnshandler_struct {
+#ifdef HAVE_JANITOR
     janitor_thread_t thread_id;
+#else
+    pthread_t thread_id;
+#endif
     engine_type* engine;
     listener_type* interfaces;
     socklist_type* socklist;
@@ -81,7 +85,8 @@ ods_status dnshandler_listen(dnshandler_type* dnshandler);
  * \param[in] dnshandler_type* dns handler
  *
  */
-void dnshandler_start(dnshandler_type* dnshandler);
+void *
+dnshandler_start(void *arg);
 
 /**
  * Signal dns handler.

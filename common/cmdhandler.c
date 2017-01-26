@@ -254,7 +254,7 @@ cmdhandler_handle_client_conversation(struct cmdhandler_ctx_struct* context)
  * Accept client.
  *
  */
-static void
+static void*
 cmdhandler_accept_client(void* arg)
 {
     int err;
@@ -267,7 +267,7 @@ cmdhandler_accept_client(void* arg)
         if (!context->localcontext) {
             client_printf_err(context->sockfd, "Failed to open DB connection.\n");
             client_exit(context->sockfd, 1);
-            return;
+            return NULL;
         }
     }
 
@@ -279,6 +279,7 @@ cmdhandler_accept_client(void* arg)
     if (context->cmdhandler->destroylocalcontext) {
         context->cmdhandler->destroylocalcontext(context->localcontext);
     }
+    return NULL;
 }
 
 /**
@@ -367,13 +368,18 @@ cmdhandler_cleanup(cmdhandler_type* cmdhandler)
  * Start command handler.
  *
  */
-void
-cmdhandler_start(cmdhandler_type* cmdhandler)
+void *
+cmdhandler_start(void *arg)
 {
     struct sockaddr_un cliaddr;
     socklen_t clilen;
     cmdhandler_ctx_type* cmdclient;
+    cmdhandler_type* cmdhandler = (cmdhandler_type*)arg;
+#ifdef HAVE_JANITOR
     janitor_thread_t cmdclientthread;
+#else
+    pthread_t cmdclientthread;
+#endif
     fd_set rset;
     int flags, connfd = 0, ret = 0;
     ssize_t i;
@@ -390,7 +396,11 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
          * removes the delay of the self_pipe_trick*/
 
         /* Opportunistic join threads LIFO. */
+#ifdef HAVE_JANITOR
         janitor_thread_tryjoinall(cmdhandlerthreadclass);
+#else
+    //YBSTODO
+#endif
 
         if (cmdhandler->need_to_exit) break;
         if (ret < 0) {
@@ -429,15 +439,24 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
             cmdclient->sockfd = connfd;
             cmdclient->globalcontext = cmdhandler->globalcontext;
             cmdclient->localcontext = NULL;
+#ifdef HAVE_JANITOR
             janitor_thread_create(&cmdclientthread, cmdhandlerthreadclass, &cmdhandler_accept_client, (void*) cmdclient);
+#else
+            pthread_create(&cmdclientthread, NULL, &cmdhandler_accept_client, (void*) cmdclient);
+#endif
         }
     }
 
     /* join threads */
+#ifdef HAVE_JANITOR
     janitor_thread_joinall(cmdhandlerthreadclass);
+#else
+    //YBSTODO
+#endif
 
     ods_log_debug("[%s] done", module_str);
     cmdhandler->stopped = 1;
+    return NULL;
 }
 
 /**
@@ -488,7 +507,11 @@ cmdhandler_stop(cmdhandler_type* cmdhandler)
         ods_log_error("[engine] command handler self pipe trick failed, "
             "unclean shutdown");
     }
+#ifdef HAVE_JANITOR
     janitor_thread_join(cmdhandler->thread_id);
+#else
+    (void)pthread_join(cmdhandler->thread_id, NULL);
+#endif
 }
 
 const char* ods_check_command(const char *cmd, const char *scmd)
