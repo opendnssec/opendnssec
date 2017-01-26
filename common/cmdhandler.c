@@ -367,6 +367,7 @@ cmdhandler_cleanup(cmdhandler_type* cmdhandler)
 #ifndef HAVE_JANITOR
 struct client {
     pthread_t thr;
+    cmdhandler_ctx_type* cmdclient;
     struct client *next;
 };
 #endif
@@ -451,8 +452,9 @@ cmdhandler_start(void *arg)
 #ifdef HAVE_JANITOR
             janitor_thread_create(&cmdclientthread, cmdhandlerthreadclass, &cmdhandler_accept_client, (void*) cmdclient);
 #else
-            struct client *c = malloc(sizeof c);
+            struct client *c = malloc(sizeof (struct client));
             pthread_create(&c->thr, NULL, &cmdhandler_accept_client, (void*) cmdclient);
+            c->cmdclient = cmdclient;
             c->next = cmdh;
             cmdh = c;
 #endif
@@ -468,6 +470,7 @@ cmdhandler_start(void *arg)
         c = cmdh;
         cmdh = cmdh->next;
         (void)pthread_join(c->thr, NULL);
+        free(c->cmdclient);
         free(c);
     }
 #endif
