@@ -148,14 +148,15 @@ worker_check_jobs(worker_type* worker, task_type* task, int ntasks, long ntasksf
     return ODS_STATUS_OK;
 }
 
-void
-drudge(worker_type* worker)
+void *
+drudge(void *arg)
 {
     rrset_type* rrset;
     ods_status status;
     struct worker_context* superior;
     hsm_ctx_t* ctx = NULL;
     engine_type* engine;
+    worker_type* worker = (worker_type*)arg;
     fifoq_type* signq = worker->taskq->signq;
 
     while (worker->need_to_exit == 0) {
@@ -203,6 +204,7 @@ drudge(worker_type* worker)
     if (ctx) {
         hsm_destroy_context(ctx);
     }
+    return NULL;
 }
 
 time_t

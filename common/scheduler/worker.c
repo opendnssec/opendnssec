@@ -54,11 +54,12 @@ worker_create(char* name, schedule_type* taskq)
  * Work.
  *
  */
-void
-worker_start(worker_type* worker)
+void *
+worker_start(void *arg)
 {
-    ods_log_assert(worker);
     task_type *task;
+    worker_type* worker = (worker_type *) arg;
+    ods_log_assert(worker);
 
     while (worker->need_to_exit == 0) {
         ods_log_debug("[%s]: report for duty", worker->name);
@@ -72,6 +73,7 @@ worker_start(worker_type* worker)
             ods_log_debug("[%s] finished working", worker->name);
         }
     }
+    return NULL;
 }
 
 

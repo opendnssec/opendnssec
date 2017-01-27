@@ -55,6 +55,7 @@
 #endif
 
 #include "janitor.h"
+#ifdef HAVE_JANITOR
 
 static struct sigaction original_quit_action;
 static struct sigaction original_abrt_action;
@@ -681,3 +682,4 @@ janitor_disablecoredump(void)
 fail:
     return -1;
 }
+#endif /* HAVE_JANITOR */

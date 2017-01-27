@@ -335,15 +335,14 @@ netio_dispatch(netio_type* netio, const struct timespec* timeout,
 void
 netio_cleanup(netio_type* netio)
 {
-    netio_handler_list_type* handler;
-
     ods_log_assert(netio);
-
     while (netio->handlers) {
-        handler = netio->handlers;
-        netio->handlers = netio->handlers->next;
-        free(handler->handler->user_data);
-        /*free(handler->handler);*/
+        netio_handler_list_type* handler = netio->handlers;
+        netio->handlers = handler->next;
+        if (handler->handler->free_handler) {
+            free(handler->handler->user_data);
+            free(handler->handler);
+        }
         free(handler);
     }
     free(netio);

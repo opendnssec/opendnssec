@@ -109,7 +109,11 @@ static void
 engine_start_cmdhandler(engine_type* engine)
 {
     ods_log_debug("[%s] start command handler", engine_str);
+#ifdef HAVE_JANITOR
     janitor_thread_create(&engine->cmdhandler->thread_id, workerthreadclass, (janitor_runfn_t)cmdhandler_start, engine->cmdhandler);
+#else
+    pthread_create(&engine->cmdhandler->thread_id, NULL, cmdhandler_start, engine->cmdhandler);
+#endif
 }
 
 /**
@@ -124,7 +128,11 @@ engine_start_dnshandler(engine_type* engine)
     }
     ods_log_debug("[%s] start dnshandler", engine_str);
     engine->dnshandler->engine = engine;
+#ifdef HAVE_JANITOR
     janitor_thread_create(&engine->dnshandler->thread_id, handlerthreadclass, (janitor_runfn_t)dnshandler_start, engine->dnshandler);
+#else
+    pthread_create(&engine->dnshandler->thread_id, NULL, dnshandler_start, engine->dnshandler);
+#endif
 }
 static void
 engine_stop_dnshandler(engine_type* engine)
@@ -136,7 +144,11 @@ engine_stop_dnshandler(engine_type* engine)
     engine->dnshandler->need_to_exit = 1;
     dnshandler_signal(engine->dnshandler);
     ods_log_debug("[%s] join dnshandler", engine_str);
+#ifdef HAVE_JANITOR
     janitor_thread_join(engine->dnshandler->thread_id);
+#else
+    (void)pthread_join(engine->dnshandler->thread_id, NULL);
+#endif
     engine->dnshandler->engine = NULL;
 }
 
@@ -154,7 +166,11 @@ engine_start_xfrhandler(engine_type* engine)
      * it has marked itself started
      */
     engine->xfrhandler->started = 1;
+#ifdef HAVE_JANITOR
     janitor_thread_create(&engine->xfrhandler->thread_id, handlerthreadclass, (janitor_runfn_t)xfrhandler_start, engine->xfrhandler);
+#else
+    pthread_create(&engine->xfrhandler->thread_id, NULL, xfrhandler_start, engine->xfrhandler);
+#endif
 }
 static void
 engine_stop_xfrhandler(engine_type* engine)
@@ -167,7 +183,11 @@ engine_stop_xfrhandler(engine_type* engine)
     xfrhandler_signal(engine->xfrhandler);
     ods_log_debug("[%s] join xfrhandler", engine_str);
     if (engine->xfrhandler->started) {
+#ifdef HAVE_JANITOR
     	janitor_thread_join(engine->xfrhandler->thread_id);
+#else
+        pthread_join(engine->xfrhandler->thread_id, NULL);
+#endif
     	engine->xfrhandler->started = 0;
     }
     engine->xfrhandler->engine = NULL;
@@ -251,11 +271,19 @@ engine_start_workers(engine_type* engine)
         context->signq = engine->taskq->signq;
         engine->workers[threadCount]->need_to_exit = 0;
         engine->workers[threadCount]->context = context;
+#ifdef HAVE_JANITOR
         janitor_thread_create(&engine->workers[threadCount]->thread_id, workerthreadclass, (janitor_runfn_t)worker_start, engine->workers[threadCount]);
+#else
+        pthread_create(&engine->workers[threadCount]->thread_id, NULL, worker_start, engine->workers[threadCount]);
+#endif
     }
     for (i=0; i < engine->config->num_signer_threads; i++,threadCount++) {
         engine->workers[threadCount]->need_to_exit = 0;
+#ifdef HAVE_JANITOR
         janitor_thread_create(&engine->workers[threadCount]->thread_id, workerthreadclass, (janitor_runfn_t)drudge, engine->workers[threadCount]);
+#else
+        pthread_create(&engine->workers[threadCount]->thread_id, NULL, drudge, engine->workers[threadCount]);
+#endif
     }
 }
 
@@ -276,7 +304,11 @@ engine_stop_threads(engine_type* engine)
 
     for (i=0; i < numTotalWorkers; i++) {
         ods_log_debug("[%s] join worker %d", engine_str, i+1);
+#ifdef HAVE_JANITOR
         janitor_thread_join(engine->workers[i]->thread_id);
+#else
+        pthread_join(engine->workers[i]->thread_id, NULL);
+#endif
         free(engine->workers[i]->context);
     }
 }
