@@ -27,9 +27,6 @@
 #ifndef DEBUG_H
 #define DEBUG_H
 
-/* Make jenkins build w/o janitor today */
-#undef HAVE_JANITOR
-
 #ifdef HAVE_JANITOR
 
 #include <pthread.h>
