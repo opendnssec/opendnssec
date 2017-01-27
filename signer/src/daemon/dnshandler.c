@@ -66,6 +66,7 @@ dnshandler_create(listener_type* interfaces)
     dnsh->socklist = NULL;
     dnsh->netio = NULL;
     dnsh->query = NULL;
+    dnsh->tcp_accept_handlers = NULL;
     /* setup */
     CHECKALLOC(dnsh->socklist = (socklist_type*) malloc(sizeof(socklist_type)));
     if (!dnsh->socklist) {
@@ -290,7 +291,8 @@ dnshandler_cleanup(dnshandler_type* dnshandler)
 
 
     for (i = 0; i < dnshandler->interfaces->count; i++) {
-        free(dnshandler->tcp_accept_handlers[i].user_data);
+        if (dnshandler->tcp_accept_handlers)
+            free(dnshandler->tcp_accept_handlers[i].user_data);
         if (dnshandler->socklist->udp[i].s != -1) {
             close(dnshandler->socklist->udp[i].s);
             freeaddrinfo((void*)dnshandler->socklist->udp[i].addr);
