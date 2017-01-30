@@ -620,15 +620,6 @@ hsm_session_init(hsm_ctx_t *ctx, hsm_session_t **session,
                 return HSM_ERROR;
             }
         }
-        /* if this was not the first, don't close the library for
-         * the rest of us */
-        if (first) {
-            rv = ((CK_FUNCTION_LIST_PTR) module->sym)->C_Finalize(NULL);
-            if (hsm_pkcs11_check_error(ctx, rv, "finalize after failed login")) {
-                hsm_module_free(module);
-                return HSM_ERROR;
-            }
-        }
         hsm_module_free(module);
         *session = NULL;
         switch(rv_login) {
