@@ -92,17 +92,16 @@ engine_create(void)
         engine_cleanup(engine);
         return NULL;
     }
-    engine->taskq = schedule_create();
+    if (!(engine->taskq = schedule_create())) {
+        engine_cleanup(engine);
+        return NULL;
+    }
     schedule_registertask(engine->taskq, TASK_CLASS_SIGNER, TASK_SIGNCONF, do_readsignconf);
     schedule_registertask(engine->taskq, TASK_CLASS_SIGNER, TASK_FORCESIGNCONF, do_forcereadsignconf);
     schedule_registertask(engine->taskq, TASK_CLASS_SIGNER, TASK_READ, do_readzone);
     schedule_registertask(engine->taskq, TASK_CLASS_SIGNER, TASK_FORCEREAD, do_forcereadzone);
     schedule_registertask(engine->taskq, TASK_CLASS_SIGNER, TASK_SIGN, do_signzone);
     schedule_registertask(engine->taskq, TASK_CLASS_SIGNER, TASK_WRITE, do_writezone);
-    if (!engine->taskq) {
-        engine_cleanup(engine);
-        return NULL;
-    }
     return engine;
 }
 
@@ -278,6 +277,7 @@ engine_stop_threads(engine_type* engine)
     for (i=0; i < numTotalWorkers; i++) {
         ods_log_debug("[%s] join worker %d", engine_str, i+1);
         janitor_thread_join(engine->workers[i]->thread_id);
+        free(engine->workers[i]->context);
     }
 }
 

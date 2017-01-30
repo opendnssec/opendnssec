@@ -49,6 +49,7 @@
 /* According to earlier standards: select() sys/time.h sys/types.h unistd.h */
 #include <sys/time.h>
 #include <sys/types.h>
+#include <arpa/inet.h>
 
 #include "file.h"
 #include "str.h"
@@ -139,7 +140,7 @@ cmdhandler_perform_command(const char *cmd, struct cmdhandler_ctx_struct* contex
         return ret;
     } else {
         /* Unhandled command, print general error */
-        client_printf_err(sockfd, "Unknown command %s.\n", cmd?cmd:"(null)");
+        client_printf_err(sockfd, "Unknown command %s.\n", cmd);
         client_printf(sockfd, "Commands:\n");
         cmdhandler_get_usage(sockfd, context->cmdhandler);
         return 1;
@@ -168,7 +169,7 @@ static int
 extract_msg(char* buf, int *pos, int buflen, int *exitcode, struct cmdhandler_ctx_struct* context)
 {
     char data[ODS_SE_MAXLINE+1], opc;
-    int datalen;
+    uint16_t datalen;
     
     assert(exitcode);
     assert(buf);
@@ -179,7 +180,7 @@ extract_msg(char* buf, int *pos, int buflen, int *exitcode, struct cmdhandler_ct
     while (1) {
         if (*pos < 3) return 0;
         opc = buf[0];
-        datalen = (buf[1]<<8) | (buf[2]&0xFF);
+        datalen = ntohs(*(uint16_t *)(buf+1));
         if (datalen+3 <= *pos) {
             /* a complete message */
             memset(data, 0, ODS_SE_MAXLINE+1);
@@ -196,8 +197,7 @@ extract_msg(char* buf, int *pos, int buflen, int *exitcode, struct cmdhandler_ct
             /* Message is not going to fit! Discard the data already recvd */
             ods_log_error("[%s] Message received to big, truncating.", module_str);
             datalen -= *pos - 3;
-            buf[1] = datalen >> 8;
-            buf[2] = datalen & 0xFF;
+            *(uint16_t *)(buf+1) = htons(datalen);
             *pos = 3;
             return 0;
         } else {
@@ -344,6 +344,7 @@ cmdhandler_create(const char* filename, struct cmd_func_block** commands, void* 
     cmdh->listen_fd = listenfd;
     cmdh->listen_addr = servaddr;
     cmdh->need_to_exit = 0;
+    cmdh->stopped = 0;
     cmdh->commands = commands;
     cmdh->globalcontext = globalcontext;
     cmdh->createlocalcontext = createlocalcontext;

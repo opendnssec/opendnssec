@@ -17,6 +17,6 @@ zone2a;CSK;omnipresent;omnipresent;omnipresent;rumoured;1;1
 zone2b;CSK;hidden;omnipresent;unretentive;unretentive;1;0
 zone2b;CSK;omnipresent;omnipresent;omnipresent;rumoured;1;1
 zone3;CSK;hidden;hidden;hidden;hidden;0;0
-zone3;CSK;hidden;rumoured;rumoured;rumoured;1;1
+zone3;CSK;hidden;omnipresent;omnipresent;rumoured;1;1
 zone3;CSK;hidden;unretentive;unretentive;unretentive;0;0
 zone3;CSK;omnipresent;omnipresent;omnipresent;omnipresent;1;1

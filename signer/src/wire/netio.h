@@ -206,6 +206,7 @@ int netio_dispatch(netio_type* netio, const struct timespec* timeout,
  *
  */
 void netio_cleanup(netio_type* netio);
+void netio_cleanup_shallow(netio_type* netio);
 
 /**
  * Add timespecs.

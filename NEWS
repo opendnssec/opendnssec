@@ -1,4 +1,5 @@
 UNRELEASED:
+
 * If listening port for signer is not set in conf file, the default value "15354" is used.
 * Enforce and signconf tasks are now scheduled individually per zone. Resign
   per policy.
@@ -9,7 +10,7 @@ UNRELEASED:
 * OPENDNSSEC-778: Double NSEC3PARAM record after resalt.
 * In the kasp file, KSK/ZSK section, the algorithm length must be set now.
 * signer clear <zone> would assert when signconf wasn't read yet.
-* The <Interval> tag had been deprecrecated, and is now no longer allowed to
+* The <Interval> tag had been deprecated, and is now no longer allowed to
   be specified.
 * OPENDNSSEC-681: After fork() allow child process to pass error messages to
   parent so they can be printed to the console in case of failed start.
@@ -26,6 +27,7 @@ UNRELEASED:
 * OPENDNSSEC-503: Speed up initial signing and algorithm rollover
 * A bash autocompletion script is included in contrib for ods-enforcer and
   ods-signer.
+* SUPPORT-208: Strip comment from key export.
 
 OpenDNSSEC 2.0.1 - 2016-07-21
 

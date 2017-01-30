@@ -224,6 +224,7 @@ schedule_cleanup(schedule_type* schedule)
         task_delfunc2(schedule->tasks_by_name->root);
         ldns_rbtree_free(schedule->tasks);
         ldns_rbtree_free(schedule->tasks_by_name);
+        ldns_rbtree_free(schedule->locks_by_name);
         schedule->tasks = NULL;
     }
     fifoq_cleanup(schedule->signq);

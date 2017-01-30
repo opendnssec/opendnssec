@@ -37,6 +37,12 @@ if [ -z $DB_OUT ]; then
 	exit 1
 fi
 
+DB_VERSION=`echo "SELECT version FROM dbadmin;" | mysql -u $DB_USR -p$DB_PWD -h $DB_HOST $DB_IN | tail -n 1`
+if [ ! $DB_VERSION -eq 4 ]; then
+    echo "ERROR: Old database (version $DB_VERSION). Please upgrade to version 4 before migration"
+    exit 1
+fi
+
 # Look for zones without an active key.
 Z=`mysql -u $DB_USR -p$DB_PWD -h $DB_HOST $DB_IN < find_problematic_zones.sql`	
 if [[ $Z = *[![:space:]]* ]]; then

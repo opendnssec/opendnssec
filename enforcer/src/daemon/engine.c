@@ -461,6 +461,11 @@ engine_setup()
         return ODS_STATUS_CMDHANDLER_ERR;
     }
 
+    if(pipe(pipefd)) {
+        ods_log_error("[%s] unable to pipe: %s", engine_str, strerror(errno));
+        return ODS_STATUS_PIPE_ERR;
+    }
+
     if (!engine->init_setup_done) {
         /* privdrop */
         engine->uid = privuid(engine->config->username);
@@ -486,10 +491,6 @@ engine_setup()
 
         /* daemonize */
         if (engine->daemonize) {
-            if(pipe(pipefd)) {
-                ods_log_error("[%s] unable to pipe: %s", engine_str, strerror(errno));
-                return ODS_STATUS_PIPE_ERR;
-            }
             switch (fork()) {
                 case -1: /* error */
                     ods_log_error("[%s] unable to fork daemon: %s",
@@ -570,10 +571,9 @@ engine_setup()
     engine->need_to_reload = 0;
     engine_start_cmdhandler(engine);
 
-    if (engine->daemonize) {
-        write(pipefd[1], "\1", 1);
-        close(pipefd[1]);
-    }
+    write(pipefd[1], "\1", 1);
+    close(pipefd[1]);
+    if (!engine->daemonize) close(pipefd[0]);
     engine->daemonize = 0; /* don't fork again on reload */
     return ODS_STATUS_OK;
 }

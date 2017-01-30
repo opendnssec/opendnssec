@@ -1840,7 +1840,7 @@ hsm_create_prefix(CK_ULONG digest_len,
     const CK_BYTE RSA_SHA256_ID[] = { 0x30, 0x31, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x01, 0x05, 0x00, 0x04, 0x20 };
     const CK_BYTE RSA_SHA512_ID[] = { 0x30, 0x51, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x03, 0x05, 0x00, 0x04, 0x40 };
 
-    switch(algorithm) {
+    switch((ldns_signing_algorithm)algorithm) {
         case LDNS_SIGN_RSAMD5:
             *data_size = sizeof(RSA_MD5_ID) + digest_len;
             data = malloc(*data_size);
@@ -1939,7 +1939,7 @@ hsm_sign_buffer(hsm_ctx_t *ctx,
     /* some HSMs don't really handle CKM_SHA1_RSA_PKCS well, so
      * we'll do the hashing manually */
     /* When adding algorithms, remember there is another switch below */
-    switch (algorithm) {
+    switch ((ldns_signing_algorithm)algorithm) {
         case LDNS_SIGN_RSAMD5:
             digest_len = 16;
             digest = hsm_digest_through_hsm(ctx, session,
@@ -2009,7 +2009,7 @@ hsm_sign_buffer(hsm_ctx_t *ctx,
 
     sign_mechanism.pParameter = NULL;
     sign_mechanism.ulParameterLen = 0;
-    switch(algorithm) {
+    switch((ldns_signing_algorithm)algorithm) {
         case LDNS_SIGN_RSAMD5:
         case LDNS_SIGN_RSASHA1:
         case LDNS_SIGN_RSASHA1_NSEC3:
@@ -2352,6 +2352,13 @@ hsm_sign_params_free(hsm_sign_params_t *params)
     }
 }
 
+void
+libhsm_key_free(libhsm_key_t *key)
+{
+    free(key->modulename);
+    free(key);
+}
+
 libhsm_key_t **
 hsm_list_keys(hsm_ctx_t *ctx, size_t *count)
 {
@@ -2418,7 +2425,7 @@ generate_unique_id(hsm_ctx_t *ctx, unsigned char *buf, size_t bufsize)
     /* check whether this key doesn't happen to exist already */
     hsm_random_buffer(ctx, buf, bufsize);
     while ((key = hsm_find_key_by_id_bin(ctx, buf, bufsize))) {
-	free(key);
+	libhsm_key_free(key);
 	hsm_random_buffer(ctx, buf, bufsize);
     }
 
@@ -2826,8 +2833,7 @@ libhsm_key_list_free(libhsm_key_t **key_list, size_t count)
 {
     size_t i;
     for (i = 0; i < count; i++) {
-        free((void*)key_list[i]->modulename);
-        free(key_list[i]);
+        libhsm_key_free(key_list[i]);
     }
     free(key_list);
 }
@@ -3019,7 +3025,7 @@ hsm_keytag(const char* loc, int alg, int ksk, uint16_t* keytag)
 
 	dnskey_rr = hsm_get_dnskey(hsm_ctx, hsmkey, sign_params);
 	if (!dnskey_rr) {
-		free(hsmkey);
+		libhsm_key_free(hsmkey);
 		hsm_sign_params_free(sign_params);
 		hsm_destroy_context(hsm_ctx);
 		return 1;
@@ -3028,7 +3034,7 @@ hsm_keytag(const char* loc, int alg, int ksk, uint16_t* keytag)
 	tag = ldns_calc_keytag(dnskey_rr);
 
 	ldns_rr_free(dnskey_rr);
-	free(hsmkey);
+	libhsm_key_free(hsmkey);
 	hsm_sign_params_free(sign_params);
 	hsm_destroy_context(hsm_ctx);
 

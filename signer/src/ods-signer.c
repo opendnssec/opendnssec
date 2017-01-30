@@ -229,6 +229,8 @@ interface_start(const char* cmd, const char* servsock_filename)
     /* If we have a cmd send it to the daemon, otherwise display a
      * prompt */
     if (cmd) client_stdin(sockfd, cmd, strlen(cmd)+1);
+
+    userbuf[0] = 0;
     do {
         if (!cmd) {
 #ifdef HAVE_READLINE
@@ -328,6 +330,7 @@ interface_start(const char* cmd, const char* servsock_filename)
         char line[80];
         FILE *cmd2 = popen("pgrep ods-signerd","r");
         fgets(line, 80, cmd2);
+        (void) pclose(cmd2);
         pid_t pid = strtoul(line, NULL, 10);
         fprintf(stdout, "pid %d\n", pid);
         int time = 0;
