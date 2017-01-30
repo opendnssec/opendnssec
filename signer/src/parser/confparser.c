@@ -646,7 +646,7 @@ parse_conf_worker_threads(const char* cfgfile)
         }
         free((void*)str);
     }
-    return numwt;
+    return 1; /* BERRY testing purposes only, test forcing always max number of threads (worker/signer) to 1 */
 }
 
 
@@ -662,7 +662,7 @@ parse_conf_signer_threads(const char* cfgfile)
             numwt = atoi(str);
         }
         free((void*)str);
-        return numwt;
+        return 1; /* BERRY testing purposes only, test forcing always max number of threads (worker/signer) to 1 */
     }
     /* no SignerThreads value configured, look at WorkerThreads */
     return parse_conf_worker_threads(cfgfile);
