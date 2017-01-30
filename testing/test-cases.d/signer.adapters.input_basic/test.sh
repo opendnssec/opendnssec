@@ -20,6 +20,8 @@ ods_reset_env &&
 ## Start master name server
 ods_ldns_testns 15353 ods.datafile &&
 
+sleep 60 &&
+
 ## Start OpenDNSSEC
 ods_start_ods-control && 
 
