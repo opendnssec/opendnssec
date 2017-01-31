@@ -147,7 +147,7 @@ case "$DISTRIBUTION" in
 			cd build &&
 			../configure \
 				LDFLAGS=-L$INSTALL_ROOT/lib/softhsm \
-				LDLIBS=-lsofthsm2 \
+				LIBS=-lsofthsm2 \
 				--prefix="$INSTALL_ROOT" \
 				--with-enforcer-database=mysql \
 				--with-enforcer-database-test-database=build \
