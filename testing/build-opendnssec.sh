@@ -37,6 +37,8 @@ case "$DISTRIBUTION" in
 		;;
 	netbsd | \
 	freebsd )
+		export LDFLAGS=-L$INSTALL_ROOT/lib/softhsm
+		export LDLIBS=-lsofthsm2
 		;;
 	redhat )
 		export PATH=/usr/local/src/autoconf-2.69/bin:$PATH
