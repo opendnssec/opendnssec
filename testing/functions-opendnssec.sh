@@ -285,6 +285,8 @@ ods_reset_env ()
 	echo "ods_reset_env: resetting opendnssec environment (no_enforcer_stop=$no_enforcer_stop)"
 
 	if [ -z "$1" ]; then
+		rm -rf $INSTALL_ROOT/var/lib/softhsm/tokens
+		mkdir -p $INSTALL_ROOT/var/lib/softhsm/tokens
 		ods_softhsm_init_token 0 
 	else
 		ods_softhsm_init_token $1 $2 $3 $4 
