@@ -146,7 +146,8 @@ case "$DISTRIBUTION" in
 			mkdir -p build &&
 			cd build &&
 			../configure \
-				LDFLAGS="-L$INSTALL_ROOT/lib/softhsm -lsofthsm2" \
+				LDFLAGS=-L$INSTALL_ROOT/lib/softhsm \
+				LIBS=-lsofthsm2 \
 				--prefix="$INSTALL_ROOT" \
 				--with-enforcer-database=mysql \
 				--with-enforcer-database-test-database=build \
