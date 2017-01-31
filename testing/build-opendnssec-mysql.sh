@@ -145,7 +145,10 @@ case "$DISTRIBUTION" in
 			sh autogen.sh &&
 			mkdir -p build &&
 			cd build &&
-			../configure --prefix="$INSTALL_ROOT" \
+			../configure \
+				LDFLAGS=-L$INSTALL_ROOT/lib/softhsm \
+				LDLIBS=-lsofthsm2 \
+				--prefix="$INSTALL_ROOT" \
 				--with-enforcer-database=mysql \
 				--with-enforcer-database-test-database=build \
 				--with-enforcer-database-test-host=localhost \
