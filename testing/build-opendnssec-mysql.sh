@@ -146,7 +146,7 @@ case "$DISTRIBUTION" in
 			mkdir -p build &&
 			cd build &&
 			../configure \
-				LD_LIBRARY_PATH="-L$INSTALL_ROOT/lib/softhsm:$LD_LIBRARY_PATH" \
+				LD_LIBRARY_PATH="$INSTALL_ROOT/lib/softhsm:$LD_LIBRARY_PATH" \
 				LDFLAGS="-L$INSTALL_ROOT/lib/softhsm $LDFLAGS" \
 				LIBS="-lsofthsm2 $LIBS" \
 				--prefix="$INSTALL_ROOT" \
