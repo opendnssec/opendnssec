@@ -116,8 +116,9 @@ case "$DISTRIBUTION" in
 			mkdir -p build &&
 			cd build &&
 			../configure \
-				LDFLAGS=-L$INSTALL_ROOT/lib/softhsm \
-				LIBS=-lsofthsm2 \
+				LD_LIBRARY_PATH="-L$INSTALL_ROOT/lib/softhsm:$LD_LIBRARY_PATH" \
+				LDFLAGS="-L$INSTALL_ROOT/lib/softhsm $LDFLAGS" \
+				LIBS="-lsofthsm2 $LIBS" \
 				--prefix="$INSTALL_ROOT" \
 				--with-enforcer-database=sqlite3 \
 				--with-enforcer-database-test-database=opendnssec-build-test &&
