@@ -281,7 +281,7 @@ hsm_pkcs11_load_functions(hsm_module_t *module)
 
 #elif defined(HAVE_DLOPEN)
         /* Load PKCS #11 library */
-        void* pDynLib = dlopen(module->path, RTLD_NOW | RTLD_GLOBAL);
+        void* pDynLib = dlopen(module->path, RTLD_LAZY | RTLD_GLOBAL);
 
         if (pDynLib == NULL) {
             /* Failed to load the PKCS #11 library */
