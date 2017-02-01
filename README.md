@@ -37,3 +37,5 @@ have to prepare the configuration scripts before continuing with build:
 
 1. Install automake, autoconf and libtool.
 2. Run the command autogen.sh to build configure scripts etc.
+
+NARF!
