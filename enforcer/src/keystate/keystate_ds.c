@@ -466,15 +466,22 @@ get_args(int sockfd, const char *cmd, const char **zone,
 	}
 
 	if (tag) {
-		*keytag = atoi(tag);
-		if (*keytag < 0 || *keytag >= 65536) {
-			ods_log_warning("[%s] value \"%d\" for --keytag is invalid",
-				module_str, *keytag);
-                        client_printf(sockfd, "value \"%d\" for --keytag is invalid\n",
-                                *keytag);
-
+                errno = 0;
+                char *end;
+                long int ltag = strtol(tag, &end, 10);
+                if (errno || end == tag) {
+                    client_printf(sockfd,
+                        "Could not convert \"%s\" to integer value\n", tag);
+                    return 1;
+                }
+		if (ltag < 0 || ltag >= 65536) {
+			ods_log_warning("[%s] value \"%ld\" for --keytag is invalid",
+				module_str, ltag);
+                        client_printf(sockfd, "value \"%ld\" for --keytag is invalid\n",
+                                ltag);
 			return 1;
 		}
+                *keytag = (int)ltag;
 	}
 	return 0;
 }
