@@ -208,7 +208,9 @@ main(int argc, char* argv[])
     fprintf(stdout, "OpenDNSSEC key and signing policy enforcer version %s\n", 
         PACKAGE_VERSION);
     
+#ifdef HAVE_JANITOR
     ods_janitor_initialize(argv0);
+#endif
     program_setup(cfgfile, cmdline_verbosity); /* setup basic logging, xml, PB */
     engine = engine_alloc(); /* Let's create an engine only once */
     if (!engine) {

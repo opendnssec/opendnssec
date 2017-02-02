@@ -195,7 +195,9 @@ main(int argc, char* argv[])
     /* main stuff */
     fprintf(stdout, "OpenDNSSEC signer engine version %s\n", PACKAGE_VERSION);
 
+#ifdef HAVE_JANITOR
     ods_janitor_initialize(argv0);
+#endif
     program_setup(cfgfile, cmdline_verbosity);
     returncode = engine_start(cfgfile, cmdline_verbosity, daemonize, info);
     program_teardown();

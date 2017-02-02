@@ -13,6 +13,7 @@ BIND9_NAMED_PORT=10053
 BIND9_NAMED_RNDC_PORT=10953
 BIND9_NAMED_CONF=$BIND9_NAMED_CONFDIR/named.conf
 
+cp bind-zonefile bind9/ods
 if named -V | grep -q "^BIND 9.8.2rc1-RedHat" ; then
 	# This test will fail on old, no longer in LTS RedHat version
 	# that cannot be updated.  The bind actually core dumps
@@ -20,7 +21,7 @@ if named -V | grep -q "^BIND 9.8.2rc1-RedHat" ; then
 fi
 
 case "$DISTRIBUTION" in
-	redhat|suse )
+	redhat|suse|slackware )
 		append_path /usr/sbin
 		;;
 esac
@@ -32,7 +33,7 @@ fi &&
 ods_reset_env &&
 
 ## Start master name server
-cp ods $BIND9_NAMED_RUNDIR/ods
+cp bind-zonefile bind9/ods
 ods_bind9_info &&
 ods_bind9_start &&
 
@@ -40,7 +41,7 @@ ods_bind9_start &&
 ods_start_ods-control &&
 
 ## Send updates
-ods_bind9_dynupdate 100 10000 ods &&
+ods_bind9_dynupdate 100 1000 ods &&
 
 ## Stop
 ods_stop_ods-control &&

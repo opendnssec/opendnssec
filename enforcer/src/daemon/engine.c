@@ -111,7 +111,11 @@ engine_start_cmdhandler(engine_type* engine)
 {
     ods_log_assert(engine);
     ods_log_debug("[%s] start command handler", engine_str);
+#ifdef HAVE_JANITOR
     janitor_thread_create(&engine->cmdhandler->thread_id, workerthreadclass, (janitor_runfn_t)cmdhandler_start, engine->cmdhandler);
+#else
+    pthread_create(&engine->cmdhandler->thread_id, NULL, cmdhandler_start, engine->cmdhandler);
+#endif
 }
 
 /**
@@ -184,7 +188,11 @@ engine_start_workers(engine_type* engine)
         if (!engine->workers[i]->context) {
             ods_log_crit("Failed to start worker, could not connect to database");
         } else {
+#ifdef HAVE_JANITOR
             janitor_thread_create(&engine->workers[i]->thread_id, workerthreadclass, (janitor_runfn_t)worker_start, engine->workers[i]);
+#else
+            pthread_create(&engine->workers[i]->thread_id, NULL, worker_start, engine->workers[i]);
+#endif
         }
     }
 }
@@ -205,7 +213,11 @@ engine_stop_workers(engine_type* engine)
     /* head count */
     for (i=0; i < engine->config->num_worker_threads; i++) {
         ods_log_debug("[%s] join worker %i", engine_str, i+1);
+#ifdef HAVE_JANITOR
         janitor_thread_join(engine->workers[i]->thread_id);
+#else
+        pthread_join(engine->workers[i]->thread_id, NULL);
+#endif
         db_connection_free(engine->workers[i]->context);
     }
 }

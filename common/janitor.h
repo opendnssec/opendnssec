@@ -27,12 +27,14 @@
 #ifndef DEBUG_H
 #define DEBUG_H
 
+#ifdef HAVE_JANITOR
+
 #include <pthread.h>
 
 struct janitor_thread_struct;
 typedef struct janitor_thread_struct* janitor_thread_t;
 
-typedef void (*janitor_runfn_t)(void *);
+typedef void * (*janitor_runfn_t)(void *);
 
 typedef void (*janitor_alertfn_t)(const char *format, ...)
 #ifdef HAVE___ATTRIBUTE__
@@ -68,4 +70,5 @@ extern void janitor_backtrace_all(void);
 
 extern void janitor_thread_signal(janitor_thread_t thread);
 
-#endif
+#endif /* HAVE_JANITOR */
+#endif /* DEBUG_H */
