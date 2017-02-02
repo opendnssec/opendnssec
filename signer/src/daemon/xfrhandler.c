@@ -199,7 +199,7 @@ xfrhandler_cleanup(xfrhandler_type* xfrhandler)
     if (!xfrhandler) {
         return;
     }
-    netio_cleanup(xfrhandler->netio);
+    netio_cleanup_shallow(xfrhandler->netio);
     buffer_cleanup(xfrhandler->packet);
     tcp_set_cleanup(xfrhandler->tcp_set);
     free(xfrhandler);

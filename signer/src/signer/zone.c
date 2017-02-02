@@ -773,6 +773,7 @@ zone_cleanup(zone_type* zone)
     if (!zone) {
         return;
     }
+pthread_mutex_lock(&zone->zone_lock);
     ldns_rdf_deep_free(zone->apex);
     adapter_cleanup(zone->adinbound);
     adapter_cleanup(zone->adoutbound);
@@ -781,6 +782,7 @@ zone_cleanup(zone_type* zone)
     xfrd_cleanup(zone->xfrd, 1);
     notify_cleanup(zone->notify);
     signconf_cleanup(zone->signconf);
+pthread_mutex_unlock(&zone->zone_lock);
     stats_cleanup(zone->stats);
     free(zone->notify_command);
     free(zone->notify_args);

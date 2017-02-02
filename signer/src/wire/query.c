@@ -581,14 +581,16 @@ query_response(query_type* q, ldns_rr_type qtype)
                 pthread_mutex_unlock(&q->zone->zone_lock);
                 return query_servfail(q);
             }
-        }
+        } /* else: not having NS RRs is not fatal  */
     } else if (qtype != LDNS_RR_TYPE_SOA) {
         rrset = zone_lookup_rrset(q->zone, q->zone->apex, LDNS_RR_TYPE_SOA);
-        if (rrset) {
-            if (!response_add_rrset(&r, rrset, LDNS_SECTION_AUTHORITY)) {
-                pthread_mutex_unlock(&q->zone->zone_lock);
-                return query_servfail(q);
-            }
+        if (!rrset) {
+            pthread_mutex_unlock(&q->zone->zone_lock);
+            return query_servfail(q);
+        }
+        if (!response_add_rrset(&r, rrset, LDNS_SECTION_AUTHORITY)) {
+            pthread_mutex_unlock(&q->zone->zone_lock);
+            return query_servfail(q);
         }
     } else {
         pthread_mutex_unlock(&q->zone->zone_lock);

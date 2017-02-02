@@ -84,7 +84,7 @@ get_dnskey(const char *id, const char *zone, const char *keytype, int alg, uint3
     /* Get the DNSKEY record */
     dnskey_rr = hsm_get_dnskey(hsm_ctx, key, sign_params);
 
-    free(key);
+    libhsm_key_free(key);
     hsm_sign_params_free(sign_params);
     hsm_destroy_context(hsm_ctx);
 	
@@ -148,7 +148,7 @@ print_ds_from_id(int sockfd, key_data_t *key, const char *zone,
         (void)client_printf(sockfd, ";%s %s DS record (SHA256):\n%s", state, key_data_role_text(key), rrstr);
         LDNS_FREE(rrstr);
     } else {
-        rrstr = ldns_rr2str(dnskey_rr);
+        rrstr = ldns_rr2str_fmt(ldns_output_format_nocomments, dnskey_rr);
         /* TODO log error on failure */
         (void)client_printf(sockfd, "%s", rrstr);
         LDNS_FREE(rrstr);

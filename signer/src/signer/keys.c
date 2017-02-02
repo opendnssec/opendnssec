@@ -169,7 +169,7 @@ key_delfunc(key_type* key)
     /*We leak this every time the signconf is reloaded. Although the IXFR structure*/
     /*copies this RR there is a race condition between this func and the ixfr_del*/
     /*function to copy / delete it. */
-    /* ldns_rr_free(key->dnskey); */
+    /*ldns_rr_free(key->dnskey);*/
     hsm_sign_params_free(key->params);
     free((void*) key->locator);
 }

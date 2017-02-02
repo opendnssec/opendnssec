@@ -23,13 +23,13 @@ ods_start_enforcer &&
 
 # Check that we have 2 keys
 log_this ods-enforcer-key-list1 ods-enforcer key list -a &&
-log_grep ods-enforcer-key-list1 stdout 'ods[[:space:]]*KSK[[:space:]]*generate' &&
-log_grep ods-enforcer-key-list1 stdout 'ods[[:space:]]*ZSK[[:space:]]*publish' &&
+log_grep ods-enforcer-key-list1 stdout 'ods[[:space:]]*KSK[[:space:]]*publish' &&
+log_grep ods-enforcer-key-list1 stdout 'ods[[:space:]]*ZSK[[:space:]]*ready' &&
 
 # Grab the CKA_ID and KEYTAG of the KSK
 log_this ods-enforcer-cka_keytag ods-enforcer key list --verbose --all &&
-KSK_CKA_ID=`log_grep -o ods-enforcer-cka_keytag stdout "ods[[:space:]]*KSK[[:space:]]*generate" | awk '{print $8}'` &&
-KSK_KEYTAG=`log_grep -o ods-enforcer-cka_keytag stdout "ods[[:space:]]*KSK[[:space:]]*genera" | awk '{print $10}'` &&
+KSK_CKA_ID=`log_grep -o ods-enforcer-cka_keytag stdout "ods[[:space:]]*KSK[[:space:]]*publish" | awk '{print $8}'` &&
+KSK_KEYTAG=`log_grep -o ods-enforcer-cka_keytag stdout "ods[[:space:]]*KSK[[:space:]]*publish" | awk '{print $10}'` &&
 
 ## Jump forward a couple of hours so the KSK will be ready
 ##################  STEP 1: Time = 4hrs ###########################

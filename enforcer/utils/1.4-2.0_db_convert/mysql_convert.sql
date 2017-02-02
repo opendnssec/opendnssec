@@ -664,17 +664,17 @@ JOIN mapping
 UPDATE keyState
 SET state = 2
 WHERE keyState.state = 1 AND keyState.type = 1 AND keyState.id IN (
-        SELECT keyState.id
-        FROM keyState
+        SELECT rs.id
+        FROM keyState AS rs
         JOIN keyData
-                ON keyData.id = keyState.keydataId
+                ON keyData.id = rs.keydataId
         JOIN REMOTE.dnsseckeys
                 ON REMOTE.dnsseckeys.keypair_id = keyData.hsmkeyid
         JOIN zone
                 ON keyData.zoneId = zone.id
         JOIN policy
                 ON policy.id = zone.policyId
-        WHERE CAST(strftime("%s", REMOTE.dnsseckeys.active) + policy.signaturesValidityDefault as INTEGER) < strftime("%s", "now"));
+        WHERE CAST(UNIX_TIMESTAMP(REMOTE.dnsseckeys.active) + policy.signaturesValidityDefault as INTEGER) < UNIX_TIMESTAMP(now()));
 
 --Force the RRSIG state in omnipresent if rumoured and there is no old ZSK
 --unretentive
