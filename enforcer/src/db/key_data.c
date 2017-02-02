@@ -412,17 +412,11 @@ int key_data_cmp(const key_data_t* key_data_a, const key_data_t* key_data_b) {
         return 1;
     }
 
-    ret = 0;
-    db_value_cmp(&(key_data_a->zone_id), &(key_data_b->zone_id), &ret);
-    if (ret) {
-        return ret;
-    }
+    ret = db_value_cmp(&(key_data_a->zone_id), &(key_data_b->zone_id));
+    if (ret) return ret;
 
-    ret = 0;
-    db_value_cmp(&(key_data_a->hsm_key_id), &(key_data_b->hsm_key_id), &ret);
-    if (ret) {
-        return ret;
-    }
+    ret = db_value_cmp(&(key_data_a->hsm_key_id), &(key_data_b->hsm_key_id));
+    if (ret) return ret;
 
     if (key_data_a->algorithm != key_data_b->algorithm) {
         return key_data_a->algorithm < key_data_b->algorithm ? -1 : 1;
@@ -575,7 +569,7 @@ zone_db_t* key_data_get_zone(const key_data_t* key_data) {
     if (!key_data->dbo) {
         return NULL;
     }
-    if (db_value_not_empty(&(key_data->zone_id))) {
+    if (db_value_empty(&(key_data->zone_id))) {
         return NULL;
     }
 
@@ -655,7 +649,7 @@ hsm_key_t* key_data_get_hsm_key(const key_data_t* key_data) {
     if (!key_data->dbo) {
         return NULL;
     }
-    if (db_value_not_empty(&(key_data->hsm_key_id))) {
+    if (db_value_empty(&(key_data->hsm_key_id))) {
         return NULL;
     }
 
@@ -836,7 +830,7 @@ int key_data_set_zone_id(key_data_t* key_data, const db_value_t* zone_id) {
     if (!zone_id) {
         return DB_ERROR_UNKNOWN;
     }
-    if (db_value_not_empty(zone_id)) {
+    if (db_value_empty(zone_id)) {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -855,7 +849,7 @@ int key_data_set_hsm_key_id(key_data_t* key_data, const db_value_t* hsm_key_id) 
     if (!hsm_key_id) {
         return DB_ERROR_UNKNOWN;
     }
-    if (db_value_not_empty(hsm_key_id)) {
+    if (db_value_empty(hsm_key_id)) {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -982,7 +976,7 @@ db_clause_t* key_data_zone_id_clause(db_clause_list_t* clause_list, const db_val
     if (!zone_id) {
         return NULL;
     }
-    if (db_value_not_empty(zone_id)) {
+    if (db_value_empty(zone_id)) {
         return NULL;
     }
 
@@ -1009,7 +1003,7 @@ db_clause_t* key_data_hsm_key_id_clause(db_clause_list_t* clause_list, const db_
     if (!hsm_key_id) {
         return NULL;
     }
-    if (db_value_not_empty(hsm_key_id)) {
+    if (db_value_empty(hsm_key_id)) {
         return NULL;
     }
 
@@ -1102,16 +1096,16 @@ int key_data_create(key_data_t* key_data) {
     if (!key_data->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!db_value_not_empty(&(key_data->id))) {
+    if (!db_value_empty(&(key_data->id))) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!db_value_not_empty(&(key_data->rev))) {
+    if (!db_value_empty(&(key_data->rev))) {
         return DB_ERROR_UNKNOWN;
     }
-    if (db_value_not_empty(&(key_data->zone_id))) {
+    if (db_value_empty(&(key_data->zone_id))) {
         return DB_ERROR_UNKNOWN;
     }
-    if (db_value_not_empty(&(key_data->hsm_key_id))) {
+    if (db_value_empty(&(key_data->hsm_key_id))) {
         return DB_ERROR_UNKNOWN;
     }
     /* TODO: validate content more */
@@ -1308,7 +1302,7 @@ int key_data_get_by_id(key_data_t* key_data, const db_value_t* id) {
     if (!id) {
         return DB_ERROR_UNKNOWN;
     }
-    if (db_value_not_empty(id)) {
+    if (db_value_empty(id)) {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -1360,16 +1354,16 @@ int key_data_update(key_data_t* key_data) {
     if (!key_data->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (db_value_not_empty(&(key_data->id))) {
+    if (db_value_empty(&(key_data->id))) {
         return DB_ERROR_UNKNOWN;
     }
-    if (db_value_not_empty(&(key_data->rev))) {
+    if (db_value_empty(&(key_data->rev))) {
         return DB_ERROR_UNKNOWN;
     }
-    if (db_value_not_empty(&(key_data->zone_id))) {
+    if (db_value_empty(&(key_data->zone_id))) {
         return DB_ERROR_UNKNOWN;
     }
-    if (db_value_not_empty(&(key_data->hsm_key_id))) {
+    if (db_value_empty(&(key_data->hsm_key_id))) {
         return DB_ERROR_UNKNOWN;
     }
     /* TODO: validate content more */
@@ -1595,7 +1589,7 @@ int key_data_delete(key_data_t* key_data) {
     if (!key_data->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (db_value_not_empty(&(key_data->id))) {
+    if (db_value_empty(&(key_data->id))) {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -1835,13 +1829,8 @@ static int key_data_list_get_associated(key_data_list_t* key_data_list) {
         cmp = 1;
         clause_walk = db_clause_list_begin(clause_list);
         while (clause_walk) {
-            if (db_value_cmp(db_clause_value(clause_walk), key_data_zone_id(key_data), &cmp)) {
-                db_clause_list_free(clause_list);
-                return DB_ERROR_UNKNOWN;
-            }
-            if (!cmp) {
-                break;
-            }
+            cmp = db_value_cmp(db_clause_value(clause_walk), key_data_zone_id(key_data));
+            if (!cmp) break;
             clause_walk = db_clause_next(clause_walk);
         }
         if (cmp) {
@@ -1881,10 +1870,7 @@ static int key_data_list_get_associated(key_data_list_t* key_data_list) {
 
         zone_zone_id = zone_list_db_begin(key_data_list->zone_id_list);
         while (zone_zone_id) {
-            if (db_value_cmp(key_data_zone_id(key_data_list->object_list[i]), zone_db_id(zone_zone_id), &cmp)) {
-                return DB_ERROR_UNKNOWN;
-            }
-            if (!cmp) {
+            if (!db_value_cmp(key_data_zone_id(key_data_list->object_list[i]), zone_db_id(zone_zone_id))) {
                 key_data_list->object_list[i]->associated_zone_id = zone_zone_id;
             }
 
@@ -1900,13 +1886,8 @@ static int key_data_list_get_associated(key_data_list_t* key_data_list) {
         cmp = 1;
         clause_walk = db_clause_list_begin(clause_list);
         while (clause_walk) {
-            if (db_value_cmp(db_clause_value(clause_walk), key_data_hsm_key_id(key_data), &cmp)) {
-                db_clause_list_free(clause_list);
-                return DB_ERROR_UNKNOWN;
-            }
-            if (!cmp) {
-                break;
-            }
+            cmp = db_value_cmp(db_clause_value(clause_walk), key_data_hsm_key_id(key_data));
+            if (!cmp) break;
             clause_walk = db_clause_next(clause_walk);
         }
         if (cmp) {
@@ -1946,10 +1927,7 @@ static int key_data_list_get_associated(key_data_list_t* key_data_list) {
 
         hsm_key_hsm_key_id = hsm_key_list_begin(key_data_list->hsm_key_id_list);
         while (hsm_key_hsm_key_id) {
-            if (db_value_cmp(key_data_hsm_key_id(key_data_list->object_list[i]), hsm_key_id(hsm_key_hsm_key_id), &cmp)) {
-                return DB_ERROR_UNKNOWN;
-            }
-            if (!cmp) {
+            if (!db_value_cmp(key_data_hsm_key_id(key_data_list->object_list[i]), hsm_key_id(hsm_key_hsm_key_id))) {
                 key_data_list->object_list[i]->associated_hsm_key_id = hsm_key_hsm_key_id;
             }
 
@@ -1994,12 +1972,7 @@ static int key_data_list_get_associated(key_data_list_t* key_data_list) {
         count = 0;
         key_state = key_state_list_begin(key_state_list);
         while (key_state) {
-            if (db_value_cmp(key_data_id(key_data_list->object_list[i]), key_state_key_data_id(key_state), &cmp)) {
-                key_state_list_free(key_state_list);
-                db_clause_list_free(clause_list);
-                return DB_ERROR_UNKNOWN;
-            }
-            if (!cmp) {
+            if (!db_value_cmp(key_data_id(key_data_list->object_list[i]), key_state_key_data_id(key_state))) {
                 count++;
             }
             key_state = key_state_list_next(key_state_list);
@@ -2028,12 +2001,7 @@ static int key_data_list_get_associated(key_data_list_t* key_data_list) {
                     db_clause_list_free(clause_list);
                     return DB_ERROR_UNKNOWN;
                 }
-                if (db_value_cmp(key_data_id(key_data_list->object_list[i]), key_state_key_data_id(key_state), &cmp)) {
-                    key_state_list_free(key_state_list);
-                    db_clause_list_free(clause_list);
-                    return DB_ERROR_UNKNOWN;
-                }
-                if (!cmp) {
+                if (!db_value_cmp(key_data_id(key_data_list->object_list[i]), key_state_key_data_id(key_state))) {
                     if (!(key_data_list->object_list[i]->key_state_list->object_list[j] = key_state_new_copy(key_state))) {
                         key_state_list_free(key_state_list);
                         db_clause_list_free(clause_list);
@@ -2192,7 +2160,7 @@ int key_data_list_get_by_zone_id(key_data_list_t* key_data_list, const db_value_
     if (!zone_id) {
         return DB_ERROR_UNKNOWN;
     }
-    if (db_value_not_empty(zone_id)) {
+    if (db_value_empty(zone_id)) {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -2250,7 +2218,7 @@ key_data_list_t* key_data_list_new_get_by_zone_id(const db_connection_t* connect
     if (!zone_id) {
         return NULL;
     }
-    if (db_value_not_empty(zone_id)) {
+    if (db_value_empty(zone_id)) {
         return NULL;
     }
 

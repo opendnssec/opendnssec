@@ -588,7 +588,7 @@ int hsm_key_set_policy_id(hsm_key_t* hsm_key, const db_value_t* policy_id) {
     if (!policy_id) {
         return DB_ERROR_UNKNOWN;
     }
-    if (db_value_not_empty(policy_id)) {
+    if (db_value_empty(policy_id)) {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -735,7 +735,7 @@ db_clause_t* hsm_key_policy_id_clause(db_clause_list_t* clause_list, const db_va
     if (!policy_id) {
         return NULL;
     }
-    if (db_value_not_empty(policy_id)) {
+    if (db_value_empty(policy_id)) {
         return NULL;
     }
 
@@ -936,13 +936,13 @@ int hsm_key_create(hsm_key_t* hsm_key) {
     if (!hsm_key->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!db_value_not_empty(&(hsm_key->id))) {
+    if (!db_value_empty(&(hsm_key->id))) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!db_value_not_empty(&(hsm_key->rev))) {
+    if (!db_value_empty(&(hsm_key->rev))) {
         return DB_ERROR_UNKNOWN;
     }
-    if (db_value_not_empty(&(hsm_key->policy_id))) {
+    if (db_value_empty(&(hsm_key->policy_id))) {
         return DB_ERROR_UNKNOWN;
     }
     if (!hsm_key->locator) {
@@ -1114,7 +1114,7 @@ int hsm_key_get_by_id(hsm_key_t* hsm_key, const db_value_t* id) {
     if (!id) {
         return DB_ERROR_UNKNOWN;
     }
-    if (db_value_not_empty(id)) {
+    if (db_value_empty(id)) {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -1236,13 +1236,13 @@ int hsm_key_update(hsm_key_t* hsm_key) {
     if (!hsm_key->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (db_value_not_empty(&(hsm_key->id))) {
+    if (db_value_empty(&(hsm_key->id))) {
         return DB_ERROR_UNKNOWN;
     }
-    if (db_value_not_empty(&(hsm_key->rev))) {
+    if (db_value_empty(&(hsm_key->rev))) {
         return DB_ERROR_UNKNOWN;
     }
-    if (db_value_not_empty(&(hsm_key->policy_id))) {
+    if (db_value_empty(&(hsm_key->policy_id))) {
         return DB_ERROR_UNKNOWN;
     }
     if (!hsm_key->locator) {
@@ -1620,13 +1620,8 @@ static int hsm_key_list_get_associated(hsm_key_list_t* hsm_key_list) {
         cmp = 1;
         clause_walk = db_clause_list_begin(clause_list);
         while (clause_walk) {
-            if (db_value_cmp(db_clause_value(clause_walk), hsm_key_policy_id(hsm_key), &cmp)) {
-                db_clause_list_free(clause_list);
-                return DB_ERROR_UNKNOWN;
-            }
-            if (!cmp) {
-                break;
-            }
+            cmp = db_value_cmp(db_clause_value(clause_walk), hsm_key_policy_id(hsm_key));
+            if (!cmp) break;
             clause_walk = db_clause_next(clause_walk);
         }
         if (cmp) {
@@ -1666,10 +1661,7 @@ static int hsm_key_list_get_associated(hsm_key_list_t* hsm_key_list) {
 
         policy_policy_id = policy_list_begin(hsm_key_list->policy_id_list);
         while (policy_policy_id) {
-            if (db_value_cmp(hsm_key_policy_id(hsm_key_list->object_list[i]), policy_id(policy_policy_id), &cmp)) {
-                return DB_ERROR_UNKNOWN;
-            }
-            if (!cmp) {
+            if (!db_value_cmp(hsm_key_policy_id(hsm_key_list->object_list[i]), policy_id(policy_policy_id))) {
                 hsm_key_list->object_list[i]->associated_policy_id = policy_policy_id;
             }
 
@@ -1757,7 +1749,7 @@ int hsm_key_list_get_by_policy_id(hsm_key_list_t* hsm_key_list, const db_value_t
     if (!policy_id) {
         return DB_ERROR_UNKNOWN;
     }
-    if (db_value_not_empty(policy_id)) {
+    if (db_value_empty(policy_id)) {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -1815,7 +1807,7 @@ hsm_key_list_t* hsm_key_list_new_get_by_policy_id(const db_connection_t* connect
     if (!policy_id) {
         return NULL;
     }
-    if (db_value_not_empty(policy_id)) {
+    if (db_value_empty(policy_id)) {
         return NULL;
     }
 

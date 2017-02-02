@@ -281,8 +281,8 @@ static void test_key_state_set(void) {
     db_value_reset(&key_data_id);
 }
 
-static void test_key_state_get(void) {
-    int ret;
+static void test_key_state_get(void)
+{
     db_value_t key_data_id = DB_VALUE_EMPTY;
     if (db_sqlite) {
         CU_ASSERT(!db_value_from_int32(&key_data_id, 1));
@@ -290,8 +290,7 @@ static void test_key_state_get(void) {
     if (db_mysql) {
         CU_ASSERT(!db_value_from_uint64(&key_data_id, 1));
     }
-    CU_ASSERT(!db_value_cmp(key_state_key_data_id(object), &key_data_id, &ret));
-    CU_ASSERT(!ret);
+    CU_ASSERT(!db_value_cmp(key_state_key_data_id(object), &key_data_id));
     CU_ASSERT(key_state_type(object) == KEY_STATE_TYPE_RRSIGDNSKEY);
     CU_ASSERT_PTR_NOT_NULL_FATAL(key_state_type_text(object));
     CU_ASSERT(!strcmp(key_state_type_text(object), "RRSIGDNSKEY"));
@@ -317,8 +316,8 @@ static void test_key_state_clauses(void) {
     clause_list = NULL;
 }
 
-static void test_key_state_verify(void) {
-    int ret;
+static void test_key_state_verify(void)
+{
     db_value_t key_data_id = DB_VALUE_EMPTY;
     if (db_sqlite) {
         CU_ASSERT(!db_value_from_int32(&key_data_id, 1));
@@ -326,8 +325,7 @@ static void test_key_state_verify(void) {
     if (db_mysql) {
         CU_ASSERT(!db_value_from_uint64(&key_data_id, 1));
     }
-    CU_ASSERT(!db_value_cmp(key_state_key_data_id(object), &key_data_id, &ret));
-    CU_ASSERT(!ret);
+    CU_ASSERT(!db_value_cmp(key_state_key_data_id(object), &key_data_id));
     CU_ASSERT(key_state_type(object) == KEY_STATE_TYPE_RRSIGDNSKEY);
     CU_ASSERT_PTR_NOT_NULL_FATAL(key_state_type_text(object));
     CU_ASSERT(!strcmp(key_state_type_text(object), "RRSIGDNSKEY"));
@@ -383,8 +381,8 @@ static void test_key_state_read2(void) {
     CU_ASSERT_FATAL(!key_state_get_by_id(object, &id));
 }
 
-static void test_key_state_verify2(void) {
-    int ret;
+static void test_key_state_verify2(void)
+{
     db_value_t key_data_id = DB_VALUE_EMPTY;
     if (db_sqlite) {
         CU_ASSERT(!db_value_from_int32(&key_data_id, 1));
@@ -392,8 +390,7 @@ static void test_key_state_verify2(void) {
     if (db_mysql) {
         CU_ASSERT(!db_value_from_uint64(&key_data_id, 1));
     }
-    CU_ASSERT(!db_value_cmp(key_state_key_data_id(object), &key_data_id, &ret));
-    CU_ASSERT(!ret);
+    CU_ASSERT(!db_value_cmp(key_state_key_data_id(object), &key_data_id));
     CU_ASSERT(key_state_type(object) == KEY_STATE_TYPE_DS);
     CU_ASSERT_PTR_NOT_NULL_FATAL(key_state_type_text(object));
     CU_ASSERT(!strcmp(key_state_type_text(object), "DS"));

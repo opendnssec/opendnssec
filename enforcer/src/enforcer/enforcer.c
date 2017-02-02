@@ -170,10 +170,7 @@ getState(key_data_t* key, key_state_type_t type, struct future_key *future_key)
         && future_key->type == type
         && future_key->key)
     {
-        if (db_value_cmp(key_data_id(key), key_data_id(future_key->key), &cmp)) {
-            return KEY_STATE_STATE_INVALID;
-        }
-        if (!cmp) {
+        if (!db_value_cmp(key_data_id(key), key_data_id(future_key->key))) {
             return future_key->next_state;
         }
     }
@@ -474,19 +471,9 @@ successor_rec(key_data_t** keylist, size_t keylist_size,
             continue;
         }
 
-        if (db_value_cmp(key_data_id(predecessor_key), key_dependency_from_key_data_id(dep), &cmp)) {
-            key_dependency_list_free(deplist);
-            return -1;
-        }
-        if (cmp) {
-            continue;
-        }
-
-        if (db_value_cmp(key_data_id(successor_key), key_dependency_to_key_data_id(dep), &cmp)) {
-            key_dependency_list_free(deplist);
-            return -1;
-        }
-        if (cmp) {
+        if (db_value_cmp(key_data_id(predecessor_key), key_dependency_from_key_data_id(dep)) ||
+            db_value_cmp(key_data_id(successor_key), key_dependency_to_key_data_id(dep)))
+        {
             continue;
         }
 
@@ -498,11 +485,9 @@ successor_rec(key_data_t** keylist, size_t keylist_size,
      * Check the trivial case where there is a direct relationship in the future
      */
     if (future_key->pretend_update) {
-        if (db_value_cmp(key_data_id(future_key->key), key_data_id(predecessor_key), &cmp)) {
-            key_dependency_list_free(deplist);
-            return -1;
-        }
-        if (!cmp && isPotentialSuccessor(successor_key, predecessor_key, future_key, type) > 0) {
+        if (!db_value_cmp(key_data_id(future_key->key), key_data_id(predecessor_key)) &&
+            isPotentialSuccessor(successor_key, predecessor_key, future_key, type) > 0)
+        {
             key_dependency_list_free(deplist);
             return 1;
         }
@@ -542,11 +527,7 @@ successor_rec(key_data_t** keylist, size_t keylist_size,
             continue;
         }
 
-        if (db_value_cmp(key_data_id(successor_key), key_dependency_to_key_data_id(dep), &cmp)) {
-            key_dependency_list_free(deplist);
-            return -1;
-        }
-        if (cmp) {
+        if (db_value_cmp(key_data_id(successor_key), key_dependency_to_key_data_id(dep))) {
             continue;
         }
 
@@ -584,10 +565,7 @@ successor_rec(key_data_t** keylist, size_t keylist_size,
      */
     if (future_key->pretend_update) {
         for (i = 0; i < keylist_size; i++) {
-            if (db_value_cmp(key_data_id(predecessor_key), key_data_id(keylist[i]), &cmp)) {
-                return -1;
-            }
-            if (!cmp) {
+            if (!db_value_cmp(key_data_id(predecessor_key), key_data_id(keylist[i]))) {
                 continue;
             }
 
@@ -648,10 +626,7 @@ successor(key_data_t** keylist, size_t keylist_size, key_data_t* successor_key,
      * Nothing may depend on our predecessor.
      */
     for (dep = key_dependency_list_begin(deplist); dep; dep = key_dependency_list_next(deplist)) {
-        if (db_value_cmp(key_data_id(predecessor_key), key_dependency_to_key_data_id(dep), &cmp)) {
-            return -1;
-        }
-        if (!cmp) {
+        if (!db_value_cmp(key_data_id(predecessor_key), key_dependency_to_key_data_id(dep))) {
             return 0;
         }
     }
@@ -1956,8 +1931,7 @@ getLastReusableKey(key_data_list_t *key_list, const policy_key_t *pkey)
 
 		/** Now find out if hsmkey is in used by zone */
 		for (match = 0, key = key_data_list_begin(key_list); key; key = key_data_list_next(key_list)) {
-			if (!db_value_cmp(key_data_hsm_key_id(key), hsm_key_id(hkey), &cmp)
-				&& cmp == 0)
+			if (!db_value_cmp(key_data_hsm_key_id(key), hsm_key_id(hkey)))
 			{
 				/** we have match, so this hsm_key is no good */
 				match = 1;
@@ -2646,12 +2620,8 @@ removeDeadKeys(db_connection_t *dbconn, key_data_t** keylist,
 
             for (j = 0; j < deplist2_size; j++) {
                 if (!deplist2[j]) continue;
-                if (db_value_cmp(key_data_id(keylist[i]), key_dependency_from_key_data_id(deplist2[j]), &cmp)) {
-                    /* TODO: better log error */
-                    ods_log_error("[%s] %s: cmp deplist from failed", module_str, scmd);
-                    break;
-                }
-                if(cmp) continue;
+                if(db_value_cmp(key_data_id(keylist[i]), key_dependency_from_key_data_id(deplist2[j])))
+                    continue;
 
                 if (key_dependency_delete(deplist2[j])) {
                     /* TODO: better log error */

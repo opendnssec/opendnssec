@@ -943,59 +943,43 @@ static int __db_backend_mysql_bind_clause(db_backend_mysql_bind_t** bind, const 
             switch (db_value_type(db_clause_value(clause))) {
             case DB_TYPE_PRIMARY_KEY:
             case DB_TYPE_INT32:
-                if (!(int32 = db_value_int32(db_clause_value(clause)))) {
-                    return DB_ERROR_UNKNOWN;
-                }
                 (*bind)->bind->buffer_type = MYSQL_TYPE_LONG;
-                (*bind)->bind->buffer = (void*)int32;
+                (*bind)->bind->buffer = (void*)&db_clause_value(clause)->int32;
                 (*bind)->bind->buffer_length = sizeof(db_type_int32_t);
                 (*bind)->bind->is_unsigned = 0;
                 break;
 
             case DB_TYPE_UINT32:
-                if (!(uint32 = db_value_uint32(db_clause_value(clause)))) {
-                    return DB_ERROR_UNKNOWN;
                 }
                 (*bind)->bind->buffer_type = MYSQL_TYPE_LONG;
-                (*bind)->bind->buffer = (void*)uint32;
+                (*bind)->bind->buffer = (void*)&db_clause_value(clause)->uint32;
                 (*bind)->bind->buffer_length = sizeof(db_type_uint32_t);
                 (*bind)->bind->is_unsigned = 1;
                 break;
 
             case DB_TYPE_INT64:
-                if (!(int64 = db_value_int64(db_clause_value(clause)))) {
-                    return DB_ERROR_UNKNOWN;
-                }
                 (*bind)->bind->buffer_type = MYSQL_TYPE_LONGLONG;
-                (*bind)->bind->buffer = (void*)int64;
+                (*bind)->bind->buffer = (void*)&db_clause_value(clause)->int64;
                 (*bind)->bind->buffer_length = sizeof(db_type_int64_t);
                 (*bind)->bind->is_unsigned = 0;
                 break;
 
             case DB_TYPE_UINT64:
-                if (!(uint64 = db_value_uint64(db_clause_value(clause)))) {
-                    return DB_ERROR_UNKNOWN;
-                }
                 (*bind)->bind->buffer_type = MYSQL_TYPE_LONGLONG;
-                (*bind)->bind->buffer = (void*)uint64;
+                (*bind)->bind->buffer = (void*)&db_clause_value(clause)->uint64;
                 (*bind)->bind->buffer_length = sizeof(db_type_uint64_t);
                 (*bind)->bind->is_unsigned = 1;
                 break;
 
             case DB_TYPE_TEXT:
-                if (!(text = db_value_text(db_clause_value(clause)))) {
-                    return DB_ERROR_UNKNOWN;
-                }
                 (*bind)->bind->buffer_type = MYSQL_TYPE_STRING;
-                (*bind)->bind->buffer = (void*)text;
+                (*bind)->bind->buffer = (void*)&db_clause_value(clause)->text;
                 (*bind)->bind->buffer_length = strlen(text);
                 (*bind)->bind->is_unsigned = 0;
                 break;
 
             case DB_TYPE_ENUM:
-                if (db_value_enum_value(db_clause_value(clause), &((*bind)->value_enum))) {
-                    return DB_ERROR_UNKNOWN;
-                }
+                (*bind)->value_enum = db_clause_value(clause)->enum_value;
                 (*bind)->bind->buffer_type = MYSQL_TYPE_LONG;
                 (*bind)->bind->buffer = (void*)&((*bind)->value_enum);
                 (*bind)->bind->buffer_length = sizeof(int);
@@ -1056,59 +1040,42 @@ static int __db_backend_mysql_bind_value(db_backend_mysql_bind_t* bind, const db
     switch (db_value_type(value)) {
     case DB_TYPE_PRIMARY_KEY:
     case DB_TYPE_INT32:
-        if (!(int32 = db_value_int32(value))) {
-            return DB_ERROR_UNKNOWN;
-        }
         bind->bind->buffer_type = MYSQL_TYPE_LONG;
-        bind->bind->buffer = (void*)int32;
+        bind->bind->buffer = (void*)&value->int32;
         bind->bind->buffer_length = sizeof(db_type_int32_t);
         bind->bind->is_unsigned = 0;
         break;
 
     case DB_TYPE_UINT32:
-        if (!(uint32 = db_value_uint32(value))) {
-            return DB_ERROR_UNKNOWN;
-        }
         bind->bind->buffer_type = MYSQL_TYPE_LONG;
-        bind->bind->buffer = (void*)uint32;
+        bind->bind->buffer = (void*)&value->uint32;
         bind->bind->buffer_length = sizeof(db_type_uint32_t);
         bind->bind->is_unsigned = 1;
         break;
 
     case DB_TYPE_INT64:
-        if (!(int64 = db_value_int64(value))) {
-            return DB_ERROR_UNKNOWN;
-        }
         bind->bind->buffer_type = MYSQL_TYPE_LONGLONG;
-        bind->bind->buffer = (void*)int64;
+        bind->bind->buffer = (void*)&value->int64;
         bind->bind->buffer_length = sizeof(db_type_int64_t);
         bind->bind->is_unsigned = 0;
         break;
 
     case DB_TYPE_UINT64:
-        if (!(uint64 = db_value_uint64(value))) {
-            return DB_ERROR_UNKNOWN;
-        }
         bind->bind->buffer_type = MYSQL_TYPE_LONGLONG;
-        bind->bind->buffer = (void*)uint64;
+        bind->bind->buffer = (void*)&value->uint64;
         bind->bind->buffer_length = sizeof(db_type_uint64_t);
         bind->bind->is_unsigned = 1;
         break;
 
     case DB_TYPE_TEXT:
-        if (!(text = db_value_text(value))) {
-            return DB_ERROR_UNKNOWN;
-        }
         bind->bind->buffer_type = MYSQL_TYPE_STRING;
-        bind->bind->buffer = (void*)text;
+        bind->bind->buffer = (void*)&value->text;
         bind->bind->buffer_length = strlen(text);
         bind->bind->is_unsigned = 0;
         break;
 
     case DB_TYPE_ENUM:
-        if (db_value_enum_value(value, &(bind->value_enum))) {
-            return DB_ERROR_UNKNOWN;
-        }
+        bind->value_enum = value->enum_value;
         bind->bind->buffer_type = MYSQL_TYPE_LONG;
         bind->bind->buffer = (void*)&(bind->value_enum);
         bind->bind->buffer_length = sizeof(int);
@@ -1234,11 +1201,12 @@ static db_result_t* db_backend_mysql_next(void* data, int finish) {
                 return NULL;
             }
             if (db_object_field_type(object_field) == DB_TYPE_PRIMARY_KEY
-                && db_value_set_primary_key(db_value_set_get(value_set, value)))
+                && !db_value_set_get(value_set, value))
             {
                 db_result_free(result);
                 return NULL;
             }
+            db_value_set_get(value_set, value)->primary_key = 1;
             break;
 
         case DB_TYPE_ENUM:

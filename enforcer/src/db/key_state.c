@@ -421,7 +421,7 @@ int key_state_set_key_data_id(key_state_t* key_state, const db_value_t* key_data
     if (!key_data_id) {
         return DB_ERROR_UNKNOWN;
     }
-    if (db_value_not_empty(key_data_id)) {
+    if (db_value_empty(key_data_id)) {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -498,7 +498,7 @@ db_clause_t* key_state_key_data_id_clause(db_clause_list_t* clause_list, const d
     if (!key_data_id) {
         return NULL;
     }
-    if (db_value_not_empty(key_data_id)) {
+    if (db_value_empty(key_data_id)) {
         return NULL;
     }
 
@@ -528,13 +528,13 @@ int key_state_create(key_state_t* key_state) {
     if (!key_state->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!db_value_not_empty(&(key_state->id))) {
+    if (!db_value_empty(&(key_state->id))) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!db_value_not_empty(&(key_state->rev))) {
+    if (!db_value_empty(&(key_state->rev))) {
         return DB_ERROR_UNKNOWN;
     }
-    if (db_value_not_empty(&(key_state->key_data_id))) {
+    if (db_value_empty(&(key_state->key_data_id))) {
         return DB_ERROR_UNKNOWN;
     }
     /* TODO: validate content more */
@@ -643,7 +643,7 @@ int key_state_get_by_id(key_state_t* key_state, const db_value_t* id) {
     if (!id) {
         return DB_ERROR_UNKNOWN;
     }
-    if (db_value_not_empty(id)) {
+    if (db_value_empty(id)) {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -695,13 +695,13 @@ int key_state_update(key_state_t* key_state) {
     if (!key_state->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (db_value_not_empty(&(key_state->id))) {
+    if (db_value_empty(&(key_state->id))) {
         return DB_ERROR_UNKNOWN;
     }
-    if (db_value_not_empty(&(key_state->rev))) {
+    if (db_value_empty(&(key_state->rev))) {
         return DB_ERROR_UNKNOWN;
     }
-    if (db_value_not_empty(&(key_state->key_data_id))) {
+    if (db_value_empty(&(key_state->key_data_id))) {
         return DB_ERROR_UNKNOWN;
     }
     /* TODO: validate content more */
@@ -839,7 +839,7 @@ int key_state_delete(const key_state_t* key_state) {
     if (!key_state->dbo) {
         return DB_ERROR_UNKNOWN;
     }
-    if (db_value_not_empty(&(key_state->id))) {
+    if (db_value_empty(&(key_state->id))) {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -1048,13 +1048,8 @@ static int key_state_list_get_associated(key_state_list_t* key_state_list) {
         cmp = 1;
         clause_walk = db_clause_list_begin(clause_list);
         while (clause_walk) {
-            if (db_value_cmp(db_clause_value(clause_walk), key_state_key_data_id(key_state), &cmp)) {
-                db_clause_list_free(clause_list);
-                return DB_ERROR_UNKNOWN;
-            }
-            if (!cmp) {
-                break;
-            }
+            cmp = db_value_cmp(db_clause_value(clause_walk), key_state_key_data_id(key_state));
+            if (!cmp) break;
             clause_walk = db_clause_next(clause_walk);
         }
         if (cmp) {
@@ -1094,10 +1089,7 @@ static int key_state_list_get_associated(key_state_list_t* key_state_list) {
 
         key_data_key_data_id = key_data_list_begin(key_state_list->key_data_id_list);
         while (key_data_key_data_id) {
-            if (db_value_cmp(key_state_key_data_id(key_state_list->object_list[i]), key_data_id(key_data_key_data_id), &cmp)) {
-                return DB_ERROR_UNKNOWN;
-            }
-            if (!cmp) {
+            if (!db_value_cmp(key_state_key_data_id(key_state_list->object_list[i]), key_data_id(key_data_key_data_id))) {
                 key_state_list->object_list[i]->associated_key_data_id = key_data_key_data_id;
             }
 
@@ -1165,7 +1157,7 @@ int key_state_list_get_by_key_data_id(key_state_list_t* key_state_list, const db
     if (!key_data_id) {
         return DB_ERROR_UNKNOWN;
     }
-    if (db_value_not_empty(key_data_id)) {
+    if (db_value_empty(key_data_id)) {
         return DB_ERROR_UNKNOWN;
     }
 
@@ -1223,7 +1215,7 @@ key_state_list_t* key_state_list_new_get_by_key_data_id(const db_connection_t* c
     if (!key_data_id) {
         return NULL;
     }
-    if (db_value_not_empty(key_data_id)) {
+    if (db_value_empty(key_data_id)) {
         return NULL;
     }
 

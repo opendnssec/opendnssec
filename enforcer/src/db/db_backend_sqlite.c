@@ -614,17 +614,14 @@ static int __db_backend_sqlite_bind_clause(sqlite3_stmt* statement, const db_cla
                 break;
 
             case DB_TYPE_TEXT:
-                ret = sqlite3_bind_text(statement, (*bind)++, db_value_text(db_clause_value(clause)), -1, SQLITE_TRANSIENT);
+                ret = sqlite3_bind_text(statement, (*bind)++, db_clause_value(clause)->text, -1, SQLITE_TRANSIENT);
                 if (ret != SQLITE_OK) {
                     return DB_ERROR_UNKNOWN;
                 }
                 break;
 
             case DB_TYPE_ENUM:
-                if (db_value_enum_value(db_clause_value(clause), &to_int)) {
-                    return DB_ERROR_UNKNOWN;
-                }
-                ret = sqlite3_bind_int(statement, (*bind)++, to_int);
+                ret = sqlite3_bind_int(statement, (*bind)++, db_clause_value(clause)->enum_value);
                 if (ret != SQLITE_OK) {
                     return DB_ERROR_UNKNOWN;
                 }
@@ -706,11 +703,12 @@ static db_result_t* db_backend_sqlite_next(void* data, int finish) {
             ret = sqlite3_errcode(statement->backend_sqlite->db);
             if ((ret != SQLITE_OK && ret != SQLITE_ROW && ret != SQLITE_DONE)
                 || db_value_from_int32(db_value_set_get(value_set, bind), int32)
-                || db_value_set_primary_key(db_value_set_get(value_set, bind)))
+                || !db_value_set_get(value_set, bind))
             {
                 db_result_free(result);
                 return NULL;
             }
+            db_value_set_get(value_set, bind)->primary_key = 1;
             break;
 
         case DB_TYPE_ENUM:
@@ -1061,7 +1059,7 @@ static int db_backend_sqlite_create(void* data, const db_object_t* object, const
             break;
 
         case DB_TYPE_TEXT:
-            ret = sqlite3_bind_text(statement, bind++, db_value_text(value), -1, SQLITE_TRANSIENT);
+            ret = sqlite3_bind_text(statement, bind++, value->text, -1, SQLITE_TRANSIENT);
             if (ret != SQLITE_OK) {
                 __db_backend_sqlite_finalize(statement);
                 return DB_ERROR_UNKNOWN;
@@ -1069,11 +1067,7 @@ static int db_backend_sqlite_create(void* data, const db_object_t* object, const
             break;
 
         case DB_TYPE_ENUM:
-            if (db_value_enum_value(value, &to_int)) {
-                __db_backend_sqlite_finalize(statement);
-                return DB_ERROR_UNKNOWN;
-            }
-            ret = sqlite3_bind_int(statement, bind++, to_int);
+            ret = sqlite3_bind_int(statement, bind++, value->enum_value);
             if (ret != SQLITE_OK) {
                 __db_backend_sqlite_finalize(statement);
                 return DB_ERROR_UNKNOWN;
@@ -1474,7 +1468,7 @@ static int db_backend_sqlite_update(void* data, const db_object_t* object, const
             break;
 
         case DB_TYPE_TEXT:
-            ret = sqlite3_bind_text(statement, bind++, db_value_text(value), -1, SQLITE_TRANSIENT);
+            ret = sqlite3_bind_text(statement, bind++, value->text, -1, SQLITE_TRANSIENT);
             if (ret != SQLITE_OK) {
                 __db_backend_sqlite_finalize(statement);
                 return DB_ERROR_UNKNOWN;
@@ -1482,11 +1476,7 @@ static int db_backend_sqlite_update(void* data, const db_object_t* object, const
             break;
 
         case DB_TYPE_ENUM:
-            if (db_value_enum_value(value, &to_int)) {
-                __db_backend_sqlite_finalize(statement);
-                return DB_ERROR_UNKNOWN;
-            }
-            ret = sqlite3_bind_int(statement, bind++, to_int);
+            ret = sqlite3_bind_int(statement, bind++, value->enum_value);
             if (ret != SQLITE_OK) {
                 __db_backend_sqlite_finalize(statement);
                 return DB_ERROR_UNKNOWN;

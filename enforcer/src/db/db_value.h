@@ -86,15 +86,14 @@ void db_value_reset(db_value_t* value);
 int db_value_copy(db_value_t* value, const db_value_t* from_value);
 
 /**
- * Compare two database values A and B. Sets `result` with less than, equal to,
- * or greater than zero if A is found, respectively, to be less than, to match,
- * or be greater than B.
+ * Compare two database values A and B. Only integer, enum and txt types
+ * are allowed. Unless DB_TYPE_EMPTY both values must be of the same type.
+ * 
  * \param[in] value_a a db_value_t pointer.
- * \param[in] value_b a db_value_t pointer.
- * \param[out] result an integer pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
+ * \param[in] value_b a db_value_t pointer of same type as value_a.
+ * \return result an integer.
  */
-int db_value_cmp(const db_value_t* value_a, const db_value_t* value_b, int* result);
+int db_value_cmp(const db_value_t* value_a, const db_value_t* value_b);
 
 /**
  * Get the type of a database value.
@@ -104,62 +103,11 @@ int db_value_cmp(const db_value_t* value_a, const db_value_t* value_b, int* resu
 db_type_t db_value_type(const db_value_t* value);
 
 /**
- * Get a pointer for the 32bit integer in a database value.
+ * Check if a database value is empty.
  * \param[in] value a db_value_t pointer.
- * \return a db_type_int32_t pointer or NULL on error, if empty or not a 32bit
- * integer value.
- * TODO: unit test
+ * \return true if empty, otherwise false.
  */
-const db_type_int32_t* db_value_int32(const db_value_t* value);
-
-/**
- * Get a pointer for the unsigned 32bit integer in a database value.
- * \param[in] value a db_value_t pointer.
- * \return a db_type_uint32_t pointer or NULL on error, if empty or not an
- * unsigned 32bit integer value.
- * TODO: unit test
- */
-const db_type_uint32_t* db_value_uint32(const db_value_t* value);
-
-/**
- * Get a pointer for the 64bit integer in a database value.
- * \param[in] value a db_value_t pointer.
- * \return a db_type_int64_t pointer or NULL on error, if empty or not a 64bit
- * integer value.
- * TODO: unit test
- */
-const db_type_int64_t* db_value_int64(const db_value_t* value);
-
-/**
- * Get a pointer for the unsigned 64bit integer in a database value.
- * \param[in] value a db_value_t pointer.
- * \return a db_type_uint64_t pointer or NULL on error, if empty or not an
- * unsigned 64bit integer value.
- * TODO: unit test
- */
-const db_type_uint64_t* db_value_uint64(const db_value_t* value);
-
-/**
- * Get a character pointer for the text in a database value.
- * \param[in] value a db_value_t pointer.
- * \return a character pointer or NULL on error, if empty or not a text value.
- */
-const char* db_value_text(const db_value_t* value);
-
-/**
- * Sets `enum_value` with the integer value of an enumeration database value.
- * \param[in] value a db_value_t pointer.
- * \param[out] enum_value an integer pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int db_value_enum_value(const db_value_t* value, int* enum_value);
-
-/**
- * Check if a database value is not empty.
- * \param[in] value a db_value_t pointer.
- * \return DB_ERROR_* if empty, otherwise DB_OK.
- */
-int db_value_not_empty(const db_value_t* value);
+int db_value_empty(const db_value_t* value);
 
 /**
  * Get the 32bit integer representation of the database value.
