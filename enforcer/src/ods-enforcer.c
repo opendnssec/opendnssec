@@ -72,10 +72,10 @@ usage(char* argv0, FILE* out)
     fprintf(out, 
 "Simple command line interface to control the enforcer engine \n"
 "daemon. If no command  is given, the tool is going to interactive \n"
-"mode.When the daemon is running 'ods-enforcer help' gives a full \n"
-"list of available commands.\n\n");
+"mode. When the daemon is running 'ods-enforcer help' gives a full \n"
+"list of available commands.\n");
 
-    fprintf(out, "Supported options:\n");
+    fprintf(out, "\nSupported options:\n");
     fprintf(out, " -h | --help             Show this help and exit.\n");
     fprintf(out, " -V | --version          Show version and exit.\n");
     fprintf(out, " -s | --socket <file>    Daemon socketfile \n"
@@ -95,7 +95,6 @@ static void
 version(FILE* out)
 {
     fprintf(out, "%s version %s\n", PACKAGE_NAME, PACKAGE_VERSION);
-    exit(0);
 }
 
 /**
@@ -411,6 +410,7 @@ main(int argc, char* argv[])
             default:
                 /* unrecognized options 
                  * getopt will report an error */
+                fprintf(stderr, "use --help for usage information\n");
                 exit(100);
         }
     }
