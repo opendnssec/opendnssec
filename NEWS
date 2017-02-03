@@ -18,7 +18,8 @@ UNRELEASED:
 * OPENDNSSEC-849: Crash on free of part of IXFR structure.
 * OPENDNSSEC-759: Reduce HSM access during ods-signerd start. Daemon should
   start quicker and earlier available for user input.
-* OPENDNSSEC-479: Transferring zones and sending notifies through a bound socket, using the same interface as listener
+* OPENDNSSEC-479: Transferring zones and sending notifies through a bound socket,
+  using the same interface as listener
 * Key cache is now shared between threads.
 * OPENDNSSEC-858: Don't print "completed in x seconds" to stderr for enforcer
   commands.
