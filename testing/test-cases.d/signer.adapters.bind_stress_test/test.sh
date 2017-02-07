@@ -20,7 +20,7 @@ if named -V | grep -q "^BIND 9.8.2rc1-RedHat" ; then
 fi
 
 case "$DISTRIBUTION" in
-	redhat|suse )
+	redhat|suse|slackware )
 		append_path /usr/sbin
 		;;
 esac
@@ -49,6 +49,8 @@ rm -f $BIND9_NAMED_RUNDIR/bind.log &&
 rm -f $BIND9_NAMED_RUNDIR/update.txt &&
 rm -f $BIND9_NAMED_RUNDIR/update.log &&
 rm -f $BIND9_NAMED_RUNDIR/ods.jnl &&
+
+ods_process_kill '(named)'
 return 0
 
 ## Test failed. Kill stuff
