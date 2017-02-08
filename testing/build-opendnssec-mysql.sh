@@ -1,7 +1,30 @@
 #!/usr/bin/env bash
 source `dirname "$0"`/lib.sh && init || exit 1
 
-require softhsm
+# OPENDNSSEC-721, OPENDNSSEC-745:
+# We cannot use the build system to build SoftHSM2 without breaking
+# other builds.  Since changing the build-bot/tasks and upgrading
+# Jenkins will allow for a more flexible set-up we just use a
+# temporary make script to build botan and softhsm2.
+# the LD_LIBRARY_PATH is necessary too unfortunately.
+if [ -x `dirname "$0"`/make.sh ] ; then
+  if [ "`uname -n`" = "ubuntu10-ods01" ]; then
+    # OPENDNSSEC-755
+    # Old, no longer in LTS Ubuntu 10 machine will fail due to historic
+    # version of libbotan (1.8.2) and pre 1.0 version of OpenSSL, where
+    # SoftHSM requires at least one of them working.
+    check_if_built opendnssec-mysql && exit 0
+    start_build opendnssec-mysql
+    set_build_ok opendnssec-mysql || exit 1
+    exit 0
+  fi
+
+  export INSTALL_TAG INSTALL_ROOT WORKSPACE
+  LD_LIBRARY_PATH=$INSTALL_ROOT/lib
+  `dirname "$0"`/make.sh
+fi
+
+require softhsm2
 
 check_if_built opendnssec-mysql && exit 0
 start_build opendnssec-mysql
@@ -122,7 +145,11 @@ case "$DISTRIBUTION" in
 			sh autogen.sh &&
 			mkdir -p build &&
 			cd build &&
-			../configure --prefix="$INSTALL_ROOT" \
+			../configure \
+				LD_LIBRARY_PATH="$INSTALL_ROOT/lib/softhsm:$LD_LIBRARY_PATH" \
+				LDFLAGS="-L$INSTALL_ROOT/lib/softhsm $LDFLAGS" \
+				LIBS="-lsofthsm2 $LIBS" \
+				--prefix="$INSTALL_ROOT" \
 				--with-enforcer-database=mysql \
 				--with-enforcer-database-test-database=build \
 				--with-enforcer-database-test-host=localhost \
