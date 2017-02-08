@@ -97,6 +97,7 @@ xfrhandler_create()
     xfrh->dnshandler.timeout = 0;
     xfrh->dnshandler.event_types = NETIO_EVENT_READ;
     xfrh->dnshandler.event_handler = xfrhandler_handle_dns;
+    xfrh->dnshandler.free_handler = 0;
     return xfrh;
 }
 

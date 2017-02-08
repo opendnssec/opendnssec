@@ -129,6 +129,7 @@ struct netio_handler_struct {
      * The event handler SHOULD NOT block.
      */
     netio_event_handler_type event_handler;
+    int free_handler;
 };
 
 /**

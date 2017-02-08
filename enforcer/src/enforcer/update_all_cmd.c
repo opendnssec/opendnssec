@@ -72,7 +72,8 @@ check_all(int sockfd, engine_type* engine)
 	int error = 1;
 
 	if (check_conf(engine->config->cfg_filename, &kasp, 
-			&zonelist, &replist, &repcount, 0))
+			&zonelist, &replist, &repcount,
+			(ods_log_verbosity() >= 3)))
 		ods_log_error_and_printf(sockfd, module_str, 
 			"Unable to validate '%s' consistency.", 
 			engine->config->cfg_filename);

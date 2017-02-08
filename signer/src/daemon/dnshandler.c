@@ -66,6 +66,7 @@ dnshandler_create(listener_type* interfaces)
     dnsh->socklist = NULL;
     dnsh->netio = NULL;
     dnsh->query = NULL;
+    dnsh->tcp_accept_handlers = NULL;
     /* setup */
     CHECKALLOC(dnsh->socklist = (socklist_type*) malloc(sizeof(socklist_type)));
     if (!dnsh->socklist) {
@@ -125,7 +126,6 @@ dnshandler_start(dnshandler_type* dnshandler)
 {
     size_t i = 0;
     engine_type* engine = NULL;
-    netio_handler_type* tcp_accept_handlers = NULL;
 
     ods_log_assert(dnshandler);
     ods_log_assert(dnshandler->engine);
@@ -161,12 +161,13 @@ dnshandler_start(dnshandler_type* dnshandler)
         handler->user_data = data;
         handler->event_types = NETIO_EVENT_READ;
         handler->event_handler = sock_handle_udp;
+        handler->free_handler = 1;
         ods_log_debug("[%s] add udp network handler fd %u", dnsh_str,
             (unsigned) handler->fd);
         netio_add_handler(dnshandler->netio, handler);
     }
     /* tcp */
-    CHECKALLOC(tcp_accept_handlers = (netio_handler_type*) malloc(dnshandler->interfaces->count * sizeof(netio_handler_type)));
+    CHECKALLOC(dnshandler->tcp_accept_handlers = (netio_handler_type*) malloc(dnshandler->interfaces->count * sizeof(netio_handler_type)));
     for (i=0; i < dnshandler->interfaces->count; i++) {
         struct tcp_accept_data* data = NULL;
         netio_handler_type* handler = NULL;
@@ -181,13 +182,14 @@ dnshandler_start(dnshandler_type* dnshandler)
         data->engine = dnshandler->engine;
         data->socket = &dnshandler->socklist->udp[i];
         data->tcp_accept_handler_count = dnshandler->interfaces->count;
-        data->tcp_accept_handlers = tcp_accept_handlers;
-        handler = &tcp_accept_handlers[i];
+        data->tcp_accept_handlers = dnshandler->tcp_accept_handlers;
+        handler = &dnshandler->tcp_accept_handlers[i];
         handler->fd = dnshandler->socklist->tcp[i].s;
         handler->timeout = NULL;
         handler->user_data = data;
         handler->event_types = NETIO_EVENT_READ;
         handler->event_handler = sock_handle_tcp_accept;
+        handler->free_handler = 0;
         ods_log_debug("[%s] add tcp network handler fd %u", dnsh_str,
             (unsigned) handler->fd);
         netio_add_handler(dnshandler->netio, handler);
@@ -205,17 +207,6 @@ dnshandler_start(dnshandler_type* dnshandler)
     }
     /* shutdown */
     ods_log_debug("[%s] shutdown", dnsh_str);
-    /*free(tcp_accept_handlers);*/
- /*   for (i=0; i < dnshandler->interfaces->count; i++) {
-        if (dnshandler->socklist->udp[i].s != -1) {
-            close(dnshandler->socklist->udp[i].s);
-            freeaddrinfo((void*)dnshandler->socklist->udp[i].addr);
-        }
-        if (dnshandler->socklist->tcp[i].s != -1) {
-            close(dnshandler->socklist->tcp[i].s);
-            freeaddrinfo((void*)dnshandler->socklist->tcp[i].addr);
-        }
-    }*/
 }
 
 
@@ -294,6 +285,8 @@ dnshandler_cleanup(dnshandler_type* dnshandler)
 
 
     for (i = 0; i < dnshandler->interfaces->count; i++) {
+        if (dnshandler->tcp_accept_handlers)
+            free(dnshandler->tcp_accept_handlers[i].user_data);
         if (dnshandler->socklist->udp[i].s != -1) {
             close(dnshandler->socklist->udp[i].s);
             freeaddrinfo((void*)dnshandler->socklist->udp[i].addr);
@@ -303,6 +296,7 @@ dnshandler_cleanup(dnshandler_type* dnshandler)
             freeaddrinfo((void*)dnshandler->socklist->tcp[i].addr);
         }  
     }
+    free(dnshandler->tcp_accept_handlers);
     free(dnshandler->socklist);
     free(dnshandler);
 }
