@@ -72,10 +72,27 @@ usage(char* argv0, FILE* out)
     fprintf(out, "Simple command line interface to control the signer "
                  "engine daemon.\nIf no cmd is given, the tool is going "
                  "into interactive mode.\n");
+
+    fprintf(out, "\nSupported options:\n");
+    fprintf(out, " -h | --help             Show this help and exit.\n");
+    fprintf(out, " -V | --version          Show version and exit.\n");
+    fprintf(out, " -s | --socket <file>    Daemon socketfile \n"
+        "    |    (default %s).\n", ODS_SE_SOCKFILE);
+
     fprintf(out, "\nBSD licensed, see LICENSE in source package for "
                  "details.\n");
     fprintf(out, "Version %s. Report bugs to <%s>.\n",
         PACKAGE_VERSION, PACKAGE_BUGREPORT);
+}
+
+/**
+ * Prints version.
+ *
+ */
+static void
+version(FILE* out)
+{
+    fprintf(out, "%s version %s\n", PACKAGE_NAME, PACKAGE_VERSION);
 }
 
 
@@ -393,9 +410,17 @@ main(int argc, char* argv[])
             case 'h':
                 usage(argv0, stdout);
                 exit(1);
+            case 's':
+                socketfile = optarg;
+                printf("sock set to %s\n", socketfile);
+                break;
+            case 'V':
+                version(stdout);
+                exit(0);
             default:
                 /* unrecognized options 
                  * getopt will report an error */
+                fprintf(stderr, "use --help for usage information\n");
                 exit(1);
         }
     }
