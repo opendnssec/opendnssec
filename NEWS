@@ -32,6 +32,9 @@ UNRELEASED:
 * A bash autocompletion script is included in contrib for ods-enforcer and
   ods-signer.
 * SUPPORT-208: Strip comment from key export.
+* OPENDNSSEC-552: On key export don't print SHA1 DS by default. (introduced
+  --sha1 option to key export.) Usage of sha1 is deprecated and will be removed
+  from future versions of OpenDNSSEC.
 
 OpenDNSSEC 2.0.1 - 2016-07-21
 
