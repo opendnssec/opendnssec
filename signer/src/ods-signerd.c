@@ -107,7 +107,6 @@ program_teardown()
 {
     xmlCleanupParser();
     xmlCleanupGlobals();
-    xmlCleanupThreads();
     ods_log_close();
 }
 

@@ -69,7 +69,7 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 
 	ods_log_debug("[%s] %s command", module_str, update_conf_funcblock.cmdname);
 
-    if (check_conf(engine->config->cfg_filename, &kasp, &zonelist, &repositories, &repository_count, 0)) {
+    if (check_conf(engine->config->cfg_filename, &kasp, &zonelist, &repositories, &repository_count, (ods_log_verbosity() >= 3))) {
         client_printf_err(sockfd, "Unable to validate '%s' consistency.",
             engine->config->cfg_filename);
 
