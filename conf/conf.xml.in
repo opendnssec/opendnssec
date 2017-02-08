@@ -67,6 +67,9 @@
 		<SignerThreads>4</SignerThreads>
 -->
 
+<!-- Multiple interfaces can be specified in the <Listener> section. OpenDNSSEC
+     will bind() to the first interface. I.e. outgoing packets will have the
+     source address of the first mentioned interface. -->
 <!--
 		<Listener>
 			<Interface><Port>53</Port></Interface>
