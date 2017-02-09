@@ -69,55 +69,60 @@ ods_nuke_env ()
 	if [ -n "$kasp_files" ]; then
 		(
 			cd "$INSTALL_ROOT/var/opendnssec/" &&
-			rm -rf -- $kasp_files 2>/dev/null
+			rm -rf -- $kasp_files
 		)
 	fi &&
 	if [ -n "$tmp_files" ]; then
 		(
 			cd "$INSTALL_ROOT/var/opendnssec/signer/" &&
-			rm -rf -- $tmp_files 2>/dev/null
+			rm -rf -- $tmp_files
 		)
 	fi &&
 	if [ -n "$tmp_files2" ]; then
 		(
 			cd "$INSTALL_ROOT/var/opendnssec/tmp/" &&
-			rm -rf -- $tmp_files2 2>/dev/null
+			rm -rf -- $tmp_files2
 		)
 	fi &&
 	if [ -n "$tmp_files3" ]; then
 		(
 			cd "$INSTALL_ROOT/var/opendnssec/enforcer/" &&
-			rm -rf -- $tmp_files3 2>/dev/null
+			rm -rf -- $tmp_files3
 		)
 	fi &&
 	if [ -n "$unsigned_files" ]; then
 		(
 			cd "$INSTALL_ROOT/var/opendnssec/unsigned/" &&
-			rm -f -- $unsigned_files 2>/dev/null
+			rm -f -- $unsigned_files
 		)
 	fi &&
 	if [ -n "$signed_files" ]; then
 		(
 			cd "$INSTALL_ROOT/var/opendnssec/signed/" &&
-			rm -f -- $signed_files 2>/dev/null
+			rm -f -- $signed_files
 		)
 	fi &&
 	if [ -n "$signconf_files" ]; then
 		(
 			cd "$INSTALL_ROOT/var/opendnssec/signconf/" &&
-			rm -f -- $signconf_files 2>/dev/null
+			rm -f -- $signconf_files
 		)
 	fi &&
 	if [ -n "$softhsm_files" ]; then
 		(
 			cd "$INSTALL_ROOT/var/softhsm/" &&
-			rm -f -- $softhsm_files 2>/dev/null
+			rm -rf -- $softhsm_files
 		)
 	fi &&
 	if [ -n "$softhsm_files2" ]; then
 		(
 			cd "$INSTALL_ROOT/var/lib/softhsm/" &&
-			rm -f -- $softhsm_files2 2>/dev/null
+			rm -rf -- $softhsm_files2
+		)
+	fi &&
+	if [ \! -d "$INSTALL_ROOT/var/lib/softhsm/tokens" ]; then
+		(
+			mkdir -p "$INSTALL_ROOT/var/lib/softhsm/tokens"
 		)
 	fi &&
 	if [ -n "$HAVE_MYSQL" ]; then
@@ -152,7 +157,7 @@ ods_setup_conf ()
 
 	if [ -n "$conf" ]; then
 		case "$conf" in
-			softhsm.conf | addns.xml | conf.xml | kasp.xml | zonelist.xml )
+			softhsm2.conf | addns.xml | conf.xml | kasp.xml | zonelist.xml )
 				;;
 			* )
 				echo "ods_setup_conf: Unknown conf file specified: $conf" >&2
@@ -167,7 +172,7 @@ ods_setup_conf ()
 	fi
 
 	# Conf files under /etc
-	for conf_file in softhsm.conf; do
+	for conf_file in softhsm2.conf; do
 		if [ -n "$conf" -a "$conf" != "$conf_file" ]; then
 			continue
 		fi
@@ -200,17 +205,17 @@ ods_setup_conf ()
 		fi
 
 		if [ -n "$file" ]; then
-			if ! cp -- "$file" "$INSTALL_ROOT/etc/opendnssec/$conf_file" 2>/dev/null; then
+			if ! cp -- "$file" "$INSTALL_ROOT/etc/opendnssec/$conf_file" ; then
 				echo "ods_setup_conf: unable to copy/install test specific $file to $INSTALL_ROOT/etc/opendnssec/$conf_file" >&2
 				return 1
 			fi
 		elif [ -f "$conf_file" ]; then
-			if ! cp -- "$conf_file" "$INSTALL_ROOT/etc/opendnssec/$conf_file" 2>/dev/null; then
+			if ! cp -- "$conf_file" "$INSTALL_ROOT/etc/opendnssec/$conf_file" ; then
 				echo "ods_setup_conf: unable to copy/install test specific $conf_file to $INSTALL_ROOT/etc/opendnssec/$conf_file" >&2
 				return 1
 			fi
 		else
-			if ! cp -- "$INSTALL_ROOT/etc/opendnssec/$conf_file.build" "$INSTALL_ROOT/etc/opendnssec/$conf_file" 2>/dev/null; then
+			if ! cp -- "$INSTALL_ROOT/etc/opendnssec/$conf_file.build" "$INSTALL_ROOT/etc/opendnssec/$conf_file" ; then
 				echo "ods_setup_conf: unable to copy/install build default $INSTALL_ROOT/etc/opendnssec/$conf_file.build to $INSTALL_ROOT/etc/opendnssec/$conf_file" >&2
 				return 1
 			fi
@@ -234,7 +239,7 @@ ods_setup_zone ()
 	fi
 
 	if [ -n "$zone" ]; then
-		if ! cp -- "$zone" "$INSTALL_ROOT/var/opendnssec/unsigned/" 2>/dev/null; then
+		if ! cp -- "$zone" "$INSTALL_ROOT/var/opendnssec/unsigned/" ; then
 			echo "ods_setup_zone: unable to copy/install zone file $zone to $INSTALL_ROOT/var/opendnssec/unsigned/" >&2
 			return 1
 		fi
@@ -245,7 +250,7 @@ ods_setup_zone ()
 	if [ -d unsigned ]; then
 		ls -1 unsigned/ | while read zone; do
 			if [ -f "unsigned/$zone" ]; then
-				if ! cp -- "unsigned/$zone" "$INSTALL_ROOT/var/opendnssec/unsigned/" 2>/dev/null; then
+				if ! cp -- "unsigned/$zone" "$INSTALL_ROOT/var/opendnssec/unsigned/" ; then
 					echo "ods_setup_zone: unable to copy/install zone file $zone to $INSTALL_ROOT/var/opendnssec/unsigned/" >&2
 					return 1
 				fi
@@ -280,6 +285,8 @@ ods_reset_env ()
 	echo "ods_reset_env: resetting opendnssec environment (no_enforcer_stop=$no_enforcer_stop)"
 
 	if [ -z "$1" ]; then
+		rm -rf $INSTALL_ROOT/var/lib/softhsm/tokens
+		mkdir -p $INSTALL_ROOT/var/lib/softhsm/tokens
 		ods_softhsm_init_token 0 
 	else
 		ods_softhsm_init_token $1 $2 $3 $4 
@@ -357,7 +364,7 @@ ods_setup_env ()
 # returns true if enforcer is running
 ods_is_enforcer_running ()
 {
-	if $PGREP -u `id -u` 'ods-enforcerd' >/dev/null 2>/dev/null; then
+	if $PGREP -u `id -u` 'ods-enforcerd' >/dev/null ; then
 		return 0
 	fi
 	return 1
@@ -366,7 +373,7 @@ ods_is_enforcer_running ()
 # returns true if signer is running
 ods_is_signer_running ()
 {
-	if $PGREP -u `id -u` 'ods-signerd' >/dev/null 2>/dev/null; then
+	if $PGREP -u `id -u` 'ods-signerd' >/dev/null ; then
 		return 0
 	fi
 	return 1
@@ -374,7 +381,7 @@ ods_is_signer_running ()
 
 ods_ods-control_enforcer_start ()
 {
-	if [ "$ODS_ENFORCER_WAIT_START" -lt 1 ] 2>/dev/null; then
+	if [ "$ODS_ENFORCER_WAIT_START" -lt 1 ] ; then
 		echo "ods_ods-control_enforcer_start: ODS_ENFORCER_WAIT_START not set" >&2
 		exit 1
 	fi
@@ -388,7 +395,7 @@ ods_ods-control_enforcer_start ()
 
 ods_ods-control_enforcer_stop ()
 {
-	if [ "$ODS_ENFORCER_WAIT_STOP" -lt 1 ] 2>/dev/null; then
+	if [ "$ODS_ENFORCER_WAIT_STOP" -lt 1 ] ; then
 		echo "ods_ods-control_enforcer_stop: ODS_ENFORCER_WAIT_STOP not set" >&2
 		exit 1
 	fi
@@ -1212,7 +1219,7 @@ ods_softhsm_init_token ()
 
 	if [ "$slot" -ge 0 -a "$slot" -lt 20 ] 2>/dev/null; then
 		log_remove "softhsm-init-token-$slot" &&
-		log_this "softhsm-init-token-$slot" softhsm --init-token --slot "$slot" --label "$label" --pin "$pin" --so-pin "$so_pin" ||
+		log_this "softhsm-init-token-$slot" softhsm2-util --init-token --slot "$slot" --label "$label" --pin "$pin" --so-pin "$so_pin" ||
 		return 1
 
 		if ! log_grep "softhsm-init-token-$slot" stdout "The token has been initialized."; then
@@ -1231,11 +1238,13 @@ ods_find_softhsm_module ()
 	local path
 
 	for path in lib64/softhsm lib/softhsm lib64 lib; do
-		if [ -f "$INSTALL_ROOT/$path/libsofthsm.so" ]; then
-			export SOFTHSM_MODULE="$INSTALL_ROOT/$path/libsofthsm.so"
+		if [ -f "$INSTALL_ROOT/$path/libsofthsm2.so" ]; then
+			export SOFTHSM_MODULE="$INSTALL_ROOT/$path/libsofthsm2.so"
 			return 0
 		fi
 	done
+
+	export SOFTHSM2_CONF=$INSTALL_ROOT/etc/softhsm2.conf
 
 	return 1
 }
