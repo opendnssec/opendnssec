@@ -26,6 +26,7 @@
  *
  */
 
+#include <getopt.h>
 #include "config.h"
 
 #include "file.h"
@@ -73,7 +74,7 @@ help(int sockfd)
 static int
 run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 {
-    db_connection_t* dbconn;
+	db_connection_t* dbconn;
 	struct tm strtime_struct;
 	char strtime[64]; /* at least 26 according to docs plus a long integer */
 	char buf[ODS_SE_MAXLINE];
@@ -84,20 +85,46 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 	const int NARGV = MAX_ARGS;
 	const char *argv[MAX_ARGS];
         int taskcount;
-	int argc, attach, processed_enforce;
+	int argc = 0, attach = 0;
+	int long_index = 0, opt = 0;
+	int processed_enforce;
 	task_type* task = NULL;
         engine_type* engine = getglobalcontext(context);
+
+	static struct option long_options[] = {
+		{"time", required_argument, 0, 't'},
+		{"attach", no_argument, 0, 'a'},
+		{0, 0, 0, 0}
+	};
 
 	ods_log_debug("[%s] %s command", module_str, time_leap_funcblock.cmdname);
 
 	strncpy(buf, cmd, sizeof(buf));
 	buf[sizeof(buf)-1] = '\0';
+
 	argc = ods_str_explode(buf, NARGV, argv);
-	if (argc > NARGV) {
+	if (argc == -1) {
 		ods_log_error_and_printf(sockfd, module_str, "too many arguments");
 		return -1;
 	}
-	(void)ods_find_arg_and_param(&argc, argv, "time", "t", &time);
+
+	optind = 0;
+	while ((opt = getopt_long(argc, (char* const*)argv, "t:a", long_options, &long_index)) != -1) {
+		switch (opt) {
+			case 't':
+				time = optarg;
+				break;
+			case 'a':
+				attach = 1;
+				break;
+			default:
+				client_printf_err(sockfd, "unknown arguments\n");
+				ods_log_error("[%s] unknown arguments for %s command",
+						module_str, time_leap_funcblock.cmdname);
+				return -1;
+		}
+	}
+
 	if (time) {
 		if (strptime(time, "%Y-%m-%d-%H:%M:%S", &tm)) {
 			tm.tm_isdst = -1;
@@ -110,12 +137,6 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 				"Format is YYYY-MM-DD-HH:MM:SS \n", time);
 			return -1;
 		}
-	}
-	attach = ods_find_arg(&argc,argv,"attach","a") != -1;
-
-	if (argc > 2){
-		ods_log_error_and_printf(sockfd, module_str, "unknown arguments");
-		return -1;
 	}
 
 	ods_log_assert(engine);

@@ -10,7 +10,9 @@
 
 #include "keystate/key_purge_cmd.h"
 
-#define MAX_ARGS 16
+#include <getopt.h>
+
+#define MAX_ARGS 4
 
 static const char *module_str = "key_purge_cmd";
 
@@ -50,26 +52,53 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 	const char *zone_name = NULL;
 	const char *policy_name = NULL;
 	char *buf;
-	int argc;
+	int argc = 0;
 	const char *argv[MAX_ARGS];
+	int long_index = 0, opt = 0;
 	int error = 0;
         db_connection_t* dbconn = getconnectioncontext(context);
+
+	static struct option long_options[] = {
+		{"zone", required_argument, 0, 'z'},
+		{"policy", required_argument, 0, 'p'},
+		{0, 0, 0, 0}
+	};
 
         if (!dbconn) return 1;
 
 	ods_log_debug("[%s] %s command", module_str, key_purge_funcblock.cmdname);
-	cmd = ods_check_command(cmd, key_purge_funcblock.cmdname);
 
 	if (!(buf = strdup(cmd))) {
         	client_printf_err(sockfd, "memory error\n");
 	        return -1;
    	}
 
-    	argc = ods_str_explode(buf, MAX_ARGS, argv);
-	
-	ods_find_arg_and_param(&argc, argv, "zone", "z", &zone_name);
-	ods_find_arg_and_param(&argc, argv, "policy", "p", &policy_name);
+	argc = ods_str_explode(buf, MAX_ARGS, argv);
+	if (argc == -1) {
+	client_printf_err(sockfd, "too many arguments\n");
+	ods_log_error("[%s] too many arguments for %s command",
+                      module_str, key_purge_funcblock.cmdname);
+        free(buf);
+        return -1;
+	}
 
+	optind = 0;
+	while ((opt = getopt_long(argc, (char* const*)argv, "z:p:", long_options, &long_index)) != -1) {
+		switch (opt) {
+			case 'z':
+				zone_name = optarg;
+				break;
+			case 'p':
+				policy_name = optarg;
+				break;
+			default:
+				client_printf_err(sockfd, "unknown arguments\n");
+				ods_log_error("[%s] unknown arguments for %s command",
+						module_str, key_purge_funcblock.cmdname);
+				free(buf);
+				return -1;
+		}
+	}
 
         if ((!zone_name && !policy_name) || (zone_name && policy_name)) {
                 ods_log_error("[%s] expected either --zone or --policy", module_str);
@@ -78,12 +107,6 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
                 return -1;
         }
 	
-        if (argc) {
-                client_printf_err(sockfd, "unknown arguments\n");
-                free(buf);
-                return -1;
-        }
-
 	if (zone_name) {
 		zone = zone_db_new(dbconn);
 		if (zone_db_get_by_name(zone, zone_name)) {

@@ -28,6 +28,7 @@
 #include "config.h"
 
 #include <sys/stat.h>
+#include <getopt.h>
 
 #include "cmdhandler.h"
 #include "daemon/engine.h"
@@ -428,83 +429,77 @@ change_keys_from_to(db_connection_t *dbconn, int sockfd,
 	return status;
 }
 
-static int
-get_args(int sockfd, const char *cmd, const char **zone,
-	const char **cka_id, int *keytag, int *all, char *buf)
-{
-
-	#define NARGV 6
-	const char *argv[NARGV], *tag;
-	int argc;
-
-	*keytag = -1;
-	*zone = NULL;
-	*cka_id = NULL;
-	tag = NULL;
-	
-	strncpy(buf, cmd, ODS_SE_MAXLINE);
-	argc = ods_str_explode(buf, NARGV, argv);
-	buf[sizeof(buf)-1] = '\0';
-	if (argc > NARGV) {
-		ods_log_warning("[%s] too many arguments for %s command",
-			module_str, cmd);
-                client_printf_err(sockfd, "too many arguments for %s command\n",
-                        cmd);
-                client_printf_err(sockfd, "expected --zone and either --cka_id or "
-                        "--keytag option.\n");
-		return 1;
-	}
-	
-	(void)ods_find_arg_and_param(&argc, argv, "zone", "z", zone);
-	(void)ods_find_arg_and_param(&argc, argv, "cka_id", "k", cka_id);
-	(void)ods_find_arg_and_param(&argc, argv, "keytag", "x", &tag);
-	*all = ods_find_arg(&argc, argv, "all", "a") > -1 ? 1 : 0;
-
-	if (argc > 2) {
-		client_printf_err(sockfd, "Unknown arguments\n");
-	        return 1;
-	}
-
-	if (tag) {
-                errno = 0;
-                char *end;
-                long int ltag = strtol(tag, &end, 10);
-                if (errno || end == tag) {
-                    client_printf(sockfd,
-                        "Could not convert \"%s\" to integer value\n", tag);
-                    return 1;
-                }
-		if (ltag < 0 || ltag >= 65536) {
-			ods_log_warning("[%s] value \"%ld\" for --keytag is invalid",
-				module_str, ltag);
-                        client_printf(sockfd, "value \"%ld\" for --keytag is invalid\n",
-                                ltag);
-			return 1;
-		}
-                *keytag = (int)ltag;
-	}
-	return 0;
-}
-
 int
 run_ds_cmd(int sockfd, const char *cmd,
 	db_connection_t *dbconn, key_data_ds_at_parent_t state_from,
 	key_data_ds_at_parent_t state_to, engine_type *engine)
 {
-	const char *zonename, *cka_id;
-	int keytag;
+	#define NARGV 6
+	const char *zonename = NULL, *cka_id = NULL, *keytag_s = NULL;
+	int keytag = -1;
 	hsm_key_t* hsmkey = NULL;
 	int ret;
 	char buf[ODS_SE_MAXLINE];
 	zone_db_t* zone = NULL;
-	int all;
+	int all = 0;
+	int argc = 0, long_index = 0, opt = 0;
+	const char* argv[NARGV];
 
-	if (get_args(sockfd, cmd, &zonename, &cka_id, &keytag, &all, buf)) {
+	static struct option long_options[] = {
+		{"zone", required_argument, 0, 'z'},
+		{"cka_id", required_argument, 0, 'k'},
+		{"keytag", required_argument, 0, 'x'},
+		{"all", no_argument, 0, 'a'},
+		{0, 0, 0, 0}
+	};
+
+	strncpy(buf, cmd, ODS_SE_MAXLINE);
+	buf[sizeof(buf)-1] = '\0';
+	argc = ods_str_explode(buf, NARGV, argv);
+	if (argc == -1) {
+		client_printf_err(sockfd, "too many arguments\n");
+		ods_log_error("[%s] too many arguments for %s command",
+				module_str, cmd);
 		return -1;
 	}
 
-	if (!all && !zonename && !cka_id && keytag == -1) {
+	optind = 0;
+	while ((opt = getopt_long(argc, (char* const*)argv, "z:k:x:a", long_options, &long_index)) != -1) {
+		switch (opt) {
+			case 'z':
+				zonename = optarg;
+				break;
+			case 'k':
+				cka_id = optarg;
+				break;
+			case 'x':
+				keytag_s = optarg;
+				break;
+			case 'a':
+				all = 1;
+				break;
+			default:
+				client_printf_err(sockfd, "unknown arguments\n");
+				ods_log_error("[%s] unknown arguments for %s command",
+						module_str, cmd);
+				return -1;
+		}
+	}
+
+	if (!all && !zonename && !cka_id && !keytag_s) {
 		return ds_list_keys(dbconn, sockfd, state_from);
+	}
+
+	if (keytag_s) {
+		keytag = atoi(keytag_s);
+		if (keytag < 0 || keytag >= 65536) {
+			ods_log_warning("[%s] value \"%d\" for --keytag is invalid",
+				module_str, keytag);
+                        client_printf_err(sockfd, "value \"%d\" for --keytag is invalid\n",
+                                keytag);
+
+			return 1;
+		}
 	}
 
 	if (all && zonename) {
