@@ -1,7 +1,7 @@
 OpenDNSSEC 2.1 development was focused on improving the daemon code for
 the Signer and Enforcer.  As such it is much more a steady incremental
 improvement rather than revolutionary.  With this style of development
-we hope that a migration from 1.4, for which and end-of-life is to be
+we hope that a migration from 1.4, for which an end-of-life is to be
 given, is facilitated.
 
 Many of these changes are not directly visible but improve the handling
@@ -75,16 +75,16 @@ FURTHER IMPROVEMENTS
   can potentially be very slow for some HSMs.
 * OPENDNSSEC-721: Our integration testing environment now uses SoftHSMv2
   instead of version one.
-* OPENDNSSEC-844: warnign when lifetime of key is smaller than signature
+* OPENDNSSEC-844: warning when lifetime of key is smaller than signature
   validity time.
 * OPENDNSSEC-311: Installation can now set the right permissions on used
-  files for a configuratble user/group when not running OpenDNSSEC as root.
+  files for a configurable user/group when not running OpenDNSSEC as root.
 * OPENDNSSEC-593: More gracefully cope when zone configured for signer but
   signconf not yet available.
 * OPENDNSSEC-600: Log critical error if key is not inserted due to policy
   parameters misconfiguration.
 * OPENDNSSEC-694: Domain Names in the value/answer part of records (e.g.
-  named refered to by PTR records) where mapped to lowercase.
+  named referred to by PTR records) where mapped to lowercase.
 * OPENDNSSEC-803 : Extensive logging on aborting the application.
 
 BUGS FIXED

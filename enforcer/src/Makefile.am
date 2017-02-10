@@ -176,7 +176,7 @@ ods_enforcer_db_setup_LDADD = \
 ods_enforcer_db_setup_LDFLAGS = \
 	$(BACKEND_LDFLAGS_CUSTOM)
 
-ods_kaspcheck_SOURCES = utils/kaspcheck.c utils/kaspcheck.h utils/kc_helper.c utils/kc_helper.h
+ods_kaspcheck_SOURCES = utils/kaspcheck.c utils/kc_helper.c utils/kc_helper.h
 
 ods_kaspcheck_LDADD = $(LIBHSM) $(LIBCOMPAT)
 ods_kaspcheck_LDADD += @XML2_LIBS@
