@@ -350,17 +350,8 @@ zone_publish_nsec3param(zone_type* zone)
     (void) zone_del_nsec3params(zone);
 
     ods_log_assert(zone->signconf->nsec3params->rr);
-    status = zone_add_rr(zone, zone->signconf->nsec3params->rr, 0);
+    status = zone_add_rr(zone, ldns_rr_clone(zone->signconf->nsec3params->rr), 0);
     if (status == ODS_STATUS_UNCHANGED) {
-        /* rr already exists, adjust pointer */
-        rrset = zone_lookup_rrset(zone, zone->apex, LDNS_RR_TYPE_NSEC3PARAMS);
-        ods_log_assert(rrset);
-        n3prr = rrset_lookup_rr(rrset, zone->signconf->nsec3params->rr);
-        ods_log_assert(n3prr);
-        if (n3prr->rr != zone->signconf->nsec3params->rr) {
-            ldns_rr_free(zone->signconf->nsec3params->rr);
-        }
-        zone->signconf->nsec3params->rr = n3prr->rr;
         status = ODS_STATUS_OK;
     } else if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] unable to publish nsec3params for zone %s: "

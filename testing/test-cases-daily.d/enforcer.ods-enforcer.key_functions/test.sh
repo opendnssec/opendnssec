@@ -63,7 +63,6 @@ log_this ods-enforcer-key-export  ods-enforcer key export --all --keytype ZSK --
 log_grep_count ods-enforcer-key-export stdout "DNSKEY	256" 3 &&
 # test --ds
 log_this ods-enforcer-key-export  ods-enforcer key export --ds --zone ods &&
-log_grep ods-enforcer-key-export stdout "KSK DS record (SHA1):" &&
 log_grep ods-enforcer-key-export stdout "KSK DS record (SHA256):" &&
 
 
