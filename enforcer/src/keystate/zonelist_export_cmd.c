@@ -27,7 +27,8 @@
  */
 
 #include "daemon/engine.h"
-#include "daemon/cmdhandler.h"
+#include "cmdhandler.h"
+#include "daemon/enforcercommands.h"
 #include "log.h"
 #include "str.h"
 #include "clientpipe.h"
@@ -54,16 +55,11 @@ help(int sockfd)
 }
 
 static int
-handles(const char *cmd, ssize_t n)
+run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 {
-    return ods_check_command(cmd, n, zonelist_export_funcblock()->cmdname) ? 1 : 0;
-}
-
-static int
-run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
-    db_connection_t *dbconn)
-{
-    (void)cmd; (void)n;
+    db_connection_t* dbconn = getconnectioncontext(context);
+    engine_type* engine = getglobalcontext(context);
+    (void)cmd;
 
     if (!engine) {
         return 1;
@@ -78,7 +74,7 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
         return 1;
     }
 
-    ods_log_debug("[%s] %s command", module_str, zonelist_export_funcblock()->cmdname);
+    ods_log_debug("[%s] %s command", module_str, zonelist_export_funcblock.cmdname);
 
     if (zonelist_export(sockfd, dbconn, engine->config->zonelist_filename, 1) != ZONELIST_EXPORT_OK) {
         ods_log_error("[%s] zonelist exported to %s failed", module_str, engine->config->zonelist_filename);
@@ -88,18 +84,9 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 
     ods_log_info("[%s] zonelist exported to %s successfully", module_str, engine->config->zonelist_filename);
     client_printf(sockfd, "Exported zonelist to %s successfully\n", engine->config->zonelist_filename);
-    /*
-    flush_enforce_task(engine, 1);
-    */
     return 0;
 }
 
-static struct cmd_func_block funcblock = {
-    "zonelist export", &usage, &help, &handles, &run
+struct cmd_func_block zonelist_export_funcblock = {
+    "zonelist export", &usage, &help, NULL, &run
 };
-
-struct cmd_func_block*
-zonelist_export_funcblock(void)
-{
-    return &funcblock;
-}

@@ -1,31 +1,19 @@
-zone0a;KSK;ready;waiting for ds-seen;2048;7;SoftHSM
-zone0a;KSK;retire;waiting for ds-gone;2048;7;SoftHSM
-zone0a;KSK;retire;waiting for ds-gone;2048;7;SoftHSM
+zone0a;KSK;active;date time;2048;7;SoftHSM
+zone0a;KSK;retire;date time;2048;7;SoftHSM
 zone0a;ZSK;active;date time;1024;7;SoftHSM
-zone0a;ZSK;publish;date time;1024;7;SoftHSM
 zone0a;ZSK;retire;date time;1024;7;SoftHSM
 zone0a;ZSK;retire;date time;1024;7;SoftHSM
-zone0b;KSK;ready;waiting for ds-seen;2048;7;SoftHSM
-zone0b;KSK;retire;waiting for ds-gone;2048;7;SoftHSM
-zone0b;KSK;retire;waiting for ds-gone;2048;7;SoftHSM
+zone0b;KSK;active;date time;2048;7;SoftHSM
+zone0b;KSK;retire;date time;2048;7;SoftHSM
 zone0b;ZSK;active;date time;1024;7;SoftHSM
-zone0b;ZSK;publish;date time;1024;7;SoftHSM
 zone0b;ZSK;retire;date time;1024;7;SoftHSM
 zone0b;ZSK;retire;date time;1024;7;SoftHSM
-zone1;CSK;mixed;waiting for ds-seen;2048;7;SoftHSM
-zone1;CSK;retire;waiting for ds-gone;2048;7;SoftHSM
-zone1;CSK;retire;waiting for ds-gone;2048;7;SoftHSM
-zone2a;CSK;mixed;waiting for ds-seen;2048;7;SoftHSM
-zone2a;CSK;retire;waiting for ds-gone;2048;7;SoftHSM
-zone2a;CSK;retire;waiting for ds-gone;2048;7;SoftHSM
-zone2b;CSK;mixed;waiting for ds-seen;2048;7;SoftHSM
-zone2b;CSK;retire;waiting for ds-gone;2048;7;SoftHSM
-zone2b;CSK;retire;waiting for ds-gone;2048;7;SoftHSM
-zone3;CSK;mixed;waiting for ds-seen;1024;8;SoftHSM
-zone3;CSK;mixed;waiting for ds-seen;2048;7;SoftHSM
-zone3;CSK;retire;waiting for ds-gone;1024;8;SoftHSM
-zone3;CSK;retire;waiting for ds-gone;1024;8;SoftHSM
-zone3;CSK;retire;waiting for ds-gone;1024;8;SoftHSM
-zone3;CSK;retire;waiting for ds-gone;1024;8;SoftHSM
-zone3;CSK;retire;waiting for ds-gone;2048;7;SoftHSM
-zone3;CSK;retire;waiting for ds-gone;2048;7;SoftHSM
+zone1;CSK;active;date time;2048;7;SoftHSM
+zone1;CSK;retire;date time;2048;7;SoftHSM
+zone2a;CSK;active;date time;2048;7;SoftHSM
+zone2a;CSK;retire;date time;2048;7;SoftHSM
+zone2b;CSK;active;date time;2048;7;SoftHSM
+zone2b;CSK;retire;date time;2048;7;SoftHSM
+zone3;CSK;active;date time;1024;8;SoftHSM
+zone3;CSK;active;date time;2048;7;SoftHSM
+zone3;CSK;retire;date time;2048;7;SoftHSM

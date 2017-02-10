@@ -1,8 +1,52 @@
+OpenDNSSEC 2.1.0 - TBD
+
+* If listening port for signer is not set in conf file, the default value "15354" is used.
+* Enforce and signconf tasks are now scheduled individually per zone. Resign
+  per policy.
+* OPENDNSSEC-450: Implement support for ECDSA P-256, P-384, GOST. Notice:
+  SoftHSMv1 only supports RSA. SoftHSMv2 can be compiled with support for these.
+* zone delete removes tasks associated with zone from queue.
+* Show help for ods-enforcer-db-setup
+* OPENDNSSEC-778: Double NSEC3PARAM record after resalt.
+* In the kasp file, KSK/ZSK section, the algorithm length must be set now.
+* signer clear <zone> would assert when signconf wasn't read yet.
+* The <Interval> tag had been deprecated, and is now no longer allowed to
+  be specified.
+* OPENDNSSEC-864: ods-signer didn't print help. Also --version and --socket
+  options where not processed.
+* OPENDNSSEC-869: ds-seen command did not give error on badly formatted keytag.
+* OPENDNSSEC-681: After fork() allow child process to pass error messages to
+  parent so they can be printed to the console in case of failed start.
+* OPENDNSSEC-849: Crash on free of part of IXFR structure.
+* OPENDNSSEC-759: Reduce HSM access during ods-signerd start. Daemon should
+  start quicker and earlier available for user input.
+* OPENDNSSEC-479: Transferring zones and sending notifies through a bound socket,
+  using the same interface as listener
+* Key cache is now shared between threads.
+* OPENDNSSEC-858: Don't print "completed in x seconds" to stderr for enforcer
+  commands.
+* Various memory leaks
+* OPENDNSSEC-601: signer and enforcer working dir would not properly fallback to
+  default when not specified.
+* OPENDNSSEC-503: Speed up initial signing and algorithm rollover
+* A bash autocompletion script is included in contrib for ods-enforcer and
+  ods-signer.
+* SUPPORT-208: Strip comment from key export.
+* OPENDNSSEC-552: On key export don't print SHA1 DS by default. (introduced
+  --sha1 option to key export.) Usage of sha1 is deprecated and will be removed
+  from future versions of OpenDNSSEC.
+
+OpenDNSSEC 2.0.1 - 2016-07-21
+
+* Fixed crash and linking issue in ods-migrate.
+* Fixed case where 2.0.0 could not read backup files from 1.4.10.
+* Fixed bug in migration script where key state wasn't transformed properly.
+
 OpenDNSSEC 2.0.0-1
 
 * include db creation scripts in dist tarball needed for migration from 1.4.
 
-OpenDNSSEC 2.0.0
+OpenDNSSEC 2.0.0 - 2016-07-07
 
 * OpenDNSSEC-99: Skip "are you sure" messages. Add --force and -f flag to
   ods-enforcer-db-setup and hsmutil purge

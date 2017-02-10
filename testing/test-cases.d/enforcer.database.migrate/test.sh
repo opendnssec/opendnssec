@@ -46,7 +46,7 @@ echo -n "LINE: ${LINENO} " && ods_enforcer_idle &&
 
 echo -n "LINE: ${LINENO} " && KSK1=`ods-enforcer key list -d -p | grep ods1 | grep KSK |cut -d ";" -f 9` &&
 echo -n "LINE: ${LINENO} " && ZSK1=`ods-enforcer key list -d -p | grep ods1 | grep ZSK |cut -d ";" -f 9` &&
-echo -n "LINE: ${LINENO} " && KSK2=`ods-enforcer key list -d -p | grep ods2 | grep KSK | grep ";1;0;" | cut -d ";" -f 9` &&
+echo -n "LINE: ${LINENO} " && KSK2=`ods-enforcer key list -d -p | grep ods2 | grep KSK | grep ";0;0;" | cut -d ";" -f 9` &&
 echo -n "LINE: ${LINENO} " && ZSK2=`ods-enforcer key list -d -p | grep ods2 | grep ZSK |cut -d ";" -f 9` &&
 echo -n "LINE: ${LINENO} " && KSK3=`ods-enforcer key list -d -p | grep ods2 | grep KSK | grep ";1;1;" | cut -d ";" -f 9` &&
 
@@ -75,7 +75,9 @@ else
 	echo -n "LINE: ${LINENO} " && (cd_to_src && ./convert_mysql_to_sqlite -p test -u test -o $INSTALL_ROOT/var/opendnssec/kasp.db -i test )
 fi &&
 
-echo -n "LINE: ${LINENO} " && ods_ods-control_enforcer_start &&
+echo -n "LINE: ${LINENO} " && ods-migrate &&
+
+echo -n "LINE: ${LINENO} " && ods-enforcerd --set-time "2001-01-01-01:01:01:01" &&
 echo -n "LINE: ${LINENO} " && unset KSK1 &&
 echo -n "LINE: ${LINENO} " && unset ZSK1 &&
 echo -n "LINE: ${LINENO} " && unset KSK2 &&
@@ -87,7 +89,7 @@ echo -n "LINE: ${LINENO} " && ods_enforcer_idle &&
 
 echo -n "LINE: ${LINENO} " && KSK1=`ods-enforcer key list -d -p | grep ods1 | grep KSK |cut -d ";" -f 9` &&
 echo -n "LINE: ${LINENO} " && ZSK1=`ods-enforcer key list -d -p | grep ods1 | grep ZSK |cut -d ";" -f 9` &&
-echo -n "LINE: ${LINENO} " && KSK2=`ods-enforcer key list -d -p | grep ods2 | grep KSK | grep ";1;0;" | cut -d ";" -f 9` &&
+echo -n "LINE: ${LINENO} " && KSK2=`ods-enforcer key list -d -p | grep ods2 | grep KSK | grep ";0;0;" | cut -d ";" -f 9` &&
 echo -n "LINE: ${LINENO} " && ZSK2=`ods-enforcer key list -d -p | grep ods2 | grep ZSK |cut -d ";" -f 9` &&
 echo -n "LINE: ${LINENO} " && KSK3=`ods-enforcer key list -d -p | grep ods2 | grep KSK | grep ";1;1;" | cut -d ";" -f 9` &&
 

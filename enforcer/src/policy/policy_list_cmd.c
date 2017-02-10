@@ -29,7 +29,8 @@
 
 #include "config.h"
 
-#include "daemon/cmdhandler.h"
+#include "cmdhandler.h"
+#include "daemon/enforcercommands.h"
 #include "log.h"
 #include "str.h"
 #include "daemon/engine.h"
@@ -56,19 +57,14 @@ help(int sockfd)
 }
 
 static int
-handles(const char *cmd, ssize_t n)
+run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 {
-	return ods_check_command(cmd, n, policy_list_funcblock()->cmdname)?1:0;
-}
-
-static int
-run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
-	db_connection_t *dbconn)
-{
-	const char *fmt = "%-31s %-48s\n";
-	policy_list_t *pol_list;
-	const policy_t *policy;
-	(void)cmd; (void)n; (void)engine;
+    const char *fmt = "%-31s %-48s\n";
+    policy_list_t *pol_list;
+    const policy_t *policy;
+    db_connection_t* dbconn = getconnectioncontext(context);;
+    engine_type* engine = getglobalcontext(context);
+    (void)cmd;
 
 	if (!(pol_list = policy_list_new_get(dbconn)))
 		return 1;
@@ -84,16 +80,10 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 			policy_description(policy));
 		policy = policy_list_next(pol_list);
 	}
-	policy_list_free(pol_list);
+        policy_list_free(pol_list);
 	return 0;
-}
+    }
 
-static struct cmd_func_block funcblock = {
-	"policy list", &usage, &help, &handles, &run
+struct cmd_func_block policy_list_funcblock = {
+	"policy list", &usage, &help, NULL, &run
 };
-
-struct cmd_func_block*
-policy_list_funcblock(void)
-{
-	return &funcblock;
-}

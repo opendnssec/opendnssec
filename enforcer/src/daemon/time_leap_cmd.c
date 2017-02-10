@@ -26,13 +26,15 @@
  *
  */
 
+#include <getopt.h>
 #include "config.h"
 
 #include "file.h"
 #include "duration.h"
 #include "log.h"
 #include "str.h"
-#include "daemon/cmdhandler.h"
+#include "cmdhandler.h"
+#include "daemon/enforcercommands.h"
 #include "daemon/engine.h"
 #include "clientpipe.h"
 #include "hsmkey/hsm_key_factory.h"
@@ -70,15 +72,9 @@ help(int sockfd)
 }
 
 static int
-handles(const char *cmd, ssize_t n)
+run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 {
-	return ods_check_command(cmd, n, time_leap_funcblock()->cmdname)?1:0;
-}
-
-static int
-run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
-	db_connection_t *dbconn)
-{
+	db_connection_t* dbconn;
 	struct tm strtime_struct;
 	char strtime[64]; /* at least 26 according to docs plus a long integer */
 	char buf[ODS_SE_MAXLINE];
@@ -88,20 +84,47 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	struct tm tm;
 	const int NARGV = MAX_ARGS;
 	const char *argv[MAX_ARGS];
-	int argc, attach, cont;
-	task_type* task = NULL, *newtask;
-	(void)n; (void)dbconn;
+        int taskcount;
+	int argc = 0, attach = 0;
+	int long_index = 0, opt = 0;
+	int processed_enforce;
+	task_type* task = NULL;
+        engine_type* engine = getglobalcontext(context);
 
-	ods_log_debug("[%s] %s command", module_str, time_leap_funcblock()->cmdname);
+	static struct option long_options[] = {
+		{"time", required_argument, 0, 't'},
+		{"attach", no_argument, 0, 'a'},
+		{0, 0, 0, 0}
+	};
+
+	ods_log_debug("[%s] %s command", module_str, time_leap_funcblock.cmdname);
 
 	strncpy(buf, cmd, sizeof(buf));
 	buf[sizeof(buf)-1] = '\0';
+
 	argc = ods_str_explode(buf, NARGV, argv);
-	if (argc > NARGV) {
+	if (argc == -1) {
 		ods_log_error_and_printf(sockfd, module_str, "too many arguments");
 		return -1;
 	}
-	(void)ods_find_arg_and_param(&argc, argv, "time", "t", &time);
+
+	optind = 0;
+	while ((opt = getopt_long(argc, (char* const*)argv, "t:a", long_options, &long_index)) != -1) {
+		switch (opt) {
+			case 't':
+				time = optarg;
+				break;
+			case 'a':
+				attach = 1;
+				break;
+			default:
+				client_printf_err(sockfd, "unknown arguments\n");
+				ods_log_error("[%s] unknown arguments for %s command",
+						module_str, time_leap_funcblock.cmdname);
+				return -1;
+		}
+	}
+
 	if (time) {
 		if (strptime(time, "%Y-%m-%d-%H:%M:%S", &tm)) {
 			tm.tm_isdst = -1;
@@ -115,12 +138,6 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 			return -1;
 		}
 	}
-	attach = ods_find_arg(&argc,argv,"attach","a") != -1;
-
-	if (argc > 2){
-		ods_log_error_and_printf(sockfd, module_str, "unknown arguments");
-		return -1;
-	}
 
 	ods_log_assert(engine);
 	if (!engine->taskq || !engine->taskq->tasks) {
@@ -128,57 +145,67 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 		return 1;
 	}
 
-	/* how many tasks */
+	schedule_info(engine->taskq, &time_leap, NULL, &taskcount);
 	now = time_now();
 	strftime(strtime, sizeof(strtime), "%c", localtime_r(&now, &strtime_struct));
 	client_printf(sockfd, 
 		"There are %i tasks scheduled.\nIt is now       %s (%ld seconds since epoch)\n",
-		(int) schedule_taskcount(engine->taskq), strtime, (long)now);
-	cont = 1;
-	while (cont) {
-		if (! time)
-			time_leap = schedule_time_first(engine->taskq);
-		if (time_leap < 0) break;
-		if (now > time_leap) {
-			time_leap = now;
-		}
+		taskcount, strtime, (long)now);
 
-		set_time_now(time_leap);
+    if (!time) schedule_info(engine->taskq, &time_leap, NULL, NULL);
+    if (time_leap == -1) {
+        client_printf(sockfd, "No tasks in queue. Not able to leap.\n");
+        return 0;
+    }
+
+    if (!attach) {
+        set_time_now(time_leap);
 		strftime(strtime, sizeof(strtime), "%c", localtime_r(&time_leap, &strtime_struct));
-
-		client_printf(sockfd,  "Leaping to time %s (%ld seconds since epoch)\n", 
+		client_printf(sockfd,  "Leaping to time %s (%ld seconds since epoch)\n",
 			(strtime[0]?strtime:"(null)"), (long)time_leap);
 		ods_log_info("Time leap: Leaping to time %s\n", strtime);
 		/* Wake up all workers and let them reevaluate wether their
 		 tasks need to be executed */
 		client_printf(sockfd, "Waking up workers\n");
 		engine_wakeup_workers(engine);
-		if (!attach)
+        return 0;
+    }
+
+    if (!(dbconn = get_database_connection(engine))) {
+        client_printf_err(sockfd, "Failed to open DB connection.\n");
+        client_exit(sockfd, 1);
+        return -1;
+    }
+    /* Keep looping until an enforce task is found, then loop but don't advance time */
+    processed_enforce = 0;
+	while (1) {
+        /*if time is set never advance time but only consume all task <= time*/
+		if (!time) {
+            schedule_info(engine->taskq, &time_leap, NULL, NULL);
+            if (processed_enforce && time_leap > time_now()) break;
+        }
+		if (time_leap == -1) {
+			client_printf(sockfd, "No tasks in queue. Not able to leap.\n");
 			break;
+		}
+
+		set_time_now(time_leap);
+		strftime(strtime, sizeof(strtime), "%c", localtime_r(&time_leap, &strtime_struct));
+		client_printf(sockfd,  "Leaping to time %s (%ld seconds since epoch)\n", 
+			(strtime[0]?strtime:"(null)"), (long)time_leap);
+		ods_log_info("Time leap: Leaping to time %s\n", strtime);
 		if (!(task = schedule_pop_first_task(engine->taskq)))
 			break;
-		client_printf(sockfd, "[timeleap] attaching to job %s\n", task_what2str(task->what));
-		if (strcmp(task_what2str(task->what),  "enforce") == 0)
-			cont = 0;
-		task->dbconn = dbconn;
-		newtask = task_perform(task);
+		if (schedule_task_istype(task,  TASK_TYPE_ENFORCE))
+			processed_enforce = 1;
+		task_perform(engine->taskq, task, dbconn);
 		ods_log_debug("[timeleap] finished working");
-		if (newtask) {
-			newtask->dbconn = NULL;
-			(void) schedule_task(engine->taskq, newtask); /* TODO unchecked error code */
-		}
-		hsm_key_factory_generate_all(engine, dbconn, 0);
 	}
+    db_connection_free(dbconn);
 	return 0;
 }
 
 
-static struct cmd_func_block funcblock = {
-	"time leap", &usage, &help, &handles, &run
+struct cmd_func_block time_leap_funcblock = {
+	"time leap", &usage, &help, NULL, &run
 };
-
-struct cmd_func_block*
-time_leap_funcblock(void)
-{
-	return &funcblock;
-}

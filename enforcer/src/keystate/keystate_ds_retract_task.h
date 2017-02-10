@@ -31,6 +31,6 @@
 #define _KEYSTATE_DS_RETRACT_TASK_H_
 
 task_type *
-keystate_ds_retract_task(engine_type *engine);
+keystate_ds_retract_task(engine_type *engine, char const *owner);
 
 #endif /*_KEYSTATE_DS_RETRACT_TASK_H_*/

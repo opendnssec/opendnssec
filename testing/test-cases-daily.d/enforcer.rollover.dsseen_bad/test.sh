@@ -39,9 +39,8 @@ log_grep ods-enforcer-key-list0_2 stdout 'ods[[:space:]]*ZSK[[:space:]]*ready' &
 ! log_grep ods-enforcer-key-list0_2 stdout 'ods[[:space:]]*KSK[[:space:]]*active' &&
 
 ## Jump forward a couple of hours so the KSK will be ready
-##################  STEP 1: Time = 4hrs ###########################
-ods_enforcer_leap_to 14400 &&
-
+##################  STEP 1: Time = 26hrs ###########################
+ods_enforcer_leap_to 93600 &&
 
 # We should be ready for a ds-submit and ds-seen on ods
 syslog_grep "ods-enforcerd: .*please submit DS with keytag $KSK_KEYTAG for zone ods" &&
@@ -61,7 +60,6 @@ log_this ods-enforcer-key-list1_2 ods-enforcer key list &&
 log_grep ods-enforcer-key-list1_2 stdout 'ods[[:space:]]*KSK[[:space:]]*ready     waiting for ds-seen' &&
 log_grep ods-enforcer-key-list1_2 stdout 'ods[[:space:]]*ZSK[[:space:]]*active' &&
 ! log_grep ods-enforcer-key-list1_2 stdout 'ods[[:space:]]*KSK[[:space:]]*active' &&
-
 ods_stop_enforcer &&
 return 0
 

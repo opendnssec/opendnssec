@@ -101,7 +101,7 @@ tools_input(zone_type* zone)
     ods_log_assert(zone->adinbound);
     ods_log_assert(zone->signconf);
     /* Key Rollover? */
-    status = zone_publish_dnskeys(zone);
+    status = zone_publish_dnskeys(zone, 0);
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] unable to read zone %s: failed to "
             "publish dnskeys (%s)", tools_str, zone->name,
@@ -125,11 +125,11 @@ tools_input(zone_type* zone)
     }
 
     if (zone->stats) {
-        lock_basic_lock(&zone->stats->stats_lock);
+        pthread_mutex_lock(&zone->stats->stats_lock);
         zone->stats->sort_done = 0;
         zone->stats->sort_count = 0;
         zone->stats->sort_time = 0;
-        lock_basic_unlock(&zone->stats->stats_lock);
+        pthread_mutex_unlock(&zone->stats->stats_lock);
     }
     /* Input Adapter */
     start = time(NULL);
@@ -149,11 +149,11 @@ tools_input(zone_type* zone)
     end = time(NULL);
     if ((status == ODS_STATUS_OK || status == ODS_STATUS_UNCHANGED)
         && zone->stats) {
-        lock_basic_lock(&zone->stats->stats_lock);
+        pthread_mutex_lock(&zone->stats->stats_lock);
         zone->stats->start_time = start;
         zone->stats->sort_time = (end-start);
         zone->stats->sort_done = 1;
-        lock_basic_unlock(&zone->stats->stats_lock);
+        pthread_mutex_unlock(&zone->stats->stats_lock);
     }
     return status;
 }
@@ -190,19 +190,19 @@ tools_output(zone_type* zone, engine_type* engine)
     ods_log_assert(zone->adoutbound);
     /* prepare */
     if (zone->stats) {
-        lock_basic_lock(&zone->stats->stats_lock);
+        pthread_mutex_lock(&zone->stats->stats_lock);
         if (zone->stats->sort_done == 0 &&
             (zone->stats->sig_count <= zone->stats->sig_soa_count)) {
             ods_log_verbose("[%s] skip write zone %s serial %u (zone not "
                 "changed)", tools_str, zone->name?zone->name:"(null)",
                 zone->db->intserial);
             stats_clear(zone->stats);
-            lock_basic_unlock(&zone->stats->stats_lock);
+            pthread_mutex_unlock(&zone->stats->stats_lock);
             zone->db->intserial =
                 zone->db->outserial;
             return ODS_STATUS_OK;
         }
-        lock_basic_unlock(&zone->stats->stats_lock);
+        pthread_mutex_unlock(&zone->stats->stats_lock);
     }
     /* Output Adapter */
     status = adapter_write((void*)zone);
@@ -214,9 +214,9 @@ tools_output(zone_type* zone, engine_type* engine)
     zone->db->outserial = zone->db->intserial;
     zone->db->is_initialized = 1;
     zone->db->have_serial = 1;
-    lock_basic_lock(&zone->ixfr->ixfr_lock);
-    ixfr_purge(zone->ixfr);
-    lock_basic_unlock(&zone->ixfr->ixfr_lock);
+    pthread_mutex_lock(&zone->ixfr->ixfr_lock);
+    ixfr_purge(zone->ixfr, zone->name);
+    pthread_mutex_unlock(&zone->ixfr->ixfr_lock);
     /* kick the nameserver */
     if (zone->notify_ns) {
 	int pid_status;
@@ -262,14 +262,14 @@ tools_output(zone_type* zone, engine_type* engine)
     }
     /* log stats */
     if (zone->stats) {
-        lock_basic_lock(&zone->stats->stats_lock);
+        pthread_mutex_lock(&zone->stats->stats_lock);
         zone->stats->end_time = time(NULL);
         ods_log_debug("[%s] log stats for zone %s serial %u", tools_str,
             zone->name?zone->name:"(null)", (unsigned) zone->db->outserial);
         stats_log(zone->stats, zone->name, zone->db->outserial,
             zone->signconf->nsec_type);
         stats_clear(zone->stats);
-        lock_basic_unlock(&zone->stats->stats_lock);
+        pthread_mutex_unlock(&zone->stats->stats_lock);
     }
     if (engine->dnshandler) {
         ods_log_debug("[%s] forward a notify", tools_str);

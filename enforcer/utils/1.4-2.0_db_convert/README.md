@@ -20,6 +20,11 @@ General preparation
    continuing.
  * Also prevent any nameserver from receiving updates from OpenDNSSEC until
    you are sure the migration was successful.
+ * It is discouraged to perform the migration during a rollover. The migration
+   script tries to deal with it as gracefull as possible though many corner
+   cased exist. Generally it will not break the zone but unexpected behaviour
+   may occur. If you do, and see unexpected state, the best way to deal with it
+   is to start a rollover for the offending keytype.
 
 Conversion Sqlite
 -----------------

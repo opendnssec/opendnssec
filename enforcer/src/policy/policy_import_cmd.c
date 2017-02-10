@@ -26,8 +26,10 @@
  *
  */
 
+#include <getopt.h>
 #include "daemon/engine.h"
-#include "daemon/cmdhandler.h"
+#include "cmdhandler.h"
+#include "daemon/enforcercommands.h"
 #include "log.h"
 #include "str.h"
 #include "clientpipe.h"
@@ -53,6 +55,7 @@ usage(int sockfd)
 {
     client_printf(sockfd,
         "policy import\n"
+        "	[--remove-missing-policies]		aka -r\n"
     );
 }
 
@@ -60,41 +63,72 @@ static void
 help(int sockfd)
 {
     client_printf(sockfd,
-        "Import policies from kasp.xml into the enforcer database.\n\n"
+        "Import policies from kasp.xml into the enforcer database.\n"
+        "\nOptions:\n"
+        "remove-missing-policies	Remove any policies from database "
+            "that do not exist in the KASP file\n\n"
     );
 }
 
-static int
-handles(const char *cmd, ssize_t n)
-{
-    return ods_check_command(cmd, n, policy_import_funcblock()->cmdname) ? 1 : 0;
-}
 
 static int
-run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
-    db_connection_t *dbconn)
+run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 {
-    (void)cmd; (void)n;
+    #define NARGV 3
+    db_connection_t* dbconn = getconnectioncontext(context);;
+    engine_type* engine = getglobalcontext(context);
 
-    if (!engine) {
-        return 1;
-    }
-    if (!engine->config) {
-        return 1;
-    }
-    if (!engine->config->policy_filename) {
-        return 1;
-    }
-    if (!dbconn) {
+    int remove_missing_policies = 0, argc = 0;
+    int long_index = 0, opt = 0;
+    char buf[ODS_SE_MAXLINE];
+    char const *argv[NARGV];
+
+    static struct option long_options[] = {
+        {"remove-missing-policies", no_argument, 0, 'r'},
+        {0, 0, 0, 0}
+    };
+
+    if (!engine || !engine->config || !engine->config->policy_filename
+        || !dbconn)
+    {
         return 1;
     }
 
-    ods_log_debug("[%s] %s command", module_str, policy_import_funcblock()->cmdname);
+    ods_log_debug("[%s] %s command", module_str, policy_import_funcblock.cmdname);
 
-    switch (policy_import(sockfd, engine, dbconn, 0)) {
+    if (!cmd) return -1;
+
+    strncpy(buf, cmd, sizeof(buf));
+    buf[sizeof(buf)-1] = '\0';
+
+    /* separate the arguments*/
+    argc = ods_str_explode(buf, NARGV, argv);
+    if (argc == -1) {
+        ods_log_error("[%s] too many arguments for %s command",
+                        module_str, policy_import_funcblock.cmdname);
+        client_printf_err(sockfd,"too many arguments\n");
+        return -1;
+    }
+
+    optind = 0;
+    while ((opt = getopt_long(argc, (char* const*)argv, "r", long_options, &long_index)) != -1 ) {
+        switch (opt) {
+            case 'r':
+                remove_missing_policies = 1;
+                break;
+            default:
+                client_printf_err(sockfd, "unknown arguments\n");
+                ods_log_error("[%s] unknown arguments for %s command",
+                                module_str, policy_import_funcblock.cmdname);
+                return -1;
+        }
+    }
+
+    switch (policy_import(sockfd, engine, dbconn, remove_missing_policies)) {
     case POLICY_IMPORT_OK:
-        (void)flush_enforce_task(engine, 0);
-        (void)flush_resalt_task(engine);
+        /* only zones in policy, and force! */
+        enforce_task_flush_all(engine, dbconn);
+        (void)flush_resalt_task_all(engine, dbconn);
         return 0;
         break;
 
@@ -114,12 +148,6 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     return 1;
 }
 
-static struct cmd_func_block funcblock = {
-    "policy import", &usage, &help, &handles, &run
+struct cmd_func_block policy_import_funcblock = {
+    "policy import", &usage, &help, NULL, &run
 };
-
-struct cmd_func_block*
-policy_import_funcblock(void)
-{
-    return &funcblock;
-}

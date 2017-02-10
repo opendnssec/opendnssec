@@ -6,19 +6,12 @@ if [ -n "$HAVE_MYSQL" ]; then
 	ods_setup_conf conf.xml conf-mysql.xml
 fi &&
 
-if [ "`uname -n`" = "ubuntu10-ods01" ]; then
-	# OPENDNSSEC-755
-	# This test will fail on old, no longer in LTS Ubuntu 10 machines
-	# due to historic version of libbotan (1.8.2).
-	# see test general.basic.disconnectedksk as well.
-	return 0
-fi
-
+ods_softhsm_init_token 0 "OpenDNSSEC" "1234" "1234" &&
 ods_softhsm_init_token 1 "OpenDNSSEC2" "1111" "1111" &&
 ods_softhsm_init_token 2 "OpenDNSSEC3" "2222" "2222" &&
 ods_softhsm_init_token 3 "OpenDNSSEC4" "3333" "3333" &&
 
-ods_reset_env &&
+ods_setup_env &&
 
 ods_start_ods-control 360 &&
 

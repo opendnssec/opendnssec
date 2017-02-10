@@ -102,7 +102,14 @@ void ods_fclose(FILE* fd);
  *
  */
 ssize_t ods_writen(int fd, const void* vptr, size_t n);
-	
+
+/**
+ * Write string to file descriptor followed by newline
+ * \return bytes written, -1 on failure.
+ *
+ */
+ssize_t ods_writeln(int fd, char const *str);
+
 /**
  * Combined error logging and writing to file descriptor.
  * \param[in] fd file descriptor

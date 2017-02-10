@@ -153,7 +153,6 @@ namedb_create(void* zone)
     db->altserial = 0;
     db->is_initialized = 0;
     db->have_serial = 0;
-    db->is_processed = 0;
     db->serial_updated = 0;
     db->force_serial = 0;
     return db;
@@ -1000,9 +999,11 @@ namedb_wipe_denial(namedb_type* db)
             for (i=0; i < denial->rrset->rr_count; i++) {
                 if (denial->rrset->rrs[i].exists) {
                     /* ixfr -RR */
-                    lock_basic_lock(&zone->ixfr->ixfr_lock);
-                    ixfr_del_rr(zone->ixfr, denial->rrset->rrs[i].rr);
-                    lock_basic_unlock(&zone->ixfr->ixfr_lock);
+                    pthread_mutex_lock(&zone->ixfr->ixfr_lock);
+                    if (zone->db->is_initialized) {
+                        ixfr_del_rr(zone->ixfr, denial->rrset->rrs[i].rr);
+                    }
+                    pthread_mutex_unlock(&zone->ixfr->ixfr_lock);
                 }
                 denial->rrset->rrs[i].exists = 0;
                 rrset_del_rr(denial->rrset, i);

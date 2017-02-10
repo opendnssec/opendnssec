@@ -30,6 +30,16 @@
 #include "hsm_key.h"
 #include "db_error.h"
 
+char const *
+hsm_key_to_backup_state(hsm_key_t const *hsm_key) {
+    int i;
+    for (i = 0; hsm_key_enum_set_backup[i].text; i++) {
+        if (hsm_key_enum_set_backup[i].value == hsm_key_backup(hsm_key))
+            return hsm_key_enum_set_backup[i].text;
+    }
+    return NULL;
+}
+
 hsm_key_list_t* hsm_key_list_new_get_by_policy_key(const policy_key_t *pkey)
 {
     hsm_key_list_t* hkey_list = NULL;

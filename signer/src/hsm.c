@@ -78,7 +78,7 @@ keylookup(hsm_ctx_t* ctx, const char* locator)
  *
  */
 ods_status
-lhsm_get_key(hsm_ctx_t* ctx, ldns_rdf* owner, key_type* key_id)
+lhsm_get_key(hsm_ctx_t* ctx, ldns_rdf* owner, key_type* key_id, int skip_hsm_access)
 {
     char *error = NULL;
     int retries = 0;
@@ -100,20 +100,13 @@ llibhsm_key_start:
             key_id->params->flags = key_id->flags;
         } else {
             /* could not create params */
-            error = hsm_get_error(ctx);
-            if (error) {
-                ods_log_error("[%s] %s", hsm_str, error);
-                free((void*)error);
-            } else if (!retries) {
-                lhsm_clear_key_cache(key_id);
-                retries++;
-                goto llibhsm_key_start;
-           }
             ods_log_error("[%s] unable to get key: create params for key %s "
                 "failed", hsm_str, key_id->locator?key_id->locator:"(null)");
             return ODS_STATUS_ERR;
         }
     }
+    if (skip_hsm_access) return ODS_STATUS_OK;
+
     /* get dnskey */
     if (!key_id->dnskey) {
         key_id->dnskey = hsm_get_dnskey(ctx, keylookup(ctx, key_id->locator), key_id->params);

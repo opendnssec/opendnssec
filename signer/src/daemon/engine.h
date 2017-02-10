@@ -38,33 +38,21 @@
 typedef struct engine_struct engine_type;
 
 #include "daemon/cfg.h"
-#include "daemon/cmdhandler.h"
+#include "cmdhandler.h"
 #include "daemon/dnshandler.h"
 #include "daemon/xfrhandler.h"
-#include "daemon/worker.h"
-#include "scheduler/fifoq.h"
+#include "scheduler/worker.h"
 #include "scheduler/schedule.h"
 #include "status.h"
 #include "locks.h"
 #include "signer/zonelist.h"
 #include "wire/edns.h"
 
-/**
- * Engine stuff.
- *
- */
 struct engine_struct {
     engineconfig_type* config;
     worker_type** workers;
-    worker_type** drudgers;
-    zonelist_type* zonelist;
     schedule_type* taskq;
-    fifoq_type* signq;
     cmdhandler_type* cmdhandler;
-    dnshandler_type* dnshandler;
-    xfrhandler_type* xfrhandler;
-    edns_data_type edns;
-    int cmdhandler_done;
 
     pid_t pid;
     uid_t uid;
@@ -74,9 +62,14 @@ struct engine_struct {
     int need_to_exit;
     int need_to_reload;
 
-    sig_atomic_t signal;
-    cond_basic_type signal_cond;
-    lock_basic_type signal_lock;
+    /* Main thread blocks on this condition when there is nothing to do */
+    pthread_cond_t signal_cond;
+    pthread_mutex_t signal_lock;
+
+    zonelist_type* zonelist;
+    dnshandler_type* dnshandler;
+    xfrhandler_type* xfrhandler;
+    edns_data_type edns;
 };
 
 /**
@@ -90,21 +83,7 @@ struct engine_struct {
  *
  */
 int engine_start(const char* cfgfile, int cmdline_verbosity,
-    int daemonize, int info, int single_run);
-
-/**
- * Start drudgers.
- * \param[in] engine engine
- *
- */
-void engine_start_drudgers(engine_type* engine);
-
-/**
- * Stop drudgers.
- * \param[in] engine engine
- *
- */
-void engine_stop_drudgers(engine_type* engine);
+    int daemonize, int info);
 
 /**
  * Wake up workers.

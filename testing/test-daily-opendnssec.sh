@@ -13,6 +13,9 @@ INTERRUPT_TEST=ods_interrupt_test
 RETRY_TEST=0
 test_ok=0
 (
+	# occasionaly first test complains about enforcer running
+	killall ods-enforcerd 
+
 	ods_find_softhsm_module &&
 	run_tests test-cases-daily.d
 ) &&

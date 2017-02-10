@@ -88,7 +88,7 @@ zonelist_create()
         return NULL;
     }
     zlist->last_modified = 0;
-    lock_basic_init(&zlist->zl_lock);
+    pthread_mutex_init(&zlist->zl_lock, NULL);
     return zlist;
 }
 
@@ -234,13 +234,11 @@ zonelist_add_zone(zonelist_type* zlist, zone_type* zone)
  * Delete zone.
  *
  */
-zone_type*
+void
 zonelist_del_zone(zonelist_type* zlist, zone_type* zone)
 {
     ldns_rbnode_t* old_node = LDNS_RBTREE_NULL;
-    if (!zone) {
-        return NULL;
-    }
+    assert(zone);
     if (!zlist || !zlist->zones) {
         goto zone_not_present;
     }
@@ -249,12 +247,11 @@ zonelist_del_zone(zonelist_type* zlist, zone_type* zone)
         goto zone_not_present;
     }
     free((void*) old_node);
-    return zone;
+    return;
 
 zone_not_present:
     ods_log_warning("[%s] unable to delete zone %s: not present", zl_str,
         zone->name);
-    return zone;
 }
 
 
@@ -443,7 +440,7 @@ zonelist_cleanup(zonelist_type* zl)
         ldns_rbtree_free(zl->zones);
         zl->zones = NULL;
     }
-    lock_basic_destroy(&zl->zl_lock);
+    pthread_mutex_destroy(&zl->zl_lock);
     free(zl);
 }
 
@@ -463,6 +460,6 @@ zonelist_free(zonelist_type* zl)
         ldns_rbtree_free(zl->zones);
         zl->zones = NULL;
     }
-    lock_basic_destroy(&zl->zl_lock);
+    pthread_mutex_destroy(&zl->zl_lock);
     free(zl);
 }

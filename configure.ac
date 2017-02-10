@@ -173,32 +173,53 @@ AC_ARG_ENABLE(signer,
 		[Disable signer build (default enabled)]),
 		[enable_signer="${enableval}"],
 		[enable_signer="yes"])
-AH_BOTTOM([
-	/* define before includes as it specifies what standard to use. */
-	#if (defined(HAVE_PSELECT) && !defined (HAVE_PSELECT_PROTO)) \
-		|| !defined (HAVE_CTIME_R_PROTO) \
-		|| defined (STRPTIME_NEEDS_DEFINES)
-	#  ifndef _BSD_SOURCE
-	#    define _BSD_SOURCE 1
-	#  endif
-	#  ifndef __EXTENSIONS__
-	#    define __EXTENSIONS__ 1
-	#  endif
-	#  if !defined(_STDC_C99) && !defined(__cplusplus)
-	#    define _STDC_C99 1
-	#  endif
-	#  ifndef _ALL_SOURCE
-	#    define _ALL_SOURCE 1
-	#  endif
-	#endif
-])
 AM_CONDITIONAL([ENABLE_SIGNER], [test "${enable_signer}" = "yes"])
+
+INSTALLATIONCOND=""
+AC_ARG_ENABLE(installation-user,
+	AC_HELP_STRING([--enable-installation-user],
+		[Install for usage by specific user (default=disabled)]),
+		[enable_installationuser=$enableval],
+		[enable_installationuser="no"])
+AC_ARG_ENABLE(installation-group,
+	AC_HELP_STRING([--enable-installation-group],
+		[Install for usage by specific group (default=disabled)]),
+		[enable_installationgroup=$enableval],
+		[enable_installationgroup="no"])
+if test "x${enable_installationuser}" != "xno"; then
+	INSTALLATIONUSER="${enable_installationuser}"
+	INSTALLATIONUSERARG="-o${enable_installationuser}"
+	INSTALLATIONCOND="user"
+else
+	INSTALLATIONUSER=""
+	INSTALLATIONUSERARG=""
+fi
+if test "x${enable_installationgroup}" != "xno"; then
+	INSTALLATIONGROUP="${enable_installationgroup}"
+	INSTALLATIONGROUPARG="-g${enable_installationgroup}"
+	if test "x${enable_installationuser}" != "xno"; then
+		INSTALLATIONCOND="both"
+	else
+		INSTALLATIONCOND="group"
+	fi
+else
+	INSTALLATIONGROUP=""
+	INSTALLATIONGROUPARG=""
+fi
+AC_SUBST([INSTALLATIONGROUP])
+AC_SUBST([INSTALLATIONGROUPARG])
+AC_SUBST([INSTALLATIONUSER])
+AC_SUBST([INSTALLATIONUSERARG])
+AC_SUBST([INSTALLATIONCOND])
 
 # doxygen
 DX_PDF_FEATURE(OFF)
 DX_PS_FEATURE(OFF)
 DX_INIT_DOXYGEN(${PACKAGE_NAME}, [Doxyfile], [doxygen-doc])
 
+AC_CHECK_FUNC(backtrace, [AC_DEFINE([HAVE_BACKTRACE], [1], [Define if backtrace supported])])
+AC_CHECK_LIB(backtrace, backtrace_full, [AC_DEFINE([HAVE_BACKTRACE_FULL], [1], [Define if backtrace_full supported]) LIBS="$LIBS -lbacktrace"])
+AC_CHECK_LIB(unwind, unw_backtrace, [AC_DEFINE([HAVE_LIBUNWIND], [1], [Define if libunwind supported]) LIBS="$LIBS -lunwind -lunwind-x86_64"])
 
 AC_CONFIG_HEADER([common/config.h])
 
@@ -218,8 +239,10 @@ AC_CONFIG_FILES([
 	enforcer/man/Makefile
 	enforcer/src/db/test/Makefile
 	enforcer/man/ods-enforcer.8
+	enforcer/man/ods-enforcer-db-setup.8
 	enforcer/man/ods-enforcerd.8
-	enforcer/man/ods-ksmutil.1
+	enforcer/src/utils/Makefile
+	enforcer/src/utils/ods-kaspcheck.1
 	libhsm/Makefile
 	libhsm/src/Makefile
 	libhsm/src/bin/Makefile

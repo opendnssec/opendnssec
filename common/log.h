@@ -67,6 +67,7 @@ void ods_log_init(const char *program_name, int use_syslog, const char *target_n
  * 
  */
 int ods_log_verbosity(void);
+void ods_log_setverbosity(int verbosity);
 
 /**
  * Close logging.
@@ -80,7 +81,7 @@ void ods_log_close(void);
  * \return int facility
  *
  */
-int ods_log_get_facility(const char* facility);
+int ods_log_get_facility(const char* facility, int* error);
 
 /**
  * Get the log level.

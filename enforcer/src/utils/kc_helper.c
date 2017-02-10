@@ -405,28 +405,6 @@ int check_time_def_from_xpath(xmlXPathContextPtr xpath_ctx, const xmlChar *time_
 	return status;
 }
 
-int check_interval(xmlXPathContextPtr xpath_ctx,
-	const xmlChar *interval_xexpr, const char *filename)
-{
-	char *temp_char;
-	xmlXPathObjectPtr xpath_obj;
-	xpath_obj = xmlXPathEvalExpression(interval_xexpr, xpath_ctx);
-	
-	if(!xpath_obj) {
-		dual_log("ERROR: unable to evaluate xpath expression: %s", interval_xexpr);
-		return 1;
-	}
-	temp_char = (char*) xmlXPathCastToString(xpath_obj);
-	xmlXPathFreeObject(xpath_obj);
-	if ( strlen(temp_char) != 0) {
-		dual_log("WARNING: Deprecated tag %s found in %s.", interval_xexpr, filename);
-		return 0;
-	}
-	return 0;
-}
-
-
-
 int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, int repo_count, const char *kasp) {
 	int status = 0;
 	int i = 0;
@@ -450,6 +428,7 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 	int nsec = 0;
 	int resalt = 0;
 	int hash_algo = 0;
+        int find_alg = 0;
 	
 	enum {KSK = 1, ZSK, CSK};
 	struct key {
@@ -749,6 +728,12 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 				curkey->life, policy_name, ttl, maxzone_ttl);
 			status++;
 		}
+		if ((curkey->type & ZSK) && defalt > curkey->life) {
+                        dual_log("WARNING: ZSK/Lifetime (%d seconds) for policy '%s' "
+                                 "is less than Validity/Default (%d seconds), this might "
+                                 "be a configuration error.",
+                                curkey->life, policy_name, defalt);
+                }
 	}
 	/* For all policies, check that the "Re-sign" interval is less 
 	 * than the "Refresh" interval. */
@@ -936,15 +921,21 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 	/* O(n^2). But this is probably a small set */
 	for (curkey = firstkey; curkey; curkey = curkey->next) {
 		if (!(curkey->type & KSK)) continue;
+		find_alg = 0;
 		for (tmpkey = firstkey; tmpkey; tmpkey = tmpkey->next) {
 			if (!(tmpkey->type & ZSK)) continue;
 			if (tmpkey->algo != curkey->algo) continue;
+			find_alg = 1;
 			/* Warn if for any zone, the KSK lifetime is less than the ZSK lifetime. */
 			if (curkey->life < tmpkey->life) {
 				dual_log("WARNING: KSK minimum lifetime (%d seconds) is less than "
 						"ZSK minimum lifetime (%d seconds) for %s Policy in %s",
 						curkey->life, tmpkey->life, policy_name, kasp);
 			}
+		}
+		if (!find_alg) {
+			dual_log("ERROR: ZSK with algorithm %i not found, algorithm mismatch between ZSK and KSK", curkey->algo);
+			status++;
 		}
 	}
 
@@ -963,9 +954,9 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 				jitter, denial, policy_name, kasp);
 		status++;
 	}
-	while (curkey) {
-		tmpkey = curkey;
-		curkey = curkey->next;
+	while (firstkey) {
+		tmpkey = firstkey;
+		firstkey = firstkey->next;
 		StrFree(tmpkey->repo);
 		free(tmpkey);
 	}
@@ -1581,14 +1572,8 @@ int check_conf(const char *conf, char **kasp, char **zonelist,
 		}*/
 	}
 
-	/* Warn if Interval is M or Y */
-	status += check_time_def_from_xpath(xpath_ctx, (xmlChar *)"//Configuration/Enforcer/Interval", "Configuration", "Enforcer/Interval", conf);
-
 	/* Warn if RolloverNotification is M or Y */
 	status += check_time_def_from_xpath(xpath_ctx, (xmlChar *)"//Configuration/Enforcer/RolloverNotification", "Configuration", "Enforcer/RolloverNotification", conf);
-
-	status += check_interval(xpath_ctx, 
-		(xmlChar *)"//Configuration/Enforcer/Interval", conf);
 
 	/* Check DelegationSignerSubmitCommand exists (if set) */
 	temp_status = check_file_from_xpath(xpath_ctx, "DelegationSignerSubmitCommand",
@@ -1630,7 +1615,7 @@ int check_conf(const char *conf, char **kasp, char **zonelist,
     /* Check signer workdirectory is not as same as the one of enforcer*/
     xexpr = (xmlChar *)"//Configuration/Signer/WorkingDirectory";
     xpath_obj = xmlXPathEvalExpression(xexpr, xpath_ctx);
-    if (NULL == xpath_obj) {
+    if (NULL == xpath_obj || xpath_obj->nodesetval->nodeNr == 0) {
         signer_dir = (char*) OPENDNSSEC_STATE_DIR "/signer";
         signer_dir_default = 1;
     }
@@ -1640,7 +1625,7 @@ int check_conf(const char *conf, char **kasp, char **zonelist,
     }
     xexpr = (xmlChar *)"//Configuration/Enforcer/WorkingDirectory";
     xpath_obj = xmlXPathEvalExpression(xexpr, xpath_ctx);
-    if (NULL == xpath_obj) {
+    if (NULL == xpath_obj || xpath_obj->nodesetval->nodeNr == 0) {
         enforcer_dir = (char*) OPENDNSSEC_STATE_DIR "/enforcer";
         enforcer_dir_default = 1;
     }

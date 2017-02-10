@@ -15,6 +15,7 @@
 		</Validity>
 		<Jitter>PT2S</Jitter>
 		<InceptionOffset>PT1S</InceptionOffset>
+		<MaxZoneTTL>PT0S</MaxZoneTTL>
 	</Signatures>
 	<Denial>
 		<NSEC/>
@@ -79,6 +80,7 @@
 		</Validity>
 		<Jitter>PT2M</Jitter>
 		<InceptionOffset>PT1M</InceptionOffset>
+		<MaxZoneTTL>PT0S</MaxZoneTTL>
 	</Signatures>
 	<Denial>
 		<NSEC3>
@@ -145,6 +147,7 @@
 		</Validity>
 		<Jitter>PT2M</Jitter>
 		<InceptionOffset>PT1M</InceptionOffset>
+		<MaxZoneTTL>PT0S</MaxZoneTTL>
 	</Signatures>
 	<Denial>
 		<NSEC3>
@@ -172,7 +175,7 @@
 		</KSK>
 		<!-- Parameters for ZSK only -->
 		<ZSK>
-			<Algorithm length="2048">8</Algorithm>
+			<Algorithm length="2048">7</Algorithm>
 			<Lifetime>PT15H</Lifetime>
 			<!-- @TODO@ Repository should be configured -->
 			<Repository>SoftHSM</Repository>
@@ -211,6 +214,7 @@
 		</Validity>
 		<Jitter>PT2M</Jitter>
 		<InceptionOffset>PT1M</InceptionOffset>
+		<MaxZoneTTL>PT0S</MaxZoneTTL>
 	</Signatures>
 	<Denial>
 		<NSEC3>
@@ -277,6 +281,7 @@
 		</Validity>
 		<Jitter>PT2M</Jitter>
 		<InceptionOffset>PT1M</InceptionOffset>
+		<MaxZoneTTL>PT0S</MaxZoneTTL>
 	</Signatures>
 	<Denial>
 		<NSEC3>
@@ -342,6 +347,7 @@
 		</Validity>
 		<Jitter>PT2M</Jitter>
 		<InceptionOffset>PT1M</InceptionOffset>
+		<MaxZoneTTL>PT0S</MaxZoneTTL>
 	</Signatures>
 	<Denial>
 		<NSEC3>
@@ -362,14 +368,14 @@
 		<Purge>P3D</Purge>
 		<!-- Parameters for KSK only -->
 		<KSK>
-			<Algorithm length="1024">7</Algorithm>
+			<Algorithm length="2048">7</Algorithm>
 			<Lifetime>PT45H</Lifetime>
 			<!-- @TODO@ Repository should be configured -->
 			<Repository>SoftHSM</Repository>
 		</KSK>
 		<!-- Parameters for ZSK only -->
 		<ZSK>
-			<Algorithm length="2048">8</Algorithm>
+			<Algorithm length="2048">7</Algorithm>
 			<Lifetime>PT25H</Lifetime>
 			<!-- @TODO@ Repository should be configured -->
 			<Repository>SoftHSM</Repository>

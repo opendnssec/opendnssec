@@ -462,18 +462,12 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                                 xmlFree(xml_text);
                                 xml_text = NULL;
                             }
-                            if (check_if_updated) {
-                                update_this = 0;
-                                if (policy_denial_ttl(policy) != duration2time(duration)) {
-                                    *updated = 1;
-                                    update_this = 1;
-                                }
-                            }
-                            if (update_this) {
+                            if (policy_denial_ttl(policy) != duration2time(duration)) {
                                 if (policy_set_denial_ttl(policy, duration2time(duration))) {
                                     duration_cleanup(duration);
                                     return DB_ERROR_UNKNOWN;
                                 }
+                                if (check_if_updated) *updated = 1;
                             }
                             duration_cleanup(duration);
                             duration = NULL;
@@ -1167,17 +1161,13 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
     }
     if (!signatures_max_zone_ttl) {
         ods_log_deeebug("[policy_*_from_xml] - signatures max zone ttl");
-        if (check_if_updated) {
-            update_this = 0;
-            if (policy_signatures_max_zone_ttl(policy)) {
-                *updated = 1;
-                update_this = 1;
-            }
-        }
-        if (update_this) {
-            if (policy_set_signatures_max_zone_ttl(policy, 0)) {
+
+        if (policy_signatures_max_zone_ttl(policy) != 86400)
+        {
+            if (policy_set_signatures_max_zone_ttl(policy, 86400)) {
                 return DB_ERROR_UNKNOWN;
             }
+            if (check_if_updated) *updated = 1;
         }
     }
     if (!keys_purge) {
@@ -1197,17 +1187,16 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
     }
     if (!denial_ttl) {
         ods_log_deeebug("[policy_*_from_xml] - denial ttl");
-        if (check_if_updated) {
-            update_this = 0;
-            if (policy_denial_ttl(policy)) {
-                *updated = 1;
-                update_this = 1;
-            }
+        update_this = 0;
+        if (policy_denial_ttl(policy)) {
+            /* it was not mentioned in kasp. set it to 0 */
+            update_this = 1;
         }
         if (update_this) {
             if (policy_set_denial_ttl(policy, 0)) {
                 return DB_ERROR_UNKNOWN;
             }
+            if (check_if_updated) *updated = 1;
         }
     }
     /* Check if passtrough has toggled */

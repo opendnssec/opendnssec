@@ -15,6 +15,7 @@
 		</Validity>
 		<Jitter>PT2S</Jitter>
 		<InceptionOffset>PT1S</InceptionOffset>
+                <MaxZoneTTL>PT0S</MaxZoneTTL>
 	</Signatures>
 	<Denial>
 		<NSEC/>
@@ -45,7 +46,7 @@
 	</Keys>
 	
 	<Zone>
-		<PropagationDelay>PT0S</PropagationDelay>
+		<PropagationDelay>PT10S</PropagationDelay>
 		<SOA>
 			<TTL>PT0M</TTL>
 			<Minimum>PT0M</Minimum>

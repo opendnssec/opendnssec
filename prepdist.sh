@@ -15,5 +15,5 @@ cd build &&
 ../configure --prefix=${PREFIX} \
 	--with-database-backend=sqlite3 \
 	--with-dbname=opendnssec-release-test \
-	--with-pkcs11-softhsm=/usr/local/lib/softhsm/libsofthsm.so \
+	--with-pkcs11-softhsm=/usr/local/lib/softhsm/libsofthsm2.so \
 	$@

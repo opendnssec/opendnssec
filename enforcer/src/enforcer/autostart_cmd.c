@@ -32,6 +32,7 @@
 #include "daemon/engine.h"
 #include "enforcer/enforce_task.h"
 #include "policy/policy_resalt_task.h"
+#include "duration.h"
 #include "status.h"
 #include "log.h"
 #include "hsmkey/hsm_key_factory.h"
@@ -44,17 +45,20 @@ void
 autostart(engine_type* engine)
 {
 	ods_status status;
+	db_connection_t* dbconn;
 
 	ods_log_debug("[%s] autostart", module_str);
+	dbconn = get_database_connection(engine);
 
 	schedule_purge(engine->taskq); /* Remove old tasks in queue */
 
 	hsm_key_factory_schedule_generate_all(engine, 0);
-	status = schedule_task(engine->taskq, policy_resalt_task(engine));
+	status = flush_resalt_task_all(engine, dbconn);
+	
 	if (status != ODS_STATUS_OK)
 		ods_log_crit("[%s] failed to create resalt task", module_str);
-	
-	status = schedule_task(engine->taskq, enforce_task(engine, 1));
-    if (status != ODS_STATUS_OK)
-        ods_fatal_exit("[%s] failed to create enforce task", module_str);
+
+	enforce_task_flush_all(engine, dbconn);
+	db_connection_free(dbconn);
+
 }

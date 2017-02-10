@@ -8,9 +8,14 @@ if [ -n "$HAVE_MYSQL" ]; then
 	ods_setup_conf conf.xml conf-mysql.xml
 fi &&
 
-ods_reset_env "1" "ABCDEFGHIJKLMNOPQRSTVWXYZ12345" "4321" "4321" &&
+ods_softhsm_init_token 0 "OpenDNSSEC" "1234" "1234" &&
+ods_softhsm_init_token 1 "ABCDEFGHIJKLMNOPQRSTVWXYZ12345" "4321" "4321" &&
 
-ods_start_ods-control &&
+
+
+ods_setup_env &&
+
+ods_start_ods-control 360 &&
 
 syslog_waitfor 60 'ods-signerd: .*\[STATS\] ods' &&
 test -f "$INSTALL_ROOT/var/opendnssec/signed/ods" &&

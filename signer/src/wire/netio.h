@@ -129,6 +129,7 @@ struct netio_handler_struct {
      * The event handler SHOULD NOT block.
      */
     netio_event_handler_type event_handler;
+    int free_handler;
 };
 
 /**
@@ -137,7 +138,6 @@ struct netio_handler_struct {
  */
 struct netio_struct {
     netio_handler_list_type* handlers;
-    netio_handler_list_type* deallocated;
     /*
      * Cached value of the current time.  The cached value is
      * cleared at the start of netio_dispatch to calculate the
@@ -207,6 +207,7 @@ int netio_dispatch(netio_type* netio, const struct timespec* timeout,
  *
  */
 void netio_cleanup(netio_type* netio);
+void netio_cleanup_shallow(netio_type* netio);
 
 /**
  * Add timespecs.

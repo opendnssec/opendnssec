@@ -16,7 +16,6 @@ echo -n "LINE: ${LINENO} " && ods-enforcer zone add --zone ods1 &&
 echo "################## LEAP TO OMNIPRESENT ZSK DNSKEY ###########################" &&
 echo -n "LINE: ${LINENO} " && ods-enforcer time leap --attach &&
 echo -n "LINE: ${LINENO} " && ods-enforcer time leap --attach &&
-echo -n "LINE: ${LINENO} " && ods-enforcer time leap --attach &&
 
 echo -n "LINE: ${LINENO} " && KSK1=`ods-enforcer key list -d -p | grep ods1 | grep KSK |cut -d ";" -f 9` &&
 echo -n "LINE: ${LINENO} " && ZSK1=`ods-enforcer key list -d -p | grep ods1 | grep ZSK |cut -d ";" -f 9` &&
@@ -31,7 +30,6 @@ ods_stop_enforcer &&
 echo -n "LINE: ${LINENO} " && cp kasp-alg-switch.xml  "$INSTALL_ROOT/etc/opendnssec/kasp.xml" &&
 ods_start_enforcer &&
 echo -n "LINE: ${LINENO} " && ods-enforcer policy import &&
-echo -n "LINE: ${LINENO} " && ods-enforcer time leap --attach &&
 ## between these 2 enforces the new keys should be generated.
 
 echo "################## INTRODUCE ZSK ###########################" &&
@@ -40,36 +38,28 @@ echo -n "LINE: ${LINENO} " && ods-enforcer time leap --attach &&
 echo -n "LINE: ${LINENO} " && ZSK2=`ods-enforcer key list -d -p | grep ods1 | grep -v $ZSK1 | grep ZSK |cut -d ";" -f 9` &&
 echo -n "LINE: ${LINENO} " && KSK2=`ods-enforcer key list -d -p | grep ods1 | grep -v $KSK1 | grep KSK |cut -d ";" -f 9` &&
 
-echo "################## MAY NOT BE NEW KSK ###########################" &&
-echo -n "LINE: ${LINENO} " && test -z "$KSK2" &&
+echo "################## MUST BE NEW KSK ###########################" &&
+echo -n "LINE: ${LINENO} " && test -n "$KSK2" &&
 echo -n "LINE: ${LINENO} " && test -n "$ZSK2" &&
 
 
-echo -n "LINE: ${LINENO} " && ods-enforcer key list -d -p | grep $ZSK2 | grep "NA;hidden;NA;rumoured;" &&
+echo -n "LINE: ${LINENO} " && ods-enforcer key list -d -p | grep $ZSK2 | grep "NA;rumoured;NA;rumoured;" &&
 
 echo "################## INTRODUCE KSK ###########################" &&
 echo -n "LINE: ${LINENO} " && ods-enforcer time leap --attach &&
 echo -n "LINE: ${LINENO} " && KSK2=`ods-enforcer key list -d -p | grep ods1 | grep -v $KSK1 | grep KSK |cut -d ";" -f 9` &&
 echo -n "LINE: ${LINENO} " && test -n "$KSK2" &&
 echo -n "LINE: ${LINENO} " && ods-enforcer key list -d -p | grep $ZSK1 | grep "NA;omnipresent;NA;omnipresent;" &&
-echo -n "LINE: ${LINENO} " && ods-enforcer key list -d -p | grep $KSK1 | grep "omnipresent;omnipresent;omnipresent;NA;" &&
-echo -n "LINE: ${LINENO} " && ods-enforcer key list -d -p | grep $ZSK2 | grep "NA;rumoured;NA;omnipresent;" &&
-echo -n "LINE: ${LINENO} " && ods-enforcer key list -d -p | grep $KSK2 | grep "hidden;rumoured;rumoured;NA;" &&
-
-
-echo -n "LINE: ${LINENO} " && ods-enforcer time leap --attach &&
-echo -n "LINE: ${LINENO} " && ods-enforcer key list -d -p | grep $ZSK1 | grep "NA;omnipresent;NA;omnipresent;" &&
 echo -n "LINE: ${LINENO} " && ods-enforcer key list -d -p | grep $KSK1 | grep "unretentive;omnipresent;omnipresent;NA;" &&
 echo -n "LINE: ${LINENO} " && ods-enforcer key list -d -p | grep $ZSK2 | grep "NA;omnipresent;NA;omnipresent;" &&
 echo -n "LINE: ${LINENO} " && ods-enforcer key list -d -p | grep $KSK2 | grep "rumoured;omnipresent;omnipresent;NA;" &&
 
-echo -n "LINE: ${LINENO} " && ods-enforcer time leap --attach &&
 echo -n "LINE: ${LINENO} " && ods-enforcer key ds-gone -z ods1 -k $KSK1 &&
 echo -n "LINE: ${LINENO} " && ods-enforcer key ds-seen -z ods1 -k $KSK2 &&
 echo -n "LINE: ${LINENO} " && ods-enforcer time leap --attach &&
 echo -n "LINE: ${LINENO} " && ods-enforcer time leap --attach &&
 
-echo -n "LINE: ${LINENO} " && ods-enforcer key list -d -p | grep $ZSK1 | grep "NA;unretentive;NA;omnipresent;" &&
+echo -n "LINE: ${LINENO} " && ods-enforcer key list -d -p | grep $ZSK1 | grep "NA;unretentive;NA;unretentive;" &&
 echo -n "LINE: ${LINENO} " && ods-enforcer key list -d -p | grep $KSK1 | grep "hidden;unretentive;unretentive;NA;" &&
 echo -n "LINE: ${LINENO} " && ods-enforcer key list -d -p | grep $ZSK2 | grep "NA;omnipresent;NA;omnipresent;" &&
 echo -n "LINE: ${LINENO} " && ods-enforcer key list -d -p | grep $KSK2 | grep "omnipresent;omnipresent;omnipresent;NA;" &&
@@ -99,4 +89,3 @@ echo "************error******************"
 echo
 ods_kill
 return 1
-

@@ -114,23 +114,23 @@ adapi_trans_full(zone_type* zone, unsigned more_coming)
     namedb_diff(zone->db, 0, more_coming);
 
     if (zone->stats) {
-        lock_basic_lock(&zone->stats->stats_lock);
+        pthread_mutex_lock(&zone->stats->stats_lock);
         zone->stats->nsec_time = 0;
         zone->stats->nsec_count = 0;
-        lock_basic_unlock(&zone->stats->stats_lock);
+        pthread_mutex_unlock(&zone->stats->stats_lock);
     }
     start = time(NULL);
     /* nsecify(3) */
     namedb_nsecify(zone->db, &num_added);
     end = time(NULL);
     if (zone->stats) {
-        lock_basic_lock(&zone->stats->stats_lock);
+        pthread_mutex_lock(&zone->stats->stats_lock);
         if (!zone->stats->start_time) {
             zone->stats->start_time = start;
         }
         zone->stats->nsec_time = (end-start);
         zone->stats->nsec_count = num_added;
-        lock_basic_unlock(&zone->stats->stats_lock);
+        pthread_mutex_unlock(&zone->stats->stats_lock);
     }
 }
 
@@ -151,23 +151,23 @@ adapi_trans_diff(zone_type* zone, unsigned more_coming)
     namedb_diff(zone->db, 1, more_coming);
 
    if (zone->stats) {
-        lock_basic_lock(&zone->stats->stats_lock);
+        pthread_mutex_lock(&zone->stats->stats_lock);
         zone->stats->nsec_time = 0;
         zone->stats->nsec_count = 0;
-        lock_basic_unlock(&zone->stats->stats_lock);
+        pthread_mutex_unlock(&zone->stats->stats_lock);
     }
     start = time(NULL);
     /* nsecify(3) */
     namedb_nsecify(zone->db, &num_added);
     end = time(NULL);
     if (zone->stats) {
-        lock_basic_lock(&zone->stats->stats_lock);
+        pthread_mutex_lock(&zone->stats->stats_lock);
         if (!zone->stats->start_time) {
             zone->stats->start_time = start;
         }
         zone->stats->nsec_time = (end-start);
         zone->stats->nsec_count = num_added;
-        lock_basic_unlock(&zone->stats->stats_lock);
+        pthread_mutex_unlock(&zone->stats->stats_lock);
     }
 }
 
@@ -440,9 +440,11 @@ adapi_printixfr(FILE* fd, zone_type* zone)
     if (status != ODS_STATUS_OK) {
         return status;
     }
-    lock_basic_lock(&zone->ixfr->ixfr_lock);
-    ixfr_print(fd, zone->ixfr);
-    lock_basic_unlock(&zone->ixfr->ixfr_lock);
+    pthread_mutex_lock(&zone->ixfr->ixfr_lock);
+    if (ixfr_print(fd, zone->ixfr)) {
+        zone->adoutbound->error = 1;
+    }
+    pthread_mutex_unlock(&zone->ixfr->ixfr_lock);
     rrset_print(fd, rrset, 1, &status);
     return status;
 }

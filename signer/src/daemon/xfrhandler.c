@@ -97,6 +97,7 @@ xfrhandler_create()
     xfrh->dnshandler.timeout = 0;
     xfrh->dnshandler.event_types = NETIO_EVENT_READ;
     xfrh->dnshandler.event_handler = xfrhandler_handle_dns;
+    xfrh->dnshandler.free_handler = 0;
     return xfrh;
 }
 
@@ -158,7 +159,7 @@ void
 xfrhandler_signal(xfrhandler_type* xfrhandler)
 {
     if (xfrhandler && xfrhandler->started) {
-        ods_thread_kill(xfrhandler->thread_id, SIGHUP);
+        janitor_thread_signal(xfrhandler->thread_id);
     }
 }
 
@@ -199,7 +200,7 @@ xfrhandler_cleanup(xfrhandler_type* xfrhandler)
     if (!xfrhandler) {
         return;
     }
-    netio_cleanup(xfrhandler->netio);
+    netio_cleanup_shallow(xfrhandler->netio);
     buffer_cleanup(xfrhandler->packet);
     tcp_set_cleanup(xfrhandler->tcp_set);
     free(xfrhandler);

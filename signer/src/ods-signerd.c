@@ -30,12 +30,14 @@
  */
 
 #include "config.h"
+#include "locks.h"
 #include "daemon/engine.h"
 
 #include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <libxml/parser.h>
+#include "parser/confparser.h"
 
 
 #define AUTHOR_NAME "Matthijs Mekking"
@@ -82,9 +84,13 @@ version(FILE* out)
 }
 
 static void
-program_setup(int cmdline_verbosity)
+program_setup(const char* cfgfile, int cmdline_verbosity)
 {
-    ods_log_init("ods-signerd", 0, NULL, cmdline_verbosity);
+    const char* file = NULL;
+    /* open log */
+    file = parse_conf_log_filename(cfgfile);
+    ods_log_init("ods-signerd", parse_conf_use_syslog(cfgfile), file, cmdline_verbosity?cmdline_verbosity:parse_conf_verbosity(cfgfile));
+
     ods_log_verbose("[engine] starting signer");
 
     /* initialize */
@@ -93,6 +99,7 @@ program_setup(int cmdline_verbosity)
     xmlInitThreads();
 
     tzset(); /* for portability */
+    free((void*)file);
 }
 
 static void
@@ -100,7 +107,6 @@ program_teardown()
 {
     xmlCleanupParser();
     xmlCleanupGlobals();
-    xmlCleanupThreads();
     ods_log_close();
 }
 
@@ -111,16 +117,15 @@ program_teardown()
 int
 main(int argc, char* argv[])
 {
+    char* argv0;
     int c, returncode;
     int options_index = 0;
     int info = 0;
-    int single_run = 0;
     int daemonize = 1;
     int cmdline_verbosity = 0;
     char *time_arg = NULL;
     const char* cfgfile = ODS_SE_CFGFILE;
     static struct option long_options[] = {
-        {"single-run", no_argument, 0, '1'},
         {"config", required_argument, 0, 'c'},
         {"no-daemon", no_argument, 0, 'd'},
         {"help", no_argument, 0, 'h'},
@@ -131,13 +136,18 @@ main(int argc, char* argv[])
         { 0, 0, 0, 0}
     };
 
+    if(argv[0][0] != '/') {
+        char *path = getcwd(NULL,0);
+        asprintf(&argv0, "%s/%s", path, argv[0]);
+        free(path);
+    } else {
+        argv0 = strdup(argv[0]);
+    }
+
     /* parse the commandline */
-    while ((c=getopt_long(argc, argv, "1c:dhivV",
+    while ((c=getopt_long(argc, argv, "c:dhivV",
         long_options, &options_index)) != -1) {
         switch (c) {
-            case '1':
-                single_run = 1;
-                break;
             case 'c':
                 cfgfile = optarg;
                 break;
@@ -184,10 +194,11 @@ main(int argc, char* argv[])
     /* main stuff */
     fprintf(stdout, "OpenDNSSEC signer engine version %s\n", PACKAGE_VERSION);
 
-    program_setup(cmdline_verbosity);
-    returncode = engine_start(cfgfile, cmdline_verbosity, daemonize,
-        info, single_run);
+    ods_janitor_initialize(argv0);
+    program_setup(cfgfile, cmdline_verbosity);
+    returncode = engine_start(cfgfile, cmdline_verbosity, daemonize, info);
     program_teardown();
 
+    free(argv0);
     return returncode;
 }

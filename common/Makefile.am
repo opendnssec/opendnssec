@@ -18,4 +18,11 @@ libcompat_a_SOURCES = \
 	status.c status.h \
 	str.c str.h strlcat.c strlcpy.c \
 	util.c util.h \
-	datastructure.c datastructure.h
+	datastructure.c datastructure.h \
+	scheduler/schedule.c scheduler/schedule.h \
+	scheduler/task.c scheduler/task.h \
+	scheduler/fifoq.c scheduler/fifoq.h \
+	scheduler/worker.c scheduler/worker.h \
+	scheduler/task.c scheduler/task.h \
+	cmdhandler.c cmdhandler.h \
+	janitor.c janitor.h

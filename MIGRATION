@@ -1,7 +1,10 @@
-A migration is needed to migration from 1.4 to 2.0.
+A migration is needed to migration from 1.4 to 2.1.
 
 First migrate to at least the 1.4.10 release if you have not already done
-so.
+so.  Then you can perform the migration to 2.1, a migration of 2.0
+is not necessary, there are no differences in this respect between 2.0
+and 2.1.
+
 Review the documentation on the OpenDNSSEC site.  This can be updated in
 between releases to provide more help.
 Especially if you have tooling around OpenDNSSEC you should be aware that

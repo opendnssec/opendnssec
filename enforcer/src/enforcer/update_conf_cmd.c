@@ -27,7 +27,8 @@
  */
 
 #include "daemon/engine.h"
-#include "daemon/cmdhandler.h"
+#include "cmdhandler.h"
+#include "daemon/enforcercommands.h"
 #include "log.h"
 #include "str.h"
 #include "clientpipe.h"
@@ -55,26 +56,20 @@ help(int sockfd)
 }
 
 static int
-handles(const char *cmd, ssize_t n)
-{
-	return ods_check_command(cmd, n, update_conf_funcblock()->cmdname) ? 1 : 0;
-}
-
-static int
-run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
-	db_connection_t *dbconn)
+run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 {
     char *kasp = NULL;
     char *zonelist = NULL;
     char **repositories = NULL;
     int repository_count = 0;
     int i;
+    db_connection_t* dbconn = getconnectioncontext(context);
+    engine_type* engine = getglobalcontext(context);
+    (void)cmd;
 
-    (void)cmd; (void)n; (void)dbconn;
+	ods_log_debug("[%s] %s command", module_str, update_conf_funcblock.cmdname);
 
-	ods_log_debug("[%s] %s command", module_str, update_conf_funcblock()->cmdname);
-
-    if (check_conf(engine->config->cfg_filename, &kasp, &zonelist, &repositories, &repository_count, 0)) {
+    if (check_conf(engine->config->cfg_filename, &kasp, &zonelist, &repositories, &repository_count, (ods_log_verbosity() >= 3))) {
         client_printf_err(sockfd, "Unable to validate '%s' consistency.",
             engine->config->cfg_filename);
 
@@ -104,12 +99,6 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
     return 0;
 }
 
-static struct cmd_func_block funcblock = {
-	"update conf", &usage, &help, &handles, &run
+struct cmd_func_block update_conf_funcblock = {
+	"update conf", &usage, &help, NULL, &run
 };
-
-struct cmd_func_block*
-update_conf_funcblock(void)
-{
-	return &funcblock;
-}

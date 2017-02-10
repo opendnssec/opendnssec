@@ -36,12 +36,14 @@
 #include "str.h"
 #include "duration.h"
 #include "scheduler/schedule.h"
-#include "daemon/cmdhandler.h"
+#include "cmdhandler.h"
+#include "daemon/enforcercommands.h"
 #include "daemon/engine.h"
 #include "clientpipe.h"
 #include "clientpipe.h"
 
 #include "daemon/queue_cmd.h"
+#include "scheduler/task.h"
 
 static const char *module_str = "queue_cmd";
 
@@ -64,24 +66,20 @@ help(int sockfd)
 }
 
 static int
-handles(const char *cmd, ssize_t n)
-{
-	return ods_check_command(cmd, n, queue_funcblock()->cmdname)?1:0;
-}
-
-static int
-run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
-	db_connection_t *dbconn)
+run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 {
 	struct tm strtime_struct;
 	char strtime[64]; /* at least 26 according to docs plus a long integer */
-	char buf[ODS_SE_MAXLINE];
-	size_t i = 0, count;
+    char* taskdescription;
+	size_t i = 0;
+        int count;
 	time_t now;
 	time_t nextFireTime;
 	ldns_rbnode_t* node = LDNS_RBTREE_NULL;
 	task_type* task = NULL;
-	(void)cmd; (void)n; (void)dbconn;
+	int num_waiting;
+        engine_type* engine = getglobalcontext(context);
+	(void)cmd;
 
 	ods_log_debug("[%s] list tasks command", module_str);
 
@@ -91,56 +89,41 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 		return 0;
 	}
 
-	/* current work */
-	pthread_mutex_lock(&engine->taskq->schedule_lock);
-		for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
-			task = engine->workers[i]->task;
-			if (task) {
-				/* TODO: even holding that lock, this is not safe! */
-				client_printf(sockfd, "Working with [%s] %s\n",
-					task_what2str(task->what), task_who2str(task->who));
-			}
-		}
-	pthread_mutex_unlock(&engine->taskq->schedule_lock);
+        schedule_info(engine->taskq, &nextFireTime, &num_waiting, &count);
+	if (num_waiting == engine->config->num_worker_threads) {
+		client_printf(sockfd, "All worker threads idle.\n");
+	}
 
 	/* how many tasks */
-	count = schedule_taskcount(engine->taskq);
 	client_printf(sockfd, "There %s %i %s scheduled.\n",
 		(count==1)?"is":"are", (int) count, (count==1)?"task":"tasks");
 	now = time_now();
 	strftime(strtime, sizeof(strtime), "%c", localtime_r(&now, &strtime_struct));
 	client_printf(sockfd, "It is now %s (%ld seconds since epoch)\n", (strtime[0]?strtime:"(null)"), (long)now);
-	nextFireTime = schedule_time_first(engine->taskq);
-        if (nextFireTime > 0) {
-                strftime(strtime, sizeof(strtime), "%c", localtime_r(&nextFireTime, &strtime_struct));
-                client_printf(sockfd, "Next task scheduled %s (%ld seconds since epoch)\n", strtime, (long)nextFireTime);
-        } else if (nextFireTime == 0) {
-                client_printf(sockfd, "Next task scheduled immediately\n");
-        }
+	if (nextFireTime > now) {
+			strftime(strtime, sizeof(strtime), "%c", localtime_r(&nextFireTime, &strtime_struct));
+			client_printf(sockfd, "Next task scheduled %s (%ld seconds since epoch)\n", strtime, (long)nextFireTime);
+	} else if (nextFireTime >= 0) {
+			client_printf(sockfd, "Next task scheduled immediately\n");
+	} /* else: no tasks scheduled at all. */
 	
 	/* list tasks */
 	pthread_mutex_lock(&engine->taskq->schedule_lock);
 		node = ldns_rbtree_first(engine->taskq->tasks);
 		while (node && node != LDNS_RBTREE_NULL) {
 			task = (task_type*) node->data;
-			memset(buf, 0, ODS_SE_MAXLINE);
-			(void)task2str(task, buf);
-			client_printf(sockfd, "%s", buf);
+			taskdescription = schedule_describetask(task);
+			client_printf(sockfd, "%s", taskdescription);
+                        free(taskdescription);
 			node = ldns_rbtree_next(node);
 		}
 	pthread_mutex_unlock(&engine->taskq->schedule_lock);
 	return 0;
 }
 
-static struct cmd_func_block funcblock = {
-	"queue", &usage, &help, &handles, &run
+struct cmd_func_block queue_funcblock = {
+	"queue", &usage, &help, NULL, &run
 };
-
-struct cmd_func_block*
-queue_funcblock(void)
-{
-	return &funcblock;
-}
 
 static void
 usage_flush(int sockfd)
@@ -158,33 +141,21 @@ help_flush(int sockfd)
 }
 
 static int
-handles_flush(const char *cmd, ssize_t n)
+run_flush(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 {
-	return ods_check_command(cmd, n, flush_funcblock()->cmdname)?1:0;
-}
-
-static int
-run_flush(int sockfd, engine_type *engine, const char *cmd, ssize_t n,
-	db_connection_t *dbconn)
-{
-	(void)cmd; (void)n;  (void)dbconn;
+        engine_type* engine = getglobalcontext(context);
+	(void)cmd;
 	ods_log_debug("[%s] flush tasks command", module_str);
 	ods_log_assert(engine);
 	ods_log_assert(engine->taskq);
 
 	schedule_flush(engine->taskq);
-
+        
 	client_printf(sockfd, "All tasks scheduled immediately.\n");
 	ods_log_verbose("[cmdhandler] all tasks scheduled immediately");
 	return 0;
 }
 
-static struct cmd_func_block funcblock_flush = {
-	"flush", &usage_flush, &help_flush, &handles_flush, &run_flush
+struct cmd_func_block flush_funcblock = {
+	"flush", &usage_flush, &help_flush, NULL, &run_flush
 };
-
-struct cmd_func_block*
-flush_funcblock(void)
-{
-	return &funcblock_flush;
-}

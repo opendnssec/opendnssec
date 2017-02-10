@@ -36,29 +36,20 @@
 
 #include "keystate/keystate_ds_retract_task.h"
 
-/* static const char *module_str = "keystate_ds_retract_task"; */
-
-/* executed headless */
-static task_type * 
-keystate_ds_retract_task_perform(task_type *task)
+static time_t
+keystate_ds_retract_task_perform(task_type* task, char const *zonename, void *userdata,
+	void* context)
 {
-	assert(task);
-
-	(void)change_keys_from_to(task->dbconn, -1, NULL, NULL, 0,
+    db_connection_t* dbconn = (db_connection_t*) context;
+	(void)change_keys_from_to(dbconn, -1, zonename, NULL, -1,
 		KEY_DATA_DS_AT_PARENT_RETRACT, KEY_DATA_DS_AT_PARENT_RETRACTED,
-		(engine_type*)task->context);
-	task_cleanup(task);
-	return NULL;
+		(engine_type*)userdata);
+	return schedule_SUCCESS;
 }
 
 task_type *
-keystate_ds_retract_task(engine_type *engine)
+keystate_ds_retract_task(engine_type *engine, char const *owner)
 {
-	task_id what_id;
-	const char *what = "ds-retract";
-	const char *who = "KSK keys with retract flag set";
-	
-	what_id = task_register(what, "keystate_ds_retract_task_perform",
-		keystate_ds_retract_task_perform);
-	return task_create(what_id, time_now(), who, what, engine, NULL);
+	return task_create(strdup(owner), TASK_CLASS_ENFORCER, TASK_TYPE_DSRETRACT,
+		keystate_ds_retract_task_perform, engine, NULL, time_now());
 }

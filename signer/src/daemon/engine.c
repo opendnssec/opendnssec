@@ -32,7 +32,6 @@
 #include "config.h"
 #include "daemon/cfg.h"
 #include "daemon/engine.h"
-#include "daemon/signal.h"
 #include "duration.h"
 #include "file.h"
 #include "str.h"
@@ -45,6 +44,8 @@
 #include "signer/zonelist.h"
 #include "wire/tsig.h"
 #include "libhsm.h"
+#include "signertasks.h"
+#include "signercommands.h"
 
 #include <errno.h>
 #include <libxml/parser.h>
@@ -61,6 +62,7 @@
 
 static const char* engine_str = "engine";
 
+static engine_type* engine = NULL;
 
 /**
  * Create engine.
@@ -73,140 +75,47 @@ engine_create(void)
     CHECKALLOC(engine = (engine_type*) malloc(sizeof(engine_type)));
     engine->config = NULL;
     engine->workers = NULL;
-    engine->drudgers = NULL;
     engine->cmdhandler = NULL;
-    engine->cmdhandler_done = 0;
     engine->dnshandler = NULL;
     engine->xfrhandler = NULL;
     engine->taskq = NULL;
-    engine->signq = NULL;
     engine->pid = -1;
     engine->uid = -1;
     engine->gid = -1;
     engine->daemonize = 0;
     engine->need_to_exit = 0;
     engine->need_to_reload = 0;
-    lock_basic_init(&engine->signal_lock);
-    lock_basic_set(&engine->signal_cond);
-    lock_basic_lock(&engine->signal_lock);
-    engine->signal = SIGNAL_INIT;
-    lock_basic_unlock(&engine->signal_lock);
+    pthread_mutex_init(&engine->signal_lock, NULL);
+    pthread_cond_init(&engine->signal_cond, NULL);
     engine->zonelist = zonelist_create();
     if (!engine->zonelist) {
         engine_cleanup(engine);
         return NULL;
     }
-    engine->taskq = schedule_create();
-    if (!engine->taskq) {
+    if (!(engine->taskq = schedule_create())) {
         engine_cleanup(engine);
         return NULL;
     }
-    engine->signq = fifoq_create();
-    if (!engine->signq) {
-        engine_cleanup(engine);
-        return NULL;
-    }
+    schedule_registertask(engine->taskq, TASK_CLASS_SIGNER, TASK_SIGNCONF, do_readsignconf);
+    schedule_registertask(engine->taskq, TASK_CLASS_SIGNER, TASK_FORCESIGNCONF, do_forcereadsignconf);
+    schedule_registertask(engine->taskq, TASK_CLASS_SIGNER, TASK_READ, do_readzone);
+    schedule_registertask(engine->taskq, TASK_CLASS_SIGNER, TASK_FORCEREAD, do_forcereadzone);
+    schedule_registertask(engine->taskq, TASK_CLASS_SIGNER, TASK_SIGN, do_signzone);
+    schedule_registertask(engine->taskq, TASK_CLASS_SIGNER, TASK_WRITE, do_writezone);
     return engine;
-}
-
-
-/**
- * Start command handler.
- *
- */
-
-static void*
-cmdhandler_thread_start(void* arg)
-{
-    cmdhandler_type* cmd = (cmdhandler_type*) arg;
-    ods_thread_blocksigs();
-    cmdhandler_start(cmd);
-    return NULL;
 }
 
 static void
 engine_start_cmdhandler(engine_type* engine)
 {
-    ods_log_assert(engine);
     ods_log_debug("[%s] start command handler", engine_str);
-    engine->cmdhandler->engine = engine;
-    ods_thread_create(&engine->cmdhandler->thread_id,
-        cmdhandler_thread_start, engine->cmdhandler);
+    janitor_thread_create(&engine->cmdhandler->thread_id, workerthreadclass, (janitor_runfn_t)cmdhandler_start, engine->cmdhandler);
 }
-
-/**
- * Self pipe trick (see Unix Network Programming).
- *
- */
-static int
-self_pipe_trick(engine_type* engine)
-{
-    int sockfd, ret;
-    struct sockaddr_un servaddr;
-    const char* servsock_filename = ODS_SE_SOCKFILE;
-    ods_log_assert(engine);
-    ods_log_assert(engine->cmdhandler);
-    sockfd = socket(AF_UNIX, SOCK_STREAM, 0);
-    if (sockfd < 0) {
-        ods_log_error("[%s] unable to connect to command handler: "
-            "socket() failed (%s)", engine_str, strerror(errno));
-        return 1;
-    } else {
-        bzero(&servaddr, sizeof(servaddr));
-        servaddr.sun_family = AF_UNIX;
-        strncpy(servaddr.sun_path, servsock_filename, sizeof(servaddr.sun_path)-1);
-        ret = connect(sockfd, (const struct sockaddr*) &servaddr,
-            sizeof(servaddr));
-        if (ret != 0) {
-            ods_log_error("[%s] unable to connect to command handler: "
-                "connect() failed (%s)", engine_str, strerror(errno));
-            close(sockfd);
-            return 1;
-        } else {
-            /* self-pipe trick */
-            ods_writen(sockfd, "", 1);
-            close(sockfd);
-        }
-    }
-    return 0;
-}
-/**
- * Stop command handler.
- *
- */
-static void
-engine_stop_cmdhandler(engine_type* engine)
-{
-    ods_log_assert(engine);
-    if (!engine->cmdhandler || engine->cmdhandler_done) {
-        return;
-    }
-    ods_log_debug("[%s] stop command handler", engine_str);
-    engine->cmdhandler->need_to_exit = 1;
-    if (self_pipe_trick(engine) == 0) {
-        while (!engine->cmdhandler_done) {
-            ods_log_debug("[%s] waiting for command handler to exit...",
-                engine_str);
-            sleep(1);
-        }
-    } else {
-        ods_log_error("[%s] command handler self pipe trick failed, "
-            "unclean shutdown", engine_str);
-    }
-}
-
 
 /**
  * Start/stop dnshandler.
  *
  */
-static void*
-dnshandler_thread_start(void* arg)
-{
-    dnshandler_type* dnshandler = (dnshandler_type*) arg;
-    dnshandler_start(dnshandler);
-    return NULL;
-}
 static void
 engine_start_dnshandler(engine_type* engine)
 {
@@ -215,8 +124,7 @@ engine_start_dnshandler(engine_type* engine)
     }
     ods_log_debug("[%s] start dnshandler", engine_str);
     engine->dnshandler->engine = engine;
-    ods_thread_create(&engine->dnshandler->thread_id,
-        dnshandler_thread_start, engine->dnshandler);
+    janitor_thread_create(&engine->dnshandler->thread_id, handlerthreadclass, (janitor_runfn_t)dnshandler_start, engine->dnshandler);
 }
 static void
 engine_stop_dnshandler(engine_type* engine)
@@ -228,22 +136,11 @@ engine_stop_dnshandler(engine_type* engine)
     engine->dnshandler->need_to_exit = 1;
     dnshandler_signal(engine->dnshandler);
     ods_log_debug("[%s] join dnshandler", engine_str);
-    ods_thread_join(engine->dnshandler->thread_id);
+    janitor_thread_join(engine->dnshandler->thread_id);
     engine->dnshandler->engine = NULL;
 }
 
 
-/**
- * Start/stop xfrhandler.
- *
- */
-static void*
-xfrhandler_thread_start(void* arg)
-{
-    xfrhandler_type* xfrhandler = (xfrhandler_type*) arg;
-    xfrhandler_start(xfrhandler);
-    return NULL;
-}
 static void
 engine_start_xfrhandler(engine_type* engine)
 {
@@ -257,8 +154,7 @@ engine_start_xfrhandler(engine_type* engine)
      * it has marked itself started
      */
     engine->xfrhandler->started = 1;
-    ods_thread_create(&engine->xfrhandler->thread_id,
-        xfrhandler_thread_start, engine->xfrhandler);
+    janitor_thread_create(&engine->xfrhandler->thread_id, handlerthreadclass, (janitor_runfn_t)xfrhandler_start, engine->xfrhandler);
 }
 static void
 engine_stop_xfrhandler(engine_type* engine)
@@ -271,7 +167,7 @@ engine_stop_xfrhandler(engine_type* engine)
     xfrhandler_signal(engine->xfrhandler);
     ods_log_debug("[%s] join xfrhandler", engine_str);
     if (engine->xfrhandler->started) {
-    	ods_thread_join(engine->xfrhandler->thread_id);
+    	janitor_thread_join(engine->xfrhandler->thread_id);
     	engine->xfrhandler->started = 0;
     }
     engine->xfrhandler->engine = NULL;
@@ -321,100 +217,67 @@ engine_privdrop(engine_type* engine)
 static void
 engine_create_workers(engine_type* engine)
 {
-    size_t i = 0;
+    char* name;
+    int i;
+    int numTotalWorkers;
+    int threadCount = 0;
     ods_log_assert(engine);
     ods_log_assert(engine->config);
-    CHECKALLOC(engine->workers = (worker_type**) malloc(((size_t)engine->config->num_worker_threads) * sizeof(worker_type*)));
-    for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
-        engine->workers[i] = worker_create(i, WORKER_WORKER);
+    numTotalWorkers = engine->config->num_worker_threads + engine->config->num_signer_threads;
+    CHECKALLOC(engine->workers = (worker_type**) malloc(numTotalWorkers * sizeof(worker_type*)));
+    for (i=0; i < engine->config->num_worker_threads; i++) {
+        asprintf(&name, "worker[%d]", i+1);
+        engine->workers[threadCount++] = worker_create(name, engine->taskq);
+    }
+    for (i=0; i < engine->config->num_signer_threads; i++) {
+        asprintf(&name, "drudger[%d]", i+1);
+        engine->workers[threadCount++] = worker_create(name, engine->taskq);
     }
 }
-static void
-engine_create_drudgers(engine_type* engine)
-{
-    size_t i = 0;
-    ods_log_assert(engine);
-    ods_log_assert(engine->config);
-    CHECKALLOC(engine->drudgers = (worker_type**) malloc(((size_t)engine->config->num_signer_threads) * sizeof(worker_type*)));
-    for (i=0; i < (size_t) engine->config->num_signer_threads; i++) {
-        engine->drudgers[i] = worker_create(i, WORKER_DRUDGER);
-    }
-}
-static void*
-worker_thread_start(void* arg)
-{
-    worker_type* worker = (worker_type*) arg;
-    ods_thread_blocksigs();
-    worker_start(worker);
-    return NULL;
-}
+
 static void
 engine_start_workers(engine_type* engine)
 {
-    size_t i = 0;
+    int i;
+    int threadCount = 0;
+    struct worker_context* context;
     ods_log_assert(engine);
     ods_log_assert(engine->config);
     ods_log_debug("[%s] start workers", engine_str);
-    for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
-        engine->workers[i]->need_to_exit = 0;
-        engine->workers[i]->engine = (void*) engine;
-        ods_thread_create(&engine->workers[i]->thread_id, worker_thread_start,
-            engine->workers[i]);
+    for (i=0; i < engine->config->num_worker_threads; i++,threadCount++) {
+        CHECKALLOC(context = malloc(sizeof(struct worker_context)));
+        context->engine = engine;
+        context->worker = engine->workers[threadCount];
+        context->signq = engine->taskq->signq;
+        engine->workers[threadCount]->need_to_exit = 0;
+        engine->workers[threadCount]->context = context;
+        janitor_thread_create(&engine->workers[threadCount]->thread_id, workerthreadclass, (janitor_runfn_t)worker_start, engine->workers[threadCount]);
+    }
+    for (i=0; i < engine->config->num_signer_threads; i++,threadCount++) {
+        engine->workers[threadCount]->need_to_exit = 0;
+        janitor_thread_create(&engine->workers[threadCount]->thread_id, workerthreadclass, (janitor_runfn_t)drudge, engine->workers[threadCount]);
     }
 }
-void
-engine_start_drudgers(engine_type* engine)
-{
-    size_t i = 0;
-    ods_log_assert(engine);
-    ods_log_assert(engine->config);
-    ods_log_debug("[%s] start drudgers", engine_str);
-    for (i=0; i < (size_t) engine->config->num_signer_threads; i++) {
-        engine->drudgers[i]->need_to_exit = 0;
-        engine->drudgers[i]->engine = (void*) engine;
-        ods_thread_create(&engine->drudgers[i]->thread_id, worker_thread_start,
-            engine->drudgers[i]);
-    }
-}
+
 static void
-engine_stop_workers(engine_type* engine)
+engine_stop_threads(engine_type* engine)
 {
-    int i = 0;
+    int i;
+    int numTotalWorkers;
     ods_log_assert(engine);
     ods_log_assert(engine->config);
-    ods_log_debug("[%s] stop workers", engine_str);
-    /* tell them to exit and wake up sleepyheads */
-    for (i=0; i < engine->config->num_worker_threads; i++) {
+    ods_log_debug("[%s] stop workers and drudgers", engine_str);
+    numTotalWorkers = engine->config->num_worker_threads + engine->config->num_signer_threads;
+    for (i=0; i < numTotalWorkers; i++) {
         engine->workers[i]->need_to_exit = 1;
-        worker_wakeup(engine->workers[i]);
     }
-    ods_log_debug("[%s] notify workers", engine_str);
-    worker_notify_all(&engine->signq->q_lock, &engine->signq->q_nonfull);
-    /* head count */
-    for (i=0; i < engine->config->num_worker_threads; i++) {
+    ods_log_debug("[%s] notify workers and drudgers", engine_str);
+    schedule_release_all(engine->taskq);
+
+    for (i=0; i < numTotalWorkers; i++) {
         ods_log_debug("[%s] join worker %d", engine_str, i+1);
-        ods_thread_join(engine->workers[i]->thread_id);
-        engine->workers[i]->engine = NULL;
-    }
-}
-void
-engine_stop_drudgers(engine_type* engine)
-{
-    int i = 0;
-    ods_log_assert(engine);
-    ods_log_assert(engine->config);
-    ods_log_debug("[%s] stop drudgers", engine_str);
-    /* tell them to exit and wake up sleepyheads */
-    for (i=0; i < engine->config->num_signer_threads; i++) {
-        engine->drudgers[i]->need_to_exit = 1;
-    }
-    ods_log_debug("[%s] notify drudgers", engine_str);
-    worker_notify_all(&engine->signq->q_lock, &engine->signq->q_threshold);
-    /* head count */
-    for (i=0; i < engine->config->num_signer_threads; i++) {
-        ods_log_debug("[%s] join drudger %d", engine_str, i+1);
-        ods_thread_join(engine->drudgers[i]->thread_id);
-        engine->drudgers[i]->engine = NULL;
+        janitor_thread_join(engine->workers[i]->thread_id);
+        free(engine->workers[i]->context);
     }
 }
 
@@ -431,22 +294,49 @@ engine_wakeup_workers(engine_type* engine)
     ods_log_assert(engine->config);
     ods_log_debug("[%s] wake up workers", engine_str);
     /* wake up sleepyheads */
-    for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
-        worker_wakeup(engine->workers[i]);
-    }
+    schedule_release_all(engine->taskq);
 }
 
+static void *
+signal_handler(sig_atomic_t sig)
+{
+    switch (sig) {
+        case SIGHUP:
+            if (engine) {
+                engine->need_to_reload = 1;
+                pthread_mutex_lock(&engine->signal_lock);
+                pthread_cond_signal(&engine->signal_cond);
+                pthread_mutex_unlock(&engine->signal_lock);
+            }
+            break;
+        case SIGINT:
+        case SIGTERM:
+            if (engine) {
+                engine->need_to_exit = 1;
+                pthread_mutex_lock(&engine->signal_lock);
+                pthread_cond_signal(&engine->signal_cond);
+                pthread_mutex_unlock(&engine->signal_lock);
+            }
+            break;
+        default:
+            break;
+    }
+    return NULL;
+}
 
 /**
  * Set up engine.
  *
  */
 static ods_status
-engine_setup(engine_type* engine)
+engine_setup(void)
 {
     ods_status status = ODS_STATUS_OK;
     struct sigaction action;
     int sockets[2] = {0,0};
+    int pipefd[2];
+    char buff = '\0';
+    int fd, error;
 
     ods_log_debug("[%s] setup signer engine", engine_str);
     if (!engine || !engine->config) {
@@ -456,7 +346,7 @@ engine_setup(engine_type* engine)
     edns_init(&engine->edns, EDNS_MAX_MESSAGE_LEN);
 
     /* create command handler (before chowning socket file) */
-    engine->cmdhandler = cmdhandler_create(engine->config->clisock_filename);
+    engine->cmdhandler = cmdhandler_create(engine->config->clisock_filename, signercommands, engine, NULL, NULL);
     if (!engine->cmdhandler) {
         return ODS_STATUS_CMDHANDLER_ERR;
     }
@@ -500,37 +390,61 @@ engine_setup(engine_type* engine)
     }
     /* daemonize */
     if (engine->daemonize) {
+        if (pipe(pipefd)) {
+            ods_log_error("[%s] unable to pipe: %s", engine_str, strerror(errno));
+            return ODS_STATUS_PIPE_ERR;
+        }
         switch ((engine->pid = fork())) {
             case -1: /* error */
                 ods_log_error("[%s] setup: unable to fork daemon (%s)",
                     engine_str, strerror(errno));
                 return ODS_STATUS_FORK_ERR;
             case 0: /* child */
+                close(pipefd[0]);
                 break;
             default: /* parent */
                 engine_cleanup(engine);
                 engine = NULL;
                 xmlCleanupParser();
                 xmlCleanupGlobals();
-                xmlCleanupThreads();
-                exit(0);
+                close(pipefd[1]);
+                while (read(pipefd[0], &buff, 1) != -1) {
+                    if (buff <= 1) break;
+                    printf("%c", buff);
+                }
+                close(pipefd[0]);
+                if (buff == '\1') {
+                    ods_log_debug("[%s] signerd started successfully", engine_str);
+                    exit(0);
+                }
+                ods_log_error("[%s] fail to start signerd completely", engine_str);
+                exit(1);
         }
         if (setsid() == -1) {
             ods_log_error("[%s] setup: unable to setsid daemon (%s)",
                 engine_str, strerror(errno));
+            const char *err = "unable to setsid daemon: ";
+            ods_writen(pipefd[1], err, strlen(err));
+            ods_writeln(pipefd[1], strerror(errno));
+            write(pipefd[1], "\0", 1);
+            close(pipefd[1]);
             return ODS_STATUS_SETSID_ERR;
         }
     }
     engine->pid = getpid();
     /* write pidfile */
     if (util_write_pidfile(engine->config->pid_filename, engine->pid) == -1) {
+        if (engine->daemonize) {
+            ods_writeln(pipefd[1], "Unable to write pid file");
+            write(pipefd[1], "\0", 1);
+            close(pipefd[1]);
+        }
         return ODS_STATUS_WRITE_PIDFILE_ERR;
     }
     /* setup done */
     ods_log_verbose("[%s] running as pid %lu", engine_str,
         (unsigned long) engine->pid);
     /* catch signals */
-    signal_set_engine(engine);
     action.sa_handler = (void (*)(int))signal_handler;
     sigfillset(&action.sa_mask);
     action.sa_flags = 0;
@@ -545,41 +459,16 @@ engine_setup(engine_type* engine)
     sigaction(SIGPIPE, &action, NULL);
     /* create workers/drudgers */
     engine_create_workers(engine);
-    engine_create_drudgers(engine);
     /* start cmd/dns/xfr handlers */
     engine_start_cmdhandler(engine);
     engine_start_dnshandler(engine);
     engine_start_xfrhandler(engine);
     tsig_handler_init();
-    return ODS_STATUS_OK;
-}
-
-
-/**
- * Make sure that all zones have been worked on at least once.
- *
- */
-static int
-engine_all_zones_processed(engine_type* engine)
-{
-    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
-    zone_type* zone = NULL;
-
-    ods_log_assert(engine);
-    ods_log_assert(engine->zonelist);
-    ods_log_assert(engine->zonelist->zones);
-
-    node = ldns_rbtree_first(engine->zonelist->zones);
-    while (node && node != LDNS_RBTREE_NULL) {
-        zone = (zone_type*) node->key;
-        ods_log_assert(zone);
-        ods_log_assert(zone->db);
-        if (!zone->db->is_processed) {
-            return 0;
-        }
-        node = ldns_rbtree_next(node);
+    if (engine->daemonize) {
+        write(pipefd[1], "\1", 1);
+        close(pipefd[1]);
     }
-    return 1;
+    return ODS_STATUS_OK;
 }
 
 
@@ -588,53 +477,30 @@ engine_all_zones_processed(engine_type* engine)
  *
  */
 static void
-engine_run(engine_type* engine, int single_run)
+engine_run(engine_type* engine)
 {
     if (!engine) {
         return;
     }
     engine_start_workers(engine);
-    engine_start_drudgers(engine);
-
-    lock_basic_lock(&engine->signal_lock);
-    engine->signal = SIGNAL_RUN;
-    lock_basic_unlock(&engine->signal_lock);
 
     while (!engine->need_to_exit && !engine->need_to_reload) {
-        lock_basic_lock(&engine->signal_lock);
-        engine->signal = signal_capture(engine->signal);
-        switch (engine->signal) {
-            case SIGNAL_RUN:
-                ods_log_assert(1);
-                break;
-            case SIGNAL_RELOAD:
-                ods_log_error("signer instructed to reload due to explicit signal");
-                engine->need_to_reload = 1;
-                break;
-            case SIGNAL_SHUTDOWN:
-                engine->need_to_exit = 1;
-                break;
-            default:
-                ods_log_warning("[%s] invalid signal %d captured, "
-                    "keep running", engine_str, (int)engine->signal);
-                engine->signal = SIGNAL_RUN;
-                break;
+        /* We must use locking here to avoid race conditions. We want
+         * to sleep indefinitely and want to wake up on signal. This
+         * is to make sure we never mis the signal. */
+        pthread_mutex_lock(&engine->signal_lock);
+        if (!engine->need_to_exit && !engine->need_to_reload) {
+            /* TODO: this silly. We should be handling the commandhandler
+             * connections. No reason to spawn that as a thread.
+             * Also it would be easier to wake up the command hander
+             * as signals will reach it if it is the main thread! */
+            ods_log_debug("[%s] taking a break", engine_str);
+            pthread_cond_wait(&engine->signal_cond, &engine->signal_lock);
         }
-        lock_basic_unlock(&engine->signal_lock);
-
-        if (single_run) {
-           engine->need_to_exit = engine_all_zones_processed(engine);
-        }
-        lock_basic_lock(&engine->signal_lock);
-        if (engine->signal == SIGNAL_RUN && !single_run) {
-           ods_log_debug("[%s] taking a break", engine_str);
-           lock_basic_sleep(&engine->signal_cond, &engine->signal_lock, 3600);
-        }
-        lock_basic_unlock(&engine->signal_lock);
+        pthread_mutex_unlock(&engine->signal_lock);
     }
     ods_log_debug("[%s] signer halted", engine_str);
-    engine_stop_drudgers(engine);
-    engine_stop_workers(engine);
+    engine_stop_threads(engine);
 }
 
 
@@ -752,59 +618,38 @@ engine_update_zones(engine_type* engine, ods_status zl_changed)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     zone_type* zone = NULL;
-    zone_type* delzone = NULL;
-    task_type* task = NULL;
     ods_status status = ODS_STATUS_OK;
     unsigned wake_up = 0;
     int warnings = 0;
-    time_t now = 0;
 
     if (!engine || !engine->zonelist || !engine->zonelist->zones) {
         return;
     }
-    now = time_now();
 
     ods_log_debug("[%s] commit zone list changes", engine_str);
-    lock_basic_lock(&engine->zonelist->zl_lock);
+    pthread_mutex_lock(&engine->zonelist->zl_lock);
     node = ldns_rbtree_first(engine->zonelist->zones);
     while (node && node != LDNS_RBTREE_NULL) {
         zone = (zone_type*) node->data;
-        task = NULL; /* reset task */
 
         if (zone->zl_status == ZONE_ZL_REMOVED) {
             node = ldns_rbtree_next(node);
-            lock_basic_lock(&zone->zone_lock);
-            delzone = zonelist_del_zone(engine->zonelist, zone);
-            if (delzone) {
-                lock_basic_lock(&engine->taskq->schedule_lock);
-                task = unschedule_task(engine->taskq,
-                    (task_type*) zone->task);
-                lock_basic_unlock(&engine->taskq->schedule_lock);
-            }
-            task_cleanup(task);
-            task = NULL;
-            lock_basic_unlock(&zone->zone_lock);
+            pthread_mutex_lock(&zone->zone_lock);
+            zonelist_del_zone(engine->zonelist, zone);
+            schedule_unscheduletask(engine->taskq, schedule_WHATEVER, zone->name);
+            pthread_mutex_unlock(&zone->zone_lock);
             netio_remove_handler(engine->xfrhandler->netio,
                 &zone->xfrd->handler);
             zone_cleanup(zone);
             zone = NULL;
             continue;
         } else if (zone->zl_status == ZONE_ZL_ADDED) {
-            lock_basic_lock(&zone->zone_lock);
-            ods_log_assert(!zone->task);
+            pthread_mutex_lock(&zone->zone_lock);
             /* set notify nameserver command */
             if (engine->config->notify_command && !zone->notify_ns) {
                 set_notify_ns(zone, engine->config->notify_command);
             }
-            /* create task */
-            task = task_create(TASK_SIGNCONF, now, zone);
-            lock_basic_unlock(&zone->zone_lock);
-            if (!task) {
-                ods_log_crit("[%s] unable to create task for zone %s: "
-                    "task_create() failed", engine_str, zone->name);
-                node = ldns_rbtree_next(node);
-                continue;
-            }
+            pthread_mutex_unlock(&zone->zone_lock);
         }
         /* load adapter config */
         status = adapter_load_config(zone->adinbound);
@@ -823,21 +668,9 @@ engine_update_zones(engine_type* engine, ods_status zl_changed)
         warnings += dnsconfig_zone(engine, zone);
 
         if (zone->zl_status == ZONE_ZL_ADDED) {
-            ods_log_assert(task);
-            lock_basic_lock(&zone->zone_lock);
-            zone->task = task;
-            lock_basic_unlock(&zone->zone_lock);
-            /* TODO: task is reachable from other threads by means of
-             * zone->task. To fix this we need to nest the locks. But
-             * first investigate any possible deadlocks. */
-            lock_basic_lock(&engine->taskq->schedule_lock);
-            status = schedule_task(engine->taskq, task, 0);
-            lock_basic_unlock(&engine->taskq->schedule_lock);
+            schedule_scheduletask(engine->taskq, TASK_SIGNCONF, zone->name, zone, &zone->zone_lock, 0);
         } else if (zl_changed == ODS_STATUS_OK) {
-            /* always try to update signconf */
-            lock_basic_lock(&zone->zone_lock);
-            status = zone_reschedule_task(zone, engine->taskq, TASK_SIGNCONF);
-            lock_basic_unlock(&zone->zone_lock);
+            schedule_scheduletask(engine->taskq, TASK_FORCESIGNCONF, zone->name, zone, &zone->zone_lock, 0);
         }
         if (status != ODS_STATUS_OK) {
             ods_log_crit("[%s] unable to schedule task for zone %s: %s",
@@ -848,7 +681,7 @@ engine_update_zones(engine_type* engine, ods_status zl_changed)
         }
         node = ldns_rbtree_next(node);
     }
-    lock_basic_unlock(&engine->zonelist->zl_lock);
+    pthread_mutex_unlock(&engine->zonelist->zl_lock);
     if (engine->dnshandler) {
         ods_log_debug("[%s] forward notify for all zones", engine_str);
         dnshandler_fwd_notify(engine->dnshandler,
@@ -885,35 +718,25 @@ engine_recover(engine_type* engine)
     ods_log_assert(engine->zonelist);
     ods_log_assert(engine->zonelist->zones);
 
-    lock_basic_lock(&engine->zonelist->zl_lock);
+    pthread_mutex_lock(&engine->zonelist->zl_lock);
     /* [LOCK] zonelist */
     node = ldns_rbtree_first(engine->zonelist->zones);
     while (node && node != LDNS_RBTREE_NULL) {
         zone = (zone_type*) node->data;
 
         ods_log_assert(zone->zl_status == ZONE_ZL_ADDED);
-        lock_basic_lock(&zone->zone_lock);
-        status = zone_recover2(zone);
+        pthread_mutex_lock(&zone->zone_lock);
+        status = zone_recover2(engine, zone);
         if (status == ODS_STATUS_OK) {
-            ods_log_assert(zone->task);
             ods_log_assert(zone->db);
             ods_log_assert(zone->signconf);
             /* notify nameserver */
             if (engine->config->notify_command && !zone->notify_ns) {
                 set_notify_ns(zone, engine->config->notify_command);
             }
-            /* schedule task */
-            lock_basic_lock(&engine->taskq->schedule_lock);
-            /* [LOCK] schedule */
-            status = schedule_task(engine->taskq, (task_type*) zone->task, 0);
-            /* [UNLOCK] schedule */
-            lock_basic_unlock(&engine->taskq->schedule_lock);
-
             if (status != ODS_STATUS_OK) {
                 ods_log_crit("[%s] unable to schedule task for zone %s: %s",
                     engine_str, zone->name, ods_status2str(status));
-                task_cleanup((task_type*) zone->task);
-                zone->task = NULL;
                 result = ODS_STATUS_OK; /* will trigger update zones */
             } else {
                 ods_log_debug("[%s] recovered zone %s", engine_str,
@@ -928,11 +751,11 @@ engine_recover(engine_type* engine)
             }
             result = ODS_STATUS_OK; /* will trigger update zones */
         }
-        lock_basic_unlock(&zone->zone_lock);
+        pthread_mutex_unlock(&zone->zone_lock);
         node = ldns_rbtree_next(node);
     }
     /* [UNLOCK] zonelist */
-    lock_basic_unlock(&engine->zonelist->zl_lock);
+    pthread_mutex_unlock(&engine->zonelist->zl_lock);
     return result;
 }
 
@@ -942,10 +765,8 @@ engine_recover(engine_type* engine)
  *
  */
 int
-engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
-    int info, int single_run)
+engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize, int info)
 {
-    engine_type* engine = NULL;
     ods_status zl_changed = ODS_STATUS_UNCHANGED;
     ods_status status = ODS_STATUS_OK;
 
@@ -971,35 +792,27 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
     if (!util_check_pidfile(engine->config->pid_filename)) {
         exit(1);
     }
-    /* open log */
-    ods_log_init("ods-signerd", engine->config->use_syslog,
-        engine->config->log_filename, engine->config->verbosity);
     /* setup */
-    status = engine_setup(engine);
+    status = engine_setup();
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] setup failed: %s", engine_str,
             ods_status2str(status));
-        if (status != ODS_STATUS_WRITE_PIDFILE_ERR) {
-            /* command handler had not yet been started */
-            engine->cmdhandler_done = 1;
-        }
         goto earlyexit;
     }
 
     /* run */
     while (engine->need_to_exit == 0) {
         /* update zone list */
-        lock_basic_lock(&engine->zonelist->zl_lock);
+        pthread_mutex_lock(&engine->zonelist->zl_lock);
         zl_changed = zonelist_update(engine->zonelist,
             engine->config->zonelist_filename);
         engine->zonelist->just_removed = 0;
         engine->zonelist->just_added = 0;
         engine->zonelist->just_updated = 0;
-        lock_basic_unlock(&engine->zonelist->zl_lock);
+        pthread_mutex_unlock(&engine->zonelist->zl_lock);
         /* start/reload */
         if (engine->need_to_reload) {
             ods_log_info("[%s] signer reloading", engine_str);
-            fifoq_wipe(engine->signq);
             engine->need_to_reload = 0;
         } else {
             ods_log_info("[%s] signer started (version %s), pid %u",
@@ -1029,13 +842,13 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize,
             ods_log_error("[%s] opening hsm failed (for engine run)", engine_str);
             break;
         }
-        engine_run(engine, single_run);
+        engine_run(engine);
         hsm_close();
     }
 
     /* shutdown */
     ods_log_info("[%s] signer shutdown", engine_str);
-    engine_stop_cmdhandler(engine);
+    cmdhandler_stop(engine->cmdhandler);
     engine_stop_xfrhandler(engine);
     engine_stop_dnshandler(engine);
 
@@ -1063,31 +876,28 @@ earlyexit:
 void
 engine_cleanup(engine_type* engine)
 {
-    size_t i = 0;
+    int i;
+    int numTotalWorkers;
 
     if (!engine) {
         return;
     }
-    if (engine->workers && engine->config) {
-        for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
+    ods_log_assert(engine->config);
+
+    numTotalWorkers = engine->config->num_worker_threads + engine->config->num_signer_threads;
+    if (engine->workers) {
+        for (i=0; i < (size_t) numTotalWorkers; i++) {
             worker_cleanup(engine->workers[i]);
         }
         free(engine->workers);
     }
-    if (engine->drudgers && engine->config) {
-       for (i=0; i < (size_t) engine->config->num_signer_threads; i++) {
-           worker_cleanup(engine->drudgers[i]);
-       }
-       free(engine->drudgers);
-    }
     zonelist_cleanup(engine->zonelist);
     schedule_cleanup(engine->taskq);
-    fifoq_cleanup(engine->signq);
     cmdhandler_cleanup(engine->cmdhandler);
     dnshandler_cleanup(engine->dnshandler);
     xfrhandler_cleanup(engine->xfrhandler);
     engine_config_cleanup(engine->config);
-    lock_basic_destroy(&engine->signal_lock);
-    lock_basic_off(&engine->signal_cond);
+    pthread_mutex_destroy(&engine->signal_lock);
+    pthread_cond_destroy(&engine->signal_cond);
     free(engine);
 }

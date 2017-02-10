@@ -20,10 +20,9 @@ AM_CFLAGS = \
 
 enforcerdir =	@libdir@/opendnssec/enforcer
 
-dist_bin_SCRIPTS = ods-ksmutil
 bin_PROGRAMS = ods-kaspcheck
 sbin_PROGRAMS =	ods-enforcerd ods-enforcer ods-enforcer-db-setup ods-migrate
-dist_man1_MANS = utils/ods-kaspcheck.1
+#dist_man1_MANS = utils/ods-kaspcheck.1
 
 BACKEND_SOURCES_CUSTOM =
 BACKEND_LDFLAGS_CUSTOM = -lm
@@ -44,18 +43,14 @@ endif
 ods_enforcerd_SOURCES = \
 	ods-enforcerd.c \
 	daemon/cfg.c daemon/cfg.h \
-	daemon/cmdhandler.c daemon/cmdhandler.h \
+	daemon/enforcercommands.c daemon/enforcercommands.h \
 	daemon/engine.c daemon/engine.h \
-	daemon/signal.c daemon/signal.h \
-	daemon/worker.c daemon/worker.h \
 	daemon/help_cmd.c daemon/help_cmd.h \
 	daemon/time_leap_cmd.c daemon/time_leap_cmd.h \
 	daemon/queue_cmd.c daemon/queue_cmd.h \
 	daemon/verbosity_cmd.c daemon/verbosity_cmd.h \
 	daemon/ctrl_cmd.c daemon/ctrl_cmd.h \
 	parser/confparser.c parser/confparser.h \
-	scheduler/schedule.c scheduler/schedule.h \
-	scheduler/task.c scheduler/task.h \
 	policy/policy_export_cmd.c policy/policy_export_cmd.h \
 	policy/policy_purge_cmd.c policy/policy_purge_cmd.h \
 	policy/policy_export.c policy/policy_export.h \
@@ -92,7 +87,7 @@ ods_enforcerd_SOURCES = \
 	keystate/keystate_ds_submit_task.h \
 	signconf/signconf_cmd.c signconf/signconf_cmd.h \
 	signconf/signconf_task.c signconf/signconf_task.h \
-	signconf/signconf.c signconf/signconf.h \
+	signconf/signconf_xml.c signconf/signconf_xml.h \
 	enforcer/autostart_cmd.c enforcer/autostart_cmd.h \
 	enforcer/enforce_cmd.c enforcer/enforce_cmd.h \
 	enforcer/enforce_task.c enforcer/enforce_task.h \
@@ -112,7 +107,7 @@ ods_enforcerd_SOURCES = \
 	db/db_value.c db/db_value.h \
 	db/db_join.c db/db_join.h \
 	db/db_error.h \
-	db/zone.c db/zone_ext.c db/zone_ext.h db/zone.h \
+	db/zone_db.c db/zone_db_ext.c db/zone_db_ext.h db/zone_db.h \
 	db/key_data.c db/key_data_ext.c db/key_data_ext.h db/key_data.h \
 	db/key_state.c db/key_state_ext.c db/key_state_ext.h db/key_state.h \
 	db/key_dependency.c db/key_dependency_ext.c db/key_dependency_ext.h db/key_dependency.h \
@@ -136,7 +131,6 @@ ods_migrate_SOURCES = \
 	ods-migrate.c \
 	daemon/cfg.c daemon/cfg.h \
 	daemon/engine.h \
-	daemon/signal.c daemon/signal.h \
 	parser/confparser.c parser/confparser.h \
 	utils/kc_helper.c utils/kc_helper.h
 
@@ -146,8 +140,10 @@ ods_migrate_LDADD = \
 	@LDNS_LIBS@ \
 	@XML2_LIBS@ \
 	@PTHREAD_LIBS@ \
-	@RT_LIBS@ \
-	@ENFORCER_DB_LIBS@
+	@RT_LIBS@
+
+ods_migrate_LDFLAGS = \
+	-Wl,--no-as-needed @ENFORCER_DB_LIBS@ -Wl,--as-needed
 
 ods_enforcerd_LDFLAGS = \
 	$(BACKEND_LDFLAGS_CUSTOM)
@@ -180,7 +176,7 @@ ods_enforcer_db_setup_LDADD = \
 ods_enforcer_db_setup_LDFLAGS = \
 	$(BACKEND_LDFLAGS_CUSTOM)
 
-ods_kaspcheck_SOURCES = utils/kaspcheck.c utils/kaspcheck.h utils/kc_helper.c utils/kc_helper.h
+ods_kaspcheck_SOURCES = utils/kaspcheck.c utils/kc_helper.c utils/kc_helper.h
 
 ods_kaspcheck_LDADD = $(LIBHSM) $(LIBCOMPAT)
 ods_kaspcheck_LDADD += @XML2_LIBS@

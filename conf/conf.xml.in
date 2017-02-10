@@ -36,16 +36,12 @@
 	</Common>
 
 	<Enforcer>
-<!--
-		<Privileges>
-			<User>opendnssec</User>
-			<Group>opendnssec</Group>
-		</Privileges>
--->
+<?xmlif if condition privdrop="user|group|both"?>		<Privileges>
+<?xmlif fi?><?xmlif if condition privdrop="user|both"?>			<User>@INSTALLATIONUSER@</User>
+<?xmlif fi?><?xmlif if condition privdrop="group|both"?>			<Group>@INSTALLATIONGROUP@</Group>
+<?xmlif fi?><?xmlif if condition privdrop="user|group|both"?>		</Privileges><?xmlif fi?>
 
 		<Datastore><SQLite>@OPENDNSSEC_STATE_DIR@/kasp.db</SQLite></Datastore>
-		<!--The enforcer interval parameter is no long used in 2.0 and will be deprecated in 2.1 -->
-		<Interval>PT3600S</Interval>
 		<!-- <ManualKeyGeneration/> -->
 		<AutomaticKeyGenerationPeriod>P1Y</AutomaticKeyGenerationPeriod>
 		<!-- <RolloverNotification>P14D</RolloverNotification> -->
@@ -60,12 +56,10 @@
 	</Enforcer>
 
 	<Signer>
-<!--
-		<Privileges>
-			<User>opendnssec</User>
-			<Group>opendnssec</Group>
-		</Privileges>
--->
+<?xmlif if condition privdrop="user|group|both"?>		<Privileges>
+<?xmlif fi?><?xmlif if condition privdrop="user|both"?>			<User>@INSTALLATIONUSER@</User>
+<?xmlif fi?><?xmlif if condition privdrop="group|both"?>			<Group>@INSTALLATIONGROUP@</Group>
+<?xmlif fi?><?xmlif if condition privdrop="user|group|both"?>		</Privileges><?xmlif fi?>
 
 		<WorkingDirectory>@OPENDNSSEC_STATE_DIR@/signer</WorkingDirectory>
 		<WorkerThreads>4</WorkerThreads>
@@ -73,6 +67,9 @@
 		<SignerThreads>4</SignerThreads>
 -->
 
+<!-- Multiple interfaces can be specified in the <Listener> section. OpenDNSSEC
+     will bind() to the first interface. I.e. outgoing packets will have the
+     source address of the first mentioned interface. -->
 <!--
 		<Listener>
 			<Interface><Port>53</Port></Interface>

@@ -1,0 +1,208 @@
+####
+# Copyright (c) 2016 NLNet Labs
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+# IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
+# DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+# GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+# IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+# OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+# IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+####
+
+_enforcer()
+{
+    COMPREPLY=()
+    cmds=()
+    COMPGEN_OPT=""
+    PID=`pidof ods-enforcerd`
+
+    case "${COMP_WORDS[COMP_CWORD-1]}" in
+        *"--zone"*)
+            if [ -z "$PID" ]; then
+                cmds="ZONE_NAME_HERE"
+            else
+                cmds=`${COMP_WORDS[0]} zone list |tail -n +4|awk '{ print $1 }' > /dev/null`
+            fi;;
+        *"--policy"*)
+            if [ -z "$PID" ]; then
+                cmds="POLICY_NAME_HERE"
+            else
+                cmds=`${COMP_WORDS[0]} policy list |tail -n +2|awk '{ print $1 }'`
+            fi;;
+        *"--socket"*);&
+        *"--input"*);&
+        *"--output"*);&
+        *"--file"*);&
+        *"--signerconf"*)
+            COMPGEN_OPT="-f";; ## compgen will search files
+        *"--in-type"*);&
+        *"--out-type"*)
+            cmds="DNS File";;
+        *"--keystate"*)
+            cmds="generate publish ready active retire";;
+        *"--keytype"*)
+            cmds="KSK ZSK CSK";;
+        *"--cka_id"*)
+            if [ -z "$PID" ]; then
+                cmds="CKA_ID_NAME_HERE"
+            else
+                cmds=`${COMP_WORDS[0]} key list -p -d -a | cut -f 9 -d ";"`
+            fi;;
+        *"--repository"*)
+            if [ -z "$PID" ]; then
+                cmds="REPOSITORY_NAME_HERE"
+            else
+                cmds=`${COMP_WORDS[0]} repository list |tail -n +3|awk '{ print $1 }'`
+            fi;;
+        *"--keytag"*)
+            if [ -z "$PID" ]; then
+                cmds="KEY_TAG_HERE"
+            else
+                cmds=`${COMP_WORDS[0]} key list -p -v -a | cut -f 9 -d ";"`
+            fi;;
+        #*"--bits"*)
+        #*"--algorithm"*)
+        #*"--inception_time"*)
+        *"--duration"*)
+            cmds="P0Y02M0D";;
+    esac
+
+    if [ ! -z "$cmds" ] || [ ! -z "$COMPGEN_OPT" ]; then
+        COMPREPLY=( $(compgen $COMPGEN_OPT -W "${cmds}" -- ${COMP_WORDS[COMP_CWORD]}) )
+        return 0
+    fi
+
+    all_cmds="update repository policy zone zonelist key rollover \
+        backup enforce signconf queue flush start running reload stop \
+        verbosity help --help --version --socket"
+    if [ $COMP_CWORD -eq 1 ]; then
+        cmds=$all_cmds
+    elif [ $COMP_CWORD -eq 2 ]; then
+        case "${COMP_WORDS[1]}" in
+            *"update"*)
+                cmds="conf repositorylist all";;
+            *"repository"*)
+                cmds="list";;
+            *"policy"*)
+                cmds="list export import purge resalt";;
+            *"zonelist"*)
+                cmds="export import";;
+            *"zone"*)
+                cmds="list add delete";;
+            *"key"*)
+                cmds="list export import ds-submit ds-seen ds-retract \
+                    ds-gone generate purge rollover";;
+            *"rollover"*)
+                cmds="list";;
+            *"backup"*)
+                cmds="list prepare commit rollback";;
+            *"enforce"*)
+                cmds="--zone";;
+            *"verbosity"*)
+                cmds=`seq 0 5`;;
+            *"help"*)
+                cmds=$all_cmds;;
+        esac
+    else
+        case "${COMP_WORDS[@]:1}" in
+            *"policy export"*)
+                cmds="--policy --all";;
+            *"policy import"*)
+                cmds="--remove-missing-policies";;
+            *"zone add"*)
+                cmds="--zone --policy --signerconf --in-type --input \
+                    --out-type --output --xml --suspend";;
+            *"zone delete"*)
+                cmds="--zone --all --xml";;
+            *"zonelist import"*)
+                cmds="--remove-missing-zones --file";;
+            *"key list"*)
+                cmds="--verbose --debug --parsable --zone --keystate --all";;
+            *"key export"*)
+                cmds="--zone --keystate --keytype --ds";;
+            *"key import"*)
+                cmds="--cka_id --repository --zone --bits --algorithm \
+                    --keystate --keytype --inception_time";;
+            *"key ds-seen"*)
+                cmds="--zone --keytag --cka_id --all";;
+            *"key ds-retract"*);&
+            *"key ds-gone"*);&
+            *"key ds-submit"*)
+                cmds="--zone --keytag --cka_id";;
+            *"key generate"*)
+                cmds="--duration --policy --all";;
+            *"key purge"*)
+                cmds="--policy --zone";;
+            *"key rollover"*)
+                cmds="--zone --policy --keytype";;
+            *"rollover list"*)
+                cmds="--zone";;
+            *"backup list"*);&
+            *"backup prepare"*);&
+            *"backup commit"*);&
+            *"backup rollback"*)
+                cmds="--repository";;
+        esac
+    fi
+    COMPREPLY=( $(compgen -W "${cmds}" -- ${COMP_WORDS[COMP_CWORD]}) )
+    return 0
+}
+
+_signer()
+{
+    COMPREPLY=()
+    cmds=()
+
+    case "${COMP_WORDS[COMP_CWORD-1]}" in
+        *"--serial"*)
+            cmds="SERIAL_HERE";;
+    esac
+    if [ ! -z "$cmds" ]; then
+        COMPREPLY=( $(compgen -W "${cmds}" -- ${COMP_WORDS[COMP_CWORD]}) )
+        return 0
+    fi
+
+    if [ $COMP_CWORD -eq 1 ]; then
+        cmds="zones sign clear queue flush update retransfer start running \
+            reload stop verbosity help"
+    else
+        PID=`pidof ods-signerd`
+        if [ -z "$PID" ]; then
+            ZONES="ZONE_NAME_HERE"
+        else
+            ZONES=`${COMP_WORDS[0]} zones|tail -n +2| awk '{print $2}'`
+        fi
+        case "${COMP_WORDS[1]}" in
+            *"sign"*)
+                cmds="--serial --all $ZONES";;
+            *"update"*)
+                cmds="--all $ZONES";;
+            *"clear"*);&
+            *"retransfer"*)
+                cmds=" $ZONES";;
+            *"verbosity"*)
+                cmds=`seq 0 5`;;
+        esac
+    fi
+    COMPREPLY=( $(compgen -W "${cmds}" -- ${COMP_WORDS[COMP_CWORD]}) )
+    return 0
+}
+
+complete -F _enforcer ods-enforcer
+complete -F _signer ods-signer
+

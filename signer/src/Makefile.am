@@ -23,19 +23,15 @@ ods_signerd_SOURCES=		ods-signerd.c \
 				adapter/adfile.c adapter/adfile.h \
 				adapter/adutil.c adapter/adutil.h \
 				daemon/cfg.c daemon/cfg.h \
-				daemon/cmdhandler.c daemon/cmdhandler.h \
+				daemon/signercommands.c daemon/signercommands.h \
 				daemon/dnshandler.c daemon/dnshandler.h \
 				daemon/xfrhandler.c daemon/xfrhandler.h \
 				daemon/engine.c daemon/engine.h \
-				daemon/signal.c daemon/signal.h \
-				daemon/worker.c daemon/worker.h \
+				daemon/signertasks.c daemon/signertasks.h \
 				parser/addnsparser.c parser/addnsparser.h \
 				parser/confparser.c parser/confparser.h \
 				parser/signconfparser.c parser/signconfparser.h \
 				parser/zonelistparser.c parser/zonelistparser.h \
-				scheduler/fifoq.c scheduler/fifoq.h \
-				scheduler/schedule.c scheduler/schedule.h \
-				scheduler/task.c scheduler/task.h \
 				signer/backup.c signer/backup.h \
 				hsm.c hsm.h \
 				signer/denial.c signer/denial.h \
@@ -72,4 +68,4 @@ ods_signer_SOURCES=		ods-signer.c
 
 ods_signer_LDADD=		$(LIBHSM)
 ods_signer_LDADD+=		$(LIBCOMPAT)
-ods_signer_LDADD+=		@LDNS_LIBS@ @XML2_LIBS@
+ods_signer_LDADD+=		@LDNS_LIBS@ @XML2_LIBS@ @READLINE_LIBS@

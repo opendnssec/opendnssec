@@ -31,7 +31,8 @@
 
 #include <pthread.h>
 
-#include "daemon/cmdhandler.h"
+#include "cmdhandler.h"
+#include "daemon/enforcercommands.h"
 #include "daemon/engine.h"
 #include "file.h"
 #include "log.h"
@@ -71,7 +72,8 @@ check_all(int sockfd, engine_type* engine)
 	int error = 1;
 
 	if (check_conf(engine->config->cfg_filename, &kasp, 
-			&zonelist, &replist, &repcount, 0))
+			&zonelist, &replist, &repcount,
+			(ods_log_verbosity() >= 3)))
 		ods_log_error_and_printf(sockfd, module_str, 
 			"Unable to validate '%s' consistency.", 
 			engine->config->cfg_filename);
@@ -96,19 +98,14 @@ check_all(int sockfd, engine_type* engine)
 }
 
 static int
-handles(const char *cmd, ssize_t n)
-{
-	return ods_check_command(cmd, n, update_all_funcblock()->cmdname)?1:0;
-}
-
-static int
-run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
-	db_connection_t *dbconn)
+run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 {
 	int error;
-	(void)cmd; (void)n;
+        db_connection_t* dbconn = getconnectioncontext(context);
+        engine_type* engine = getglobalcontext(context);
+	(void)cmd;
 
-	ods_log_debug("[%s] %s command", module_str, update_all_funcblock()->cmdname);
+	ods_log_debug("[%s] %s command", module_str, update_all_funcblock.cmdname);
 
 	/*
 	 * Check conf.xml, KASP and zonelist. If there are no errors we stop all
@@ -122,16 +119,8 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 		pthread_mutex_lock(&engine->signal_lock);
 		engine_stop_workers(engine);
 
-		/*
-		 * Update KASP and zonelist, first update without deleting and then
-		 * update with deleting. This is for when a zone has changed policy and
-		 * the policy did not exist before.
-		 * NOTE: Errors are ignored!
-		 */
 		policy_import(sockfd, engine, dbconn, 0);
 		zonelist_import(sockfd, engine, dbconn, 0, NULL);
-		policy_import(sockfd, engine, dbconn, 1);
-		zonelist_import(sockfd, engine, dbconn, 1, NULL);
 
 		/*
 		 * Mark the engine for reload, signal it and start it again
@@ -144,12 +133,6 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	return error;
 }
 
-static struct cmd_func_block funcblock = {
-	"update all", &usage, &help, &handles, &run
+struct cmd_func_block update_all_funcblock = {
+	"update all", &usage, &help, NULL, &run
 };
-
-struct cmd_func_block*
-update_all_funcblock(void)
-{
-	return &funcblock;
-}

@@ -184,6 +184,7 @@ memberdestroy(void* dummy, void* member)
     free((void*) sig->key_locator);
     sig->key_locator = NULL;
     /* The rrs may still be in use by IXFRs so cannot do ldns_rr_free(sig->rr); */
+    ldns_rr_free(sig->rr);
     sig->owner = NULL;
     sig->rr = NULL;
     return 0;
@@ -325,8 +326,8 @@ rrset_del_rr(rrset_type* rrset, uint16_t rrnum)
     ods_log_assert(rrnum < rrset->rr_count);
 
     log_rr(rrset->rrs[rrnum].rr, "-RR", LOG_DEEEBUG);
-    rrset->rrs[rrnum].owner = NULL;
-    rrset->rrs[rrnum].rr = NULL;
+    rrset->rrs[rrnum].owner = NULL; /* who owns owner? */
+    ldns_rr_free(rrset->rrs[rrnum].rr);
     while (rrnum < rrset->rr_count-1) {
         rrset->rrs[rrnum] = rrset->rrs[rrnum+1];
         rrnum++;
@@ -358,27 +359,30 @@ rrset_diff(rrset_type* rrset, unsigned is_ixfr, unsigned more_coming)
         return;
     }
     zone = (zone_type*) rrset->zone;
+    /* CAUTION: both iterator and condition (implicit) are changed
+     * within the loop. */
     for (i=0; i < rrset->rr_count; i++) {
         if (rrset->rrs[i].is_added) {
             if (!rrset->rrs[i].exists) {
                 /* ixfr +RR */
-                lock_basic_lock(&zone->ixfr->ixfr_lock);
-                ixfr_add_rr(zone->ixfr, rrset->rrs[i].rr);
-                lock_basic_unlock(&zone->ixfr->ixfr_lock);
+                if (zone->db->is_initialized) {
+                    pthread_mutex_lock(&zone->ixfr->ixfr_lock);
+                    ixfr_add_rr(zone->ixfr, rrset->rrs[i].rr);
+                    pthread_mutex_unlock(&zone->ixfr->ixfr_lock);
+                }
                 del_sigs = 1;
             }
             rrset->rrs[i].exists = 1;
-            if ((rrset->rrtype == LDNS_RR_TYPE_DNSKEY ||
-                 rrset->rrtype == LDNS_RR_TYPE_NSEC3PARAMS) && more_coming) {
+            if ((rrset->rrtype == LDNS_RR_TYPE_DNSKEY) && more_coming) {
                 continue;
             }
             rrset->rrs[i].is_added = 0;
         } else if (!is_ixfr || rrset->rrs[i].is_removed) {
-            if (rrset->rrs[i].exists) {
+            if (rrset->rrs[i].exists && zone->db->is_initialized) {
                 /* ixfr -RR */
-                lock_basic_lock(&zone->ixfr->ixfr_lock);
+                pthread_mutex_lock(&zone->ixfr->ixfr_lock);
                 ixfr_del_rr(zone->ixfr, rrset->rrs[i].rr);
-                lock_basic_unlock(&zone->ixfr->ixfr_lock);
+                pthread_mutex_unlock(&zone->ixfr->ixfr_lock);
             }
             rrset->rrs[i].exists = 0;
             rrset_del_rr(rrset, i);
@@ -401,9 +405,11 @@ rrset_drop_rrsigs(zone_type* zone, rrset_type* rrset)
     rrsig_type* rrsig;
     while((rrsig = collection_iterator(rrset->rrsigs))) {
         /* ixfr -RRSIG */
-        lock_basic_lock(&zone->ixfr->ixfr_lock);
-        ixfr_del_rr(zone->ixfr, rrsig->rr);
-        lock_basic_unlock(&zone->ixfr->ixfr_lock);
+        if (zone->db->is_initialized) {
+            pthread_mutex_lock(&zone->ixfr->ixfr_lock);
+            ixfr_del_rr(zone->ixfr, rrsig->rr);
+            pthread_mutex_unlock(&zone->ixfr->ixfr_lock);
+        }
         collection_del_cursor(rrset->rrsigs);
     }
 }
@@ -495,9 +501,11 @@ recycle_drop_sig:
         if (drop_sig) {
             /* A rule mismatched, refresh signature */
             /* ixfr -RRSIG */
-            lock_basic_lock(&zone->ixfr->ixfr_lock);
-            ixfr_del_rr(zone->ixfr, rrsig->rr);
-            lock_basic_unlock(&zone->ixfr->ixfr_lock);
+            if (zone->db->is_initialized) {
+                pthread_mutex_lock(&zone->ixfr->ixfr_lock);
+                ixfr_del_rr(zone->ixfr, rrsig->rr);
+                pthread_mutex_unlock(&zone->ixfr->ixfr_lock);
+            }
             collection_del_cursor(rrset->rrsigs);
         } else {
             /* All rules ok, recycle signature */
@@ -522,6 +530,25 @@ rrset_sigalgo(rrset_type* rrset, uint8_t algorithm)
             if (algorithm == ldns_rdf2native_int8(ldns_rr_rrsig_algorithm(rrsig->rr))) {
                 match = 1;
             }
+        }
+    }
+    return match;
+}
+
+
+/**
+ * Count the signatures with this algorithm for this RRset?
+ *
+ */
+static int
+rrset_sigalgo_count(rrset_type* rrset, uint8_t algorithm)
+{
+    rrsig_type* rrsig;
+    int match = 0;
+    if (!rrset) return 0;
+    while((rrsig = collection_iterator(rrset->rrsigs))) {
+        if (algorithm == ldns_rdf2native_int8(ldns_rr_rrsig_algorithm(rrsig->rr))) {
+            match++;
         }
     }
     return match;
@@ -563,8 +590,6 @@ rrset2rrlist(rrset_type* rrset)
             log_rr(rrset->rrs[i].rr, "RR does not exist", LOG_WARNING);
             continue;
         }
-        /* clone if you want to keep the original format in the signed zone */
-        ldns_rr2canonical(rrset->rrs[i].rr);
         ret = (int) ldns_rr_list_push_rr(rr_list, rrset->rrs[i].rr);
         if (!ret) {
             ldns_rr_list_free(rr_list);
@@ -634,13 +659,16 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
     uint32_t reusedsigs = 0;
     ldns_rr* rrsig = NULL;
     ldns_rr_list* rr_list = NULL;
+    ldns_rr_list* rr_list_clone = NULL;
     const char* locator = NULL;
     time_t inception = 0;
     time_t expiration = 0;
-    size_t i = 0;
+    size_t i = 0, j;
     domain_type* domain = NULL;
     ldns_rr_type dstatus = LDNS_RR_TYPE_FIRST;
     ldns_rr_type delegpt = LDNS_RR_TYPE_FIRST;
+    uint8_t algorithm = 0;
+    int sigcount, keycount;
 
     ods_log_assert(ctx);
     ods_log_assert(rrset);
@@ -686,6 +714,9 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
         ldns_rr_list_free(rr_list);
         return ODS_STATUS_OK;
     }
+    /* Use rr_list_clone for signing, keep the original rr_list untouched for case preservation */
+    rr_list_clone = ldns_rr_list_clone(rr_list);
+
     /* Calculate signature validity */
     rrset_sigvalid_period(zone->signconf, rrset->rrtype, signtime,
          &inception, &expiration);
@@ -705,10 +736,25 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
         if (rrset_siglocator(rrset, zone->signconf->keys->keys[i].locator)) {
             continue;
         }
-        if (rrset->rrtype != LDNS_RR_TYPE_DNSKEY &&
-	    rrset_sigalgo(rrset, zone->signconf->keys->keys[i].algorithm)) {
-            continue;
+
+        /** We know this key doesn't sign the set, but only if 
+         * n_sig < n_active_keys we should sign. If we already counted active
+         * keys for this algorithm sjip counting step */
+        keycount = 0;
+        if (algorithm != zone->signconf->keys->keys[i].algorithm) {
+            algorithm = zone->signconf->keys->keys[i].algorithm;
+            for (j = 0; j < zone->signconf->keys->count; j++) {
+                if (zone->signconf->keys->keys[j].algorithm == algorithm &&
+                        zone->signconf->keys->keys[j].zsk) /* is active */
+                {
+                    keycount++;
+                }
+            }
         }
+        sigcount = rrset_sigalgo_count(rrset, algorithm);
+        if (rrset->rrtype != LDNS_RR_TYPE_DNSKEY && sigcount >= keycount)
+            continue;
+
         /* If key has no locator, and should be pre-signed dnskey RR, skip */
         if (zone->signconf->keys->keys[i].ksk && zone->signconf->keys->keys[i].locator == NULL) {
             continue;
@@ -717,12 +763,13 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
         /* Sign the RRset with this key */
         ods_log_deeebug("[%s] signing RRset[%i] with key %s", rrset_str,
             rrset->rrtype, zone->signconf->keys->keys[i].locator);
-        rrsig = lhsm_sign(ctx, rr_list, &zone->signconf->keys->keys[i],
+        rrsig = lhsm_sign(ctx, rr_list_clone, &zone->signconf->keys->keys[i],
             zone->apex, inception, expiration);
         if (!rrsig) {
             ods_log_crit("[%s] unable to sign RRset[%i]: lhsm_sign() failed",
                 rrset_str, rrset->rrtype);
             ldns_rr_list_free(rr_list);
+            ldns_rr_list_free(rr_list_clone);
             return ODS_STATUS_HSM_ERR;
         }
         /* Add signature */
@@ -731,9 +778,11 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
             zone->signconf->keys->keys[i].flags);
         newsigs++;
         /* ixfr +RRSIG */
-        lock_basic_lock(&zone->ixfr->ixfr_lock);
-        ixfr_add_rr(zone->ixfr, rrsig);
-        lock_basic_unlock(&zone->ixfr->ixfr_lock);
+        if (zone->db->is_initialized) {
+            pthread_mutex_lock(&zone->ixfr->ixfr_lock);
+            ixfr_add_rr(zone->ixfr, rrsig);
+            pthread_mutex_unlock(&zone->ixfr->ixfr_lock);
+        }
     }
     if(rrset->rrtype == LDNS_RR_TYPE_DNSKEY && zone->signconf->dnskey_signature) {
         for(i=0; zone->signconf->dnskey_signature[i]; i++) {
@@ -741,26 +790,30 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
             if ((status = rrset_getliteralrr(&rrsig, zone->signconf->dnskey_signature[i], duration2time(zone->signconf->dnskey_ttl), zone->apex)) != ODS_STATUS_OK) {
                     ods_log_error("[%s] unable to publish dnskeys for zone %s: "
                             "error decoding literal dnskey", rrset_str, zone->name);
+                    ldns_rr_list_deep_free(rr_list_clone);
                     return status;
             }
             /* Add signature */
             rrset_add_rrsig(rrset, rrsig, NULL, 0);
             newsigs++;
             /* ixfr +RRSIG */
-            lock_basic_lock(&zone->ixfr->ixfr_lock);
-            ixfr_add_rr(zone->ixfr, rrsig);
-            lock_basic_unlock(&zone->ixfr->ixfr_lock);            
+            if (zone->db->is_initialized) {
+                pthread_mutex_lock(&zone->ixfr->ixfr_lock);
+                ixfr_add_rr(zone->ixfr, rrsig);
+                pthread_mutex_unlock(&zone->ixfr->ixfr_lock);
+            }
         }
     }
     /* RRset signing completed */
     ldns_rr_list_free(rr_list);
-    lock_basic_lock(&zone->stats->stats_lock);
+    ldns_rr_list_deep_free(rr_list_clone);
+    pthread_mutex_lock(&zone->stats->stats_lock);
     if (rrset->rrtype == LDNS_RR_TYPE_SOA) {
         zone->stats->sig_soa_count += newsigs;
     }
     zone->stats->sig_count += newsigs;
     zone->stats->sig_reuse += reusedsigs;
-    lock_basic_unlock(&zone->stats->stats_lock);
+    pthread_mutex_unlock(&zone->stats->stats_lock);
     return ODS_STATUS_OK;
 }
 

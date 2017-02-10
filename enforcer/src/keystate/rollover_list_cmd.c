@@ -28,10 +28,12 @@
  */
 
 #include "config.h"
+#include <getopt.h>
 
-#include "db/zone.h"
+#include "db/zone_db.h"
 #include "daemon/engine.h"
-#include "daemon/cmdhandler.h"
+#include "cmdhandler.h"
+#include "daemon/enforcercommands.h"
 #include "file.h"
 #include "log.h"
 #include "str.h"
@@ -48,7 +50,7 @@ static const char *module_str = "rollover_list_cmd";
  * \return: human readable transition time/event
  */
 static char*
-map_keytime(const zone_t *zone, const key_data_t *key)
+map_keytime(const zone_db_t *zone, const key_data_t *key)
 {
 	time_t t = 0;
 	char ct[26];
@@ -67,9 +69,9 @@ map_keytime(const zone_t *zone, const key_data_t *key)
 	}
 
 	switch (key_data_role(key)) {
-		case KEY_DATA_ROLE_KSK: t = (time_t)zone_next_ksk_roll(zone); break;
-		case KEY_DATA_ROLE_ZSK: t = (time_t)zone_next_zsk_roll(zone); break;
-		case KEY_DATA_ROLE_CSK: t = (time_t)zone_next_csk_roll(zone); break;
+		case KEY_DATA_ROLE_KSK: t = (time_t)zone_db_next_ksk_roll(zone); break;
+		case KEY_DATA_ROLE_ZSK: t = (time_t)zone_db_next_zsk_roll(zone); break;
+		case KEY_DATA_ROLE_CSK: t = (time_t)zone_db_next_csk_roll(zone); break;
 		default: break;
 	}
 	if (!t) return strdup("No roll scheduled");
@@ -80,15 +82,15 @@ map_keytime(const zone_t *zone, const key_data_t *key)
 }
 
 static void
-print_zone(int sockfd, const char* fmt, const zone_t* zone)
+print_zone(int sockfd, const char* fmt, const zone_db_t* zone)
 {
 	key_data_list_t *keylist;
 	const key_data_t *key;
 
-	keylist = zone_get_keys(zone);
+	keylist = zone_db_get_keys(zone);
 	while ((key = key_data_list_next(keylist))) {
 		char *tchange = map_keytime(zone, key);
-		client_printf(sockfd, fmt, zone_name(zone),
+		client_printf(sockfd, fmt, zone_db_name(zone),
 			key_data_role_text(key), tchange);
 		free(tchange);
 	}
@@ -107,15 +109,15 @@ static int
 perform_rollover_list(int sockfd, const char *listed_zone,
 	db_connection_t *dbconn)
 {
-	zone_list_t *zonelist = NULL;
-	zone_t *zone = NULL;
-	const zone_t *zone_walk = NULL;
+	zone_list_db_t *zonelist = NULL;
+	zone_db_t *zone = NULL;
+	const zone_db_t *zone_walk = NULL;
 	const char* fmt = "%-31s %-8s %-30s\n";
 
 	if (listed_zone) {
-		zone = zone_new_get_by_name(dbconn, listed_zone);
+		zone = zone_db_new_get_by_name(dbconn, listed_zone);
 	} else {
-		zonelist = zone_list_new_get(dbconn);
+		zonelist = zone_list_db_new_get(dbconn);
 	}
 
 	if (listed_zone && !zone) {
@@ -135,14 +137,14 @@ perform_rollover_list(int sockfd, const char *listed_zone,
 
 	if (zone) {
 		print_zone(sockfd, fmt, zone);
-		zone_free(zone);
+		zone_db_free(zone);
 		return 0;
 	}
 
-	while ((zone_walk = zone_list_next(zonelist))) {
+	while ((zone_walk = zone_list_db_next(zonelist))) {
 		print_zone(sockfd, fmt, zone_walk);
 	}
-	zone_list_free(zonelist);
+	zone_list_db_free(zonelist);
 	return 0;
 }
 
@@ -165,24 +167,21 @@ help(int sockfd)
 }
 
 static int
-handles(const char *cmd, ssize_t n)
+run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 {
-	return ods_check_command(cmd, n, rollover_list_funcblock()->cmdname)?1:0;
-}
-
-static int
-run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
-	db_connection_t *dbconn)
-{
-	#define NARGV 8
+	#define NARGV 4
 	char buf[ODS_SE_MAXLINE];
 	const char *argv[NARGV];
-	int argc;
+	int argc = 0, long_index = 0, opt = 0;
 	const char *zone = NULL;
-	(void)engine;
+        db_connection_t* dbconn = getconnectioncontext(context);
+
+	static struct option long_options[] = {
+		{"zone", required_argument, 0, 'z'},
+		{0, 0, 0, 0}
+	};
 	
-	ods_log_debug("[%s] %s command", module_str, rollover_list_funcblock()->cmdname);
-	cmd = ods_check_command(cmd, n, rollover_list_funcblock()->cmdname);
+	ods_log_debug("[%s] %s command", module_str, rollover_list_funcblock.cmdname);
 	
 	/* Use buf as an intermediate buffer for the command.*/
 	strncpy(buf, cmd,sizeof(buf));
@@ -190,29 +189,29 @@ run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
 	
 	/* separate the arguments*/
 	argc = ods_str_explode(buf, NARGV, argv);
-	if (argc > NARGV) {
-		ods_log_warning("[%s] too many arguments for %s command",
-						module_str, rollover_list_funcblock()->cmdname);
-		client_printf(sockfd,"too many arguments\n");
+	if (argc == -1) {
+		client_printf_err(sockfd, "too many arguments\n");
+		ods_log_error("[%s] too many arguments for %s command",
+				module_str, rollover_list_funcblock.cmdname);
 		return -1;
 	}
-	
-	(void)ods_find_arg_and_param(&argc,argv,"zone","z",&zone);
-	if (argc) {
-		ods_log_warning("[%s] unknown arguments for %s command",
-						module_str, rollover_list_funcblock()->cmdname);
-		client_printf(sockfd,"unknown arguments\n");
-		return -1;
+
+	optind = 0;
+	while ((opt = getopt_long(argc, (char* const*)argv, "z:", long_options, &long_index)) != -1) {
+		switch (opt) {
+			case 'z':
+				zone = optarg;
+				break;
+			default:
+				client_printf_err(sockfd, "unknown arguments\n");
+				ods_log_error("[%s] unknown arguments for %s command",
+						module_str, rollover_list_funcblock.cmdname);
+				return -1;
+		}
 	}
 	return perform_rollover_list(sockfd, zone, dbconn);
 }
 
-static struct cmd_func_block funcblock = {
-	"rollover list", &usage, &help, &handles, &run
+struct cmd_func_block rollover_list_funcblock = {
+	"rollover list", &usage, &help, NULL, &run
 };
-
-struct cmd_func_block*
-rollover_list_funcblock(void)
-{
-	return &funcblock;
-}

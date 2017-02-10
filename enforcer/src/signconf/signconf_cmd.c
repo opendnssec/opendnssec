@@ -29,7 +29,8 @@
 
 #include "config.h"
 
-#include "daemon/cmdhandler.h"
+#include "cmdhandler.h"
+#include "daemon/enforcercommands.h"
 #include "daemon/engine.h"
 #include "signconf/signconf_task.h"
 #include "file.h"
@@ -52,34 +53,24 @@ usage(int sockfd)
 static void
 help(int sockfd)
 {
-    client_printf(sockfd,
-        "Force write of signer configuration files for all zones.\n\n"
-    );
+	client_printf(sockfd,
+		"Force write of signer configuration files for all zones.\n\n"
+	);
 }
 
 static int
-handles(const char *cmd, ssize_t n)
+run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 {
-	return ods_check_command(cmd, n, signconf_funcblock()->cmdname) ? 1 : 0;
+    db_connection_t* dbconn = getconnectioncontext(context);
+    engine_type* engine = getglobalcontext(context);
+    (void)cmd;
+
+	ods_log_debug("[%s] %s command", module_str, signconf_funcblock.cmdname);
+
+	signconf_task_flush_all(engine, dbconn);
+	return 0;
 }
 
-static int
-run(int sockfd, engine_type* engine, const char *cmd, ssize_t n,
-	db_connection_t *dbconn)
-{
-    (void)engine; (void)cmd; (void)n;
-
-	ods_log_debug("[%s] %s command", module_str, signconf_funcblock()->cmdname);
-
-	return perform_signconf(sockfd, dbconn, 1);
-}
-
-static struct cmd_func_block funcblock = {
-	"signconf", &usage, &help, &handles, &run
+struct cmd_func_block signconf_funcblock = {
+	"signconf", &usage, &help, NULL, &run
 };
-
-struct cmd_func_block*
-signconf_funcblock(void)
-{
-	return &funcblock;
-}

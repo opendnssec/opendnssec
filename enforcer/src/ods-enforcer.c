@@ -31,6 +31,7 @@
 
 #include "config.h"
 
+#include <signal.h>
 #include <errno.h>
 #include <fcntl.h> /* fcntl() */
 #include <stdio.h> /* fprintf() */
@@ -57,9 +58,6 @@
 #include "str.h"
 #include "clientpipe.h"
 
-#define AUTHOR_NAME "Matthijs Mekking, Yuri Schaeffer, René Post"
-#define COPYRIGHT_STR "Copyright (C) 2010-2011 NLnet Labs OpenDNSSEC"
-
 static const char* PROMPT = "cmd> ";
 static const char* cli_str = "client";
 
@@ -74,10 +72,10 @@ usage(char* argv0, FILE* out)
     fprintf(out, 
 "Simple command line interface to control the enforcer engine \n"
 "daemon. If no command  is given, the tool is going to interactive \n"
-"mode.When the daemon is running 'ods-enforcer help' gives a full \n"
-"list of available commands.\n\n");
+"mode. When the daemon is running 'ods-enforcer help' gives a full \n"
+"list of available commands.\n");
 
-    fprintf(out, "Supported options:\n");
+    fprintf(out, "\nSupported options:\n");
     fprintf(out, " -h | --help             Show this help and exit.\n");
     fprintf(out, " -V | --version          Show version and exit.\n");
     fprintf(out, " -s | --socket <file>    Daemon socketfile \n"
@@ -97,10 +95,6 @@ static void
 version(FILE* out)
 {
     fprintf(out, "%s version %s\n", PACKAGE_NAME, PACKAGE_VERSION);
-    fprintf(out, "Written by %s.\n\n", AUTHOR_NAME);
-    fprintf(out, "%s.  This is free software.\n", COPYRIGHT_STR);
-    fprintf(out, "See source files for more license information\n");
-    exit(0);
 }
 
 /**
@@ -138,6 +132,7 @@ extract_msg(char* buf, int *pos, int buflen, int *exitcode, int sockfd)
         if (*pos < 3) return 0;
         opc = buf[0];
         datalen = (buf[1]<<8) | (buf[2]&0xFF);
+	datalen &= 0xFFFF; /* hopefully sooth tainted data checker */
         if (datalen+3 <= *pos) {
             /* a complete message */
             memset(data, 0, ODS_SE_MAXLINE+1);
@@ -337,13 +332,36 @@ interface_start(const char* cmd, const char* servsock_filename)
                     else if (strlen(userbuf) != 0)
                         /* we are interactive so print response.
                          * But also suppress when no command is given. */
-                        fprintf(stderr, "Daemon exit code: %d\n", exitcode);
+                        fprintf(stderr, "Command exit code: %d\n", exitcode);
                     break;
                 }
             }
         }
+        if (strlen(userbuf) != 0 && !strncmp(userbuf, "stop", 4))
+            break;
     } while (error == 0 && !cmd);
     close(sockfd);
+
+    if ((cmd && !strncmp(cmd, "stop", 4)) || 
+        (strlen(userbuf) != 0 && !strncmp(userbuf, "stop", 4))) {
+        char line[80];
+        FILE *cmd2 = popen("pgrep ods-enforcerd","r");
+        error = 0;
+        if (fgets(line, 80, cmd2)) {
+            pid_t pid = strtoul(line, NULL, 10);
+            fprintf(stdout, "pid %d\n", pid);
+            int time = 0;
+            while (pid > 0) {
+               if(kill(pid, 0) != 0) break;
+               sleep(1);
+               if (++time>20) {
+                  printf("enforcer needs more time to stop...\n");
+                  time = 0;
+               }
+           }
+        }
+    }
+
 #ifdef HAVE_READLINE
     clear_history();
     rl_free_undo_list();
@@ -351,9 +369,6 @@ interface_start(const char* cmd, const char* servsock_filename)
     return error;
 }
 
-/**
- * Main. start interface tool.
- */
 int
 main(int argc, char* argv[])
 {
@@ -395,6 +410,7 @@ main(int argc, char* argv[])
             default:
                 /* unrecognized options 
                  * getopt will report an error */
+                fprintf(stderr, "use --help for usage information\n");
                 exit(100);
         }
     }
