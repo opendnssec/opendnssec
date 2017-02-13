@@ -36,12 +36,12 @@ Initialize(void *args)
     pthread_mutex_lock(&lock);
     if (libraryReference == NULL) {
         libraryReference = dlopen(libraryPath, RTLD_NOW|RTLD_LOCAL);
-        if (libraryReference == NULL) {
-            syslog(LOG_DAEMON|LOG_ERR, "Library not found");
-            return CKR_DEVICE_ERROR;
-        }
     }
     pthread_mutex_unlock(&lock);
+    if (libraryReference == NULL) {
+        syslog(LOG_DAEMON|LOG_ERR, "Library not found");
+        return CKR_DEVICE_ERROR;
+    }
     libraryFunction = dlsym(libraryReference, "C_GetFunctionList");
     if (libraryFunction == NULL) {
         syslog(LOG_DAEMON|LOG_ERR, "Unsuitable library");
