@@ -1,6 +1,7 @@
-OpenDNSSEC 2.1.0 - TBD
+OpenDNSSEC 2.1.0 - 2017-02-22
 
-* If listening port for signer is not set in conf file, the default value "15354" is used.
+* If listening port for signer is not set in conf file, the default value
+  "15354" is used.
 * Enforce and signconf tasks are now scheduled individually per zone. Resign
   per policy.
 * OPENDNSSEC-450: Implement support for ECDSA P-256, P-384, GOST. Notice:
@@ -8,10 +9,10 @@ OpenDNSSEC 2.1.0 - TBD
 * zone delete removes tasks associated with zone from queue.
 * Show help for ods-enforcer-db-setup
 * OPENDNSSEC-778: Double NSEC3PARAM record after resalt.
-* In the kasp file, KSK/ZSK section, the algorithm length must be set now.
+* In the kasp file, KSK/ZSK section, the algorithm length MUST be set now.
 * signer clear <zone> would assert when signconf wasn't read yet.
 * The <Interval> tag had been deprecated, and is now no longer allowed to
-  be specified.
+  be specified in the conf.xml for the Enforcer.
 * OPENDNSSEC-864: ods-signer didn't print help. Also --version and --socket
   options where not processed.
 * OPENDNSSEC-869: ds-seen command did not give error on badly formatted keytag.
@@ -21,14 +22,14 @@ OpenDNSSEC 2.1.0 - TBD
 * OPENDNSSEC-759: Reduce HSM access during ods-signerd start. Daemon should
   start quicker and earlier available for user input.
 * OPENDNSSEC-479: Transferring zones and sending notifies through a bound socket,
-  using the same interface as listener
+  using the same interface as listener.
 * Key cache is now shared between threads.
 * OPENDNSSEC-858: Don't print "completed in x seconds" to stderr for enforcer
   commands.
 * Various memory leaks
 * OPENDNSSEC-601: signer and enforcer working dir would not properly fallback to
   default when not specified.
-* OPENDNSSEC-503: Speed up initial signing and algorithm rollover
+* OPENDNSSEC-503: Speed up initial signing and algorithm rollover.
 * A bash autocompletion script is included in contrib for ods-enforcer and
   ods-signer.
 * SUPPORT-208: Strip comment from key export.
