@@ -1,3 +1,5 @@
+OpenDNSSEC 2.2 - 2017-xx-xx
+
 OpenDNSSEC 2.1.0 - 2017-02-22
 
 * If listening port for signer is not set in conf file, the default value
@@ -21,21 +23,21 @@ OpenDNSSEC 2.1.0 - 2017-02-22
 * OPENDNSSEC-849: Crash on free of part of IXFR structure.
 * OPENDNSSEC-759: Reduce HSM access during ods-signerd start. Daemon should
   start quicker and earlier available for user input.
-* OPENDNSSEC-479: Transferring zones and sending notifies through a bound socket,
-  using the same interface as listener.
+* OPENDNSSEC-479: Transferring zones and sending notifies through a bound
+  socket, using the same interface as listener.
 * Key cache is now shared between threads.
 * OPENDNSSEC-858: Don't print "completed in x seconds" to stderr for enforcer
   commands.
 * Various memory leaks
-* OPENDNSSEC-601: signer and enforcer working dir would not properly fallback to
-  default when not specified.
+* OPENDNSSEC-601: signer and enforcer working dir would not properly fallback
+  to default when not specified.
 * OPENDNSSEC-503: Speed up initial signing and algorithm rollover.
 * A bash autocompletion script is included in contrib for ods-enforcer and
   ods-signer.
 * SUPPORT-208: Strip comment from key export.
 * OPENDNSSEC-552: On key export don't print SHA1 DS by default. (introduced
-  --sha1 option to key export.) Usage of sha1 is deprecated and will be removed
-  from future versions of OpenDNSSEC.
+  --sha1 option to key export.) Usage of sha1 is deprecated and will be
+  removed from future versions of OpenDNSSEC.
 
 OpenDNSSEC 2.0.1 - 2016-07-21
 
