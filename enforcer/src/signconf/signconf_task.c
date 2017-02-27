@@ -31,6 +31,7 @@
 #include "duration.h"
 #include "log.h"
 #include "file.h"
+#include "db/dbw.h"
 
 #include "signconf/signconf_task.h"
 
@@ -83,23 +84,22 @@ signconf_task_flush_zone(engine_type *engine, db_connection_t *dbconn,
 
 void
 signconf_task_flush_policy(engine_type *engine, db_connection_t *dbconn,
-    policy_t const *policy)
+    char const *policyname)
 {
-    zone_db_t const *zone;
-    zone_list_db_t *zonelist;
-
-    ods_log_assert(policy);
-    
-    zonelist = zone_list_db_new_get_by_policy_id(dbconn, policy_id(policy));
-    if (!zonelist) {
+    struct dbw_list *policies = dbw_policies_all_filtered(dbconn, policyname, NULL, 0);
+    if (!policies) {
         ods_log_error("[%s] Can't fetch zones for policy %s from database",
-            module_str, policy_name(policy));
+            module_str, policyname);
         return;
     }
-    while ((zone = zone_list_db_next(zonelist))) {
-        signconf_task_flush_zone(engine, dbconn, zone_db_name(zone));
+    for (size_t p = 0; p < policies->n; p++) {
+        struct dbw_policy *policy = (struct dbw_policy *)policies->set[p];
+        for (size_t z = 0; z < policy->zone_count; z++) {
+            struct dbw_zone *zone = policy->zone[z];
+            signconf_task_flush_zone(engine, dbconn, zone->name);
+        }
     }
-    zone_list_db_free(zonelist);
+    dbw_list_free(policies);
 }
 
 void

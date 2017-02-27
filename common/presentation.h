@@ -1,7 +1,5 @@
 /*
- * Copyright (c) 2011 Surfnet 
- * Copyright (c) 2011 .SE (The Internet Infrastructure Foundation).
- * Copyright (c) 2011 OpenDNSSEC AB (svb)
+ * Copyright (c) 2017 NLnet Labs.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,17 +25,7 @@
  *
  */
 
-#ifndef _KEYSTATE_LIST_CMD_H_
-#define _KEYSTATE_LIST_CMD_H_
+#ifndef PRESENTATION_H
 
-#include "db/key_data.h"
 
-struct cmd_func_block key_list_funcblock;
-
-//const char*
-//map_keystate(struct dbw_key *key);
-
-const char *
-map_keystate_defunc(key_data_t *k);
-
-#endif /* _KEYSTATE_LIST_CMD_H_ */
+#endif /* PRESENTATION_H */

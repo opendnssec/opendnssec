@@ -34,6 +34,7 @@
 #include "str.h"
 #include "clientpipe.h"
 #include "policy/policy_export.h"
+#include "db/dbw.h"
 
 #include "policy/policy_export_cmd.h"
 
@@ -70,7 +71,6 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
     int argc = 0, long_index = 0, opt = 0;
     const char* policy_name = NULL;
     int all = 0;
-    policy_t* policy;
     db_connection_t* dbconn = getconnectioncontext(context);;
     engine_type* engine = getglobalcontext(context);
 
@@ -124,21 +124,22 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
             free(buf);
             return 1;
         }
-    }
-    else if (policy_name) {
-        if (!(policy = policy_new_get_by_name(dbconn, policy_name))) {
+    } else if (policy_name) {
+        struct dbw_list* policies = dbw_policies_all_filtered(dbconn, policy_name, NULL, -1);
+        if (!policies || policies->n == 0) {
             client_printf_err(sockfd, "Unable to find policy %s!\n", policy_name);
+            dbw_list_free(policies);
             free(buf);
             return 1;
         }
+        struct dbw_policy *policy = (struct dbw_policy *)policies->set[0];
         if (policy_export(sockfd, policy, NULL) != POLICY_EXPORT_OK) {
-            policy_free(policy);
+            dbw_list_free(policies);
             free(buf);
             return 1;
         }
-        policy_free(policy);
-    }
-    else {
+        dbw_list_free(policies);
+    } else {
         client_printf_err(sockfd, "Either --all or --policy needs to be given!\n");
         free(buf);
         return 1;

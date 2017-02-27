@@ -128,7 +128,7 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
     case POLICY_IMPORT_OK:
         /* only zones in policy, and force! */
         enforce_task_flush_all(engine, dbconn);
-        (void)flush_resalt_task_all(engine, dbconn);
+        (void)resalt_task_schedule(engine, dbconn);
         return 0;
         break;
 

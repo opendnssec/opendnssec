@@ -199,7 +199,7 @@ perform_keystate_export(int sockfd, db_connection_t *dbconn,
             key_data_free(key);
             continue;
         }
-        if (keystate && strcasecmp(map_keystate(key), keystate)) {
+        if (keystate && strcasecmp(map_keystate_defunc(key), keystate)) {
             key_data_free(key);
             continue;
         }
@@ -220,7 +220,7 @@ perform_keystate_export(int sockfd, db_connection_t *dbconn,
 
         /* check return code TODO */
         if (key_data_cache_hsm_key(key) == DB_OK) {
-            if (print_ds_from_id(sockfd, key, (const char*)azonename?azonename:zonename, (const char*)map_keystate(key), bind_style, print_sha1)) {
+            if (print_ds_from_id(sockfd, key, (const char*)azonename?azonename:zonename, (const char*)map_keystate_defunc(key), bind_style, print_sha1)) {
                 ods_log_error("[%s] Error in print_ds_from_id", module_str);
                 client_printf_err(sockfd, "Error in print_ds_from_id \n");
             }

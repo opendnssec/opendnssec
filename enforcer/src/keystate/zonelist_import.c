@@ -354,11 +354,12 @@ int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
                         continue;
                     }
 
-                    if (hsm_key_factory_release_key_id(key_data_hsm_key_id(key_data), dbconn)) {
-                        client_printf_err(sockfd, "Unable to release HSM key for key data %s of zone %s from database!\n", key_data_role_text(key_data), zone2->name);
-                        successful = 0;
-                        continue;
-                    }
+                    /*TODO function signature changed
+                     * if (hsm_key_factory_release_key_id(key_data_hsm_key_id(key_data), dbconn)) {*/
+                        /*client_printf_err(sockfd, "Unable to release HSM key for key data %s of zone %s from database!\n", key_data_role_text(key_data), zone2->name);*/
+                        /*successful = 0;*/
+                        /*continue;*/
+                    /*}*/
                 }
                 key_data_list_free(key_data_list);
 

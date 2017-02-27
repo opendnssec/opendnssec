@@ -171,7 +171,9 @@ int removeDeadKeysNow(int sockfd, db_connection_t *dbconn,
 				    || key_state_delete(key_data_cached_rrsigdnskey(keylist[i]))
 				    || key_state_delete(key_data_cached_rrsig(keylist[i]))
 				    || key_data_delete(keylist[i])
-				    || hsm_key_factory_release_key_id(hsm_key_id(key_data_cached_hsm_key(keylist[i])), dbconn))
+				    /* TODO function signature changed
+                                     * || hsm_key_factory_release_key_id(hsm_key_id(key_data_cached_hsm_key(keylist[i])), dbconn)*/
+                                   )
 				{
 				    /* TODO: better log error */
 					ods_log_error("[%s] key_state_delete() || key_data_delete() || hsm_key_factory_release_key() failed", scmd);

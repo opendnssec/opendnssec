@@ -75,7 +75,6 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
     time_t duration_time = 0;
     duration_type* duration = NULL;
     int all = 0;
-    policy_t* policy;
     db_connection_t* dbconn = getconnectioncontext(context);
     engine_type* engine = getglobalcontext(context);
 
@@ -137,17 +136,9 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 
     if (all) {
         hsm_key_factory_schedule_generate_all(engine, duration_time);
-    }
-    else if (policy_name) {
-        if (!(policy = policy_new_get_by_name(dbconn, policy_name))) {
-            client_printf_err(sockfd, "Unable to find policy %s!\n", policy_name);
-            free(buf);
-            return 1;
-        }
-        hsm_key_factory_schedule_generate_policy(engine, policy, duration_time);
-        policy_free(policy);
-    }
-    else {
+    } else if (policy_name) {
+        hsm_key_factory_schedule_generate_policy(engine, policy_name, duration_time);
+    } else {
         client_printf_err(sockfd, "Either --all or --policy needs to be given!\n");
         free(buf);
         return 1;

@@ -31,7 +31,7 @@
 #include "log.h"
 #include "str.h"
 #include "clientpipe.h"
-#include "db/zone_db.h"
+#include "db/dbw.h"
 #include "utils/kc_helper.h"
 
 #include "keystate/zonelist_export.h"
@@ -44,55 +44,54 @@
 #include <string.h>
 #include <errno.h>
 
-int zonelist_export(int sockfd, db_connection_t* connection, const char* filename, int comment) {
+int zonelist_export(int sockfd, db_connection_t* dbconn, const char* filename, int comment) {
     xmlDocPtr doc;
-    xmlNodePtr root = NULL;
-    xmlNodePtr node;
-    xmlNodePtr node2;
-    xmlNodePtr node3;
-    xmlNodePtr node4;
-    zone_list_db_t* zone_list;
-    const zone_db_t* zone;
-    policy_t* policy = NULL;
-    int cmp;
+    xmlNodePtr root = NULL, node, node2, node3, node4;
     char path[PATH_MAX];
     char* dirname, *dirlast;
 
-    if (!connection) {
-        return ZONELIST_EXPORT_ERR_ARGS;
-    }
-    if (!filename) {
+    if (!dbconn || !filename) {
         return ZONELIST_EXPORT_ERR_ARGS;
     }
 
     if (access(filename, W_OK)) {
-        if (errno == ENOENT) {
-            if ((dirname = strdup(filename))) {
-                if ((dirlast = strrchr(dirname, '/'))) {
-                    *dirlast = 0;
-                    if (access(dirname, W_OK)) {
-                        client_printf_err(sockfd, "Write access to directory denied: %s\n", strerror(errno));
-                        free(dirname);
-                        return ZONELIST_EXPORT_ERR_FILE;
-                    }
-                }
-                free(dirname);
-            }
-        }
-        else {
+        if (errno != ENOENT) {
             client_printf_err(sockfd, "Write access to file denied: %s\n", strerror(errno));
             return ZONELIST_EXPORT_ERR_FILE;
         }
+        /* full path doesn't exist, try stripping filname */
+        if (!(dirname = strdup(filename))) {
+            client_printf_err(sockfd, "Memory error\n");
+            return ZONELIST_EXPORT_ERR_FILE;
+        }
+        if (!(dirlast = strrchr(dirname, '/'))) {
+            client_printf_err(sockfd, "Unable to construct path.\n");
+            return ZONELIST_EXPORT_ERR_FILE;
+        }
+        *dirlast = 0;
+        if (access(dirname, W_OK)) {
+            client_printf_err(sockfd, "Write access to directory denied: %s\n", strerror(errno));
+            free(dirname);
+            return ZONELIST_EXPORT_ERR_FILE;
+        }
+        free(dirname);
     }
 
     if (!(doc = xmlNewDoc((xmlChar*)"1.0"))
         || !(root = xmlNewNode(NULL, (xmlChar*)"ZoneList")))
     {
         client_printf_err(sockfd, "Unable to create XML elements, memory allocation error!\n");
-        if (doc) {
-            xmlFreeDoc(doc);
-        }
+        xmlFreeDoc(doc);
         return ZONELIST_EXPORT_ERR_MEMORY;
+    }
+
+    struct dbw_list *policies = dbw_policies_all(dbconn);
+    if (!policies) {
+        client_printf_err(sockfd, "Unable to get list of zones, memory"
+            "allocation or database error!\n");
+        xmlFreeDoc(doc);
+        dbw_list_free(policies);
+        return ZONELIST_EXPORT_ERR_DATABASE ;
     }
 
     if (comment) {
@@ -124,64 +123,30 @@ int zonelist_export(int sockfd, db_connection_t* connection, const char* filenam
     }
     xmlDocSetRootElement(doc, root);
 
-    if (!(zone_list = zone_list_db_new(connection))
-        || zone_list_db_get(zone_list))
-    {
-        xmlFreeDoc(doc);
-        if (zone_list) {
-            zone_list_db_free(zone_list);
-            client_printf_err(sockfd, "Unable to get list of zones, database error!\n");
-            return ZONELIST_EXPORT_ERR_DATABASE;
-        }
-        else {
-            client_printf_err(sockfd, "Unable to get list of zones, memory allocation error!\n");
-            return ZONELIST_EXPORT_ERR_MEMORY;
-        }
-    }
-
-    while ((zone = zone_list_db_next(zone_list))) {
-        if (policy) {
-            /*
-             * If we already have a policy object; If policy_id compare fails
-             * or if they are not the same free the policy object to we will
-             * later retrieve the correct policy
-             */
-            if (db_value_cmp(policy_id(policy), zone_db_policy_id(zone), &cmp)
-                || cmp)
+    for (size_t p = 0; p < policies->n; p++) {
+        struct dbw_policy *policy = (struct dbw_policy *)policies->set[p];
+        for (size_t z = 0; z < policy->zone_count; z++) {
+            struct dbw_zone *zone = policy->zone[z];
+            if (!(node = xmlNewChild(root, NULL, (xmlChar*)"Zone", NULL))
+                || !xmlNewProp(node, (xmlChar*)"name", (xmlChar*)zone->name)
+                || !xmlNewChild(node, NULL, (xmlChar*)"Policy", (xmlChar*)zone->policy->name)
+                || !xmlNewChild(node, NULL, (xmlChar*)"SignerConfiguration", (xmlChar*)zone->signconf_path)
+                || !(node2 = xmlNewChild(node, NULL, (xmlChar*)"Adapters", NULL))
+                || !(node3 = xmlNewChild(node2, NULL, (xmlChar*)"Input", NULL))
+                || !(node4 = xmlNewChild(node3, NULL, (xmlChar*)"Adapter", (xmlChar*)zone->input_adapter_uri))
+                || !xmlNewProp(node4, (xmlChar*)"type", (xmlChar*)zone->input_adapter_type)
+                || !(node3 = xmlNewChild(node2, NULL, (xmlChar*)"Output", NULL))
+                || !(node4 = xmlNewChild(node3, NULL, (xmlChar*)"Adapter", (xmlChar*)zone->output_adapter_uri))
+                || !xmlNewProp(node4, (xmlChar*)"type", (xmlChar*)zone->output_adapter_type))
             {
-                policy_free(policy);
-                policy = NULL;
-            }
-        }
-        if (!policy) {
-            if (!(policy = zone_db_get_policy(zone))) {
-                client_printf_err(sockfd, "Unable to get policy, database error!\n");
-                zone_list_db_free(zone_list);
+                client_printf_err(sockfd, "Unable to create XML elements for zone %s!\n", zone->name);
                 xmlFreeDoc(doc);
-                return ZONELIST_EXPORT_ERR_DATABASE;
+                dbw_list_free(policies);
+                return ZONELIST_EXPORT_ERR_XML;
             }
-        }
-
-        if (!(node = xmlNewChild(root, NULL, (xmlChar*)"Zone", NULL))
-            || !xmlNewProp(node, (xmlChar*)"name", (xmlChar*)zone_db_name(zone))
-            || !xmlNewChild(node, NULL, (xmlChar*)"Policy", (xmlChar*)policy_name(policy))
-            || !xmlNewChild(node, NULL, (xmlChar*)"SignerConfiguration", (xmlChar*)zone_db_signconf_path(zone))
-            || !(node2 = xmlNewChild(node, NULL, (xmlChar*)"Adapters", NULL))
-            || !(node3 = xmlNewChild(node2, NULL, (xmlChar*)"Input", NULL))
-            || !(node4 = xmlNewChild(node3, NULL, (xmlChar*)"Adapter", (xmlChar*)zone_db_input_adapter_uri(zone)))
-            || !xmlNewProp(node4, (xmlChar*)"type", (xmlChar*)zone_db_input_adapter_type(zone))
-            || !(node3 = xmlNewChild(node2, NULL, (xmlChar*)"Output", NULL))
-            || !(node4 = xmlNewChild(node3, NULL, (xmlChar*)"Adapter", (xmlChar*)zone_db_output_adapter_uri(zone)))
-            || !xmlNewProp(node4, (xmlChar*)"type", (xmlChar*)zone_db_output_adapter_type(zone)))
-        {
-            client_printf_err(sockfd, "Unable to create XML elements for zone %s!\n", zone_db_name(zone));
-            zone_list_db_free(zone_list);
-            xmlFreeDoc(doc);
-            return ZONELIST_EXPORT_ERR_XML;
         }
     }
-    zone_list_db_free(zone_list);
-    policy_free(policy);
+    dbw_list_free(policies);
 
     if (snprintf(path, sizeof(path), "%s.new", filename) >= (int)sizeof(path)) {
         client_printf_err(sockfd, "Unable to write zonelist, memory allocation error!\n");

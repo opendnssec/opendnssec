@@ -660,7 +660,7 @@ JOIN REMOTE.dnsseckeys
 JOIN mapping
 	ON mapping.state = REMOTE.dnsseckeys.state;
 
---Set to OMN if Tactive + Dttl < Tnow
+-- Set to OMN if Tactive + Dttl < Tnow
 UPDATE keyState
 SET state = 2
 WHERE keyState.state = 1 AND keyState.type = 1 AND keyState.id IN (
@@ -676,8 +676,8 @@ WHERE keyState.state = 1 AND keyState.type = 1 AND keyState.id IN (
                 ON policy.id = zone.policyId
         WHERE CAST(UNIX_TIMESTAMP(REMOTE.dnsseckeys.active) + policy.signaturesValidityDefault as INTEGER) < UNIX_TIMESTAMP(now()));
 
---Force the RRSIG state in omnipresent if rumoured and there is no old ZSK
---unretentive
+-- Force the RRSIG state in omnipresent if rumoured and there is no old ZSK
+-- unretentive
 UPDATE keyState 
 SET state = 2
 WHERE keyState.id IN (

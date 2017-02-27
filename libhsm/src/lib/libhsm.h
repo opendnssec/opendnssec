@@ -160,6 +160,9 @@ void
 hsm_ctx_set_error(hsm_ctx_t *ctx, int error, const char *action,
                  const char *message, ...);
 
+hsm_repository_t *
+hsm_find_repository(hsm_repository_t *rlist, char const *name);
+
 /*! Open HSM library
 
 \param rlist Repository list.

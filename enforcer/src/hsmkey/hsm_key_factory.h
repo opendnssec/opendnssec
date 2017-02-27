@@ -31,32 +31,27 @@
 
 #include "db/hsm_key.h"
 #include "db/policy_key.h"
+#include "db/dbw.h"
 #include "daemon/engine.h"
 
 #include <time.h>
 
 void hsm_key_factory_deinit(void);
-/**
- * TODO
- * \return 0 success, 1 error
- */
-int hsm_key_factory_generate(engine_type* engine,
-    const db_connection_t* connection, const policy_t* policy, const policy_key_t* policy_key,
-    time_t duration);
 
 /**
  * TODO
  * \return 0 success, 1 error
  */
 int hsm_key_factory_generate_policy(engine_type* engine,
-    const db_connection_t* connection, const policy_t* policy, time_t duration);
+    const db_connection_t* connection, struct dbw_list *policies,
+    struct dbw_policy *policy, time_t duration);
 
 /**
  * TODO
  * \return 0 success, 1 error
  */
 int hsm_key_factory_generate_all(engine_type* engine,
-    const db_connection_t* connection, time_t duration);
+    db_connection_t* connection, time_t duration);
 
 
 /**
@@ -69,7 +64,7 @@ int hsm_key_factory_generate_all(engine_type* engine,
  * \return non-zero on error.
  */
 int hsm_key_factory_schedule_generate_policy(engine_type* engine,
-    const policy_t* policy_orig, time_t duration);
+    const char *policyname, time_t duration);
 
 /**
  * Schedule a task to generate keys for all policies and policy keys we
@@ -92,24 +87,15 @@ int hsm_key_factory_schedule_generate_all(engine_type* engine, time_t duration);
  * \return an allocated HSM key or NULL on error or if there are no unused keys
  * available for allocation right now.
  */
-hsm_key_t* hsm_key_factory_get_key(engine_type* engine,
-    const db_connection_t* connection, const policy_key_t* policy_key,
-    hsm_key_state_t hsm_key_state);
+struct dbw_hsmkey *
+hsm_key_factory_get_key(engine_type *engine, struct dbw_db *db,
+    struct dbw_policykey *pkey);
 
 /**
- * Release a key, if its not used anyore it will be marked DELETE.
- * \param[in] hsm_key_id a db_value_t pointer with the hsm_key database id.
- * \return non-zero on error.
+ * Release a key, if its not used anymore it will be marked DELETE.
+ * \param[in] key
  */
-int hsm_key_factory_release_key_id(const db_value_t* hsm_key_id,
-    const db_connection_t* connection);
-
-/**
- * Release a key, if its not used anyore it will be marked DELETE.
- * \param[in] hsm_key a hsm_key_t pointer with the hsm_key to release.
- * \return non-zero on error.
- */
-int hsm_key_factory_release_key(hsm_key_t* hsm_key,
-    const db_connection_t* connection);
+void
+hsm_key_factory_release_key(struct dbw_hsmkey *hsmkey, struct dbw_key *key);
 
 #endif /* _HSM_KEY_FACTORY_H_ */

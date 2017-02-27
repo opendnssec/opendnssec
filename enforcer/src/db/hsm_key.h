@@ -452,6 +452,9 @@ struct hsm_key_list {
  */
 hsm_key_list_t* hsm_key_list_new(const db_connection_t* connection);
 
+size_t
+hsm_key_list_size(hsm_key_list_t* hsm_key_list);
+
 /**
  * Create a new hsm key object list that is a copy of another.
  * \param[in] hsm_key_list a hsm_key_list_t pointer.

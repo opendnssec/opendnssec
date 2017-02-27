@@ -47,7 +47,7 @@
 #include "str.h"
 #include "scheduler/task.h"
 #include "daemon/engine.h"
-#include "db/policy.h"
+#include "db/dbw.h"
 
 #include <stdlib.h>
 
@@ -100,100 +100,109 @@ to_hex(const char *buf, int len, char *out)
  * Generate new salt for specified policy. Schedules signconf task
  * when done.
  */
-static time_t 
+static time_t
 perform_policy_resalt(task_type* task, char const *policyname, void *userdata,
-	void *context)
+    void *context)
 {
-	policy_t *policy;
-        db_connection_t *dbconn = (db_connection_t *) context;
-	time_t resalt_time, now = time_now();
-	char salt[255], salthex[511];
-	int saltlength;
-	engine_type *engine = (engine_type *)userdata;
-	
-	policy = policy_new_get_by_name(dbconn, policyname);
-	if (!policy) {
-		ods_log_error("[%s] could not fetch policy %s from database,"
-			" rescheduling", module_str, policyname);
-		/* TODO: figure out if it was a database error. if it is truly
-		 * not in database we should just return schedule_SUCCESS */
-		return schedule_DEFER;
-	}
+    db_connection_t *dbconn = (db_connection_t *) context;
+    time_t resalt_time, now = time_now();
+    char salt[255], salthex[511];
+    engine_type *engine = (engine_type *)userdata;
 
-	if  (policy_denial_type(policy) != POLICY_DENIAL_TYPE_NSEC3
-		|| policy_passthrough(policy))
-	{
-		policy_free(policy);
-		return schedule_SUCCESS;
-	}
-	resalt_time = policy_denial_salt_last_change(policy) +
-		policy_denial_resalt(policy);
+    struct dbw_list *policies = dbw_policies_all_filtered(dbconn, policyname, NULL, 0);
+    if (!policies) {
+        ods_log_error("[%s] Unable to get list of policies from database",
+            module_str);
+        return schedule_DEFER;
+    }
+    if (policies->n == 0) { /* Doesn't exist, don't reschedule */
+        dbw_list_free(policies);
+        return -1;
+    }
+    struct dbw_policy *policy = (struct dbw_policy*)policies->set[0];
 
-	if (now >= resalt_time) {
-		saltlength = policy_denial_salt_length(policy);
-		if (saltlength <= 0 || saltlength > 255) {
-			ods_log_error("[%s] policy %s has an invalid salt length. "
-				"Must be in range [0..255]", module_str, policy_name(policy));
-			policy_free(policy);
-			return schedule_SUCCESS; /* no point in rescheduling */
-		}
+    if (policy->denial_salt_length <= 0 || policy->denial_salt_length > 255) {
+        ods_log_error("[%s] policy %s has an invalid salt length. "
+            "Must be in range [0..255]", module_str, policy->name);
+        dbw_list_free(policies);
+        return schedule_SUCCESS; /* no point in rescheduling */
+    }
 
 #ifndef HAVE_ARC4RANDOM
-		srand(now);
+    srand(now);
 #endif
+    generate_salt(salt, policy->denial_salt_length);
+    to_hex(salt, policy->denial_salt_length, salthex);
+    policy->denial_salt = strdup(salthex);
+    policy->denial_salt_last_change = now;
+    policy->dirty = DBW_UPDATE;
 
-		/* Yes, we need to resalt this policy */
-		generate_salt(salt, saltlength);
-		to_hex(salt, saltlength, salthex);
-
-		if(policy_set_denial_salt(policy, salthex) ||
-			policy_set_denial_salt_last_change(policy, now) ||
-			policy_update(policy))
-		{
-			ods_log_error("[%s] db error", module_str);
-			policy_free(policy);
-			return schedule_DEFER;
-		}
-		resalt_time = now + policy_denial_resalt(policy);
-		ods_log_debug("[%s] policy %s resalted successfully", module_str, policy_name(policy));
-		signconf_task_flush_policy(engine, dbconn, policy);
-	}
-	if (policy_denial_resalt(policy) <= 0) resalt_time = -1;
-	policy_free(policy);
-	return resalt_time;
+    if (policy->denial_resalt <= 0)
+        resalt_time = -1;
+    else
+        resalt_time = now + policy->denial_resalt;
+    int r = dbw_update(dbconn, policies, 1);
+    if (r) {
+        ods_log_error("[%s] unable to update DB", module_str);
+    } else {
+        signconf_task_flush_policy(engine, dbconn, policy->name);
+        ods_log_debug("[%s] policy %s resalted successfully", module_str, policy->name);
+    }
+    dbw_list_free(policies);
+    return resalt_time;
 }
 
 static task_type *
-policy_resalt_task(char const *owner, engine_type *engine)
+policy_resalt_task(char const *owner, engine_type *engine, time_t t)
 {
-	return task_create(strdup(owner), TASK_CLASS_ENFORCER, TASK_TYPE_RESALT,
-		perform_policy_resalt, engine, NULL, time_now());
+    return task_create(strdup(owner), TASK_CLASS_ENFORCER, TASK_TYPE_RESALT,
+        perform_policy_resalt, engine, NULL, t);
 }
 
-/*
- * Schedule resalt tasks for all policies. 
- * */
 int
-flush_resalt_task_all(engine_type *engine, db_connection_t *dbconn)
+resalt_task_flush(engine_type *engine, db_connection_t *dbconn,
+    const char *policy)
 {
+    task_type *task;
+    int status = ODS_STATUS_OK;
 
-	policy_list_t *policylist;
-	const policy_t *policy;
-	task_type *task;
-	int status = ODS_STATUS_OK;
+    struct dbw_list *policies = dbw_policies_all_filtered(dbconn, policy, NULL, 0);
+    if (!policies) {
+        ods_log_error("[%s] Unable to get list of policies from database",
+            module_str);
+        return ODS_STATUS_DB_ERR;
+    }
+    for (size_t i = 0; i < policies->n; i++) {
+        struct dbw_policy *policy = (struct dbw_policy*)policies->set[i];
+        if  (policy->denial_type != POLICY_DENIAL_TYPE_NSEC3 || policy->passthrough)
+            continue;
+        task = policy_resalt_task(policy->name, engine, time_now());
+        status |= schedule_task(engine->taskq, task, 1, 0);
+    }
+    dbw_list_free(policies);
+    return status;
+}
 
-	policylist = policy_list_new(dbconn);
-	if (policy_list_get(policylist)) {
-		ods_log_error("[%s] Unable to get list of policies from database",
-			module_str);
-		policy_list_free(policylist);
-		return ODS_STATUS_ERR;
-	}
+int
+resalt_task_schedule(engine_type *engine, db_connection_t *dbconn)
+{
+    task_type *task;
+    int status = ODS_STATUS_OK;
 
-	while ((policy = policy_list_next(policylist))) {
-		task = policy_resalt_task(policy_name(policy), engine);
-		status |= schedule_task(engine->taskq, task, 1, 0);
-	}
-	policy_list_free(policylist);
-	return status;
+    struct dbw_list *policies = dbw_policies(dbconn);
+    if (!policies) {
+        ods_log_error("[%s] Unable to get list of policies from database",
+            module_str);
+        return ODS_STATUS_DB_ERR;
+    }
+    for (size_t i = 0; i < policies->n; i++) {
+        struct dbw_policy *policy = (struct dbw_policy*)policies->set[i];
+        if  (policy->denial_type != POLICY_DENIAL_TYPE_NSEC3 || policy->passthrough)
+            continue;
+        time_t resalt_time = policy->denial_salt_last_change + policy->denial_resalt;
+        task = policy_resalt_task(policy->name, engine, resalt_time);
+        status |= schedule_task(engine->taskq, task, 1, 0);
+    }
+    dbw_list_free(policies);
+    return status;
 }

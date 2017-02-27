@@ -35,8 +35,7 @@
 #include "str.h"
 #include "log.h"
 #include "clientpipe.h"
-#include "db/policy.h"
-#include "db/zone_db.h"
+#include "db/dbw.h"
 #include "keystate/zonelist_update.h"
 #include "enforcer/enforce_task.h"
 #include "hsmkey/hsm_key_factory.h"
@@ -63,7 +62,8 @@ usage(int sockfd)
 		"	[--out-type <type>]			aka -q\n"
 		"	[--output <path>]			aka -o\n"
 		"	[--xml]					aka -u\n"
-		"	[--suspend]				aka -n\n"
+                /* Don't document suspend, for testing only. */
+		/*"	[--suspend]				aka -n\n"*/
 	);
 }
 
@@ -80,8 +80,8 @@ help(int sockfd)
         "input		specify a location for the unsigned zone, this location is set in conf.xml, default for File Adapter is /var/opendnssec/unsigned/ and for DNS Adapter is /etc/opendnssec/addns.xml \n"
         "out-type	specify the type of output, should be DNS or File, default is File\n"
         "output		specify a location for the signed zone, this location is set in conf.xml, default path for File Adapter is /var/opendnssec/signed/ and for DNS Adapter is /etc/opendnssec/addns.xml \n"
-        "xml		update the zonelist.xml file\n"
-        "suspend		suspend this zone until running enforce command\n\n"
+        "xml		update the zonelist.xml file\n\n"
+        /*"suspend		suspend this zone until running enforce command\n\n"*/
     );
 }
 
@@ -93,7 +93,7 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
     const char* argv[NARGV];
     int argc = 0;
     const char *zone_name = NULL;
-    const char *policy_name = NULL;
+    const char *policy_name = "default";
     const char *signconf = NULL;
     const char *input = NULL;
     const char *output = NULL;
@@ -101,8 +101,6 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
     const char *output_type = NULL;
     char path[PATH_MAX];
     int write_xml = 0;
-    policy_t* policy;
-    zone_db_t* zone;
     int ret = 0;
     int suspend = 0;
     int long_index = 0, opt = 0;
@@ -180,230 +178,165 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
         client_printf_err(sockfd, "expected option --zone <zone>\n");
         free(buf);
         return -1;
-    }
-
-    if ((zone = zone_db_new_get_by_name(dbconn, zone_name))) {
+    } else if (dbw_zone_exists(dbconn, zone_name)) {
         client_printf_err(sockfd, "Unable to add zone, zone already exists!\n");
-        zone_db_free(zone);
         free(buf);
         return 1;
     }
 
-    if (!(policy = policy_new_get_by_name(dbconn, (policy_name ? policy_name : "default")))) {
-        client_printf_err(sockfd, "Unable to find policy %s needed for adding the zone!\n", (policy_name ? policy_name : "default"));
+    //validation
+    if (!input_type || !strcasecmp(input_type, "FILE")) {
+        input_type = "File";
+        if (!input) input = zone_name; /* default */
+        if (input[0] != '/') {
+            snprintf(path, PATH_MAX, "%s/unsigned/%s", OPENDNSSEC_STATE_DIR, input);
+            input = path;
+        }
+    } else if (!strcasecmp(input_type, "DNS")) {
+        input_type = "DNS";
+        if (!input) input = "addns.xml"; /* default */
+        if (input[0] != '/') {
+            snprintf(path, PATH_MAX, "%s/%s", OPENDNSSEC_CONFIG_DIR, input);
+            input = path;
+        }
+    } else {
+        client_printf_err(sockfd, "Unable to add zone, %s is not a valid input"
+               " type! in_type must be 'File' or 'DNS'.\n", input_type);
+        free(buf);
+        return 1;
+    }
+    if (access(input, F_OK) == -1) {
+        client_printf_err(sockfd, "WARNING: The input file %s for zone %s does"
+                " not currently exist. The zone will be added to the database"
+                " anyway. \n", input, zone_name);
+        ods_log_warning("[%s] WARNING: The input file %s for zone %s does"
+                " not currently exist. The zone will be added to the database"
+                " anyway.", module_str, input, zone_name);
+    } else if (access(input, R_OK)) {
+        client_printf_err(sockfd, "WARNING: Read access to input file %s for"
+                " zone %s denied! \n ", input, zone_name);
+        ods_log_warning("[%s] WARNING: Read access to input file %s for zone"
+                " %s denied! ", module_str, input, zone_name);
+    }
+    input = path;
+
+    if (!output_type || !strcasecmp(output_type, "FILE")) {
+        output_type = "File";
+        if (!output) output = zone_name; /* default */
+        if (output[0] != '/') {
+            snprintf(path, PATH_MAX, "%s/signed/%s", OPENDNSSEC_STATE_DIR, output);
+            output = path;
+        }
+    } else if (!strcasecmp(output_type, "DNS")) {
+        output_type = "DNS";
+        if (!output) output = "addns.xml"; /* default*/
+        if (output[0] != '/') {
+            snprintf(path, PATH_MAX, "%s/%s", OPENDNSSEC_CONFIG_DIR, output);
+            output = path;
+        }
+    } else {
+        client_printf_err(sockfd, "Unable to add zone, %s is not a valid output"
+               " type! out_type must be 'File' or 'DNS'.\n", output_type);
+        free(buf);
+        return 1;
+    }
+    if (access(output, F_OK) == -1) {
+        client_printf_err(sockfd, "WARNING: The output file %s for zone %s does"
+                " not currently exist. The zone will be added to the database"
+                " anyway. \n", output, zone_name);
+        ods_log_warning("[%s] WARNING: The output file %s for zone %s does"
+                " not currently exist. The zone will be added to the database"
+                " anyway.", module_str, output, zone_name);
+    } else if (access(output, R_OK)) {
+        client_printf_err(sockfd, "WARNING: Read access to output file %s for"
+                " zone %s denied! \n ", output, zone_name);
+        ods_log_warning("[%s] WARNING: Read access to output file %s for zone"
+                " %s denied! ", module_str, output, zone_name);
+    }
+
+    if (!signconf) {
+        snprintf(path, PATH_MAX, "%s/signconf/%s.xml", OPENDNSSEC_STATE_DIR, zone_name);
+        signconf = path;
+    } else if (signconf[0] != '/') {
+        snprintf(path, PATH_MAX, "%s/signconf/%s", OPENDNSSEC_STATE_DIR, signconf);
+        signconf = path;
+    }
+
+    client_printf(sockfd, "input is set to %s. \n", input);
+    client_printf(sockfd, "output is set to %s. \n", output);
+
+    /* input looks okay, lets add it to the database */
+    struct dbw_zone *zone = calloc(1, sizeof (struct dbw_zone));
+    if (!zone) {
+        free(buf);
+        return 1;
+    }
+    zone->name = strdup(zone_name);
+    zone->input_adapter_uri = strdup(input);
+    zone->input_adapter_type = strdup(input_type);
+    zone->output_adapter_uri = strdup(output);
+    zone->output_adapter_type = strdup(output_type);
+    zone->signconf_path = strdup(signconf);
+    zone->next_change = suspend?-1:0;
+
+    /* This should yield a single policy w/o zones */
+    struct dbw_list *policies = dbw_policies_all_filtered(dbconn,
+        policy_name, NULL, 0);
+    if (!policies || policies->n <= 0) {
+        client_printf_err(sockfd, "Unable to find policy %s needed for adding the zone!\n",
+            policy_name);
+        dbw_zone_free((struct dbrow *)zone);
+        free(buf);
+        return 1;
+    }
+    struct dbw_policy *policy = (struct dbw_policy *)policies->set[0];
+    zone->policy = policy;
+    zone->policy_id = policy->id;
+    dbw_policies_add_zone(policies, zone);
+    if (dbw_update(dbconn, policies, 1)) {
+        client_printf(sockfd, "Failed to add zone to database.\n");
+        dbw_list_free(policies);
         free(buf);
         return 1;
     }
 
-    if (!(zone = zone_db_new(dbconn))) {
-        client_printf_err(sockfd, "Unable to add zone, memory allocation problem!\n");
-    }
-    if (zone_db_set_name(zone, zone_name)) {
-        client_printf_err(sockfd, "Unable to add zone, failed to set zone name!\n");
-    }
-    if (zone_db_set_policy_id(zone, policy_id(policy))) {
-        client_printf_err(sockfd, "Unable to add zone, failed to set policy!\n");
-    }
-    if (input_type) {
-        if (!strcasecmp(input_type, "DNS"))
-            input_type = "DNS";
-        else if (!strcasecmp(input_type, "File"))
-            input_type = "File";
-        else {
-            client_printf_err(sockfd, "Unable to add zone, %s is not a valid input type! in_type must be File or DNS.\n", input_type);
-            return 1;
-        }
-        if (zone_db_set_input_adapter_type(zone, input_type)) {
-            client_printf_err(sockfd, "Unable to add zone, failed to set input type!\n");
-        }
-    }
-    if (input) {
-        if (input[0] == '/') {
-            if (zone_db_set_input_adapter_uri(zone, input)) {
-                client_printf_err(sockfd, "Unable to add zone, failed to set input!\n");
-            }
-        }
-        else {
-            if (input_type && !strcasecmp(input_type, "DNS")) {
-                if (snprintf(path, sizeof(path), "%s/%s", OPENDNSSEC_CONFIG_DIR, input) >= (int)sizeof(path)
-                    || zone_db_set_input_adapter_uri(zone, path))
-                {
-                    client_printf_err(sockfd, "Unable to add zone, failed to set input!\n");
-                }
-            }
-            else {
-                if (snprintf(path, sizeof(path), "%s/unsigned/%s", OPENDNSSEC_STATE_DIR, input) >= (int)sizeof(path)
-                    || zone_db_set_input_adapter_uri(zone, path))
-                {
-                    client_printf_err(sockfd, "Unable to add zone, failed to set input!\n");
-                }
-            }
-        }
-    }
-    else {
-        if (input_type && !strcasecmp(input_type, "DNS")) {
-            if (snprintf(path, sizeof(path), "%s/addns.xml", OPENDNSSEC_CONFIG_DIR) >= (int)sizeof(path)
-                || zone_db_set_input_adapter_uri(zone, path))
-            {
-                client_printf_err(sockfd, "Unable to add zone, failed to set input!\n");
-            }
-        }
-        else {
-            if (snprintf(path, sizeof(path), "%s/unsigned/%s", OPENDNSSEC_STATE_DIR, zone_name) >= (int)sizeof(path)
-                || zone_db_set_input_adapter_uri(zone, path))
-            {
-                client_printf_err(sockfd, "Unable to add zone, failed to set input!\n");
-            }
-        }
-    }
-    client_printf(sockfd, "input is set to %s. \n", zone_db_input_adapter_uri(zone));
-    if (access(zone_db_input_adapter_uri(zone), F_OK) == -1) {
-        client_printf_err(sockfd, "WARNING: The input file %s for zone %s does not currently exist. The zone will be added to the database anyway. \n", zone_db_input_adapter_uri(zone), zone_name);
-        ods_log_warning("[%s] WARNING: The input file %s for zone %s does not currently exist. The zone will be added to the database anyway.", module_str, zone_db_input_adapter_uri(zone), zone_name);
-    }
-    else if (access(zone_db_input_adapter_uri(zone), R_OK)) {
-        client_printf_err(sockfd, "WARNING: Read access to input file %s for zone %s denied! \n ", zone_db_input_adapter_uri(zone), zone_name);
-        ods_log_warning("[%s] WARNING: Read access to input file %s for zone %s denied! ", module_str, zone_db_input_adapter_uri(zone), zone_name);
-    }
-
-    if (output_type) {
-        if (!strcasecmp(output_type, "DNS"))
-            output_type = "DNS";
-        else if (!strcasecmp(output_type, "File"))
-            output_type = "File";
-        else {
-            client_printf_err(sockfd, "Unable to add zone, %s is not a valid output type! out_type must be File or DNS.\n", output_type);
-            return 1;
-        }
-        if (zone_db_set_output_adapter_type(zone, output_type)) {
-            client_printf_err(sockfd, "Unable to add zone, failed to set output type!\n");
-        }
-    }
-    if (output) {
-        if (output[0] == '/') {
-            if (zone_db_set_output_adapter_uri(zone, output)) {
-                client_printf_err(sockfd, "Unable to add zone, failed to set output!\n");
-            }
-        }
-        else {
-            if (output_type && !strcasecmp(output_type, "DNS")) {
-                if (snprintf(path, sizeof(path), "%s/%s", OPENDNSSEC_CONFIG_DIR, output) >= (int)sizeof(path)
-                || zone_db_set_output_adapter_uri(zone, path))
-                {
-                    client_printf_err(sockfd, "Unable to add zone, failed to set output!\n");
-                }
-            }
-	    else {
-                if (snprintf(path, sizeof(path), "%s/signed/%s", OPENDNSSEC_STATE_DIR, output) >= (int)sizeof(path)
-                    || zone_db_set_output_adapter_uri(zone, path))
-                {
-                    client_printf_err(sockfd, "Unable to add zone, failed to set output!\n");
-                }
-            }
-        }
-    }
-    else {
-        if(output_type && !strcasecmp(output_type, "DNS")) {
-            if (snprintf(path, sizeof(path), "%s/addns.xml", OPENDNSSEC_CONFIG_DIR) >= (int)sizeof(path)
-            || zone_db_set_output_adapter_uri(zone, path))
-            {
-                client_printf_err(sockfd, "Unable to add zone, failed to set output!\n");
-            }
-        }
-        else {
-            if (snprintf(path, sizeof(path), "%s/signed/%s", OPENDNSSEC_STATE_DIR, zone_name) >= (int)sizeof(path)
-                || zone_db_set_output_adapter_uri(zone, path))
-            {
-                client_printf_err(sockfd, "Unable to add zone, failed to set output!\n");
-            }
-        }
-    }
-
-    client_printf(sockfd, "output is set to %s. \n", zone_db_output_adapter_uri(zone));
-    if (output_type && !strcasecmp(output_type, "DNS")) {
-        if (access(zone_db_output_adapter_uri(zone), F_OK) == -1) {
-            client_printf_err(sockfd, "WARNING: The output file %s for zone %s does not currently exist. The zone will be added to the database anyway. \n", zone_db_output_adapter_uri(zone), zone_name);
-            ods_log_warning("[%s] WARNING: The output file %s for zone %s does not currently exist. The zone will be added to the database anyway.", module_str, zone_db_output_adapter_uri(zone), zone_name);
-        }
-        else if (access(zone_db_output_adapter_uri(zone), R_OK)) {
-            client_printf_err(sockfd, "WARNING: Read access to output file %s for zone %s denied! \n ", zone_db_output_adapter_uri(zone), zone_name);
-            ods_log_warning("[%s] WARNING: Read access to output file %s for zone %s denied! ", module_str, zone_db_output_adapter_uri(zone), zone_name);
-        }
-    }
-
-    if (signconf) {
-        if (signconf[0] == '/') {
-            if (zone_db_set_signconf_path(zone, signconf)) {
-                client_printf_err(sockfd, "Unable to add zone, failed to set signconf!\n");
-            }
-        }
-        else {
-            if (snprintf(path, sizeof(path), "%s/signconf/%s", OPENDNSSEC_STATE_DIR, signconf) >= (int)sizeof(path)
-                || zone_db_set_signconf_path(zone, path))
-            {
-                client_printf_err(sockfd, "Unable to add zone, failed to set signconf!\n");
-            }
-        }
-    }
-    else {
-        if (snprintf(path, sizeof(path), "%s/signconf/%s.xml", OPENDNSSEC_STATE_DIR, zone_name) >= (int)sizeof(path)
-            || zone_db_set_signconf_path(zone, path))
-        {
-            client_printf_err(sockfd, "Unable to add zone, failed to set signconf!\n");
-        }
-    }
-    if (suspend) {
-        if (zone_db_set_next_change(zone, -1)) {
-            ods_log_error("[%s] Cannot suspend zone %s, database error!", module_str, zone_name);
-            client_printf_err(sockfd, "Cannot suspend zone %s, database error!\n", zone_name);
-	}
-    }
-
-    if (zone_db_create(zone)) {
-        client_printf_err(sockfd, "Unable to add zone, database error!\n");
-        zone_db_free(zone);
-        policy_free(policy);
-        free(buf);
-        return 1;
-    }
-    ods_log_info("[%s] zone %s added [policy: %s]", module_str, zone_name, (policy_name ? policy_name : "default"));
+    ods_log_info("[%s] zone %s added [policy: %s]", module_str, zone_name, policy_name);
     client_printf(sockfd, "Zone %s added successfully\n", zone_name);
-    free(buf);
 
     if (write_xml) {
-        if (zonelist_update_add(sockfd, engine->config->zonelist_filename, zone, 1) != ZONELIST_UPDATE_OK) {
+        if (zonelist_update_add(sockfd, engine->config->zonelist_filename,
+                   zone, policy_name, 1) != ZONELIST_UPDATE_OK)
+        {
             ods_log_error("[%s] zonelist %s updated failed", module_str, engine->config->zonelist_filename);
             client_printf_err(sockfd, "Zonelist %s update failed!\n", engine->config->zonelist_filename);
             ret = 1;
-        }
-        else {
+        } else {
             ods_log_info("[%s] zonelist %s updated successfully", module_str, engine->config->zonelist_filename);
             client_printf(sockfd, "Zonelist %s updated successfully\n", engine->config->zonelist_filename);
         }
     }
 
-    if (snprintf(path, sizeof(path), "%s/%s", engine->config->working_dir, OPENDNSSEC_ENFORCER_ZONELIST) >= (int)sizeof(path)
-        || zonelist_update_add(sockfd, path, zone, 0) != ZONELIST_UPDATE_OK)
+    if (snprintf(path, PATH_MAX, "%s/%s", engine->config->working_dir,
+        OPENDNSSEC_ENFORCER_ZONELIST) >= (int)sizeof(path)
+        || zonelist_update_add(sockfd, path, zone, policy_name, 0) != ZONELIST_UPDATE_OK)
     {
         ods_log_error("[%s] internal zonelist update failed", module_str);
-        client_printf_err(sockfd, "Unable to update the internal zonelist %s, updates will not reach the Signer!\n", path);
+        client_printf_err(sockfd, "Unable to update the internal zonelist %s,"
+                " updates will not reach the Signer!\n", path);
         ret = 1;
-    }
-    else {
+    } else {
         ods_log_info("[%s] internal zonelist updated successfully", module_str);
     }
 
     /*
      * On successful generate HSM keys and add/flush enforce task.
      */
-    (void)hsm_key_factory_generate_policy(engine, dbconn, policy, 0);
+    (void)hsm_key_factory_generate_policy(engine, dbconn, policies, policy, 0);
     ods_log_debug("[%s] Flushing enforce task", module_str);
     (void)schedule_task(engine->taskq, enforce_task(engine, zone->name), 1, 0);
 
-    policy_free(policy);
-
-    zone_db_free(zone);
-
+    dbw_list_free(policies);
+    free(buf);
     return ret;
 }
 

@@ -9,7 +9,7 @@
 #include "daemon/engine.h"
 #include "cmdhandler.h"
 #include "enforcercommands.h"
-#include "db/db_connection.h"
+#include "db/dbw.h"
 
 /* commands to handle */
 #include "policy/policy_resalt_cmd.h"

@@ -97,6 +97,7 @@ ods_enforcerd_SOURCES = \
 	enforcer/update_all_cmd.c enforcer/update_all_cmd.h \
 	enforcer/update_conf_cmd.c enforcer/update_conf_cmd.h \
 	utils/kc_helper.c utils/kc_helper.h \
+	db/dbw.c db/dbw.h \
 	db/db_backend.c db/db_backend.h \
 	db/db_clause.c db/db_clause.h \
 	db/db_configuration.c db/db_configuration.h \

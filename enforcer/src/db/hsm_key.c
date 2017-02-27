@@ -1464,6 +1464,62 @@ hsm_key_list_t* hsm_key_list_new(const db_connection_t* connection) {
     return hsm_key_list;
 }
 
+int hsm_key_list_get(hsm_key_list_t* hsm_key_list) {
+    size_t i;
+
+    if (!hsm_key_list) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!hsm_key_list->dbo) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (hsm_key_list->result_list) {
+        db_result_list_free(hsm_key_list->result_list);
+    }
+    if (hsm_key_list->object_list_size) {
+        for (i = 0; i < hsm_key_list->object_list_size; i++) {
+            if (hsm_key_list->object_list[i]) {
+                hsm_key_free(hsm_key_list->object_list[i]);
+            }
+        }
+        hsm_key_list->object_list_size = 0;
+        hsm_key_list->object_list_first = 0;
+    }
+    if (hsm_key_list->object_list) {
+        free(hsm_key_list->object_list);
+        hsm_key_list->object_list = NULL;
+    }
+    if (!(hsm_key_list->result_list = db_object_read(hsm_key_list->dbo, NULL, NULL))
+        || db_result_list_fetch_all(hsm_key_list->result_list))
+    {
+        return DB_ERROR_UNKNOWN;
+    }
+    return DB_OK;
+}
+
+hsm_key_list_t*
+hsm_key_list_new_get(const db_connection_t* connection)
+{
+    hsm_key_list_t* hsm_key_list;
+    if (!connection) return NULL;
+    if (!(hsm_key_list = hsm_key_list_new(connection)) || hsm_key_list_get(hsm_key_list)) {
+        hsm_key_list_free(hsm_key_list);
+        return NULL;
+    }
+    return hsm_key_list;
+}
+
+size_t
+hsm_key_list_size(hsm_key_list_t* hsm_key_list)
+{
+    if (!hsm_key_list) return 0;
+    if (hsm_key_list->object_store && hsm_key_list->object_list)
+        return hsm_key_list->object_list_size;
+    if (!hsm_key_list->result_list) return 0;
+    return db_result_list_size(hsm_key_list->result_list);
+}
+
 hsm_key_list_t* hsm_key_list_new_copy(const hsm_key_list_t* from_hsm_key_list) {
     hsm_key_list_t* hsm_key_list;
 
