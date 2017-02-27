@@ -40,9 +40,6 @@
 
 static const char* dnsh_str = "dnshandler";
 
-static void dnshandler_handle_xfr(netio_type* netio,
-    netio_handler_type* handler, netio_events_type event_types);
-
 /**
  * Create dns handler.
  *
@@ -92,8 +89,6 @@ dnshandler_create(listener_type* interfaces)
     dnsh->xfrhandler.fd = -1;
     dnsh->xfrhandler.user_data = (void*) dnsh;
     dnsh->xfrhandler.timeout = 0;
-    dnsh->xfrhandler.event_types = NETIO_EVENT_READ;
-    dnsh->xfrhandler.event_handler = dnshandler_handle_xfr;
     return dnsh;
 }
 
@@ -239,32 +234,6 @@ dnshandler_fwd_notify(dnshandler_type* dnshandler, uint8_t* pkt, size_t len)
             dnsh_str, strerror(errno));
     } else {
         ods_log_debug("[%s] forwarded notify: %ld bytes sent", dnsh_str, (long)nb);
-    }
-}
-
-
-/**
- * Handle forwarded dns packets.
- *
- */
-static void
-dnshandler_handle_xfr(netio_type* ATTR_UNUSED(netio),
-    netio_handler_type* handler, netio_events_type event_types)
-{
-    dnshandler_type* dnshandler = NULL;
-    uint8_t buf[MAX_PACKET_SIZE];
-    ssize_t received = 0;
-    if (!handler) {
-        return;
-    }
-    dnshandler = (dnshandler_type*) handler->user_data;
-    ods_log_assert(event_types & NETIO_EVENT_READ);
-    received = read(dnshandler->xfrhandler.fd, &buf, MAX_PACKET_SIZE);
-    ods_log_debug("[%s] read forwarded xfr packet: %d bytes received",
-        dnsh_str, (int) received);
-    if (received == -1) {
-        ods_log_error("[%s] unable to forward xfr packet: %s", dnsh_str,
-            strerror(errno));
     }
 }
 
