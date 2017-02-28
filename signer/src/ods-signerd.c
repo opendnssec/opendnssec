@@ -120,7 +120,6 @@ main(int argc, char* argv[])
     char* argv0;
     int c, returncode;
     int options_index = 0;
-    int info = 0;
     int daemonize = 1;
     int cmdline_verbosity = 0;
     char *time_arg = NULL;
@@ -129,7 +128,6 @@ main(int argc, char* argv[])
         {"config", required_argument, 0, 'c'},
         {"no-daemon", no_argument, 0, 'd'},
         {"help", no_argument, 0, 'h'},
-        {"info", no_argument, 0, 'i'},
         {"verbose", no_argument, 0, 'v'},
         {"version", no_argument, 0, 'V'},
         {"set-time", required_argument, 0, 256},
@@ -145,7 +143,7 @@ main(int argc, char* argv[])
     }
 
     /* parse the commandline */
-    while ((c=getopt_long(argc, argv, "c:dhivV",
+    while ((c=getopt_long(argc, argv, "c:dhvV",
         long_options, &options_index)) != -1) {
         switch (c) {
             case 'c':
@@ -157,9 +155,6 @@ main(int argc, char* argv[])
             case 'h':
                 usage(stdout);
                 exit(0);
-                break;
-            case 'i':
-                info = 1;
                 break;
             case 'v':
                 cmdline_verbosity++;
@@ -196,7 +191,7 @@ main(int argc, char* argv[])
 
     ods_janitor_initialize(argv0);
     program_setup(cfgfile, cmdline_verbosity);
-    returncode = engine_start(cfgfile, cmdline_verbosity, daemonize, info);
+    returncode = engine_start(cfgfile, cmdline_verbosity, daemonize, 0);
     program_teardown();
 
     free(argv0);
