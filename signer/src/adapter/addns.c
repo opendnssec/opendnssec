@@ -419,11 +419,6 @@ begin_pkt:
             adapi_trans_diff(zone, 1);
         }
     }
-    if (result == ODS_STATUS_UPTODATE) {
-        /* do a transaction for DNSKEY and NSEC3PARAM */
-        adapi_trans_diff(zone, 1);
-        result = ODS_STATUS_OK;
-    }
     if (result == ODS_STATUS_XFRINCOMPLETE) {
         /** we have to restore the incomplete zone transfer:
           * xfrd = (xfrd.tmp + startpos) . (xfrd)

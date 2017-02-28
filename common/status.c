@@ -38,7 +38,6 @@ ods_lookup_table ods_status_str[] = {
     { ODS_STATUS_OK, "All OK" },
     { ODS_STATUS_EOF, "End of file" },
     { ODS_STATUS_NOTIMPL, "Not implemented"},
-    { ODS_STATUS_UPTODATE, "Up to date"},
 
     { ODS_STATUS_ASSERT_ERR, "Assertion error"},
     { ODS_STATUS_CFG_ERR, "Configuration error"},
