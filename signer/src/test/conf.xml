@@ -14,6 +14,7 @@
 	<Enforcer>
 		<Datastore><SQLite>kasp.db</SQLite></Datastore>
 		<AutomaticKeyGenerationPeriod>PT3600S</AutomaticKeyGenerationPeriod>
+		<WorkingDirectory>.</WorkingDirectory>
 	</Enforcer>
 	<Signer>
 		<PidFile>signer.pid</PidFile>
