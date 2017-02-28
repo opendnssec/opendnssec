@@ -529,6 +529,15 @@ cmdhandler_handle_cmd_reload(int sockfd, cmdhandler_ctx_type* context, const cha
 }
 
 
+void
+command_stop(engine_type* engine)
+{
+    engine->need_to_exit = 1;
+    pthread_mutex_lock(&engine->signal_lock);
+    pthread_cond_signal(&engine->signal_cond);
+    pthread_mutex_unlock(&engine->signal_lock);
+}
+
 /**
  * Handle the 'stop' command.
  *
@@ -539,10 +548,7 @@ cmdhandler_handle_cmd_stop(int sockfd, cmdhandler_ctx_type* context, const char 
     engine_type* engine;
     char buf[ODS_SE_MAXLINE];
     engine = getglobalcontext(context);
-    engine->need_to_exit = 1;
-    pthread_mutex_lock(&engine->signal_lock);
-    pthread_cond_signal(&engine->signal_cond);
-    pthread_mutex_unlock(&engine->signal_lock);
+    command_stop(engine);
     (void)snprintf(buf, ODS_SE_MAXLINE, ODS_SE_STOP_RESPONSE);
     client_printf(sockfd, buf);
     return 0;

@@ -38,5 +38,6 @@
 struct cmd_func_block** signercommands;
 
 extern engine_type* getglobalcontext(cmdhandler_ctx_type*);
+extern void command_stop(engine_type* engine);
 
 #endif
