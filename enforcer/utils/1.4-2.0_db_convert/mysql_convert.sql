@@ -148,7 +148,7 @@ WHERE REMOTE.policies.id = policy.id
 	AND REMOTE.policies.salt IS NOT NULL;
 
 UPDATE policy, REMOTE.policies
-SET denialSaltLastChange = REMOTE.policies.salt_stamp
+SET denialSaltLastChange = UNIX_TIMESTAMP(REMOTE.policies.salt_stamp)
 WHERE REMOTE.policies.id = policy.id
 	AND REMOTE.policies.salt_stamp IS NOT NULL;
 
@@ -193,14 +193,14 @@ SET keysShared = (
 		AND REMOTE.parameters.name = 'zones_share_keys');
 
 UPDATE policy
-SET keysPurgeAfter = (
-	SELECT value
-	FROM  REMOTE.parameters_policies
-	INNER JOIN REMOTE.parameters
-	ON REMOTE.parameters_policies.parameter_id = REMOTE.parameters.id 
-	WHERE REMOTE.parameters_policies.policy_id = policy.id 
-		AND REMOTE.parameters.category_id = 5
-		AND REMOTE.parameters.name = 'purge');
+SET keysPurgeAfter = COALESCE((
+        SELECT value
+        FROM  REMOTE.parameters_policies
+        INNER JOIN REMOTE.parameters
+        ON REMOTE.parameters_policies.parameter_id = REMOTE.parameters.id 
+        WHERE REMOTE.parameters_policies.policy_id = policy.id 
+                AND REMOTE.parameters.category_id = 5
+                AND REMOTE.parameters.name = 'purge'), 0);
 
 UPDATE policy
 SET zonePropagationDelay = (
@@ -472,7 +472,7 @@ WHERE policyKey.role = 2;
 -- ~ ************
 
 INSERT INTO hsmKey
-SELECT REMOTE.keypairs.id, 1, REMOTE.keypairs.policy_id, 
+SELECT DISTINCT REMOTE.keypairs.id, 1, REMOTE.keypairs.policy_id, 
 REMOTE.keypairs.HSMkey_id, 2, REMOTE.keypairs.size, 
 REMOTE.keypairs.algorithm,  (~(REMOTE.dnsseckeys.keytype)&1)+1, 
 CASE WHEN REMOTE.keypairs.generate IS NOT NULL THEN 
@@ -660,35 +660,51 @@ JOIN REMOTE.dnsseckeys
 JOIN mapping
 	ON mapping.state = REMOTE.dnsseckeys.state;
 
---Set to OMN if Tactive + Dttl < Tnow
-UPDATE keyState
-SET state = 2
-WHERE keyState.state = 1 AND keyState.type = 1 AND keyState.id IN (
-        SELECT rs.id
-        FROM keyState AS rs
-        JOIN keyData
-                ON keyData.id = rs.keydataId
-        JOIN REMOTE.dnsseckeys
-                ON REMOTE.dnsseckeys.keypair_id = keyData.hsmkeyid
-        JOIN zone
-                ON keyData.zoneId = zone.id
-        JOIN policy
-                ON policy.id = zone.policyId
-        WHERE CAST(UNIX_TIMESTAMP(REMOTE.dnsseckeys.active) + policy.signaturesValidityDefault as INTEGER) < UNIX_TIMESTAMP(now()));
+CREATE TABLE tmp (
+	id INTEGER
+);
 
---Force the RRSIG state in omnipresent if rumoured and there is no old ZSK
---unretentive
+INSERT INTO tmp
+SELECT rs.id
+FROM keyState AS rs
+JOIN keyData
+        ON keyData.id = rs.keydataId
+JOIN REMOTE.dnsseckeys
+        ON REMOTE.dnsseckeys.keypair_id = keyData.hsmkeyid
+JOIN zone
+        ON keyData.zoneId = zone.id
+JOIN policy
+        ON policy.id = zone.policyId
+WHERE (UNIX_TIMESTAMP(REMOTE.dnsseckeys.active) + policy.signaturesValidityDefault) < UNIX_TIMESTAMP();
+
+-- Set to OMN if Tactive + Dttl < Tnow
+UPDATE keyState
+SET keyState.state = 2
+WHERE keyState.state = 1
+AND keyState.type = 1 AND EXISTS(SELECT id FROM tmp where id = keyState.id);
+
+DROP TABLE tmp;
+
+CREATE TABLE tmp (
+	id INTEGER
+);
+
+INSERT tmp
+SELECT rs.id FROM keyState AS rs
+JOIN keyState AS dk ON dk.keyDataId = rs.keyDataId
+WHERE rs.type = 1 AND dk.type = 2 AND rs.state = 1 AND dk.state = 2
+AND NOT EXISTS(
+	SELECT* FROM keyState AS rs2
+	JOIN keyState AS dk2 ON dk2.keyDataId = rs2.keyDataId
+	WHERE rs2.type = 1 AND dk2.type = 2 AND rs2.state = 3 AND dk2.state = 2
+);
+
+-- Force the RRSIG state in omnipresent if rumoured and there is no old ZSK
+-- unretentive
 UPDATE keyState 
 SET state = 2
-WHERE keyState.id IN (
-SELECT rs.id FROM keyState AS rs 
-JOIN keystate AS dk ON dk.keyDataId == rs.keyDataId
-WHERE rs.type == 1 AND dk.type == 2 AND rs.state == 1 AND dk.state == 2
-AND NOT EXISTS(
-	SELECT* FROM keystate AS rs2
-	JOIN keystate AS dk2 ON dk2.keyDataId == rs2.keyDataId
-	WHERE rs2.type == 1 AND dk2.type == 2 AND rs2.state == 3 AND dk2.state == 2
-));
+WHERE EXISTS(SELECT id FROM tmp WHERE id = keyState.id);
+DROP TABLE tmp;
 DROP TABLE mapping;
 
 -- We need to create records in the keydependency table in case we are in a
@@ -698,29 +714,29 @@ INSERT INTO keyDependency
 SELECT NULL, 0, keyData.zoneID, SUB.IDout, keyData.id, 1
 FROM keyData
 JOIN keyState AS KS1 
-	ON KS1.keyDataId == keyData.id
+	ON KS1.keyDataId = keyData.id
 JOIN keyState AS KS2 
-	ON KS2.keyDataId == keyData.id
+	ON KS2.keyDataId = keyData.id
 JOIN (
 	SELECT keyData.id AS IDout, keyData.zoneID 
 	FROM keyData
 	JOIN keyState AS KS1 
-		ON KS1.keyDataId == keyData.id
+		ON KS1.keyDataId = keyData.id
 	JOIN keyState AS KS2 
-		ON KS2.keyDataId == keyData.id
-	WHERE KS1.type == 2 
-		AND ks1.state = 2 
-		AND KS2.type == 1 
-		AND KS2.state == 3
-		AND keyData.introducing == 0 
-		AND keyData.role == 2
+		ON KS2.keyDataId = keyData.id
+	WHERE KS1.type = 2 
+		AND KS1.state = 2 
+		AND KS2.type = 1 
+		AND KS2.state = 3
+		AND keyData.introducing = 0 
+		AND keyData.role = 2
 ) AS SUB
-	ON SUB.zoneId == keyData.zoneId
+	ON SUB.zoneId = keyData.zoneId
 WHERE 
-	KS1.type == 2 
-	AND ks1.state = 2 
-	AND KS2.type == 1 
-	AND KS2.state == 1
+	KS1.type = 2 
+	AND KS1.state = 2 
+	AND KS2.type = 1 
+	AND KS2.state = 1;
 
 UPDATE keyState
 SET state = 4
