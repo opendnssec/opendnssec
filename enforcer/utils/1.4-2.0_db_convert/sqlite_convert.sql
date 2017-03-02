@@ -274,14 +274,14 @@ SET keysShared = (
 		AND REMOTE.parameters.name = 'zones_share_keys');
 
 UPDATE policy
-SET keysPurgeAfter = (
+SET keysPurgeAfter = COALESCE((
 	SELECT value
 	FROM  REMOTE.parameters_policies
 	INNER JOIN REMOTE.parameters
 	ON REMOTE.parameters_policies.parameter_id = REMOTE.parameters.id 
 	WHERE REMOTE.parameters_policies.policy_id = policy.id 
 		AND REMOTE.parameters.category_id = 5
-		AND REMOTE.parameters.name = 'purge');
+		AND REMOTE.parameters.name = 'purge'), 0);
 
 UPDATE policy
 SET zonePropagationDelay = (
@@ -553,7 +553,7 @@ WHERE policyKey.role = 2;
 -- ~ ************
 
 INSERT INTO hsmKey
-SELECT REMOTE.keypairs.id, 1, REMOTE.keypairs.policy_id, 
+SELECT DISTINCT REMOTE.keypairs.id, 1, REMOTE.keypairs.policy_id,
 REMOTE.keypairs.HSMkey_id, 2, REMOTE.keypairs.size, 
 REMOTE.keypairs.algorithm,  (~(REMOTE.dnsseckeys.keytype)&1)+1, 
 CASE WHEN REMOTE.keypairs.generate IS NOT NULL THEN 
