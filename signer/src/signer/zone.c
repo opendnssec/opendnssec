@@ -631,6 +631,7 @@ zone_add_rr(zone_type* zone, ldns_rr* rr, int do_stats)
             }
             ods_log_error("In zone file %s: TTL for the record '%s' set to %d", zone->name, str, ldns_rr_ttl(rrset->rrs[0].rr));
             LDNS_FREE(str);
+            ldns_rr_set_ttl(rr,ldns_rr_ttl(rrset->rrs[0].rr));
         }
     }
     /* update stats */
