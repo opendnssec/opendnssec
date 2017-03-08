@@ -36,7 +36,7 @@
 #include "log.h"
 
 enum ods_enum_status {
-    ODS_STATUS_OK,
+    ODS_STATUS_OK = 0,
     ODS_STATUS_EOF,
     ODS_STATUS_NOTIMPL,
     ODS_STATUS_UPTODATE,
