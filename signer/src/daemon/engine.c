@@ -786,7 +786,6 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize, int info
     }
     if (info) {
         engine_config_print(stdout, engine->config); /* for debugging */
-        status = ODS_STATUS_ERR;
         goto earlyexit;
     }
     /* check pidfile */
