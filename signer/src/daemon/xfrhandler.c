@@ -72,26 +72,8 @@ xfrhandler_create()
     xfrh->notify_udp_num = 0;
     /* setup */
     xfrh->netio = netio_create();
-    if (!xfrh->netio) {
-        ods_log_error("[%s] unable to create xfrhandler: "
-            "netio_create() failed", xfrh_str);
-        xfrhandler_cleanup(xfrh);
-        return NULL;
-    }
     xfrh->packet = buffer_create(PACKET_BUFFER_SIZE);
-    if (!xfrh->packet) {
-        ods_log_error("[%s] unable to create xfrhandler: "
-            "buffer_create() failed", xfrh_str);
-        xfrhandler_cleanup(xfrh);
-        return NULL;
-    }
     xfrh->tcp_set = tcp_set_create();
-    if (!xfrh->tcp_set) {
-        ods_log_error("[%s] unable to create xfrhandler: "
-            "tcp_set_create() failed", xfrh_str);
-        xfrhandler_cleanup(xfrh);
-        return NULL;
-    }
     xfrh->dnshandler.fd = -1;
     xfrh->dnshandler.user_data = (void*) xfrh;
     xfrh->dnshandler.timeout = 0;

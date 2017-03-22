@@ -74,12 +74,7 @@ zonelist_type*
 zonelist_create()
 {
     zonelist_type* zlist = NULL;
-        CHECKALLOC(zlist = (zonelist_type*) malloc(sizeof(zonelist_type)));
-    if (!zlist) {
-        ods_log_error("[%s] unable to create zonelist: allocator_alloc() "
-            "failed", zl_str);
-        return NULL;
-    }
+    CHECKALLOC(zlist = (zonelist_type*) malloc(sizeof(zonelist_type)));
     zlist->zones = ldns_rbtree_create(zone_compare);
     if (!zlist->zones) {
         ods_log_error("[%s] unable to create zonelist: ldns_rbtree_create() "
@@ -161,14 +156,8 @@ zonelist_lookup_zone_by_name(zonelist_type* zonelist, const char* name,
     zone_type* result = NULL;
     if (zonelist && zonelist->zones && name  && klass) {
         zone = zone_create((char*) name, klass);
-        if (!zone) {
-            ods_log_error("[%s] unable to lookup zone %s: "
-                "zone_create() failed", zl_str, name);
-            /* result stays NULL */
-        } else {
-            result = zonelist_lookup_zone(zonelist, zone);
-            zone_cleanup(zone);
-        }
+        result = zonelist_lookup_zone(zonelist, zone);
+        zone_cleanup(zone);
     }
     return result;
 }
@@ -364,11 +353,6 @@ zonelist_update(zonelist_type* zl, const char* zlfile)
     }
     /* create new zonelist */
     new_zlist = zonelist_create();
-    if (!new_zlist) {
-        ods_log_error("[%s] unable to update zonelist: zonelist_create() "
-            "failed", zl_str);
-        return ODS_STATUS_ERR;
-    }
     /* read zonelist */
     status = zonelist_read(new_zlist, zlfile);
     if (status == ODS_STATUS_OK) {
