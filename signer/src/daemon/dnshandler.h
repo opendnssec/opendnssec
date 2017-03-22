@@ -57,6 +57,7 @@ struct dnshandler_struct {
     query_type* query;
     netio_handler_type xfrhandler;
     unsigned need_to_exit;
+    unsigned started;
     netio_handler_type *tcp_accept_handlers;
 };
 

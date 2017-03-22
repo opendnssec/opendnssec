@@ -123,12 +123,13 @@ engine_start_dnshandler(engine_type* engine)
     }
     ods_log_debug("[%s] start dnshandler", engine_str);
     engine->dnshandler->engine = engine;
+    engine->dnshandler->started = 1;
     janitor_thread_create(&engine->dnshandler->thread_id, handlerthreadclass, (janitor_runfn_t)dnshandler_start, engine->dnshandler);
 }
 static void
 engine_stop_dnshandler(engine_type* engine)
 {
-    if (!engine || !engine->dnshandler || !engine->dnshandler->thread_id) {
+    if (!engine || !engine->dnshandler || !engine->dnshandler->started) {
         return;
     }
     ods_log_debug("[%s] stop dnshandler", engine_str);
@@ -423,12 +424,18 @@ engine_setup_initialize(engine_type* engine, int* fdptr)
 }
 
 ods_status
-engine_setup_start(engine_type* engine)
+engine_setup_workstart(engine_type* engine)
 {
     /* create workers/drudgers */
     engine_create_workers(engine);
     /* start cmd/dns/xfr handlers */
     engine_start_cmdhandler(engine);
+    return ODS_STATUS_OK;
+}
+
+ods_status
+engine_setup_netwstart(engine_type* engine)
+{
     engine_start_dnshandler(engine);
     engine_start_xfrhandler(engine);
     tsig_handler_init();

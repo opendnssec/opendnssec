@@ -68,6 +68,7 @@ initialize(int argc, char* argv[])
 
     janitor_threadclass_create(&debugthreadclass, "debug");
     janitor_threadclass_setautorun(debugthreadclass);
+    janitor_threadclass_setblockedsignals(debugthreadclass);
 }
 
 static void
@@ -76,7 +77,7 @@ enginerunner(void* engine)
     engine_start(engine);
 }
 
-static int
+static void
 setUp(void)
 {
     int linkfd, status;
@@ -89,26 +90,20 @@ setUp(void)
     engine = engine_create();
     if((status = engine_setup_config(engine, "conf.xml", 3, 0)) != ODS_STATUS_OK ||
        (status = engine_setup_initialize(engine, &linkfd)) != ODS_STATUS_OK ||
-       (status = engine_setup_start(engine)) != ODS_STATUS_OK ||
+       (status = engine_setup_workstart(engine)) != ODS_STATUS_OK ||
        (status = engine_setup_finish(engine, linkfd)) != ODS_STATUS_OK) {
         ods_log_error("Unable to start signer daemon: %s", ods_status2str(status));
     }
-
     janitor_thread_create(&debugthread, debugthreadclass, enginerunner, engine);
-
-    return (status == ODS_STATUS_OK);
 }
 
-
-
-static int
+static void
 tearDown(void)
 {
     command_stop(engine);
     janitor_thread_join(debugthread);
-
-    ods_log_close();
-    return 0;
+    engine_cleanup(engine);
+    engine = NULL;
 }
 
 static void
@@ -117,13 +112,14 @@ finalize(void)
     janitor_threadclass_destroy(debugthreadclass);
     xmlCleanupParser();
     xmlCleanupGlobals();
+    ods_log_close();
     free(argv0);
 }
 
 void
 testBasic(void)
 {
-    /* no-op */
+    command_update(engine, NULL, NULL, NULL, NULL);
 }
 
 int
@@ -135,23 +131,17 @@ main(int argc, char* argv[])
         return CU_get_error();
 
     /* add a suite to the registry */
-    if (!(pSuite = CU_add_suite("Signer", setUp, tearDown))) {
+    if (!(pSuite = CU_add_suite_with_setup_and_teardown("signer", NULL, NULL, setUp, tearDown))) {
         CU_cleanup_registry();
         return CU_get_error();
     }
-    if (!(CU_add_test(pSuite, "test of start stop", testBasic)) ||
-            !(CU_add_test(pSuite, "test of start stop2", testBasic))) {
+    if (!(CU_add_test(pSuite, "test of start stop", testBasic))) {
         CU_cleanup_registry();
         return CU_get_error();
     }
 
     initialize(argc, argv);
 
-#ifdef NOTDEFINED
-    CU_set_output_filename(const char* szFilenameRoot)
-    CU_basic_set_mode(CU_BRM_VERBOSE);
-    CU_basic_run_tests();
-#endif
     CU_list_tests_to_file();
     CU_automated_run_tests();
     CU_cleanup_registry();

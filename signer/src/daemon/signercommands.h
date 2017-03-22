@@ -38,6 +38,7 @@
 struct cmd_func_block** signercommands;
 
 extern engine_type* getglobalcontext(cmdhandler_ctx_type*);
-extern void command_stop(engine_type* engine);
+extern void command_stop(engine_type*);
+extern void command_update(engine_type*, ods_status* zonelistchangestatus, int* addedptr, int* removedptr, int* updatedptr);
 
 #endif

@@ -200,7 +200,8 @@ main(int argc, char* argv[])
        (status = engine_setup_config(engine, cfgfile, cmdline_verbosity, daemonize)) != ODS_STATUS_OK ||
        (status = engine_setup_initialize(engine, &linkfd)) != ODS_STATUS_OK ||
        (status = engine_setup_signals(engine)) != ODS_STATUS_OK ||
-       (status = engine_setup_start(engine)) != ODS_STATUS_OK ||
+       (status = engine_setup_workstart(engine)) != ODS_STATUS_OK ||
+       (status = engine_setup_netwstart(engine)) != ODS_STATUS_OK ||
        (status = engine_setup_finish(engine, linkfd)) != ODS_STATUS_OK) {
         ods_log_error("Unable to start signer daemon: %s", ods_status2str(status));
     }
