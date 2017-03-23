@@ -478,12 +478,6 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
         } 
     }
 
-    if (argc) {
-        ods_log_error("[%s] unknown arguments for %s command", module_str, key_import_funcblock.cmdname);
-        client_printf_err(sockfd,"unknown arguments\n");
-        return -1;
-    }
-
     if (!zonename) {
         ods_log_error("[%s] expected --zone for %s command", module_str, key_import_funcblock.cmdname);
         client_printf_err(sockfd, "expected --zone \n");
