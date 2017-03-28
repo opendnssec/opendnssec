@@ -11,7 +11,7 @@
 	</RepositoryList>
 	<Common>
 		<Logging>
-			<Verbosity>4</Verbosity>
+			<Verbosity>5</Verbosity>
 			<Syslog><Facility>local0</Facility></Syslog>
 		</Logging>
 		<PolicyFile>@INSTALL_ROOT@/etc/opendnssec/kasp.xml</PolicyFile>
