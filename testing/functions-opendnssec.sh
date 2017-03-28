@@ -921,6 +921,8 @@ ods_start_enforcer ()
 
 	local timeout="$1"
 
+	sleep 10
+
 	echo "ods_start_enforcer: Starting ods-enforcer now..."
 
  	ods_enforcer_count_starts &&
