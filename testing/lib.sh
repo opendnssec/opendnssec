@@ -1690,12 +1690,12 @@ syslog_trace ()
 		slackware)
 			syslog_file="/var/log/opendnssec"
 			;;
+		centos | \
 		debian | \
 		ubuntu )
 			syslog_file="/var/log/syslog"
 			;;
 		redhat | \
-		centos | \
 		sl | \
 		opensuse | \
 		suse | \
