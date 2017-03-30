@@ -52,11 +52,6 @@ dnshandler_create(listener_type* interfaces)
         return NULL;
     }
     CHECKALLOC(dnsh = (dnshandler_type*) malloc(sizeof(dnshandler_type)));
-    if (!dnsh) {
-        ods_log_error("[%s] unable to create dnshandler: "
-            "allocator_alloc() failed", dnsh_str);
-        return NULL;
-    }
     dnsh->need_to_exit = 0;
     dnsh->engine = NULL;
     dnsh->interfaces = interfaces;
@@ -66,26 +61,8 @@ dnshandler_create(listener_type* interfaces)
     dnsh->tcp_accept_handlers = NULL;
     /* setup */
     CHECKALLOC(dnsh->socklist = (socklist_type*) malloc(sizeof(socklist_type)));
-    if (!dnsh->socklist) {
-        ods_log_error("[%s] unable to create socklist: "
-            "allocator_alloc() failed", dnsh_str);
-        dnshandler_cleanup(dnsh);
-        return NULL;
-    }
     dnsh->netio = netio_create();
-    if (!dnsh->netio) {
-        ods_log_error("[%s] unable to create dnshandler: "
-            "netio_create() failed", dnsh_str);
-        dnshandler_cleanup(dnsh);
-        return NULL;
-    }
     dnsh->query = query_create();
-    if (!dnsh->query) {
-        ods_log_error("[%s] unable to create dnshandler: "
-            "query_create() failed", dnsh_str);
-        dnshandler_cleanup(dnsh);
-        return NULL;
-    }
     dnsh->xfrhandler.fd = -1;
     dnsh->xfrhandler.user_data = (void*) dnsh;
     dnsh->xfrhandler.timeout = 0;
@@ -132,25 +109,10 @@ dnshandler_start(dnshandler_type* dnshandler)
         struct udp_data* data = NULL;
         netio_handler_type* handler = NULL;
         CHECKALLOC(data = (struct udp_data*) malloc(sizeof(struct udp_data)));
-        if (!data) {
-            ods_log_error("[%s] unable to start: allocator_alloc() "
-                "failed", dnsh_str);
-            dnshandler->thread_id = 0;
-            engine->need_to_exit = 1;
-            break;
-        }
         data->query = dnshandler->query;
         data->engine = dnshandler->engine;
         data->socket = &dnshandler->socklist->udp[i];
         CHECKALLOC(handler = (netio_handler_type*) malloc(sizeof(netio_handler_type)));
-        if (!handler) {
-            ods_log_error("[%s] unable to start: allocator_alloc() "
-                "failed", dnsh_str);
-            free(data);
-            dnshandler->thread_id = 0;
-            engine->need_to_exit = 1;
-            break;
-        }
         handler->fd = dnshandler->socklist->udp[i].s;
         handler->timeout = NULL;
         handler->user_data = data;
@@ -167,13 +129,6 @@ dnshandler_start(dnshandler_type* dnshandler)
         struct tcp_accept_data* data = NULL;
         netio_handler_type* handler = NULL;
         CHECKALLOC(data = (struct tcp_accept_data*) malloc(sizeof(struct tcp_accept_data)));
-        if (!data) {
-            ods_log_error("[%s] unable to start: allocator_alloc() "
-                "failed", dnsh_str);
-            dnshandler->thread_id = 0;
-            engine->need_to_exit = 1;
-            return;
-        }
         data->engine = dnshandler->engine;
         data->socket = &dnshandler->socklist->udp[i];
         data->tcp_accept_handler_count = dnshandler->interfaces->count;

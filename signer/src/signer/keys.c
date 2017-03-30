@@ -53,11 +53,6 @@ keylist_create(signconf_type* signconf)
         return NULL;
     }
     CHECKALLOC(kl = (keylist_type*) malloc((sizeof(keylist_type))));
-    if (!kl) {
-        ods_log_error("[%s] create list failed: allocator_alloc() failed",
-            key_str);
-        return NULL;
-    }
     kl->sc = signconf;
     kl->count = 0;
     kl->keys = NULL;
@@ -101,10 +96,6 @@ keylist_push(keylist_type* kl, const char* locator, const char* resourcerecord,
 
     keys_old = kl->keys;
     CHECKALLOC(kl->keys = (key_type*) malloc((kl->count + 1) * sizeof(key_type)));
-    if (!kl->keys) {
-        ods_fatal_exit("[%s] unable to add key: allocator_alloc() failed",
-            key_str);
-    }
     if (keys_old) {
         memcpy(kl->keys, keys_old, (kl->count) * sizeof(key_type));
     }

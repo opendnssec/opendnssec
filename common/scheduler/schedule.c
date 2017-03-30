@@ -189,10 +189,6 @@ schedule_create()
 {
     schedule_type* schedule;
     CHECKALLOC(schedule = (schedule_type*) malloc(sizeof(schedule_type)));
-    if (!schedule) {
-        ods_log_error("[%s] unable to create: malloc failed", schedule_str);
-        return NULL;
-    }
 
     schedule->tasks = ldns_rbtree_create(task_compare_time_then_ttuple);
     schedule->tasks_by_name = ldns_rbtree_create(task_compare_ttuple);
