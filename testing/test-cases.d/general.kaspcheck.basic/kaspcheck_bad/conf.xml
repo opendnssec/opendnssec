@@ -24,7 +24,6 @@
 
 	<Common>
 		<Logging>
-			<Verbosity>4</Verbosity>
 			<Syslog><Facility>local0</Facility></Syslog>
 		</Logging>
 		
