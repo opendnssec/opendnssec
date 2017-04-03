@@ -133,6 +133,8 @@ engine_config(const char* cfgfile,
             cmdline_verbosity : parse_conf_verbosity(cfgfile);
         ecfg->automatic_keygen_duration =
             parse_conf_automatic_keygen_period(cfgfile);
+        ecfg->rollover_notification =
+            parse_conf_rollover_notification(cfgfile);
 
         /* done */
         ods_fclose(cfgfd);

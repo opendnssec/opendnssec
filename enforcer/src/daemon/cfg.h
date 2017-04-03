@@ -75,6 +75,7 @@ struct engineconfig_struct {
     int verbosity;
     int db_port; /* Datastore/MySQL/Host/@Port */
     time_t automatic_keygen_duration;
+    time_t rollover_notification;
     hsm_repository_t* repositories;
     engineconfig_database_type_t db_type;
 };
