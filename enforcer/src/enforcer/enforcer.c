@@ -1536,6 +1536,26 @@ _update(engine_type *engine, struct dbw_db *db, struct dbw_zone *zone, time_t no
 {
     ods_log_info("[%s] update zone: %s", module_str, zone->name);
 
+	if (engine->config->rollover_notification && zone_db_next_ksk_roll(zone) > 0) {
+		if ((time_t)zone_db_next_ksk_roll(zone) - engine->config->rollover_notification <= now
+		    && (time_t)zone_db_next_ksk_roll(zone) != now) {
+			time_t t = (time_t) zone_db_next_ksk_roll(zone);
+			ods_log_info("[%s] KSK Rollover for zone %s is impending, "
+				     "rollover will happen at %s",
+				     module_str, zone_db_name(zone), ctime(&t));
+		}
+	}
+	else if (engine->config->rollover_notification && zone_db_next_csk_roll(zone) > 0) {
+		if ((time_t)zone_db_next_csk_roll(zone) - engine->config->rollover_notification <= now
+		    && (time_t)zone_db_next_csk_roll(zone) != now) {
+			time_t t = (time_t) zone_db_next_csk_roll(zone);
+			ods_log_info("[%s] CSK Rollover for zone %s is impending, "
+				     "rollover will happen at %s",
+				     module_str, zone_db_name(zone), ctime(&t));
+		}
+	}
+
+
     /* Update policy.*/
     int allow_unsigned = 0;
     time_t policy_return_time = updatePolicy(engine, db, zone, now,
