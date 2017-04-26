@@ -1,3 +1,8 @@
+OpenDNSSEC 2.1.1 - 2017-xx-xx
+
+* OPENDNSSEC-879: --suspend option for 'zone add' was broken. Fixed and
+  undocumented since it is not intended for production.
+
 OpenDNSSEC 2.1.0 - 2017-02-22
 
 * If listening port for signer is not set in conf file, the default value
