@@ -8,8 +8,8 @@ source `dirname "$0"`/lib.sh && init || exit 1
 # temporary make script to build softhsm2.  The LD_LIBRARY_PATH is
 # necessary too unfortunately.
 if [ -x `dirname "$0"`/make.sh ] ; then
-  export INSTALL_ROOT WORKSPACE
-  LD_LIBRARY_PATH=$INSTALL_ROOT/lib
+  export INSTALL_TAG INSTALL_ROOT WORKSPACE
+  LD_LIBRARY_PATH=$INSTALL_ROOT/lib:$LD_LIBRARY_PATH
   `dirname "$0"`/make.sh
 fi
 

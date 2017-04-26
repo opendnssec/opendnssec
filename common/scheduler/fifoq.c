@@ -47,11 +47,6 @@ fifoq_create()
 {
     fifoq_type* fifoq;
     CHECKALLOC(fifoq = (fifoq_type*) malloc(sizeof(fifoq_type)));
-    if (!fifoq) {
-        ods_log_error("[%s] unable to create fifoq: allocator_alloc() failed",
-            fifoq_str);
-        return NULL;
-    }
     fifoq_wipe(fifoq);
     pthread_mutex_init(&fifoq->q_lock, NULL);
     pthread_cond_init(&fifoq->q_threshold, NULL);

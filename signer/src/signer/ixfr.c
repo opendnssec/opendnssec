@@ -264,10 +264,6 @@ ixfr_purge(ixfr_type* ixfr, char const *zonename)
         }
     }
     ixfr->part[0] = part_create();
-    if (!ixfr->part[0]) {
-        ods_fatal_exit("[%s] fatal unable to purge ixfr for zone %s: "
-            "part_create() failed", ixfr_str, zonename);
-    }
 }
 
 

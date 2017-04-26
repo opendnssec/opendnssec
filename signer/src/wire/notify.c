@@ -104,21 +104,12 @@ notify_create(xfrhandler_type* xfrhandler, zone_type* zone)
         return NULL;
     }
     CHECKALLOC(notify = (notify_type*) malloc(sizeof(notify_type)));
-    if (!notify) {
-        ods_log_error("[%s] unable to create notify structure: "
-            " allocator_alloc() failed", notify_str);
-        return NULL;
-    }
     notify->zone = zone;
     notify->xfrhandler = xfrhandler;
     notify->waiting_next = NULL;
     notify->secondary = NULL;
     notify->soa = NULL;
     notify->tsig_rr = tsig_rr_create();
-    if (!notify->tsig_rr) {
-        notify_cleanup(notify);
-        return NULL;
-    }
     notify->retry = 0;
     notify->query_id = 0;
     notify->is_waiting = 0;

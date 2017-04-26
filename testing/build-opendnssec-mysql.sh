@@ -9,7 +9,7 @@ source `dirname "$0"`/lib.sh && init || exit 1
 # necessary too unfortunately.
 if [ -x `dirname "$0"`/make.sh ] ; then
   export INSTALL_TAG INSTALL_ROOT WORKSPACE
-  LD_LIBRARY_PATH=$INSTALL_ROOT/lib
+  LD_LIBRARY_PATH=$INSTALL_ROOT/lib:$LD_LIBRARY_PATH
   `dirname "$0"`/make.sh
 fi
 
