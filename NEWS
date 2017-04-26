@@ -1,3 +1,8 @@
+OpenDNSSEC 1.4.14 - TBD
+
+* OPENDNSSEC-752: Incorrect calculated number of KSKs needed when KSK and ZSK
+  have exactly the same paramaters.
+
 OpenDNSSEC 1.4.13 - 2017-01-20
 
 * OPENDNSSEC-778: Double NSEC3PARAM record after resalt.
