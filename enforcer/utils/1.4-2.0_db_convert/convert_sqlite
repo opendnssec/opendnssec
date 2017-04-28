@@ -36,7 +36,7 @@ if [ ! $DB_VERSION -eq 4 ]; then
 fi
 
 # Look for zones without an active key.
-Z=`sqlite3 $DB_IN < find_problematic_zones.sql`
+Z=`sqlite3 $DB_IN < ./find_problematic_zones.sql`
 if [[ $Z = *[![:space:]]* ]]; then
 	echo "Found zones without an active KSK but with a ready KSK waiting for ds-seen. This can cause problem after the conversion if the DS was actually already uploaded. You are adviced to submit these DS records and issue a ds-seen command before continueing. If you know better, disable this check to continue."
 	       echo "Zones: $Z"
