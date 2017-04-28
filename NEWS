@@ -1,5 +1,6 @@
 OpenDNSSEC 1.4.14 - TBD
 
+* OPENDNSSEC-888: Fixup database conversion script.
 * OPENDNSSEC-752: Incorrect calculated number of KSKs needed when KSK and ZSK
   have exactly the same paramaters.
 
