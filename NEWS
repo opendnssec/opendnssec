@@ -1,8 +1,10 @@
-OpenDNSSEC 1.4.14 - TBD
+OpenDNSSEC 1.4.14 - 2017-04-28
 
 * OPENDNSSEC-888: Fixup database conversion script.
 * OPENDNSSEC-752: Incorrect calculated number of KSKs needed when KSK and ZSK
   have exactly the same paramaters.
+* OPENDNSSEC-890: Bogus signatures upon wrong zone input when TTLs for
+  same rrset are mismatching.
 
 OpenDNSSEC 1.4.13 - 2017-01-20
 
