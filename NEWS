@@ -1,3 +1,12 @@
+OpenDNSSEC 2.1.1 - 2017-04-28
+
+* OPENDNSSEC-889: MySQL migration script didn't work for all database and
+  MySQL versions.
+* OPENDNSSEC-887: Segfault on extraneous <Interval> tag.
+* OPENDNSSEC-880: Command line parsing for import key command failed.
+* OPENDNSSEC-890: Bogus signatures upon wrong zone input when TTLs for
+  same rrset are mismatching.
+
 OpenDNSSEC 2.1.0 - 2017-02-22
 
 * If listening port for signer is not set in conf file, the default value
