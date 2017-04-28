@@ -882,22 +882,22 @@ engine_cleanup(engine_type* engine)
     if (!engine) {
         return;
     }
-    ods_log_assert(engine->config);
-
-    numTotalWorkers = engine->config->num_worker_threads + engine->config->num_signer_threads;
-    if (engine->workers) {
-        for (i=0; i < (size_t) numTotalWorkers; i++) {
-            worker_cleanup(engine->workers[i]);
+    if (engine->config) {
+        numTotalWorkers = engine->config->num_worker_threads + engine->config->num_signer_threads;
+        if (engine->workers) {
+            for (i=0; i < (size_t) numTotalWorkers; i++) {
+                worker_cleanup(engine->workers[i]);
+            }
+            free(engine->workers);
         }
-        free(engine->workers);
+        zonelist_cleanup(engine->zonelist);
+        schedule_cleanup(engine->taskq);
+        cmdhandler_cleanup(engine->cmdhandler);
+        dnshandler_cleanup(engine->dnshandler);
+        xfrhandler_cleanup(engine->xfrhandler);
+        engine_config_cleanup(engine->config);
+        pthread_mutex_destroy(&engine->signal_lock);
+        pthread_cond_destroy(&engine->signal_cond);
     }
-    zonelist_cleanup(engine->zonelist);
-    schedule_cleanup(engine->taskq);
-    cmdhandler_cleanup(engine->cmdhandler);
-    dnshandler_cleanup(engine->dnshandler);
-    xfrhandler_cleanup(engine->xfrhandler);
-    engine_config_cleanup(engine->config);
-    pthread_mutex_destroy(&engine->signal_lock);
-    pthread_cond_destroy(&engine->signal_cond);
     free(engine);
 }
