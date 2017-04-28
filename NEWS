@@ -1,5 +1,7 @@
 OpenDNSSEC 2.2 - 2017-xx-xx
 
+* OPENDNSSEC-889: MySQL migration script didn't work for all database and
+  MySQL versions.
 * OPENDNSSEC-879: --suspend option for 'zone add' was broken. Fixed and
   undocumented since it is not intended for production.
 * OPENDNSSEC-887: Segfault on extraneous <Interval> tag.
