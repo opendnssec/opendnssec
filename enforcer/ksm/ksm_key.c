@@ -810,6 +810,7 @@ int KsmKeyCountStillGood(int policy_id, int sm, int bits, int algorithm, int int
     if (bits != -1) {
         DqsConditionInt(&sql, "size", DQS_COMPARE_EQ, bits, where++);
     }
+    DqsConditionInt(&sql, "keytype", DQS_COMPARE_EQ, keytype, where++);
     if (algorithm != -1) {
         DqsConditionInt(&sql, "algorithm", DQS_COMPARE_EQ, algorithm, where++);
     }
