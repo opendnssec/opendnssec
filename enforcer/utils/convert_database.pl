@@ -172,7 +172,7 @@ unless ($from_version_valid) {
 #
 
 if ($to_data_source eq 'mysql') {
-    if ($from_version == 3) {
+    if ($from_version == 4) {
         my $valid = 1;
         print 'Validating existing data', "\n";
         
@@ -403,7 +403,7 @@ unless ($from_version == $to_version) {
 # Convert the database
 #
 
-if ($from_version == 3) {
+if ($from_version == 4) {
     #
     # Schema version 3 does not need any data modifications so just dump it out and in
     #
