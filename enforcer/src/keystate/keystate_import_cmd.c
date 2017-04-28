@@ -516,7 +516,6 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
         client_printf_err(sockfd, "specify repository \n");
         return -1;
     }
-	
     if (time && strptime(time, "%Y-%m-%d-%H:%M:%S", &tm)) {
         tm.tm_isdst = -1;
         inception = mktime(&tm);
@@ -560,6 +559,7 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
         db_value_free((void*)hsmkey_id);
         return -1;
     }
+
     if (atoi(algorithm) != policy_key_algorithm(policy_key)) {
         ods_log_error("Error: the given algorithm in import command doesn't match the algorithm in kasp");
         client_printf_err(sockfd, "The given algorithm doesn't match the algorithm in kasp\n");
