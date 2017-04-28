@@ -46,7 +46,6 @@ conf/zonelist.xml
 enforcer/man/ods-enforcer.8
 enforcer/man/ods-enforcerd.8
 enforcer/man/ods-enforcer-db-setup.8
-enforcer/man/ods-ksmutil.1
 enforcer/man/ods-migrate.8
 enforcer/src/ods-enforcer
 enforcer/src/ods-enforcerd
