@@ -63,7 +63,6 @@ usage(int sockfd)
 		"	[--out-type <type>]			aka -q\n"
 		"	[--output <path>]			aka -o\n"
 		"	[--xml]					aka -u\n"
-		"	[--suspend]				aka -n\n"
 	);
 }
 
@@ -80,8 +79,7 @@ help(int sockfd)
         "input		specify a location for the unsigned zone, this location is set in conf.xml, default for File Adapter is /var/opendnssec/unsigned/ and for DNS Adapter is /etc/opendnssec/addns.xml \n"
         "out-type	specify the type of output, should be DNS or File, default is File\n"
         "output		specify a location for the signed zone, this location is set in conf.xml, default path for File Adapter is /var/opendnssec/signed/ and for DNS Adapter is /etc/opendnssec/addns.xml \n"
-        "xml		update the zonelist.xml file\n"
-        "suspend		suspend this zone until running enforce command\n\n"
+        "xml		update the zonelist.xml file\n\n"
     );
 }
 
@@ -396,9 +394,11 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
     /*
      * On successful generate HSM keys and add/flush enforce task.
      */
-    (void)hsm_key_factory_generate_policy(engine, dbconn, policy, 0);
-    ods_log_debug("[%s] Flushing enforce task", module_str);
-    (void)schedule_task(engine->taskq, enforce_task(engine, zone->name), 1, 0);
+    if (!suspend) {
+        (void)hsm_key_factory_generate_policy(engine, dbconn, policy, 0);
+        ods_log_debug("[%s] Flushing enforce task", module_str);
+        (void)schedule_task(engine->taskq, enforce_task(engine, zone->name), 1, 0);
+    }
 
     policy_free(policy);
 
