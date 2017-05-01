@@ -516,7 +516,6 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
         client_printf_err(sockfd, "specify repository \n");
         return -1;
     }
-
     if (time && strptime(time, "%Y-%m-%d-%H:%M:%S", &tm)) {
         tm.tm_isdst = -1;
         inception = mktime(&tm);
