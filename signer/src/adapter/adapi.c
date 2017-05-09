@@ -111,7 +111,7 @@ adapi_trans_full(zone_type* zone, unsigned more_coming)
     if (!zone || !zone->db) {
         return;
     }
-    namedb_diff(zone->db, 0, more_coming);
+    namedb_diff(zone, zone->db, 0, more_coming);
 
     if (zone->stats) {
         pthread_mutex_lock(&zone->stats->stats_lock);
@@ -121,7 +121,7 @@ adapi_trans_full(zone_type* zone, unsigned more_coming)
     }
     start = time(NULL);
     /* nsecify(3) */
-    namedb_nsecify(zone->db, &num_added);
+    namedb_nsecify(zone, zone->db, &num_added);
     end = time(NULL);
     if (zone->stats) {
         pthread_mutex_lock(&zone->stats->stats_lock);
@@ -148,7 +148,7 @@ adapi_trans_diff(zone_type* zone, unsigned more_coming)
     if (!zone || !zone->db) {
         return;
     }
-    namedb_diff(zone->db, 1, more_coming);
+    namedb_diff(zone, zone->db, 1, more_coming);
 
    if (zone->stats) {
         pthread_mutex_lock(&zone->stats->stats_lock);
@@ -158,7 +158,7 @@ adapi_trans_diff(zone_type* zone, unsigned more_coming)
     }
     start = time(NULL);
     /* nsecify(3) */
-    namedb_nsecify(zone->db, &num_added);
+    namedb_nsecify(zone, zone->db, &num_added);
     end = time(NULL);
     if (zone->stats) {
         pthread_mutex_lock(&zone->stats->stats_lock);

@@ -49,9 +49,8 @@ typedef struct domain_struct domain_type;
  * Domain.
  *
  */
-struct domain_struct {
+ struct domain_struct {
     denial_type* denial;
-    zone_type* zone;
     ldns_rbnode_t* node;
     ldns_rdf* dname;
     domain_type* parent;
@@ -110,7 +109,7 @@ void domain_add_rrset(domain_type* domain, rrset_type* rrset);
  * \param[in] more_coming more transactions possible
  *
  */
-void domain_diff(domain_type* domain, unsigned is_ixfr, unsigned more_coming);
+void domain_diff(zone_type* zone, domain_type* domain, unsigned is_ixfr, unsigned more_coming);
 
 /**
  * Rollback differences at domain.

@@ -53,12 +53,10 @@ denial_create(zone_type* zone, ldns_rdf* dname)
     }
     CHECKALLOC(denial = (denial_type*) malloc(sizeof(denial_type)));
     denial->dname = dname;
-    denial->zone = zone;
     denial->domain = NULL; /* no back reference yet */
     denial->node = NULL; /* not in db yet */
     denial->rrset = NULL;
-    denial->bitmap_changed = 0;
-    denial->nxt_changed = 0;
+    denial->changed = 0;
     return denial;
 }
 
@@ -68,16 +66,13 @@ denial_create(zone_type* zone, ldns_rdf* dname)
  *
  */
 static void
-denial_create_bitmap(denial_type* denial, ldns_rr_type types[],
+denial_create_bitmap(domain_type* domain, denial_type* denial, ldns_rr_type types[],
     size_t* types_count)
 {
-    domain_type* domain = NULL;
     rrset_type* rrset = NULL;
 
     ods_log_assert(denial);
-    ods_log_assert(denial->domain);
 
-    domain = denial->domain;
     rrset = domain->rrsets;
     while (rrset) {
         ldns_rr_type dstatus = domain_is_occluded(domain);
@@ -142,19 +137,16 @@ denial_create_nsec3_nxt(ldns_rdf* nxt)
  *
  */
 static ldns_rr*
-denial_create_nsec(denial_type* denial, denial_type* nxt, uint32_t ttl,
+denial_create_nsec(domain_type* domain, denial_type* nxt, uint32_t ttl,
     ldns_rr_class klass, nsec3params_type* n3p)
 {
     ldns_rr* nsec_rr = NULL;
     ldns_rr_type rrtype = LDNS_RR_TYPE_NSEC;
     ldns_rr_type dstatus = LDNS_RR_TYPE_FIRST;
     ldns_rdf* rdf = NULL;
-    domain_type* domain = NULL;
     ldns_rr_type types[SE_MAX_RRTYPE_COUNT];
     size_t types_count = 0;
     int i = 0;
-    ods_log_assert(denial);
-    ods_log_assert(denial->dname);
     ods_log_assert(nxt);
     ods_log_assert(nxt->dname);
     nsec_rr = ldns_rr_new();
@@ -169,7 +161,7 @@ denial_create_nsec(denial_type* denial, denial_type* nxt, uint32_t ttl,
     }
     ldns_rr_set_type(nsec_rr, rrtype);
     /* owner */
-    rdf = ldns_rdf_clone(denial->dname);
+    rdf = ldns_rdf_clone(domain->denial->dname);
     if (!rdf) {
         ods_log_alert("[%s] unable to create NSEC(3) RR: "
             "ldns_rdf_clone(owner) failed", denial_str);
@@ -200,9 +192,8 @@ denial_create_nsec(denial_type* denial, denial_type* nxt, uint32_t ttl,
     }
     ldns_rr_push_rdf(nsec_rr, rdf);
     /* Type Bit Maps */
-    denial_create_bitmap(denial, types, &types_count);
+    denial_create_bitmap(domain, domain->denial, types, &types_count);
     if (n3p) {
-        domain = (domain_type*) denial->domain;
         dstatus = domain_is_occluded(domain);
         if (dstatus == LDNS_RR_TYPE_SOA) {
             dstatus = domain_is_delegpt(domain);
@@ -238,10 +229,10 @@ denial_create_nsec(denial_type* denial, denial_type* nxt, uint32_t ttl,
  *
  */
 void
-denial_diff(denial_type* denial)
+denial_diff(zone_type* zone, denial_type* denial)
 {
     if (denial && denial->rrset) {
-        rrset_diff(denial->rrset, 0, 0);
+        rrset_diff(zone, denial->rrset, 0, 0);
     }
 }
 
@@ -251,30 +242,26 @@ denial_diff(denial_type* denial)
  *
  */
 void
-denial_add_rr(denial_type* denial, ldns_rr* rr)
+denial_add_rr(zone_type* zone, denial_type* denial, ldns_rr* rr)
 {
     rr_type* record = NULL;
-    zone_type* zone = NULL;
     ods_log_assert(denial);
     ods_log_assert(rr);
-    zone = (zone_type*) denial->zone;
     ods_log_assert(zone);
     ods_log_assert(zone->signconf);
     if (!denial->rrset) {
         if (zone->signconf->nsec3params) {
-            denial->rrset = rrset_create(denial->zone, LDNS_RR_TYPE_NSEC3);
+            denial->rrset = rrset_create(zone, LDNS_RR_TYPE_NSEC3);
         } else {
-            denial->rrset = rrset_create(denial->zone, LDNS_RR_TYPE_NSEC);
+            denial->rrset = rrset_create(zone, LDNS_RR_TYPE_NSEC);
         }
     }
     ods_log_assert(denial->rrset);
     record = rrset_add_rr(denial->rrset, rr);
     ods_log_assert(record);
     ods_log_assert(record->rr);
-    record->owner = (void*) denial;
-    denial_diff(denial);
-    denial->bitmap_changed = 0;
-    denial->nxt_changed = 0;
+    denial_diff(zone, denial);
+    denial->changed = 0;
 }
 
 
@@ -283,30 +270,27 @@ denial_add_rr(denial_type* denial, ldns_rr* rr)
  *
  */
 void
-denial_nsecify(denial_type* denial, denial_type* nxt, uint32_t* num_added)
+denial_nsecify(zone_type* zone, domain_type* domain, denial_type* nxt, uint32_t* num_added)
 {
     ldns_rr* nsec_rr = NULL;
-    zone_type* zone = NULL;
     uint32_t ttl = 0;
-    ods_log_assert(denial);
     ods_log_assert(nxt);
-    zone = (zone_type*) denial->zone;
     ods_log_assert(zone);
     ods_log_assert(zone->signconf);
-    if (denial->nxt_changed || denial->bitmap_changed) {
+    if (domain->denial->changed) {
         ttl = zone->default_ttl;
         /* SOA MINIMUM */
         if (zone->signconf->soa_min) {
             ttl = (uint32_t) duration2time(zone->signconf->soa_min);
         }
         /* create new NSEC(3) rr */
-        nsec_rr = denial_create_nsec(denial, nxt, ttl, zone->klass,
+        nsec_rr = denial_create_nsec(domain, nxt, ttl, zone->klass,
             zone->signconf->nsec3params);
         if (!nsec_rr) {
             ods_fatal_exit("[%s] unable to nsecify: denial_create_nsec() "
                 "failed", denial_str);
         }
-        denial_add_rr(denial, nsec_rr);
+        denial_add_rr(zone, domain->denial, nsec_rr);
         if (num_added) {
             (*num_added)++;
         }

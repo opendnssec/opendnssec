@@ -36,6 +36,7 @@
 #include "duration.h"
 #include "file.h"
 #include "status.h"
+#include "zone.h"
 
 #include <ldns/ldns.h>
 

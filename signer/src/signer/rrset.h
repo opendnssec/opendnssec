@@ -43,14 +43,12 @@ typedef struct rrset_struct rrset_type;
 
 struct rrsig_struct {
     ldns_rr* rr;
-    domain_type* owner;
     const char* key_locator;
     uint32_t key_flags;
 };
 
 struct rr_struct {
     ldns_rr* rr;
-    domain_type* owner;
     unsigned exists : 1;
     unsigned is_added : 1;
     unsigned is_removed : 1;
@@ -58,8 +56,6 @@ struct rr_struct {
 
 struct rrset_struct {
     rrset_type* next;
-    zone_type* zone;
-    domain_type* domain;
     ldns_rr_type rrtype;
     rr_type* rrs;
     size_t rr_count;
@@ -163,7 +159,7 @@ void rrset_drop_rrsigs(zone_type* zone, rrset_type* rrset);
  * \param[in] more_coming more transactions possible
  *
  */
-void rrset_diff(rrset_type* rrset, unsigned is_ixfr, unsigned more_coming);
+void rrset_diff(zone_type* zone, rrset_type* rrset, unsigned is_ixfr, unsigned more_coming);
 
 /**
  * Sign RRset.
@@ -173,7 +169,7 @@ void rrset_diff(rrset_type* rrset, unsigned is_ixfr, unsigned more_coming);
  * \return ods_status status
  *
  */
-ods_status rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime);
+ods_status rrset_sign(zone_type* zone, domain_type* domain, hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime);
 
 /**
  * Obtain a resource record (containing a signature of a dnskeyset or

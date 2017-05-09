@@ -40,6 +40,7 @@ struct worker_context {
     worker_type* worker;
     fifoq_type* signq;
     time_t clock_in;
+    zone_type* zone;
 };
 
 void drudge(worker_type* worker);

@@ -99,9 +99,7 @@ domain_create(zone_type* zone, ldns_rdf* dname)
         free(domain);
         return NULL;
     }
-    domain->zone = zone;
     domain->denial = NULL; /* no reference yet */
-    domain->node = NULL; /* not in db yet */
     domain->rrsets = NULL;
     domain->parent = NULL;
     domain->is_apex = 0;
@@ -174,10 +172,9 @@ domain_add_rrset(domain_type* domain, rrset_type* rrset)
         rrset->next = NULL;
     }
     log_rrset(domain->dname, rrset->rrtype, "+RRSET", LOG_DEEEBUG);
-    rrset->domain = (void*) domain;
     if (domain->denial) {
         denial = (denial_type*) domain->denial;
-        denial->bitmap_changed = 1;
+        denial->changed = 1;
     }
 }
 
@@ -187,7 +184,7 @@ domain_add_rrset(domain_type* domain, rrset_type* rrset)
  *
  */
 void
-domain_diff(domain_type* domain, unsigned is_ixfr, unsigned more_coming)
+domain_diff(zone_type* zone, domain_type* domain, unsigned is_ixfr, unsigned more_coming)
 {
     denial_type* denial = NULL;
     rrset_type* rrset = NULL;
@@ -201,9 +198,9 @@ domain_diff(domain_type* domain, unsigned is_ixfr, unsigned more_coming)
         if (rrset->rrtype == LDNS_RR_TYPE_NSEC3PARAMS ||
             rrset->rrtype == LDNS_RR_TYPE_DNSKEY) {
             /* always do full diff on NSEC3PARAMS | DNSKEY RRset */
-            rrset_diff(rrset, 0, more_coming);
+            rrset_diff(zone, rrset, 0, more_coming);
         } else {
-            rrset_diff(rrset, is_ixfr, more_coming);
+            rrset_diff(zone, rrset, is_ixfr, more_coming);
         }
         if (rrset->rr_count <= 0) {
             /* delete entire rrset */
@@ -222,7 +219,7 @@ domain_diff(domain_type* domain, unsigned is_ixfr, unsigned more_coming)
             }
             if (domain->denial) {
                 denial = (denial_type*) domain->denial;
-                denial->bitmap_changed = 1;
+                denial->changed = 1;
             }
         } else {
             /* just go to next rrset */
@@ -290,7 +287,7 @@ domain_rollback(domain_type* domain, int keepsc)
             }
             if (domain->denial) {
                 denial = (denial_type*) domain->denial;
-                denial->bitmap_changed = 0;
+                denial->changed = 0;
             }
             del_rrset = 0;
         } else {

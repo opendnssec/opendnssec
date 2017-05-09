@@ -498,7 +498,7 @@ zone_update_serial(zone_type* zone)
     }
     soa = rrset_add_rr(rrset, rr);
     ods_log_assert(soa);
-    rrset_diff(rrset, 0, 0);
+    rrset_diff(zone, rrset, 0, 0);
     zone->db->serial_updated = 0;
     return ODS_STATUS_OK;
 }
@@ -564,7 +564,7 @@ zone_add_rr(zone_type* zone, ldns_rr* rr, int do_stats)
     }
     rrset = domain_lookup_rrset(domain, ldns_rr_get_type(rr));
     if (!rrset) {
-        rrset = rrset_create(domain->zone, ldns_rr_get_type(rr));
+        rrset = rrset_create(zone, ldns_rr_get_type(rr));
         if (!rrset) {
             ods_log_error("[%s] unable to add RR to zone %s: "
                 "failed to add RRset", zone_str, zone->name);
@@ -765,7 +765,7 @@ zone_cleanup(zone_type* zone)
     if (!zone) {
         return;
     }
-pthread_mutex_lock(&zone->zone_lock);
+    pthread_mutex_lock(&zone->zone_lock);
     ldns_rdf_deep_free(zone->apex);
     adapter_cleanup(zone->adinbound);
     adapter_cleanup(zone->adoutbound);
@@ -774,7 +774,7 @@ pthread_mutex_lock(&zone->zone_lock);
     xfrd_cleanup(zone->xfrd, 1);
     notify_cleanup(zone->notify);
     signconf_cleanup(zone->signconf);
-pthread_mutex_unlock(&zone->zone_lock);
+    pthread_mutex_unlock(&zone->zone_lock);
     stats_cleanup(zone->stats);
     free(zone->notify_command);
     free(zone->notify_args);

@@ -46,58 +46,33 @@
  *
  */
 static void
-worker_queue_rrset(struct worker_context* context, fifoq_type* q, rrset_type* rrset, long* nsubtasks)
+worker_queue_domain(struct worker_context* context, fifoq_type* q, void* item, long* nsubtasks)
 {
     ods_status status = ODS_STATUS_UNCHANGED;
     int tries = 0;
     ods_log_assert(q);
-    ods_log_assert(rrset);
 
-    pthread_mutex_lock(&q->q_lock);
-    status = fifoq_push(q, (void*) rrset, context, &tries);
-    while (status == ODS_STATUS_UNCHANGED) {
-        tries++;
-        if (context->worker->need_to_exit) {
-            pthread_mutex_unlock(&q->q_lock);
+        pthread_mutex_lock(&q->q_lock);
+        status = fifoq_push(q, item, context, &tries);
+        while (status == ODS_STATUS_UNCHANGED) {
+            tries++;
+            if (context->worker->need_to_exit) {
+                pthread_mutex_unlock(&q->q_lock);
             return;
+            }
+            /**
+             * Apparently the queue is full. Lets take a small break to not hog CPU.
+             * The worker will release the signq lock while sleeping and will
+             * automatically grab the lock when the queue is nonfull.
+             * Queue is nonfull at 10% of the queue size.
+             */
+            ods_thread_wait(&q->q_nonfull, &q->q_lock, 5);
+            status = fifoq_push(q, item, context, &tries);
         }
-        /**
-         * Apparently the queue is full. Lets take a small break to not hog CPU.
-         * The worker will release the signq lock while sleeping and will
-         * automatically grab the lock when the queue is nonfull.
-         * Queue is nonfull at 10% of the queue size.
-         */
-        ods_thread_wait(&q->q_nonfull, &q->q_lock, 5);
-        status = fifoq_push(q, (void*) rrset, context, &tries);
-    }
-    pthread_mutex_unlock(&q->q_lock);
+        pthread_mutex_unlock(&q->q_lock);
 
-    ods_log_assert(status == ODS_STATUS_OK);
-    *nsubtasks += 1;
-}
-
-
-/**
- * Queue domain for signing.
- *
- */
-static void
-worker_queue_domain(struct worker_context* context, fifoq_type* q, domain_type* domain, long* nsubtasks)
-{
-    rrset_type* rrset = NULL;
-    denial_type* denial = NULL;
-    ods_log_assert(context);
-    ods_log_assert(q);
-    ods_log_assert(domain);
-    rrset = domain->rrsets;
-    while (rrset) {
-        worker_queue_rrset(context, q, rrset, nsubtasks);
-        rrset = rrset->next;
-    }
-    denial = (denial_type*) domain->denial;
-    if (denial && denial->rrset) {
-        worker_queue_rrset(context, q, denial->rrset, nsubtasks);
-    }
+        ods_log_assert(status == ODS_STATUS_OK);
+        *nsubtasks += 1;
 }
 
 
@@ -148,10 +123,31 @@ worker_check_jobs(worker_type* worker, task_type* task, int ntasks, long ntasksf
     return ODS_STATUS_OK;
 }
 
+static ods_status
+signdomain(struct worker_context* superior, hsm_ctx_t* ctx, domain_type* domain)
+{
+    ods_status status;
+    rrset_type* rrset = NULL;
+    denial_type* denial = NULL;
+    ods_log_assert(domain);
+    rrset = domain->rrsets;
+    while (rrset) {
+        if((status = rrset_sign(superior->zone, domain, ctx, rrset, superior->clock_in)) != ODS_STATUS_OK)
+            return status;
+        rrset = rrset->next;
+    }
+    denial = (denial_type*) domain->denial;
+    if (denial && denial->rrset) {
+        if((status = rrset_sign(superior->zone, domain, ctx, denial->rrset, superior->clock_in)) != ODS_STATUS_OK)
+            return status;
+    }
+    return ODS_STATUS_OK;
+}
+
 void
 drudge(worker_type* worker)
 {
-    rrset_type* rrset;
+    domain_type* rrset;
     ods_status status;
     struct worker_context* superior;
     hsm_ctx_t* ctx = NULL;
@@ -162,7 +158,7 @@ drudge(worker_type* worker)
         ods_log_deeebug("[%s] report for duty", worker->name);
         pthread_mutex_lock(&signq->q_lock);
         superior = NULL;
-        rrset = (rrset_type*) fifoq_pop(signq, (void**)&superior);
+        rrset = (domain_type*) fifoq_pop(signq, (void**)&superior);
         if (!rrset) {
             ods_log_deeebug("[%s] nothing to do, wait", worker->name);
             /**
@@ -173,7 +169,7 @@ drudge(worker_type* worker)
              */
             pthread_cond_wait(&signq->q_threshold, &signq->q_lock);
             if(worker->need_to_exit == 0)
-                rrset = (rrset_type*) fifoq_pop(signq, (void**)&superior);
+                rrset = (domain_type*) fifoq_pop(signq, (void**)&superior);
         }
         pthread_mutex_unlock(&signq->q_lock);
         /* do some work */
@@ -193,7 +189,7 @@ drudge(worker_type* worker)
                 ods_log_error("signer instructed to reload due to hsm reset while signing");
                 status = ODS_STATUS_HSM_ERR;
             } else {
-                status = rrset_sign(ctx, rrset, superior->clock_in);
+                status = signdomain(superior, ctx, rrset);
             }
             fifoq_report(signq, superior->worker, status);
         }
@@ -277,6 +273,7 @@ do_signzone(task_type* task, const char* zonename, void* zonearg, void *contexta
     long nsubtasks = 0;
     long nsubtasksfailed = 0;
     context->clock_in = time_now();
+    context->zone = zone;
     status = zone_update_serial(zone);
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] unable to sign zone %s: failed to increment serial", worker->name, task->owner);

@@ -40,21 +40,21 @@ typedef struct denial_struct denial_type;
 
 #include "status.h"
 #include "signer/nsec3params.h"
+#include "signer/zone.h"
 #include "signer/rrset.h"
 #include "signer/domain.h"
+#include "signer/zone.h"
 
 /**
  * Denial of Existence data point.
  *
  */
 struct denial_struct {
-    zone_type* zone;
     domain_type* domain;
     ldns_rbnode_t* node;
     ldns_rdf* dname;
     rrset_type* rrset;
-    unsigned bitmap_changed : 1;
-    unsigned nxt_changed : 1;
+    unsigned changed : 1;
 };
 
 /**
@@ -71,7 +71,7 @@ denial_type* denial_create(zone_type* zoneptr, ldns_rdf* dname);
  * \param[in] denial Denial of Existence data point
  *
  */
-void denial_diff(denial_type* denial);
+void denial_diff(zone_type* zone, denial_type* denial);
 
 /**
  * Add NSEC(3) to the Denial of Existence data point.
@@ -79,7 +79,7 @@ void denial_diff(denial_type* denial);
  * \param[in] rr NSEC(3) resource record
  *
  */
-void denial_add_rr(denial_type* denial, ldns_rr* rr);
+void denial_add_rr(zone_type* zone, denial_type* denial, ldns_rr* rr);
 
 /**
  * Nsecify Denial of Existence data point.
@@ -88,7 +88,7 @@ void denial_add_rr(denial_type* denial, ldns_rr* rr);
  * \param[out] num_added number of RRs added
  *
  */
-void denial_nsecify(denial_type* denial, denial_type* nxt, uint32_t* num_added);
+void denial_nsecify(zone_type* zone, domain_type* domain, denial_type* nxt, uint32_t* num_added);
 
 /**
  * Print Denial of Existence data point.

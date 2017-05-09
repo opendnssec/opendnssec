@@ -387,7 +387,7 @@ begin_pkt:
     } else {
         ods_log_warning("[%s] xfr zone %s on disk incomplete, rollback",
             adapter_str, zone->name);
-        namedb_rollback(zone->db, 1);
+        namedb_rollback(zone, zone->db, 1);
         if (ods_strcmp(";;BEGINPACKET", line) == 0) {
             result = ODS_STATUS_OK;
             startpos = fpos;

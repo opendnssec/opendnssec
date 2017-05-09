@@ -185,7 +185,6 @@ memberdestroy(void* dummy, void* member)
     sig->key_locator = NULL;
     /* The rrs may still be in use by IXFRs so cannot do ldns_rr_free(sig->rr); */
     ldns_rr_free(sig->rr);
-    sig->owner = NULL;
     sig->rr = NULL;
     return 0;
 }
@@ -205,11 +204,9 @@ rrset_create(zone_type* zone, ldns_rr_type type)
     CHECKALLOC(rrset = (rrset_type*) malloc(sizeof(rrset_type)));
     rrset->next = NULL;
     rrset->rrs = NULL;
-    rrset->domain = NULL;
-    rrset->zone = zone;
     rrset->rrtype = type;
     rrset->rr_count = 0;
-    collection_create_array(&rrset->rrsigs, sizeof(rrsig_type), rrset->zone->rrstore);
+    collection_create_array(&rrset->rrsigs, sizeof(rrsig_type), zone->rrstore);
     rrset->needs_signing = 0;
     return rrset;
 }
@@ -293,7 +290,6 @@ rrset_add_rr(rrset_type* rrset, ldns_rr* rr)
     }
     free(rrs_old);
     rrset->rr_count++;
-    rrset->rrs[rrset->rr_count - 1].owner = rrset->domain;
     rrset->rrs[rrset->rr_count - 1].rr = rr;
     rrset->rrs[rrset->rr_count - 1].exists = 0;
     rrset->rrs[rrset->rr_count - 1].is_added = 1;
@@ -317,7 +313,6 @@ rrset_del_rr(rrset_type* rrset, uint16_t rrnum)
     ods_log_assert(rrnum < rrset->rr_count);
 
     log_rr(rrset->rrs[rrnum].rr, "-RR", LOG_DEEEBUG);
-    rrset->rrs[rrnum].owner = NULL; /* who owns owner? */
     ldns_rr_free(rrset->rrs[rrnum].rr);
     while (rrnum < rrset->rr_count-1) {
         rrset->rrs[rrnum] = rrset->rrs[rrnum+1];
@@ -337,15 +332,13 @@ rrset_del_rr(rrset_type* rrset, uint16_t rrnum)
  *
  */
 void
-rrset_diff(rrset_type* rrset, unsigned is_ixfr, unsigned more_coming)
+rrset_diff(zone_type* zone, rrset_type* rrset, unsigned is_ixfr, unsigned more_coming)
 {
-    zone_type* zone = NULL;
     uint16_t i = 0;
     uint8_t del_sigs = 0;
     if (!rrset) {
         return;
     }
-    zone = (zone_type*) rrset->zone;
     /* CAUTION: both iterator and condition (implicit) are changed
      * within the loop. */
     for (i=0; i < rrset->rr_count; i++) {
@@ -413,7 +406,6 @@ rrset_add_rrsig(rrset_type* rrset, ldns_rr* rr,
     ods_log_assert(rrset);
     ods_log_assert(rr);
     ods_log_assert(ldns_rr_get_type(rr) == LDNS_RR_TYPE_RRSIG);
-    rrsig.owner = rrset->domain;
     rrsig.rr = rr;
     rrsig.key_locator = locator;
     rrsig.key_flags = flags;
@@ -425,7 +417,7 @@ rrset_add_rrsig(rrset_type* rrset, ldns_rr* rr,
  *
  */
 static uint32_t
-rrset_recycle(rrset_type* rrset, time_t signtime, ldns_rr_type dstatus,
+rrset_recycle(zone_type* zone, rrset_type* rrset, time_t signtime, ldns_rr_type dstatus,
     ldns_rr_type delegpt)
 {
     uint32_t refresh = 0;
@@ -434,13 +426,11 @@ rrset_recycle(rrset_type* rrset, time_t signtime, ldns_rr_type dstatus,
     uint32_t reusedsigs = 0;
     unsigned drop_sig = 0;
     key_type* key = NULL;
-    zone_type* zone = NULL;
     rrsig_type* rrsig;
 
     if (!rrset) {
         return 0;
     }
-    zone = (zone_type*) rrset->zone;
     /* Calculate the Refresh Window = Signing time + Refresh */
     if (zone->signconf && zone->signconf->sig_refresh_interval) {
         refresh = (uint32_t) (signtime +
@@ -638,10 +628,9 @@ rrset_sigvalid_period(signconf_type* sc, ldns_rr_type rrtype, time_t signtime,
  *
  */
 ods_status
-rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
+rrset_sign(zone_type* zone, domain_type* domain, hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
 {
     ods_status status;
-    zone_type* zone = NULL;
     uint32_t newsigs = 0;
     uint32_t reusedsigs = 0;
     ldns_rr* rrsig = NULL;
@@ -651,7 +640,6 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
     time_t inception = 0;
     time_t expiration = 0;
     size_t i = 0, j;
-    domain_type* domain = NULL;
     ldns_rr_type dstatus = LDNS_RR_TYPE_FIRST;
     ldns_rr_type delegpt = LDNS_RR_TYPE_FIRST;
     uint8_t algorithm = 0;
@@ -659,7 +647,6 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
 
     ods_log_assert(ctx);
     ods_log_assert(rrset);
-    zone = (zone_type*) rrset->zone;
     ods_log_assert(zone);
     ods_log_assert(zone->signconf);
     /* Recycle signatures */
@@ -668,11 +655,10 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
         dstatus = LDNS_RR_TYPE_SOA;
         delegpt = LDNS_RR_TYPE_SOA;
     } else {
-        domain = (domain_type*) rrset->domain;
         dstatus = domain_is_occluded(domain);
         delegpt = domain_is_delegpt(domain);
     }
-    reusedsigs = rrset_recycle(rrset, signtime, dstatus, delegpt);
+    reusedsigs = rrset_recycle(zone, rrset, signtime, dstatus, delegpt);
     rrset->needs_signing = 0;
 
     ods_log_assert(rrset->rrs);
@@ -848,10 +834,8 @@ rrset_print(FILE* fd, rrset_type* rrset, int skip_rrsigs,
                     break;
                 }
                 if (result != ODS_STATUS_OK) {
-                    zone_type* zone = (zone_type*) rrset->zone;
                     log_rrset(ldns_rr_owner(rrset->rrs[i].rr), rrset->rrtype,
                         "error printing RRset", LOG_CRIT);
-                    zone->adoutbound->error = 1;
                     break;
                 }
             }
@@ -862,10 +846,8 @@ rrset_print(FILE* fd, rrset_type* rrset, int skip_rrsigs,
                 if (result == ODS_STATUS_OK) {
                     result = util_rr_print(fd, rrsig->rr);
                     if (result != ODS_STATUS_OK) {
-                        zone_type* zone = rrset->zone;
                         log_rrset(ldns_rr_owner(rrset->rrs[i].rr), rrset->rrtype,
                             "error printing RRset", LOG_CRIT);
-                        zone->adoutbound->error = 1;
                     }
                 }
             }
@@ -890,10 +872,8 @@ rrset_cleanup(rrset_type* rrset)
     }
     rrset_cleanup(rrset->next);
     rrset->next = NULL;
-    rrset->domain = NULL;
     for (i=0; i < rrset->rr_count; i++) {
         ldns_rr_free(rrset->rrs[i].rr);
-        rrset->rrs[i].owner = NULL;
     }
     collection_destroy(&rrset->rrsigs);
     free(rrset->rrs);

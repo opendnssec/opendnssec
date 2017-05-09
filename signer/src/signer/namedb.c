@@ -520,13 +520,11 @@ namedb_add_nsec3_trigger(namedb_type* db, domain_type* domain,
  *
  */
 static void
-namedb_add_denial_trigger(namedb_type* db, domain_type* domain)
+namedb_add_denial_trigger(zone_type* zone, namedb_type* db, domain_type* domain)
 {
-    zone_type* zone = NULL;
     ods_log_assert(db);
     ods_log_assert(domain);
     if (!domain->denial) {
-        zone = domain->zone;
         ods_log_assert(zone);
         ods_log_assert(zone->signconf);
         if (!zone->signconf->passthrough) {
@@ -546,7 +544,7 @@ namedb_add_denial_trigger(namedb_type* db, domain_type* domain)
  *
  */
 static void
-namedb_del_nsec_trigger(namedb_type* db, domain_type* domain)
+namedb_del_nsec_trigger(zone_type* zone, namedb_type* db, domain_type* domain)
 {
     ldns_rr_type dstatus = LDNS_RR_TYPE_FIRST;
     denial_type* denial = NULL;
@@ -557,7 +555,7 @@ namedb_del_nsec_trigger(namedb_type* db, domain_type* domain)
     if (dstatus == LDNS_RR_TYPE_DNAME || dstatus == LDNS_RR_TYPE_A ||
         domain_is_empty_terminal(domain) || !domain->rrsets) {
        /* domain has become occluded/glue or empty non-terminal*/
-       denial_diff((denial_type*) domain->denial);
+       denial_diff(zone, (denial_type*) domain->denial);
        denial = namedb_del_denial(db, domain->denial);
        denial_cleanup(denial);
        domain->denial = NULL;
@@ -570,7 +568,7 @@ namedb_del_nsec_trigger(namedb_type* db, domain_type* domain)
  *
  */
 static void
-namedb_del_nsec3_trigger(namedb_type* db, domain_type* domain,
+namedb_del_nsec3_trigger(zone_type* zone, namedb_type* db, domain_type* domain,
     nsec3params_type* n3p)
 {
     ldns_rr_type dstatus = LDNS_RR_TYPE_FIRST;
@@ -583,7 +581,7 @@ namedb_del_nsec3_trigger(namedb_type* db, domain_type* domain,
     if (dstatus == LDNS_RR_TYPE_DNAME || dstatus == LDNS_RR_TYPE_A ||
         domain_is_empty_terminal(domain)) {
        /* domain has become occluded/glue */
-       denial_diff((denial_type*) domain->denial);
+       denial_diff(zone, (denial_type*) domain->denial);
        denial = namedb_del_denial(db, domain->denial);
        denial_cleanup(denial);
        domain->denial = NULL;
@@ -592,7 +590,7 @@ namedb_del_nsec3_trigger(namedb_type* db, domain_type* domain,
         /* If Opt-Out is being used, owner names of unsigned delegations
            MAY be excluded. */
         if (dstatus == LDNS_RR_TYPE_NS) {
-            denial_diff((denial_type*) domain->denial);
+            denial_diff(zone, (denial_type*) domain->denial);
             denial = namedb_del_denial(db, domain->denial);
             denial_cleanup(denial);
             domain->denial = NULL;
@@ -606,26 +604,24 @@ namedb_del_nsec3_trigger(namedb_type* db, domain_type* domain,
  *
  */
 static int
-namedb_del_denial_trigger(namedb_type* db, domain_type* domain, int rollback)
+namedb_del_denial_trigger(zone_type* zone, namedb_type* db, domain_type* domain, int rollback)
 {
     domain_type* parent = NULL;
-    zone_type* zone = NULL;
     unsigned is_deleted = 0;
     ods_log_assert(db);
     ods_log_assert(domain);
     ods_log_assert(domain->dname);
-    zone = domain->zone;
     ods_log_assert(zone);
     ods_log_assert(zone->signconf);
     while(domain) {
         if (!rollback) {
             if (domain->denial) {
                 if (zone->signconf->nsec_type == LDNS_RR_TYPE_NSEC) {
-                    namedb_del_nsec_trigger(db, domain);
+                    namedb_del_nsec_trigger(zone, db, domain);
                 } else {
                     ods_log_assert(zone->signconf->nsec_type ==
                         LDNS_RR_TYPE_NSEC3);
-                    namedb_del_nsec3_trigger(db, domain,
+                    namedb_del_nsec3_trigger(zone, db, domain,
                         zone->signconf->nsec3params);
                 }
             }
@@ -717,7 +713,7 @@ namedb_add_denial(namedb_type* db, ldns_rdf* dname, nsec3params_type* n3p)
     /* denial of existence data point added */
     denial = (denial_type*) new_node->data;
     denial->node = new_node;
-    denial->nxt_changed = 1;
+    denial->changed = 1;
     pnode = ldns_rbtree_previous(new_node);
     if (!pnode || pnode == LDNS_RBTREE_NULL) {
         pnode = ldns_rbtree_last(db->denials);
@@ -725,7 +721,7 @@ namedb_add_denial(namedb_type* db, ldns_rdf* dname, nsec3params_type* n3p)
     ods_log_assert(pnode);
     pdenial = (denial_type*) pnode->data;
     ods_log_assert(pdenial);
-    pdenial->nxt_changed = 1;
+    pdenial->changed = 1;
     log_dname(denial->dname, "+DENIAL", LOG_DEEEBUG);
     return denial;
 }
@@ -751,7 +747,7 @@ namedb_del_denial(namedb_type* db, denial_type* denial)
         log_dname(denial->dname, "ERR -DENIAL", LOG_ERR);
         return NULL;
     }
-    pnode = ldns_rbtree_previous(denial->node);
+    pnode = ldns_rbtree_previous(ldns_rbtree_search(db->denials, (const void*)denial->dname));
     if (!pnode || pnode == LDNS_RBTREE_NULL) {
         pnode = ldns_rbtree_last(db->denials);
     }
@@ -765,7 +761,7 @@ namedb_del_denial(namedb_type* db, denial_type* denial)
         return NULL;
     }
     ods_log_assert(denial->node == node);
-    pdenial->nxt_changed = 1;
+    pdenial->changed = 1;
     free((void*)node);
     denial->domain = NULL;
     denial->node = NULL;
@@ -779,7 +775,7 @@ namedb_del_denial(namedb_type* db, denial_type* denial)
  *
  */
 void
-namedb_diff(namedb_type* db, unsigned is_ixfr, unsigned more_coming)
+namedb_diff(zone_type* zone, namedb_type* db, unsigned is_ixfr, unsigned more_coming)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     domain_type* domain = NULL;
@@ -793,7 +789,7 @@ namedb_diff(namedb_type* db, unsigned is_ixfr, unsigned more_coming)
     while (node && node != LDNS_RBTREE_NULL) {
         domain = (domain_type*) node->data;
         node = ldns_rbtree_next(node);
-        domain_diff(domain, is_ixfr, more_coming);
+        domain_diff(zone, domain, is_ixfr, more_coming);
     }
     node = ldns_rbtree_first(db->domains);
     if (!node || node == LDNS_RBTREE_NULL) {
@@ -802,9 +798,9 @@ namedb_diff(namedb_type* db, unsigned is_ixfr, unsigned more_coming)
     while (node && node != LDNS_RBTREE_NULL) {
         domain = (domain_type*) node->data;
         node = ldns_rbtree_next(node);
-        if (!namedb_del_denial_trigger(db, domain, 0)) {
+        if (!namedb_del_denial_trigger(zone, db, domain, 0)) {
             /* del_denial did not delete domain */
-            namedb_add_denial_trigger(db, domain);
+            namedb_add_denial_trigger(zone, db, domain);
         }
     }
 }
@@ -815,7 +811,7 @@ namedb_diff(namedb_type* db, unsigned is_ixfr, unsigned more_coming)
  *
  */
 void
-namedb_rollback(namedb_type* db, unsigned keepsc)
+namedb_rollback(zone_type* zone, namedb_type* db, unsigned keepsc)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     domain_type* domain = NULL;
@@ -830,7 +826,7 @@ namedb_rollback(namedb_type* db, unsigned keepsc)
         domain = (domain_type*) node->data;
         node = ldns_rbtree_next(node);
         domain_rollback(domain, keepsc);
-        (void) namedb_del_denial_trigger(db, domain, 1);
+        (void) namedb_del_denial_trigger(zone, db, domain, 1);
     }
 }
 
@@ -840,7 +836,7 @@ namedb_rollback(namedb_type* db, unsigned keepsc)
  *
  */
 void
-namedb_nsecify(namedb_type* db, uint32_t* num_added)
+namedb_nsecify(zone_type* zone, namedb_type* db, uint32_t* num_added)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     ldns_rbnode_t* nxt_node = LDNS_RBTREE_NULL;
@@ -856,7 +852,7 @@ namedb_nsecify(namedb_type* db, uint32_t* num_added)
              nxt_node = ldns_rbtree_first(db->denials);
         }
         nxt = (denial_type*) nxt_node->data;
-        denial_nsecify(denial, nxt, &nsec_added);
+        denial_nsecify(zone, denial->domain, nxt, &nsec_added);
         node = ldns_rbtree_next(node);
     }
     if (num_added) {

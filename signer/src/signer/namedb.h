@@ -169,7 +169,7 @@ ods_status namedb_examine(namedb_type* db);
  * \param[in] more_coming more transactions possible
  *
  */
-void namedb_diff(namedb_type* db, unsigned is_ixfr, unsigned more_coming);
+void namedb_diff(zone_type* zone, namedb_type* db, unsigned is_ixfr, unsigned more_coming);
 
 /**
  * Rollback differences in db.
@@ -177,7 +177,7 @@ void namedb_diff(namedb_type* db, unsigned is_ixfr, unsigned more_coming);
  * \param[in] keepsc keep RRs that did not came from the adapter.
  *
  */
-void namedb_rollback(namedb_type* db, unsigned keepsc);
+void namedb_rollback(zone_type* zone, namedb_type* db, unsigned keepsc);
 
 /**
  * Nsecify db.
@@ -185,7 +185,7 @@ void namedb_rollback(namedb_type* db, unsigned keepsc);
  * \param[out] num_added number of NSEC RRs added
  *
  */
-void namedb_nsecify(namedb_type* db, uint32_t* num_added);
+void namedb_nsecify(zone_type* zone, namedb_type* db, uint32_t* num_added);
 
 /**
  * Export db to file.
