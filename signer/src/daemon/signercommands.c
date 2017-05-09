@@ -587,33 +587,6 @@ cmdhandler_handle_cmd_verbosity(int sockfd, cmdhandler_ctx_type* context, const 
 }
 
 
-/**
- * Handle erroneous command.
- *
- */
-static void
-cmdhandler_handle_cmd_error(int sockfd, cmdhandler_ctx_type* context, const char* str)
-{
-    char buf[ODS_SE_MAXLINE];
-    (void)snprintf(buf, ODS_SE_MAXLINE, "Error: %s.\n", str?str:"(null)");
-    client_printf(sockfd, buf);
-}
-
-
-/**
- * Handle unknown command.
- *
- */
-static void
-cmdhandler_handle_cmd_unknown(int sockfd, cmdhandler_ctx_type* context, const char* str)
-{
-    char buf[ODS_SE_MAXLINE];
-    (void)snprintf(buf, ODS_SE_MAXLINE, "Unknown command %s.\n",
-        str?str:"(null)");
-    client_printf(sockfd, buf);
-}
-
-
 struct cmd_func_block helpCmdDef = { "help", NULL, NULL, NULL, &cmdhandler_handle_cmd_help };
 struct cmd_func_block zonesCmdDef = { "zones", NULL, NULL, NULL, &cmdhandler_handle_cmd_zones };
 struct cmd_func_block signCmdDef = { "sign", NULL, NULL, NULL, &cmdhandler_handle_cmd_sign };
