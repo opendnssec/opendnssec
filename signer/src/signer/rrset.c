@@ -470,26 +470,6 @@ recycle_drop_sig:
 
 
 /**
- * Is the RRset signed with this algorithm?
- *
- */
-static int
-rrset_sigalgo(rrset_type* rrset, uint8_t algorithm)
-{
-    rrsig_type* rrsig;
-    int match = 0;
-    if (rrset) {
-        while((rrsig = collection_iterator(rrset->rrsigs))) {
-            if (algorithm == ldns_rdf2native_int8(ldns_rr_rrsig_algorithm(rrsig->rr))) {
-                match = 1;
-            }
-        }
-    }
-    return match;
-}
-
-
-/**
  * Count the signatures with this algorithm for this RRset?
  *
  */
