@@ -398,20 +398,6 @@ namedb_del_domain(namedb_type* db, domain_type* domain)
 
 
 /**
- * Lookup denial.
- *
- */
-denial_type*
-namedb_lookup_denial(namedb_type* db, ldns_rdf* dname)
-{
-    if (!db) {
-        return NULL;
-    }
-    return (denial_type*) namedb_domain_search(db->denials, dname);
-}
-
-
-/**
  * See if a domain is an empty terminal
  *
  */
@@ -1108,52 +1094,4 @@ namedb_cleanup(namedb_type* db)
     namedb_cleanup_denials(db);
     namedb_cleanup_domains(db);
     free(db);
-}
-
-
-/**
- * Backup namedb.
- *
- */
-void
-namedb_backup2(FILE* fd, namedb_type* db)
-{
-    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
-    domain_type* domain = NULL;
-    denial_type* denial = NULL;
-    if (!fd || !db) {
-        return;
-    }
-    node = ldns_rbtree_first(db->domains);
-    while (node && node != LDNS_RBTREE_NULL) {
-        domain = (domain_type*) node->data;
-        domain_backup2(fd, domain, 0);
-        node = ldns_rbtree_next(node);
-    }
-    fprintf(fd, ";\n");
-    node = ldns_rbtree_first(db->denials);
-    while (node && node != LDNS_RBTREE_NULL) {
-        denial = (denial_type*) node->data;
-        if (denial->rrset) {
-            rrset_print(fd, denial->rrset, 1, NULL);
-        }
-        node = ldns_rbtree_next(node);
-    }
-    fprintf(fd, ";\n");
-    /* signatures */
-    node = ldns_rbtree_first(db->domains);
-    while (node && node != LDNS_RBTREE_NULL) {
-        domain = (domain_type*) node->data;
-        domain_backup2(fd, domain, 1);
-        node = ldns_rbtree_next(node);
-    }
-    node = ldns_rbtree_first(db->denials);
-    while (node && node != LDNS_RBTREE_NULL) {
-        denial = (denial_type*) node->data;
-        if (denial->rrset) {
-            rrset_backup2(fd, denial->rrset);
-        }
-        node = ldns_rbtree_next(node);
-    }
-    fprintf(fd, ";\n");
 }

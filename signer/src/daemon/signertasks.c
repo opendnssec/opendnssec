@@ -448,14 +448,6 @@ do_writezone(task_type* task, const char* zonename, void* zonearg, void *context
                 "zone %s", worker->name, task->owner);
         resign = context->clock_in + 3600;
     }
-    /* backup the last successful run */
-    status = zone_backup2(zone, resign);
-    if (status != ODS_STATUS_OK) {
-        ods_log_warning("[%s] unable to backup zone %s: %s",
-                worker->name, task->owner, ods_status2str(status));
-        /* just a warning */
-        status = ODS_STATUS_OK;
-    }
     schedule_scheduletask(engine->taskq, TASK_SIGN, zone->name, zone, &zone->zone_lock, resign);
     return schedule_SUCCESS;
 }

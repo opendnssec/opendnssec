@@ -91,15 +91,6 @@ ods_status signconf_update(signconf_type** signconf, const char* scfile,
     time_t last_modified);
 
 /**
- * Backup signer configuration.
- * \param[in] fd file descriptor
- * \param[in] sc signer configuration settings
- * \param[in] version version string
- *
- */
-void signconf_backup(FILE* fd, signconf_type* sc, const char* version);
-
-/**
  * Check signer configuration.
  * \param signconf signer configuration
  * \return ods_status status

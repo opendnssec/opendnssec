@@ -129,30 +129,6 @@ nsec3params_create(void* sc, uint8_t algo, uint8_t flags, uint16_t iter,
 
 
 /**
- * Backup NSEC3 parameters.
- *
- */
-void
-nsec3params_backup(FILE* fd, uint8_t algo, uint8_t flags,
-    uint16_t iter, const char* salt, ldns_rr* rr, const char* version)
-{
-    if (!fd) {
-        return;
-    }
-    fprintf(fd, ";;Nsec3parameters: salt %s algorithm %u optout %u "
-        "iterations %u\n", salt?salt:"-", (unsigned) algo,
-        (unsigned) flags, (unsigned) iter);
-    if (strcmp(version, ODS_SE_FILE_MAGIC_V2) == 0) {
-        if (rr) {
-            (void)util_rr_print(fd, rr);
-        }
-        fprintf(fd, ";;Nsec3done\n");
-        fprintf(fd, ";;\n");
-    }
-}
-
-
-/**
  * Clean up NSEC3 parameters.
  *
  */

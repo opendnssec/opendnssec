@@ -199,14 +199,6 @@ void rrset_print(FILE* fd, rrset_type* rrset, int skip_rrsigs,
  */
 void rrset_cleanup(rrset_type* rrset);
 
-/**
- * Backup RRset.
- * \param[in] fd file descriptor
- * \param[in] rrset RRset
- *
- */
-void rrset_backup2(FILE* fd, rrset_type* rrset);
-
 collection_class rrset_store_initialize(void);
 
 #endif /* SIGNER_RRSET_H */

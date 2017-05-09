@@ -193,55 +193,6 @@ signconf_update(signconf_type** signconf, const char* scfile,
 
 
 /**
- * Backup duration.
- *
- */
-static void
-signconf_backup_duration(FILE* fd, const char* opt, duration_type* duration)
-{
-    char* str = (duration == NULL ? NULL : duration2string(duration));
-    fprintf(fd, "%s %s ", opt, (str?str:"0"));
-    free(str);
-}
-
-
-
-/**
- * Backup signconf values.
- *
- */
-void
-signconf_backup(FILE* fd, signconf_type* sc, const char* version)
-{
-    if (!fd || !sc) {
-        return;
-    }
-    fprintf(fd, ";;Signconf: lastmod %u ", (unsigned) sc->last_modified);
-    if (strcmp(version, ODS_SE_FILE_MAGIC_V2) &&
-        strcmp(version, ODS_SE_FILE_MAGIC_V1)) {
-        /* version 3 and up */
-        fprintf(fd, "maxzonettl 0 "); /* prepare for enforcer ng */
-    }
-    signconf_backup_duration(fd, "resign", sc->sig_resign_interval);
-    signconf_backup_duration(fd, "refresh", sc->sig_refresh_interval);
-    signconf_backup_duration(fd, "valid", sc->sig_validity_default);
-    signconf_backup_duration(fd, "denial", sc->sig_validity_denial);
-    signconf_backup_duration(fd, "keyset", sc->sig_validity_keyset);
-    signconf_backup_duration(fd, "jitter", sc->sig_jitter);
-    signconf_backup_duration(fd, "offset", sc->sig_inception_offset);
-    fprintf(fd, "nsec %u ", (unsigned) sc->nsec_type);
-    signconf_backup_duration(fd, "dnskeyttl", sc->dnskey_ttl);
-    signconf_backup_duration(fd, "soattl", sc->soa_ttl);
-    signconf_backup_duration(fd, "soamin", sc->soa_min);
-    fprintf(fd, "serial %s ", sc->soa_serial?sc->soa_serial:"(null)");
-    if (strcmp(version, ODS_SE_FILE_MAGIC_V2) == 0) {
-        fprintf(fd, "audit 0");
-    }
-    fprintf(fd, "\n");
-}
-
-
-/**
  * Check the SOA/Serial type.
  *
  */

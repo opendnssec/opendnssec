@@ -726,31 +726,11 @@ engine_recover(engine_type* engine)
 
         ods_log_assert(zone->zl_status == ZONE_ZL_ADDED);
         pthread_mutex_lock(&zone->zone_lock);
-        status = zone_recover2(engine, zone);
-        if (status == ODS_STATUS_OK) {
-            ods_log_assert(zone->db);
-            ods_log_assert(zone->signconf);
-            /* notify nameserver */
-            if (engine->config->notify_command && !zone->notify_ns) {
-                set_notify_ns(zone, engine->config->notify_command);
-            }
-            if (status != ODS_STATUS_OK) {
-                ods_log_crit("[%s] unable to schedule task for zone %s: %s",
-                    engine_str, zone->name, ods_status2str(status));
-                result = ODS_STATUS_OK; /* will trigger update zones */
-            } else {
-                ods_log_debug("[%s] recovered zone %s", engine_str,
-                    zone->name);
-                /* recovery done */
-                zone->zl_status = ZONE_ZL_OK;
-            }
-        } else {
             if (status != ODS_STATUS_UNCHANGED) {
                 ods_log_warning("[%s] unable to recover zone %s from backup,"
                 " performing full sign", engine_str, zone->name);
             }
             result = ODS_STATUS_OK; /* will trigger update zones */
-        }
         pthread_mutex_unlock(&zone->zone_lock);
         node = ldns_rbtree_next(node);
     }
@@ -826,13 +806,10 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize, int info
                 ods_log_error("[%s] opening hsm failed (for engine recover)", engine_str);
                 break;
             }
-            zl_changed = engine_recover(engine);
+            engine_recover(engine);
             hsm_close();
         }
-        if (zl_changed == ODS_STATUS_OK ||
-            zl_changed == ODS_STATUS_UNCHANGED) {
-            engine_update_zones(engine, zl_changed);
-        }
+        engine_update_zones(engine, zl_changed);
         if (hsm_open2(engine->config->repositories, hsm_check_pin) != HSM_OK) {
             char* error =  hsm_get_error(NULL);
             if (error != NULL) {

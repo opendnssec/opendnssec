@@ -116,22 +116,4 @@ void keylist_log(keylist_type* kl, const char* name);
  */
 void keylist_cleanup(keylist_type* kl);
 
-/**
- * Recover key from backup.
- * \param[in] fd file descriptor of key backup file
- * \param[in] kl key list to print
- * \return key_type* key
- *
- */
-key_type* key_recover2(FILE* fd, keylist_type* kl);
-
-/**
- * Backup key list.
- * \param[in] fd file descriptor
- * \param[in] kl key list to print
- * \param[in] version version string
- *
- */
-void keylist_backup(FILE* fd, keylist_type* kl, const char* version);
-
 #endif /* SIGNER_KEYS_H */

@@ -879,24 +879,3 @@ rrset_cleanup(rrset_type* rrset)
     free(rrset->rrs);
     free(rrset);
 }
-
-/**
- * Backup RRset.
- *
- */
-void
-rrset_backup2(FILE* fd, rrset_type* rrset)
-{
-    rrsig_type* rrsig;
-    char* str = NULL;
-    if (!rrset || !fd) {
-        return;
-    }
-    while((rrsig = collection_iterator(rrset->rrsigs))) {
-        if ((str = ldns_rr2str(rrsig->rr))) {
-            fprintf(fd, "%.*s; {locator %s flags %u}\n", (int)strlen(str)-1, str,
-                    rrsig->key_locator, rrsig->key_flags);
-            free(str);
-        }
-    }
-}

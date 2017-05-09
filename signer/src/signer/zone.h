@@ -231,19 +231,4 @@ void zone_merge(zone_type* z1, zone_type* z2);
  */
 void zone_cleanup(zone_type* zone);
 
-/**
- * Backup zone.
- * \param[in] zone corresponding zone
- * \return ods_status status
- *
- */
-ods_status zone_backup2(zone_type* zone, time_t nextResign);
-
-/**
- * Recover zone from backup.
- * \param[in] zone corresponding zone
- *
- */
-ods_status zone_recover2(engine_type* engine, zone_type* zone);
-
 #endif /* SIGNER_ZONE_H */

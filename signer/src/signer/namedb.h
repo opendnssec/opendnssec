@@ -126,15 +126,6 @@ domain_type* namedb_add_domain(namedb_type* db, ldns_rdf* dname);
 domain_type* namedb_del_domain(namedb_type* db, domain_type* domain);
 
 /**
- * Lookup denial.
- * \param[in] db namedb
- * \param[in] dname domain name
- * \return denial_type* denial, if found
- *
- */
-denial_type* namedb_lookup_denial(namedb_type* db, ldns_rdf* dname);
-
-/**
  * Add denial to namedb.
  * \param[in] db namedb
  * \param[in] dname domain name
@@ -216,13 +207,5 @@ void namedb_cleanup_denials(namedb_type* db);
  *
  */
 void namedb_cleanup(namedb_type* db);
-
-/**
- * Backup namedb.
- * \param[in] fd output file descriptor
- * \param[in] zd zone data
- *
- */
-void namedb_backup2(FILE* fd, namedb_type* db);
 
 #endif /* SIGNER_NAMEDB_H */
