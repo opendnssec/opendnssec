@@ -214,9 +214,6 @@ tools_output(zone_type* zone, engine_type* engine)
     zone->db->outserial = zone->db->intserial;
     zone->db->is_initialized = 1;
     zone->db->have_serial = 1;
-    pthread_mutex_lock(&zone->ixfr->ixfr_lock);
-    ixfr_purge(zone->ixfr, zone->name);
-    pthread_mutex_unlock(&zone->ixfr->ixfr_lock);
     /* kick the nameserver */
     if (zone->notify_ns) {
 	int pid_status;

@@ -105,13 +105,6 @@ zone_create(char* name, ldns_rr_class klass)
         zone_cleanup(zone);
         return NULL;
     }
-    zone->ixfr = ixfr_create();
-    if (!zone->ixfr) {
-        ods_log_error("[%s] unable to create zone %s: ixfr_create() "
-            "failed", zone_str, name);
-        zone_cleanup(zone);
-        return NULL;
-    }
     zone->zoneconfigvalid = 0;
     zone->signconf = signconf_create();
     if (!zone->signconf) {
@@ -770,7 +763,6 @@ zone_cleanup(zone_type* zone)
     adapter_cleanup(zone->adinbound);
     adapter_cleanup(zone->adoutbound);
     namedb_cleanup(zone->db);
-    ixfr_cleanup(zone->ixfr);
     xfrd_cleanup(zone->xfrd, 1);
     notify_cleanup(zone->notify);
     signconf_cleanup(zone->signconf);

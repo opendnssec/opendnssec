@@ -414,37 +414,3 @@ adapi_printaxfr(FILE* fd, zone_type* zone)
     }
     return status;
 }
-
-
-/**
- * Print ixfr.
- *
- */
-ods_status
-adapi_printixfr(FILE* fd, zone_type* zone)
-{
-    rrset_type* rrset = NULL;
-    ods_status status = ODS_STATUS_OK;
-    if (!fd || !zone || !zone->db || !zone->ixfr) {
-        ods_log_error("[%s] unable to print ixfr: file descriptor, zone or "
-            "name database missing", adapi_str);
-        return ODS_STATUS_ASSERT_ERR;
-    }
-    if (!zone->db->is_initialized) {
-        /* no ixfr yet */
-        return ODS_STATUS_OK;
-    }
-    rrset = zone_lookup_rrset(zone, zone->apex, LDNS_RR_TYPE_SOA);
-    ods_log_assert(rrset);
-    rrset_print(fd, rrset, 1, &status);
-    if (status != ODS_STATUS_OK) {
-        return status;
-    }
-    pthread_mutex_lock(&zone->ixfr->ixfr_lock);
-    if (ixfr_print(fd, zone->ixfr)) {
-        zone->adoutbound->error = 1;
-    }
-    pthread_mutex_unlock(&zone->ixfr->ixfr_lock);
-    rrset_print(fd, rrset, 1, &status);
-    return status;
-}

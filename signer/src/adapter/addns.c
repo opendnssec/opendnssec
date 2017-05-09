@@ -796,29 +796,6 @@ addns_write(void* zone)
         return status;
     }
 
-    if (z->db->is_initialized && z->ixfr->part[0] &&
-            z->ixfr->part[0]->soamin && z->ixfr->part[0]->soaplus)
-    {
-        itmpfile = ods_build_path(z->name, ".ixfr.tmp", 0, 1);
-        if (!itmpfile) {
-            free((void*) atmpfile);
-            return ODS_STATUS_MALLOC_ERR;
-        }
-        fd = ods_fopen(itmpfile, NULL, "w");
-        if (!fd) {
-            free((void*) atmpfile);
-            free((void*) itmpfile);
-            return ODS_STATUS_FOPEN_ERR;
-        }
-        status = adapi_printixfr(fd, z);
-        ods_fclose(fd);
-        if (status != ODS_STATUS_OK) {
-            free((void*) atmpfile);
-            free((void*) itmpfile);
-            return status;
-        }
-    }
-
     if (status == ODS_STATUS_OK) {
         if (z->adoutbound->error) {
             ods_log_error("[%s] unable to write zone %s axfr: one or "
@@ -855,28 +832,6 @@ addns_write(void* zone)
     axfrfile = NULL;
     atmpfile = NULL;
 
-    if (z->db->is_initialized  && z->ixfr->part[0] &&
-            z->ixfr->part[0]->soamin && z->ixfr->part[0]->soaplus)
-    {
-        ixfrfile = ods_build_path(z->name, ".ixfr", 0, 1);
-        if (!ixfrfile) {
-            pthread_mutex_unlock(&z->xfr_lock);
-            free((void*) axfrfile);
-            free((void*) atmpfile);
-            free((void*) itmpfile);
-            return ODS_STATUS_MALLOC_ERR;
-        }
-        ret = rename(itmpfile, ixfrfile);
-        if (ret != 0) {
-            ods_log_error("[%s] unable to rename file %s to %s: %s",
-                adapter_str, itmpfile, ixfrfile, strerror(errno));
-            pthread_mutex_unlock(&z->xfr_lock);
-            free((void*) itmpfile);
-            free((void*) ixfrfile);
-            return ODS_STATUS_RENAME_ERR;
-        }
-        free((void*) ixfrfile);
-    }
     free((void*) itmpfile);
     pthread_mutex_unlock(&z->xfr_lock);
 

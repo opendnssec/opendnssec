@@ -344,12 +344,6 @@ rrset_diff(zone_type* zone, rrset_type* rrset, unsigned is_ixfr, unsigned more_c
     for (i=0; i < rrset->rr_count; i++) {
         if (rrset->rrs[i].is_added) {
             if (!rrset->rrs[i].exists) {
-                /* ixfr +RR */
-                if (zone->db->is_initialized) {
-                    pthread_mutex_lock(&zone->ixfr->ixfr_lock);
-                    ixfr_add_rr(zone->ixfr, rrset->rrs[i].rr);
-                    pthread_mutex_unlock(&zone->ixfr->ixfr_lock);
-                }
                 del_sigs = 1;
             }
             rrset->rrs[i].exists = 1;
@@ -358,12 +352,6 @@ rrset_diff(zone_type* zone, rrset_type* rrset, unsigned is_ixfr, unsigned more_c
             }
             rrset->rrs[i].is_added = 0;
         } else if (!is_ixfr || rrset->rrs[i].is_removed) {
-            if (rrset->rrs[i].exists && zone->db->is_initialized) {
-                /* ixfr -RR */
-                pthread_mutex_lock(&zone->ixfr->ixfr_lock);
-                ixfr_del_rr(zone->ixfr, rrset->rrs[i].rr);
-                pthread_mutex_unlock(&zone->ixfr->ixfr_lock);
-            }
             rrset->rrs[i].exists = 0;
             rrset_del_rr(rrset, i);
             del_sigs = 1;
@@ -384,12 +372,6 @@ rrset_drop_rrsigs(zone_type* zone, rrset_type* rrset)
 {
     rrsig_type* rrsig;
     while((rrsig = collection_iterator(rrset->rrsigs))) {
-        /* ixfr -RRSIG */
-        if (zone->db->is_initialized) {
-            pthread_mutex_lock(&zone->ixfr->ixfr_lock);
-            ixfr_del_rr(zone->ixfr, rrsig->rr);
-            pthread_mutex_unlock(&zone->ixfr->ixfr_lock);
-        }
         collection_del_cursor(rrset->rrsigs);
     }
 }
@@ -477,12 +459,6 @@ rrset_recycle(zone_type* zone, rrset_type* rrset, time_t signtime, ldns_rr_type 
 recycle_drop_sig:
         if (drop_sig) {
             /* A rule mismatched, refresh signature */
-            /* ixfr -RRSIG */
-            if (zone->db->is_initialized) {
-                pthread_mutex_lock(&zone->ixfr->ixfr_lock);
-                ixfr_del_rr(zone->ixfr, rrsig->rr);
-                pthread_mutex_unlock(&zone->ixfr->ixfr_lock);
-            }
             collection_del_cursor(rrset->rrsigs);
         } else {
             /* All rules ok, recycle signature */
@@ -750,12 +726,6 @@ rrset_sign(zone_type* zone, domain_type* domain, hsm_ctx_t* ctx, rrset_type* rrs
         rrset_add_rrsig(rrset, rrsig, locator,
             zone->signconf->keys->keys[i].flags);
         newsigs++;
-        /* ixfr +RRSIG */
-        if (zone->db->is_initialized) {
-            pthread_mutex_lock(&zone->ixfr->ixfr_lock);
-            ixfr_add_rr(zone->ixfr, rrsig);
-            pthread_mutex_unlock(&zone->ixfr->ixfr_lock);
-        }
     }
     if(rrset->rrtype == LDNS_RR_TYPE_DNSKEY && zone->signconf->dnskey_signature) {
         for(i=0; zone->signconf->dnskey_signature[i]; i++) {
@@ -770,11 +740,6 @@ rrset_sign(zone_type* zone, domain_type* domain, hsm_ctx_t* ctx, rrset_type* rrs
             rrset_add_rrsig(rrset, rrsig, NULL, 0);
             newsigs++;
             /* ixfr +RRSIG */
-            if (zone->db->is_initialized) {
-                pthread_mutex_lock(&zone->ixfr->ixfr_lock);
-                ixfr_add_rr(zone->ixfr, rrsig);
-                pthread_mutex_unlock(&zone->ixfr->ixfr_lock);
-            }
         }
     }
     /* RRset signing completed */

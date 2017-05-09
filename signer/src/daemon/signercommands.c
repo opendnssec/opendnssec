@@ -400,18 +400,11 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_ctx_type* context, const char
         intserial = zone->db->intserial;
         outserial = zone->db->outserial;
         namedb_cleanup(zone->db);
-        ixfr_cleanup(zone->ixfr);
         signconf_cleanup(zone->signconf);
 
         zone->db = namedb_create((void*)zone);
-        zone->ixfr = ixfr_create();
         zone->signconf = signconf_create();
 
-        if (!zone->signconf || !zone->ixfr || !zone->db) {
-            ods_fatal_exit("[%s] unable to clear zone %s: failed to recreate"
-            "signconf, ixfr of db structure (out of memory?)", cmdh_str, cmdargument(cmd, NULL, ""));
-            return 1;
-        }
         /* restore serial management */
         zone->db->inbserial = inbserial;
         zone->db->intserial = intserial;

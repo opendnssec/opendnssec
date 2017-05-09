@@ -77,7 +77,6 @@ struct zone_struct {
     signconf_type* signconf; /* signer configuration values */
     /* zone data */
     namedb_type* db;
-    ixfr_type* ixfr;
     /* zone transfers */
     xfrd_type* xfrd;
     notify_type* notify;

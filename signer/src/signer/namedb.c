@@ -950,14 +950,6 @@ namedb_wipe_denial(namedb_type* db)
                 continue;
             }
             for (i=0; i < denial->rrset->rr_count; i++) {
-                if (denial->rrset->rrs[i].exists) {
-                    /* ixfr -RR */
-                    pthread_mutex_lock(&zone->ixfr->ixfr_lock);
-                    if (zone->db->is_initialized) {
-                        ixfr_del_rr(zone->ixfr, denial->rrset->rrs[i].rr);
-                    }
-                    pthread_mutex_unlock(&zone->ixfr->ixfr_lock);
-                }
                 denial->rrset->rrs[i].exists = 0;
                 rrset_del_rr(denial->rrset, i);
                 i--;
