@@ -120,14 +120,6 @@ void domain_diff(zone_type* zone, domain_type* domain, unsigned is_ixfr, unsigne
 void domain_rollback(domain_type* domain, int keepsc);
 
 /**
- * Check whether a domain is an empty non-terminal to an unsigned delegation.
- * \param[in] domain domain
- * \return int yes or no
- *
- */
-int domain_ent2unsignedns(domain_type* domain);
-
-/**
  * Check whether a domain is a delegation, regardless of parent.
  * \param[in] domain domain
  * \return ldns_rr_type RRtype that hints whether the domain is occluded.

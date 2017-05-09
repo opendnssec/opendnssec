@@ -299,38 +299,6 @@ domain_rollback(domain_type* domain, int keepsc)
 }
 
 
-/**
- * Check whether a domain is an empty non-terminal to unsigned delegation.
- *
- */
-int
-domain_ent2unsignedns(domain_type* domain)
-{
-    ldns_rbnode_t* n = LDNS_RBTREE_NULL;
-    domain_type* d = NULL;
-
-    ods_log_assert(domain);
-    if (domain->rrsets) {
-        return 0; /* not an empty non-terminal */
-    }
-    n = ldns_rbtree_next(domain->node);
-    while (n && n != LDNS_RBTREE_NULL) {
-        d = (domain_type*) n->data;
-        if (!ldns_dname_is_subdomain(d->dname, domain->dname)) {
-            break;
-        }
-        if (d->rrsets) {
-            if (domain_is_delegpt(d) != LDNS_RR_TYPE_NS &&
-                domain_is_occluded(d) == LDNS_RR_TYPE_SOA) {
-                /* domain has signed delegation/auth */
-                return 0;
-            }
-        }
-        /* maybe there is data at the next domain */
-        n = ldns_rbtree_next(n);
-    }
-    return 1;
-}
 
 
 /**
