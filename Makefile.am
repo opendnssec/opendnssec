@@ -51,4 +51,4 @@ if ENABLE_SIGNER
 endif
 
 analyze:
-	cd src && $(MAKE) $(AM_MAKEFLAGS) analyze
+	cd signer && $(MAKE) $(AM_MAKEFLAGS) analyze
