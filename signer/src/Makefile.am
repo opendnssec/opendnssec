@@ -1,3 +1,4 @@
+.PHONY: analyze
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
 LIBHSM = ${top_builddir}/libhsm/src/lib/libhsm.a
@@ -59,6 +60,10 @@ ods_signerd_SOURCES=		ods-signerd.c \
 				wire/tsig.c wire/tsig.h \
 				wire/tsig-openssl.c wire/tsig-openssl.h \
 				wire/xfrd.c wire/xfrd.h
+
+analyze:
+	cd $(srcdir) ; cppcheck --quiet --enable=unusedFunction \
+	  $(ods_signerd_SOURCES)
 
 ods_signerd_LDADD=		$(LIBHSM)
 ods_signerd_LDADD+=		$(LIBCOMPAT)

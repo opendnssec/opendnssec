@@ -1,3 +1,5 @@
+.PHONY: analyze
+
 ACLOCAL_AMFLAGS = -I m4
 
 MAINTAINERCLEANFILES = \
@@ -48,3 +50,5 @@ if ENABLE_SIGNER
 	(cd signer; $(MAKE) doxygen)
 endif
 
+analyze:
+	cd src && $(MAKE) $(AM_MAKEFLAGS) analyze

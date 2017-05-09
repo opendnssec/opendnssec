@@ -1,3 +1,5 @@
+.PHONY: analyze
+
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
 SUBDIRS = src man
@@ -9,3 +11,6 @@ doxygen:
 		SRCDIR=$(top_srcdir)/signer \
 		OUTPUTDIR=$(top_builddir)/signer/doxygen-doc \
 		$(DX_DOXYGEN) $(top_builddir)/$(DX_CONFIG)
+
+analyze:
+	cd src && $(MAKE) $(AM_MAKEFLAGS) analyze
