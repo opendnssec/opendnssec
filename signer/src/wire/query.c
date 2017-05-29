@@ -559,7 +559,7 @@ response_encode(query_type* q, response_type* r)
  *
  */
 static query_state
-query_response(query_type* q, ldns_rr_type qtype)
+query_response(names_type view, query_type* q, ldns_rr_type qtype)
 {
     rrset_type* rrset = NULL;
     response_type r;
@@ -567,36 +567,29 @@ query_response(query_type* q, ldns_rr_type qtype)
         return QUERY_DISCARDED;
     }
     r.rrset_count = 0;
-    pthread_mutex_lock(&q->zone->zone_lock);
-    rrset = zone_lookup_rrset(q->zone, q->zone->apex, qtype);
+    rrset = zone_lookup_rrset(view, qtype);
     if (rrset) {
         if (!response_add_rrset(&r, rrset, LDNS_SECTION_ANSWER)) {
-            pthread_mutex_unlock(&q->zone->zone_lock);
             return query_servfail(q);
         }
         /* NS RRset goes into Authority Section */
-        rrset = zone_lookup_rrset(q->zone, q->zone->apex, LDNS_RR_TYPE_NS);
+        rrset = zone_lookup_rrset(view, LDNS_RR_TYPE_NS);
         if (rrset) {
             if (!response_add_rrset(&r, rrset, LDNS_SECTION_AUTHORITY)) {
-                pthread_mutex_unlock(&q->zone->zone_lock);
                 return query_servfail(q);
             }
         } /* else: not having NS RRs is not fatal  */
     } else if (qtype != LDNS_RR_TYPE_SOA) {
-        rrset = zone_lookup_rrset(q->zone, q->zone->apex, LDNS_RR_TYPE_SOA);
+        rrset = zone_lookup_rrset(view, LDNS_RR_TYPE_SOA);
         if (!rrset) {
-            pthread_mutex_unlock(&q->zone->zone_lock);
             return query_servfail(q);
         }
         if (!response_add_rrset(&r, rrset, LDNS_SECTION_AUTHORITY)) {
-            pthread_mutex_unlock(&q->zone->zone_lock);
             return query_servfail(q);
         }
     } else {
-        pthread_mutex_unlock(&q->zone->zone_lock);
         return query_servfail(q);
     }
-    pthread_mutex_unlock(&q->zone->zone_lock);
 
     response_encode(q, &r);
     /* compression */
@@ -635,6 +628,8 @@ query_prepare(query_type* q)
 static query_state
 query_process_query(query_type* q, ldns_rr_type qtype, engine_type* engine)
 {
+    query_state returnstate;
+    names_type view;
     dnsout_type* dnsout = NULL;
     if (!q || !q->zone) {
         return QUERY_DISCARDED;
@@ -690,7 +685,10 @@ query_process_query(query_type* q, ldns_rr_type qtype, engine_type* engine)
         return soa_request(q, engine);
     }
     /* other qtypes */
-    return query_response(q, qtype);
+    names_view(q->zone->namesrc, &view);
+    returnstate = query_response(view, q, qtype);
+    names_dispose(view);
+    return returnstate;
 }
 
 

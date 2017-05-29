@@ -50,8 +50,6 @@ typedef struct denial_struct denial_type;
  *
  */
 struct denial_struct {
-    domain_type* domain;
-    ldns_rbnode_t* node;
     ldns_rdf* dname;
     rrset_type* rrset;
     unsigned changed : 1;
@@ -65,13 +63,6 @@ struct denial_struct {
  *
  */
 denial_type* denial_create(zone_type* zoneptr, ldns_rdf* dname);
-
-/**
- * Apply differences at denial.
- * \param[in] denial Denial of Existence data point
- *
- */
-void denial_diff(zone_type* zone, denial_type* denial);
 
 /**
  * Add NSEC(3) to the Denial of Existence data point.
@@ -88,7 +79,7 @@ void denial_add_rr(zone_type* zone, denial_type* denial, ldns_rr* rr);
  * \param[out] num_added number of RRs added
  *
  */
-void denial_nsecify(zone_type* zone, domain_type* domain, denial_type* nxt, uint32_t* num_added);
+void denial_nsecify(zone_type* zone, domain_type* domain, ldns_rdf* nxt, uint32_t* num_added);
 
 /**
  * Print Denial of Existence data point.

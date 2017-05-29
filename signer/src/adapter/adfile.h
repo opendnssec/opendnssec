@@ -37,6 +37,8 @@
 
 #include <stdio.h>
 
+#include "signer/names.h"
+
 /**
  * File adapter.
  *
@@ -49,7 +51,7 @@
  * \return ods_status status
  *
  */
-ods_status adfile_read(void* zone);
+ods_status adfile_read(zone_type* zone, names_type view);
 
 /**
  * Write zone to output file adapter.
@@ -58,6 +60,6 @@ ods_status adfile_read(void* zone);
  * \return ods_status status
  *
  */
-ods_status adfile_write(void* zone, const char* filename);
+ods_status adfile_write(zone_type* zone, names_type view, const char* filename);
 
 #endif /* ADAPTER_ADFILE_H */

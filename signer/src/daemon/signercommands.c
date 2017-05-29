@@ -251,26 +251,14 @@ cmdhandler_handle_cmd_retransfer(int sockfd, cmdhandler_ctx_type* context, const
 }
 
 
-static uint32_t
-max(uint32_t a, uint32_t b)
-{
-    return (a<b?b:a);
-}
-
 static ods_status
 forceread(engine_type* engine, zone_type *zone, int force_serial, uint32_t serial, int sockfd)
 {
+	ods_status status = ODS_STATUS_OK;
         pthread_mutex_lock(&zone->zone_lock);
         if (force_serial) {
-            ods_log_assert(zone->db);
-            if (!util_serial_gt(serial, max(zone->db->outserial,
-                zone->db->inbserial))) {
-                pthread_mutex_unlock(&zone->zone_lock);
-                client_printf(sockfd, "Error: Unable to enforce serial %u for zone %s.\n", serial, zone->name);
-                return 1;
-            }
-            zone->db->altserial = serial;
-            zone->db->force_serial = 1;
+	    zone->nextserial = malloc(sizeof(uint32_t));
+	    *zone->nextserial = serial;
         }
         schedule_scheduletask(engine->taskq, TASK_FORCEREAD, zone->name, zone, &zone->zone_lock, schedule_IMMEDIATELY);
         pthread_mutex_unlock(&zone->zone_lock);
@@ -396,21 +384,10 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_ctx_type* context, const char
     pthread_mutex_unlock(&engine->zonelist->zl_lock);
     if (zone) {
         pthread_mutex_lock(&zone->zone_lock);
-        inbserial = zone->db->inbserial;
-        intserial = zone->db->intserial;
-        outserial = zone->db->outserial;
-        namedb_cleanup(zone->db);
+	names_clear(zone->namesrc);
         signconf_cleanup(zone->signconf);
-
-        zone->db = namedb_create((void*)zone);
         zone->signconf = signconf_create();
-
-        /* restore serial management */
-        zone->db->inbserial = inbserial;
-        zone->db->intserial = intserial;
-        zone->db->outserial = outserial;
-        zone->db->have_serial = 1;
-
+        
         /* If a zone does not have a task we probably never read a signconf
          * for it. Skip reschedule step */
         schedule_scheduletask(engine->taskq, TASK_FORCESIGNCONF, zone->name, zone, &zone->zone_lock, schedule_IMMEDIATELY);

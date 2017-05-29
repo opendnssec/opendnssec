@@ -153,15 +153,6 @@ void rrset_add_rrsig(rrset_type* rrset, ldns_rr* rr,
 void rrset_drop_rrsigs(zone_type* zone, rrset_type* rrset);
 
 /**
- * Apply differences at RRset.
- * \param[in] rrset RRset
- * \param[in] is_ixfr true if incremental change
- * \param[in] more_coming more transactions possible
- *
- */
-void rrset_diff(zone_type* zone, rrset_type* rrset, unsigned is_ixfr, unsigned more_coming);
-
-/**
  * Sign RRset.
  * \param[in] ctx HSM context
  * \param[in] rrset RRset

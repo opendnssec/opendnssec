@@ -328,42 +328,6 @@ rrset_del_rr(rrset_type* rrset, uint16_t rrnum)
 }
 
 /**
- * Apply differences at RRset.
- *
- */
-void
-rrset_diff(zone_type* zone, rrset_type* rrset, unsigned is_ixfr, unsigned more_coming)
-{
-    uint16_t i = 0;
-    uint8_t del_sigs = 0;
-    if (!rrset) {
-        return;
-    }
-    /* CAUTION: both iterator and condition (implicit) are changed
-     * within the loop. */
-    for (i=0; i < rrset->rr_count; i++) {
-        if (rrset->rrs[i].is_added) {
-            if (!rrset->rrs[i].exists) {
-                del_sigs = 1;
-            }
-            rrset->rrs[i].exists = 1;
-            if ((rrset->rrtype == LDNS_RR_TYPE_DNSKEY) && more_coming) {
-                continue;
-            }
-            rrset->rrs[i].is_added = 0;
-        } else if (!is_ixfr || rrset->rrs[i].is_removed) {
-            rrset->rrs[i].exists = 0;
-            rrset_del_rr(rrset, i);
-            del_sigs = 1;
-            i--;
-        }
-    }
-    if (del_sigs) {
-        rrset_drop_rrsigs(zone, rrset);
-    }
-}
-
-/**
  * Remove signatures, deallocate storage and add then to the outgoing IFXR for that zone.
  *
  */

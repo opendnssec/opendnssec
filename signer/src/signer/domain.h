@@ -51,7 +51,6 @@ typedef struct domain_struct domain_type;
  */
  struct domain_struct {
     denial_type* denial;
-    ldns_rbnode_t* node;
     ldns_rdf* dname;
     domain_type* parent;
     rrset_type* rrsets;
@@ -101,23 +100,6 @@ rrset_type* domain_lookup_rrset(domain_type* domain, ldns_rr_type rrtype);
  *
  */
 void domain_add_rrset(domain_type* domain, rrset_type* rrset);
-
-/**
- * Apply differences at domain.
- * \param[in] domain domain
- * \param[in] is_ixfr true if incremental change
- * \param[in] more_coming more transactions possible
- *
- */
-void domain_diff(zone_type* zone, domain_type* domain, unsigned is_ixfr, unsigned more_coming);
-
-/**
- * Rollback differences at domain.
- * \param[in] domain domain
- * \param[in] keepsc keep RRs that did not came from the adapter
- *
- */
-void domain_rollback(domain_type* domain, int keepsc);
 
 /**
  * Check whether a domain is a delegation, regardless of parent.

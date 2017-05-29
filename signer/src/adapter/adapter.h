@@ -96,7 +96,7 @@ int adapter_compare(adapter_type* a1, adapter_type* a2);
  * \return ods_status status
  *
  */
-ods_status adapter_read(zone_type* zone);
+ods_status adapter_read(zone_type* zone, names_type view);
 
 /**
  * Write zone to output adapter.

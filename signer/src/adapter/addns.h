@@ -36,7 +36,8 @@
 #include "status.h"
 #include "wire/acl.h"
 #include "wire/tsig.h"
-
+#include "signer/zone.h"
+#include "signer/names.h"
 #include <ldns/ldns.h>
 #include <stdio.h>
 #include <time.h>
@@ -123,7 +124,7 @@ ldns_rr* addns_read_rr(FILE* fd, char* line, ldns_rdf** orig, ldns_rdf** prev,
  * \return ods_status status
  *
  */
-ods_status addns_read(void* zone);
+ods_status addns_read(zone_type* zone, names_type view);
 
 /**
  * Write zone to DNS output adapter.
@@ -131,7 +132,7 @@ ods_status addns_read(void* zone);
  * \return ods_status status
  *
  */
-ods_status addns_write(void* zone);
+ods_status addns_write(zone_type* zone, names_type view);
 
 /**
  * Clean up DNS input adapter.

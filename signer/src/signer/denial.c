@@ -53,8 +53,6 @@ denial_create(zone_type* zone, ldns_rdf* dname)
     }
     CHECKALLOC(denial = (denial_type*) malloc(sizeof(denial_type)));
     denial->dname = dname;
-    denial->domain = NULL; /* no back reference yet */
-    denial->node = NULL; /* not in db yet */
     denial->rrset = NULL;
     denial->changed = 0;
     return denial;
@@ -137,7 +135,7 @@ denial_create_nsec3_nxt(ldns_rdf* nxt)
  *
  */
 static ldns_rr*
-denial_create_nsec(domain_type* domain, denial_type* nxt, uint32_t ttl,
+denial_create_nsec(domain_type* domain, ldns_rdf* nxt, uint32_t ttl,
     ldns_rr_class klass, nsec3params_type* n3p)
 {
     ldns_rr* nsec_rr = NULL;
@@ -148,7 +146,6 @@ denial_create_nsec(domain_type* domain, denial_type* nxt, uint32_t ttl,
     size_t types_count = 0;
     int i = 0;
     ods_log_assert(nxt);
-    ods_log_assert(nxt->dname);
     nsec_rr = ldns_rr_new();
     if (!nsec_rr) {
         ods_log_alert("[%s] unable to create NSEC(3) RR: "
@@ -180,9 +177,9 @@ denial_create_nsec(domain_type* domain, denial_type* nxt, uint32_t ttl,
     }
     /* NXT */
     if (n3p) {
-        rdf = denial_create_nsec3_nxt(nxt->dname);
+        rdf = denial_create_nsec3_nxt(nxt);
     } else {
-        rdf = ldns_rdf_clone(nxt->dname);
+        rdf = ldns_rdf_clone(nxt);
     }
     if (!rdf) {
         ods_log_alert("[%s] unable to create NSEC(3) RR: "
@@ -225,19 +222,6 @@ denial_create_nsec(domain_type* domain, denial_type* nxt, uint32_t ttl,
 
 
 /**
- * Apply differences at denial.
- *
- */
-void
-denial_diff(zone_type* zone, denial_type* denial)
-{
-    if (denial && denial->rrset) {
-        rrset_diff(zone, denial->rrset, 0, 0);
-    }
-}
-
-
-/**
  * Add NSEC(3) to the Denial of Existence data point.
  *
  */
@@ -260,7 +244,6 @@ denial_add_rr(zone_type* zone, denial_type* denial, ldns_rr* rr)
     record = rrset_add_rr(denial->rrset, rr);
     ods_log_assert(record);
     ods_log_assert(record->rr);
-    denial_diff(zone, denial);
     denial->changed = 0;
 }
 
@@ -270,7 +253,7 @@ denial_add_rr(zone_type* zone, denial_type* denial, ldns_rr* rr)
  *
  */
 void
-denial_nsecify(zone_type* zone, domain_type* domain, denial_type* nxt, uint32_t* num_added)
+denial_nsecify(zone_type* zone, domain_type* domain, ldns_rdf* nxt, uint32_t* num_added)
 {
     ldns_rr* nsec_rr = NULL;
     uint32_t ttl = 0;

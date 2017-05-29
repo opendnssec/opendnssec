@@ -54,6 +54,7 @@ typedef struct zone_struct zone_type;
 #include "wire/xfrd.h"
 #include "datastructure.h"
 #include "daemon/engine.h"
+#include "signer/names.h"
 
 struct schedule_struct;
 
@@ -76,7 +77,10 @@ struct zone_struct {
     /* from signconf.xml */
     signconf_type* signconf; /* signer configuration values */
     /* zone data */
-    namedb_type* db;
+    namesrc_type namesrc;
+    uint32_t* nextserial;
+    uint32_t* inboundserial;
+    uint32_t* outboundserial;
     /* zone transfers */
     xfrd_type* xfrd;
     notify_type* notify;
@@ -128,14 +132,7 @@ ods_status zone_reschedule_task(zone_type* zone, schedule_type* taskq,
  * \return ods_status status
  *
  */
-ods_status zone_publish_dnskeys(zone_type* zone, int skip_hsm_access);
-
-/**
- * Unlink DNSKEY RRs.
- * \param[in] zone zone
- *
- */
-void zone_rollback_dnskeys(zone_type* zone);
+ods_status zone_publish_dnskeys(zone_type* zone, names_type view, int skip_hsm_access);
 
 /**
  * Publish the NSEC3 parameters as indicated by the signer configuration.
@@ -143,14 +140,7 @@ void zone_rollback_dnskeys(zone_type* zone);
  * \return ods_status status
  *
  */
-ods_status zone_publish_nsec3param(zone_type* zone);
-
-/**
- * Unlink NSEC3PARAM RR.
- * \param[in] zone zone
- *
- */
-void zone_rollback_nsec3param(zone_type* zone);
+ods_status zone_publish_nsec3param(zone_type* zone, names_type view);
 
 /**
  * Prepare keys for signing.
@@ -166,7 +156,7 @@ ods_status zone_prepare_keys(zone_type* zone);
  * \return ods_status status
  *
  */
-ods_status zone_update_serial(zone_type* zone);
+ods_status zone_update_serial(zone_type* zone, names_type view);
 
 /**
  * Lookup RRset.
@@ -176,8 +166,7 @@ ods_status zone_update_serial(zone_type* zone);
  * \return rrset_type* RRset, if found
  *
  */
-rrset_type* zone_lookup_rrset(zone_type* zone, ldns_rdf* owner,
-    ldns_rr_type type);
+rrset_type* zone_lookup_rrset(names_type view, ldns_rr_type type);
 
 /**
  * Add RR.
@@ -190,7 +179,7 @@ rrset_type* zone_lookup_rrset(zone_type* zone, ldns_rdf* owner,
  *         other: rr not added to zone, error occurred
  *
  */
-ods_status zone_add_rr(zone_type* zone, ldns_rr* rr, int do_stats);
+ods_status zone_add_rr(zone_type* zone, names_type view, ldns_rr* rr, int do_stats);
 
 /**
  * Delete RR.
@@ -203,13 +192,13 @@ ods_status zone_add_rr(zone_type* zone, ldns_rr* rr, int do_stats);
  *         other: rr not removed from zone, error occurred
  *
  */
-ods_status zone_del_rr(zone_type* zone, ldns_rr* rr, int do_stats);
+ods_status zone_del_rr(zone_type* zone, names_type view, ldns_rr* rr, int do_stats);
 
 /**
  * Remove all NSEC3PARAM RRs from the zone
  * \return ODS_STATUS_UNCHANGED or ODS_STATUS_OK
  */ 
-ods_status zone_del_nsec3params(zone_type* zone);
+ods_status zone_del_nsec3params(zone_type* zone, names_type view);
 
 /**
  * Merge zones. Values that are merged:

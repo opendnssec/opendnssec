@@ -58,7 +58,7 @@ worker_queue_domain(struct worker_context* context, fifoq_type* q, void* item, l
             tries++;
             if (context->worker->need_to_exit) {
                 pthread_mutex_unlock(&q->q_lock);
-            return;
+                return; /* BERRY */
             }
             /**
              * Apparently the queue is full. Lets take a small break to not hog CPU.
@@ -81,23 +81,12 @@ worker_queue_domain(struct worker_context* context, fifoq_type* q, void* item, l
  *
  */
 static void
-worker_queue_zone(struct worker_context* context, fifoq_type* q, zone_type* zone, long* nsubtasks)
+worker_queue_zone(struct worker_context* context, fifoq_type* q, names_type view, long* nsubtasks)
 {
-    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
-    domain_type* domain = NULL;
-    ods_log_assert(context);
-    ods_log_assert(q);
-    ods_log_assert(zone);
-    if (!zone->db || !zone->db->domains) {
-        return;
-    }
-    if (zone->db->domains->root != LDNS_RBTREE_NULL) {
-        node = ldns_rbtree_first(zone->db->domains);
-    }
-    while (node && node != LDNS_RBTREE_NULL) {
-        domain = (domain_type*) node->data;
+    iterator iter;
+    domain_type* domain;
+    for(names_alldomains(view, &iter); iterate(&iter,&domain); advance(&iter,NULL)) {
         worker_queue_domain(context, q, domain, nsubtasks);
-        node = ldns_rbtree_next(node);
     }
 }
 
@@ -267,6 +256,7 @@ do_signzone(task_type* task, const char* zonename, void* zonearg, void *contexta
     engine_type* engine = context->engine;
     worker_type* worker = context->worker;
     zone_type* zone = zonearg;
+    names_type view;
     ods_status status;
     time_t start = 0;
     time_t end = 0;
@@ -274,7 +264,9 @@ do_signzone(task_type* task, const char* zonename, void* zonearg, void *contexta
     long nsubtasksfailed = 0;
     context->clock_in = time_now();
     context->zone = zone;
-    status = zone_update_serial(zone);
+    
+    names_view(zone->namesrc, &view);
+    status = zone_update_serial(zone, view);
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] unable to sign zone %s: failed to increment serial", worker->name, task->owner);
         ods_log_crit("[%s] CRITICAL: failed to sign zone %s: %s",
@@ -309,7 +301,7 @@ do_signzone(task_type* task, const char* zonename, void* zonearg, void *contexta
     status = zone_prepare_keys(zone);
     if (status == ODS_STATUS_OK) {
         /* queue menial, hard signing work */
-        worker_queue_zone(context, worker->taskq->signq, zone, &nsubtasks);
+        worker_queue_zone(context, worker->taskq->signq, view, &nsubtasks);
         ods_log_deeebug("[%s] wait until drudgers are finished "
                 "signing zone %s", worker->name, task->owner);
         /* sleep until work is done */
@@ -331,7 +323,21 @@ do_signzone(task_type* task, const char* zonename, void* zonearg, void *contexta
                 worker->name, task->owner, ods_status2str(status));
         return schedule_DEFER; /* backoff */
     }
-
+    if (zone->stats) {
+        pthread_mutex_lock(&zone->stats->stats_lock);
+        if (zone->stats->sort_done == 0 &&
+            (zone->stats->sig_count <= zone->stats->sig_soa_count)) {
+            ods_log_verbose("skip write zone %s serial %u (zone not "
+                "changed)", zone->name?zone->name:"(null)",
+                (unsigned int)*zone->inboundserial);
+            stats_clear(zone->stats);
+            pthread_mutex_unlock(&zone->stats->stats_lock);
+            names_rollback(view);
+            return schedule_SUCCESS;
+        }
+        pthread_mutex_unlock(&zone->stats->stats_lock);
+    }
+    names_commit(view);
     schedule_scheduletask(engine->taskq, TASK_WRITE, zone->name, zone, &zone->zone_lock, schedule_PROMPTLY);
     return schedule_SUCCESS;
 }

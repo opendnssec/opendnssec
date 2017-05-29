@@ -43,34 +43,6 @@ static const char* adapi_str = "adapter";
 
 
 /**
- * Get the inbound serial.
- *
- */
-uint32_t
-adapi_get_serial(zone_type* zone)
-{
-    if (!zone || !zone->db) {
-        return 0;
-    }
-    return zone->db->inbserial;
-}
-
-
-/**
- * Set the inbound serial.
- *
- */
-void
-adapi_set_serial(zone_type* zone, uint32_t serial)
-{
-    if (!zone || !zone->db) {
-        return;
-    }
-    zone->db->inbserial = serial;
-}
-
-
-/**
  * Get origin.
  *
  */
@@ -103,15 +75,11 @@ adapi_get_ttl(zone_type* zone)
  *
  */
 void
-adapi_trans_full(zone_type* zone, unsigned more_coming)
+adapi_trans_full(zone_type* zone, names_type view, unsigned more_coming)
 {
     time_t start = 0;
     time_t end = 0;
     uint32_t num_added = 0;
-    if (!zone || !zone->db) {
-        return;
-    }
-    namedb_diff(zone, zone->db, 0, more_coming);
 
     if (zone->stats) {
         pthread_mutex_lock(&zone->stats->stats_lock);
@@ -121,7 +89,7 @@ adapi_trans_full(zone_type* zone, unsigned more_coming)
     }
     start = time(NULL);
     /* nsecify(3) */
-    namedb_nsecify(zone, zone->db, &num_added);
+    namedb_nsecify(zone, view, &num_added);
     end = time(NULL);
     if (zone->stats) {
         pthread_mutex_lock(&zone->stats->stats_lock);
@@ -140,15 +108,11 @@ adapi_trans_full(zone_type* zone, unsigned more_coming)
  *
  */
 void
-adapi_trans_diff(zone_type* zone, unsigned more_coming)
+adapi_trans_diff(zone_type* zone, names_type view, unsigned more_coming)
 {
     time_t start = 0;
     time_t end = 0;
     uint32_t num_added = 0;
-    if (!zone || !zone->db) {
-        return;
-    }
-    namedb_diff(zone, zone->db, 1, more_coming);
 
    if (zone->stats) {
         pthread_mutex_lock(&zone->stats->stats_lock);
@@ -158,7 +122,7 @@ adapi_trans_diff(zone_type* zone, unsigned more_coming)
     }
     start = time(NULL);
     /* nsecify(3) */
-    namedb_nsecify(zone, zone->db, &num_added);
+    namedb_nsecify(zone, view, &num_added);
     end = time(NULL);
     if (zone->stats) {
         pthread_mutex_lock(&zone->stats->stats_lock);
@@ -220,7 +184,7 @@ adapi_process_soa(zone_type* zone, ldns_rr* rr, int add, int backup)
         return ODS_STATUS_OK;
     }
     tmp = ldns_rdf2native_int32(ldns_rr_rdf(rr, SE_SOA_RDATA_SERIAL));
-    status = namedb_update_serial(zone->db, zone->name,
+    status = namedb_update_serial(zone, zone->name,
         zone->signconf->soa_serial, tmp);
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] unable to add soa to zone %s: failed to replace "
@@ -233,10 +197,8 @@ adapi_process_soa(zone_type* zone, ldns_rr* rr, int add, int backup)
         }
         return status;
     }
-    ods_log_verbose("[%s] zone %s set soa serial to %u", adapi_str,
-        zone->name, zone->db->intserial);
     soa_rdata = ldns_rr_set_rdf(rr, ldns_native2rdf_int32(LDNS_RDF_TYPE_INT32,
-        zone->db->intserial), SE_SOA_RDATA_SERIAL);
+        *zone->outboundserial), SE_SOA_RDATA_SERIAL);
     if (soa_rdata) {
         ldns_rdf_deep_free(soa_rdata);
         soa_rdata = NULL;
@@ -245,7 +207,6 @@ adapi_process_soa(zone_type* zone, ldns_rr* rr, int add, int backup)
             "soa serial rdata", adapi_str, zone->name);
         return ODS_STATUS_ERR;
     }
-    zone->db->serial_updated = 1;
     return ODS_STATUS_OK;
 }
 
@@ -274,14 +235,13 @@ adapi_process_dnskey(zone_type* zone, ldns_rr* rr)
  *
  */
 static ods_status
-adapi_process_rr(zone_type* zone, ldns_rr* rr, int add, int backup)
+adapi_process_rr(zone_type* zone, names_type view, ldns_rr* rr, int add, int backup)
 {
     ods_status status = ODS_STATUS_OK;
     uint32_t tmp = 0;
     ods_log_assert(rr);
     ods_log_assert(zone);
     ods_log_assert(zone->name);
-    ods_log_assert(zone->db);
     ods_log_assert(zone->signconf);
     /* We only support IN class */
     if (ldns_rr_get_class(rr) != LDNS_RR_CLASS_IN) {
@@ -343,9 +303,9 @@ adapi_process_rr(zone_type* zone, ldns_rr* rr, int add, int backup)
     /* TODO: NS and DS checks */
 
     if (add) {
-        return zone_add_rr(zone, rr, 1);
+        return zone_add_rr(zone, view, rr, 1);
     } else {
-        return zone_del_rr(zone, rr, 1);
+        return zone_del_rr(zone, view, rr, 1);
     }
     /* not reached */
     return ODS_STATUS_ERR;
@@ -357,9 +317,9 @@ adapi_process_rr(zone_type* zone, ldns_rr* rr, int add, int backup)
  *
  */
 ods_status
-adapi_add_rr(zone_type* zone, ldns_rr* rr, int backup)
+adapi_add_rr(zone_type* zone, names_type view, ldns_rr* rr, int backup)
 {
-    return adapi_process_rr(zone, rr, 1, backup);
+    return adapi_process_rr(zone, view, rr, 1, backup);
 }
 
 
@@ -368,9 +328,9 @@ adapi_add_rr(zone_type* zone, ldns_rr* rr, int backup)
  *
  */
 ods_status
-adapi_del_rr(zone_type* zone, ldns_rr* rr, int backup)
+adapi_del_rr(zone_type* zone, names_type view, ldns_rr* rr, int backup)
 {
-    return adapi_process_rr(zone, rr, 0, backup);
+    return adapi_process_rr(zone, view, rr, 0, backup);
 }
 
 
@@ -379,15 +339,15 @@ adapi_del_rr(zone_type* zone, ldns_rr* rr, int backup)
  *
  */
 ods_status
-adapi_printzone(FILE* fd, zone_type* zone)
+adapi_printzone(FILE* fd, zone_type* zone, names_type view)
 {
     ods_status status = ODS_STATUS_OK;
-    if (!fd || !zone || !zone->db) {
+    if (!fd || !zone) {
         ods_log_error("[%s] unable to print zone: file descriptor, zone or "
             "name database missing", adapi_str);
         return ODS_STATUS_ASSERT_ERR;
     }
-    namedb_export(fd, zone->db, &status);
+    namedb_export(fd, view, &status);
     return status;
 }
 
@@ -397,18 +357,18 @@ adapi_printzone(FILE* fd, zone_type* zone)
  *
  */
 ods_status
-adapi_printaxfr(FILE* fd, zone_type* zone)
+adapi_printaxfr(FILE* fd, zone_type* zone, names_type view)
 {
     rrset_type* rrset = NULL;
     ods_status status = ODS_STATUS_OK;
-    if (!fd || !zone || !zone->db) {
+    if (!fd || !zone) {
         ods_log_error("[%s] unable to print axfr: file descriptor, zone or "
             "name database missing", adapi_str);
         return ODS_STATUS_ASSERT_ERR;
     }
-    namedb_export(fd, zone->db, &status);
+    namedb_export(fd, view, &status);
     if (status == ODS_STATUS_OK) {
-        rrset = zone_lookup_rrset(zone, zone->apex, LDNS_RR_TYPE_SOA);
+        rrset = zone_lookup_rrset(view, LDNS_RR_TYPE_SOA);
         ods_log_assert(rrset);
         rrset_print(fd, rrset, 1, &status);
     }
