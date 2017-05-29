@@ -47,10 +47,8 @@ const char* db_str = "namedb";
 static ldns_rbnode_t*
 domain2node(domain_type* domain)
 {
-    ldns_rbnode_t* node = (ldns_rbnode_t*) malloc(sizeof(ldns_rbnode_t));
-    if (!node) {
-        return NULL;
-    }
+    ldns_rbnode_t* node;
+    CHECKALLOC(node = (ldns_rbnode_t*) malloc(sizeof(ldns_rbnode_t)));
     node->key = domain->dname;
     node->data = domain;
     return node;
@@ -64,10 +62,8 @@ domain2node(domain_type* domain)
 static ldns_rbnode_t*
 denial2node(denial_type* denial)
 {
-    ldns_rbnode_t* node = (ldns_rbnode_t*) malloc(sizeof(ldns_rbnode_t));
-    if (!node) {
-        return NULL;
-    }
+    ldns_rbnode_t* node;
+    CHECKALLOC(node = (ldns_rbnode_t*) malloc(sizeof(ldns_rbnode_t)));
     node->key = denial->dname;
     node->data = denial;
     return node;
@@ -126,11 +122,6 @@ namedb_create(void* zone)
     ods_log_assert(z);
     ods_log_assert(z->name);
     CHECKALLOC(db = (namedb_type*) malloc(sizeof(namedb_type)));
-    if (!db) {
-        ods_log_error("[%s] unable to create namedb for zone %s: "
-            "allocator_alloc() failed", db_str, z->name);
-        return NULL;
-    }
     db->zone = zone;
 
     namedb_init_domains(db);
@@ -357,17 +348,7 @@ namedb_add_domain(namedb_type* db, ldns_rdf* dname)
         return NULL;
     }
     domain = domain_create(db->zone, dname);
-    if (!domain) {
-        ods_log_error("[%s] unable to add domain: domain_create() failed",
-            db_str);
-        return NULL;
-    }
     new_node = domain2node(domain);
-    if (!new_node) {
-        ods_log_error("[%s] unable to add domain: domain2node() failed",
-            db_str);
-        return NULL;
-    }
     if (ldns_rbtree_insert(db->domains, new_node) == NULL) {
         ods_log_error("[%s] unable to add domain: already present", db_str);
         log_dname(domain->dname, "ERR +DOMAIN", LOG_ERR);
@@ -725,17 +706,7 @@ namedb_add_denial(namedb_type* db, ldns_rdf* dname, nsec3params_type* n3p)
         return NULL;
     }
     denial = denial_create(db->zone, owner);
-    if (!denial) {
-        ods_log_error("[%s] unable to add denial: denial_create() failed",
-            db_str);
-        return NULL;
-    }
     new_node = denial2node(denial);
-    if (!new_node) {
-        ods_log_error("[%s] unable to add denial: denial2node() failed",
-            db_str);
-        return NULL;
-    }
     if (!ldns_rbtree_insert(db->denials, new_node)) {
         ods_log_error("[%s] unable to add denial: already present", db_str);
         log_dname(denial->dname, "ERR +DENIAL", LOG_ERR);

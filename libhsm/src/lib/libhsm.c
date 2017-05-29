@@ -45,6 +45,7 @@
 #include "libhsmdns.h"
 #include "compat.h"
 #include "duration.h"
+#include "status.h"
 
 #include <pkcs11.h>
 #include <pthread.h>
@@ -375,8 +376,7 @@ hsm_repository_new(char* name, char* module, char* tokenlabel, char* pin,
 
     if (!name || !module || !tokenlabel) return NULL;
 
-    r = malloc(sizeof(hsm_repository_t));
-    if (!r) return NULL;
+    CHECKALLOC(r = malloc(sizeof(hsm_repository_t)));
 
     r->next = NULL;
     r->pin = NULL;
@@ -440,12 +440,7 @@ hsm_get_slot_id(hsm_ctx_t *ctx,
         return HSM_ERROR;
     }
 
-    slotIds = malloc(sizeof(CK_SLOT_ID) * slotCount);
-    if(slotIds == NULL) {
-        hsm_ctx_set_error(ctx, HSM_ERROR, "hsm_get_slot_id()",
-                          "Could not allocate slot ID table");
-        return HSM_ERROR;
-    }
+    CHECKALLOC(slotIds = malloc(sizeof(CK_SLOT_ID) * slotCount));
 
     rv = pkcs11_functions->C_GetSlotList(CK_TRUE, slotIds, &slotCount);
     if (hsm_pkcs11_check_error(ctx, rv, "get slot list")) {
@@ -484,15 +479,10 @@ hsm_module_new(const char *repository,
     if (!repository || !path) return NULL;
 
     
-    module = malloc(sizeof(hsm_module_t));
-    if (!module) return NULL;
+    CHECKALLOC(module = malloc(sizeof(hsm_module_t)));
 
     if (config) {
-        module->config = malloc(sizeof(hsm_config_t));
-        if (!module->config) {
-            free(module);
-            return NULL;
-        }
+        CHECKALLOC(module->config = malloc(sizeof(hsm_config_t)));
         memcpy(module->config, config, sizeof(hsm_config_t));
     } else {
         module->config = NULL;
@@ -525,7 +515,7 @@ static hsm_session_t *
 hsm_session_new(hsm_module_t *module, CK_SESSION_HANDLE session_handle)
 {
     hsm_session_t *session;
-    session = malloc(sizeof(hsm_session_t));
+    CHECKALLOC(session = malloc(sizeof(hsm_session_t)));
     session->module = module;
     session->session = session_handle;
     return session;
@@ -676,12 +666,10 @@ static hsm_ctx_t *
 hsm_ctx_new()
 {
     hsm_ctx_t *ctx;
-    ctx = malloc(sizeof(hsm_ctx_t));
-    if (ctx) {
-        memset(ctx->session, 0, HSM_MAX_SESSIONS);
-        ctx->session_count = 0;
-        ctx->error = 0;
-    }
+    CHECKALLOC(ctx = malloc(sizeof(hsm_ctx_t)));
+    memset(ctx->session, 0, HSM_MAX_SESSIONS);
+    ctx->session_count = 0;
+    ctx->error = 0;
     return ctx;
 }
 
@@ -802,7 +790,7 @@ static libhsm_key_t *
 libhsm_key_new()
 {
     libhsm_key_t *key;
-    key = malloc(sizeof(libhsm_key_t));
+    CHECKALLOC(key = malloc(sizeof(libhsm_key_t)));
     key->modulename = NULL;
     key->private_key = 0;
     key->public_key = 0;
@@ -1004,12 +992,7 @@ hsm_get_key_ecdsa_value(hsm_ctx_t *ctx, const hsm_session_t *session,
     }
     value_len = template[0].ulValueLen;
 
-    value = template[0].pValue = malloc(value_len);
-    if (!value) {
-        hsm_ctx_set_error(ctx, -1, "hsm_get_key_ecdsa_value()",
-            "Error allocating memory for value");
-        return NULL;
-    }
+    CHECKALLOC(value = template[0].pValue = malloc(value_len));
     memset(value, 0, value_len);
 
     rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_GetAttributeValue(
@@ -1079,13 +1062,7 @@ hsm_get_key_ecdsa_value(hsm_ctx_t *ctx, const hsm_session_t *session,
     header_len++;
 
     *data_len = value_len - header_len;
-    data = malloc(*data_len);
-    if (data == NULL) {
-        hsm_ctx_set_error(ctx, -1, "hsm_get_key_ecdsa_value()",
-            "Error allocating memory for data");
-        free(value);
-        return NULL;
-    }
+    CHECKALLOC(data = malloc(*data_len));
 
     memcpy(data, value + header_len, *data_len);
     free(value);
@@ -1208,7 +1185,7 @@ hsm_hex_parse(const char *hex, size_t *len)
     }
 
     *len = hex_len / 2;
-    bytes = malloc(*len);
+    CHECKALLOC(bytes = malloc(*len));
     for (i = 0; i < *len; i++) {
         bytes[i] = ldns_hexdigit_to_int(hex[2*i]) * 16 +
                    ldns_hexdigit_to_int(hex[2*i+1]);
@@ -1266,7 +1243,7 @@ hsm_get_id_for_object(hsm_ctx_t *ctx,
         return NULL;
     }
 
-    template[0].pValue = malloc(template[0].ulValueLen);
+    CHECKALLOC(template[0].pValue = malloc(template[0].ulValueLen));
     rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_GetAttributeValue(
                                       session->session,
                                       object,
@@ -1396,12 +1373,7 @@ hsm_list_keys_session_internal(hsm_ctx_t *ctx,
                 goto err;
         } 
 
-        keys = malloc(total_count * sizeof(libhsm_key_t *));
-        if(keys == NULL) {
-                hsm_ctx_set_error(ctx, -1, "hsm_list_keys_session_internal",
-                    "Error allocating memory for keys table (OOM)");
-                goto err;
-        }
+        CHECKALLOC(keys = malloc(total_count * sizeof(libhsm_key_t *)));
 
         for (i = 0; i < total_count; i++) {
             key = libhsm_key_new_privkey_object_handle(ctx, session,
@@ -1564,20 +1536,9 @@ hsm_get_key_rdata_rsa(hsm_ctx_t *ctx, hsm_session_t *session,
     public_exponent_len = template[0].ulValueLen;
     modulus_len = template[1].ulValueLen;
 
-    public_exponent = template[0].pValue = malloc(public_exponent_len);
-    if (!public_exponent) {
-        hsm_ctx_set_error(ctx, -1, "hsm_get_key_rdata_rsa()",
-            "Error allocating memory for public exponent");
-        return NULL;
-    }
+    CHECKALLOC(public_exponent = template[0].pValue = malloc(public_exponent_len));
 
-    modulus = template[1].pValue = malloc(modulus_len);
-    if (!modulus) {
-        hsm_ctx_set_error(ctx, -1, "hsm_get_key_rdata_rsa()",
-            "Error allocating memory for modulus");
-        free(public_exponent);
-        return NULL;
-    }
+    CHECKALLOC(modulus = template[1].pValue = malloc(modulus_len));
 
     rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_GetAttributeValue(
                                       session->session,
@@ -1596,27 +1557,13 @@ hsm_get_key_rdata_rsa(hsm_ctx_t *ctx, hsm_session_t *session,
 
     data_size = public_exponent_len + modulus_len + 1;
     if (public_exponent_len <= 255) {
-        data = malloc(data_size);
-        if (!data) {
-            hsm_ctx_set_error(ctx, -1, "hsm_get_key_rdata_rsa()",
-                "Error allocating memory for pub key rr data");
-            free(public_exponent);
-            free(modulus);
-            return NULL;
-        }
+        CHECKALLOC(data = malloc(data_size));
         data[0] = public_exponent_len;
         memcpy(&data[1], public_exponent, public_exponent_len);
         memcpy(&data[1 + public_exponent_len], modulus, modulus_len);
     } else if (public_exponent_len <= 65535) {
         data_size += 2;
-        data = malloc(data_size);
-        if (!data) {
-            hsm_ctx_set_error(ctx, -1, "hsm_get_key_rdata_rsa()",
-                "Error allocating memory for pub key rr data");
-            free(public_exponent);
-            free(modulus);
-            return NULL;
-        }
+        CHECKALLOC(data = malloc(data_size));
         data[0] = 0;
         ldns_write_uint16(&data[1], (uint16_t) public_exponent_len);
         memcpy(&data[3], public_exponent, public_exponent_len);
@@ -1677,39 +1624,13 @@ hsm_get_key_rdata_dsa(hsm_ctx_t *ctx, hsm_session_t *session,
     base_len = template[2].ulValueLen;
     value_len = template[3].ulValueLen;
 
-    prime = template[0].pValue = malloc(prime_len);
-    if (!prime) {
-        hsm_ctx_set_error(ctx, -1, "hsm_get_key_rdata_dsa()",
-            "Error allocating memory for prime");
-        return NULL;
-    }
+    CHECKALLOC(prime = template[0].pValue = malloc(prime_len));
 
-    subprime = template[1].pValue = malloc(subprime_len);
-    if (!subprime) {
-        hsm_ctx_set_error(ctx, -1, "hsm_get_key_rdata_dsa()",
-            "Error allocating memory for subprime");
-        free(prime);
-        return NULL;
-    }
+    CHECKALLOC(subprime = template[1].pValue = malloc(subprime_len));
 
-    base = template[2].pValue = malloc(base_len);
-    if (!base) {
-        hsm_ctx_set_error(ctx, -1, "hsm_get_key_rdata_dsa()",
-            "Error allocating memory for base");
-        free(prime);
-        free(subprime);
-        return NULL;
-    }
+    CHECKALLOC(base = template[2].pValue = malloc(base_len));
 
-    value = template[3].pValue = malloc(value_len);
-    if (!value) {
-        hsm_ctx_set_error(ctx, -1, "hsm_get_key_rdata_dsa()",
-            "Error allocating memory for value");
-        free(prime);
-        free(subprime);
-        free(base);
-        return NULL;
-    }
+    CHECKALLOC(value = template[3].pValue = malloc(value_len));
 
     rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_GetAttributeValue(
                                       session->session,
@@ -1725,16 +1646,7 @@ hsm_get_key_rdata_dsa(hsm_ctx_t *ctx, hsm_session_t *session,
     }
 
     data_size = prime_len + subprime_len + base_len + value_len + 1;
-    data = malloc(data_size);
-    if (!data) {
-        hsm_ctx_set_error(ctx, -1, "hsm_get_key_rdata_dsa()",
-            "Error allocating memory for pub key rr data");
-        free(prime);
-        free(subprime);
-        free(base);
-        free(value);
-        return NULL;
-    }
+    CHECKALLOC(data = malloc(data_size));
     data[0] = (prime_len - 64) / 8;
     memcpy(&data[1], subprime, subprime_len);
     memcpy(&data[1 + subprime_len], prime, prime_len);
@@ -1778,12 +1690,7 @@ hsm_get_key_rdata_gost(hsm_ctx_t *ctx, hsm_session_t *session,
     }
     value_len = template[0].ulValueLen;
 
-    value = template[0].pValue = malloc(value_len);
-    if (!value) {
-        hsm_ctx_set_error(ctx, -1, "hsm_get_key_rdata_gost()",
-            "Error allocating memory for value");
-        return NULL;
-    }
+    CHECKALLOC(value = template[0].pValue = malloc(value_len));
 
     rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_GetAttributeValue(
                                       session->session,
@@ -1852,23 +1759,23 @@ hsm_create_prefix(CK_ULONG digest_len,
     switch((ldns_signing_algorithm)algorithm) {
         case LDNS_SIGN_RSAMD5:
             *data_size = sizeof(RSA_MD5_ID) + digest_len;
-            data = malloc(*data_size);
+            CHECKALLOC(data = malloc(*data_size));
             memcpy(data, RSA_MD5_ID, sizeof(RSA_MD5_ID));
             break;
         case LDNS_SIGN_RSASHA1:
         case LDNS_SIGN_RSASHA1_NSEC3:
             *data_size = sizeof(RSA_SHA1_ID) + digest_len;
-            data = malloc(*data_size);
+            CHECKALLOC(data = malloc(*data_size));
             memcpy(data, RSA_SHA1_ID, sizeof(RSA_SHA1_ID));
             break;
 	case LDNS_SIGN_RSASHA256:
             *data_size = sizeof(RSA_SHA256_ID) + digest_len;
-            data = malloc(*data_size);
+            CHECKALLOC(data = malloc(*data_size));
             memcpy(data, RSA_SHA256_ID, sizeof(RSA_SHA256_ID));
             break;
 	case LDNS_SIGN_RSASHA512:
             *data_size = sizeof(RSA_SHA512_ID) + digest_len;
-            data = malloc(*data_size);
+            CHECKALLOC(data = malloc(*data_size));
             memcpy(data, RSA_SHA512_ID, sizeof(RSA_SHA512_ID));
             break;
         case LDNS_SIGN_DSA:
@@ -1880,7 +1787,7 @@ hsm_create_prefix(CK_ULONG digest_len,
         case LDNS_SIGN_ECDSAP384SHA384:
 #endif
             *data_size = digest_len;
-            data = malloc(*data_size);
+            CHECKALLOC(data = malloc(*data_size));
             break;
         default:
             return NULL;
@@ -1902,7 +1809,7 @@ hsm_digest_through_hsm(hsm_ctx_t *ctx,
     digest_mechanism.pParameter = NULL;
     digest_mechanism.ulParameterLen = 0;
     digest_mechanism.mechanism = mechanism_type;
-    digest = malloc(digest_len);
+    CHECKALLOC(digest = malloc(digest_len));
     rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_DigestInit(session->session,
                                                  &digest_mechanism);
     if (hsm_pkcs11_check_error(ctx, rv, "HSM digest init")) {
@@ -1960,7 +1867,7 @@ hsm_sign_buffer(hsm_ctx_t *ctx,
         case LDNS_SIGN_DSA:
         case LDNS_SIGN_DSA_NSEC3:
             digest_len = LDNS_SHA1_DIGEST_LENGTH;
-            digest = malloc(digest_len);
+            CHECKALLOC(digest = malloc(digest_len));
             digest = ldns_sha1(ldns_buffer_begin(sign_buf),
                                ldns_buffer_position(sign_buf),
                                digest);
@@ -1972,7 +1879,7 @@ hsm_sign_buffer(hsm_ctx_t *ctx,
         case LDNS_SIGN_ECDSAP256SHA256:
 #endif
             digest_len = LDNS_SHA256_DIGEST_LENGTH;
-            digest = malloc(digest_len);
+            CHECKALLOC(digest = malloc(digest_len));
             digest = ldns_sha256(ldns_buffer_begin(sign_buf),
                                  ldns_buffer_position(sign_buf),
                                  digest);
@@ -1981,7 +1888,7 @@ hsm_sign_buffer(hsm_ctx_t *ctx,
 #if !defined LDNS_BUILD_CONFIG_USE_ECDSA || LDNS_BUILD_CONFIG_USE_ECDSA
         case LDNS_SIGN_ECDSAP384SHA384:
             digest_len = LDNS_SHA384_DIGEST_LENGTH;
-            digest = malloc(digest_len);
+            CHECKALLOC(digest = malloc(digest_len));
             digest = ldns_sha384(ldns_buffer_begin(sign_buf),
                                  ldns_buffer_position(sign_buf),
                                  digest);
@@ -1989,7 +1896,7 @@ hsm_sign_buffer(hsm_ctx_t *ctx,
 #endif
         case LDNS_SIGN_RSASHA512:
             digest_len = LDNS_SHA512_DIGEST_LENGTH;
-            digest = malloc(digest_len);
+            CHECKALLOC(digest = malloc(digest_len));
             digest = ldns_sha512(ldns_buffer_begin(sign_buf),
                                  ldns_buffer_position(sign_buf),
                                  digest);
@@ -2339,10 +2246,7 @@ hsm_sign_params_t *
 hsm_sign_params_new()
 {
     hsm_sign_params_t *params;
-    params = malloc(sizeof(hsm_sign_params_t));
-    if (!params) {
-        return NULL;
-    }
+    CHECKALLOC(params = malloc(sizeof(hsm_sign_params_t)));
     params->algorithm = LDNS_RSASHA256;
     params->flags = LDNS_KEY_ZONE_KEY;
     params->inception = 0;
@@ -2380,8 +2284,8 @@ hsm_list_keys(hsm_ctx_t *ctx, size_t *count)
     for (i = 0; i < ctx->session_count; i++) {
         session_keys = hsm_list_keys_session(ctx, ctx->session[i],
                                              &cur_key_count);
-        keys = realloc(keys,
-                       (key_count + cur_key_count) * sizeof(libhsm_key_t *));
+        CHECKALLOC(keys = realloc(keys,
+                       (key_count + cur_key_count) * sizeof(libhsm_key_t *)));
         for (j = 0; j < cur_key_count; j++) {
             keys[key_count + j] = session_keys[j];
         }
@@ -2864,11 +2768,7 @@ hsm_get_key_id(hsm_ctx_t *ctx, const libhsm_key_t *key)
     if (!id) return NULL;
 
     /* this is plain binary data, we need to convert it to hex */
-    id_str = malloc(len * 2 + 1);
-    if (!id_str) {
-        free(id);
-        return NULL;
-    }
+    CHECKALLOC(id_str = malloc(len * 2 + 1));
 
     hsm_hex_unparse(id_str, id, len);
 
@@ -2887,7 +2787,7 @@ hsm_get_key_info(hsm_ctx_t *ctx,
     session = hsm_find_key_session(ctx, key);
     if (!session) return NULL;
 
-    key_info = malloc(sizeof(libhsm_key_info_t));
+    CHECKALLOC(key_info = malloc(sizeof(libhsm_key_info_t)));
 
     key_info->id = hsm_get_key_id(ctx, key);
     if (key_info->id == NULL) {
@@ -2916,7 +2816,7 @@ hsm_get_key_info(hsm_ctx_t *ctx,
             key_info->algorithm_name = strdup("ECDSA");
             break;
         default:
-            key_info->algorithm_name = malloc(HSM_MAX_ALGONAME);
+            CHECKALLOC(key_info->algorithm_name = malloc(HSM_MAX_ALGONAME));
             snprintf(key_info->algorithm_name, HSM_MAX_ALGONAME,
                 "%lu", key_info->algorithm);
             break;
@@ -3214,11 +3114,7 @@ hsm_get_error(hsm_ctx_t *gctx)
 
     if (ctx->error) {
         ctx->error = 0;
-        message = malloc(HSM_ERROR_MSGSIZE);
-
-        if (message == NULL) {
-            return strdup("libhsm memory allocation failed");
-        }
+        CHECKALLOC(message = malloc(HSM_ERROR_MSGSIZE));
 
         snprintf(message, HSM_ERROR_MSGSIZE,
             "%s: %s",
@@ -3356,7 +3252,7 @@ void
 keycache_create(hsm_ctx_t* ctx)
 {
     ctx->keycache = ldns_rbtree_create(keycache_cmpfunc);
-    _hsm_ctx->keycache_lock = malloc(sizeof (pthread_mutex_t));
+    CHECKALLOC(_hsm_ctx->keycache_lock = malloc(sizeof (pthread_mutex_t)));
     pthread_mutex_init(_hsm_ctx->keycache_lock, NULL);
 }
 
@@ -3383,7 +3279,7 @@ keycache_lookup(hsm_ctx_t* ctx, const char* locator)
         if ((key = hsm_find_key_by_id(ctx, locator)) == NULL) {
             node = NULL;
         } else {
-            node = malloc(sizeof(ldns_rbnode_t));
+            CHECKALLOC(node = malloc(sizeof(ldns_rbnode_t)));
             node->key = strdup(locator);
             node->data = key;
             pthread_mutex_lock(ctx->keycache_lock);

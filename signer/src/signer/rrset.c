@@ -203,11 +203,6 @@ rrset_create(zone_type* zone, ldns_rr_type type)
         return NULL;
     }
     CHECKALLOC(rrset = (rrset_type*) malloc(sizeof(rrset_type)));
-    if (!rrset) {
-        ods_log_error("[%s] unable to create RRset %u: allocator_alloc() "
-            "failed", rrset_str, (unsigned) type);
-        return NULL;
-    }
     rrset->next = NULL;
     rrset->rrs = NULL;
     rrset->domain = NULL;
@@ -293,10 +288,6 @@ rrset_add_rr(rrset_type* rrset, ldns_rr* rr)
 
     rrs_old = rrset->rrs;
     CHECKALLOC(rrset->rrs = (rr_type*) malloc((rrset->rr_count + 1) * sizeof(rr_type)));
-    if (!rrset->rrs) {
-        ods_fatal_exit("[%s] fatal unable to add RR: allocator_alloc() failed",
-            rrset_str);
-    }
     if (rrs_old) {
         memcpy(rrset->rrs, rrs_old, (rrset->rr_count) * sizeof(rr_type));
     }
@@ -335,10 +326,6 @@ rrset_del_rr(rrset_type* rrset, uint16_t rrnum)
     memset(&rrset->rrs[rrset->rr_count-1], 0, sizeof(rr_type));
     rrs_orig = rrset->rrs;
     CHECKALLOC(rrset->rrs = (rr_type*) malloc((rrset->rr_count - 1) * sizeof(rr_type)));
-    if(!rrset->rrs) {
-        ods_fatal_exit("[%s] fatal unable to delete RR: allocator_alloc() failed",
-            rrset_str);
-    }
     memcpy(rrset->rrs, rrs_orig, (rrset->rr_count -1) * sizeof(rr_type));
     free(rrs_orig);
     rrset->rr_count--;

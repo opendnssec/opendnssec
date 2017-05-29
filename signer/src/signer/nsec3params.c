@@ -111,11 +111,6 @@ nsec3params_create(void* sc, uint8_t algo, uint8_t flags, uint16_t iter,
         return NULL;
     }
     CHECKALLOC(nsec3params = (nsec3params_type*) malloc(sizeof(nsec3params_type)));
-    if (!nsec3params) {
-        ods_log_error("[%s] unable to create: allocator_alloc() failed",
-            nsec3_str);
-        return NULL;
-    }
     nsec3params->sc = sc;
     nsec3params->algorithm = algo;
     nsec3params->flags = flags;

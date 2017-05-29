@@ -52,11 +52,6 @@ denial_create(zone_type* zone, ldns_rdf* dname)
         return NULL;
     }
     CHECKALLOC(denial = (denial_type*) malloc(sizeof(denial_type)));
-    if (!denial) {
-        ods_log_error("[%s] unable to create denial: allocator_alloc() "
-            "failed", denial_str);
-        return NULL;
-    }
     denial->dname = dname;
     denial->zone = zone;
     denial->domain = NULL; /* no back reference yet */
@@ -270,10 +265,6 @@ denial_add_rr(denial_type* denial, ldns_rr* rr)
             denial->rrset = rrset_create(denial->zone, LDNS_RR_TYPE_NSEC3);
         } else {
             denial->rrset = rrset_create(denial->zone, LDNS_RR_TYPE_NSEC);
-        }
-        if (!denial->rrset) {
-            ods_fatal_exit("[%s] unable to nsecify: rrset_create() failed",
-                denial_str);
         }
     }
     ods_log_assert(denial->rrset);
