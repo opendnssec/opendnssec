@@ -58,6 +58,7 @@ dnshandler_create(listener_type* interfaces)
     dnsh->socklist = NULL;
     dnsh->netio = NULL;
     dnsh->query = NULL;
+    dnsh->started = 0;
     dnsh->tcp_accept_handlers = NULL;
     /* setup */
     CHECKALLOC(dnsh->socklist = (socklist_type*) malloc(sizeof(socklist_type)));
@@ -164,7 +165,7 @@ dnshandler_start(dnshandler_type* dnshandler)
 void
 dnshandler_signal(dnshandler_type* dnshandler)
 {
-    if (dnshandler && dnshandler->thread_id) {
+    if (dnshandler && dnshandler->thread_id && dnshandler->started) {
         janitor_thread_signal(dnshandler->thread_id);
     }
 }

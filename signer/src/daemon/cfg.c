@@ -51,16 +51,9 @@ engineconfig_type*
 engine_config(const char* cfgfile, int cmdline_verbosity)
 {
     engineconfig_type* ecfg;
-    const char* rngfile = ODS_SE_RNGDIR "/conf.rng";
     FILE* cfgfd = NULL;
 
     if (!cfgfile) {
-        return NULL;
-    }
-    /* check syntax (slows down parsing configuration file) */
-    if (parse_file_check(cfgfile, rngfile) != ODS_STATUS_OK) {
-        ods_log_error("[%s] unable to create config: parse error in %s",
-            conf_str, cfgfile);
         return NULL;
     }
     /* open cfgfile */

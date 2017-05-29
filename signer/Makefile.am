@@ -2,7 +2,7 @@
 
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
-SUBDIRS = src man
+SUBDIRS = src src/test man
 
 doxygen:
 	rm -fr $(top_builddir)/signer/doxygen-doc

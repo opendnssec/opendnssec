@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<Configuration>
+	<RepositoryList>
+	</RepositoryList>
+	<Common>
+		<Logging>
+			<Verbosity>3</Verbosity>
+			<Syslog><Facility>local0</Facility></Syslog>
+		</Logging>
+		<PolicyFile>kasp.xml</PolicyFile>
+		<ZoneListFile>zonelist.xml</ZoneListFile>
+	</Common>
+	<Enforcer>
+		<Datastore><SQLite>kasp.db</SQLite></Datastore>
+		<AutomaticKeyGenerationPeriod>PT3600S</AutomaticKeyGenerationPeriod>
+		<WorkingDirectory>.</WorkingDirectory>
+	</Enforcer>
+	<Signer>
+		<PidFile>signer.pid</PidFile>
+		<SocketFile>signer.sock</SocketFile>
+		<WorkingDirectory>.</WorkingDirectory>
+		<WorkerThreads>4</WorkerThreads>
+	</Signer>
+</Configuration>

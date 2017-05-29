@@ -72,18 +72,16 @@ struct engine_struct {
     edns_data_type edns;
 };
 
-/**
- * Start engine.
- * \param[in] cfgfile configuration file
- * \param[in] cmdline_verbosity how many -v on the command line
- * \param[in] daemonize to run as daemon or not
- * \param[in] info print info and exit
- * \param[in] single_run run once
- * \return 0 if successful, 1 on error
- *
- */
-int engine_start(const char* cfgfile, int cmdline_verbosity,
-    int daemonize, int info);
+engine_type* engine_create(void);
+ods_status engine_setup_preconfig(engine_type* engine, const char* cfgfile);
+ods_status engine_setup_config(engine_type* engine, const char* cfgfile, int cmdline_verbosity, int daemonize);
+ods_status engine_setup_initialize(engine_type* engine, int* fdptr);
+ods_status engine_setup_signals(engine_type* engine);
+ods_status engine_setup_workstart(engine_type* engine);
+ods_status engine_setup_netwstart(engine_type* engine);
+ods_status engine_setup_finish(engine_type* engine, int fd);
+int engine_start(engine_type*);
+ods_status engine_setup_signals(engine_type* engine);
 
 /**
  * Wake up workers.

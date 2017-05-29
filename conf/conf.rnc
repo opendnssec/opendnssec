@@ -106,7 +106,7 @@ start = element Configuration {
 		& element SocketFile { xsd:string }?
 
 		# Location to store intermediate enforcer information
-		# DEFAULT: $(localstatedir)/opendnssec/tmp
+		# DEFAULT: $(localstatedir)/opendnssec/enforcer
 		& element WorkingDirectory { xsd:string }?
 
 		# Number of Worker Threads
@@ -118,6 +118,12 @@ start = element Configuration {
 	element Signer {
 		# User & group to drop privs to
 		privs? &
+
+		# File used to detect signerd is already running.
+		element PidFile { xsd:string }? &
+
+		# Socket to use for communicating between enforcer and enforcerd
+		element SocketFile { xsd:string }? &
 
 		# Location to store intermediate zone information
 		# DEFAULT: $(localstatedir)/opendnssec/tmp

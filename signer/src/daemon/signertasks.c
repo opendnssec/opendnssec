@@ -146,6 +146,10 @@ drudge(worker_type* worker)
     while (worker->need_to_exit == 0) {
         ods_log_deeebug("[%s] report for duty", worker->name);
         pthread_mutex_lock(&signq->q_lock);
+        if (worker->need_to_exit != 0) {
+            pthread_mutex_unlock(&signq->q_lock);
+            break;
+        }
         superior = NULL;
         rrset = (domain_type*) fifoq_pop(signq, (void**)&superior);
         if (!rrset) {
