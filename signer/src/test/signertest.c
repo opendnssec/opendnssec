@@ -27,6 +27,7 @@
 #include "config.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <getopt.h>
 #include <libxml/parser.h>
 #include <CUnit/Basic.h>
@@ -83,9 +84,11 @@ setUp(void)
     int linkfd, status;
 
     ods_log_init("test", 0, NULL, 3);
-    
+
     if (workdir != NULL)
         chdir(workdir);
+
+    unlink("zones.xml");
     
     engine = engine_create();
     if((status = engine_setup_config(engine, "conf.xml", 3, 0)) != ODS_STATUS_OK ||
@@ -104,6 +107,9 @@ tearDown(void)
     janitor_thread_join(debugthread);
     engine_cleanup(engine);
     engine = NULL;
+
+    unlink("zones.xml");
+    unlink("signed.zone");
 }
 
 static void
@@ -122,6 +128,28 @@ testBasic(void)
     command_update(engine, NULL, NULL, NULL, NULL);
 }
 
+void
+testSign(void)
+{
+    link("zones.xml.1", "zones.xml");
+    command_update(engine, NULL, NULL, NULL, NULL);
+    pthread_mutex_lock(&engine->zonelist->zl_lock);
+    CU_ASSERT_EQUAL(engine->zonelist->zones->count, 0);
+    ods_log_error("checking %d",engine->zonelist->zones->count);
+    pthread_mutex_unlock(&engine->zonelist->zl_lock);
+
+    sleep(1);
+    unlink("zones.xml");
+    link("zones.xml.2", "zones.xml");
+    command_update(engine, NULL, NULL, NULL, NULL);
+    pthread_mutex_lock(&engine->zonelist->zl_lock);
+    CU_ASSERT_EQUAL(engine->zonelist->zones->count, 1);
+    ods_log_error("checking %d",engine->zonelist->zones->count);
+    pthread_mutex_unlock(&engine->zonelist->zl_lock);
+
+    sleep(70);
+}
+
 int
 main(int argc, char* argv[])
 {
@@ -135,7 +163,8 @@ main(int argc, char* argv[])
         CU_cleanup_registry();
         return CU_get_error();
     }
-    if (!(CU_add_test(pSuite, "test of start stop", testBasic))) {
+    if (!(CU_add_test(pSuite, "test of start stop", testBasic)) ||
+        !(CU_add_test(pSuite, "test of start sign stop", testSign))) {
         CU_cleanup_registry();
         return CU_get_error();
     }
