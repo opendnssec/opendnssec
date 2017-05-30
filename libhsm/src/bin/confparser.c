@@ -119,7 +119,7 @@ parse_conf_repositories(const char* cfgfile)
 
                 curNode = curNode->next;
             }
-            if (name && module && tokenlabel) {
+            if (name && tokenlabel) {
                 repo = hsm_repository_new(name, module, tokenlabel, pin,
                     use_pubkey, require_backup);
             }

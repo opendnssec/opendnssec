@@ -301,6 +301,10 @@ hsm_pkcs11_load_functions(hsm_module_t *module)
         /* No library provided, use the statically compiled softHSM */
 #ifdef HAVE_PKCS11_MODULE
         return C_GetFunctionList(pkcs11_functions);
+#elif defined(HAVE_DLOPEN)
+        module->handle = dlopen(NULL, RTLD_GLOBAL|RTLD_LAZY);
+	pGetFunctionList = dlsym(module->handle, "C_GetFunctionList");
+        (pGetFunctionList)((CK_FUNCTION_LIST_PTR_PTR)(&module->sym));
 #else
         return CKR_FUNCTION_FAILED;
 #endif
@@ -374,19 +378,15 @@ hsm_repository_new(char* name, char* module, char* tokenlabel, char* pin,
 {
     hsm_repository_t* r;
 
-    if (!name || !module || !tokenlabel) return NULL;
+    if (!name || !tokenlabel) return NULL;
 
     CHECKALLOC(r = malloc(sizeof(hsm_repository_t)));
 
     r->next = NULL;
     r->pin = NULL;
     r->name = strdup(name);
-    r->module = strdup(module);
+    r->module = (module ? strdup(module) : NULL);
     r->tokenlabel = strdup(tokenlabel);
-    if (!r->name || !r->module || !r->tokenlabel) {
-        hsm_repository_free(r);
-        return NULL;
-    }
     if (pin) {
         r->pin = strdup(pin);
         if (!r->pin) {
@@ -476,7 +476,7 @@ hsm_module_new(const char *repository,
 {
     hsm_module_t *module;
 
-    if (!repository || !path) return NULL;
+    if (!repository) return NULL;
 
     
     CHECKALLOC(module = malloc(sizeof(hsm_module_t)));
@@ -491,7 +491,7 @@ hsm_module_new(const char *repository,
     module->id = 0; /*TODO i think we can remove this*/
     module->name = strdup(repository);
     module->token_label = strdup(token_label);
-    module->path = strdup(path);
+    module->path = (path ? strdup(path) : NULL);
     module->handle = NULL;
     module->sym = NULL;
     
@@ -2114,7 +2114,7 @@ hsm_open2(hsm_repository_t* rlist,
     repo = rlist;
     while (repo) {
         hsm_config_default(&module_config);
-        if (repo->name && repo->module && repo->tokenlabel) {
+        if (repo->name && repo->tokenlabel) {
             if (repo->pin) {
                 result = hsm_attach(repo->name, repo->tokenlabel,
                     repo->module, repo->pin, &module_config);

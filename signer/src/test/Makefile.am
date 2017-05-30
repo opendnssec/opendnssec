@@ -15,8 +15,9 @@ AM_CPPFLAGS = \
 
 check_PROGRAMS = test
 
-test_SOURCES = signertest.c
+test_SOURCES = signertest.c ../../../contrib/testing-tools/nulllibrary.c
 
+test_LDFLAGS = -rdynamic
 test_LDADD = \
 	../adapter/adapi.o \
 	../adapter/adapter.o \

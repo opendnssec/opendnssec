@@ -2,6 +2,11 @@
 
 <Configuration>
 	<RepositoryList>
+		<Repository name="SoftHSM">
+			<TokenLabel>OpenDNSSEC</TokenLabel>
+			<PIN>0000</PIN>
+			<SkipPublicKey/>
+		</Repository>
 	</RepositoryList>
 	<Common>
 		<Logging>
