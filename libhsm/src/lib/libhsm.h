@@ -31,6 +31,7 @@
 #include <stdint.h>
 #include <ldns/rbtree.h>
 #include <pthread.h>
+#include "cfg.h"
 
 #define HSM_MAX_SESSIONS 100
 /* 
@@ -114,19 +115,6 @@ typedef struct {
   unsigned long keysize;         /*!< key size */
 } libhsm_key_info_t;
 
-/*! HSM Repositories */
-typedef struct hsm_repository_struct hsm_repository_t;
-struct hsm_repository_struct {
-    hsm_repository_t* next; /*!< next repository > */
-    char    *name;          /*!< name */
-    char    *module;        /*!< PKCS#11 module */
-    char    *tokenlabel;    /*!< PKCS#11 token label */
-    char    *pin;           /*!< PKCS#11 login credentials */
-    uint8_t require_backup; /*!< require a backup of keys before using new keys */
-    uint8_t use_pubkey;     /*!< use public keys in repository? */
-    unsigned int allow_extract;  /*!< Generate CKA_EXTRACTABLE private keys */
-};
-
 /*! HSM context to keep track of sessions */
 typedef struct {
     hsm_session_t *session[HSM_MAX_SESSIONS];  /*!< HSM sessions */
@@ -162,8 +150,8 @@ void
 hsm_ctx_set_error(hsm_ctx_t *ctx, int error, const char *action,
                  const char *message, ...);
 
-hsm_repository_t *
-hsm_find_repository(hsm_repository_t *rlist, char const *name);
+struct engineconfig_repository *
+hsm_find_repository(struct engineconfig_repository *rlist, char const *name);
 
 /*! Open HSM library
 
@@ -181,29 +169,9 @@ function that takes a context can be passed NULL, in which case the
 global context will be used) and log into each HSM.
 */
 int
-hsm_open2(hsm_repository_t* rlist,
+hsm_open2(struct engineconfig_repository* rlist,
          char *(pin_callback)(unsigned int, const char *, unsigned int));
 
-
-/*! Create new repository as specified in conf.xml.
-
-\param name           Repository name.
-\param module         PKCS#11 module.
-\param tokenlabel     PKCS#11 token label.
-\param pin            PKCS#11 login credentials.
-\param use_pubkey     Whether to store the public key in the HSM.
-\return The created repository.
-*/
-hsm_repository_t *
-hsm_repository_new(char* name, char* module, char* tokenlabel, char* pin,
-    uint8_t use_pubkey, uint8_t allowextract, uint8_t require_backup);
-
-/*! Free configured repositories.
-
-\param r Repository list.
-*/
-void
-hsm_repository_free(hsm_repository_t* r);
 
 /*! Function that queries for a PIN, can be used as callback
     for hsm_open(). Stores the PIN in the shared memory.

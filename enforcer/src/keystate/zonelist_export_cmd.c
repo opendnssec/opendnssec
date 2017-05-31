@@ -59,27 +59,27 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
     engine_type* engine = getglobalcontext(context);
     (void)cmd;
 
-    if (!engine || !engine->config || !engine->config->zonelist_filename
+    if (!engine || !engine->config || !engine->config->zonelist_filename_enforcer
         || !dbconn)
     {
         return 1;
     }
     ods_log_debug("[%s] %s command", module_str, zonelist_export_funcblock.cmdname);
 
-    if (zonelist_export(sockfd, dbconn, engine->config->zonelist_filename, 1)
+    if (zonelist_export(sockfd, dbconn, engine->config->zonelist_filename_enforcer, 1)
         != ZONELIST_EXPORT_OK)
     {
         ods_log_error("[%s] zonelist exported to %s failed", module_str,
-            engine->config->zonelist_filename);
+            engine->config->zonelist_filename_enforcer);
         client_printf_err(sockfd, "Exported zonelist to %s failed!\n",
-            engine->config->zonelist_filename);
+            engine->config->zonelist_filename_enforcer);
         return 1;
     }
 
     ods_log_info("[%s] zonelist exported to %s successfully", module_str,
-        engine->config->zonelist_filename);
+        engine->config->zonelist_filename_enforcer);
     client_printf(sockfd, "Exported zonelist to %s successfully\n",
-        engine->config->zonelist_filename);
+        engine->config->zonelist_filename_enforcer);
     return 0;
 }
 

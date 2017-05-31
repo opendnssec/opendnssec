@@ -140,7 +140,7 @@ cmdhandler_handle_cmd_update(int sockfd, cmdhandler_ctx_type* context, char *cmd
     if (cmdargument(cmd, "--all", NULL)) {
         pthread_mutex_lock(&engine->zonelist->zl_lock);
         zl_changed = zonelist_update(engine->zonelist,
-            engine->config->zonelist_filename);
+            engine->config->zonelist_filename_signer);
         if (zl_changed == ODS_STATUS_UNCHANGED) {
             (void)snprintf(buf, ODS_SE_MAXLINE, "Zone list has not changed."
                 " Signer configurations updated.\n");

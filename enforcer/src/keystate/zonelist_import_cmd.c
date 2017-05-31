@@ -88,7 +88,7 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
     ods_log_debug("[%s] %s command", module_str, zonelist_import_funcblock.cmdname);
 
     if (!engine || !engine->config ||
-        !engine->config->zonelist_filename || !dbconn)
+        !engine->config->zonelist_filename_enforcer || !dbconn)
     {
         return 1;
     }
@@ -126,7 +126,7 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
         return 1;
     }
 
-    if (snprintf(path, sizeof(path), "%s/%s", engine->config->working_dir, OPENDNSSEC_ENFORCER_ZONELIST) >= (int)sizeof(path)
+    if (snprintf(path, sizeof(path), "%s/%s", engine->config->working_dir_enforcer, OPENDNSSEC_ENFORCER_ZONELIST) >= (int)sizeof(path)
         || zonelist_export(sockfd, dbconn, path, 0) != ZONELIST_EXPORT_OK)
     {
         ods_log_error("[%s] internal zonelist export failed", module_str);

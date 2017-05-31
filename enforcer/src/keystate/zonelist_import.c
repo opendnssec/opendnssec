@@ -253,7 +253,8 @@ int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
 
     /* Validate, parse and walk the XML. */
     if (!zonelist_path)
-        zonelist_path = engine->config->zonelist_filename;
+        zonelist_path = engine->config->zonelist_filename_enforcer;
+     
     if (check_zonelist(zonelist_path, 0, NULL, 0)) {
         client_printf_err(sockfd, "Unable to validate the zonelist XML!\n");
         dbw_free(db);

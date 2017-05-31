@@ -188,17 +188,17 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
     }
 
     if (write_xml) {
-        if (zonelist_export(sockfd, dbconn, engine->config->zonelist_filename, 1) != ZONELIST_EXPORT_OK) {
-            ods_log_error("[%s] zonelist exported to %s failed", module_str, engine->config->zonelist_filename);
-            client_printf_err(sockfd, "Exported zonelist to %s failed!\n", engine->config->zonelist_filename);
+        if (zonelist_export(sockfd, dbconn, engine->config->zonelist_filename_enforcer, 1) != ZONELIST_EXPORT_OK) {
+            ods_log_error("[%s] zonelist exported to %s failed", module_str, engine->config->zonelist_filename_enforcer);
+            client_printf_err(sockfd, "Exported zonelist to %s failed!\n", engine->config->zonelist_filename_enforcer);
             ret = 1;
         } else {
-            ods_log_info("[%s] zonelist exported to %s successfully", module_str, engine->config->zonelist_filename);
-            client_printf(sockfd, "Exported zonelist to %s successfully\n", engine->config->zonelist_filename);
+            ods_log_info("[%s] zonelist exported to %s successfully", module_str, engine->config->zonelist_filename_enforcer);
+            client_printf(sockfd, "Exported zonelist to %s successfully\n", engine->config->zonelist_filename_enforcer);
         }
     }
 
-    if (snprintf(path, sizeof(path), "%s/%s", engine->config->working_dir, OPENDNSSEC_ENFORCER_ZONELIST) >= (int)sizeof(path)
+    if (snprintf(path, sizeof(path), "%s/%s", engine->config->working_dir_enforcer, OPENDNSSEC_ENFORCER_ZONELIST) >= (int)sizeof(path)
         || zonelist_export(sockfd, dbconn, path, 0) != ZONELIST_EXPORT_OK)
     {
         ods_log_error("[%s] internal zonelist update failed", module_str);

@@ -270,7 +270,7 @@ generate_one_key(engine_type *engine, struct dbw_db *db,
         return 1;
     }
     /* Find the HSM repository to get the backup configuration*/
-    hsm_repository_t *hsm;
+    struct engineconfig_repository *hsm;
     hsm = hsm_find_repository(engine->config->repositories, policykey->repository);
     if (!hsm) {
         ods_log_error("[hsm_key_factory_generate] unable to find "

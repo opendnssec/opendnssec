@@ -288,19 +288,19 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
     client_printf(sockfd, "Zone %s added successfully\n", zone_name);
 
     if (write_xml) {
-        if (zonelist_update_add(sockfd, engine->config->zonelist_filename,
+        if (zonelist_update_add(sockfd, engine->config->zonelist_filename_enforcer,
                    zone, policy_name, 1) != ZONELIST_UPDATE_OK)
         {
-            ods_log_error("[%s] zonelist %s updated failed", module_str, engine->config->zonelist_filename);
-            client_printf_err(sockfd, "Zonelist %s update failed!\n", engine->config->zonelist_filename);
+            ods_log_error("[%s] zonelist %s updated failed", module_str, engine->config->zonelist_filename_enforcer);
+            client_printf_err(sockfd, "Zonelist %s update failed!\n", engine->config->zonelist_filename_enforcer);
             ret = 1;
         } else {
-            ods_log_info("[%s] zonelist %s updated successfully", module_str, engine->config->zonelist_filename);
-            client_printf(sockfd, "Zonelist %s updated successfully\n", engine->config->zonelist_filename);
+            ods_log_info("[%s] zonelist %s updated successfully", module_str, engine->config->zonelist_filename_enforcer);
+            client_printf(sockfd, "Zonelist %s updated successfully\n", engine->config->zonelist_filename_enforcer);
         }
     }
 
-    if (snprintf(path_input, PATH_MAX, "%s/%s", engine->config->working_dir,
+    if (snprintf(path_input, PATH_MAX, "%s/%s", engine->config->working_dir_enforcer,
         OPENDNSSEC_ENFORCER_ZONELIST) >= (int)sizeof(path_input)
         || zonelist_update_add(sockfd, path_input, zone, policy_name, 0) != ZONELIST_UPDATE_OK)
     {

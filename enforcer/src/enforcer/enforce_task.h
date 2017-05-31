@@ -30,7 +30,7 @@
 #ifndef _ENFORCER_ENFORCE_TASK_H_
 #define _ENFORCER_ENFORCE_TASK_H_
 
-#include "daemon/cfg.h"
+#include "cfg.h"
 #include "daemon/engine.h"
 #include "scheduler/task.h"
 #include "db/dbw.h"

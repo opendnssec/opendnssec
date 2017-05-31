@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 NLNet Labs. All rights reserved.
+ * Copyright (c) 2017 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -25,13 +25,13 @@
  */
 
 /**
- * Signer engine configuration.
+ * Engine configuration for both signer and enforcer
  *
  */
 
 #include "config.h"
-#include "daemon/cfg.h"
-#include "parser/confparser.h"
+#include "cfg.h"
+#include "confparser.h"
 #include "file.h"
 #include "log.h"
 #include "status.h"
@@ -88,12 +88,18 @@ engine_config(const char* cfgfile,
         if (oldcfg) {
             /* This is a reload */
             ecfg->cfg_filename = strdup(oldcfg->cfg_filename);
-            ecfg->clisock_filename = strdup(oldcfg->clisock_filename);
-            ecfg->working_dir = strdup(oldcfg->working_dir);
-            ecfg->username = strdup_or_null(oldcfg->username);
-            ecfg->group = strdup_or_null(oldcfg->group);
-            ecfg->chroot = strdup_or_null(oldcfg->chroot);
-            ecfg->pid_filename = strdup(oldcfg->pid_filename);
+            ecfg->clisock_filename_enforcer = strdup(oldcfg->clisock_filename_enforcer);
+            ecfg->clisock_filename_signer = strdup(oldcfg->clisock_filename_signer);
+            ecfg->working_dir_enforcer = strdup(oldcfg->working_dir_enforcer);
+            ecfg->working_dir_signer = strdup(oldcfg->working_dir_signer);
+            ecfg->username_enforcer = strdup_or_null(oldcfg->username_enforcer);
+            ecfg->username_signer = strdup_or_null(oldcfg->username_signer);
+            ecfg->group_enforcer = strdup_or_null(oldcfg->group_enforcer);
+            ecfg->group_signer = strdup_or_null(oldcfg->group_signer);
+            ecfg->chroot_enforcer = strdup_or_null(oldcfg->chroot_enforcer);
+            ecfg->chroot_signer = strdup_or_null(oldcfg->chroot_signer);
+            ecfg->pid_filename_enforcer = strdup(oldcfg->pid_filename_enforcer);
+            ecfg->pid_filename_signer = strdup(oldcfg->pid_filename_signer);
             ecfg->datastore = strdup(oldcfg->datastore);
             ecfg->db_host = strdup_or_null(oldcfg->db_host);
             ecfg->db_username = strdup_or_null(oldcfg->db_username);
@@ -102,12 +108,18 @@ engine_config(const char* cfgfile,
             ecfg->db_type = oldcfg->db_type;
         } else {
             ecfg->cfg_filename = strdup(cfgfile);
-            ecfg->clisock_filename = parse_conf_clisock_filename(cfgfile);
-            ecfg->working_dir = parse_conf_working_dir(cfgfile);
-            ecfg->username = parse_conf_username(cfgfile);
-            ecfg->group = parse_conf_group(cfgfile);
-            ecfg->chroot = parse_conf_chroot(cfgfile);
-            ecfg->pid_filename = parse_conf_pid_filename(cfgfile);
+            ecfg->clisock_filename_enforcer = parse_conf_clisock_filename(cfgfile, 1);
+            ecfg->clisock_filename_signer = parse_conf_clisock_filename(cfgfile, 0);
+            ecfg->working_dir_enforcer = parse_conf_working_dir(cfgfile, 1);
+            ecfg->working_dir_signer = parse_conf_working_dir(cfgfile, 0);
+            ecfg->username_enforcer = parse_conf_username(cfgfile, 1);
+            ecfg->username_signer = parse_conf_username(cfgfile, 0);
+            ecfg->group_enforcer = parse_conf_group(cfgfile, 1);
+            ecfg->group_signer = parse_conf_group(cfgfile, 0);
+            ecfg->chroot_enforcer = parse_conf_chroot(cfgfile, 1);
+            ecfg->chroot_signer = parse_conf_chroot(cfgfile, 0);
+            ecfg->pid_filename_enforcer = parse_conf_pid_filename(cfgfile, 1);
+            ecfg->pid_filename_signer = parse_conf_pid_filename(cfgfile, 0);
             ecfg->datastore = parse_conf_datastore(cfgfile);
             ecfg->db_host = parse_conf_db_host(cfgfile);
             ecfg->db_username = parse_conf_db_username(cfgfile);
@@ -117,15 +129,18 @@ engine_config(const char* cfgfile,
         }
         /* get values */
         ecfg->policy_filename = parse_conf_policy_filename(cfgfile);
-        ecfg->zonelist_filename = parse_conf_zonelist_filename(cfgfile);
+        ecfg->zonelist_filename_enforcer = parse_conf_zonelist_filename_enforcer(cfgfile);
+        ecfg->zonelist_filename_signer = parse_conf_zonelist_filename_signer(cfgfile);
         ecfg->zonefetch_filename = parse_conf_zonefetch_filename(cfgfile);
         ecfg->log_filename = parse_conf_log_filename(cfgfile);
-        ecfg->delegation_signer_submit_command = 
+        ecfg->delegation_signer_submit_command =
             parse_conf_delegation_signer_submit_command(cfgfile);
-        ecfg->delegation_signer_retract_command = 
+        ecfg->delegation_signer_retract_command =
             parse_conf_delegation_signer_retract_command(cfgfile);
         ecfg->use_syslog = parse_conf_use_syslog(cfgfile);
-        ecfg->num_worker_threads = parse_conf_worker_threads(cfgfile);
+        ecfg->num_worker_threads_enforcer = parse_conf_worker_threads(cfgfile, 1);
+        ecfg->num_worker_threads_signer = parse_conf_worker_threads(cfgfile, 0);
+        ecfg->num_signer_threads = parse_conf_signer_threads(cfgfile);
         ecfg->manual_keygen = parse_conf_manual_keygen(cfgfile);
         ecfg->repositories = parse_conf_repositories(cfgfile);
         /* If any verbosity has been specified at cmd line we will use that */
@@ -135,6 +150,8 @@ engine_config(const char* cfgfile,
             parse_conf_automatic_keygen_period(cfgfile);
         ecfg->rollover_notification =
             parse_conf_rollover_notification(cfgfile);
+        ecfg->interfaces = parse_conf_listener(cfgfile);
+        ecfg->notify_command = parse_conf_notify_command(cfgfile);
 
         /* done */
         ods_fclose(cfgfd);
@@ -162,16 +179,30 @@ engine_config_check(engineconfig_type* config)
         ods_log_error("[%s] check failed: no policy filename", conf_str);
         return ODS_STATUS_CFG_ERR;
     }
-    if (!config->zonelist_filename) {
-        ods_log_error("[%s] check failed: no zonelist filename", conf_str);
+    if (!config->zonelist_filename_enforcer) {
+        ods_log_error("[%s] check failed: no zonelist filename for enforcer", conf_str);
         return ODS_STATUS_CFG_ERR;
     }
-    if (!config->clisock_filename) {
-        ods_log_error("[%s] check failed: no socket filename", conf_str);
+    if (!config->zonelist_filename_signer) {
+        ods_log_error("[%s] check failed: no zonelist filename for signer", conf_str);
         return ODS_STATUS_CFG_ERR;
     }
+
+    if (!config->clisock_filename_enforcer) {
+        ods_log_error("[%s] check failed: no socket filename for enforcer", conf_str);
+        return ODS_STATUS_CFG_ERR;
+    }
+    if (!config->clisock_filename_signer) {
+        ods_log_error("[%s] check failed: no socket filename for signer", conf_str);
+        return ODS_STATUS_CFG_ERR;
+    }
+
     if (!config->datastore) {
         ods_log_error("[%s] check failed: no datastore", conf_str);
+        return ODS_STATUS_CFG_ERR;
+    }
+    if (!config->cfg_filename) {
+        ods_log_error("[%s] check failed: no config filename", conf_str);
         return ODS_STATUS_CFG_ERR;
     }
 
@@ -220,7 +251,7 @@ engine_config_print(FILE* out, engineconfig_type* config)
         fprintf(out, "\t\t<PolicyFile>%s</PolicyFile>\n",
                 config->policy_filename);
         fprintf(out, "\t\t<ZoneListFile>%s</ZoneListFile>\n",
-            config->zonelist_filename);
+            config->zonelist_filename_enforcer);
         if (config->zonefetch_filename) {
             fprintf(out, "\t\t<ZoneFetchFile>%s</ZoneFetchFile>\n",
                 config->zonefetch_filename);
@@ -230,24 +261,24 @@ engine_config_print(FILE* out, engineconfig_type* config)
 
         /* Enforcer */
         fprintf(out, "\t<Enforcer>\n");
-        if (config->username || config->group || config->chroot) {
+        if (config->username_enforcer || config->group_enforcer || config->chroot_enforcer) {
             fprintf(out, "\t\t<Privileges>\n");
-            if (config->username) {
-                fprintf(out, "\t\t<User>%s</User>\n", config->username);
+            if (config->username_enforcer) {
+                fprintf(out, "\t\t<User>%s</User>\n", config->username_enforcer);
             }
-            if (config->group) {
-                fprintf(out, "\t\t<Group>%s</Group>\n", config->group);
+            if (config->group_enforcer) {
+                fprintf(out, "\t\t<Group>%s</Group>\n", config->group_enforcer);
             }
-            if (config->chroot) {
+            if (config->chroot_enforcer) {
                 fprintf(out, "\t\t<Directory>%s</Directory>\n",
-                    config->chroot);
+                    config->chroot_enforcer);
             }
             fprintf(out, "\t\t</Privileges>\n");
         }
         fprintf(out, "\t\t<WorkingDirectory>%s</WorkingDirectory>\n",
-            config->working_dir);
+            config->working_dir_enforcer);
         fprintf(out, "\t\t<WorkerThreads>%i</WorkerThreads>\n",
-            config->num_worker_threads);
+            config->num_worker_threads_enforcer);
         if (config->manual_keygen) {
             fprintf(out, "\t\t<ManualKeyGeneration/>\n");
         }
@@ -261,12 +292,93 @@ engine_config_print(FILE* out, engineconfig_type* config)
         }
         fprintf(out, "\t</Enforcer>\n");
 
+        /* Signer */
+        fprintf(out, "\t<Signer>\n");
+        if (config->username_signer || config->group_signer || config->chroot_signer) {
+            fprintf(out, "\t\t<Privileges>\n");
+            if (config->username_signer) {
+                fprintf(out, "\t\t<User>%s</User>\n", config->username_signer);
+            }
+            if (config->group_signer) {
+                fprintf(out, "\t\t<Group>%s</Group>\n", config->group_signer);
+            }
+            if (config->chroot_signer) {
+                fprintf(out, "\t\t<Directory>%s</Directory>\n",
+                    config->chroot_signer);
+            }
+            fprintf(out, "\t\t</Privileges>\n");
+        }
+        if (config->interfaces) {
+            size_t i = 0;
+            fprintf(out, "\t\t<Listener>\n");
+
+            struct engineconfig_listener *listener;
+            listener = config->interfaces;
+
+            while (listener) {
+                fprintf(out, "\t\t\t<Interface>");
+                if (listener->address) {
+                    fprintf(out, "<Address>%s</Address>",
+                        listener->address);
+                }
+                if (listener->port) {
+                    fprintf(out, "<Port>%s</Port>",
+                        listener->port);
+                }
+                fprintf(out, "</Interface>\n");
+                listener = listener->next;
+            }
+            fprintf(out, "\t\t</Listener>\n");
+        }
+
+        fprintf(out, "\t\t<WorkingDirectory>%s</WorkingDirectory>\n",
+            config->working_dir_signer);
+        fprintf(out, "\t\t<WorkerThreads>%i</WorkerThreads>\n",
+            config->num_worker_threads_signer);
+        fprintf(out, "\t\t<SignerThreads>%i</SignerThreads>\n",
+            config->num_signer_threads);
+        if (config->notify_command) {
+            fprintf(out, "\t\t<NotifyCommand>%s</NotifyCommand>\n",
+                config->notify_command);
+        }
+        fprintf(out, "\t</Signer>\n");
+
         fprintf(out, "</Configuration>\n");
 
         /* make configurable:
            - pid_filename
            - clisock_filename
          */
+    }
+}
+
+void
+engine_config_freehsms(struct engineconfig_repository* hsm)
+{
+    struct engineconfig_repository *hsmtofree;
+    hsmtofree = hsm;
+    while (hsmtofree) {
+        hsm = hsmtofree->next;
+        free((void*)hsmtofree->name);
+        free((void*)hsmtofree->module);
+        free((void*)hsmtofree->pin);
+        free((void*)hsmtofree->tokenlabel);
+        free(hsmtofree);
+        hsmtofree = hsm;
+    }
+}
+
+void
+engine_config_freelistener(struct engineconfig_listener* listener)
+{
+    struct engineconfig_listener *listenertofree;
+    listenertofree = listener;
+    while (listenertofree) {
+        listener = listenertofree->next;
+        free((void*)listenertofree->address);
+        free((void*)listenertofree->port);
+        free(listenertofree);
+        listenertofree = listener;
     }
 }
 
@@ -282,23 +394,32 @@ engine_config_cleanup(engineconfig_type* config)
     }
     free((void*) config->cfg_filename);
     free((void*) config->policy_filename);
-    free((void*) config->zonelist_filename);
+    free((void*) config->zonelist_filename_enforcer);
+    free((void*) config->zonelist_filename_signer);
     free((void*) config->zonefetch_filename);
     free((void*) config->log_filename);
-    free((void*) config->pid_filename);
+    free((void*) config->pid_filename_enforcer);
+    free((void*) config->pid_filename_signer);
     free((void*) config->delegation_signer_submit_command);
     free((void*) config->delegation_signer_retract_command);
-    free((void*) config->clisock_filename);
-    free((void*) config->working_dir);
-    free((void*) config->username);
-    free((void*) config->group);
-    free((void*) config->chroot);
+    free((void*) config->clisock_filename_enforcer);
+    free((void*) config->working_dir_enforcer);
+    free((void*) config->username_enforcer);
+    free((void*) config->group_enforcer);
+    free((void*) config->chroot_enforcer);
+    free((void*) config->clisock_filename_signer);
+    free((void*) config->working_dir_signer);
+    free((void*) config->username_signer);
+    free((void*) config->group_signer);
+    free((void*) config->chroot_signer);
     free((void*) config->datastore);
-	free((void*) config->db_host);
-	free((void*) config->db_username);
-	free((void*) config->db_password);
-    hsm_repository_free(config->repositories);
-	config->repositories = NULL;
+    free((void*) config->db_host);
+    free((void*) config->db_username);
+    free((void*) config->db_password);
+    engine_config_freehsms(config->repositories);
+    config->repositories = NULL;
+    engine_config_freelistener(config->interfaces);
+    config->interfaces = NULL;    
+    free((void*) config->notify_command);
     free(config);
 }
-
