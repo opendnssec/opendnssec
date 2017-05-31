@@ -1,7 +1,8 @@
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
 AM_CPPFLAGS = \
-	@LDNS_INCLUDES@
+	@LDNS_INCLUDES@ @XML2_INCLUDES@
+
 
 noinst_LIBRARIES = libcompat.a
 
@@ -25,4 +26,6 @@ libcompat_a_SOURCES = \
 	scheduler/worker.c scheduler/worker.h \
 	scheduler/task.c scheduler/task.h \
 	cmdhandler.c cmdhandler.h \
-	janitor.c janitor.h
+	janitor.c janitor.h \
+	cfg.c cfg.h \
+	confparser.c confparser.h

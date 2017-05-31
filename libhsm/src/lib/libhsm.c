@@ -2094,11 +2094,11 @@ hsm_create_empty_rrsig(const ldns_rr_list *rrset,
  */
 
 int
-hsm_open2(hsm_repository_t* rlist,
+hsm_open2(struct engineconfig_repository* rlist,
          char *(pin_callback)(unsigned int, const char *, unsigned int))
 {
     hsm_config_t module_config;
-    hsm_repository_t* repo = NULL;
+    struct engineconfig_repository* repo = NULL;
     char* module_pin = NULL;
     int result = HSM_OK;
     int tries;

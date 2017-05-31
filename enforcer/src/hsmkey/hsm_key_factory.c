@@ -101,7 +101,7 @@ hsm_key_factory_generate(engine_type* engine, const db_connection_t* connection,
     libhsm_key_t *key = NULL;
     hsm_ctx_t *hsm_ctx;
     char* key_id;
-    hsm_repository_t* hsm;
+    struct engineconfig_repository* hsm;
     char* hsm_err;
 
     if (!engine) {

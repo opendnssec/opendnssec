@@ -39,9 +39,10 @@
 
 #include "log.h"
 #include "libhsm.h"
-#include "daemon/cfg.h"
+#include "confparser.h"
 #include "libhsmdns.h"
-extern hsm_repository_t* parse_conf_repositories(const char* cfgfile);
+#include "daemon/engine.h"
+
 
 int verbosity;
 char* argv0;

@@ -222,5 +222,6 @@ dnshandler_cleanup(dnshandler_type* dnshandler)
     }
     free(dnshandler->tcp_accept_handlers);
     free(dnshandler->socklist);
+    listener_cleanup(dnshandler->interfaces);
     free(dnshandler);
 }
