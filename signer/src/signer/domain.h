@@ -31,13 +31,13 @@
 #include <ldns/ldns.h>
 #include <time.h>
 
-
 typedef struct domain_struct domain_type;
 
 #include "status.h"
 #include "signer/rrset.h"
 #include "signer/signconf.h"
 #include "signer/zone.h"
+#include "signer/names.h"
 
 #define SE_NSEC_RDATA_NXT          0
 #define SE_NSEC_RDATA_BITMAP       1
@@ -74,7 +74,7 @@ void log_dname(ldns_rdf* rdf, const char* pre, int level);
  * \return domain_type* domain
  *
  */
-domain_type* domain_create(zone_type* zone, ldns_rdf* dname);
+domain_type* domain_create(ldns_rdf* dname);
 
 /**
  * Count the number of RRsets at this domain with RRs that have is_added.

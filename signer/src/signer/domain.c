@@ -85,10 +85,10 @@ log_dname(ldns_rdf *rdf, const char* pre, int level)
  *
  */
 domain_type*
-domain_create(zone_type* zone, ldns_rdf* dname)
+domain_create(ldns_rdf* dname)
 {
     domain_type* domain = NULL;
-    if (!dname || !zone) {
+    if (!dname) {
         return NULL;
     }
     CHECKALLOC(domain = (domain_type*) malloc(sizeof(domain_type)));
@@ -211,22 +211,23 @@ domain_is_delegpt(domain_type* domain)
 ldns_rr_type
 domain_is_occluded(domain_type* domain)
 {
+    names_iterator iter;
     domain_type* parent = NULL;
     ods_log_assert(domain);
     if (domain->is_apex) {
         return LDNS_RR_TYPE_SOA;
     }
-    parent = domain->parent;
-    while (parent && !parent->is_apex) {
+    for(names_parentdomains(NULL,domain,&iter); names_iterate(&iter, &parent); names_advance(&iter,NULL)) {
         if (domain_lookup_rrset(parent, LDNS_RR_TYPE_NS)) {
             /* Glue / Empty non-terminal to Glue */
+            names_end(&iter);
             return LDNS_RR_TYPE_A;
         }
         if (domain_lookup_rrset(parent, LDNS_RR_TYPE_DNAME)) {
             /* Occluded data / Empty non-terminal to Occluded data */
+            names_end(&iter);
             return LDNS_RR_TYPE_DNAME;
         }
-        parent = parent->parent;
     }
     /* Authoritative or delegation */
     return LDNS_RR_TYPE_SOA;

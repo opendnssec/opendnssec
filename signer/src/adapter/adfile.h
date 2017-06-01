@@ -51,7 +51,7 @@
  * \return ods_status status
  *
  */
-ods_status adfile_read(zone_type* zone, names_type view);
+ods_status adfile_read(zone_type* zone, names_view_type view);
 
 /**
  * Write zone to output file adapter.
@@ -60,6 +60,6 @@ ods_status adfile_read(zone_type* zone, names_type view);
  * \return ods_status status
  *
  */
-ods_status adfile_write(zone_type* zone, names_type view, const char* filename);
+ods_status adfile_write(zone_type* zone, names_view_type view, const char* filename);
 
 #endif /* ADAPTER_ADFILE_H */

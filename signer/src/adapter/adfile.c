@@ -46,7 +46,7 @@
 #include <stdlib.h>
 
 static const char* adapter_str = "adapter";
-static ods_status adfile_read_file(FILE* fd, zone_type* zone, names_type view);
+static ods_status adfile_read_file(FILE* fd, zone_type* zone, names_view_type view);
 
 
 /**
@@ -54,7 +54,7 @@ static ods_status adfile_read_file(FILE* fd, zone_type* zone, names_type view);
  *
  */
 static ldns_rr*
-adfile_read_rr(FILE* fd, zone_type* zone, names_type view, char* line, ldns_rdf** orig,
+adfile_read_rr(FILE* fd, zone_type* zone, names_view_type view, char* line, ldns_rdf** orig,
     ldns_rdf** prev, uint32_t* ttl, ldns_status* status, unsigned int* l)
 {
     ldns_rr* rr = NULL;
@@ -192,7 +192,7 @@ adfile_read_rr:
  *
  */
 static ods_status
-adfile_read_file(FILE* fd, zone_type* zone, names_type view)
+adfile_read_file(FILE* fd, zone_type* zone, names_view_type view)
 {
     ods_status result = ODS_STATUS_OK;
     ldns_rr* rr = NULL;
@@ -295,7 +295,7 @@ adfile_read_file(FILE* fd, zone_type* zone, names_type view)
  *
  */
 ods_status
-adfile_read(zone_type* adzone, names_type view)
+adfile_read(zone_type* adzone, names_view_type view)
 {
     FILE* fd = NULL;
     ods_status status = ODS_STATUS_OK;
@@ -322,7 +322,7 @@ adfile_read(zone_type* adzone, names_type view)
  *
  */
 ods_status
-adfile_write(zone_type* adzone, names_type view, const char* filename)
+adfile_write(zone_type* adzone, names_view_type view, const char* filename)
 {
     FILE* fd = NULL;
     char* tmpname = NULL;

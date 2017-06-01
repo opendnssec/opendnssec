@@ -81,11 +81,11 @@ worker_queue_domain(struct worker_context* context, fifoq_type* q, void* item, l
  *
  */
 static void
-worker_queue_zone(struct worker_context* context, fifoq_type* q, names_type view, long* nsubtasks)
+worker_queue_zone(struct worker_context* context, fifoq_type* q, names_view_type view, long* nsubtasks)
 {
-    iterator iter;
+    names_iterator iter;
     domain_type* domain;
-    for(names_alldomains(view, &iter); iterate(&iter,&domain); advance(&iter,NULL)) {
+    for(names_alldomains(view, &iter); names_iterate(&iter,&domain); names_advance(&iter,NULL)) {
         worker_queue_domain(context, q, domain, nsubtasks);
     }
 }
@@ -260,7 +260,7 @@ do_signzone(task_type* task, const char* zonename, void* zonearg, void *contexta
     engine_type* engine = context->engine;
     worker_type* worker = context->worker;
     zone_type* zone = zonearg;
-    names_type view;
+    names_view_type view;
     ods_status status;
     time_t start = 0;
     time_t end = 0;
@@ -269,7 +269,7 @@ do_signzone(task_type* task, const char* zonename, void* zonearg, void *contexta
     context->clock_in = time_now();
     context->zone = zone;
     
-    names_view(zone->namesrc, &view);
+    names_view(zone->namedb, &view);
     status = zone_update_serial(zone, view);
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] unable to sign zone %s: failed to increment serial", worker->name, task->owner);

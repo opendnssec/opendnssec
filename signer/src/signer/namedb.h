@@ -49,7 +49,6 @@ typedef struct namedb_struct namedb_type;
  */
 struct namedb_struct {
     zone_type* zone;
-    namesrc_type names;
     uint32_t inbserial;
     uint32_t intserial;
     uint32_t outserial;
@@ -95,7 +94,7 @@ ods_status namedb_update_serial(zone_type* db, const char* zone_name,
  * \return ods_status status
  *
  */
-ods_status namedb_domain_entize(names_type view, domain_type* domain,
+ods_status namedb_domain_entize(names_view_type view, domain_type* domain,
  ldns_rdf* apex);
 
 /**
@@ -133,7 +132,7 @@ domain_type* namedb_del_domain(namedb_type* db, domain_type* domain);
  * \return denial_type* added denial
  *
  */
-denial_type* namedb_add_denial(zone_type* zone, names_type db, ldns_rdf* dname,
+denial_type* namedb_add_denial(zone_type* zone, names_view_type db, ldns_rdf* dname,
     nsec3params_type* n3p);
 
 /**
@@ -143,7 +142,7 @@ denial_type* namedb_add_denial(zone_type* zone, names_type db, ldns_rdf* dname,
  * \return denial_type* deleted denial
  *
  */
-denial_type* namedb_del_denial(names_type view, namedb_type* db, denial_type* denial);
+denial_type* namedb_del_denial(names_view_type view, namedb_type* db, denial_type* denial);
 
 /**
  * Examine updates to namedb.
@@ -151,7 +150,7 @@ denial_type* namedb_del_denial(names_type view, namedb_type* db, denial_type* de
  * \return ods_status status
  *
  */
-ods_status namedb_examine(names_type db);
+ods_status namedb_examine(names_view_type db);
 
 /**
  * Apply differences in db.
@@ -160,7 +159,7 @@ ods_status namedb_examine(names_type db);
  * \param[in] more_coming more transactions possible
  *
  */
-void namedb_diff(zone_type* zone, names_type view, unsigned is_ixfr, unsigned more_coming);
+void namedb_diff(zone_type* zone, names_view_type view, unsigned is_ixfr, unsigned more_coming);
 
 /**
  * Nsecify db.
@@ -168,7 +167,7 @@ void namedb_diff(zone_type* zone, names_type view, unsigned is_ixfr, unsigned mo
  * \param[out] num_added number of NSEC RRs added
  *
  */
-void namedb_nsecify(zone_type* zone, names_type view, uint32_t* num_added);
+void namedb_nsecify(zone_type* zone, names_view_type view, uint32_t* num_added);
 
 /**
  * Export db to file.
@@ -177,14 +176,14 @@ void namedb_nsecify(zone_type* zone, names_type view, uint32_t* num_added);
  * \param[out] status status
  *
  */
-void namedb_export(FILE* fd, names_type view, ods_status* status);
+void namedb_export(FILE* fd, names_view_type view, ods_status* status);
 
 /**
  * Wipe out all NSEC(3) RRsets.
  * \param[in] db namedb
  *
  */
-void namedb_wipe_denial(zone_type* zone, names_type view);
+void namedb_wipe_denial(zone_type* zone, names_view_type view);
 
 /**
  * Clean up namedb.

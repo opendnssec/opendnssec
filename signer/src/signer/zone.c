@@ -169,7 +169,7 @@ zone_load_signconf(zone_type* zone, signconf_type** new_signconf)
  *
  */
 ods_status
-zone_publish_dnskeys(zone_type* zone, names_type view, int skip_hsm_access)
+zone_publish_dnskeys(zone_type* zone, names_view_type view, int skip_hsm_access)
 {
     hsm_ctx_t* ctx = NULL;
     uint32_t ttl = 0;
@@ -262,7 +262,7 @@ zone_publish_dnskeys(zone_type* zone, names_type view, int skip_hsm_access)
  *
  */
 ods_status
-zone_publish_nsec3param(zone_type* zone, names_type view)
+zone_publish_nsec3param(zone_type* zone, names_view_type view)
 {
     rrset_type* rrset = NULL;
     rr_type* n3prr = NULL;
@@ -367,7 +367,7 @@ zone_prepare_keys(zone_type* zone)
  *
  */
 ods_status
-zone_update_serial(zone_type* zone, names_type view)
+zone_update_serial(zone_type* zone, names_view_type view)
 {
     ods_status status = ODS_STATUS_OK;
     rrset_type* rrset = NULL;
@@ -431,14 +431,10 @@ zone_update_serial(zone_type* zone, names_type view)
  *
  */
 rrset_type*
-zone_lookup_rrset(names_type view, ldns_rr_type type)
+zone_lookup_rrset(names_view_type view, ldns_rr_type type)
 {
     domain_type* domain = NULL;
     if (!type) {
-        return NULL;
-    }
-    domain = names_lookupapex(view);
-    if (!domain) {
         return NULL;
     }
     return domain_lookup_rrset(domain, type);
@@ -450,7 +446,7 @@ zone_lookup_rrset(names_type view, ldns_rr_type type)
  *
  */
 ods_status
-zone_add_rr(zone_type* zone, names_type view, ldns_rr* rr, int do_stats)
+zone_add_rr(zone_type* zone, names_view_type view, ldns_rr* rr, int do_stats)
 {
     domain_type* domain = NULL;
     rrset_type* rrset = NULL;
@@ -533,7 +529,7 @@ zone_add_rr(zone_type* zone, names_type view, ldns_rr* rr, int do_stats)
  *
  */
 ods_status
-zone_del_rr(zone_type* zone, names_type view, ldns_rr* rr, int do_stats)
+zone_del_rr(zone_type* zone, names_view_type view, ldns_rr* rr, int do_stats)
 {
     domain_type* domain = NULL;
     rrset_type* rrset = NULL;
@@ -576,7 +572,7 @@ zone_del_rr(zone_type* zone, names_type view, ldns_rr* rr, int do_stats)
  * Marks all NSEC3PARAM records as removed.
  */
 ods_status
-zone_del_nsec3params(zone_type* zone, names_type view)
+zone_del_nsec3params(zone_type* zone, names_view_type view)
 {
     domain_type* domain = NULL;
     rrset_type* rrset = NULL;
@@ -585,7 +581,7 @@ zone_del_nsec3params(zone_type* zone, names_type view)
     ods_log_assert(zone);
     ods_log_assert(zone->name);
 
-    domain = names_lookupapex(view);
+    domain = names_lookupname(view, zone->apex);
     if (!domain) {
         ods_log_verbose("[%s] unable to delete RR from zone %s: "
             "domain not found", zone_str, zone->name);

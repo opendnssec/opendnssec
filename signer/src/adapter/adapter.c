@@ -144,7 +144,7 @@ adapter_load_config(adapter_type* adapter)
  *
  */
 ods_status
-adapter_read(zone_type* zone, names_type view)
+adapter_read(zone_type* zone, names_view_type view)
 {
     if (!zone || !zone->adinbound) {
         ods_log_error("[%s] unable to read zone: no input adapter",
@@ -179,7 +179,7 @@ ods_status
 adapter_write(zone_type* zone)
 {
     ods_status status = ODS_STATUS_ERR;
-    names_type view;
+    names_view_type view;
     if (!zone || !zone->adoutbound) {
         ods_log_error("[%s] unable to write zone: no output adapter",
             adapter_str);
@@ -188,7 +188,7 @@ adapter_write(zone_type* zone)
     ods_log_assert(zone->name);
     ods_log_assert(zone->adoutbound->configstr);
 
-    names_view(zone->namesrc, &view); /* INTERNAL */
+    names_view(zone->namedb, &view); /* INTERNAL */
     switch(zone->adoutbound->type) {
         case ADAPTER_FILE:
             ods_log_verbose("[%s] write zone %s serial %u to output file "

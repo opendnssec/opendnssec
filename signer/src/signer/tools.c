@@ -66,7 +66,7 @@ tools_signconf(zone_type* zone)
              * Or NSEC -> NSEC3, or NSEC3 -> NSEC, or NSEC3 params changed.
              * All NSEC(3)s become invalid.
              */
-            namedb_wipe_denial(zone, NULL);
+            /* BERRY namedb_wipe_denial(zone, NULL); */
         }
         /* all ok, switch signer configuration */
         signconf_cleanup(zone->signconf);
@@ -99,8 +99,8 @@ tools_input(zone_type* zone)
     ods_log_assert(zone->adinbound);
     ods_log_assert(zone->signconf);
     
-    names_type view;
-    names_view(zone->namesrc, &view);
+    names_view_type view;
+    names_view(zone->namedb, &view);
     
     /* Key Rollover? */
     status = zone_publish_dnskeys(zone, view, 0);

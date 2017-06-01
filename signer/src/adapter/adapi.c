@@ -75,7 +75,7 @@ adapi_get_ttl(zone_type* zone)
  *
  */
 void
-adapi_trans_full(zone_type* zone, names_type view, unsigned more_coming)
+adapi_trans_full(zone_type* zone, names_view_type view, unsigned more_coming)
 {
     time_t start = 0;
     time_t end = 0;
@@ -108,7 +108,7 @@ adapi_trans_full(zone_type* zone, names_type view, unsigned more_coming)
  *
  */
 void
-adapi_trans_diff(zone_type* zone, names_type view, unsigned more_coming)
+adapi_trans_diff(zone_type* zone, names_view_type view, unsigned more_coming)
 {
     time_t start = 0;
     time_t end = 0;
@@ -235,7 +235,7 @@ adapi_process_dnskey(zone_type* zone, ldns_rr* rr)
  *
  */
 static ods_status
-adapi_process_rr(zone_type* zone, names_type view, ldns_rr* rr, int add, int backup)
+adapi_process_rr(zone_type* zone, names_view_type view, ldns_rr* rr, int add, int backup)
 {
     ods_status status = ODS_STATUS_OK;
     uint32_t tmp = 0;
@@ -317,7 +317,7 @@ adapi_process_rr(zone_type* zone, names_type view, ldns_rr* rr, int add, int bac
  *
  */
 ods_status
-adapi_add_rr(zone_type* zone, names_type view, ldns_rr* rr, int backup)
+adapi_add_rr(zone_type* zone, names_view_type view, ldns_rr* rr, int backup)
 {
     return adapi_process_rr(zone, view, rr, 1, backup);
 }
@@ -328,7 +328,7 @@ adapi_add_rr(zone_type* zone, names_type view, ldns_rr* rr, int backup)
  *
  */
 ods_status
-adapi_del_rr(zone_type* zone, names_type view, ldns_rr* rr, int backup)
+adapi_del_rr(zone_type* zone, names_view_type view, ldns_rr* rr, int backup)
 {
     return adapi_process_rr(zone, view, rr, 0, backup);
 }
@@ -339,7 +339,7 @@ adapi_del_rr(zone_type* zone, names_type view, ldns_rr* rr, int backup)
  *
  */
 ods_status
-adapi_printzone(FILE* fd, zone_type* zone, names_type view)
+adapi_printzone(FILE* fd, zone_type* zone, names_view_type view)
 {
     ods_status status = ODS_STATUS_OK;
     if (!fd || !zone) {
@@ -357,7 +357,7 @@ adapi_printzone(FILE* fd, zone_type* zone, names_type view)
  *
  */
 ods_status
-adapi_printaxfr(FILE* fd, zone_type* zone, names_type view)
+adapi_printaxfr(FILE* fd, zone_type* zone, names_view_type view)
 {
     rrset_type* rrset = NULL;
     ods_status status = ODS_STATUS_OK;

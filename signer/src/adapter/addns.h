@@ -124,7 +124,7 @@ ldns_rr* addns_read_rr(FILE* fd, char* line, ldns_rdf** orig, ldns_rdf** prev,
  * \return ods_status status
  *
  */
-ods_status addns_read(zone_type* zone, names_type view);
+ods_status addns_read(zone_type* zone, names_view_type view);
 
 /**
  * Write zone to DNS output adapter.
@@ -132,7 +132,7 @@ ods_status addns_read(zone_type* zone, names_type view);
  * \return ods_status status
  *
  */
-ods_status addns_write(zone_type* zone, names_type view);
+ods_status addns_write(zone_type* zone, names_view_type view);
 
 /**
  * Clean up DNS input adapter.

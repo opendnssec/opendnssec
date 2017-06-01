@@ -282,9 +282,6 @@ forceread(engine_type* engine, zone_type *zone, int force_serial, uint32_t seria
 	    zone->nextserial = malloc(sizeof(uint32_t));
 	    *zone->nextserial = serial;
         }
-        zone->db->altserial = serial;
-        zone->db->force_serial = 1;
-    }
     schedule_scheduletask(engine->taskq, TASK_FORCEREAD, zone->name, zone, &zone->zone_lock, schedule_IMMEDIATELY);
     pthread_mutex_unlock(&zone->zone_lock);
     return 0;
@@ -409,7 +406,7 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_ctx_type* context, const char
     pthread_mutex_unlock(&engine->zonelist->zl_lock);
     if (zone) {
         pthread_mutex_lock(&zone->zone_lock);
-	names_clear(zone->namesrc);
+	names_clear(zone->namedb);
         signconf_cleanup(zone->signconf);
         zone->signconf = signconf_create();
         

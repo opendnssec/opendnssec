@@ -50,8 +50,8 @@
 #include <stdlib.h>
 
 static const char* adapter_str = "adapter";
-static ods_status addns_read_pkt(FILE* fd, zone_type* zone, names_type view);
-static ods_status addns_read_file(FILE* fd, zone_type* zone, names_type view);
+static ods_status addns_read_pkt(FILE* fd, zone_type* zone, names_view_type view);
+static ods_status addns_read_file(FILE* fd, zone_type* zone, names_view_type view);
 
 
 /**
@@ -135,7 +135,7 @@ addns_read_line:
  *
  */
 static ods_status
-addns_read_pkt(FILE* fd, zone_type* zone, names_type view)
+addns_read_pkt(FILE* fd, zone_type* zone, names_view_type view)
 {
     ldns_rr* rr = NULL;
     long startpos = 0;
@@ -465,7 +465,7 @@ addns_read_pkt(FILE* fd, zone_type* zone, names_type view)
  *
  */
 static ods_status
-addns_read_file(FILE* fd, zone_type* zone, names_type view)
+addns_read_file(FILE* fd, zone_type* zone, names_view_type view)
 {
     ods_status status = ODS_STATUS_OK;
 
@@ -644,7 +644,7 @@ dnsout_update(dnsout_type** addns, const char* filename, time_t* last_mod)
  *
  */
 static void
-dnsout_send_notify(zone_type* z, names_type view)
+dnsout_send_notify(zone_type* z, names_view_type view)
 {
     rrset_type* rrset = NULL;
     ldns_rr* soa = NULL;
@@ -669,7 +669,7 @@ dnsout_send_notify(zone_type* z, names_type view)
  *
  */
 ods_status
-addns_read(zone_type* z, names_type v)
+addns_read(zone_type* z, names_view_type v)
 {
     ods_status status = ODS_STATUS_OK;
     char* xfrfile = NULL;
@@ -750,7 +750,7 @@ addns_read(zone_type* z, names_type v)
  *
  */
 ods_status
-addns_write(zone_type* z, names_type view)
+addns_write(zone_type* z, names_view_type view)
 {
     FILE* fd = NULL;
     char* atmpfile = NULL;

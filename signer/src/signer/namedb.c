@@ -83,10 +83,10 @@ namedb_update_serial(zone_type* db, const char* zone_name, const char* format,
  *
  */
 ods_status
-namedb_domain_entize(names_type view, domain_type* domain, ldns_rdf* apex)
+namedb_domain_entize(names_view_type view, domain_type* domain, ldns_rdf* apex)
 {
     ldns_rdf* parent_rdf = NULL;
-    domain_type* parent_domain = NULL;
+    domain_type* parent_domain;
     ods_log_assert(apex);
     ods_log_assert(domain);
     ods_log_assert(domain->dname);
@@ -202,7 +202,7 @@ dname_hash(ldns_rdf* dname, ldns_rdf* apex, nsec3params_type* nsec3params)
  *
  */
 denial_type*
-namedb_add_denial(zone_type* zone, names_type view, ldns_rdf* dname, nsec3params_type* n3p)
+namedb_add_denial(zone_type* zone, names_view_type view, ldns_rdf* dname, nsec3params_type* n3p)
 {
     zone_type* z = NULL;
     ldns_rbnode_t* new_node = LDNS_RBTREE_NULL;
@@ -235,26 +235,26 @@ namedb_add_denial(zone_type* zone, names_type view, ldns_rdf* dname, nsec3params
  *
  */
 void
-namedb_nsecify(zone_type* zone, names_type view, uint32_t* num_added)
+namedb_nsecify(zone_type* zone, names_view_type view, uint32_t* num_added)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     ldns_rbnode_t* nxt_node = LDNS_RBTREE_NULL;
     denial_type* nxt = NULL;
     domain_type* domain;
-    iterator iter;
+    names_iterator iter;
     ldns_rdf* nextname;
     uint32_t nsec_added = 0;
     
     names_firstdenials(view,&iter);
-    if(iterate(&iter,&domain)) {
+    if(names_iterate(&iter,&domain)) {
         nextname = domain->denial->dname;
-        end(&iter);
-        for(names_reversedenials(view,&iter); iterate(&iter,&domain); advance(&iter, NULL)) {
+        names_end(&iter);
+        for(names_reversedenials(view,&iter); names_iterate(&iter,&domain); names_advance(&iter, NULL)) {
                     denial_nsecify(zone, domain, nextname, &nsec_added);
                     nextname = domain->denial->dname;
         }
     } else
-        end(&iter);
+        names_end(&iter);
     if (num_added) {
         *num_added = nsec_added;
     }
@@ -266,7 +266,7 @@ namedb_nsecify(zone_type* zone, names_type view, uint32_t* num_added)
  *
  */
 ods_status
-namedb_examine(names_type view)
+namedb_examine(names_view_type view)
 {
     ods_status status = ODS_STATUS_OK;
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
@@ -277,8 +277,8 @@ namedb_examine(names_type view)
     ldns_rr_type dstatus = LDNS_RR_TYPE_FIRST;
     ldns_rr_type delegpt = LDNS_RR_TYPE_FIRST;
 */
-    iterator iter;
-    for(names_alldomains(view,&iter); iterate(&iter,&domain); advance(&iter, NULL)) {
+    names_iterator iter;
+    for(names_alldomains(view,&iter); names_iterate(&iter,&domain); names_advance(&iter, NULL)) {
         rrset = domain_lookup_rrset(domain, LDNS_RR_TYPE_CNAME);
         if (rrset) {
             /* Thou shall not have other data next to CNAME */
@@ -335,22 +335,19 @@ namedb_examine(names_type view)
  *
  */
 void
-namedb_wipe_denial(zone_type* zone, names_type view)
+namedb_wipe_denial(zone_type* zone, names_view_type view)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     denial_type* denial = NULL;
     size_t i = 0;
+    names_iterator iter;
 
         ods_log_assert(zone);
         ods_log_assert(zone->name);
         ods_log_debug("[%s] wipe denial of existence space zone %s", db_str,
             zone->name);
-        iterator iter;
-        for(names_reversedenials(view,&iter); iterate(&iter,&denial); advance(&iter, NULL)) {
-            if (!denial->rrset) {
-                node = ldns_rbtree_next(node);
-                continue;
-            }
+        for(names_reversedenials(view,&iter); names_iterate(&iter,&denial); names_advance(&iter, NULL)) {
+          if (denial->rrset) {
             for (i=0; i < denial->rrset->rr_count; i++) {
                 denial->rrset->rrs[i].exists = 0;
                 rrset_del_rr(denial->rrset, i);
@@ -359,7 +356,7 @@ namedb_wipe_denial(zone_type* zone, names_type view)
             rrset_drop_rrsigs(zone, denial->rrset);
             rrset_cleanup(denial->rrset);
             denial->rrset = NULL;
-            node = ldns_rbtree_next(node);
+          }
         }
 }
 
@@ -368,11 +365,11 @@ namedb_wipe_denial(zone_type* zone, names_type view)
  *
  */
 void
-namedb_export(FILE* fd, names_type view, ods_status* status)
+namedb_export(FILE* fd, names_view_type view, ods_status* status)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     domain_type* domain = NULL;
-    iterator iter;
+    names_iterator iter;
     if (!fd) {
         if (status) {
             ods_log_error("[%s] unable to export namedb: file descriptor "
@@ -382,10 +379,10 @@ namedb_export(FILE* fd, names_type view, ods_status* status)
         return;
     }
     names_alldomains(view,&iter);
-    if(iterate(&iter,&domain)) {
+    if(names_iterate(&iter,&domain)) {
         do {
             domain_print(fd, domain, status);            
-        } while(advance(&iter,&domain));
+        } while(names_advance(&iter,&domain));
     } else {
         if (status) {
             *status = ODS_STATUS_OK;
@@ -447,6 +444,5 @@ namedb_cleanup(namedb_type* db)
     if (!z) {
         return;
     }
-    names_destroy(db->names);
     free(db);
 }

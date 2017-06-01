@@ -41,6 +41,7 @@ test_LDADD = \
 	../signer/ixfr.o \
 	../signer/keys.o \
 	../signer/namedb.o \
+	../signer/names.o \
 	../signer/nsec3params.o \
 	../signer/rrset.o \
 	../signer/signconf.o \

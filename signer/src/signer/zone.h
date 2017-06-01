@@ -77,7 +77,7 @@ struct zone_struct {
     /* from signconf.xml */
     signconf_type* signconf; /* signer configuration values */
     /* zone data */
-    namesrc_type namesrc;
+    names_source_type namedb;
     uint32_t* nextserial;
     uint32_t* inboundserial;
     uint32_t* outboundserial;
@@ -132,7 +132,7 @@ ods_status zone_reschedule_task(zone_type* zone, schedule_type* taskq,
  * \return ods_status status
  *
  */
-ods_status zone_publish_dnskeys(zone_type* zone, names_type view, int skip_hsm_access);
+ods_status zone_publish_dnskeys(zone_type* zone, names_view_type view, int skip_hsm_access);
 
 /**
  * Publish the NSEC3 parameters as indicated by the signer configuration.
@@ -140,7 +140,7 @@ ods_status zone_publish_dnskeys(zone_type* zone, names_type view, int skip_hsm_a
  * \return ods_status status
  *
  */
-ods_status zone_publish_nsec3param(zone_type* zone, names_type view);
+ods_status zone_publish_nsec3param(zone_type* zone, names_view_type view);
 
 /**
  * Prepare keys for signing.
@@ -156,7 +156,7 @@ ods_status zone_prepare_keys(zone_type* zone);
  * \return ods_status status
  *
  */
-ods_status zone_update_serial(zone_type* zone, names_type view);
+ods_status zone_update_serial(zone_type* zone, names_view_type view);
 
 /**
  * Lookup RRset.
@@ -166,7 +166,7 @@ ods_status zone_update_serial(zone_type* zone, names_type view);
  * \return rrset_type* RRset, if found
  *
  */
-rrset_type* zone_lookup_rrset(names_type view, ldns_rr_type type);
+rrset_type* zone_lookup_rrset(names_view_type view, ldns_rr_type type);
 
 /**
  * Add RR.
@@ -179,7 +179,7 @@ rrset_type* zone_lookup_rrset(names_type view, ldns_rr_type type);
  *         other: rr not added to zone, error occurred
  *
  */
-ods_status zone_add_rr(zone_type* zone, names_type view, ldns_rr* rr, int do_stats);
+ods_status zone_add_rr(zone_type* zone, names_view_type view, ldns_rr* rr, int do_stats);
 
 /**
  * Delete RR.
@@ -192,13 +192,13 @@ ods_status zone_add_rr(zone_type* zone, names_type view, ldns_rr* rr, int do_sta
  *         other: rr not removed from zone, error occurred
  *
  */
-ods_status zone_del_rr(zone_type* zone, names_type view, ldns_rr* rr, int do_stats);
+ods_status zone_del_rr(zone_type* zone, names_view_type view, ldns_rr* rr, int do_stats);
 
 /**
  * Remove all NSEC3PARAM RRs from the zone
  * \return ODS_STATUS_UNCHANGED or ODS_STATUS_OK
  */ 
-ods_status zone_del_nsec3params(zone_type* zone, names_type view);
+ods_status zone_del_nsec3params(zone_type* zone, names_view_type view);
 
 /**
  * Merge zones. Values that are merged:

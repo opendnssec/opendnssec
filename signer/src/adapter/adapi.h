@@ -60,7 +60,7 @@ uint32_t adapi_get_ttl(zone_type* zone);
  * \param[in] more_coming more transactions are possible
  *
  */
-void adapi_trans_full(zone_type* zone, names_type view, unsigned more_coming);
+void adapi_trans_full(zone_type* zone, names_view_type view, unsigned more_coming);
 
 /*
  * Do incremental zone transaction.
@@ -68,7 +68,7 @@ void adapi_trans_full(zone_type* zone, names_type view, unsigned more_coming);
  * \param[in] more_coming more transactions are possible
  *
  */
-void adapi_trans_diff(zone_type* zone, names_type view, unsigned more_coming);
+void adapi_trans_diff(zone_type* zone, names_view_type view, unsigned more_coming);
 
 /**
  * Add RR.
@@ -78,7 +78,7 @@ void adapi_trans_diff(zone_type* zone, names_type view, unsigned more_coming);
  * \return ods_status status
  *
  */
-ods_status adapi_add_rr(zone_type* zone, names_type view, ldns_rr* rr, int backup);
+ods_status adapi_add_rr(zone_type* zone, names_view_type view, ldns_rr* rr, int backup);
 
 /**
  * Delete RR.
@@ -88,7 +88,7 @@ ods_status adapi_add_rr(zone_type* zone, names_type view, ldns_rr* rr, int backu
  * \return ods_status status
  *
  */
-ods_status adapi_del_rr(zone_type* zone, names_type view, ldns_rr* rr, int backup);
+ods_status adapi_del_rr(zone_type* zone, names_view_type view, ldns_rr* rr, int backup);
 
 /**
  * Print zonefile.
@@ -97,7 +97,7 @@ ods_status adapi_del_rr(zone_type* zone, names_type view, ldns_rr* rr, int backu
  * \return ods_status status
  *
  */
-ods_status adapi_printzone(FILE* fd, zone_type* zone, names_type view);
+ods_status adapi_printzone(FILE* fd, zone_type* zone, names_view_type view);
 
 /**
  * Print axfr.
@@ -106,7 +106,7 @@ ods_status adapi_printzone(FILE* fd, zone_type* zone, names_type view);
  * \return ods_status status
  *
  */
-ods_status adapi_printaxfr(FILE* fd, zone_type* zone, names_type view);
+ods_status adapi_printaxfr(FILE* fd, zone_type* zone, names_view_type view);
 
 /**
  * Print ixfr.

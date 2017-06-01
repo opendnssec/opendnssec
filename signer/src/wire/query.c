@@ -559,7 +559,7 @@ response_encode(query_type* q, response_type* r)
  *
  */
 static query_state
-query_response(names_type view, query_type* q, ldns_rr_type qtype)
+query_response(names_view_type view, query_type* q, ldns_rr_type qtype)
 {
     rrset_type* rrset = NULL;
     response_type r;
@@ -629,7 +629,7 @@ static query_state
 query_process_query(query_type* q, ldns_rr_type qtype, engine_type* engine)
 {
     query_state returnstate;
-    names_type view;
+    names_view_type view;
     dnsout_type* dnsout = NULL;
     if (!q || !q->zone) {
         return QUERY_DISCARDED;
@@ -685,7 +685,7 @@ query_process_query(query_type* q, ldns_rr_type qtype, engine_type* engine)
         return soa_request(q, engine);
     }
     /* other qtypes */
-    names_view(q->zone->namesrc, &view);
+    names_view(q->zone->namedb, &view);
     returnstate = query_response(view, q, qtype);
     names_dispose(view);
     return returnstate;
