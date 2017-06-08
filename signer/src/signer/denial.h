@@ -79,7 +79,7 @@ void denial_add_rr(zone_type* zone, denial_type* denial, ldns_rr* rr);
  * \param[out] num_added number of RRs added
  *
  */
-void denial_nsecify(zone_type* zone, domain_type* domain, ldns_rdf* nxt, uint32_t* num_added);
+void denial_nsecify(zone_type* zone, names_view_type view, domain_type* domain, ldns_rdf* nxt, uint32_t* num_added);
 
 /**
  * Print Denial of Existence data point.

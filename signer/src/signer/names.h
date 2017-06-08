@@ -63,7 +63,7 @@ struct datastructure;
 #include "signer/denial.h"
 #include "signer/domain.h"
 
-int names_create(names_source_type*);
+int names_create(names_source_type*, ldns_rdf* apex);
 int names_clear(names_source_type);
 void names_destroy(names_source_type);
 
@@ -74,6 +74,7 @@ int names_dispose(names_view_type);
 
 /* The following two calls are to be changed */
 domain_type* names_lookupname(names_view_type, ldns_rdf* name);
+domain_type* names_lookupapex(names_view_type);
 
 domain_type* names_addname(names_view_type view, ldns_rdf* name);
 
@@ -83,7 +84,7 @@ void names_setserial(names_view_type, uint32_t serial);
 int names_firstdenials(names_view_type,names_iterator*iter);
 int names_reversedenials(names_view_type,names_iterator*iter);
 int names_alldomains(names_view_type,names_iterator*iter);
-int names_parentdomains(names_view_type,void*,names_iterator*iter);
+int names_parentdomains(names_view_type,domain_type*,names_iterator*iter);
 
 int names_createiterator(struct datastructure*dbase, names_iterator* iter, int indexnum, int reverse);
 int names_iterate(names_iterator*iter, void*);

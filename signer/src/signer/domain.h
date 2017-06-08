@@ -110,7 +110,7 @@ void domain_add_rrset(domain_type* domain, rrset_type* rrset);
  *         LDNS_RR_TYPE_SOA Authoritative data (or signed delegation)
  *
  */
-ldns_rr_type domain_is_delegpt(domain_type* domain);
+ldns_rr_type domain_is_delegpt(names_view_type view, domain_type* domain);
 
 /**
  * Check whether the domain is occluded.
@@ -121,7 +121,7 @@ ldns_rr_type domain_is_delegpt(domain_type* domain);
  *         LDNS_RR_TYPE_SOA Authoritative data or delegation
  *
  */
-ldns_rr_type domain_is_occluded(domain_type* domain);
+ldns_rr_type domain_is_occluded(names_view_type view, domain_type* domain);
 
 /**
  * Print domain.

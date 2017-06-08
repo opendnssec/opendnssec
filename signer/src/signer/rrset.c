@@ -250,27 +250,6 @@ rrset_lookup_rr(rrset_type* rrset, ldns_rr* rr)
 
 
 /**
- * Count the number of RRs in this RRset that have is_added.
- *
- */
-size_t
-rrset_count_rr_is_added(rrset_type* rrset)
-{
-    size_t i = 0;
-    size_t count = 0;
-    if (!rrset) {
-        return 0;
-    }
-    for (i=0; i < rrset->rr_count; i++) {
-        if (rrset->rrs[i].is_added) {
-            count++;
-        }
-    }
-    return count;
-}
-
-
-/**
  * Add RR to RRset.
  *
  */
@@ -291,9 +270,6 @@ rrset_add_rr(rrset_type* rrset, ldns_rr* rr)
     free(rrs_old);
     rrset->rr_count++;
     rrset->rrs[rrset->rr_count - 1].rr = rr;
-    rrset->rrs[rrset->rr_count - 1].exists = 0;
-    rrset->rrs[rrset->rr_count - 1].is_added = 1;
-    rrset->rrs[rrset->rr_count - 1].is_removed = 0;
     rrset->needs_signing = 1;
     log_rr(rr, "+RR", LOG_DEEEBUG);
     return &rrset->rrs[rrset->rr_count -1];
@@ -483,10 +459,6 @@ rrset2rrlist(rrset_type* rrset)
     size_t i = 0;
     rr_list = ldns_rr_list_new();
     for (i=0; i < rrset->rr_count; i++) {
-        if (!rrset->rrs[i].exists) {
-            log_rr(rrset->rrs[i].rr, "RR does not exist", LOG_WARNING);
-            continue;
-        }
         ret = (int) ldns_rr_list_push_rr(rr_list, rrset->rrs[i].rr);
         if (!ret) {
             ldns_rr_list_free(rr_list);
@@ -548,7 +520,7 @@ rrset_sigvalid_period(signconf_type* sc, ldns_rr_type rrtype, time_t signtime,
  *
  */
 ods_status
-rrset_sign(zone_type* zone, domain_type* domain, hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
+rrset_sign(zone_type* zone, names_view_type view, domain_type* domain, hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
 {
     ods_status status;
     uint32_t newsigs = 0;
@@ -575,8 +547,8 @@ rrset_sign(zone_type* zone, domain_type* domain, hsm_ctx_t* ctx, rrset_type* rrs
         dstatus = LDNS_RR_TYPE_SOA;
         delegpt = LDNS_RR_TYPE_SOA;
     } else {
-        dstatus = domain_is_occluded(domain);
-        delegpt = domain_is_delegpt(domain);
+        dstatus = domain_is_occluded(view, domain);
+        delegpt = domain_is_delegpt(view, domain);
     }
     reusedsigs = rrset_recycle(zone, rrset, signtime, dstatus, delegpt);
     rrset->needs_signing = 0;
@@ -735,7 +707,6 @@ rrset_print(FILE* fd, rrset_type* rrset, int skip_rrsigs,
         }
     } else {
         for (i=0; i < rrset->rr_count; i++) {
-            if (rrset->rrs[i].exists) {
                 result = util_rr_print(fd, rrset->rrs[i].rr);
                 if (rrset->rrtype == LDNS_RR_TYPE_CNAME ||
                     rrset->rrtype == LDNS_RR_TYPE_DNAME) {
@@ -747,7 +718,6 @@ rrset_print(FILE* fd, rrset_type* rrset, int skip_rrsigs,
                         "error printing RRset", LOG_CRIT);
                     break;
                 }
-            }
         }
         if (! skip_rrsigs) {
             result = ODS_STATUS_OK;

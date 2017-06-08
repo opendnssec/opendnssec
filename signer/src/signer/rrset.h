@@ -49,9 +49,6 @@ struct rrsig_struct {
 
 struct rr_struct {
     ldns_rr* rr;
-    unsigned exists : 1;
-    unsigned is_added : 1;
-    unsigned is_removed : 1;
 };
 
 struct rrset_struct {
@@ -160,7 +157,7 @@ void rrset_drop_rrsigs(zone_type* zone, rrset_type* rrset);
  * \return ods_status status
  *
  */
-ods_status rrset_sign(zone_type* zone, domain_type* domain, hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime);
+ods_status rrset_sign(zone_type* zone, names_view_type view, domain_type* domain, hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime);
 
 /**
  * Obtain a resource record (containing a signature of a dnskeyset or

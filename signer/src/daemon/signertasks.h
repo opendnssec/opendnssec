@@ -41,6 +41,7 @@ struct worker_context {
     fifoq_type* signq;
     time_t clock_in;
     zone_type* zone;
+    names_view_type* view;
 };
 
 void drudge(worker_type* worker);

@@ -73,6 +73,10 @@ namedb_update_serial(zone_type* db, const char* zone_name, const char* format,
             format);
         return ODS_STATUS_ERR;
     }
+    if(db->outboundserial) {
+        free(db->outboundserial);
+    }
+    db->outboundserial = malloc(sizeof(uint32_t));
     *db->outboundserial = soa;
     return ODS_STATUS_OK;
 }
@@ -247,10 +251,12 @@ namedb_nsecify(zone_type* zone, names_view_type view, uint32_t* num_added)
     
     names_firstdenials(view,&iter);
     if(names_iterate(&iter,&domain)) {
+        if(domain->denial == NULL)
+            domain->denial = namedb_add_denial(zone, view, domain->dname, NULL);
         nextname = domain->denial->dname;
         names_end(&iter);
         for(names_reversedenials(view,&iter); names_iterate(&iter,&domain); names_advance(&iter, NULL)) {
-                    denial_nsecify(zone, domain, nextname, &nsec_added);
+                    denial_nsecify(zone, view, domain, nextname, &nsec_added);
                     nextname = domain->denial->dname;
         }
     } else
@@ -258,75 +264,6 @@ namedb_nsecify(zone_type* zone, names_view_type view, uint32_t* num_added)
     if (num_added) {
         *num_added = nsec_added;
     }
-}
-
-
-/**
- * Examine updates to db.
- *
- */
-ods_status
-namedb_examine(names_view_type view)
-{
-    ods_status status = ODS_STATUS_OK;
-    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
-    domain_type* domain = NULL;
-    rrset_type* rrset = NULL;
-    int soa_seen = 0;
-/*
-    ldns_rr_type dstatus = LDNS_RR_TYPE_FIRST;
-    ldns_rr_type delegpt = LDNS_RR_TYPE_FIRST;
-*/
-    names_iterator iter;
-    for(names_alldomains(view,&iter); names_iterate(&iter,&domain); names_advance(&iter, NULL)) {
-        rrset = domain_lookup_rrset(domain, LDNS_RR_TYPE_CNAME);
-        if (rrset) {
-            /* Thou shall not have other data next to CNAME */
-            if (domain_count_rrset_is_added(domain) > 1 &&
-                rrset_count_rr_is_added(rrset) > 0) {
-                log_rrset(domain->dname, rrset->rrtype,
-                    "CNAME and other data at the same name", LOG_ERR);
-                return ODS_STATUS_CONFLICT_ERR;
-            }
-            /* Thou shall have at most one CNAME per name */
-            if (rrset_count_rr_is_added(rrset) > 1) {
-                log_rrset(domain->dname, rrset->rrtype,
-                    "multiple CNAMEs at the same name", LOG_ERR);
-                return ODS_STATUS_CONFLICT_ERR;
-            }
-        }
-        rrset = domain_lookup_rrset(domain, LDNS_RR_TYPE_DNAME);
-        if (rrset) {
-            /* Thou shall have at most one DNAME per name */
-            if (rrset_count_rr_is_added(rrset) > 1) {
-                log_rrset(domain->dname, rrset->rrtype,
-                    "multiple DNAMEs at the same name", LOG_ERR);
-                return ODS_STATUS_CONFLICT_ERR;
-            }
-        }
-        if (!soa_seen && domain->is_apex) {
-            rrset = domain_lookup_rrset(domain, LDNS_RR_TYPE_SOA);
-            if (rrset) {
-                /* Thou shall have one and only one SOA */
-                if (rrset_count_rr_is_added(rrset) != 1) {
-                    log_rrset(domain->dname, rrset->rrtype,
-                        "Wrong number of SOA records, should be 1", LOG_ERR);
-                    return ODS_STATUS_CONFLICT_ERR;
-                }
-            } else {
-                log_rrset(domain->dname, LDNS_RR_TYPE_SOA, "missing SOA RRset",
-                    LOG_ERR);
-                return ODS_STATUS_CONFLICT_ERR;
-            }
-        }
-/*
-        dstatus = domain_is_occluded(domain);
-        delegpt = domain_is_delegpt(domain);
-*/
-        /* Thou shall not have occluded data in your zone file */
-        node = ldns_rbtree_next(node);
-    }
-    return status;
 }
 
 
@@ -349,7 +286,6 @@ namedb_wipe_denial(zone_type* zone, names_view_type view)
         for(names_reversedenials(view,&iter); names_iterate(&iter,&denial); names_advance(&iter, NULL)) {
           if (denial->rrset) {
             for (i=0; i < denial->rrset->rr_count; i++) {
-                denial->rrset->rrs[i].exists = 0;
                 rrset_del_rr(denial->rrset, i);
                 i--;
             }

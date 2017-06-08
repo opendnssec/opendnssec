@@ -108,7 +108,7 @@ zone_create(char* name, ldns_rr_class klass)
     }
     zone->stats = stats_create();
     zone->rrstore = rrset_store_initialize();
-    names_create(&zone->namedb);
+    names_create(&zone->namedb, zone->apex);
     return zone;
 }
 
@@ -233,7 +233,7 @@ zone_publish_dnskeys(zone_type* zone, names_view_type view, int skip_hsm_access)
             status = zone_add_rr(zone, view, zone->signconf->keys->keys[i].dnskey, 0);
             if (status == ODS_STATUS_UNCHANGED) {
                 /* rr already exists, adjust pointer */
-                rrset = zone_lookup_rrset(view, LDNS_RR_TYPE_DNSKEY);
+                rrset = zone_lookup_apex_rrset(view, LDNS_RR_TYPE_DNSKEY);
                 ods_log_assert(rrset);
                 dnskey = rrset_lookup_rr(rrset,
                     zone->signconf->keys->keys[i].dnskey);
@@ -381,10 +381,9 @@ zone_update_serial(zone_type* zone, names_view_type view)
     ods_log_assert(zone->name);
     ods_log_assert(zone->signconf);
 
-    rrset = zone_lookup_rrset(view, LDNS_RR_TYPE_SOA);
+    rrset = zone_lookup_apex_rrset(view, LDNS_RR_TYPE_SOA);
     if (!rrset || !rrset->rrs || !rrset->rrs[0].rr) {
-        ods_log_error("[%s] unable to update zone %s soa serial: failed to "
-            "find soa rrset", zone_str, zone->name);
+        ods_log_error("[%s] unable to update zone %s soa serial: failed to find soa rrset", zone_str, zone->name);
         return ODS_STATUS_ERR;
     }
     ods_log_assert(rrset);
@@ -432,10 +431,14 @@ zone_update_serial(zone_type* zone, names_view_type view)
  *
  */
 rrset_type*
-zone_lookup_rrset(names_view_type view, ldns_rr_type type)
+zone_lookup_apex_rrset(names_view_type view, ldns_rr_type type)
 {
     domain_type* domain = NULL;
     if (!type) {
+        return NULL;
+    }
+    domain = names_lookupapex(view);
+    if (domain == NULL) {
         return NULL;
     }
     return domain_lookup_rrset(domain, type);
@@ -496,14 +499,11 @@ zone_add_rr(zone_type* zone, names_view_type view, ldns_rr* rr, int do_stats)
         record = NULL;
 
     if (record) {
-        record->is_added = 1; /* already exists, just mark added */
-        record->is_removed = 0; /* unset is_removed */
         return ODS_STATUS_UNCHANGED;
     } else {
         record = rrset_add_rr(rrset, rr);
         ods_log_assert(record);
         ods_log_assert(record->rr);
-        ods_log_assert(record->is_added);
         if (ldns_rr_ttl(rr) != ldns_rr_ttl(rrset->rrs[0].rr)) {
             str = ldns_rr2str(rr);
             str[(strlen(str)) - 1] = '\0';
@@ -558,8 +558,6 @@ zone_del_rr(zone_type* zone, names_view_type view, ldns_rr* rr, int do_stats)
         return ODS_STATUS_UNCHANGED;
     }
 
-    record->is_removed = 1;
-    record->is_added = 0; /* unset is_added */
     /* update stats */
     if (do_stats && zone->stats) {
         zone->stats->sort_count -= 1;
@@ -596,13 +594,6 @@ zone_del_nsec3params(zone_type* zone, names_view_type view)
         return ODS_STATUS_UNCHANGED;
     }
 
-    /* We don't actually delete the record as we still need the
-     * information in the IXFR. Just set it as removed. The code
-     * inserting the new record may flip this flag when the record
-     * hasn't changed. */
-    for (i=0; i < rrset->rr_count; i++) {
-        rrset->rrs[i].is_removed = 1;
-    }
     return ODS_STATUS_OK;
 }
 

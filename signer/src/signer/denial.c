@@ -64,7 +64,7 @@ denial_create(zone_type* zone, ldns_rdf* dname)
  *
  */
 static void
-denial_create_bitmap(domain_type* domain, denial_type* denial, ldns_rr_type types[],
+denial_create_bitmap(names_view_type view, domain_type* domain, denial_type* denial, ldns_rr_type types[],
     size_t* types_count)
 {
     rrset_type* rrset = NULL;
@@ -73,10 +73,10 @@ denial_create_bitmap(domain_type* domain, denial_type* denial, ldns_rr_type type
 
     rrset = domain->rrsets;
     while (rrset) {
-        ldns_rr_type dstatus = domain_is_occluded(domain);
+        ldns_rr_type dstatus = domain_is_occluded(view, domain);
         if (dstatus == LDNS_RR_TYPE_SOA) {
             /* Authoritative or delegation */
-            dstatus = domain_is_delegpt(domain);
+            dstatus = domain_is_delegpt(view, domain);
             if (dstatus == LDNS_RR_TYPE_SOA ||
                 rrset->rrtype == LDNS_RR_TYPE_NS ||
                 rrset->rrtype == LDNS_RR_TYPE_DS) {
@@ -135,7 +135,7 @@ denial_create_nsec3_nxt(ldns_rdf* nxt)
  *
  */
 static ldns_rr*
-denial_create_nsec(domain_type* domain, ldns_rdf* nxt, uint32_t ttl,
+denial_create_nsec(names_view_type view, domain_type* domain, ldns_rdf* nxt, uint32_t ttl,
     ldns_rr_class klass, nsec3params_type* n3p)
 {
     ldns_rr* nsec_rr = NULL;
@@ -189,11 +189,11 @@ denial_create_nsec(domain_type* domain, ldns_rdf* nxt, uint32_t ttl,
     }
     ldns_rr_push_rdf(nsec_rr, rdf);
     /* Type Bit Maps */
-    denial_create_bitmap(domain, domain->denial, types, &types_count);
+    denial_create_bitmap(view, domain, domain->denial, types, &types_count);
     if (n3p) {
-        dstatus = domain_is_occluded(domain);
+        dstatus = domain_is_occluded(view, domain);
         if (dstatus == LDNS_RR_TYPE_SOA) {
-            dstatus = domain_is_delegpt(domain);
+            dstatus = domain_is_delegpt(view, domain);
             if (dstatus != LDNS_RR_TYPE_NS && domain->rrsets) {
                  /* Authoritative domain, not empty: add RRSIGs */
                  types[types_count] = LDNS_RR_TYPE_RRSIG;
@@ -253,13 +253,16 @@ denial_add_rr(zone_type* zone, denial_type* denial, ldns_rr* rr)
  *
  */
 void
-denial_nsecify(zone_type* zone, domain_type* domain, ldns_rdf* nxt, uint32_t* num_added)
+denial_nsecify(zone_type* zone, names_view_type view, domain_type* domain, ldns_rdf* nxt, uint32_t* num_added)
 {
     ldns_rr* nsec_rr = NULL;
     uint32_t ttl = 0;
     ods_log_assert(nxt);
     ods_log_assert(zone);
     ods_log_assert(zone->signconf);
+    if (!domain->denial) {
+        domain->denial = namedb_add_denial(zone, view, domain->dname, NULL);
+    }
     if (domain->denial->changed) {
         ttl = zone->default_ttl;
         /* SOA MINIMUM */
@@ -267,7 +270,7 @@ denial_nsecify(zone_type* zone, domain_type* domain, ldns_rdf* nxt, uint32_t* nu
             ttl = (uint32_t) duration2time(zone->signconf->soa_min);
         }
         /* create new NSEC(3) rr */
-        nsec_rr = denial_create_nsec(domain, nxt, ttl, zone->klass,
+        nsec_rr = denial_create_nsec(view, domain, nxt, ttl, zone->klass,
             zone->signconf->nsec3params);
         if (!nsec_rr) {
             ods_fatal_exit("[%s] unable to nsecify: denial_create_nsec() "

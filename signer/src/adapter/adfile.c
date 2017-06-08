@@ -278,12 +278,8 @@ adfile_read_file(FILE* fd, zone_type* zone, names_view_type view)
     }
     /* input zone ok, set inbound serial and apply differences */
     if (result == ODS_STATUS_OK) {
-        result = namedb_examine(view);
-        if (result != ODS_STATUS_OK) {
-            ods_log_error("[%s] unable to read file: zonefile contains errors",
-                adapter_str);
-            return result;
-        }
+        free(zone->inboundserial);
+        zone->inboundserial = malloc(sizeof(uint32_t));
         *zone->inboundserial = new_serial;
     }
     return result;

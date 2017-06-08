@@ -166,7 +166,7 @@ ods_status zone_update_serial(zone_type* zone, names_view_type view);
  * \return rrset_type* RRset, if found
  *
  */
-rrset_type* zone_lookup_rrset(names_view_type view, ldns_rr_type type);
+rrset_type* zone_lookup_apex_rrset(names_view_type view, ldns_rr_type type);
 
 /**
  * Add RR.

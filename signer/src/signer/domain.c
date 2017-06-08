@@ -109,29 +109,6 @@ domain_create(ldns_rdf* dname)
 
 
 /**
- * Count the number of RRsets at this domain with RRs that have is_added.
- *
- */
-size_t
-domain_count_rrset_is_added(domain_type* domain)
-{
-    rrset_type* rrset = NULL;
-    size_t count = 0;
-    if (!domain) {
-        return 0;
-    }
-    rrset = domain->rrsets;
-    while (rrset) {
-        if (rrset_count_rr_is_added(rrset)) {
-            count++;
-        }
-        rrset = rrset->next;
-    }
-    return count;
-}
-
-
-/**
  * Look up RRset at this domain.
  *
  */
@@ -184,7 +161,7 @@ domain_add_rrset(domain_type* domain, rrset_type* rrset)
  *
  */
 ldns_rr_type
-domain_is_delegpt(domain_type* domain)
+domain_is_delegpt(names_view_type view, domain_type* domain)
 {
     ods_log_assert(domain);
     if (domain->is_apex) {
@@ -209,7 +186,7 @@ domain_is_delegpt(domain_type* domain)
  *
  */
 ldns_rr_type
-domain_is_occluded(domain_type* domain)
+domain_is_occluded(names_view_type view, domain_type* domain)
 {
     names_iterator iter;
     domain_type* parent = NULL;
@@ -217,7 +194,7 @@ domain_is_occluded(domain_type* domain)
     if (domain->is_apex) {
         return LDNS_RR_TYPE_SOA;
     }
-    for(names_parentdomains(NULL,domain,&iter); names_iterate(&iter, &parent); names_advance(&iter,NULL)) {
+    for(names_parentdomains(view,domain,&iter); names_iterate(&iter, &parent); names_advance(&iter,NULL)) {
         if (domain_lookup_rrset(parent, LDNS_RR_TYPE_NS)) {
             /* Glue / Empty non-terminal to Glue */
             names_end(&iter);

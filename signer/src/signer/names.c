@@ -8,6 +8,32 @@
 #include "names.h"
 #include "domain.h"
 
+struct tree {
+    struct node* parent;
+    struct node* left;
+    struct node* right;
+};
+
+typedef int (*indexfunc)(ldns_rdf*,ldns_rdf*);
+
+struct index {
+    struct node* root;
+    indexfunc cmpfn;
+    size_t offset;
+    int indexnum;
+};
+
+void initializeindex(struct index*, int, indexfunc, size_t offset);
+void freeindex(struct index*);
+void deleteindex(struct index*, struct node*);
+void insertindex(struct index*, struct node*);
+struct node* firstindex(struct index*);
+struct node* lastindex(struct index*);
+struct node* nextindex(struct index*, struct node*);
+struct node* previousindex(struct index*, struct node*);
+struct node* searchindex(struct index* index, ldns_rdf* key);
+struct node* advanceindex(struct index*, struct node*);
+
 struct names_view_struct {
     uint32_t serial;
     ldns_rdf* apex;
@@ -16,14 +42,6 @@ struct names_view_struct {
 
 struct names_source_struct {
     struct names_view_struct view;
-};
-
-typedef int (*indexfunc)(ldns_rdf*, ldns_rdf*);
-
-struct index {
-    ldns_rbtree_t* tree;
-    size_t offset;
-    indexfunc cmpfn;
 };
 
 int compare(const void* a, const void* b)
@@ -41,15 +59,15 @@ struct datastructure {
 
 struct names_iterator_struct {
     struct datastructure* dbase;
-    ldns_rbnode_t* cursor;
-    ldns_rbnode_t* next;
-    int indexnum;
-    int reverse;
+    struct node* cursor;
+    struct node* next;
+    struct index* index;
+    struct node* (*advance)(struct index*, struct node*);
 };
 
 struct node {
     domain_type* data;
-    struct ldns_rbnode_t nodes; /* first node of a number of nodes */
+    struct tree nodes; /* first node of a number of nodes */
 };
 
 void
@@ -81,9 +99,7 @@ create(struct datastructure** dbase, ...)
     for(i=0; i<nindices; i++) {
         cmpfn = va_arg(ap, indexfunc);
         offset = va_arg(ap, size_t);
-        indices[i].cmpfn = cmpfn;
-        indices[i].offset = offset;
-        indices[i].tree = ldns_rbtree_create(cmpfn);
+        initializeindex(&(indices[i]), i, cmpfn, offset);
     }
     va_end(ap);
 }
@@ -93,44 +109,43 @@ destroy(struct datastructure* dbase)
 {
     int i;
     struct index* indices;
-    indices = &dbase->indices;
+    indices = &(dbase->indices);
     for(i=0; i<dbase->nindices; i++) {
-        ldns_rbtree_free(indices[i].tree);
+        freeindex(&(indices[i]));
     }
     free(dbase);
 }
 
 void
-insert(struct datastructure* dbase, void* data)
+insert(struct datastructure* dbase, domain_type* data)
 {
     int i;
     struct node* node;
     struct index* indices;
-    struct ldns_rbnode_t* nodes;
-    indices = &dbase->indices;
+    assert(data);
+    indices = &(dbase->indices);
     node = malloc(sizeof(struct node)+sizeof(ldns_rbnode_t)*(dbase->nindices-1));
-    nodes = &node->nodes;
     node->data = data;
     for(i=0; i<dbase->nindices; i++) {
-        nodes[i].key = &((char*)(node->data))[indices[i].offset];
-        nodes[i].data = node;
-        ldns_rbtree_insert(indices[i].tree,&nodes[i]);
+        insertindex(&(indices[i]), node);
     }
+}
+
+struct tree*
+node2tree(struct index* index,struct node* node)
+{
+    struct tree* trees = &(node->nodes);
+    return &trees[index->indexnum];
 }
 
 void
 names_delete(names_iterator*iter)
 {
-    struct ldns_rbnode_t* next;
-    struct index* indices;
-    struct ldns_rbnode_t* nodes;
-    indices = &(*iter)->dbase->indices;
-    if ((*iter)->reverse) {
-        (*iter)->next = ldns_rbtree_previous((*iter)->cursor);
-    } else {
-        (*iter)->next = ldns_rbtree_next((*iter)->cursor);
+    int i;
+    (*iter)->next = (*iter)->advance((*iter)->index, (*iter)->cursor);
+    for(i=0; i<(*iter)->dbase->nindices; i++) {
+        deleteindex((*iter)->index, (*iter)->cursor);
     }
-    ldns_rbtree_delete(indices[(*iter)->indexnum].tree, (*iter)->cursor->key);
     (*iter)->cursor = NULL;
 }
 
@@ -145,16 +160,17 @@ int
 names_createiterator(struct datastructure*dbase, names_iterator* iter, int indexnum, int reverse)
 {
     struct index* indices;
-    indices = &dbase->indices;
-    *iter = malloc(sizeof(names_iterator));
+    indices = &(dbase->indices);
+    *iter = malloc(sizeof(struct names_iterator_struct));
     (*iter)->dbase = dbase;
-    (*iter)->indexnum = indexnum;
-    (*iter)->reverse = reverse;
+    (*iter)->index = &(indices[indexnum]);
     (*iter)->next = NULL;
     if (reverse) {
-        (*iter)->cursor = ldns_rbtree_last(indices[indexnum].tree);
+        (*iter)->cursor = lastindex(&(indices[indexnum]));
+        (*iter)->advance = previousindex;
     } else {
-        (*iter)->cursor = ldns_rbtree_first(indices[indexnum].tree);
+        (*iter)->cursor = firstindex(&(indices[indexnum]));
+        (*iter)->advance = nextindex;
     }
     return 0;
 }
@@ -167,7 +183,7 @@ names_iterate(names_iterator*iter, void*arg)
             *(void**)arg = NULL;
         return 0;
     }
-    if((*iter)->cursor == NULL || (*iter)->cursor == LDNS_RBTREE_NULL) {
+    if((*iter)->cursor == NULL) {
         if(arg != NULL)
             *(void**)arg = NULL;
         names_end(iter);
@@ -182,18 +198,14 @@ names_iterate(names_iterator*iter, void*arg)
 int
 names_advance(names_iterator*iter, void*arg)
 {
-    struct ldns_rbnode_t* next;
-    if((*iter)->next != NULL && (*iter)->next != LDNS_RBTREE_NULL) {
+    struct node* next;
+    if((*iter)->next != NULL) {
         next = (*iter)->next;
         (*iter)->next = NULL;
     } else {
-        if ((*iter)->reverse) {
-            next = ldns_rbtree_previous((*iter)->cursor);
-        } else {
-            next = ldns_rbtree_next((*iter)->cursor);
-        }
+        next = (*iter)->advance((*iter)->index, (*iter)->cursor);
     }
-    if(next == NULL || next == LDNS_RBTREE_NULL) {
+    if(next == NULL) {
         if(arg != NULL)
             *(void**)arg = NULL;
         names_end(iter);
@@ -203,7 +215,7 @@ names_advance(names_iterator*iter, void*arg)
     if(arg != NULL) {
         *(void**)arg = (void*) (*iter)->cursor->data;
     }
-    return 0;
+    return 1;
 }
 
 int
@@ -215,10 +227,11 @@ names_end(names_iterator*iter)
 }
 
 int
-names_create(names_source_type*arg)
+names_create(names_source_type*arg, ldns_rdf* apex)
 {
     *arg = malloc(sizeof(struct names_source_struct));
     (*arg)->view.serial = 0;
+    (*arg)->view.apex = ldns_rdf_clone(apex);
     create(&(*arg)->view.dbase, compare, offsetof(struct domain_struct, dname), NULL);
     return 0;
 }
@@ -227,6 +240,7 @@ void
 names_destroy(names_source_type source)
 {
     names_clear(source);
+    ldns_rdf_free(source->view.apex);
     free(source);
 }
 
@@ -282,50 +296,229 @@ names_setserial(names_view_type view, uint32_t serial)
 }
 
 int
-names_firstdenials(names_view_type view,names_iterator*iter)
+names_firstdenials(names_view_type view, names_iterator*iter)
 {
     return names_createiterator(view->dbase, iter, 0, 0);
 }
 
 int
-names_reversedenials(names_view_type view,names_iterator*iter)
+names_reversedenials(names_view_type view, names_iterator*iter)
 {
     return names_createiterator(view->dbase, iter, 0, 0);
 }
 
 int
-names_alldomains(names_view_type view,names_iterator*iter)
+names_alldomains(names_view_type view, names_iterator*iter)
 {
-    return names_createiterator(view->dbase, iter, 0, 0);
+    return names_createiterator(view->dbase, iter, 0, 1);
+}
+
+struct node*
+nextparent(struct index* index, struct node* node)
+{
+    return (&(node->nodes))[index->indexnum].parent;
 }
 
 int
-names_parentdomains(names_view_type view,void* domain,names_iterator*iter)
+names_parentdomains(names_view_type view, domain_type* domain, names_iterator* iter)
 {
-    return names_createiterator(view->dbase, iter, 0, 0);
+    /* horrible implementation */
+    int indexnum = 0;
+    struct node* node;
+    struct index* indices;
+    struct index* index;
+
+    indices = &(view->dbase->indices);
+    index = &(indices[indexnum]);
+    node = searchindex(index, domain->dname);
+
+    names_createiterator(view->dbase, iter, 0, 0);
+    (*iter)->advance = nextparent;
+    (*iter)->cursor = node;
+
+    return 0;
 }
 
 domain_type*
 names_lookupname(names_view_type view, ldns_rdf* name)
 {
-    ldns_rbnode_t* search;
-    const struct node* node;
-    assert(view->dbase->indices.tree != NULL);
-    assert(name != NULL);
-    search = ldns_rbtree_search(view->dbase->indices.tree, name);
-    if (search != NULL && search != LDNS_RBTREE_NULL) {
-        node = search->data;
-        return node->data;
-    } else {
-        return NULL;
-    }
+    int indexnum = 0;
+    struct node* node;
+    struct index* indices;
+    struct index* index;
+    indices = &(view->dbase->indices);
+    index = &(indices[indexnum]);
+    node = searchindex(index, name);
+    return (node ? node->data : NULL);
+} 
+
+domain_type*
+names_lookupapex(names_view_type view)
+{
+    return names_lookupname(view, view->apex);
+}
+
+struct node*
+searchindex(struct index* index, ldns_rdf* key)
+{
+    int c;
+    struct node* n;
+    const char *s;
+    n = index->root;
+    do {
+        if (n != NULL) {
+            /*s = (const char*) n->data;
+            s = &(s[index->offset]);
+            c = index->cmpfn(s, key);*/
+            c = index->cmpfn(key, n->data->dname);
+            if (c<0) {
+                n = node2tree(index, n)->left;
+            } else if(c>0) {
+                n = node2tree(index, n)->right;
+            } else {
+                return n;
+            }
+        }
+    } while(n != NULL);
+    return NULL;
 }
 
 domain_type*
 names_addname(names_view_type view, ldns_rdf* name)
 {
+    domain_type* domain;
     assert(name != NULL);
-    domain_type* domain = domain_create(name);
+    assert(name->_type == LDNS_RDF_TYPE_DNAME);
+    domain = domain_create(name);
     insert(view->dbase, domain);
     return domain;
+}
+
+void initializeindex(struct index* index, int indexnum, indexfunc cmpfn, size_t offset)
+{
+    index->cmpfn = cmpfn;
+    index->offset = offset;
+    index->indexnum = indexnum;
+    index->root = NULL;
+}
+
+void freeindex(struct index* index)
+{
+}
+
+void deleteindex(struct index* index, struct node* node)
+{
+    struct tree* tree = node2tree(index, node);
+    struct tree* parent = node2tree(index, tree->parent);
+    if(parent != NULL) {
+        if(parent->left == node) {
+            parent->left = tree->left;
+        } else {
+            assert(parent->right == node);
+            parent->right = tree->left;
+        }
+        node2tree(index, tree->left)->parent = tree->parent;
+    } else {
+        index->root = tree->left;
+        node2tree(index, tree->left)->parent = NULL;
+    }
+    tree->parent = NULL;
+    node = tree->left;
+    while(node2tree(index, node)->right != NULL) {
+        node = node2tree(index, node)->right;
+    }
+    node2tree(index, node)->right = tree->right;
+    node2tree(index, tree->right)->parent = node;
+}
+
+
+void
+insertindex(struct index* index, struct node* node)
+{
+    int c;
+    struct node* parent = NULL;
+    struct node** n = &index->root;
+    while (*n) {
+        parent = *n;
+        /*c = index->cmpfn(&( ((const char*)(node->data))[index->offset]),
+                         &( ((const char*)(parent->data))[index->offset]));*/
+        c = index->cmpfn(node->data->dname, parent->data->dname);
+        if (c < 0) {
+            n = &(node2tree(index, parent)->left);
+        } else if (c > 0) {
+            n = &(node2tree(index, parent)->right);
+        } else {
+            assert(0);
+        }
+    }
+    *n = node;
+    assert(node);
+    assert(node2tree(index, node));
+    node2tree(index, node)->parent = parent;
+    node2tree(index, node)->left = NULL;
+    node2tree(index, node)->right = NULL;
+}
+
+struct node*
+firstindex(struct index* index)
+{
+    struct node* node = index->root;
+    while(node2tree(index, node)->left) {
+        node = node2tree(index, node)->left;
+    }
+    return node;   
+}
+
+struct node*
+lastindex(struct index* index)
+{
+    struct node* node = index->root;
+    while(node2tree(index, node)->right) {
+        node = node2tree(index, node)->right;
+    }
+    return node;   
+}
+
+struct node*
+nextindex(struct index* index, struct node* node)
+{
+    struct node* parent;
+    struct tree* tree = node2tree(index, node);
+    if (tree->right != NULL) {
+        node = tree->right;
+        while (node2tree(index, node)->left) {
+            node = node2tree(index, node)->left;
+        }
+    } else {
+        parent = tree->parent;
+        while(parent && node2tree(index, parent)->right == node) {
+            node = parent;
+            tree = node2tree(index, parent);
+            parent = tree->parent;
+        }
+        node = parent;
+    }
+    return node;
+}
+
+struct node*
+previousindex(struct index* index, struct node* node)
+{
+    struct node* parent;
+    struct tree* tree = node2tree(index, node);
+    if (tree->left != NULL) {
+        node = tree->left;
+        while (node2tree(index, node)->right) {
+            node = node2tree(index, node)->right;
+        }
+    } else {
+        parent = tree->parent;
+        while(parent && node2tree(index, parent)->left == node) {
+            node = parent;
+            tree = node2tree(index, parent);
+            parent = tree->parent;
+        }
+        node = parent;
+    }
+    return node;
 }

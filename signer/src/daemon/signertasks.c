@@ -121,13 +121,13 @@ signdomain(struct worker_context* superior, hsm_ctx_t* ctx, domain_type* domain)
     ods_log_assert(domain);
     rrset = domain->rrsets;
     while (rrset) {
-        if((status = rrset_sign(superior->zone, domain, ctx, rrset, superior->clock_in)) != ODS_STATUS_OK)
+        if((status = rrset_sign(superior->zone, superior->view, domain, ctx, rrset, superior->clock_in)) != ODS_STATUS_OK)
             return status;
         rrset = rrset->next;
     }
     denial = (denial_type*) domain->denial;
     if (denial && denial->rrset) {
-        if((status = rrset_sign(superior->zone, domain, ctx, denial->rrset, superior->clock_in)) != ODS_STATUS_OK)
+        if((status = rrset_sign(superior->zone, superior->view, domain, ctx, denial->rrset, superior->clock_in)) != ODS_STATUS_OK)
             return status;
     }
     return ODS_STATUS_OK;
@@ -266,10 +266,13 @@ do_signzone(task_type* task, const char* zonename, void* zonearg, void *contexta
     time_t end = 0;
     long nsubtasks = 0;
     long nsubtasksfailed = 0;
-    context->clock_in = time_now();
-    context->zone = zone;
     
     names_view(zone->namedb, &view);
+
+    context->clock_in = time_now();
+    context->zone = zone;
+    context->view = view; 
+
     status = zone_update_serial(zone, view);
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] unable to sign zone %s: failed to increment serial", worker->name, task->owner);

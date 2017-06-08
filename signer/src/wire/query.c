@@ -567,20 +567,20 @@ query_response(names_view_type view, query_type* q, ldns_rr_type qtype)
         return QUERY_DISCARDED;
     }
     r.rrset_count = 0;
-    rrset = zone_lookup_rrset(view, qtype);
+    rrset = zone_lookup_apex_rrset(view, qtype);
     if (rrset) {
         if (!response_add_rrset(&r, rrset, LDNS_SECTION_ANSWER)) {
             return query_servfail(q);
         }
         /* NS RRset goes into Authority Section */
-        rrset = zone_lookup_rrset(view, LDNS_RR_TYPE_NS);
+        rrset = zone_lookup_apex_rrset(view, LDNS_RR_TYPE_NS);
         if (rrset) {
             if (!response_add_rrset(&r, rrset, LDNS_SECTION_AUTHORITY)) {
                 return query_servfail(q);
             }
         } /* else: not having NS RRs is not fatal  */
     } else if (qtype != LDNS_RR_TYPE_SOA) {
-        rrset = zone_lookup_rrset(view, LDNS_RR_TYPE_SOA);
+        rrset = zone_lookup_apex_rrset(view, LDNS_RR_TYPE_SOA);
         if (!rrset) {
             return query_servfail(q);
         }

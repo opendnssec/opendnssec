@@ -368,7 +368,7 @@ adapi_printaxfr(FILE* fd, zone_type* zone, names_view_type view)
     }
     namedb_export(fd, view, &status);
     if (status == ODS_STATUS_OK) {
-        rrset = zone_lookup_rrset(view, LDNS_RR_TYPE_SOA);
+        rrset = zone_lookup_apex_rrset(view, LDNS_RR_TYPE_SOA);
         ods_log_assert(rrset);
         rrset_print(fd, rrset, 1, &status);
     }
