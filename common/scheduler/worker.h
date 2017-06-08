@@ -35,8 +35,6 @@
 #include "janitor.h"
 #include "scheduler/task.h"
 
-//~ #include <time.h>
-
 struct engine_struct;
 
 typedef struct worker_struct worker_type;

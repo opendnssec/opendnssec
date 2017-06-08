@@ -195,6 +195,8 @@ interface_start(const char* cmd, const char* servsock_filename)
     int sockfd, flags, exitcode = 0;
     int ret, n, r, error = 0, inbuf_pos = 0;
     char userbuf[ODS_SE_MAXLINE], inbuf[ODS_SE_MAXLINE];
+    pid_t pid;
+    int time;
 
     assert(servsock_filename);
 
@@ -348,9 +350,9 @@ interface_start(const char* cmd, const char* servsock_filename)
         FILE *cmd2 = popen("pgrep ods-signerd","r");
         fgets(line, 80, cmd2);
         (void) pclose(cmd2);
-        pid_t pid = strtoul(line, NULL, 10);
+        pid = strtoul(line, NULL, 10);
         fprintf(stdout, "pid %d\n", pid);
-        int time = 0;
+        time = 0;
         error = 0;
         while (pid > 0) {
            if(kill(pid, 0) == 0){

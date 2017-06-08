@@ -309,6 +309,7 @@ engine_setup_initialize(engine_type* engine, int* fdptr)
     int pipefd[2];
     char buff = '\0';
     int fd, error;
+    const char *err = "unable to setsid daemon: ";
 
     ods_log_debug("[%s] setup signer engine", engine_str);
     if (!engine || !engine->config) {
@@ -398,7 +399,6 @@ engine_setup_initialize(engine_type* engine, int* fdptr)
         if (setsid() == -1) {
             ods_log_error("[%s] setup: unable to setsid daemon (%s)",
                 engine_str, strerror(errno));
-            const char *err = "unable to setsid daemon: ";
             ods_writen(pipefd[1], err, strlen(err));
             ods_writeln(pipefd[1], strerror(errno));
             write(pipefd[1], "\0", 1);

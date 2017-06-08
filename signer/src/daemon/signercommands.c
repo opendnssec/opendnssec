@@ -294,6 +294,7 @@ forceread(engine_type* engine, zone_type *zone, int force_serial, uint32_t seria
 static int
 cmdhandler_handle_cmd_sign(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 {
+    ldns_rbnode_t* node;
     engine_type* engine;
     zone_type *zone = NULL;
     ods_status status = ODS_STATUS_OK;
@@ -303,7 +304,6 @@ cmdhandler_handle_cmd_sign(int sockfd, cmdhandler_ctx_type* context, const char 
     ods_log_assert(engine->taskq);
     if (cmdargument(cmd, "--all", NULL)) {
         pthread_mutex_lock(&engine->zonelist->zl_lock);
-        ldns_rbnode_t* node;
         for (node = ldns_rbtree_first(engine->zonelist->zones); node != LDNS_RBTREE_NULL && node != NULL; node = ldns_rbtree_next(node)) {
             zone = (zone_type*) node->data;
             forceread(engine, zone, 0, 0, sockfd);
