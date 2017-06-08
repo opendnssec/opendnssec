@@ -3,12 +3,14 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <stddef.h>
+#include <assert.h>
 #include <ldns/ldns.h>
 #include "names.h"
 #include "domain.h"
 
 struct names_view_struct {
     uint32_t serial;
+    ldns_rdf* apex;
     struct datastructure* dbase;
 };
 
@@ -16,12 +18,20 @@ struct names_source_struct {
     struct names_view_struct view;
 };
 
-typedef int (*indexfunc)(const void*, const void*);
+typedef int (*indexfunc)(ldns_rdf*, ldns_rdf*);
+
 struct index {
     ldns_rbtree_t* tree;
     size_t offset;
     indexfunc cmpfn;
 };
+
+int compare(const void* a, const void* b)
+{
+    const ldns_rdf* dname1 = (const ldns_rdf *) a;
+    const ldns_rdf* dname2 = (const ldns_rdf *) b;
+    return ldns_dname_compare(a, b);
+}
 
 struct datastructure {
     int counter;
@@ -31,8 +41,8 @@ struct datastructure {
 
 struct names_iterator_struct {
     struct datastructure* dbase;
-    struct ldns_rbnode_t* cursor;
-    struct ldns_rbnode_t* next;
+    ldns_rbnode_t* cursor;
+    ldns_rbnode_t* next;
     int indexnum;
     int reverse;
 };
@@ -48,6 +58,7 @@ create(struct datastructure** dbase, ...)
     va_list ap;
     struct index* indices;
     indexfunc cmpfn;
+    size_t offset;
     int nindices, i;
 
     va_start(ap, dbase);
@@ -56,16 +67,22 @@ create(struct datastructure** dbase, ...)
     while(cmpfn != NULL) {
         va_arg(ap, size_t);
         cmpfn = va_arg(ap, indexfunc);
+        ++nindices;
     }
     va_end(ap);
+    if(nindices == 0)
+        abort();
         
     *dbase = malloc(sizeof(struct datastructure)+sizeof(struct index)*(nindices-1));
     (*dbase)->counter = 0;
     (*dbase)->nindices = nindices;
-    indices = &(*dbase)->indices;
-    for(int i=0; i<nindices; i++) {
-        indices[i].cmpfn = va_arg(ap, indexfunc);
-        indices[i].offset = va_arg(ap, size_t);
+    indices = &((*dbase)->indices);
+    va_start(ap, dbase);
+    for(i=0; i<nindices; i++) {
+        cmpfn = va_arg(ap, indexfunc);
+        offset = va_arg(ap, size_t);
+        indices[i].cmpfn = cmpfn;
+        indices[i].offset = offset;
         indices[i].tree = ldns_rbtree_create(cmpfn);
     }
     va_end(ap);
@@ -86,6 +103,7 @@ destroy(struct datastructure* dbase)
 void
 insert(struct datastructure* dbase, void* data)
 {
+    int i;
     struct node* node;
     struct index* indices;
     struct ldns_rbnode_t* nodes;
@@ -93,7 +111,7 @@ insert(struct datastructure* dbase, void* data)
     node = malloc(sizeof(struct node)+sizeof(ldns_rbnode_t)*(dbase->nindices-1));
     nodes = &node->nodes;
     node->data = data;
-    for(int i=0; i<dbase->nindices; i++) {
+    for(i=0; i<dbase->nindices; i++) {
         nodes[i].key = &((char*)(node->data))[indices[i].offset];
         nodes[i].data = node;
         ldns_rbtree_insert(indices[i].tree,&nodes[i]);
@@ -201,7 +219,7 @@ names_create(names_source_type*arg)
 {
     *arg = malloc(sizeof(struct names_source_struct));
     (*arg)->view.serial = 0;
-    create((*arg)->view.dbase, ldns_dname_compare, offsetof(struct domain_struct, dname));
+    create(&(*arg)->view.dbase, compare, offsetof(struct domain_struct, dname), NULL);
     return 0;
 }
 
@@ -292,6 +310,8 @@ names_lookupname(names_view_type view, ldns_rdf* name)
 {
     ldns_rbnode_t* search;
     const struct node* node;
+    assert(view->dbase->indices.tree != NULL);
+    assert(name != NULL);
     search = ldns_rbtree_search(view->dbase->indices.tree, name);
     if (search != NULL && search != LDNS_RBTREE_NULL) {
         node = search->data;
@@ -304,6 +324,7 @@ names_lookupname(names_view_type view, ldns_rdf* name)
 domain_type*
 names_addname(names_view_type view, ldns_rdf* name)
 {
+    assert(name != NULL);
     domain_type* domain = domain_create(name);
     insert(view->dbase, domain);
     return domain;

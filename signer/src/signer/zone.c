@@ -108,6 +108,7 @@ zone_create(char* name, ldns_rr_class klass)
     }
     zone->stats = stats_create();
     zone->rrstore = rrset_store_initialize();
+    names_create(&zone->namedb);
     return zone;
 }
 
