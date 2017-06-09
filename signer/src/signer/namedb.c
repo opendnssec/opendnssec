@@ -206,31 +206,23 @@ dname_hash(ldns_rdf* dname, ldns_rdf* apex, nsec3params_type* nsec3params)
  *
  */
 denial_type*
-namedb_add_denial(zone_type* zone, names_view_type view, ldns_rdf* dname, nsec3params_type* n3p)
+namedb_add_denial(zone_type* zone, names_view_type view, ldns_rdf* dname)
 {
-    zone_type* z = NULL;
-    ldns_rbnode_t* new_node = LDNS_RBTREE_NULL;
-    ldns_rbnode_t* pnode = LDNS_RBTREE_NULL;
-    ldns_rdf* owner = NULL;
-    denial_type* denial = NULL;
-    denial_type* pdenial = NULL;
-
-    ods_log_assert(dname);
-    /* nsec or nsec3 */
-    if (n3p) {
-        owner = dname_hash(dname, zone->apex, n3p);
-    } else {
-        owner = ldns_rdf_clone(dname);
-    }
-    if (!owner) {
-        ods_log_error("[%s] unable to add denial: create owner failed",
-            db_str);
-        return NULL;
-    }
-    denial = denial_create(zone, owner);
+    denial_type* denial;
+    denial = denial_create(zone, namedb_denialname(zone, dname));
     denial->changed = 1;
     /* BERRY mark previous node changed */
     return denial;
+}
+
+ldns_rdf*
+namedb_denialname(zone_type* zone, ldns_rdf* dname)
+{
+    if (zone->signconf->nsec3params) {
+        return dname_hash(dname, zone->apex, zone->signconf->nsec3params);
+    } else {
+        return ldns_rdf_clone(dname);
+    }   
 }
 
 
@@ -241,26 +233,24 @@ namedb_add_denial(zone_type* zone, names_view_type view, ldns_rdf* dname, nsec3p
 void
 namedb_nsecify(zone_type* zone, names_view_type view, uint32_t* num_added)
 {
-    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
-    ldns_rbnode_t* nxt_node = LDNS_RBTREE_NULL;
-    denial_type* nxt = NULL;
     domain_type* domain;
     names_iterator iter;
+    ldns_rdf* firstname;
     ldns_rdf* nextname;
     uint32_t nsec_added = 0;
     
     names_firstdenials(view,&iter);
-    if(names_iterate(&iter,&domain)) {
-        if(domain->denial == NULL)
-            domain->denial = namedb_add_denial(zone, view, domain->dname, NULL);
-        nextname = domain->denial->dname;
+    if (names_iterate(&iter,&domain)) {
+        nextname = firstname = namedb_denialname(zone, domain->dname);
         names_end(&iter);
-        for(names_reversedenials(view,&iter); names_iterate(&iter,&domain); names_advance(&iter, NULL)) {
-                    denial_nsecify(zone, view, domain, nextname, &nsec_added);
-                    nextname = domain->denial->dname;
+        for (names_reversedenials(view,&iter); names_iterate(&iter,&domain); names_advance(&iter, NULL)) {
+            denial_nsecify(zone, view, domain, nextname, &nsec_added);
+            nextname = domain->denial->dname;
         }
-    } else
+        ldns_rdf_free(firstname);
+    } else {
         names_end(&iter);
+    }
     if (num_added) {
         *num_added = nsec_added;
     }

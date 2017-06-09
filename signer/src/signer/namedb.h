@@ -126,14 +126,18 @@ domain_type* namedb_del_domain(namedb_type* db, domain_type* domain);
 
 /**
  * Add denial to namedb.
- * \param[in] db namedb
+ * \param[in] view the current view on the names in the zone in which the denial will be added
  * \param[in] dname domain name
- * \param[in] n3p NSEC3 parameters, NULL if we do NSEC
  * \return denial_type* added denial
  *
  */
-denial_type* namedb_add_denial(zone_type* zone, names_view_type db, ldns_rdf* dname,
-    nsec3params_type* n3p);
+denial_type* namedb_add_denial(zone_type* zone, names_view_type view, ldns_rdf* dname);
+
+/**
+ * Obtain the NSEC or NSEC3 name usable for creating a denial.  The returned
+ * name is allocated and must be freed using ldns_rdf_free.
+ */
+ldns_rdf* namedb_denialname(zone_type* zone, ldns_rdf* dname);
 
 /**
  * Delete denial from namedb

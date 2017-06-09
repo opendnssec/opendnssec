@@ -261,7 +261,7 @@ denial_nsecify(zone_type* zone, names_view_type view, domain_type* domain, ldns_
     ods_log_assert(zone);
     ods_log_assert(zone->signconf);
     if (!domain->denial) {
-        domain->denial = namedb_add_denial(zone, view, domain->dname, NULL);
+        domain->denial = namedb_add_denial(zone, view, domain->dname);
     }
     if (domain->denial->changed) {
         ttl = zone->default_ttl;
