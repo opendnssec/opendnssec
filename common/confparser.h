@@ -74,14 +74,14 @@ const char* parse_conf_zonefetch_filename(const char* cfgfile);
 const char* parse_conf_log_filename(const char* cfgfile);
 
 /** Enforcer and Signer specific */
-const char* parse_conf_pid_filename(const char* cfgfile, int enfsig);
+const char* parse_conf_pid_filename(const char* cfgfile, int is_enforcer);
 const char* parse_conf_delegation_signer_submit_command(const char* cfgfile);
 const char* parse_conf_delegation_signer_retract_command(const char* cfgfile);
-const char* parse_conf_clisock_filename(const char* cfgfile, int enfsig);
-const char* parse_conf_working_dir(const char* cfgfile, int enfsig);
-const char* parse_conf_username(const char* cfgfile, int enfsig);
-const char* parse_conf_group(const char* cfgfile, int enfsig);
-const char* parse_conf_chroot(const char* cfgfile, int enfsig);
+const char* parse_conf_clisock_filename(const char* cfgfile, int is_enforcer);
+const char* parse_conf_working_dir(const char* cfgfile, int is_enforcer);
+const char* parse_conf_username(const char* cfgfile, int is_enforcer);
+const char* parse_conf_group(const char* cfgfile, int is_enforcer);
+const char* parse_conf_chroot(const char* cfgfile, int is_enforcer);
 const char* parse_conf_datastore(const char* cfgfile);
 const char* parse_conf_db_host(const char* cfgfile);
 const char* parse_conf_db_username(const char* cfgfile);
@@ -100,7 +100,7 @@ int parse_conf_use_syslog(const char* cfgfile);
 int parse_conf_verbosity(const char* cfgfile);
 
 /** Enforcer and signer specific */
-int parse_conf_worker_threads(const char* cfgfile, int enfsig);
+int parse_conf_worker_threads(const char* cfgfile, int is_enforcer);
 int parse_conf_signer_threads(const char* cfgfile);
 int parse_conf_manual_keygen(const char* cfgfile);
 int parse_conf_db_port(const char *cfgfile);

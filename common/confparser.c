@@ -390,18 +390,14 @@ parse_conf_log_filename(const char* cfgfile)
     return dup; /* NULL, Facility or Filename */
 }
 
-/*
- * enforcer = 0
- * signer = 1
- */
 
 const char*
-parse_conf_pid_filename(const char* cfgfile, int enfsig)
+parse_conf_pid_filename(const char* cfgfile, int is_enforcer)
 {
     const char* dup = NULL;
     const char* str;
 
-    if (enfsig == 0) 
+    if (is_enforcer)
         str = parse_conf_string(cfgfile,
                                 "//Configuration/Enforcer/PidFile",
                                 0);
@@ -414,7 +410,7 @@ parse_conf_pid_filename(const char* cfgfile, int enfsig)
         dup = strdup(str);
         free((void*)str);
     } else {
-        dup = !enfsig ? strdup(OPENDNSSEC_ENFORCER_PIDFILE) : strdup(ODS_SE_PIDFILE);
+        dup = is_enforcer ? strdup(OPENDNSSEC_ENFORCER_PIDFILE) : strdup(ODS_SE_PIDFILE);
     }
     return dup;
 }
@@ -451,15 +447,14 @@ parse_conf_delegation_signer_retract_command(const char* cfgfile)
 }
 
 const char*
-parse_conf_clisock_filename(const char* cfgfile, int enfsig)
+parse_conf_clisock_filename(const char* cfgfile, int is_enforcer)
 {
     char* dup = NULL;
     const char* str;
-    if (enfsig == 0) {
+    if (is_enforcer)
         str = parse_conf_string(cfgfile,
                                 "//Configuration/Enforcer/SocketFile",
                                 0);
-    }
     else
         str = parse_conf_string(cfgfile,
                                 "//Configuration/Signer/SocketFile",
@@ -469,7 +464,7 @@ parse_conf_clisock_filename(const char* cfgfile, int enfsig)
         dup = strdup(str);
         free((void*)str);
     } else {
-        dup = enfsig ? strdup(ODS_SE_SOCKFILE) : strdup(OPENDNSSEC_ENFORCER_SOCKETFILE);
+        dup = is_enforcer ? strdup(OPENDNSSEC_ENFORCER_SOCKETFILE) : strdup(ODS_SE_SOCKFILE);
     }
     if (strlen(dup) >= sizeof(((struct sockaddr_un*)0)->sun_path)) {
         dup[sizeof(((struct sockaddr_un*)0)->sun_path)-1] = '\0'; /* don't worry about just a few bytes 'lost' */
@@ -479,12 +474,12 @@ parse_conf_clisock_filename(const char* cfgfile, int enfsig)
 }
 
 const char*
-parse_conf_working_dir(const char* cfgfile, int enfsig)
+parse_conf_working_dir(const char* cfgfile, int is_enforcer)
 {
     const char* dup = NULL;
     const char* str;
-    if (enfsig == 0 )
-     str = parse_conf_string(cfgfile,
+    if (is_enforcer)
+        str = parse_conf_string(cfgfile,
                              "//Configuration/Enforcer/WorkingDirectory",
                              0);
     else 
@@ -496,18 +491,18 @@ parse_conf_working_dir(const char* cfgfile, int enfsig)
         dup = strdup(str);
         free((void*)str);
     } else {
-        dup = enfsig ? strdup(ODS_SE_WORKDIR) : strdup(OPENDNSSEC_ENFORCER_WORKINGDIR);
+        dup = is_enforcer ? strdup(OPENDNSSEC_ENFORCER_WORKINGDIR) : strdup(ODS_SE_WORKDIR);
     }
     return dup;
 }
 
 
 const char*
-parse_conf_username(const char* cfgfile, int enfsig)
+parse_conf_username(const char* cfgfile, int is_enforcer)
 {
     const char* dup = NULL;
     const char* str;
-    if (!enfsig)
+    if (is_enforcer)
     str = parse_conf_string(cfgfile,
                             "//Configuration/Enforcer/Privileges/User",
                             0);
@@ -525,12 +520,12 @@ parse_conf_username(const char* cfgfile, int enfsig)
 
 
 const char*
-parse_conf_group(const char* cfgfile, int enfsig)
+parse_conf_group(const char* cfgfile, int is_enforcer)
 {
     const char* dup = NULL;
     const char* str;
 
-    if (!enfsig)
+    if (is_enforcer)
         str = parse_conf_string(cfgfile,
                                 "//Configuration/Enforcer/Privileges/Group",
                                 0);
@@ -548,12 +543,12 @@ parse_conf_group(const char* cfgfile, int enfsig)
 
 
 const char*
-parse_conf_chroot(const char* cfgfile, int enfsig)
+parse_conf_chroot(const char* cfgfile, int is_enforcer)
 {
     const char* dup = NULL;
     const char* str;
 
-    if (!enfsig)
+    if (is_enforcer)
         str = parse_conf_string(cfgfile,
                                 "//Configuration/Enforcer/Privileges/Directory",
                                 0);
@@ -671,12 +666,12 @@ parse_conf_verbosity(const char* cfgfile)
 
 
 int
-parse_conf_worker_threads(const char* cfgfile, int enfsig)
+parse_conf_worker_threads(const char* cfgfile, int is_enforcer)
 {
     int numwt = ODS_SE_WORKERTHREADS;
     const char* str;
 
-    if (!enfsig)
+    if (is_enforcer)
         str = parse_conf_string(cfgfile,
                                 "//Configuration/Enforcer/WorkerThreads",
                                 0);

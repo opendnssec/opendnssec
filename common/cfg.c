@@ -108,18 +108,18 @@ engine_config(const char* cfgfile,
             ecfg->db_type = oldcfg->db_type;
         } else {
             ecfg->cfg_filename = strdup(cfgfile);
-            ecfg->clisock_filename_enforcer = parse_conf_clisock_filename(cfgfile, 0);
-            ecfg->clisock_filename_signer = parse_conf_clisock_filename(cfgfile, 1);
-            ecfg->working_dir_enforcer = parse_conf_working_dir(cfgfile, 0);
-            ecfg->working_dir_signer = parse_conf_working_dir(cfgfile, 1);
-            ecfg->username_enforcer = parse_conf_username(cfgfile, 0);
-            ecfg->username_signer = parse_conf_username(cfgfile, 1);
-            ecfg->group_enforcer = parse_conf_group(cfgfile, 0);
-            ecfg->group_signer = parse_conf_group(cfgfile, 1);
-            ecfg->chroot_enforcer = parse_conf_chroot(cfgfile, 0);
-            ecfg->chroot_signer = parse_conf_chroot(cfgfile, 1);
-            ecfg->pid_filename_enforcer = parse_conf_pid_filename(cfgfile, 0);
-            ecfg->pid_filename_signer = parse_conf_pid_filename(cfgfile, 1);
+            ecfg->clisock_filename_enforcer = parse_conf_clisock_filename(cfgfile, 1);
+            ecfg->clisock_filename_signer = parse_conf_clisock_filename(cfgfile, 0);
+            ecfg->working_dir_enforcer = parse_conf_working_dir(cfgfile, 1);
+            ecfg->working_dir_signer = parse_conf_working_dir(cfgfile, 0);
+            ecfg->username_enforcer = parse_conf_username(cfgfile, 1);
+            ecfg->username_signer = parse_conf_username(cfgfile, 0);
+            ecfg->group_enforcer = parse_conf_group(cfgfile, 1);
+            ecfg->group_signer = parse_conf_group(cfgfile, 0);
+            ecfg->chroot_enforcer = parse_conf_chroot(cfgfile, 1);
+            ecfg->chroot_signer = parse_conf_chroot(cfgfile, 0);
+            ecfg->pid_filename_enforcer = parse_conf_pid_filename(cfgfile, 1);
+            ecfg->pid_filename_signer = parse_conf_pid_filename(cfgfile, 0);
             ecfg->datastore = parse_conf_datastore(cfgfile);
             ecfg->db_host = parse_conf_db_host(cfgfile);
             ecfg->db_username = parse_conf_db_username(cfgfile);
@@ -138,8 +138,8 @@ engine_config(const char* cfgfile,
         ecfg->delegation_signer_retract_command = 
             parse_conf_delegation_signer_retract_command(cfgfile);
         ecfg->use_syslog = parse_conf_use_syslog(cfgfile);
-        ecfg->num_worker_threads_enforcer = parse_conf_worker_threads(cfgfile, 0);
-        ecfg->num_worker_threads_signer = parse_conf_worker_threads(cfgfile, 1);
+        ecfg->num_worker_threads_enforcer = parse_conf_worker_threads(cfgfile, 1);
+        ecfg->num_worker_threads_signer = parse_conf_worker_threads(cfgfile, 0);
         ecfg->num_signer_threads = parse_conf_signer_threads(cfgfile);
         ecfg->manual_keygen = parse_conf_manual_keygen(cfgfile);
         ecfg->repositories = parse_conf_repositories(cfgfile);

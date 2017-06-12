@@ -926,9 +926,8 @@ create_listener(struct engineconfig_listener* list)
                ods_log_debug("[%s] added %s:%s interface to listener",
                    engine_str, "", defport);
         }
-    }
-
-    while (list) {
+    } else {
+        while (list) {
             if (list->address) {
                 interface = listener_push(listener, list->address,
                     acl_parse_family(list->address), list->port ? list->port : defport);
@@ -939,14 +938,15 @@ create_listener(struct engineconfig_listener* list)
                 }
             }
             if (!interface) {
-               ods_log_error("[%s] unable to add %s:%s interface: "
+                ods_log_error("[%s] unable to add %s:%s interface: "
                    "listener_push() failed", engine_str, list->address ? list->address : "",
                    list->port ? list->port : defport);
             } else {
-               ods_log_debug("[%s] added %s:%s interface to listener",
+                ods_log_debug("[%s] added %s:%s interface to listener",
                    engine_str, list->address ? list->address : "", list->port ? list->port : defport);
             }
-       list = list->next;
+            list = list->next;
+        }
     }
     free((void*)defport);
     return listener;
