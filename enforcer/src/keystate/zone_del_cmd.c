@@ -135,6 +135,7 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
     char *signconf_del = NULL;
     db_connection_t* dbconn = getconnectioncontext(context);;
     engine_type* engine = getglobalcontext(context);
+    char cmd2[SYSTEM_MAXLEN];
 
     static struct option long_options[] = {
         {"zone", required_argument, 0, 'z'},
@@ -305,6 +306,12 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
         } else {
             ods_log_info("[%s] internal zonelist updated successfully", module_str);
         }
+    }
+
+    if (snprintf(cmd2, sizeof(cmd2), "%s %s", SIGNER_CLI_UPDATE, "--all") >= (int)sizeof(cmd2)
+        || system(cmd2))
+    {
+        ods_log_error("[%s] unable to notify signer of zone deletion!", module_str);
     }
 
     zone_db_free(zone);
