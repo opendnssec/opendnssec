@@ -90,21 +90,21 @@ keystate(int p, int c, int introducing, int dsstate)
 static int
 zskstate(struct dbw_key *key)
 {
-    return keystate(
-        key->keystate[KEY_STATE_TYPE_DNSKEY]->state,
-        key->keystate[KEY_STATE_TYPE_RRSIG]->state,
-        key->introducing,
-        KEY_DATA_DS_AT_PARENT_INVALID);
+    struct dbw_keystate *dnskey = dbw_get_keystate(key, DBW_DNSKEY);
+    struct dbw_keystate *rrsig = dbw_get_keystate(key, DBW_RRSIG);
+    if (!rrsig || !dnskey) return KS_UNK;
+
+    return keystate(dnskey->state, rrsig->state, key->introducing, -1);
 }
 
 static int
 kskstate(struct dbw_key *key)
 {
-    return keystate(
-        key->keystate[KEY_STATE_TYPE_DS]->state,
-        key->keystate[KEY_STATE_TYPE_DNSKEY]->state,
-        key->introducing,
-        key->ds_at_parent);
+    struct dbw_keystate *ds = dbw_get_keystate(key, DBW_DS);
+    struct dbw_keystate *dnskey = dbw_get_keystate(key, DBW_DNSKEY);
+    if (!ds || !dnskey) return KS_UNK;
+
+    return keystate(ds->state, dnskey->state, key->introducing, key->ds_at_parent);
 }
 
 /** Human readable keystate in 1.x speak
@@ -176,60 +176,57 @@ perform_keystate_list(int sockfd, db_connection_t *dbconn, const char* zonename,
     int keyrole, const char* keystate, void (printheader)(int sockfd),
     void (printkey)(int sockfd, struct dbw_key *key, char* tchange))
 {
-    struct dbw_list *policies = dbw_policies_all_filtered(dbconn, NULL, zonename, keyrole);
-    if (!policies) {
+    struct dbw_db *db = dbw_fetch(dbconn);
+    if (!db) {
         client_printf_err(sockfd, "Unable to get list of keys, memory "
             "allocation or database error!\n");
         return 1;
     }
     if (printheader) (*printheader)(sockfd);
-    for (size_t p = 0; p < policies->n; p++) {
-        struct dbw_policy *policy = (struct dbw_policy *)policies->set[p];
-        for (size_t z = 0; z < policy->zone_count; z++) {
-            struct dbw_zone *zone = policy->zone[z];
-            if (zonename && strcmp(zone->name, zonename)) continue;
-            for (size_t k = 0; k < zone->key_count; k++) {
-                struct dbw_key *key = zone->key[k];
-                /*if (keytype && strcasecmp(present_key_role(key->role), keytype)) continue;*/
-                if (keystate && strcasecmp(map_keystate(key), keystate)) continue;
-                char* tchange = map_keytime(key); /* allocs */
-                    (*printkey)(sockfd, key, tchange);
-                free(tchange);
-            }
+    for (size_t z = 0; z < db->zones->n; z++) {
+        struct dbw_zone *zone = (struct dbw_zone *)db->zones->set[z];
+        if (zonename && strcmp(zone->name, zonename)) continue;
+        for (size_t k = 0; k < zone->key_count; k++) {
+            struct dbw_key *key = zone->key[k];
+            /*if (keytype && strcasecmp(present_key_role(key->role), keytype)) continue;*/
+            if (keystate && strcasecmp(map_keystate(key), keystate)) continue;
+            char* tchange = map_keytime(key); /* allocs */
+                (*printkey)(sockfd, key, tchange);
+            free(tchange);
         }
     }
-    dbw_list_free(policies);
+    dbw_free(db);
     return 0;
 }
 
 static void
 usage(int sockfd)
 {
-	client_printf(sockfd,
-		"key list\n"
-		"	[--verbose]				aka -v\n"
-		"	[--debug]				aka -d\n"
-		"	[--parsable]				aka -p\n"
-		"	[--zone]				aka -z  \n"
-		"	[--type]				aka -t  \n"
-		"	[--state]				aka -e  \n"
-		"	[--all]                                 aka -a  \n"
-	);
+    client_printf(sockfd,
+        "key list\n"
+        "	[--verbose]				aka -v\n"
+        "	[--debug]				aka -d\n"
+        "	[--parsable]				aka -p\n"
+        "	[--zone]				aka -z  \n"
+        "	[--type]				aka -t  \n"
+        "	[--state]				aka -e  \n"
+        "	[--all]                                 aka -a  \n"
+    );
 }
 
 static void
 help(int sockfd)
 {
-	client_printf(sockfd, 
-		"List the keys in the enforcer database.\n"
-		"\nOptions:\n"
-		"verbose		also show additional key parameters\n"
-		"debug		print information about the keystate\n"
-		"parsable	output machine parsable list\n"
-		"zone		limit the output to the specific zone\n"
-		"keytype	limit the output to the given type, can be ZSK, KSK, or CSK\n"
-		"keystate	limit the output to the given state\n"
-		"all		print keys in all states (including generate) \n\n");
+    client_printf(sockfd, 
+        "List the keys in the enforcer database.\n"
+        "\nOptions:\n"
+        "verbose		also show additional key parameters\n"
+        "debug		print information about the keystate\n"
+        "parsable	output machine parsable list\n"
+        "zone		limit the output to the specific zone\n"
+        "keytype	limit the output to the given type, can be ZSK, KSK, or CSK\n"
+        "keystate	limit the output to the given state\n"
+        "all		print keys in all states (including generate) \n\n");
 }
 
 static void
@@ -308,19 +305,21 @@ printdebugkey_fmt(int sockfd, char const *fmt, struct dbw_key *key, char const  
     client_printf(sockfd, fmt,
         key->zone->name,
         present_key_role(key->role),
-        present_keystate_state(key->keystate[KEY_STATE_TYPE_DS]->state),
-        present_keystate_state(key->keystate[KEY_STATE_TYPE_DNSKEY]->state),
-        present_keystate_state(key->keystate[KEY_STATE_TYPE_RRSIGDNSKEY]->state),
-        present_keystate_state(key->keystate[KEY_STATE_TYPE_RRSIG]->state),
+        present_keystate_state(key->keystate[DBW_DS]->state), /*  TODO */
+        present_keystate_state(key->keystate[DBW_DNSKEY]->state),
+        present_keystate_state(key->keystate[DBW_RRSIGDNSKEY]->state),
+        present_keystate_state(key->keystate[DBW_RRSIG]->state),
         key->publish,
         key->active_ksk | key->active_zsk,
         key->hsmkey->locator);
 }
+
 static void
 printdebugkey(int sockfd, struct dbw_key *key, char *tchange)
 {
     printdebugkey_fmt(sockfd, "%-31s %-13s %-12s %-12s %-12s %-12s %d %4d    %s\n", key, tchange);
 }
+
 static void
 printdebugparsablekey(int sockfd, struct dbw_key *key, char *tchange)
 {

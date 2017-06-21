@@ -458,21 +458,21 @@ int policy_export_all(int sockfd, db_connection_t* connection, const char* filen
 
     xmlDocSetRootElement(doc, root);
 
-    struct dbw_list *policies = dbw_policies_all(connection);
-    if (!policies) {
+    struct dbw_db *db = dbw_fetch(connection);
+    if (!db) {
         xmlFreeDoc(doc);
         return POLICY_EXPORT_ERR_MEMORY;
     }
-    for (size_t i = 0; i < policies->n; i++) {
-        struct dbw_policy *policy = (struct dbw_policy *)policies->set[i];
+    for (size_t p = 0; p < db->policies->n; p++) {
+        struct dbw_policy *policy = (struct dbw_policy *)db->policies->set[p];
         ret = __policy_export(sockfd, policy, root);
         if (ret != POLICY_EXPORT_OK) {
-            dbw_list_free(policies);
+            dbw_free(db);
             xmlFreeDoc(doc);
             return ret;
         }
     }
-    dbw_list_free(policies);
+    dbw_free(db);
 
     if (filename) {
         unlink(path);

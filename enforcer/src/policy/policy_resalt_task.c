@@ -161,25 +161,27 @@ policy_resalt_task(char const *owner, engine_type *engine, time_t t)
 
 int
 resalt_task_flush(engine_type *engine, db_connection_t *dbconn,
-    const char *policy)
+    const char *policyname)
 {
-    task_type *task;
     int status = ODS_STATUS_OK;
 
-    struct dbw_list *policies = dbw_policies_all_filtered(dbconn, policy, NULL, 0);
-    if (!policies) {
+    struct dbw_db *db = dbw_fetch(dbconn);
+    if (!db) {
         ods_log_error("[%s] Unable to get list of policies from database",
             module_str);
         return ODS_STATUS_DB_ERR;
     }
-    for (size_t i = 0; i < policies->n; i++) {
-        struct dbw_policy *policy = (struct dbw_policy*)policies->set[i];
-        if  (policy->denial_type != POLICY_DENIAL_TYPE_NSEC3 || policy->passthrough)
-            continue;
-        task = policy_resalt_task(policy->name, engine, time_now());
-        status |= schedule_task(engine->taskq, task, 1, 0);
+    struct dbw_policy *policy = dbw_get_policy(db, policyname);
+    if (!policy) {
+        ods_log_error("[%s] Can't find policy %s in database.",
+            module_str, policyname);
+        return ODS_STATUS_DB_ERR;
     }
-    dbw_list_free(policies);
+    if  (policy->denial_type == POLICY_DENIAL_TYPE_NSEC3 && !policy->passthrough) {
+        task_type *task = policy_resalt_task(policyname, engine, time_now());
+        status = schedule_task(engine->taskq, task, 1, 0);
+    }
+    dbw_free(db);
     return status;
 }
 
@@ -189,20 +191,20 @@ resalt_task_schedule(engine_type *engine, db_connection_t *dbconn)
     task_type *task;
     int status = ODS_STATUS_OK;
 
-    struct dbw_list *policies = dbw_policies(dbconn);
-    if (!policies) {
+    struct dbw_db *db = dbw_fetch(dbconn);
+    if (!db) {
         ods_log_error("[%s] Unable to get list of policies from database",
             module_str);
         return ODS_STATUS_DB_ERR;
     }
-    for (size_t i = 0; i < policies->n; i++) {
-        struct dbw_policy *policy = (struct dbw_policy*)policies->set[i];
+    for (size_t p = 0; p < db->policies->n; p++) {
+        struct dbw_policy *policy = (struct dbw_policy *)db->policies->set[p];
         if  (policy->denial_type != POLICY_DENIAL_TYPE_NSEC3 || policy->passthrough)
             continue;
         time_t resalt_time = policy->denial_salt_last_change + policy->denial_resalt;
         task = policy_resalt_task(policy->name, engine, resalt_time);
         status |= schedule_task(engine->taskq, task, 1, 0);
     }
-    dbw_list_free(policies);
+    dbw_free(db);
     return status;
 }

@@ -98,13 +98,13 @@ hsmkey_matches_policykey(struct dbw_hsmkey *hsmkey, struct dbw_policykey *policy
 }
 
 static int /*0 success 1 failure */
-hsm_key_factory_generate(engine_type* engine, const db_connection_t* connection,
-    struct dbw_list *policies, struct dbw_policy *policy,
+hsm_key_factory_generate(engine_type *engine, struct dbw_db *db,
     struct dbw_policykey *policykey, time_t duration)
 {
     char *hsm_err;
     if (!policykey->lifetime) return 1; /* Keys life forever. */
     char *repository = policykey->repository;
+    struct dbw_policy *policy = policykey->policy;
 
     /* Find the HSM repository to get the backup configuration*/
     hsm_repository_t *hsm;
@@ -245,9 +245,8 @@ hsm_key_factory_generate(engine_type* engine, const db_connection_t* connection,
             hsmkey->dirty = DBW_INSERT;
             hsmkey->key_count = 0;
             hsmkey->policy = policy;
-            dbw_policies_add_hsmkey(policies, hsmkey);
-            int b = dbw_update(connection, policies, 1);
-            /* TODO free this thing */
+            dbw_policies_add_hsmkey(db->policies, hsmkey);
+            dbw_commit(db);
 
             ods_log_debug("[hsm_key_factory_generate] generated key %s successfully", key_id);
 
@@ -271,14 +270,10 @@ hsm_key_factory_generate(engine_type* engine, const db_connection_t* connection,
 }
 
 int
-hsm_key_factory_generate_policy(engine_type* engine, const db_connection_t* connection,
-    struct dbw_list *policies, struct dbw_policy *policy, time_t duration)
+hsm_key_factory_generate_policy(engine_type* engine, struct dbw_db *db,
+    struct dbw_policy *policy, time_t duration)
 {
     int error = 0;
-
-    if (!engine || !policy || !connection) {
-        return 1;
-    }
 
     if (!__hsm_key_factory_lock) {
         pthread_once(&__hsm_key_factory_once, hsm_key_factory_init);
@@ -298,8 +293,7 @@ hsm_key_factory_generate_policy(engine_type* engine, const db_connection_t* conn
     ods_log_debug("[hsm_key_factory_generate_policy] policy %s", policy->name);
     for (size_t k = 0; k < policy->policykey_count; k++) {
         struct dbw_policykey *policykey = policy->policykey[k];
-        error |= hsm_key_factory_generate(engine, connection, policies,
-            policy, policykey, duration);
+        error |= hsm_key_factory_generate(engine, db, policykey, duration);
     }
     pthread_mutex_unlock(__hsm_key_factory_lock);
     return error;
@@ -328,22 +322,21 @@ hsm_key_factory_generate_all(engine_type* engine, db_connection_t* connection,
      * Get all the policies and for each get all the policy keys and generate
      * new keys for them if needed
      */
-    struct dbw_list *policies = dbw_policies_all(connection);
-    if (!policies) {
+    struct dbw_db *db = dbw_fetch(connection);
+    if (!db) {
         pthread_mutex_unlock(__hsm_key_factory_lock);
         return 1;
     }
 
     int error = 0;
-    for (size_t p = 0; p < policies->n; p++) {
-        struct dbw_policy *policy = (struct dbw_policy *)policies->set[p];
+    for (size_t p = 0; p < db->policies->n; p++) {
+        struct dbw_policy *policy = (struct dbw_policy *)db->policies->set[p];
         for (size_t k = 0; k < policy->policykey_count; k++) {
             struct dbw_policykey *policykey = policy->policykey[k];
-            error |= hsm_key_factory_generate(engine, connection, policies, policy,
-                policykey, duration);
+            error |= hsm_key_factory_generate(engine, db, policykey, duration);
         }
     }
-    dbw_list_free(policies);
+    dbw_free(db);
     pthread_mutex_unlock(__hsm_key_factory_lock);
     return error;
 }
@@ -361,15 +354,18 @@ hsm_key_factory_generate_cb(task_type* task, char const *owner, void *userdata,
     char *policyname = task2->policyname;
     int id = task2->id;
 
-    struct dbw_list *policies = dbw_policies_all_filtered(dbconn, policyname, NULL, 0);
-    for (size_t p = 0; p < policies->n; p++) {
-        struct dbw_policy *policy = (struct dbw_policy *)policies->set[p];
+    struct dbw_db *db = dbw_fetch(dbconn);
+    if (!db) return schedule_DEFER;
+
+    for (size_t p = 0; p < db->policies->n; p++) {
+        struct dbw_policy *policy = (struct dbw_policy *)db->policies->set[p];
+        if (policyname != NULL && strcmp(policyname, policy->name)) continue;
         int flush = 0;
         for (size_t k = 0; k < policy->policykey_count; k++) {
             struct dbw_policykey *policykey = policy->policykey[k];
             if (policykey->id == id || id == -1) {
-                int error = hsm_key_factory_generate(task2->engine, dbconn,
-                    policies, policy, policykey, task2->duration);
+                int error = hsm_key_factory_generate(task2->engine, db,
+                    policykey, task2->duration);
                 flush = !error && task2->reschedule_enforce_task;
             }
         }
@@ -377,7 +373,7 @@ hsm_key_factory_generate_cb(task_type* task, char const *owner, void *userdata,
             enforce_task_flush_policy(task2->engine, policy);
         }
     }
-    dbw_list_free(policies);
+    dbw_free(db);
     return schedule_SUCCESS;
 }
 

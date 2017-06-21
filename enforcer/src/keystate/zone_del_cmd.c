@@ -69,7 +69,7 @@ help(int sockfd)
 }
 
 static int
-delete_zone(struct dbw_zone *zone, db_connection_t *dbconn)
+delete_zone(struct dbw_zone *zone)
 {
     /*
      * Get key data for the zone and for each key data get the key state
@@ -82,9 +82,7 @@ delete_zone(struct dbw_zone *zone, db_connection_t *dbconn)
             keystate->dirty = DBW_DELETE;
         }
         struct dbw_hsmkey *hsmkey = key->hsmkey;
-        /*if (hsm_key_factory_release_key_id(hsmkey, dbconn)) {*/
-            /*return 1; [> (partial) fail <]*/
-        /*}*/
+        hsm_key_factory_release_key(hsmkey, key);
         hsmkey->dirty = DBW_DELETE;
         key->dirty = DBW_DELETE;
     }
@@ -157,37 +155,40 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
        return -1;
     }
 
-    struct dbw_list *policies = dbw_policies_all_filtered(dbconn, NULL, zonename, 0);
-    for (size_t p = 0; p < policies->n; p++) {
-        struct dbw_policy *policy = (struct dbw_policy *)policies->set[p];
-        for (size_t z = 0; z < policy->zone_count; z++) {
-            struct dbw_zone *zone = policy->zone[z];
-            if (delete_zone(zone, dbconn)) {
-                client_printf(sockfd, "Error deleting zone %s.\n", zone->name);
-                ret = 1;
-                continue;
-            }
-            int len = strlen(zone->signconf_path) + strlen(".ZONE_DELETED") + 1;
-            char *signconf_del = malloc(len);
-            strcpy(signconf_del, zone->signconf_path);
-            strncat(signconf_del, ".ZONE_DELETED", len);
-            rename(zone->signconf_path, signconf_del);
-            free(signconf_del);
-
-            /* Delete all 'zone' related tasks */
-            schedule_purge_owner(engine->taskq, TASK_CLASS_ENFORCER, zone->name);
-            ods_log_info("[%s] zone %s deleted", module_str, zone->name);
-            client_printf(sockfd, "Deleted zone %s successfully\n", zone->name);
+    struct dbw_db *db = dbw_fetch(dbconn);
+    if (!db) {
+        client_printf(sockfd, "Error reading database.\n");
+        return 1;
+    }
+    for (size_t z = 0; z < db->zones->n; z++) {
+        struct dbw_zone *zone = db->zones->set[z];
+        if (strcmp(zonename, zone->name) && !all) continue;
+        if (delete_zone(zone)) {
+            client_printf(sockfd, "Error deleting zone %s.\n", zone->name);
+            dbw_free(db);
+            ret = 1;
+            continue;
         }
+        int len = strlen(zone->signconf_path) + strlen(".ZONE_DELETED") + 1;
+        char *signconf_del = malloc(len);
+        strcpy(signconf_del, zone->signconf_path);
+        strncat(signconf_del, ".ZONE_DELETED", len);
+        rename(zone->signconf_path, signconf_del);
+        free(signconf_del);
+
+        /* Delete all 'zone' related tasks */
+        schedule_purge_owner(engine->taskq, TASK_CLASS_ENFORCER, zone->name);
+        ods_log_info("[%s] zone %s deleted", module_str, zone->name);
+        client_printf(sockfd, "Deleted zone %s successfully\n", zone->name);
     }
     //todo handle error
-    if (dbw_update(dbconn, policies, 1)) {
+    if (dbw_commit(db)) {
         client_printf(sockfd, "Error committing changes to database.\n");
-        dbw_list_free(policies);
+        dbw_free(db);
         free(buf);
         return 1;
     }
-    dbw_list_free(policies);
+    dbw_free(db);
     free(buf);
 
     if (write_xml) {

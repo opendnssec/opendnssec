@@ -316,7 +316,7 @@ struct dbw_zone * dbw_get_zone(struct dbw_db *db, char const *zonename);
 struct dbw_policy * dbw_get_policy(struct dbw_db *db, char const *policyname);
 struct dbw_keystate * dbw_get_keystate(struct dbw_key *key, int type);
 
-void dbw_list_free(struct dbw_list *dbw_list);
+//void dbw_list_free(struct dbw_list *dbw_list);
 void dbw_zone_free(struct dbrow *row);
 
 int dbw_add_keystate(struct dbw_db *db, struct dbw_key *key, struct dbw_keystate *keystate);
@@ -327,12 +327,6 @@ struct dbw_key * dbw_new_key(struct dbw_db *db, struct dbw_zone *zone,
     struct dbw_hsmkey *hsmkey);
 
 /** ALL */
-struct dbw_list* dbw_zones(db_connection_t *dbconn);
-struct dbw_list* dbw_policies(db_connection_t *dbconn);
-struct dbw_list* dbw_keys(db_connection_t *dbconn);
-struct dbw_list* dbw_keystates(db_connection_t *dbconn);
-struct dbw_list* dbw_hsmkeys(db_connection_t *dbconn);
-
 struct dbw_list* dbw_hsmkeys_by_repository(db_connection_t *dbconn,
     char const *repositoryname);
 

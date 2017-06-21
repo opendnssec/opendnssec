@@ -86,11 +86,10 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 
     ods_log_debug("[%s] %s command", module_str, zone_list_funcblock.cmdname);
 
-    struct dbw_list *policies = dbw_policies_all(dbconn);
-    if (!policies) {
+    struct dbw_db *db = dbw_fetch(dbconn);
+    if (!db) {
         client_printf_err(sockfd, "Unable to get list of zones, memory "
                 "allocation or database error!\n");
-        dbw_list_free(policies);
         return 1;
     }
     client_printf(sockfd, "Database set to: %s\n", engine->config->datastore);
@@ -98,15 +97,15 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
     client_printf(sockfd, fmt, "Zone:", "Policy:", "Next change:",
         "Signer Configuration:");
 
-    for (size_t p = 0; p < policies->n; p++) {
-        struct dbw_policy *policy = (struct dbw_policy *)policies->set[p];
+    for (size_t p = 0; p < db->policies->n; p++) {
+        struct dbw_policy *policy = (struct dbw_policy *)db->policies->set[p];
         for (size_t i = 0; i < policy->zone_count; i++) {
             struct dbw_zone *z = policy->zone[i];
             client_printf(sockfd, fmt, z->name, z->policy->name,
                 time_to_human(z->next_change, buf, sizeof(buf)), z->signconf_path);
         }
     }
-    dbw_list_free(policies);
+    dbw_free(db);
     return 0;
 }
 

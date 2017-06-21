@@ -9,12 +9,10 @@
 
 #include "db/dbw.h"
 
-void
+static void
 dbw_list_free(struct dbw_list *dbw_list)
 {
     if (!dbw_list) return;
-    /*for (size_t i = 0; i < FOREIGN_KEYS; i++)*/
-        /*dbw_list_free(dbw_list->also_free[i]);*/
     for (size_t i = 0; i < dbw_list->n; i++) {
         dbw_list->free(dbw_list->set[i]);
     }
@@ -801,7 +799,7 @@ hsmkey_dbx_to_dbw(const hsm_key_t *dbx_item)
  *
  */
 
-struct dbw_list *
+static struct dbw_list *
 dbw_zones(db_connection_t *dbconn)
 {
     zone_list_db_t* dbx_list = zone_list_db_new_get(dbconn);
@@ -834,7 +832,7 @@ dbw_zones(db_connection_t *dbconn)
     return list;
 }
 
-struct dbw_list *
+static struct dbw_list *
 dbw_keys(db_connection_t *dbconn)
 {
     key_data_list_t* dbx_list = key_data_list_new_get(dbconn);
@@ -867,7 +865,7 @@ dbw_keys(db_connection_t *dbconn)
     return list;
 }
 
-struct dbw_list *
+static struct dbw_list *
 dbw_keystates(db_connection_t *dbconn)
 {
     key_state_list_t* dbx_list = key_state_list_new_get(dbconn);
@@ -900,7 +898,7 @@ dbw_keystates(db_connection_t *dbconn)
     return list;
 }
 
-struct dbw_list *
+static struct dbw_list *
 dbw_keydependencies(db_connection_t *dbconn)
 {
     key_dependency_list_t* dbx_list = key_dependency_list_new(dbconn);
@@ -933,7 +931,7 @@ dbw_keydependencies(db_connection_t *dbconn)
     return list;
 }
 
-struct dbw_list *
+static struct dbw_list *
 dbw_hsmkeys(db_connection_t *dbconn)
 {
     hsm_key_list_t* dbx_list = hsm_key_list_new_get(dbconn);
@@ -967,7 +965,7 @@ dbw_hsmkeys(db_connection_t *dbconn)
 }
 
 
-struct dbw_list *
+static struct dbw_list *
 dbw_policies(db_connection_t *dbconn)
 {
     policy_list_t* dbx_list = policy_list_new_get(dbconn);
@@ -1000,7 +998,7 @@ dbw_policies(db_connection_t *dbconn)
     return list;
 }
 
-struct dbw_list *
+static struct dbw_list *
 dbw_policykeys(db_connection_t *dbconn)
 {
     policy_key_list_t* dbx_list = policy_key_list_new_get(dbconn);
@@ -1395,9 +1393,9 @@ const char *
 present_key_role(int role)
 {
     switch(role) {
-        case KEY_DATA_ROLE_KSK: return "KSK";
-        case KEY_DATA_ROLE_ZSK: return "ZSK";
-        case KEY_DATA_ROLE_CSK: return "CSK";
+        case DBW_KSK: return "KSK";
+        case DBW_ZSK: return "ZSK";
+        case DBW_CSK: return "CSK";
     }
     assert(0);
     return "ERR";
@@ -1407,11 +1405,11 @@ const char *
 present_keystate_state(int state)
 {
     switch(state) {
-        case KEY_STATE_STATE_HIDDEN: return "hidden";
-        case KEY_STATE_STATE_RUMOURED: return "rumoured";
-        case KEY_STATE_STATE_OMNIPRESENT: return "ominpresent";
-        case KEY_STATE_STATE_UNRETENTIVE: return "unretentive";
-        case KEY_STATE_STATE_NA: return "NA";
+        case DBW_HIDDEN: return "hidden";
+        case DBW_RUMOURED: return "rumoured";
+        case DBW_OMNIPRESENT: return "ominpresent";
+        case DBW_UNRETENTIVE: return "unretentive";
+        case DBW_NA: return "NA";
     }
     assert(0);
     return "ERR";

@@ -125,20 +125,25 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
             return 1;
         }
     } else if (policy_name) {
-        struct dbw_list* policies = dbw_policies_all_filtered(dbconn, policy_name, NULL, -1);
-        if (!policies || policies->n == 0) {
+        struct dbw_db *db = dbw_fetch(dbconn);
+        if (!db) {
+            client_printf_err(sockfd, "Unable to read from database!\n");
+            free(buf);
+            return 1;
+        }
+        struct dbw_policy *policy = dbw_get_policy(db, policy_name);
+        if (!policy) {
             client_printf_err(sockfd, "Unable to find policy %s!\n", policy_name);
-            dbw_list_free(policies);
+            dbw_free(db);
             free(buf);
             return 1;
         }
-        struct dbw_policy *policy = (struct dbw_policy *)policies->set[0];
         if (policy_export(sockfd, policy, NULL) != POLICY_EXPORT_OK) {
-            dbw_list_free(policies);
+            dbw_free(db);
             free(buf);
             return 1;
         }
-        dbw_list_free(policies);
+        dbw_free(db);
     } else {
         client_printf_err(sockfd, "Either --all or --policy needs to be given!\n");
         free(buf);

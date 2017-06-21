@@ -44,16 +44,16 @@
 static void
 usage(int sockfd)
 {
-	client_printf(sockfd,
-		"policy list\n");
+    client_printf(sockfd,
+        "policy list\n");
 }
 
 static void
 help(int sockfd)
 {
-	client_printf(sockfd,
-		"List all policies in the database.\n\n"
-	);
+    client_printf(sockfd,
+        "List all policies in the database.\n\n"
+    );
 }
 
 static int
@@ -64,15 +64,15 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
     engine_type* engine = getglobalcontext(context);
     (void)cmd;
 
-    struct dbw_list *policies = dbw_policies(dbconn);
-    if (!policies) return 1;
+    struct dbw_db *db = dbw_fetch(dbconn);
+    if (!db) return 1;
     client_printf(sockfd, fmt, "Policy:", "Description:");
 
-    for (size_t i = 0; i < policies->n; i++) {
-        struct dbw_policy *policy = (struct dbw_policy*)policies->set[i];
+    for (size_t p = 0; p < db->policies->n; p++) {
+        struct dbw_policy *policy = (struct dbw_policy *)db->policies->set[p];
         client_printf(sockfd, fmt, policy->name, policy->description);
     }
-    dbw_list_free(policies);
+    dbw_free(db);
     return 0;
 }
 

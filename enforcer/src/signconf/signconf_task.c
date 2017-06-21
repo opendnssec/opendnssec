@@ -86,40 +86,25 @@ void
 signconf_task_flush_policy(engine_type *engine, db_connection_t *dbconn,
     char const *policyname)
 {
-    struct dbw_list *policies = dbw_policies_all_filtered(dbconn, policyname, NULL, 0);
-    if (!policies) {
+    struct dbw_db *db = dbw_fetch(dbconn);
+    if (!db) {
         ods_log_error("[%s] Can't fetch zones for policy %s from database",
             module_str, policyname);
         return;
     }
-    for (size_t p = 0; p < policies->n; p++) {
-        struct dbw_policy *policy = (struct dbw_policy *)policies->set[p];
+    for (size_t p = 0; p < db->policies->n; p++) {
+        struct dbw_policy *policy = (struct dbw_policy *)db->policies->set[p];
+        if (policyname && strcmp(policyname, policy->name)) continue;
         for (size_t z = 0; z < policy->zone_count; z++) {
             struct dbw_zone *zone = policy->zone[z];
             signconf_task_flush_zone(engine, dbconn, zone->name);
         }
     }
-    dbw_list_free(policies);
+    dbw_free(db);
 }
 
 void
 signconf_task_flush_all(engine_type *engine, db_connection_t *dbconn)
 {
-    zone_list_db_t *zonelist;
-    zone_db_t const *zone;
-
-    zonelist = zone_list_db_new(dbconn);
-    if (!zonelist) {
-        ods_log_error("[%s] Can't fetch zones from database", module_str);
-        return;
-    }
-    if (zone_list_db_get(zonelist)) { /* fetch all */
-        ods_log_error("[%s] Can't fetch zones from database", module_str);
-        zone_list_db_free(zonelist);
-        return;
-    }
-    while ((zone = zone_list_db_next(zonelist))) {
-        signconf_task_flush_zone(engine, dbconn, zone_db_name(zone));
-    }
-    zone_list_db_free(zonelist);
+    signconf_task_flush_policy(engine, dbconn, NULL);
 }

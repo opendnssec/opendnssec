@@ -110,45 +110,39 @@ perform_rollover_list(int sockfd, const char *listed_zone,
     struct dbw_list *keys;
     const char* fmt = "%-31s %-8s %-30s\n";
 
-    struct dbw_list *policies = dbw_policies_all_filtered(dbconn, NULL, listed_zone, 0);
+    struct dbw_db *db = dbw_fetch(dbconn);
+    /*struct dbw_list *policies = dbw_policies_all_filtered(dbconn, NULL, listed_zone, 0);*/
 
-    if (!policies) {
+    if (!db) {
         ods_log_error("[%s] error enumerating rollovers", module_str);
         client_printf(sockfd, "error enumerating rollovers\n");
-        dbw_list_free(policies);
         return 1;
     }
-    if (listed_zone && policies->n < 1) {
-        ods_log_error("[%s] zone '%s' not found", module_str, listed_zone);
-        client_printf(sockfd, "zone '%s' not found\n", listed_zone);
-        dbw_list_free(policies);
-        return 1;
-    }
-
     client_printf(sockfd, "Keys:\n");
     client_printf(sockfd, fmt, "Zone:", "Keytype:", "Rollover expected:");
 
-    for (size_t p = 0; p < policies->n; p++) {
-        struct dbw_policy *policy = (struct dbw_policy *)policies->set[p];
+    for (size_t p = 0; p < db->policies->n; p++) {
+        struct dbw_policy *policy = (struct dbw_policy *)db->policies->set[p];
         for (size_t z = 0; z < policy->zone_count; z++) {
             struct dbw_zone *zone = policy->zone[z];
+            if (listed_zone && strcmp(listed_zone, zone->name)) continue;
             for (size_t k = 0; k < zone->key_count; k++) {
                 struct dbw_key *key = zone->key[k];
                 print_key(sockfd, fmt, key);
             }
         }
     }
-    dbw_list_free(policies);
+    dbw_free(db);
     return 0;
 }
 
 static void
 usage(int sockfd)
 {
-	client_printf(sockfd, 
-		"rollover list\n"
-		"	[--zone <zone>]				aka -z\n"
-	);
+    client_printf(sockfd, 
+        "rollover list\n"
+        "	[--zone <zone>]				aka -z\n"
+    );
 }
 
 static void

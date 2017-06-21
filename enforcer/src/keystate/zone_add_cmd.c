@@ -280,22 +280,27 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
     zone->next_change = suspend?-1:0;
 
     /* This should yield a single policy w/o zones */
-    struct dbw_list *policies = dbw_policies_all_filtered(dbconn,
-        policy_name, NULL, 0);
-    if (!policies || policies->n <= 0) {
+    struct dbw_db *db = dbw_fetch(dbconn);
+    if (!db) {
+        client_printf_err(sockfd, "Error reading database\n");
+        dbw_zone_free((struct dbrow *)zone);
+        free(buf);
+        return 1;
+    }
+    struct dbw_policy *policy = dbw_get_policy(db, policy_name);
+    if (!policy) {
         client_printf_err(sockfd, "Unable to find policy %s needed for adding the zone!\n",
             policy_name);
         dbw_zone_free((struct dbrow *)zone);
         free(buf);
         return 1;
     }
-    struct dbw_policy *policy = (struct dbw_policy *)policies->set[0];
     zone->policy = policy;
     zone->policy_id = policy->id;
-    dbw_policies_add_zone(policies, zone);
-    if (dbw_update(dbconn, policies, 1)) {
+    dbw_policies_add_zone(db->policies, zone);
+    if (dbw_commit(db)) {
         client_printf(sockfd, "Failed to add zone to database.\n");
-        dbw_list_free(policies);
+        dbw_free(db);
         free(buf);
         return 1;
     }
@@ -331,11 +336,11 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
     /*
      * On successful generate HSM keys and add/flush enforce task.
      */
-    (void)hsm_key_factory_generate_policy(engine, dbconn, policies, policy, 0);
+    (void)hsm_key_factory_generate_policy(engine, db, policy, 0);
     ods_log_debug("[%s] Flushing enforce task", module_str);
     (void)schedule_task(engine->taskq, enforce_task(engine, zone->name), 1, 0);
 
-    dbw_list_free(policies);
+    dbw_free(db);
     free(buf);
     return ret;
 }

@@ -42,8 +42,7 @@ void hsm_key_factory_deinit(void);
  * TODO
  * \return 0 success, 1 error
  */
-int hsm_key_factory_generate_policy(engine_type* engine,
-    const db_connection_t* connection, struct dbw_list *policies,
+int hsm_key_factory_generate_policy(engine_type* engine, struct dbw_db *db,
     struct dbw_policy *policy, time_t duration);
 
 /**
