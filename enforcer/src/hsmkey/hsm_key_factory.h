@@ -29,8 +29,6 @@
 #ifndef _HSM_KEY_FACTORY_H_
 #define _HSM_KEY_FACTORY_H_
 
-#include "db/hsm_key.h"
-#include "db/policy_key.h"
 #include "db/dbw.h"
 #include "daemon/engine.h"
 

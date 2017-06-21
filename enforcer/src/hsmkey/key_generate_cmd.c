@@ -34,7 +34,6 @@
 #include "str.h"
 #include "clientpipe.h"
 #include "hsmkey/hsm_key_factory.h"
-#include "db/policy.h"
 #include "duration.h"
 
 #include "hsmkey/key_generate_cmd.h"
