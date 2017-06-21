@@ -230,21 +230,51 @@ static int
 dbw_key_update(const db_connection_t *dbconn, const struct dbrow *row)
 {
     struct db_value id;
-    key_data_t dbx_obj;
+    key_data_t *dbx_obj;
     struct dbw_key *key = (struct dbw_key *)row;
-
-    assert(row->dirty == DBW_UPDATE); /* TODO: INSERT AND DELETE NOTIMPL*/
+    int ret;
 
     memset(&id, 0, sizeof (id));
-    memset(&dbx_obj, 0, sizeof (dbx_obj));
-
-    if (db_value_from_int32(&id, row->id) || key_data_get_by_id(&dbx_obj, &id)) {
+    if (!(dbx_obj = key_data_new(dbconn))) {
         return 1;
     }
 
-    //TODO
+    switch (row->dirty) {
+        case DBW_DELETE:
+            if (db_value_from_int32(&id, row->id) || key_data_get_by_id(dbx_obj, &id))
+                return 1;
+            ret = key_data_delete(dbx_obj);
+            key_data_free(dbx_obj);
+            return ret;
+        case DBW_UPDATE:
+            if (db_value_from_int32(&id, row->id) || key_data_get_by_id(dbx_obj, &id))
+                return 1;
+        case DBW_INSERT: /* fall through intentional */
+            {/* pass */}
+    }
 
-    return key_data_update(&dbx_obj);
+    dbx_obj->zone_id.type = DB_TYPE_INT32;
+    dbx_obj->zone_id.int32 = key->zone_id;
+    dbx_obj->hsm_key_id.type = DB_TYPE_INT32;
+    dbx_obj->hsm_key_id.int32 = key->hsmkey_id;
+
+    dbx_obj->role                  = key->role;
+    dbx_obj->ds_at_parent          = key->ds_at_parent;
+    dbx_obj->algorithm             = key->algorithm;
+    dbx_obj->inception             = key->inception;
+    dbx_obj->introducing           = key->introducing;
+    dbx_obj->should_revoke         = key->should_revoke;
+    dbx_obj->standby               = key->standby;
+    dbx_obj->active_zsk            = key->active_zsk;
+    dbx_obj->active_ksk            = key->active_ksk;
+    dbx_obj->publish               = key->publish;
+    dbx_obj->keytag                = key->keytag;
+    dbx_obj->minimize              = key->minimize;
+
+    ret = (row->dirty == DBW_UPDATE)?
+        key_data_update(dbx_obj) : key_data_create(dbx_obj);
+    key_data_free(dbx_obj);
+    return ret;
 }
 
 static int
