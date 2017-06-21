@@ -1,8 +1,8 @@
 #include <string.h>
-#include <assert.h>
 
 #include "config.h"
 
+#include "log.h"
 #include "db/zone_db.h"
 #include "db/policy.h"
 #include "db/db_connection.h"
@@ -97,7 +97,7 @@ dbw_policy_update(const db_connection_t *dbconn, const struct dbrow *row)
 
     memset(&id, 0, sizeof (id));
 
-    assert(row->dirty == DBW_UPDATE); /* TODO: INSERT AND DELETE NOTIMPL*/
+    ods_log_assert(row->dirty == DBW_UPDATE); /* TODO: INSERT AND DELETE NOTIMPL*/
 
     dbx_obj = policy_new(dbconn);
     if (!dbx_obj || db_value_from_int32(&id, row->id)
@@ -157,7 +157,7 @@ dbw_policykey_update(const db_connection_t *dbconn, const struct dbrow *row)
 {
     /* Currently there exist no code to modify policykey object (only create)
      * Thus this is not allowed. */
-    assert(1);
+    ods_log_assert(0);
 
     return 0;
 }
@@ -337,7 +337,7 @@ dbw_keydependency_update(const db_connection_t *dbconn, const struct dbrow *row)
         case DBW_UPDATE:
             if (db_value_from_int32(&id, row->id) || key_dependency_get_by_id(dbx_obj, &id))
                 return 1;
-            assert(0); //Update had never existed.
+            ods_log_assert(0); //Update had never existed.
         case DBW_INSERT: /* fall through intentional */
             {/* pass */}
     }
@@ -447,7 +447,7 @@ static void sort_list_by_parent_id(struct dbw_list *list, int pidx)
         case 1: sort_list(list, cmp_int1);return;
         case 2: sort_list(list, cmp_int2);return;
     }
-    assert(0);
+    ods_log_assert(0);
 }
 
 static void
@@ -474,7 +474,7 @@ get_ref(struct dbrow *r, int ci, int **val, void **ptr)
             *val = &r->int2;
             return;
     }
-    assert(0);
+    ods_log_assert(0);
 }
 /**
  * left -> right: one to many
@@ -484,7 +484,7 @@ get_ref(struct dbrow *r, int ci, int **val, void **ptr)
 static void
 merge(struct dbw_list *parents, int pi, struct dbw_list *children, int ci)
 {
-    assert(!parents->also_free[pi] || parents->also_free[pi] == children);
+    ods_log_assert(!parents->also_free[pi] || parents->also_free[pi] == children);
     parents->also_free[pi] = children;
 
     sort_list_by_parent_id(children, ci);
@@ -1090,7 +1090,7 @@ dbw_commit_list(const db_connection_t *conn, struct dbw_list *list)
 }
 
 static void
-clean(struct dbw_list *list)
+mark_list_clean(struct dbw_list *list)
 {
     for (size_t i = 0; i < list->n; i++)
         list->set[i]->dirty = DBW_CLEAN;
@@ -1107,12 +1107,12 @@ dbw_commit(struct dbw_db *db)
     r |= dbw_commit_list(db->conn, db->hsmkeys);
     r |= dbw_commit_list(db->conn, db->policykeys);
     if (!r) {
-        clean(db->policies);
-        clean(db->zones);
-        clean(db->keys);
-        clean(db->keystates);
-        clean(db->hsmkeys);
-        clean(db->policykeys);
+        mark_list_clean(db->policies);
+        mark_list_clean(db->zones);
+        mark_list_clean(db->keys);
+        mark_list_clean(db->keystates);
+        mark_list_clean(db->hsmkeys);
+        mark_list_clean(db->policykeys);
     }
     return r;
 }
@@ -1254,139 +1254,12 @@ dbw_new_key(struct dbw_db *db, struct dbw_zone *zone, struct dbw_hsmkey *hsmkey)
     return key;
 }
 
-// JOINED STRUCTURES
-
-static int
-policy_seeve_name(const struct dbrow *row, const void *ctx)
-{
-    char *name = (char *)ctx;
-    struct dbw_policy *policy = (struct dbw_policy *)row;
-    return strcmp(name, policy->name) != 0;
-}
-
-static int
-hsmkey_seeve_repository(const struct dbrow *row, const void *ctx)
-{
-    char *name = (char *)ctx;
-    struct dbw_hsmkey *hsmkey = (struct dbw_hsmkey *)row;
-    return strcmp(name, hsmkey->repository) != 0;
-}
-
-static int
-zone_seeve_name(const struct dbrow *row, const void *ctx)
-{
-    char *name = (char *)ctx;
-    struct dbw_zone *zone = (struct dbw_zone *)row;
-    return strcmp(name, zone->name) != 0;
-}
-
-static int
-key_seeve_role(const struct dbrow *row, const void *ctx)
-{
-    int role = *(int *)ctx;
-    struct dbw_key *key = (struct dbw_key *)row;
-    return key->role != role;
-}
-
-struct dbw_list *
-dbw_policies_all_filtered(db_connection_t *dbconn, char const *policyname,
-    char const *zonename, int keyrole)
-{
-    struct dbw_list *policies = dbw_policies(dbconn);
-    struct dbw_list *zones = dbw_zones(dbconn);
-    struct dbw_list *keys = dbw_keys(dbconn);
-    struct dbw_list *keystates = dbw_keystates(dbconn);
-    struct dbw_list *hsmkeys   = dbw_hsmkeys(dbconn);
-    struct dbw_list *policykeys = dbw_policykeys(dbconn);
-    if (!policies || !zones || !keys || !keystates || !hsmkeys || !policykeys) {
-        dbw_list_free(policies);
-        dbw_list_free(zones);
-        dbw_list_free(keys);
-        dbw_list_free(keystates);
-        dbw_list_free(hsmkeys);
-        dbw_list_free(policykeys);
-        return NULL;
-    }
-    if (policyname)
-        filter(policies, policy_seeve_name, policyname);
-    if (zonename)
-        filter(zones, zone_seeve_name, zonename);
-    if (keyrole)
-        filter(keys, key_seeve_role, &keyrole);
-    merge_pl_pk(policies, policykeys);
-    merge_pl_hk(policies, hsmkeys);
-    merge_pl_zn(policies, zones);
-    merge_zn_kd(zones, keys);
-    merge_kd_ks(keys, keystates);
-    merge_hk_kd(hsmkeys, keys);
-    hsmkeys->also_free[1] = NULL; /* prevent loops in freeing */
-    return policies;
-}
-
-struct dbw_list *
-dbw_policies_all(db_connection_t *dbconn)
-{
-    return dbw_policies_all_filtered(dbconn, NULL, NULL, 0);
-}
-
-struct dbw_list *
-dbw_policies_by_policyname(db_connection_t *dbconn, char const *policyname)
-{
-    struct dbw_list *policies = dbw_policies_all(dbconn);
-    filter(policies, policy_seeve_name, policyname);
-    return policies;
-}
-
-struct dbw_list *
-dbw_hsmkeys_by_repository(db_connection_t *dbconn, char const *repositoryname)
-{
-    struct dbw_list *hsmkeys = dbw_hsmkeys(dbconn);
-    if (repositoryname)
-        filter(hsmkeys, hsmkey_seeve_repository, repositoryname);
-    return hsmkeys;
-}
-
 int
 dbw_zone_exists(db_connection_t *dbconn, char const *zonename)
 {
     zone_db_t *zone = zone_db_new_get_by_name(dbconn, zonename);
     zone_db_free(zone);
     return zone != NULL;
-}
-
-
-static int
-dbw_update_recursive(const db_connection_t *dbconn, struct dbw_list *list, int atomic)
-{
-    int r = 0;
-    for (size_t i = 0; i < FOREIGN_KEYS; i++) {
-        struct dbw_list *child = list->also_free[i];
-        if (!child) continue;
-        r = dbw_update_recursive(dbconn, child, atomic);
-        if (r) return r;
-    }
-    for (size_t i = 0; i < list->n; i++) {
-        struct dbrow *row = list->set[i];
-        if (!row->dirty) continue;
-        r = list->update(dbconn, row);
-        if (r) return r;
-        if (!atomic) row->dirty = 0;
-    }
-    return 0;
-}
-
-int
-dbw_update(const db_connection_t *dbconn, struct dbw_list *list, int atomic)
-{
-    int r = 0;
-    /** TODO start transaction here */
-    r = dbw_update_recursive(dbconn, list, atomic);
-    /** TODO end transaction here */
-
-    /* In the future we want to do transactions. So only mark everything
-     * as written when there where no errors. */
-    if (!r && atomic) clean(list);
-    return r;
 }
 
 const char *
@@ -1397,7 +1270,7 @@ present_key_role(int role)
         case DBW_ZSK: return "ZSK";
         case DBW_CSK: return "CSK";
     }
-    assert(0);
+    ods_log_assert(0);
     return "ERR";
 }
 
@@ -1411,7 +1284,7 @@ present_keystate_state(int state)
         case DBW_UNRETENTIVE: return "unretentive";
         case DBW_NA: return "NA";
     }
-    assert(0);
+    ods_log_assert(0);
     return "ERR";
 }
 
