@@ -31,6 +31,7 @@
 #include "duration.h"
 #include "log.h"
 #include "file.h"
+#include "daemon/engine.h"
 #include "db/dbw.h"
 
 #include "signconf/signconf_task.h"

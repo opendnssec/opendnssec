@@ -29,10 +29,7 @@
 #ifndef SIGNCONF_SIGNCONF_XML_H_
 #define SIGNCONF_SIGNCONF_XML_H_
 
-#include "daemon/engine.h"
-#include "db/db_connection.h"
-#include "db/zone_db.h"
-#include "db/policy.h"
+#include "db/dbw.h"
 
 /**
  * Indicates a successful signconf export.
@@ -72,7 +69,7 @@
  * \return SIGNCONF_EXPORT_ERR_* on error, otherwise SIGNCONF_EXPORT_OK or
  * SIGNCONF_EXPORT_NO_CHANGE.
  */
-int signconf_export_all(int sockfd, const db_connection_t* connection, int force);
+int signconf_export_all(int sockfd, db_connection_t* connection, int force);
 
 /**
  * Export the signconf XML for zone.
@@ -94,6 +91,7 @@ signconf_export_zone(char const *zonename, db_connection_t* dbconn);
  * \return SIGNCONF_EXPORT_ERR_* on error, otherwise SIGNCONF_EXPORT_OK or
  * SIGNCONF_EXPORT_NO_CHANGE.
  */
-int signconf_export_policy(int sockfd, const db_connection_t* connection, const policy_t* policy, int force);
+int signconf_export_policy(int sockfd, db_connection_t* connection,
+    struct dbw_policy *policy, int force);
 
 #endif /* SIGNCONF_SIGNCONF_H_ */

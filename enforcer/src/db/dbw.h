@@ -66,15 +66,25 @@ enum dbw_hsmkey_state {
 };
 
 enum dbw_backup {
-    //DBW_BACKUP_INVALID = -1,
     DBW_BACKUP_NO_BACKUP = 0,
-    DBW_BACKUP_REQUIRED = 1,
+    DBW_BACKUP_REQUIRED  = 1,
     DBW_BACKUP_REQUESTED = 2,
-    DBW_BACKUP_DONE = 3
+    DBW_BACKUP_DONE      = 3
 };
 
 static const char * dbw_backup_txt[] = {
     "Not Required", "Required", "Prepared", "Done"
+};
+
+enum dbw_soa_serial {
+    DBW_SOA_SERIAL_COUNTER     = 0,
+    DBW_SOA_SERIAL_DATECOUNTER = 1,
+    DBW_SOA_SERIAL_UNIXTIME    = 2,
+    DBW_SOA_SERIAL_KEEP        = 3
+};
+
+static const char * dbw_soa_serial_txt[] = {
+    "counter", "datecounter", "unixtime", "keep"
 };
 
 /* This is a bit icky - sorry

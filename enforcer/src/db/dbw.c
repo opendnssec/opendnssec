@@ -1048,7 +1048,10 @@ struct dbw_db *
 dbw_fetch(db_connection_t *conn)
 {
     struct dbw_db *db = malloc(sizeof(struct dbw_db));
-    if (!db) return NULL;
+    if (!db) {
+        ods_log_error("[dbw_fetch] Memory allocation failure.");
+        return NULL;
+    }
 
     db->conn            = conn;
     db->policies        = dbw_policies(conn);
@@ -1063,6 +1066,7 @@ dbw_fetch(db_connection_t *conn)
             !db->hsmkeys || !db->policykeys || !db->keydependencies)
     {
         dbw_free(db);
+        ods_log_error("[dbw_fetch] Failed to read from database.");
         return NULL;
     }
     merge_pl_pk(db->policies, db->policykeys);
