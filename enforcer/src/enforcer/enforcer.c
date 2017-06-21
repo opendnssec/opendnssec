@@ -738,13 +738,6 @@ has_omnipresent_dnskey(struct dbw_zone *zone)
 }
 
 static void
-key_mark_changed(struct dbw_key *key)
-{
-    /* we don't want DELETED or INSERTED to be marked UPDATE */
-    if (key->dirty == DBW_CLEAN) key->dirty = DBW_UPDATE;
-}
-
-static void
 track_ttls(struct dbw_zone *zone, const time_t now)
 {
     struct dbw_policy *policy = zone->policy;
@@ -756,7 +749,7 @@ track_ttls(struct dbw_zone *zone, const time_t now)
      */
     if (zone->ttl_end_ds <= now) { /*DS*/
         zone->ttl_end_ds = addtime(now, policy->parent_ds_ttl);
-        zone->dirty = DBW_UPDATE;
+        dbw_mark_dirty((struct dbrow *)zone);
     }
     if (zone->ttl_end_dk <= now) { /*DNSKEY*/
         unsigned int ttl;
@@ -768,7 +761,7 @@ track_ttls(struct dbw_zone *zone, const time_t now)
                 policy->zone_soa_minimum));
         }
         zone->ttl_end_dk = addtime(now, ttl);
-        zone->dirty = DBW_UPDATE;
+        dbw_mark_dirty((struct dbrow *)zone);
     }
     if (zone->ttl_end_rs <= now) { /*RRSIG*/
         unsigned int ttl;
@@ -779,7 +772,7 @@ track_ttls(struct dbw_zone *zone, const time_t now)
         }
         zone->ttl_end_rs = addtime(now, max(ttl,
             min(policy->zone_soa_ttl, policy->zone_soa_minimum)));
-        zone->dirty = DBW_UPDATE;
+        dbw_mark_dirty((struct dbrow *)zone);
     }
 }
 
@@ -1009,7 +1002,7 @@ updateZone(struct dbw_db *db, struct dbw_zone *zone, const time_t now,
                 }
 
                 if (keystate->type == DBW_DS && handle_ds_at_parent(key, next_state))
-                    key_mark_changed(key);
+                    dbw_mark_dirty((struct dbrow *)key);
 
                 /* We've passed all tests! Make the transition. */
                 ods_log_verbose("[%s] %s: Transitioning %s %s %s from %s to %s", module_str, scmd,
@@ -1023,14 +1016,14 @@ updateZone(struct dbw_db *db, struct dbw_zone *zone, const time_t now,
                 keystate->last_change = now;
                 keystate->ttl = getZoneTTL(zone, keystate->type, now);
                 /* we don't want DELETED or INSERTED to be marked UPDATE */
-                if (keystate->dirty == DBW_CLEAN) keystate->dirty = DBW_UPDATE;
+                dbw_mark_dirty((struct dbrow *)keystate);
                 stable = 0; /* There have been changes. Keep processing */
                 /* Let the caller know there have been changes to the zone */
                 *zone_updated = 1;
 
                 if (!zone->signconf_needs_writing) {
                     zone->signconf_needs_writing = 1;
-                    zone->dirty = DBW_UPDATE;
+                    dbw_mark_dirty((struct dbrow *)zone);
                 }
                 /* TODO marksuccessors and signconf need writing!!!!! */
                  markSuccessors(db, &future_key);
@@ -1243,7 +1236,7 @@ updatePolicy(engine_type *engine, struct dbw_db *db, struct dbw_zone *zone, cons
         if (!key->introducing) continue; /* already know as old */
         if (!existsPolicyForKey(policy, key)) {
             key->introducing = 0;
-            key->dirty = DBW_UPDATE;
+            dbw_mark_dirty((struct dbrow *)key);
         }
     }
 
@@ -1359,7 +1352,7 @@ updatePolicy(engine_type *engine, struct dbw_db *db, struct dbw_zone *zone, cons
             if (oldkey == key) continue;
 
             oldkey->introducing = 0;
-            oldkey->dirty = DBW_UPDATE;
+            dbw_mark_dirty((struct dbrow *)oldkey);
             *zone_updated = 1;
             ods_log_verbose("[%s] %s: decommissioning old key: %s",
                 module_str, scmd, oldkey->hsmkey->locator);
@@ -1369,7 +1362,7 @@ updatePolicy(engine_type *engine, struct dbw_db *db, struct dbw_zone *zone, cons
         if (enforce_roll(zone, pkey)) {
             set_roll(zone, pkey->role, 0);
             *zone_updated = 1;
-            zone->dirty = DBW_UPDATE;
+            dbw_mark_dirty((struct dbrow *)zone);
         }
     }
     return return_at;
@@ -1432,19 +1425,19 @@ set_key_flags(struct dbw_zone *zone)
             case KEY_STATE_TYPE_DNSKEY:
                 if (!key->publish) {
                     key->publish = 1;
-                    key_mark_changed(key);
+                    dbw_mark_dirty((struct dbrow *)key);
                 }
                 break;
             case KEY_STATE_TYPE_RRSIGDNSKEY:
                 if (!key->active_ksk) {
                     key->active_ksk = 1;
-                    key_mark_changed(key);
+                    dbw_mark_dirty((struct dbrow *)key);
                 }
                 break;
             case KEY_STATE_TYPE_RRSIG:
                 if (!key->active_zsk) {
                     key->active_zsk = 1;
-                    key_mark_changed(key);
+                    dbw_mark_dirty((struct dbrow *)key);
                 }
             }
         }

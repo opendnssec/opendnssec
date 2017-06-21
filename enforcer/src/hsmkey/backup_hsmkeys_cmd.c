@@ -46,21 +46,22 @@ static int
 hsmkeys_from_to_state(db_connection_t *dbconn, char const *repository,
     int from_state, int to_state)
 {
-    struct dbw_list *hsmkeys = dbw_hsmkeys_by_repository(dbconn, repository);
-    if (!hsmkeys) {
+    struct dbw_db *db = dbw_fetch(dbconn);
+    if (!db) {
         ods_log_error("[%s] database error", module_str);
         return -1;
     }
     int keys_marked = 0;
-    for (size_t h = 0; h < hsmkeys->n; h++) {
-        struct dbw_hsmkey *hsmkey = (struct dbw_hsmkey *)hsmkeys->set[h];
+    for (size_t h = 0; h < db->hsmkeys->n; h++) {
+        struct dbw_hsmkey *hsmkey = (struct dbw_hsmkey *)db->hsmkeys->set[h];
+        if (repository && strcmp(repository, hsmkey->repository)) continue;
         if (hsmkey->backup != from_state) continue;
         hsmkey->backup = to_state;
-        hsmkey->dirty = DBW_UPDATE;
+        dbw_mark_dirty((struct dbrow *)hsmkey);
         keys_marked++;
     }
-    int r = dbw_update(dbconn, hsmkeys, 1);
-    dbw_list_free(hsmkeys);
+    int r = dbw_commit(db);
+    dbw_free(db);
     if (r) {
         ods_log_error("[%s] database error", module_str);
         return -1;
@@ -72,7 +73,7 @@ static int
 prepare(int sockfd, db_connection_t *dbconn, char const *repository)
 {
     int keys_marked = hsmkeys_from_to_state(dbconn, repository,
-        HSM_KEY_BACKUP_BACKUP_REQUIRED, HSM_KEY_BACKUP_BACKUP_REQUESTED);
+        DBW_BACKUP_REQUIRED, DBW_BACKUP_REQUESTED);
     if (keys_marked < 0) {
         return 1;
     }
@@ -84,7 +85,7 @@ static int
 commit(int sockfd, db_connection_t *dbconn, char const *repository)
 {
     int keys_marked = hsmkeys_from_to_state(dbconn, repository,
-        HSM_KEY_BACKUP_BACKUP_REQUESTED, HSM_KEY_BACKUP_BACKUP_DONE);
+        DBW_BACKUP_REQUESTED, DBW_BACKUP_DONE);
     if (keys_marked < 0) {
         return 1;
     }
@@ -96,7 +97,7 @@ static int
 rollback(int sockfd, db_connection_t *dbconn, char const *repository)
 {
     int keys_marked = hsmkeys_from_to_state(dbconn, repository,
-        HSM_KEY_BACKUP_BACKUP_REQUESTED, HSM_KEY_BACKUP_BACKUP_REQUIRED);
+        DBW_BACKUP_REQUESTED, DBW_BACKUP_REQUIRED);
     if (keys_marked < 0) {
         return 1;
     }
@@ -107,19 +108,20 @@ rollback(int sockfd, db_connection_t *dbconn, char const *repository)
 static int
 list(int sockfd, db_connection_t *dbconn, char const *repository)
 {
-    struct dbw_list *hsmkeys = dbw_hsmkeys_by_repository(dbconn, repository);
-    if (!hsmkeys) {
+    struct dbw_db *db = dbw_fetch(dbconn);
+    if (!db) {
         ods_log_error("[%s] database error", module_str);
         return -1;
     }
     char const *fmt = "%-32s %-16s %-16s\n";
     client_printf_err(sockfd, fmt, "Locator:", "Repository:", "Backup state:");
-    for (size_t h = 0; h < hsmkeys->n; h++) {
-        struct dbw_hsmkey *hsmkey = (struct dbw_hsmkey *)hsmkeys->set[h];
+    for (size_t h = 0; h < db->hsmkeys->n; h++) {
+        struct dbw_hsmkey *hsmkey = (struct dbw_hsmkey *)db->hsmkeys->set[h];
+        if (repository && strcmp(repository, hsmkey->repository)) continue;
         client_printf(sockfd, fmt, hsmkey->locator, hsmkey->repository,
-                hsm_key_enum_set_backup[hsmkey->backup].text);
+            dbw_backup_txt[hsmkey->backup]);
     }
-    dbw_list_free(hsmkeys);
+    dbw_free(db);
     return 0;
 }
 
@@ -146,7 +148,7 @@ help(int sockfd)
         "NOTICE: OpenDNSSEC does not backup key material it self. It is "
         "the operators responsibility to do this. This merely keeps track "
         "of the state and acts as a safety net.\n\n"
-        
+
         "backup list:\t Print backup status of keys.\n"
         "backup prepare:\t Flag the keys as 'to be backed up'.\n"
         "backup commit:\t Mark flagged keys as backed up.\n"
@@ -189,7 +191,7 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
     if (argc == -1) {
         client_printf_err(sockfd, "too many arguments\n");
         ods_log_error("[%s] too many arguments for %s command",
-                      module_str, backup_funcblock.cmdname);
+            module_str, backup_funcblock.cmdname);
         return -1;
     }
 

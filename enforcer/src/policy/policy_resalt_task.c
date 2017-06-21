@@ -109,22 +109,22 @@ perform_policy_resalt(task_type* task, char const *policyname, void *userdata,
     char salt[255], salthex[511];
     engine_type *engine = (engine_type *)userdata;
 
-    struct dbw_list *policies = dbw_policies_all_filtered(dbconn, policyname, NULL, 0);
-    if (!policies) {
+    struct dbw_db *db = dbw_fetch(dbconn);
+    if (!db) {
         ods_log_error("[%s] Unable to get list of policies from database",
             module_str);
         return schedule_DEFER;
     }
-    if (policies->n == 0) { /* Doesn't exist, don't reschedule */
-        dbw_list_free(policies);
+    struct dbw_policy *policy = dbw_get_policy(db, policyname);
+    if (!policy) {
+        dbw_free(db);
         return -1;
     }
-    struct dbw_policy *policy = (struct dbw_policy*)policies->set[0];
 
     if (policy->denial_salt_length <= 0 || policy->denial_salt_length > 255) {
         ods_log_error("[%s] policy %s has an invalid salt length. "
             "Must be in range [0..255]", module_str, policy->name);
-        dbw_list_free(policies);
+        dbw_free(db);
         return schedule_SUCCESS; /* no point in rescheduling */
     }
 
@@ -135,20 +135,20 @@ perform_policy_resalt(task_type* task, char const *policyname, void *userdata,
     to_hex(salt, policy->denial_salt_length, salthex);
     policy->denial_salt = strdup(salthex);
     policy->denial_salt_last_change = now;
-    policy->dirty = DBW_UPDATE;
+    dbw_mark_dirty((struct dbrow *)policy);
 
     if (policy->denial_resalt <= 0)
         resalt_time = -1;
     else
         resalt_time = now + policy->denial_resalt;
-    int r = dbw_update(dbconn, policies, 1);
+    int r = dbw_commit(db);
+    dbw_free(db);
     if (r) {
         ods_log_error("[%s] unable to update DB", module_str);
     } else {
         signconf_task_flush_policy(engine, dbconn, policy->name);
-        ods_log_debug("[%s] policy %s resalted successfully", module_str, policy->name);
+        ods_log_debug("[%s] policy %s resalted successfully", module_str, policyname);
     }
-    dbw_list_free(policies);
     return resalt_time;
 }
 

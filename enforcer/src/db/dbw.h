@@ -65,6 +65,18 @@ enum dbw_hsmkey_state {
     DBW_HSMKEY_DELETE  = 4
 };
 
+enum dbw_backup {
+    //DBW_BACKUP_INVALID = -1,
+    DBW_BACKUP_NO_BACKUP = 0,
+    DBW_BACKUP_REQUIRED = 1,
+    DBW_BACKUP_REQUESTED = 2,
+    DBW_BACKUP_DONE = 3
+};
+
+static const char * dbw_backup_txt[] = {
+    "Not Required", "Required", "Prepared", "Done"
+};
+
 /* This is a bit icky - sorry
  * In my defense: this is temporary code.
  *
@@ -293,10 +305,15 @@ struct dbw_db {
     struct dbw_list *keydependencies;
 };
 
+/* DB operations */
 struct dbw_db *dbw_fetch(db_connection_t *conn);
 void dbw_free(struct dbw_db *db);
 int dbw_commit(struct dbw_db *db);
+
+void dbw_mark_dirty(struct dbrow *row);
+
 struct dbw_zone * dbw_get_zone(struct dbw_db *db, char const *zonename);
+struct dbw_policy * dbw_get_policy(struct dbw_db *db, char const *policyname);
 struct dbw_keystate * dbw_get_keystate(struct dbw_key *key, int type);
 
 void dbw_list_free(struct dbw_list *dbw_list);

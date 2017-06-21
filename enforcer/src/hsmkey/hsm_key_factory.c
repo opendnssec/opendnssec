@@ -29,10 +29,6 @@
 #include "config.h"
 
 #include "db/dbw.h"
-#include "db/hsm_key.h"
-#include "db/policy.h"
-#include "db/policy_key.h"
-/*#include "db/key_data.h"*/
 #include "log.h"
 #include "scheduler/schedule.h"
 #include "scheduler/task.h"
@@ -50,10 +46,6 @@
 
 struct __hsm_key_factory_task {
     engine_type* engine;
-    /* YBS: I find it scary that these database objects are carried
-     * around in our scheduler. Is that safe? */
-    /*policy_key_t* policy_key;*/
-    /*policy_t* policy;*/
     int id; /* id of record */
     char *policyname;
     time_t duration;
@@ -99,7 +91,7 @@ hsmkey_matches_policykey(struct dbw_hsmkey *hsmkey, struct dbw_policykey *policy
     return !strcmp(hsmkey->repository, policykey->repository)
         &&  hsmkey->is_revoked == 0
         &&  hsmkey->algorithm  == policykey->algorithm
-        &&  hsmkey->state      == HSM_KEY_STATE_UNUSED
+        &&  hsmkey->state      == DBW_HSMKEY_UNUSED
         &&  hsmkey->bits       == policykey->bits
         &&  hsmkey->role       == policykey->role
         &&  hsmkey->bits       == policykey->bits;
@@ -480,7 +472,7 @@ hsm_key_factory_get_key(engine_type *engine, struct dbw_db *db,
     }
      /*Update the state of the returned HSM key*/
     hkey->state = policy->keys_shared? DBW_HSMKEY_SHARED : DBW_HSMKEY_PRIVATE;
-    hkey->dirty = DBW_UPDATE;
+    dbw_mark_dirty((struct dbrow *)hkey);
 
     /*Schedule generation because we used up a key and return the HSM key*/
     ods_log_debug("[hsm_key_factory_get_key] key allocated");
@@ -499,7 +491,7 @@ hsm_key_factory_release_key(struct dbw_hsmkey *hsmkey, struct dbw_key *key)
     } else {
         ods_log_debug("[hsm_key_factory_release_key] key %s marked DELETE", hsmkey->locator);
         hsmkey->state = DBW_HSMKEY_DELETE;
-        hsmkey->dirty = DBW_UPDATE;
+        dbw_mark_dirty((struct dbrow *)hsmkey);
     }
 }
 

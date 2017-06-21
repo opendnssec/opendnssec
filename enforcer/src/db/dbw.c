@@ -984,14 +984,14 @@ dbw_policykeys(db_connection_t *dbconn)
 void
 dbw_free(struct dbw_db *db)
 {
-        dbw_list_free(db->policies);
-        dbw_list_free(db->zones);
-        dbw_list_free(db->keys);
-        dbw_list_free(db->keystates);
-        dbw_list_free(db->hsmkeys);
-        dbw_list_free(db->policykeys);
-        dbw_list_free(db->keydependencies);
-        free(db);
+    dbw_list_free(db->policies);
+    dbw_list_free(db->zones);
+    dbw_list_free(db->keys);
+    dbw_list_free(db->keystates);
+    dbw_list_free(db->hsmkeys);
+    dbw_list_free(db->policykeys);
+    dbw_list_free(db->keydependencies);
+    free(db);
 }
 
 struct dbw_db *
@@ -1010,7 +1010,7 @@ dbw_fetch(db_connection_t *conn)
     db->keydependencies = dbw_keydependencies(conn);
 
     if (!db->policies || !db->zones || !db->keys || !db->keystates ||
-            !db->hsmkeys || !db->policykeys || db->keydependencies)
+            !db->hsmkeys || !db->policykeys || !db->keydependencies)
     {
         dbw_free(db);
         return NULL;
@@ -1074,6 +1074,17 @@ dbw_get_zone(struct dbw_db *db, char const *zonename)
     for (size_t n = 0; n < list->n; n++) {
         struct dbw_zone *zone = (struct dbw_zone *)list->set[n];
         if (!strcmp(zone->name, zonename)) return zone;
+    }
+    return NULL;
+}
+
+struct dbw_policy *
+dbw_get_policy(struct dbw_db *db, char const *policyname)
+{
+    struct dbw_list *list = db->policies;
+    for (size_t n = 0; n < list->n; n++) {
+        struct dbw_policy *policy = (struct dbw_policy *)list->set[n];
+        if (!strcmp(policy->name, policyname)) return policy;
     }
     return NULL;
 }
@@ -1352,4 +1363,12 @@ present_keystate_state(int state)
     }
     assert(0);
     return "ERR";
+}
+
+void
+dbw_mark_dirty(struct dbrow *row)
+{
+    /* If a record is marked UPDATE or DELETE don't overwrite. */
+    if (row->dirty == DBW_CLEAN)
+        row->dirty = DBW_UPDATE;
 }
