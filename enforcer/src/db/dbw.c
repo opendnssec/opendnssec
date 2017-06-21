@@ -281,21 +281,42 @@ static int
 dbw_keystate_update(const db_connection_t *dbconn, const struct dbrow *row)
 {
     struct db_value id;
-    key_state_t dbx_obj;
+    key_state_t *dbx_obj;
     struct dbw_keystate *keystate = (struct dbw_keystate *)row;
-
-    assert(row->dirty == DBW_UPDATE); /* TODO: INSERT AND DELETE NOTIMPL*/
+    int ret;
 
     memset(&id, 0, sizeof (id));
-    memset(&dbx_obj, 0, sizeof (dbx_obj));
-
-    if (db_value_from_int32(&id, row->id) || key_state_get_by_id(&dbx_obj, &id)) {
+    if (!(dbx_obj = key_state_new(dbconn))) {
         return 1;
     }
 
-    //TODO
+    switch (row->dirty) {
+        case DBW_DELETE:
+            if (db_value_from_int32(&id, row->id) || key_state_get_by_id(dbx_obj, &id))
+                return 1;
+            ret = key_state_delete(dbx_obj);
+            key_state_free(dbx_obj);
+            return ret;
+        case DBW_UPDATE:
+            if (db_value_from_int32(&id, row->id) || key_state_get_by_id(dbx_obj, &id))
+                return 1;
+        case DBW_INSERT: /* fall through intentional */
+            {/* pass */}
+    }
 
-    return key_state_update(&dbx_obj);
+    dbx_obj->key_data_id.type = DB_TYPE_INT32;
+    dbx_obj->key_data_id.int32 = keystate->key_id;
+
+    dbx_obj->type                = keystate->type;
+    dbx_obj->state               = keystate->state;
+    dbx_obj->last_change         = keystate->last_change;
+    dbx_obj->minimize            = keystate->minimize;
+    dbx_obj->ttl                 = keystate->ttl;
+
+    ret = (row->dirty == DBW_UPDATE)?
+        key_state_update(dbx_obj) : key_state_create(dbx_obj);
+    key_state_free(dbx_obj);
+    return ret;
 }
 
 static int
@@ -319,7 +340,8 @@ dbw_keydependency_update(const db_connection_t *dbconn, const struct dbrow *row)
             if (db_value_from_int32(&id, row->id) || key_dependency_get_by_id(dbx_obj, &id))
                 return 1;
             assert(0); //Update had never existed.
-        /*case DBW_INSERT: [> fall through intentional <]*/
+        case DBW_INSERT: /* fall through intentional */
+            {/* pass */}
     }
 
     dbx_obj->zone_id.type             = DB_TYPE_INT32;
