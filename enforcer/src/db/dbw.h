@@ -19,7 +19,7 @@ enum dbw_key_role {
 };
 
 static const char * dbw_key_role_txt[] = {
-    "(void)", "KSK", "ZSK", "CSK"
+    "(void)", "KSK", "ZSK", "CSK", NULL
 };
 
 enum dbw_keystate_type {
@@ -30,7 +30,7 @@ enum dbw_keystate_type {
 };
 
 static const char * dbw_keystate_type_txt[] = {
-    "DS", "RRSIG", "DNSKEY", "RRSIGDNSKEY"
+    "DS", "RRSIG", "DNSKEY", "RRSIGDNSKEY", NULL
 };
 
 enum dbw_keystate_state {
@@ -42,7 +42,7 @@ enum dbw_keystate_state {
 };
 
 static const char * dbw_keystate_state_txt[] = {
-    "hidden", "rumoured", "omnipresent", "unretentive", "NA"
+    "hidden", "rumoured", "omnipresent", "unretentive", "NA", NULL
 };
 
 enum dbw_ds_at_parent {
@@ -55,7 +55,7 @@ enum dbw_ds_at_parent {
 };
 
 static const char * dbw_ds_at_parent_txt[] = {
-    "unsubmitted", "submit", "submitted", "seen", "retract", "retracted"
+    "unsubmitted", "submit", "submitted", "seen", "retract", "retracted", NULL
 };
 
 enum dbw_hsmkey_state {
@@ -73,7 +73,7 @@ enum dbw_backup {
 };
 
 static const char * dbw_backup_txt[] = {
-    "Not Required", "Required", "Prepared", "Done"
+    "Not Required", "Required", "Prepared", "Done", NULL
 };
 
 enum dbw_soa_serial {
@@ -84,8 +84,11 @@ enum dbw_soa_serial {
 };
 
 static const char * dbw_soa_serial_txt[] = {
-    "counter", "datecounter", "unixtime", "keep"
+    "counter", "datecounter", "unixtime", "keep", NULL
 };
+
+const char * dbw_enum2txt(const char *c[], int n);
+int dbw_txt2enum(const char *c[], const char *txt);
 
 /* This is a bit icky - sorry
  * In my defense: this is temporary code.

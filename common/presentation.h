@@ -26,6 +26,7 @@
  */
 
 #ifndef PRESENTATION_H
+#define PRESENTATION_H
 
 
 #endif /* PRESENTATION_H */

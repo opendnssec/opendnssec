@@ -9,6 +9,22 @@
 
 #include "db/dbw.h"
 
+const char *
+dbw_enum2txt(const char *c[], int n)
+{
+    return c[n];
+}
+
+int
+dbw_txt2enum(const char *c[], const char *txt)
+{
+    int i = 0;
+    do {
+        if (!strcasecmp(txt, c[i])) return i;
+    } while (c[++i]);
+    return -1;
+}
+
 static void
 dbw_list_free(struct dbw_list *dbw_list)
 {

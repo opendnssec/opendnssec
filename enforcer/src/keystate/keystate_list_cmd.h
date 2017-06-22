@@ -34,10 +34,7 @@
 
 struct cmd_func_block key_list_funcblock;
 
-//const char*
-//map_keystate(struct dbw_key *key);
-
-const char *
-map_keystate_defunc(key_data_t *k);
+const char*
+map_keystate(struct dbw_key *key);
 
 #endif /* _KEYSTATE_LIST_CMD_H_ */

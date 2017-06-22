@@ -130,13 +130,6 @@ map_keystate(struct dbw_key *key)
     }
 }
 
-/*Only a placeholder to make it compile until key export in converted*/
-const char *
-map_keystate_defunc(key_data_t *k)
-{
-    return "TODO";
-}
-
 /** Time of next transition. Caller responsible for freeing ret
  * @param zone: zone key belongs to
  * @param key: key to evaluate

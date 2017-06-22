@@ -26,9 +26,7 @@
  */
 
 #include "config.h"
-#include <assert.h>
-#include "dbw.h"
+#include "log.h"
 
 #include "presentation.h"
-
 
