@@ -295,9 +295,8 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
         free(buf);
         return 1;
     }
-    zone->policy = policy;
     zone->policy_id = policy->id;
-    dbw_policies_add_zone(db->policies, zone);
+    (void)dbw_add_zone(db, policy, zone); //TODO return val
     if (dbw_commit(db)) {
         client_printf(sockfd, "Failed to add zone to database.\n");
         dbw_free(db);

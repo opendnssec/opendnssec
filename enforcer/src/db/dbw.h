@@ -4,8 +4,6 @@
 #include "db/db_connection.h"
 #include "db/zone_db.h"
 
-#define FOREIGN_KEYS 5
-
 #define DBW_CLEAN    0
 #define DBW_DELETE   1
 #define DBW_INSERT   2
@@ -304,7 +302,6 @@ struct dbw_list {
     size_t n;
     void (*free)(struct dbrow *);
     int (*update)(const db_connection_t *, struct dbrow *);
-    struct dbw_list *also_free[FOREIGN_KEYS];
 };
 
 struct dbw_db {
@@ -332,6 +329,9 @@ struct dbw_keystate * dbw_get_keystate(struct dbw_key *key, int type);
 void dbw_zone_free(struct dbrow *row);
 
 int dbw_add_keystate(struct dbw_db *db, struct dbw_key *key, struct dbw_keystate *keystate);
+int dbw_add_zone(struct dbw_db *db, struct dbw_policy *policy, struct dbw_zone *zone);
+int dbw_add_hsmkey(struct dbw_db *db, struct dbw_policy *policy, struct dbw_hsmkey *hsmkey);
+
 struct dbw_keydependency * dbw_new_keydependency(struct dbw_db *db,
     struct dbw_key *fromkey, struct dbw_key *tokey, int type,
     struct dbw_zone *zone);

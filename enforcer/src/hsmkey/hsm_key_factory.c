@@ -244,8 +244,7 @@ hsm_key_factory_generate(engine_type *engine, struct dbw_db *db,
             hsmkey->id = -1; /* Just set it to something that stands out */
             hsmkey->dirty = DBW_INSERT;
             hsmkey->key_count = 0;
-            hsmkey->policy = policy;
-            dbw_policies_add_hsmkey(db->policies, hsmkey);
+            (void)dbw_add_hsmkey(db, policy, hsmkey);//TODO return val
             dbw_commit(db);
 
             ods_log_debug("[hsm_key_factory_generate] generated key %s successfully", key_id);

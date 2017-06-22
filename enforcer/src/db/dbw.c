@@ -512,9 +512,6 @@ get_ref(struct dbrow *r, int ci, int **val, void **ptr)
 static void
 merge(struct dbw_list *parents, int pi, struct dbw_list *children, int ci)
 {
-    ods_log_assert(!parents->also_free[pi] || parents->also_free[pi] == children);
-    parents->also_free[pi] = children;
-
     sort_list_by_parent_id(children, ci);
     sort_by_id(parents);
     /* now loop over every parent gobble up every child and point children
@@ -557,35 +554,10 @@ static void merge_zn_dp(struct dbw_list *l, struct dbw_list *r) { merge(l, 2, r,
 static void merge_kf_dp(struct dbw_list *l, struct dbw_list *r) { merge(l, 3, r, 1); }
 static void merge_kt_dp(struct dbw_list *l, struct dbw_list *r) { merge(l, 4, r, 2); }
 
-/* No attempt will be made to link parent to child. */
-static void
-add(struct dbw_list *parents, int pi, struct dbrow *child)
-{
-    struct dbw_list *children = parents->also_free[pi];
-    children->n++;
-    children->set = realloc(children->set, sizeof(struct dbrow *) * children->n);
-    children->set[children->n-1] = child;
-    child->dirty = DBW_INSERT;
-}
-
-void
-dbw_policies_add_zone(struct dbw_list *policies, struct dbw_zone *zone)
-{
-    add(policies, 2, (struct dbrow *)zone);
-    merge_pl_zn(policies, policies->also_free[2]);
-}
-
-void
-dbw_policies_add_hsmkey(struct dbw_list *policies, struct dbw_hsmkey *hsmkey)
-{
-    add(policies, 1, (struct dbrow *)hsmkey);
-}
-
 /**
  *  DBX to DBW conversions
  *
  */
-
 
 static struct dbw_zone *
 zone_dbx_to_dbw(const zone_db_t *dbx_item)
@@ -1200,6 +1172,28 @@ dbw_add_keystate(struct dbw_db *db, struct dbw_key *key, struct dbw_keystate *ke
     /*link keystate to db*/
     r |= list_add(db->keystates, (struct dbrow *)keystate);
     keystate->dirty = DBW_INSERT;
+    return r;
+}
+
+int
+dbw_add_zone(struct dbw_db *db, struct dbw_policy *policy, struct dbw_zone *zone)
+{
+    int r = 0;
+    zone->policy = policy;
+    r |= append((void ***)&policy->zone, &policy->zone_count, zone);
+    r |= list_add(db->zones, (struct dbrow *)zone);
+    zone->dirty = DBW_INSERT;
+    return r;
+}
+
+int
+dbw_add_hsmkey(struct dbw_db *db, struct dbw_policy *policy, struct dbw_hsmkey *hsmkey)
+{
+    int r = 0;
+    hsmkey->policy = policy;
+    r |= append((void ***)&policy->hsmkey, &policy->hsmkey_count, hsmkey);
+    r |= list_add(db->hsmkeys, (struct dbrow *)hsmkey);
+    hsmkey->dirty = DBW_INSERT;
     return r;
 }
 
