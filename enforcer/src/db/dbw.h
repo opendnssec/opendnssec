@@ -303,7 +303,7 @@ struct dbw_list {
     struct dbrow **set;
     size_t n;
     void (*free)(struct dbrow *);
-    int (*update)(const db_connection_t *, const struct dbrow *);
+    int (*update)(const db_connection_t *, struct dbrow *);
     struct dbw_list *also_free[FOREIGN_KEYS];
 };
 
@@ -341,9 +341,6 @@ struct dbw_key * dbw_new_key(struct dbw_db *db, struct dbw_zone *zone,
 /** ALL */
 
 int dbw_zone_exists(db_connection_t *dbconn, char const *zonename);
-
-const char * present_key_role(int role);
-const char * present_keystate_state(int state);
 
 void dbw_policies_add_hsmkey(struct dbw_list *policies, struct dbw_hsmkey *hsmkey);
 void dbw_policies_add_zone(struct dbw_list *policies, struct dbw_zone *zone);

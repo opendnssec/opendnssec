@@ -181,7 +181,7 @@ perform_keystate_list(int sockfd, db_connection_t *dbconn, const char* zonename,
         if (zonename && strcmp(zone->name, zonename)) continue;
         for (size_t k = 0; k < zone->key_count; k++) {
             struct dbw_key *key = zone->key[k];
-            /*if (keytype && strcasecmp(present_key_role(key->role), keytype)) continue;*/
+            if (keyrole && key->role != keyrole) continue;
             if (keystate && strcasecmp(map_keystate(key), keystate)) continue;
             char* tchange = map_keytime(key); /* allocs */
                 (*printkey)(sockfd, key, tchange);
@@ -236,7 +236,7 @@ printcompatkey(int sockfd, struct dbw_key * key, char* tchange)
     client_printf(sockfd,
         "%-31s %-8s %-9s %s\n",
         key->zone->name,
-        present_key_role(key->role),
+        dbw_enum2txt(dbw_key_role_txt, key->role),
         map_keystate(key),
         tchange);
 }
@@ -257,7 +257,7 @@ printverbosekey(int sockfd, struct dbw_key * key, char* tchange)
     client_printf(sockfd,
         "%-31s %-8s %-9s %-24s %-5d %-10d %-32s %-11s %d\n",
         key->zone->name,
-        present_key_role(key->role),
+        dbw_enum2txt(dbw_key_role_txt, key->role),
         map_keystate(key),
         tchange,
         key->hsmkey->bits,
@@ -273,7 +273,7 @@ printverboseparsablekey(int sockfd, struct dbw_key * key, char* tchange)
     client_printf(sockfd,
         "%s;%s;%s;%s;%d;%d;%s;%s;%d\n",
         key->zone->name,
-        present_key_role(key->role),
+        dbw_enum2txt(dbw_key_role_txt, key->role),
         map_keystate(key),
         tchange,
         key->hsmkey->bits,
@@ -297,11 +297,11 @@ printdebugkey_fmt(int sockfd, char const *fmt, struct dbw_key *key, char const  
     (void)tchange;
     client_printf(sockfd, fmt,
         key->zone->name,
-        present_key_role(key->role),
-        present_keystate_state(key->keystate[DBW_DS]->state), /*  TODO */
-        present_keystate_state(key->keystate[DBW_DNSKEY]->state),
-        present_keystate_state(key->keystate[DBW_RRSIGDNSKEY]->state),
-        present_keystate_state(key->keystate[DBW_RRSIG]->state),
+        dbw_enum2txt(dbw_key_role_txt, key->role),
+        dbw_enum2txt(dbw_keystate_state_txt, key->keystate[DBW_DS]->state), /*  TODO */
+        dbw_enum2txt(dbw_keystate_state_txt, key->keystate[DBW_DNSKEY]->state),
+        dbw_enum2txt(dbw_keystate_state_txt, key->keystate[DBW_RRSIGDNSKEY]->state),
+        dbw_enum2txt(dbw_keystate_state_txt, key->keystate[DBW_RRSIG]->state),
         key->publish,
         key->active_ksk | key->active_zsk,
         key->hsmkey->locator);

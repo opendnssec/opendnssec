@@ -152,7 +152,7 @@ hsm_key_factory_generate(engine_type *engine, struct dbw_db *db,
         (unsigned long)(generate_keys-num_keys), /* safe. num_keys < generate_keys */
         policy->name);
     generate_keys -= num_keys;
-    ods_log_info("%ld new %s(s) (%d bits) need to be created.", (long) generate_keys, present_key_role(policykey->role), policykey->bits);
+    ods_log_info("%ld new %s(s) (%d bits) need to be created.", (long) generate_keys, dbw_enum2txt(dbw_key_role_txt, policykey->role), policykey->bits);
 
      /*Create a HSM context and check that the repository exists*/
     hsm_ctx_t *hsm_ctx;

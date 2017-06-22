@@ -411,13 +411,13 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
         {"inception_time", required_argument, 0, 'w'},
         {0, 0, 0, 0}
     };
-	
+
     ods_log_debug("[%s] %s command", module_str, key_import_funcblock.cmdname);
-	
+
     /* Use buf as an intermediate buffer for the command.*/
     strncpy(buf, cmd, sizeof(buf));
     buf[sizeof(buf)-1] = '\0';
-	
+
     /* separate the arguments*/
     argc = ods_str_explode(buf, NARGV, argv);
     if (argc == -1) {
@@ -467,7 +467,7 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
             ods_log_error("[%s] unknown keytype, should be one of KSK, ZSK, or CSK", module_str);
             client_printf_err(sockfd, "unknown keytype, should be one of KSK, ZSK, or CSK\n");
             return -1;
-        }	
+        }
     }
 
     if (keystate) {
@@ -496,7 +496,7 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
     }
     free(zone);
     zone = NULL;
-	
+
     if (strptime(time, "%Y-%m-%d-%H:%M:%S", &tm)) {
         tm.tm_isdst = -1;
         inception = mktime(&tm);
@@ -517,13 +517,7 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
     else if (keystate && !strcasecmp(keystate, "revoke"))
         state = 5;
 
-    int type = -1;
-    if (keytype && !strcasecmp(keytype, "KSK"))
-        type = 1;
-    else if (keytype && !strcasecmp(keytype, "ZSK"))
-        type = 2;
-    else if (keytype && !strcasecmp(keytype, "CSK"))
-        type = 3;
+    int type = dbw_txt2enum(dbw_key_role_txt, keytype);
 
     hsmkey_id = db_value_new();
     zone = zone_db_new_get_by_name(dbconn, zonename);

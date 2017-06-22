@@ -105,7 +105,7 @@ dbw_hsmkey_free(struct dbrow *row)
 
 
 static int
-dbw_policy_update(const db_connection_t *dbconn, const struct dbrow *row)
+dbw_policy_update(const db_connection_t *dbconn, struct dbrow *row)
 {
     struct db_value id;
     policy_t *dbx_obj;
@@ -169,7 +169,7 @@ dbw_policy_update(const db_connection_t *dbconn, const struct dbrow *row)
 }
 
 static int
-dbw_policykey_update(const db_connection_t *dbconn, const struct dbrow *row)
+dbw_policykey_update(const db_connection_t *dbconn, struct dbrow *row)
 {
     /* Currently there exist no code to modify policykey object (only create)
      * Thus this is not allowed. */
@@ -179,7 +179,7 @@ dbw_policykey_update(const db_connection_t *dbconn, const struct dbrow *row)
 }
 
 static int
-dbw_zone_update(const db_connection_t *dbconn, const struct dbrow *row)
+dbw_zone_update(const db_connection_t *dbconn, struct dbrow *row)
 {
     struct db_value id;
     zone_db_t *dbx_obj;
@@ -231,17 +231,18 @@ dbw_zone_update(const db_connection_t *dbconn, const struct dbrow *row)
     dbx_obj->next_zsk_roll                  = zone->next_zsk_roll;
     dbx_obj->next_csk_roll                  = zone->next_csk_roll;
 
-    ret = 0;
-    if (row->dirty == DBW_UPDATE)
+    if (row->dirty == DBW_UPDATE) {
         ret = zone_db_update(dbx_obj);
-    else
+    } else {
         ret = zone_db_create(dbx_obj);
+        /*zone->id = dbx_obj->id.int32;*/
+    }
     zone_db_free(dbx_obj);
     return ret;
 }
 
 static int
-dbw_key_update(const db_connection_t *dbconn, const struct dbrow *row)
+dbw_key_update(const db_connection_t *dbconn, struct dbrow *row)
 {
     struct db_value id;
     key_data_t *dbx_obj;
@@ -285,14 +286,18 @@ dbw_key_update(const db_connection_t *dbconn, const struct dbrow *row)
     dbx_obj->keytag                = key->keytag;
     dbx_obj->minimize              = key->minimize;
 
-    ret = (row->dirty == DBW_UPDATE)?
-        key_data_update(dbx_obj) : key_data_create(dbx_obj);
+    if (row->dirty == DBW_UPDATE) {
+        ret = key_data_update(dbx_obj);
+    } else {
+        ret = key_data_create(dbx_obj);
+        /*key->id = dbx_obj->id.int32;*/
+    }
     key_data_free(dbx_obj);
     return ret;
 }
 
 static int
-dbw_keystate_update(const db_connection_t *dbconn, const struct dbrow *row)
+dbw_keystate_update(const db_connection_t *dbconn, struct dbrow *row)
 {
     struct db_value id;
     key_state_t *dbx_obj;
@@ -327,14 +332,19 @@ dbw_keystate_update(const db_connection_t *dbconn, const struct dbrow *row)
     dbx_obj->minimize            = keystate->minimize;
     dbx_obj->ttl                 = keystate->ttl;
 
-    ret = (row->dirty == DBW_UPDATE)?
-        key_state_update(dbx_obj) : key_state_create(dbx_obj);
+    if (row->dirty == DBW_UPDATE) {
+        ret = key_state_update(dbx_obj);
+    } else {
+        ret = key_state_create(dbx_obj);
+        /*keystate->id = dbx_obj->id.int32;*/
+    }
+
     key_state_free(dbx_obj);
     return ret;
 }
 
 static int
-dbw_keydependency_update(const db_connection_t *dbconn, const struct dbrow *row)
+dbw_keydependency_update(const db_connection_t *dbconn, struct dbrow *row)
 {
     struct db_value id;
     key_dependency_t *dbx_obj;
@@ -367,12 +377,13 @@ dbw_keydependency_update(const db_connection_t *dbconn, const struct dbrow *row)
     dbx_obj->type                     = keydependency->type;
 
     ret = key_dependency_create(dbx_obj);
+    /*keydependency->id = dbx_obj->id.int32;*/
     key_dependency_free(dbx_obj);
     return ret;
 }
 
 static int
-dbw_hsmkey_update(const db_connection_t *dbconn, const struct dbrow *row)
+dbw_hsmkey_update(const db_connection_t *dbconn, struct dbrow *row)
 {
     struct db_value id;
     hsm_key_t *dbx_obj;
@@ -410,8 +421,9 @@ dbw_hsmkey_update(const db_connection_t *dbconn, const struct dbrow *row)
     int r;
     if (row->dirty == DBW_UPDATE) {
         r = hsm_key_update(dbx_obj);
-    } else if (row->dirty == DBW_INSERT) {
+    } else {
         r = hsm_key_create(dbx_obj);
+        /*hsmkey->id = dbx_obj->id.int32;*/
     }
     //TODO DELETE?
     hsm_key_free(dbx_obj);
@@ -568,23 +580,6 @@ dbw_policies_add_hsmkey(struct dbw_list *policies, struct dbw_hsmkey *hsmkey)
 {
     add(policies, 1, (struct dbrow *)hsmkey);
 }
-
-void
-filter(struct dbw_list *list, int (*seeve)(const struct dbrow *row, const void *ctx),
-    const void *ctx)
-{
-    for (size_t i = 0; i < list->n; i++) {
-        if (seeve(list->set[i], ctx)) {
-            list->free(list->set[i]);
-            list->set[i--] = list->set[--list->n];
-            list->set[list->n] = NULL;
-        }
-    }
-}
-
-
-
-
 
 /**
  *  DBX to DBW conversions
@@ -1121,11 +1116,11 @@ dbw_commit(struct dbw_db *db)
 {
     int r = 0;
     r |= dbw_commit_list(db->conn, db->policies);
+    r |= dbw_commit_list(db->conn, db->policykeys);
     r |= dbw_commit_list(db->conn, db->zones);
+    r |= dbw_commit_list(db->conn, db->hsmkeys);
     r |= dbw_commit_list(db->conn, db->keys);
     r |= dbw_commit_list(db->conn, db->keystates);
-    r |= dbw_commit_list(db->conn, db->hsmkeys);
-    r |= dbw_commit_list(db->conn, db->policykeys);
     if (!r) {
         mark_list_clean(db->policies);
         mark_list_clean(db->zones);
@@ -1280,32 +1275,6 @@ dbw_zone_exists(db_connection_t *dbconn, char const *zonename)
     zone_db_t *zone = zone_db_new_get_by_name(dbconn, zonename);
     zone_db_free(zone);
     return zone != NULL;
-}
-
-const char *
-present_key_role(int role)
-{
-    switch(role) {
-        case DBW_KSK: return "KSK";
-        case DBW_ZSK: return "ZSK";
-        case DBW_CSK: return "CSK";
-    }
-    ods_log_assert(0);
-    return "ERR";
-}
-
-const char *
-present_keystate_state(int state)
-{
-    switch(state) {
-        case DBW_HIDDEN: return "hidden";
-        case DBW_RUMOURED: return "rumoured";
-        case DBW_OMNIPRESENT: return "ominpresent";
-        case DBW_UNRETENTIVE: return "unretentive";
-        case DBW_NA: return "NA";
-    }
-    ods_log_assert(0);
-    return "ERR";
 }
 
 void
