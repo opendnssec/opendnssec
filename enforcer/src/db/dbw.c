@@ -211,7 +211,7 @@ dbw_zone_update(const db_connection_t *dbconn, struct dbrow *row)
     }
 
     dbx_obj->policy_id.type = DB_TYPE_INT32;
-    dbx_obj->policy_id.int32 = zone->policy_id;
+    dbx_obj->policy_id.int32 = zone->policy->id;
 
     dbx_obj->name                           = strdup(zone->name);
     dbx_obj->input_adapter_type             = strdup(zone->input_adapter_type);
@@ -235,7 +235,7 @@ dbw_zone_update(const db_connection_t *dbconn, struct dbrow *row)
         ret = zone_db_update(dbx_obj);
     } else {
         ret = zone_db_create(dbx_obj);
-        /*zone->id = dbx_obj->id.int32;*/
+        zone->id = dbx_obj->dbo->last_row_id;
     }
     zone_db_free(dbx_obj);
     return ret;
@@ -269,9 +269,9 @@ dbw_key_update(const db_connection_t *dbconn, struct dbrow *row)
     }
 
     dbx_obj->zone_id.type = DB_TYPE_INT32;
-    dbx_obj->zone_id.int32 = key->zone_id;
+    dbx_obj->zone_id.int32 = key->zone->id;
     dbx_obj->hsm_key_id.type = DB_TYPE_INT32;
-    dbx_obj->hsm_key_id.int32 = key->hsmkey_id;
+    dbx_obj->hsm_key_id.int32 = key->hsmkey->id;
 
     dbx_obj->role                  = key->role;
     dbx_obj->ds_at_parent          = key->ds_at_parent;
@@ -290,7 +290,7 @@ dbw_key_update(const db_connection_t *dbconn, struct dbrow *row)
         ret = key_data_update(dbx_obj);
     } else {
         ret = key_data_create(dbx_obj);
-        /*key->id = dbx_obj->id.int32;*/
+        key->id = dbx_obj->dbo->last_row_id;
     }
     key_data_free(dbx_obj);
     return ret;
@@ -324,7 +324,7 @@ dbw_keystate_update(const db_connection_t *dbconn, struct dbrow *row)
     }
 
     dbx_obj->key_data_id.type = DB_TYPE_INT32;
-    dbx_obj->key_data_id.int32 = keystate->key_id;
+    dbx_obj->key_data_id.int32 = keystate->key->id;
 
     dbx_obj->type                = keystate->type;
     dbx_obj->state               = keystate->state;
@@ -336,7 +336,7 @@ dbw_keystate_update(const db_connection_t *dbconn, struct dbrow *row)
         ret = key_state_update(dbx_obj);
     } else {
         ret = key_state_create(dbx_obj);
-        /*keystate->id = dbx_obj->id.int32;*/
+        keystate->id = dbx_obj->dbo->last_row_id;
     }
 
     key_state_free(dbx_obj);
@@ -369,15 +369,15 @@ dbw_keydependency_update(const db_connection_t *dbconn, struct dbrow *row)
     }
 
     dbx_obj->zone_id.type             = DB_TYPE_INT32;
-    dbx_obj->zone_id.int32            = keydependency->zone_id;
+    dbx_obj->zone_id.int32            = keydependency->zone->id;
     dbx_obj->from_key_data_id.type    = DB_TYPE_INT32;
-    dbx_obj->from_key_data_id.int32   = keydependency->fromkey_id;
+    dbx_obj->from_key_data_id.int32   = keydependency->fromkey->id;
     dbx_obj->to_key_data_id.type      = DB_TYPE_INT32;
-    dbx_obj->to_key_data_id.int32     = keydependency->tokey_id;
+    dbx_obj->to_key_data_id.int32     = keydependency->tokey->id;
     dbx_obj->type                     = keydependency->type;
 
     ret = key_dependency_create(dbx_obj);
-    /*keydependency->id = dbx_obj->id.int32;*/
+    keydependency->id = dbx_obj->dbo->last_row_id;
     key_dependency_free(dbx_obj);
     return ret;
 }
@@ -408,7 +408,8 @@ dbw_hsmkey_update(const db_connection_t *dbconn, struct dbrow *row)
         return 1;
     }
     dbx_obj->policy_id.type      = DB_TYPE_INT32;
-    dbx_obj->policy_id.int32     = hsmkey->policy_id;
+    dbx_obj->policy_id.int32     = hsmkey->policy->id;
+
     dbx_obj->state               = hsmkey->state;
     dbx_obj->bits                = hsmkey->bits;
     dbx_obj->algorithm           = hsmkey->algorithm;
@@ -423,7 +424,7 @@ dbw_hsmkey_update(const db_connection_t *dbconn, struct dbrow *row)
         r = hsm_key_update(dbx_obj);
     } else {
         r = hsm_key_create(dbx_obj);
-        /*hsmkey->id = dbx_obj->id.int32;*/
+        hsmkey->id = dbx_obj->dbo->last_row_id;
     }
     //TODO DELETE?
     hsm_key_free(dbx_obj);
@@ -532,6 +533,8 @@ merge(struct dbw_list *parents, int pi, struct dbw_list *children, int ci)
             np++;
             continue;
         } else if (parent->id > *parent_id) {
+            /* No parent found for this child. Assert for testing */
+            ods_log_assert(0);
             nc++;
             continue;
         }
