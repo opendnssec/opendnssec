@@ -83,7 +83,6 @@ delete_zone(struct dbw_zone *zone)
         }
         struct dbw_hsmkey *hsmkey = key->hsmkey;
         hsm_key_factory_release_key(hsmkey, key);
-        hsmkey->dirty = DBW_DELETE;
         key->dirty = DBW_DELETE;
     }
     zone->dirty = DBW_DELETE;

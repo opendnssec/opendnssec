@@ -298,10 +298,10 @@ printdebugkey_fmt(int sockfd, char const *fmt, struct dbw_key *key, char const  
     client_printf(sockfd, fmt,
         key->zone->name,
         dbw_enum2txt(dbw_key_role_txt, key->role),
-        dbw_enum2txt(dbw_keystate_state_txt, key->keystate[DBW_DS]->state), /*  TODO */
-        dbw_enum2txt(dbw_keystate_state_txt, key->keystate[DBW_DNSKEY]->state),
-        dbw_enum2txt(dbw_keystate_state_txt, key->keystate[DBW_RRSIGDNSKEY]->state),
-        dbw_enum2txt(dbw_keystate_state_txt, key->keystate[DBW_RRSIG]->state),
+        dbw_enum2txt(dbw_keystate_state_txt, dbw_get_keystate(key, DBW_DS)->state), /*  TODO */
+        dbw_enum2txt(dbw_keystate_state_txt, dbw_get_keystate(key, DBW_DNSKEY)->state),
+        dbw_enum2txt(dbw_keystate_state_txt, dbw_get_keystate(key, DBW_RRSIGDNSKEY)->state),
+        dbw_enum2txt(dbw_keystate_state_txt, dbw_get_keystate(key, DBW_RRSIG)->state),
         key->publish,
         key->active_ksk | key->active_zsk,
         key->hsmkey->locator);

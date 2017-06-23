@@ -1025,7 +1025,6 @@ updateZone(struct dbw_db *db, struct dbw_zone *zone, const time_t now,
                     zone->signconf_needs_writing = 1;
                     dbw_mark_dirty((struct dbrow *)zone);
                 }
-                /* TODO marksuccessors and signconf need writing!!!!! */
                  markSuccessors(db, &future_key);
             }
         }

@@ -388,18 +388,30 @@ dbw_hsmkey_update(const db_connection_t *dbconn, struct dbrow *row)
     struct db_value id;
     hsm_key_t *dbx_obj;
     struct dbw_hsmkey *hsmkey = (struct dbw_hsmkey *)row;
+    int ret;
 
     memset(&id, 0, sizeof (id));
-
-    dbx_obj = hsm_key_new(dbconn);
-    if (row->dirty != DBW_INSERT) {
-        if (db_value_from_int32(&id, hsmkey->id) || hsm_key_get_by_id(dbx_obj, &id)) {
-            return 1;
-        }
+    if (!(dbx_obj = hsm_key_new(dbconn))) {
+        return 1;
     }
 
-    free(dbx_obj->locator);
-    free(dbx_obj->repository);
+    switch (row->dirty) {
+        case DBW_DELETE:
+            ods_log_assert(0); //NOT IMPL
+            if (db_value_from_int32(&id, row->id) || hsm_key_get_by_id(dbx_obj, &id))
+                return 1;
+            /*ret = hsm_key_delete(dbx_obj); //NOT IMPL*/
+            hsm_key_free(dbx_obj);
+            return ret;
+        case DBW_UPDATE:
+            if (db_value_from_int32(&id, row->id) || hsm_key_get_by_id(dbx_obj, &id))
+                return 1;
+            free(dbx_obj->locator);
+            free(dbx_obj->repository);
+        case DBW_INSERT: /* fall through intentional */
+            {/* pass */}
+    }
+
     dbx_obj->locator             = strdup(hsmkey->locator);
     dbx_obj->repository          = strdup(hsmkey->repository);
     
@@ -1033,7 +1045,7 @@ dbw_free(struct dbw_db *db)
 struct dbw_db *
 dbw_fetch(db_connection_t *conn)
 {
-    struct dbw_db *db = malloc(sizeof(struct dbw_db));
+    struct dbw_db *db = calloc(1, sizeof(struct dbw_db));
     if (!db) {
         ods_log_error("[dbw_fetch] Memory allocation failure.");
         return NULL;
@@ -1075,15 +1087,9 @@ dbw_commit_list(const db_connection_t *conn, struct dbw_list *list)
         if (!row->dirty) continue;
         int r = list->update(conn, row);
         if (r) return r;
+        row->dirty = DBW_CLEAN;
     }
     return 0;
-}
-
-static void
-mark_list_clean(struct dbw_list *list)
-{
-    for (size_t i = 0; i < list->n; i++)
-        list->set[i]->dirty = DBW_CLEAN;
 }
 
 int
@@ -1096,14 +1102,6 @@ dbw_commit(struct dbw_db *db)
     r |= dbw_commit_list(db->conn, db->hsmkeys);
     r |= dbw_commit_list(db->conn, db->keys);
     r |= dbw_commit_list(db->conn, db->keystates);
-    if (!r) {
-        mark_list_clean(db->policies);
-        mark_list_clean(db->zones);
-        mark_list_clean(db->keys);
-        mark_list_clean(db->keystates);
-        mark_list_clean(db->hsmkeys);
-        mark_list_clean(db->policykeys);
-    }
     return r;
 }
 
@@ -1204,7 +1202,7 @@ struct dbw_keydependency *
 dbw_new_keydependency(struct dbw_db *db, struct dbw_key *fromkey, 
     struct dbw_key *tokey, int type, struct dbw_zone *zone)
 {
-    struct dbw_keydependency *dep = malloc(sizeof (struct dbw_keydependency));
+    struct dbw_keydependency *dep = calloc(1, sizeof (struct dbw_keydependency));
     if (!dep) return NULL;
     dep->tokey = tokey;
     dep->tokey_id = tokey->id;
@@ -1248,7 +1246,7 @@ dbw_new_keydependency(struct dbw_db *db, struct dbw_key *fromkey,
 struct dbw_key*
 dbw_new_key(struct dbw_db *db, struct dbw_zone *zone, struct dbw_hsmkey *hsmkey)
 {
-    struct dbw_key *key = malloc(sizeof (struct dbw_key));
+    struct dbw_key *key = calloc(1, sizeof (struct dbw_key));
     if (!key) return NULL;
     key->zone = zone;
     key->zone_id = zone->id;
