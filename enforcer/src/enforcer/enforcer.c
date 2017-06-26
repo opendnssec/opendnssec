@@ -118,7 +118,7 @@ addtime(const time_t t, const int seconds)
 static inline enum dbw_keystate_state
 getState(struct dbw_key* key, enum dbw_keystate_type type, struct future_key *future_key)
 {
-    if (future_key && future_key->pretend_update && future_key->type == type
+    if (future_key->pretend_update && future_key->type == type
         && future_key->key == key)
     {
         return future_key->next_state;
@@ -156,9 +156,9 @@ getDesiredState(int introducing, enum dbw_keystate_state state)
     }
 }
 
-static enum dbw_keystate_type
-s2db(enum dbw_keystate_type s)
-{
+/*static enum dbw_keystate_type*/
+/*s2db(enum dbw_keystate_type s)*/
+/*{*/
     /* TMP func. because keystate ordering in this file isn't the same as
      * in the db.
      * db ordering: {DS, RRSIG, DNSKEY, RRSIGDNSKEY}
@@ -166,9 +166,23 @@ s2db(enum dbw_keystate_type s)
      * TODO
      * We should correct it in this file (rather than db change!
      **/
-    enum dbw_keystate_type lut[4] = {0, 2, 3, 1};
-    return lut[s];
-}
+    /*enum dbw_keystate_type lut[4] = {0, 2, 3, 1};*/
+    /*return lut[s];*/
+/*}*/
+
+/*static enum dbw_keystate_type*/
+/*db2s(enum dbw_keystate_type s)*/
+/*{*/
+    /* TMP func. because keystate ordering in this file isn't the same as
+     * in the db.
+     * db ordering: {DS, RRSIG, DNSKEY, RRSIGDNSKEY}
+     * my ordering: {DS, DNSKEY, RRSIGDNSKEY, RRSIG} 
+     * TODO
+     * We should correct it in this file (rather than db change!
+     **/
+    /*enum dbw_keystate_type lut[4] = {0, 3, 1, 2};*/
+    /*return lut[s];*/
+/*}*/
 
 /**
  * Test if a key matches specific states.
@@ -185,7 +199,7 @@ match(struct dbw_key *key, struct future_key *future_key, int same_algorithm,
     /* Check the states against the mask, for each mask that is not NA we
      * need a match on that key state. */
     for (int i = 0; i < 4; i++) {
-        if (mask[s2db(i)] != NA && getState(key, i, future_key) != mask[s2db(i)])
+        if (mask[i] != NA && getState(key, i, future_key) != mask[i])
             return 0;
     }
     return 1;
@@ -328,6 +342,16 @@ exists_with_successor(struct future_key *future_key, int same_algorithm,
     return 0;
 }
 
+
+static void
+fix_mask(const enum dbw_keystate_state mask[4], enum dbw_keystate_state fixed[4])
+{
+    fixed[0] = mask[0];
+    fixed[1] = mask[3];
+    fixed[2] = mask[1];
+    fixed[3] = mask[2];
+}
+
 /**
  * Test if keys are in a good unsigned state.
  *
@@ -339,6 +363,8 @@ unsignedOk(struct future_key *future_key, const enum dbw_keystate_state mask[4],
     enum dbw_keystate_type type)
 {
     enum dbw_keystate_state cmp_mask[4];
+    /*enum dbw_keystate_state fixed[4];*/
+    /*fix_mask(mask, fixed);*/
     struct dbw_zone *zone = future_key->key->zone;
 
     for (size_t k = 0; k < zone->key_count; k++) {
@@ -348,10 +374,11 @@ unsignedOk(struct future_key *future_key, const enum dbw_keystate_state mask[4],
         if (key->algorithm != future_key->key->algorithm) continue;
         /* States in mask might be influenced by future_key */
         for (int i = 0; i < 4; i++) {
-            if (s2db(i) == type) {
-                cmp_mask[s2db(i)] = getState(key, type, future_key);
+            if (i == type) {
+                cmp_mask[i] = getState(key, type, future_key);
             } else {
-                cmp_mask[s2db(i)] = mask[i];
+                /*cmp_mask[i] = fixed[i];*/
+                cmp_mask[i] = mask[i];
             }
         }
         /* If the state is hidden or NA for the given type this key is okay. */
@@ -406,14 +433,14 @@ static int
 rule2(struct future_key *future_key, int pretend_update)
 {
     static const enum dbw_keystate_state  mask[8][4] = {
-        { OMNIPRESENT, OMNIPRESENT, OMNIPRESENT, NA },/*good key state.*/
-        { RUMOURED,    OMNIPRESENT, OMNIPRESENT, NA },/*introducing DS state.*/
-        { UNRETENTIVE, OMNIPRESENT, OMNIPRESENT, NA },/*outroducing DS state.*/
-        { OMNIPRESENT, RUMOURED,    RUMOURED,    NA },/*introducing DNSKEY state.*/
-        { OMNIPRESENT, OMNIPRESENT, RUMOURED,    NA },
-        { OMNIPRESENT, UNRETENTIVE, UNRETENTIVE, NA },/*outroducing DNSKEY state.*/
-        { OMNIPRESENT, UNRETENTIVE, OMNIPRESENT, NA },
-        { HIDDEN,      OMNIPRESENT, OMNIPRESENT, NA } /*unsigned state.*/
+        { OMNIPRESENT, NA, OMNIPRESENT, OMNIPRESENT },/*good key state.*/
+        { RUMOURED,    NA, OMNIPRESENT, OMNIPRESENT },/*introducing DS state.*/
+        { UNRETENTIVE, NA, OMNIPRESENT, OMNIPRESENT },/*outroducing DS state.*/
+        { OMNIPRESENT, NA, RUMOURED,    RUMOURED    },/*introducing DNSKEY state.*/
+        { OMNIPRESENT, NA, OMNIPRESENT, RUMOURED    },
+        { OMNIPRESENT, NA, UNRETENTIVE, UNRETENTIVE },/*outroducing DNSKEY state.*/
+        { OMNIPRESENT, NA, UNRETENTIVE, OMNIPRESENT },
+        { HIDDEN,      NA, OMNIPRESENT, OMNIPRESENT } /*unsigned state.*/
     };
     future_key->pretend_update = pretend_update;
     /* Return positive value if any of the masks are found.  */
@@ -436,12 +463,12 @@ static int
 rule3(struct future_key *future_key, int pretend_update)
 {
     static const enum dbw_keystate_state  mask[6][4] = {
-        { NA, OMNIPRESENT, NA, OMNIPRESENT },/* good key state. */
-        { NA, RUMOURED,    NA, OMNIPRESENT },/* introducing DNSKEY state. */
-        { NA, UNRETENTIVE, NA, OMNIPRESENT },/* outroducing DNSKEY state. */
-        { NA, OMNIPRESENT, NA, RUMOURED    },/* introducing RRSIG state. */
-        { NA, OMNIPRESENT, NA, UNRETENTIVE },/* outroducing RRSIG state. */
-        { NA, HIDDEN,      NA, OMNIPRESENT } /* unsigned state. */
+        { NA, OMNIPRESENT, OMNIPRESENT, NA },/* good key state. */
+        { NA, OMNIPRESENT, RUMOURED,    NA },/* introducing DNSKEY state. */
+        { NA, OMNIPRESENT, UNRETENTIVE, NA },/* outroducing DNSKEY state. */
+        { NA, RUMOURED   , OMNIPRESENT, NA },/* introducing RRSIG state. */
+        { NA, UNRETENTIVE, OMNIPRESENT, NA },/* outroducing RRSIG state. */
+        { NA, OMNIPRESENT, HIDDEN,      NA } /* unsigned state. */
     };
     future_key->pretend_update = pretend_update;
     /* Return positive value if any of the masks are found. */
@@ -537,22 +564,22 @@ policyApproval(struct future_key *future_key)
         /*{ OMNIPRESENT, OMNIPRESENT, OMNIPRESENT, NA };*/
     static const enum dbw_keystate_state mask[14][4] = {
         /*ZSK*/
-        { NA, OMNIPRESENT, NA, OMNIPRESENT },   /* good key state.*/
-        { NA, RUMOURED,    NA, OMNIPRESENT },   /* introducing DNSKEY */
-        { NA, UNRETENTIVE, NA, OMNIPRESENT },   /* outroducing DNSKEY */
-        { NA, OMNIPRESENT, NA, RUMOURED },      /* introducing RRSIG */
-        { NA, OMNIPRESENT, NA, UNRETENTIVE },   /* outroducing RRSIG */
-        { NA, HIDDEN,      NA, OMNIPRESENT },   /* unsigned state.*/
+        { NA, OMNIPRESENT, OMNIPRESENT, NA },   /* good key state.*/
+        { NA, OMNIPRESENT, RUMOURED,    NA },   /* introducing DNSKEY */
+        { NA, OMNIPRESENT, UNRETENTIVE, NA },   /* outroducing DNSKEY */
+        { NA, RUMOURED,    OMNIPRESENT, NA },   /* introducing RRSIG */
+        { NA, UNRETENTIVE, OMNIPRESENT, NA },   /* outroducing RRSIG */
+        { NA, OMNIPRESENT, HIDDEN,      NA },   /* unsigned state.*/
 
         /*KSK*/
-        { OMNIPRESENT, OMNIPRESENT, OMNIPRESENT, NA },  /* good key state */
-        { RUMOURED,    OMNIPRESENT, OMNIPRESENT, NA },  /* introducing DS */
-        { UNRETENTIVE, OMNIPRESENT, OMNIPRESENT, NA },  /* outroducing DS */
-        { OMNIPRESENT, RUMOURED,    RUMOURED,    NA },  /* introducing DNSKEY */
-        { OMNIPRESENT, OMNIPRESENT, RUMOURED,    NA },
-        { OMNIPRESENT, UNRETENTIVE, UNRETENTIVE, NA },  /* outroducing DNSKEY */
-        { OMNIPRESENT, UNRETENTIVE, OMNIPRESENT, NA },
-        { HIDDEN,      OMNIPRESENT, OMNIPRESENT, NA }   /* unsigned state.*/
+        { OMNIPRESENT, NA, OMNIPRESENT, OMNIPRESENT },  /* good key state */
+        { RUMOURED   , NA, OMNIPRESENT, OMNIPRESENT },  /* introducing DS */
+        { UNRETENTIVE, NA, OMNIPRESENT, OMNIPRESENT },  /* outroducing DS */
+        { OMNIPRESENT, NA, RUMOURED,    RUMOURED    },  /* introducing DNSKEY */
+        { OMNIPRESENT, NA, OMNIPRESENT, RUMOURED    },
+        { OMNIPRESENT, NA, UNRETENTIVE, UNRETENTIVE },  /* outroducing DNSKEY */
+        { OMNIPRESENT, NA, UNRETENTIVE, OMNIPRESENT },
+        { HIDDEN     , NA, OMNIPRESENT, OMNIPRESENT }   /* unsigned state.*/
     };
 
     /* Once the record is introduced the policy has no influence. */
@@ -960,8 +987,8 @@ updateZone(struct dbw_db *db, struct dbw_zone *zone, const time_t now,
                  * state is a certain state, wait an additional signature
                  * lifetime to allow for 'smooth rollover'.  */
                 static const enum dbw_keystate_state mask[2][4] = {
-                    {NA, OMNIPRESENT, NA, UNRETENTIVE},
-                    {NA, OMNIPRESENT, NA, RUMOURED}
+                    {NA, UNRETENTIVE, OMNIPRESENT, NA},
+                    {NA, RUMOURED,    OMNIPRESENT, NA}
                 };
                 int zsk_out = exists(&future_key, 1, mask[0]);
                 int zsk_in  = exists(&future_key, 1, mask[1]);
