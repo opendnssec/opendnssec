@@ -219,7 +219,7 @@ hsm_key_factory_generate(engine_type *engine, struct dbw_db *db,
             }
 
              /*Create the HSM key (database object)*/
-            struct dbw_hsmkey *hsmkey = malloc(sizeof (struct dbw_hsmkey));
+            struct dbw_hsmkey *hsmkey = calloc(1, sizeof (struct dbw_hsmkey));
             if (!hsmkey) {
                 ods_log_error("[hsm_key_factory_generate] hsm key creation"
                    " failed, database or memory error");
