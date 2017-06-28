@@ -41,8 +41,14 @@ dbw_policy_free(struct dbrow *row)
 {
     struct dbw_policy *policy = (struct dbw_policy *)row;
     if (!policy) return;
+
+    free(policy->policykey);
+    free(policy->hsmkey);
+    free(policy->zone);
+
     free(policy->name);
     free(policy->description);
+    free(policy->denial_salt);
     free(policy);
 }
 
@@ -60,6 +66,9 @@ dbw_zone_free(struct dbrow *row)
 {
     struct dbw_zone *zone = (struct dbw_zone *)row;
     if (!zone) return;
+    free(zone->key);
+    free(zone->keydependency);
+
     free(zone->name);
     free(zone->signconf_path);
     free(zone->input_adapter_uri);
@@ -74,6 +83,10 @@ dbw_key_free(struct dbrow *row)
 {
     struct dbw_key *key = (struct dbw_key *)row;
     if (!key) return;
+    free(key->keystate);
+    free(key->from_keydependency);
+    free(key->to_keydependency);
+
     free(key);
 }
 
@@ -82,6 +95,7 @@ dbw_keystate_free(struct dbrow *row)
 {
     struct dbw_keystate *keystate = (struct dbw_keystate *)row;
     if (!keystate) return;
+
     free(keystate);
 }
 
@@ -90,6 +104,7 @@ dbw_keydependency_free(struct dbrow *row)
 {
     struct dbw_keydependency *keydependency = (struct dbw_keydependency *)row;
     if (!keydependency) return;
+
     free(keydependency);
 }
 
@@ -98,6 +113,8 @@ dbw_hsmkey_free(struct dbrow *row)
 {
     struct dbw_hsmkey *hsmkey = (struct dbw_hsmkey *)row;
     if (!hsmkey) return;
+    free(hsmkey->key);
+
     free(hsmkey->locator);
     free(hsmkey->repository);
     free(hsmkey);
