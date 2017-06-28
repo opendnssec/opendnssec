@@ -161,7 +161,7 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
     }
     for (size_t z = 0; z < db->zones->n; z++) {
         struct dbw_zone *zone = (struct dbw_zone *)db->zones->set[z];
-        if (strcmp(zonename, zone->name) && !all) continue;
+        if (!all && strcmp(zonename, zone->name)) continue;
         if (delete_zone(zone)) {
             client_printf(sockfd, "Error deleting zone %s.\n", zone->name);
             dbw_free(db);
