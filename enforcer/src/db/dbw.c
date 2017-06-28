@@ -1,4 +1,5 @@
 #include <string.h>
+#include <pthread.h>
 
 #include "config.h"
 
@@ -8,6 +9,8 @@
 #include "db/db_connection.h"
 
 #include "db/dbw.h"
+
+static pthread_rwlock_t db_lock = PTHREAD_RWLOCK_INITIALIZER;
 
 const char *
 dbw_enum2txt(const char *c[], int n)
@@ -1075,6 +1078,11 @@ dbw_fetch(db_connection_t *conn)
         return NULL;
     }
 
+    if (pthread_rwlock_rdlock(&db_lock)) {
+        ods_log_error("[dbw_fetch] Unable to obtain database read lock.");
+        free(db);
+        return NULL;
+    }
     db->conn            = conn;
     db->policies        = dbw_policies(conn);
     db->zones           = dbw_zones(conn);
@@ -1083,6 +1091,7 @@ dbw_fetch(db_connection_t *conn)
     db->hsmkeys         = dbw_hsmkeys(conn);
     db->policykeys      = dbw_policykeys(conn);
     db->keydependencies = dbw_keydependencies(conn);
+    (void)pthread_rwlock_unlock(&db_lock);
 
     if (!db->policies || !db->zones || !db->keys || !db->keystates ||
             !db->hsmkeys || !db->policykeys || !db->keydependencies)
@@ -1120,12 +1129,17 @@ int
 dbw_commit(struct dbw_db *db)
 {
     int r = 0;
+    if (pthread_rwlock_wrlock(&db_lock)) {
+        ods_log_error("[dbw_fetch] Unable to obtain database write lock.");
+        return 1;
+    }
     r |= dbw_commit_list(db->conn, db->policies);
     r |= dbw_commit_list(db->conn, db->policykeys);
     r |= dbw_commit_list(db->conn, db->zones);
     r |= dbw_commit_list(db->conn, db->hsmkeys);
     r |= dbw_commit_list(db->conn, db->keys);
     r |= dbw_commit_list(db->conn, db->keystates);
+    (void)pthread_rwlock_unlock(&db_lock);
     return r;
 }
 
