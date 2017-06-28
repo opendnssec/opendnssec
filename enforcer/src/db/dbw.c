@@ -130,17 +130,27 @@ dbw_policy_update(const db_connection_t *dbconn, struct dbrow *row)
     struct db_value id;
     policy_t *dbx_obj;
     struct dbw_policy *policy = (struct dbw_policy *)row;
+    int ret;
 
     memset(&id, 0, sizeof (id));
-
-    ods_log_assert(row->dirty == DBW_UPDATE); /* TODO: INSERT AND DELETE NOTIMPL*/
-
-    dbx_obj = policy_new(dbconn);
-    if (!dbx_obj || db_value_from_int32(&id, row->id)
-        || policy_get_by_id(dbx_obj, &id))
-    {
-        policy_free(dbx_obj);
+    if (!(dbx_obj = policy_new(dbconn))) {
         return 1;
+    }
+
+    switch (row->dirty) {
+        case DBW_DELETE:
+            if (db_value_from_int32(&id, row->id) || policy_get_by_id(dbx_obj, &id))
+                return 1;
+            ret = policy_delete(dbx_obj);
+            policy_free(dbx_obj);
+            return ret;
+        case DBW_UPDATE:
+            if (db_value_from_int32(&id, row->id) || policy_get_by_id(dbx_obj, &id))
+                return 1;
+            free(dbx_obj->name);
+            free(dbx_obj->description);
+        case DBW_INSERT: /* fall through intentional */
+            free(dbx_obj->denial_salt);
     }
 
     dbx_obj->name                           = strdup(policy->name);
@@ -183,9 +193,14 @@ dbw_policy_update(const db_connection_t *dbconn, struct dbrow *row)
     dbx_obj->parent_soa_ttl                 = policy->parent_soa_ttl;
     dbx_obj->parent_soa_minimum             = policy->parent_soa_minimum;
 
-    int r = policy_update(dbx_obj);
+    if (row->dirty == DBW_UPDATE) {
+        ret = policy_update(dbx_obj);
+    } else {
+        ret = policy_create(dbx_obj);
+        policy->id = dbx_obj->dbo->last_row_id;
+    }
     policy_free(dbx_obj);
-    return r;
+    return ret;
 }
 
 static int
@@ -194,6 +209,7 @@ dbw_policykey_update(const db_connection_t *dbconn, struct dbrow *row)
     /* Currently there exist no code to modify policykey object (only create)
      * Thus this is not allowed. */
     ods_log_assert(0);
+    /*TODO we should actually be able to INSERT policykeys with this code!*/
 
     return 0;
 }
@@ -423,7 +439,7 @@ dbw_hsmkey_update(const db_connection_t *dbconn, struct dbrow *row)
 
     switch (row->dirty) {
         case DBW_DELETE:
-            ods_log_assert(0); //NOT IMPL
+            ods_log_assert(0); //TODO NOT IMPL
             if (db_value_from_int32(&id, row->id) || hsm_key_get_by_id(dbx_obj, &id))
                 return 1;
             /*ret = hsm_key_delete(dbx_obj); //NOT IMPL*/
@@ -440,7 +456,7 @@ dbw_hsmkey_update(const db_connection_t *dbconn, struct dbrow *row)
 
     dbx_obj->locator             = strdup(hsmkey->locator);
     dbx_obj->repository          = strdup(hsmkey->repository);
-    
+
     if (!dbx_obj->locator || !dbx_obj->repository) {
         hsm_key_free(dbx_obj);
         return 1;
@@ -465,7 +481,6 @@ dbw_hsmkey_update(const db_connection_t *dbconn, struct dbrow *row)
         r = hsm_key_create(dbx_obj);
         hsmkey->id = dbx_obj->dbo->last_row_id;
     }
-    //TODO DELETE?
     hsm_key_free(dbx_obj);
     return r;
 }
@@ -1259,27 +1274,6 @@ dbw_new_keydependency(struct dbw_db *db, struct dbw_key *fromkey,
     dep->dirty = DBW_INSERT;
     return dep;
 }
-
-/*struct dbw_keystate **/
-/*dbw_new_keystate(struct dbw_db *db, struct dbw_key *key, unsigned int type)*/
-/*{*/
-    /*struct dbw_keystate *state = malloc(sizeof (struct dbw_keystate));*/
-    /*if (!state) return NULL;*/
-    /*state->type = type;*/
-    /*state->state = 0;*/
-    /*state->last_change = 0;*/
-    /*state->minimize = 0;*/
-    /*state->ttl = 0;*/
-    /*state->key = key;*/
-    /*state->key_id = key->id;*/
-
-
-    /*int r = 0;*/
-    /*r |= list_add(db->keystates, (struct dbrow *)state);*/
-    /*r |= append((void ***)&key->keystate, &key->keystate_count, state);*/
-    /*[> TODO handle errors <]*/
-    /*return state;*/
-/*}*/
 
 struct dbw_key*
 dbw_new_key(struct dbw_db *db, struct dbw_zone *zone, struct dbw_hsmkey *hsmkey)

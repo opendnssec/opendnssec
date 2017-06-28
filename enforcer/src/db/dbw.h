@@ -318,15 +318,50 @@ struct dbw_db {
 };
 
 /* DB operations */
+
+/**
+ * The two following functions are the only two operations that will access
+ * the database.
+ */
+
+/**
+ * Read the entire database to memory. No further access to the database is
+ * required for reading or modifying. Guarded by a R/W lock.
+ *
+ * return NULL on failure
+ */
 struct dbw_db *dbw_fetch(db_connection_t *conn);
-void dbw_free(struct dbw_db *db);
+
+/**
+ * Commit changes to the database. Guarded by a R/W lock. Only records marked
+ * as dirty will be considered for writing.
+ *
+ * return 0 on success. 1 otherwise.
+ */
 int dbw_commit(struct dbw_db *db);
 
+/**
+ * Deep free this structure
+ */
+void dbw_free(struct dbw_db *db);
+
+/**
+ * Mark database object as dirty. Clean objects will never be written to the
+ * database
+ */
 void dbw_mark_dirty(struct dbrow *row);
 
+/**
+ * convenience functions to get a specific zone or policy from a fetched
+ * database.
+ *
+ * Return NULL if no such object exists
+ */
 struct dbw_zone * dbw_get_zone(struct dbw_db *db, char const *zonename);
 struct dbw_policy * dbw_get_policy(struct dbw_db *db, char const *policyname);
 struct dbw_keystate * dbw_get_keystate(struct dbw_key *key, int type);
+
+/* TODO functions below this need to be cleaned up / evaluated*/
 
 void dbw_zone_free(struct dbrow *row);
 
