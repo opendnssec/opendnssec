@@ -825,7 +825,7 @@ static int
 db_backend_sqlite_last_id(void* data, int *last_id)
 {
     db_backend_sqlite_t* backend_sqlite = (db_backend_sqlite_t*)data;
-    static char *sql = "SELECT last_insert_rowid()";
+    static char const *sql = "SELECT last_insert_rowid()";
     sqlite3_stmt* statement = NULL;
 
     if (__db_backend_sqlite_prepare(backend_sqlite, &statement, sql, -1)) {

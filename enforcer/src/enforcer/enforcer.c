@@ -1434,40 +1434,44 @@ removeDeadKeys(struct dbw_zone *zone, const time_t now)
     return first_purge;
 }
 
-static void
+static int
 set_key_flags(struct dbw_zone *zone)
 {
     /* Always set these flags. Normally this needs to be done _only_ when the
      * Signer config needs writing. However a previous Signer config might not
      * be available, we have no way of telling. :(
      */
+    int mod_zone = 0;
+    enum dbw_keystate_state state;
     for (size_t i = 0; i < zone->key_count; i++) {
         struct dbw_key *key = zone->key[i];
-        for (size_t s = 0; s < key->keystate_count; s++) {
-            struct dbw_keystate *keystate = key->keystate[s];
-            if (keystate->state != OMNIPRESENT && keystate->state != RUMOURED)
-                continue;
-            switch (keystate->type) {
-            case KEY_STATE_TYPE_DNSKEY:
-                if (!key->publish) {
-                    key->publish = 1;
-                    dbw_mark_dirty((struct dbrow *)key);
-                }
-                break;
-            case KEY_STATE_TYPE_RRSIGDNSKEY:
-                if (!key->active_ksk) {
-                    key->active_ksk = 1;
-                    dbw_mark_dirty((struct dbrow *)key);
-                }
-                break;
-            case KEY_STATE_TYPE_RRSIG:
-                if (!key->active_zsk) {
-                    key->active_zsk = 1;
-                    dbw_mark_dirty((struct dbrow *)key);
-                }
-            }
+        int mod_key = 0;
+        int in_use;
+
+        state = dbw_get_keystate(key, DBW_DNSKEY)->state;
+        in_use = state == OMNIPRESENT || state == RUMOURED;
+        if (key->publish != in_use) {
+            key->publish = in_use;
+            mod_key = 1;
+        }
+        state = dbw_get_keystate(key, DBW_RRSIGDNSKEY)->state;
+        in_use = state == OMNIPRESENT || state == RUMOURED;
+        if (key->active_ksk != in_use) {
+            key->active_ksk = in_use;
+            mod_key = 1;
+        }
+        state = dbw_get_keystate(key, DBW_RRSIG)->state;
+        in_use = state == OMNIPRESENT || state == RUMOURED;
+        if (key->active_zsk != in_use) {
+            key->active_zsk = in_use;
+            mod_key = 1;
+        }
+        if (mod_key) {
+            mod_zone = 1;
+            dbw_mark_dirty((struct dbrow *)key);
         }
     }
+    return mod_zone;
 }
 
 time_t
@@ -1495,7 +1499,9 @@ update(engine_type *engine, struct dbw_db *db, struct dbw_zone *zone, time_t now
         purge_return_time = removeDeadKeys(zone, now);
     }
 
-    set_key_flags(zone); /* active and publish flags in signconf */
+    if (set_key_flags(zone)) { /* active and publish flags in signconf */
+        *zone_updated = 1;
+    }
 
     /* Of all the relevant times find the earliest*/
     time_t return_time = zone_return_time;
