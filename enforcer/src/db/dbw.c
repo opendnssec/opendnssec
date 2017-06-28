@@ -212,6 +212,7 @@ dbw_zone_update(const db_connection_t *dbconn, struct dbrow *row)
 
     dbx_obj->policy_id.type = DB_TYPE_INT32;
     dbx_obj->policy_id.int32 = zone->policy->id;
+    ods_log_assert(!zone->policy->dirty);
 
     dbx_obj->name                           = strdup(zone->name);
     dbx_obj->input_adapter_type             = strdup(zone->input_adapter_type);
@@ -272,6 +273,8 @@ dbw_key_update(const db_connection_t *dbconn, struct dbrow *row)
     dbx_obj->zone_id.int32 = key->zone->id;
     dbx_obj->hsm_key_id.type = DB_TYPE_INT32;
     dbx_obj->hsm_key_id.int32 = key->hsmkey->id;
+    ods_log_assert(!key->zone->dirty);
+    ods_log_assert(!key->hsmkey->dirty);
 
     dbx_obj->role                  = key->role;
     dbx_obj->ds_at_parent          = key->ds_at_parent;
@@ -325,6 +328,7 @@ dbw_keystate_update(const db_connection_t *dbconn, struct dbrow *row)
 
     dbx_obj->key_data_id.type = DB_TYPE_INT32;
     dbx_obj->key_data_id.int32 = keystate->key->id;
+    ods_log_assert(!keystate->key->dirty);
 
     dbx_obj->type                = keystate->type;
     dbx_obj->state               = keystate->state;
@@ -370,6 +374,8 @@ dbw_keydependency_update(const db_connection_t *dbconn, struct dbrow *row)
 
     dbx_obj->zone_id.type             = DB_TYPE_INT32;
     dbx_obj->zone_id.int32            = keydependency->zone->id;
+    ods_log_assert(!keydependency->zone->dirty);
+
     dbx_obj->from_key_data_id.type    = DB_TYPE_INT32;
     dbx_obj->from_key_data_id.int32   = keydependency->fromkey->id;
     dbx_obj->to_key_data_id.type      = DB_TYPE_INT32;
@@ -421,6 +427,7 @@ dbw_hsmkey_update(const db_connection_t *dbconn, struct dbrow *row)
     }
     dbx_obj->policy_id.type      = DB_TYPE_INT32;
     dbx_obj->policy_id.int32     = hsmkey->policy->id;
+    ods_log_assert(!hsmkey->policy->dirty);
 
     dbx_obj->state               = hsmkey->state;
     dbx_obj->bits                = hsmkey->bits;

@@ -238,7 +238,7 @@ isPotentialSuccessor(struct dbw_key *succkey, struct dbw_key *predkey,
     /* key of different algorithms may not be in successor relation */
     if (succkey->algorithm != predkey->algorithm) return 0;
 
-    /* Now test whether the apropriate parts of the successor key are in the */
+    /* Now test whether the appropriate parts of the successor key are in the */
     /* correct state, or are about to be in the correct state. */
     switch (type) {
         case DBW_DS: /* Intentional fall-through */
@@ -1052,7 +1052,7 @@ updateZone(struct dbw_db *db, struct dbw_zone *zone, const time_t now,
                     zone->signconf_needs_writing = 1;
                     dbw_mark_dirty((struct dbrow *)zone);
                 }
-                 markSuccessors(db, &future_key);
+                markSuccessors(db, &future_key);
             }
         }
     }
