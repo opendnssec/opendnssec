@@ -1,6 +1,8 @@
 #ifndef DBW_H
 #define DBW_H
 
+#include <time.h>
+
 #include "db/db_connection.h"
 #include "db/zone_db.h"
 
