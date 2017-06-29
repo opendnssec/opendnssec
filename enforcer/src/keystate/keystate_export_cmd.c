@@ -170,10 +170,11 @@ perform_keystate_export(int sockfd, struct dbw_zone *zone, int role,
         if (print_ds_from_id(sockfd, key, bind_style, print_sha1)) {
             ods_log_error("[%s] Error in print_ds_from_id", module_str);
             client_printf_err(sockfd, "Error in print_ds_from_id \n");
+            return 1;
         }
         keys_exported++;
     }
-    return keys_exported;
+    return !keys_exported;
 }
 
 static void
