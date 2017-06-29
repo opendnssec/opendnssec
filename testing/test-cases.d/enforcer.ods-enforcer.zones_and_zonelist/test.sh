@@ -123,7 +123,7 @@ log_this ods-enforcer-zone_add_bad   ods-enforcer zone add --zone ods13 --input 
 
 # Check the zones.xml internal file is written (2.0 new behaviour)
 ods_comparexml --format-zonelist $ZONES_FILE zonelist.xml.gold &&
-cp $ZONES_FILE zonelist.xml.import
+cp $ZONES_FILE zonelist.xml.import &&
 echo "zones.xml contents OK" &&
 
 # Check the zonelist.xml is still empty (2.0 default behaviour)

@@ -122,27 +122,24 @@ int zonelist_export(int sockfd, db_connection_t* dbconn, const char* filename, i
     }
     xmlDocSetRootElement(doc, root);
 
-    for (size_t p = 0; p < db->policies->n; p++) {
-        struct dbw_policy *policy = (struct dbw_policy *)db->policies->set[p];
-        for (size_t z = 0; z < policy->zone_count; z++) {
-            struct dbw_zone *zone = policy->zone[z];
-            if (!(node = xmlNewChild(root, NULL, (xmlChar*)"Zone", NULL))
-                || !xmlNewProp(node, (xmlChar*)"name", (xmlChar*)zone->name)
-                || !xmlNewChild(node, NULL, (xmlChar*)"Policy", (xmlChar*)zone->policy->name)
-                || !xmlNewChild(node, NULL, (xmlChar*)"SignerConfiguration", (xmlChar*)zone->signconf_path)
-                || !(node2 = xmlNewChild(node, NULL, (xmlChar*)"Adapters", NULL))
-                || !(node3 = xmlNewChild(node2, NULL, (xmlChar*)"Input", NULL))
-                || !(node4 = xmlNewChild(node3, NULL, (xmlChar*)"Adapter", (xmlChar*)zone->input_adapter_uri))
-                || !xmlNewProp(node4, (xmlChar*)"type", (xmlChar*)zone->input_adapter_type)
-                || !(node3 = xmlNewChild(node2, NULL, (xmlChar*)"Output", NULL))
-                || !(node4 = xmlNewChild(node3, NULL, (xmlChar*)"Adapter", (xmlChar*)zone->output_adapter_uri))
-                || !xmlNewProp(node4, (xmlChar*)"type", (xmlChar*)zone->output_adapter_type))
-            {
-                client_printf_err(sockfd, "Unable to create XML elements for zone %s!\n", zone->name);
-                xmlFreeDoc(doc);
-                dbw_free(db);
-                return ZONELIST_EXPORT_ERR_XML;
-            }
+    for (size_t z = 0; z < db->zones->n; z++) {
+        struct dbw_zone *zone = (struct dbw_zone *)db->zones->set[z];
+        if (!(node = xmlNewChild(root, NULL, (xmlChar*)"Zone", NULL))
+            || !xmlNewProp(node, (xmlChar*)"name", (xmlChar*)zone->name)
+            || !xmlNewChild(node, NULL, (xmlChar*)"Policy", (xmlChar*)zone->policy->name)
+            || !xmlNewChild(node, NULL, (xmlChar*)"SignerConfiguration", (xmlChar*)zone->signconf_path)
+            || !(node2 = xmlNewChild(node, NULL, (xmlChar*)"Adapters", NULL))
+            || !(node3 = xmlNewChild(node2, NULL, (xmlChar*)"Input", NULL))
+            || !(node4 = xmlNewChild(node3, NULL, (xmlChar*)"Adapter", (xmlChar*)zone->input_adapter_uri))
+            || !xmlNewProp(node4, (xmlChar*)"type", (xmlChar*)zone->input_adapter_type)
+            || !(node3 = xmlNewChild(node2, NULL, (xmlChar*)"Output", NULL))
+            || !(node4 = xmlNewChild(node3, NULL, (xmlChar*)"Adapter", (xmlChar*)zone->output_adapter_uri))
+            || !xmlNewProp(node4, (xmlChar*)"type", (xmlChar*)zone->output_adapter_type))
+        {
+            client_printf_err(sockfd, "Unable to create XML elements for zone %s!\n", zone->name);
+            xmlFreeDoc(doc);
+            dbw_free(db);
+            return ZONELIST_EXPORT_ERR_XML;
         }
     }
     dbw_free(db);
