@@ -42,7 +42,6 @@
 #include "log.h"
 
 static const char* task_str = "task";
-static pthread_mutex_t worklock = PTHREAD_MUTEX_INITIALIZER;
 
 const char* TASK_CLASS_ENFORCER = "enforcer";
 const char* TASK_CLASS_SIGNER   = "signer";
@@ -106,15 +105,6 @@ task_perform(schedule_type* scheduler, task_type* task, void* context)
     ods_status status;
 
     if (task->callback) {
-        /*
-         * It is sad but we need worklock to prevent concurrent database
-         * access. Our code is not able to handle that properly. (we can't
-         * really tell the difference between an error and nodata.) Once we
-         * fixed our database backend this lock can be removed.
-         */
-        ods_log_assert(task->owner);
-        if (!strcmp(task->class, TASK_CLASS_ENFORCER))
-            pthread_mutex_lock(&worklock);
         if (task->lock) {
             pthread_mutex_lock(task->lock);
             rescheduleTime = task->callback(task, task->owner, task->userdata, context);
@@ -122,8 +112,6 @@ task_perform(schedule_type* scheduler, task_type* task, void* context)
         } else {
             rescheduleTime = task->callback(task, task->owner, task->userdata, context);
         }
-        if (!strcmp(task->class, TASK_CLASS_ENFORCER))
-            pthread_mutex_unlock(&worklock);
     } else {
         /* We'll allow a task without callback, just don't reschedule. */
         rescheduleTime = schedule_SUCCESS;
@@ -146,7 +134,7 @@ task_perform(schedule_type* scheduler, task_type* task, void* context)
         }
     } else {
         task_destroy(task);
-    }    
+    }
 }
 
 task_type*
