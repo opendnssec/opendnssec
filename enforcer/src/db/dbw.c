@@ -1227,6 +1227,7 @@ static int
 dbw_verify_list_revisions(const db_connection_t *conn, struct dbw_list *list)
 {
     struct db_value id;
+    memset(&id, 0, sizeof(struct db_value));
     id.type = DB_TYPE_INT32;
     for (size_t i = 0; i < list->n; i++) {
         struct dbrow *row = list->set[i];
