@@ -99,7 +99,9 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
     const char *output = NULL;
     const char *input_type = NULL;
     const char *output_type = NULL;
-    char path[PATH_MAX];
+    char path_input[PATH_MAX];
+    char path_output[PATH_MAX];
+    char path_signconf[PATH_MAX];
     int write_xml = 0;
     int ret = 0;
     int suspend = 0;
@@ -189,15 +191,13 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
         input_type = "File";
         if (!input) input = zone_name; /* default */
         if (input[0] != '/') {
-            snprintf(path, PATH_MAX, "%s/unsigned/%s", OPENDNSSEC_STATE_DIR, input);
-            input = path;
+            snprintf(path_input, PATH_MAX, "%s/unsigned/%s", OPENDNSSEC_STATE_DIR, input);
         }
     } else if (!strcasecmp(input_type, "DNS")) {
         input_type = "DNS";
         if (!input) input = "addns.xml"; /* default */
         if (input[0] != '/') {
-            snprintf(path, PATH_MAX, "%s/%s", OPENDNSSEC_CONFIG_DIR, input);
-            input = path;
+            snprintf(path_input, PATH_MAX, "%s/%s", OPENDNSSEC_CONFIG_DIR, input);
         }
     } else {
         client_printf_err(sockfd, "Unable to add zone, %s is not a valid input"
@@ -205,6 +205,7 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
         free(buf);
         return 1;
     }
+    input = path_input;
     if (access(input, F_OK) == -1) {
         client_printf_err(sockfd, "WARNING: The input file %s for zone %s does"
                 " not currently exist. The zone will be added to the database"
@@ -218,21 +219,18 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
         ods_log_warning("[%s] WARNING: Read access to input file %s for zone"
                 " %s denied! ", module_str, input, zone_name);
     }
-    input = path;
 
     if (!output_type || !strcasecmp(output_type, "FILE")) {
         output_type = "File";
         if (!output) output = zone_name; /* default */
         if (output[0] != '/') {
-            snprintf(path, PATH_MAX, "%s/signed/%s", OPENDNSSEC_STATE_DIR, output);
-            output = path;
+            snprintf(path_output, PATH_MAX, "%s/signed/%s", OPENDNSSEC_STATE_DIR, output);
         }
     } else if (!strcasecmp(output_type, "DNS")) {
         output_type = "DNS";
         if (!output) output = "addns.xml"; /* default*/
         if (output[0] != '/') {
-            snprintf(path, PATH_MAX, "%s/%s", OPENDNSSEC_CONFIG_DIR, output);
-            output = path;
+            snprintf(path_output, PATH_MAX, "%s/%s", OPENDNSSEC_CONFIG_DIR, output);
         }
     } else {
         client_printf_err(sockfd, "Unable to add zone, %s is not a valid output"
@@ -240,6 +238,7 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
         free(buf);
         return 1;
     }
+    output = path_output;
     if (access(output, F_OK) == -1) {
         client_printf_err(sockfd, "WARNING: The output file %s for zone %s does"
                 " not currently exist. The zone will be added to the database"
@@ -255,12 +254,11 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
     }
 
     if (!signconf) {
-        snprintf(path, PATH_MAX, "%s/signconf/%s.xml", OPENDNSSEC_STATE_DIR, zone_name);
-        signconf = path;
+        snprintf(path_signconf, PATH_MAX, "%s/signconf/%s.xml", OPENDNSSEC_STATE_DIR, zone_name);
     } else if (signconf[0] != '/') {
-        snprintf(path, PATH_MAX, "%s/signconf/%s", OPENDNSSEC_STATE_DIR, signconf);
-        signconf = path;
+        snprintf(path_signconf, PATH_MAX, "%s/signconf/%s", OPENDNSSEC_STATE_DIR, signconf);
     }
+    signconf = path_signconf;
 
     client_printf(sockfd, "input is set to %s. \n", input);
     client_printf(sockfd, "output is set to %s. \n", output);
@@ -320,13 +318,13 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
         }
     }
 
-    if (snprintf(path, PATH_MAX, "%s/%s", engine->config->working_dir,
-        OPENDNSSEC_ENFORCER_ZONELIST) >= (int)sizeof(path)
-        || zonelist_update_add(sockfd, path, zone, policy_name, 0) != ZONELIST_UPDATE_OK)
+    if (snprintf(path_input, PATH_MAX, "%s/%s", engine->config->working_dir,
+        OPENDNSSEC_ENFORCER_ZONELIST) >= (int)sizeof(path_input)
+        || zonelist_update_add(sockfd, path_input, zone, policy_name, 0) != ZONELIST_UPDATE_OK)
     {
         ods_log_error("[%s] internal zonelist update failed", module_str);
         client_printf_err(sockfd, "Unable to update the internal zonelist %s,"
-                " updates will not reach the Signer!\n", path);
+                " updates will not reach the Signer!\n", path_input);
         ret = 1;
     } else {
         ods_log_info("[%s] internal zonelist updated successfully", module_str);
