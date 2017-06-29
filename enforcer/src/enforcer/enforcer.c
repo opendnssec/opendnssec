@@ -1252,7 +1252,7 @@ updatePolicy(engine_type *engine, struct dbw_db *db, struct dbw_zone *zone, cons
 {
     static const char *scmd = "updatePolicy";
     struct dbw_policy *policy = zone->policy;
-    time_t return_at;
+    time_t return_at = -1;
 
     ods_log_verbose("[%s] %s: policyName: %s", module_str, scmd, policy->name);
 
