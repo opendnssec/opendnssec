@@ -156,34 +156,6 @@ getDesiredState(int introducing, enum dbw_keystate_state state)
     }
 }
 
-/*static enum dbw_keystate_type*/
-/*s2db(enum dbw_keystate_type s)*/
-/*{*/
-    /* TMP func. because keystate ordering in this file isn't the same as
-     * in the db.
-     * db ordering: {DS, RRSIG, DNSKEY, RRSIGDNSKEY}
-     * my ordering: {DS, DNSKEY, RRSIGDNSKEY, RRSIG} 
-     * TODO
-     * We should correct it in this file (rather than db change!
-     **/
-    /*enum dbw_keystate_type lut[4] = {0, 2, 3, 1};*/
-    /*return lut[s];*/
-/*}*/
-
-/*static enum dbw_keystate_type*/
-/*db2s(enum dbw_keystate_type s)*/
-/*{*/
-    /* TMP func. because keystate ordering in this file isn't the same as
-     * in the db.
-     * db ordering: {DS, RRSIG, DNSKEY, RRSIGDNSKEY}
-     * my ordering: {DS, DNSKEY, RRSIGDNSKEY, RRSIG} 
-     * TODO
-     * We should correct it in this file (rather than db change!
-     **/
-    /*enum dbw_keystate_type lut[4] = {0, 3, 1, 2};*/
-    /*return lut[s];*/
-/*}*/
-
 /**
  * Test if a key matches specific states.
  *
