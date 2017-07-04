@@ -55,12 +55,15 @@ echo -n "LINE: ${LINENO} " && testvalidity 28800 &&
 
 echo -n "LINE: ${LINENO} " && ods-enforcer zone delete -z ods &&
 echo -n "LINE: ${LINENO} " && rm -f "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
+echo -n "LINE: ${LINENO} " && rm -f "$INSTALL_ROOT/var/opendnssec/signer/ods.backup2" &&
+echo -n "LINE: ${LINENO} " && ods_stop_signer &&
 
 echo -n "LINE: ${LINENO} " && echo "verifying with keyset validity explicitly set" &&
 echo -n "LINE: ${LINENO} " && ods-enforcer zone add -z ods -p explicitkeysetvalidity &&
 echo -n "LINE: ${LINENO} " && sleep 1 &&
 echo -n "LINE: ${LINENO} " && ods-enforcer time leap --attach &&
 echo -n "LINE: ${LINENO} " && ods-enforcer queue &&
+echo -n "LINE: ${LINENO} " && ods_start_signer &&
 echo -n "LINE: ${LINENO} " && syslog_waitfor_count 60 2 'ods-signerd: .*\[STATS\] ods' &&
 echo -n "LINE: ${LINENO} " && echo "  there should be a keyset entry in signconf" &&
 echo -n "LINE: ${LINENO} " && grep -q "<Keyset>.*</Keyset>" $INSTALL_ROOT/var/opendnssec/signconf/ods.xml &&
@@ -70,5 +73,13 @@ echo -n "LINE: ${LINENO} " && testvalidity 43200 &&
 echo -n "LINE: ${LINENO} " && ods_stop_ods-control &&
 return 0
 
+echo "################## ERROR: CURRENT STATE ###########################"
+echo "DEBUG: " && ods-enforcer zone list
+echo "DEBUG: " && ods-enforcer key list -d -p
+echo "DEBUG: " && ods-enforcer key list -v
+echo "DEBUG: " && ods-enforcer queue
+echo
+echo "************ERROR******************"
+echo
 ods_kill
 return 1
