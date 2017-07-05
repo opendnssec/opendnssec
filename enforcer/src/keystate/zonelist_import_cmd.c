@@ -138,14 +138,9 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
         ods_log_error("[%s] internal zonelist export failed", module_str);
         client_printf_err(sockfd, "Unable to export the internal zonelist %s, updates will not reach the Signer!\n", path);
         return 1;
-    }
-    else {
+    } else {
         ods_log_info("[%s] internal zonelist exported successfully", module_str);
     }
-
-    /* YBS Only flush for zones with changed policy */
-    enforce_task_flush_all(engine, dbconn);
-
     return 0;
 }
 

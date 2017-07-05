@@ -105,6 +105,7 @@ struct dbrow {
     int id;
     int dirty;
     int revision;
+    int scratch; /* convenience field for caller to temporarely mark objects  */
     int int0;   /* In derived structs these are padded if unused to ensure */
     void *ptr0; /* each is at least as big as a struct dbrow */
     int int1;
@@ -121,6 +122,7 @@ struct dbw_policykey {
     int id;
     int dirty;
     int revision;
+    int scratch;
     int policy_id;
     struct dbw_policy *policy;
     int _padding1; void *__padding1;
@@ -143,6 +145,7 @@ struct dbw_policy {
     int id;
     int dirty;
     int revision;
+    int scratch;
     int policykey_count;
     struct dbw_policykey **policykey;
     int hsmkey_count;
@@ -192,6 +195,7 @@ struct dbw_key {
     int id;
     int dirty;
     int revision;
+    int scratch;
     int zone_id;
     struct dbw_zone *zone; /** Only valid when joined */
     int hsmkey_id;
@@ -221,6 +225,7 @@ struct dbw_keystate {
     int id;
     int dirty;
     int revision;
+    int scratch;
     int key_id;
     struct dbw_key *key; /** Only valid when joined */
     int _padding1; void *__padding1;
@@ -239,6 +244,7 @@ struct dbw_keydependency {
     int id;
     int dirty;
     int revision;
+    int scratch;
     int zone_id;
     struct dbw_zone *zone; /** Only valid when joined */
     int fromkey_id;
@@ -255,6 +261,7 @@ struct dbw_hsmkey {
     int id;
     int dirty;
     int revision;
+    int scratch;
     int policy_id;
     struct dbw_policy *policy; /** Only valid when joined */
     int key_count;
@@ -279,6 +286,7 @@ struct dbw_zone {
     int id;
     int dirty;
     int revision;
+    int scratch;
     int policy_id;
     struct dbw_policy *policy; /** Only valid when joined */
     int key_count;

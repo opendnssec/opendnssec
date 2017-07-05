@@ -35,6 +35,7 @@
 #include "hsmkey/hsm_key_factory.h"
 
 #include "keystate/zonelist_import.h"
+#include "enforcer/enforce_task.h"
 
 #include <string.h>
 #include <libxml/parser.h>
@@ -200,6 +201,7 @@ process_xml(int sockfd, xmlNodePtr root, struct dbw_db *db)
                     return 1;
                 }
                 zone->dirty = DBW_INSERT;
+                zone->scratch = 1;
                 zone->name                = xz.name;
                 zone->policy              = p;
                 zone->signconf_path       = xz.signconf;
@@ -213,6 +215,7 @@ process_xml(int sockfd, xmlNodePtr root, struct dbw_db *db)
                     return 1;
                 }
             } else {
+                zone->scratch = 1;
                 if (!zone_xml_cmp(db, zone, &xz)) {
                     zone->dirty = DBW_CLEAN;
                     xml_zone_scrub(&xz);
@@ -240,7 +243,6 @@ process_xml(int sockfd, xmlNodePtr root, struct dbw_db *db)
 int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
     int do_delete, const char* zonelist_path)
 {
-    int r;
     xmlDocPtr doc;
     xmlNodePtr root;
     struct dbw_db *db = dbw_fetch(dbconn);
@@ -265,13 +267,11 @@ int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
         return ZONELIST_IMPORT_ERR_XML;
     }
 
-    if (do_delete) {
-        for (size_t z = 0; z < db->zones->n; z++) {
-            /* All zones not mentioned xml will be deleted */
-            db->zones->set[z]->dirty = DBW_DELETE;
-        }
+    for (size_t z = 0; z < db->zones->n; z++) {
+        /* All zones not mentioned xml will be deleted */
+        db->zones->set[z]->scratch = 0;
     }
-    r = process_xml(sockfd, root, db);
+    int r = process_xml(sockfd, root, db);
     xmlFreeDoc(doc);
     if (r) {
         dbw_free(db);
@@ -280,9 +280,10 @@ int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
     int updates = 0; /* did anything change at all?  */
     for (size_t z = 0; z < db->zones->n; z++) {
         struct dbw_zone *zone = (struct dbw_zone *)db->zones->set[z];
-        updates |= zone->dirty != DBW_CLEAN;
-        if (do_delete) {
-            if (zone->dirty != DBW_DELETE) continue;
+        updates |= zone->scratch;
+        if (do_delete && !zone->scratch && zone->dirty == DBW_CLEAN) {
+            /* This zone is not visited at all, therefore must be deleted */
+            zone->dirty = DBW_DELETE;
             for (size_t k = 0; k < zone->key_count; k++) {
                 struct dbw_key *key = zone->key[k];
                 key->dirty = DBW_DELETE;
@@ -294,14 +295,21 @@ int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
             }
         }
     }
-    r = dbw_commit(db);
-    dbw_free(db);
-    if (r) {
-        return ZONELIST_IMPORT_ERR_DATABASE;
+    if (dbw_commit(db)) {
+        r = ZONELIST_IMPORT_ERR_DATABASE;
     } else if (updates) {
         hsm_key_factory_schedule_generate_all(engine, 0);
-        return ZONELIST_IMPORT_OK;
+        /* schedule all changed zones */
+        for (size_t z = 0; z < db->zones->n; z++) {
+            struct dbw_zone *zone = (struct dbw_zone *)db->zones->set[z];
+            if (!zone->scratch || !zone->dirty) continue;
+            enforce_task_flush_zone(engine, zone->name);
+        }
+        r = ZONELIST_IMPORT_OK;
+    } else {
+        r = ZONELIST_IMPORT_NO_CHANGE;
     }
-    return ZONELIST_IMPORT_NO_CHANGE;
+    dbw_free(db);
+    return r;
 }
 
