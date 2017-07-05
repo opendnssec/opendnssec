@@ -278,12 +278,11 @@ int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
         return ZONELIST_IMPORT_ERR_XML;
     }
     int updates = 0; /* did anything change at all?  */
-    if (do_delete) {
-        for (size_t z = 0; z < db->zones->n; z++) {
-            struct dbw_zone *zone = (struct dbw_zone *)db->zones->set[z];
-            updates |= zone->dirty != DBW_CLEAN;
+    for (size_t z = 0; z < db->zones->n; z++) {
+        struct dbw_zone *zone = (struct dbw_zone *)db->zones->set[z];
+        updates |= zone->dirty != DBW_CLEAN;
+        if (do_delete) {
             if (zone->dirty != DBW_DELETE) continue;
-            /*TODO delete keystates etc*/
             for (size_t k = 0; k < zone->key_count; k++) {
                 struct dbw_key *key = zone->key[k];
                 key->dirty = DBW_DELETE;
