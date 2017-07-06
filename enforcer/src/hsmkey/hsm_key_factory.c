@@ -43,6 +43,13 @@
 
 #include "hsmkey/hsm_key_factory.h"
 
+/* List of database ID's of recently assigned non-shared hsmkeys. So we can
+ * avoid races assigning the same key twice. This avoids backoffs.
+ * For shared keys this problem isn't as pronounced since they will generally
+ * not need a completely new key */
+#define RU_COUNT 8
+static int ru_nonshared_keys[RU_COUNT];
+static int ru_index;
 
 struct __hsm_key_factory_task {
     engine_type* engine;
@@ -55,8 +62,13 @@ struct __hsm_key_factory_task {
 static pthread_once_t __hsm_key_factory_once = PTHREAD_ONCE_INIT;
 static pthread_mutex_t* __hsm_key_factory_lock = NULL;
 
-static void hsm_key_factory_init(void) {
+static void hsm_key_factory_init(void)
+{
     pthread_mutexattr_t attr;
+
+    for (int i = 0; i < RU_COUNT; i++)
+        ru_nonshared_keys[i] = -1;
+    ru_index = 0;
 
     if (!__hsm_key_factory_lock) {
         if (!(__hsm_key_factory_lock = calloc(1, sizeof(pthread_mutex_t)))
@@ -459,6 +471,21 @@ hsm_key_factory_get_key(engine_type *engine, struct dbw_db *db,
         if (strcmp(hsmkey->repository, pkey->repository)) continue;
         if (hsmkey->bits != pkey->bits) continue;
         /* we have found an available hsmkey */
+
+        /* This block prevents race conditions where two threads select the
+         * same hsmkey. */
+        if (!policy->keys_shared) {
+            int found = 0;
+            for (int i = 0; i < RU_COUNT; i++) {
+                if (ru_nonshared_keys[(ru_index + i) % RU_COUNT] == hsmkey->id) {
+                    found = 1;
+                    break;
+                }
+            }
+            if (found) continue;
+            ru_nonshared_keys[(++ru_index) % RU_COUNT] = hsmkey->id;
+        }
+
         hkey = hsmkey;
         break;
     }
