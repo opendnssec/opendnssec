@@ -128,7 +128,7 @@ static int dbw_policy_revision(const db_connection_t *dbconn, struct db_value *i
     policy_t *dbx_obj = policy_new(dbconn);
     int rev = -1;
     if (dbx_obj && !policy_get_by_id(dbx_obj, id))
-        rev = dbx_obj->rev.int32;
+        rev = dbx_obj->rev.int64;
     policy_free(dbx_obj);
     return rev;
 }
@@ -138,7 +138,7 @@ static int dbw_policykey_revision(const db_connection_t *dbconn, struct db_value
     policy_key_t *dbx_obj = policy_key_new(dbconn);
     int rev = -1;
     if (dbx_obj && !policy_key_get_by_id(dbx_obj, id))
-        rev = dbx_obj->rev.int32;
+        rev = dbx_obj->rev.int64;
     policy_key_free(dbx_obj);
     return rev;
 }
@@ -148,7 +148,7 @@ static int dbw_zone_revision(const db_connection_t *dbconn, struct db_value *id)
     zone_db_t *dbx_obj = zone_db_new(dbconn);
     int rev = -1;
     if (dbx_obj && !zone_db_get_by_id(dbx_obj, id))
-        rev = dbx_obj->rev.int32;
+        rev = dbx_obj->rev.int64;
     zone_db_free(dbx_obj);
     return rev;
 }
@@ -158,7 +158,7 @@ static int dbw_key_revision(const db_connection_t *dbconn, struct db_value *id)
     key_data_t *dbx_obj = key_data_new(dbconn);
     int rev = -1;
     if (dbx_obj && !key_data_get_by_id(dbx_obj, id))
-        rev = dbx_obj->rev.int32;
+        rev = dbx_obj->rev.int64;
     key_data_free(dbx_obj);
     return rev;
 }
@@ -168,7 +168,7 @@ static int dbw_keystate_revision(const db_connection_t *dbconn, struct db_value 
     key_state_t *dbx_obj = key_state_new(dbconn);
     int rev = -1;
     if (dbx_obj && !key_state_get_by_id(dbx_obj, id))
-        rev = dbx_obj->rev.int32;
+        rev = dbx_obj->rev.int64;
     key_state_free(dbx_obj);
     return rev;
 }
@@ -178,7 +178,7 @@ static int dbw_keydependency_revision(const db_connection_t *dbconn, struct db_v
     key_dependency_t *dbx_obj = key_dependency_new(dbconn);
     int rev = -1;
     if (dbx_obj && !key_dependency_get_by_id(dbx_obj, id))
-        rev = dbx_obj->rev.int32;
+        rev = dbx_obj->rev.int64;
     key_dependency_free(dbx_obj);
     return rev;
 }
@@ -188,7 +188,7 @@ static int dbw_hsmkey_revision(const db_connection_t *dbconn, struct db_value *i
     hsm_key_t *dbx_obj = hsm_key_new(dbconn);
     int rev = -1;
     if (dbx_obj && !hsm_key_get_by_id(dbx_obj, id))
-        rev = dbx_obj->rev.int32;
+        rev = dbx_obj->rev.int64;
     hsm_key_free(dbx_obj);
     return rev;
 }
@@ -692,7 +692,7 @@ zone_dbx_to_dbw(const zone_db_t *dbx_item)
     if (!row) return NULL;
 
     row->id                  = dbx_item->id.int32;
-    row->revision            = dbx_item->rev.int32;
+    row->revision            = dbx_item->rev.int64;
     row->policy_id           = dbx_item->policy_id.int64;
     row->policy              = NULL;
 
@@ -737,7 +737,7 @@ policykey_dbx_to_dbw(const policy_key_t *dbx_item)
     if (!row) return NULL;
 
     row->id                             = dbx_item->id.int32;
-    row->revision                       = dbx_item->rev.int32;
+    row->revision                       = dbx_item->rev.int64;
     row->policy_id                      = dbx_item->policy_id.int64;
     row->policy                         = NULL;
 
@@ -766,7 +766,7 @@ policy_dbx_to_dbw(const policy_t *dbx_item)
     if (!row) return NULL;
 
     row->id                  = dbx_item->id.int32;
-    row->revision            = dbx_item->rev.int32;
+    row->revision            = dbx_item->rev.int64;
 
     row->name                = strdup(dbx_item->name);
     row->description          = strdup(dbx_item->description);
@@ -820,7 +820,7 @@ key_dbx_to_dbw(const key_data_t *dbx_item)
     if (!row) return NULL;
 
     row->id                  = dbx_item->id.int32;
-    row->revision            = dbx_item->rev.int32;
+    row->revision            = dbx_item->rev.int64;
     row->zone_id             = dbx_item->zone_id.int64;
     row->zone                = NULL;
     row->hsmkey_id           = dbx_item->hsm_key_id.int64;
@@ -848,7 +848,7 @@ keystate_dbx_to_dbw(const key_state_t *dbx_item)
     if (!row) return NULL;
 
     row->id                  = dbx_item->id.int32;
-    row->revision            = dbx_item->rev.int32;
+    row->revision            = dbx_item->rev.int64;
     row->key_id              = dbx_item->key_data_id.int64;
     row->key                 = NULL;
 
@@ -867,7 +867,7 @@ keydependency_dbx_to_dbw(const key_dependency_t *dbx_item)
     if (!row) return NULL;
 
     row->id                  = dbx_item->id.int32;
-    row->revision            = dbx_item->rev.int32;
+    row->revision            = dbx_item->rev.int64;
     row->zone_id             = dbx_item->zone_id.int64;
     row->zone                = NULL;
     row->fromkey_id          = dbx_item->from_key_data_id.int64;
@@ -886,7 +886,7 @@ hsmkey_dbx_to_dbw(const hsm_key_t *dbx_item)
     if (!row) return NULL;
 
     row->id                  = dbx_item->id.int32;
-    row->revision            = dbx_item->rev.int32;
+    row->revision            = dbx_item->rev.int64;
     row->policy_id           = dbx_item->policy_id.int64;
     row->policy              = NULL;
     
@@ -1228,11 +1228,11 @@ dbw_verify_list_revisions(const db_connection_t *conn, struct dbw_list *list)
 {
     struct db_value id;
     memset(&id, 0, sizeof(struct db_value));
-    id.type = DB_TYPE_INT32;
+    id.type = DB_TYPE_INT64;
     for (size_t i = 0; i < list->n; i++) {
         struct dbrow *row = list->set[i];
         if (row->dirty != DBW_UPDATE) continue;
-        id.int32 = row->id;
+        id.int64 = row->id;
         if (list->revision(conn, &id) != row->revision) return 1;
     }
     return 0;
