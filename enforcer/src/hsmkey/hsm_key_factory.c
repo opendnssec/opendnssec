@@ -245,7 +245,6 @@ hsm_key_factory_generate(engine_type *engine, struct dbw_db *db,
             hsmkey->dirty = DBW_INSERT;
             hsmkey->key_count = 0;
             (void)dbw_add_hsmkey(db, policy, hsmkey);//TODO return val
-            dbw_commit(db);
 
             ods_log_debug("[hsm_key_factory_generate] generated key %s successfully", key_id);
 
@@ -335,6 +334,7 @@ hsm_key_factory_generate_all(engine_type* engine, db_connection_t* connection,
             error |= hsm_key_factory_generate(engine, db, policykey, duration);
         }
     }
+    if (!error) error = dbw_commit(db);
     dbw_free(db);
     pthread_mutex_unlock(__hsm_key_factory_lock);
     return error;
@@ -356,24 +356,29 @@ hsm_key_factory_generate_cb(task_type* task, char const *owner, void *userdata,
     struct dbw_db *db = dbw_fetch(dbconn);
     if (!db) return schedule_DEFER;
 
-    for (size_t p = 0; p < db->policies->n; p++) {
+    int error = 0;
+    for (size_t p = 0; p < db->policies->n && !error; p++) {
         struct dbw_policy *policy = (struct dbw_policy *)db->policies->set[p];
         if (policyname != NULL && strcmp(policyname, policy->name)) continue;
-        int flush = 0;
-        for (size_t k = 0; k < policy->policykey_count; k++) {
+        for (size_t k = 0; k < policy->policykey_count && !error; k++) {
             struct dbw_policykey *policykey = policy->policykey[k];
             if (policykey->id == id || id == -1) {
-                int error = hsm_key_factory_generate(task2->engine, db,
+                error = hsm_key_factory_generate(task2->engine, db,
                     policykey, task2->duration);
-                flush = !error && task2->reschedule_enforce_task;
+                policy->scratch |= !error && task2->reschedule_enforce_task;
             }
         }
-        if (flush) {
+    }
+    if (!error) error = dbw_commit(db);
+
+    for (size_t p = 0; p < db->policies->n && !error; p++) {
+        struct dbw_policy *policy = (struct dbw_policy *)db->policies->set[p];
+        if (policy->scratch) {
             enforce_task_flush_policy(task2->engine, policy);
         }
     }
     dbw_free(db);
-    return schedule_SUCCESS;
+    return error ? schedule_DEFER : schedule_SUCCESS;
 }
 
 /**
