@@ -911,6 +911,9 @@ updateZone(struct dbw_db *db, struct dbw_zone *zone, const time_t now,
     time_t returntime_zone = -1;
 
     struct dbw_policy *policy = zone->policy;
+
+     ods_log_verbose("[%s] %s: processing %s with policyName %s",
+         module_str, scmd, zone->name, policy->name);
     track_ttls(zone, now);
     generate_missing_keystates(db, zone, now);
 
