@@ -839,9 +839,9 @@ is_ds_waiting_for_user(struct dbw_keystate *keystate, enum dbw_keystate_state ne
     if (keystate->type != DBW_DS)
         return 0;
     if (next_state == DBW_OMNIPRESENT)
-        return keystate->key->ds_at_parent == DBW_DS_AT_PARENT_SEEN;
+        return keystate->key->ds_at_parent != DBW_DS_AT_PARENT_SEEN;
     if (next_state == DBW_HIDDEN)
-        return keystate->key->ds_at_parent == DBW_DS_AT_PARENT_UNSUBMITTED;
+        return keystate->key->ds_at_parent != DBW_DS_AT_PARENT_UNSUBMITTED;
     return 0;
 }
 
