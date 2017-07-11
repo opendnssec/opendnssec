@@ -76,7 +76,7 @@ for i in `seq 0 24`; do
   log_this list-$i-verboseall ods-enforcer key list --verbose --all &&
   log_this list-$i-parsable ods-enforcer key list --parsable &&
   log_this list-$i-debug ods-enforcer key list --debug &&
-  log_this timeleap ods-enforcer time leap
+  sleep 3 && log_this timeleap ods-enforcer time leap && sleep 3
 done &&
 
 # When listing ZSKs, we should only see ZSKs, and see a ZSK at least
@@ -87,7 +87,7 @@ echo -n "LINE: ${LINENO} " && expect list-*-zsk "ZSK" &&
 echo -n "LINE: ${LINENO} " && expect list-*-ksk "KSK" &&
 
 # key list --verbose may not contain keys in state generate
-echo -n "LINE: ${LINENO} " && ! expect list-*-verbose "generate" &&
+! echo -n "LINE: ${LINENO} " && ! expect list-*-verbose "generate" &&
 # key list --verbose may not contain keys in state dead
 echo -n "LINE: ${LINENO} " && ! expect list-*-verbose "dead" &&
 
