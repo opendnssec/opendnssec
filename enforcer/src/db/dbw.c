@@ -1260,6 +1260,8 @@ dbw_verify_revisions(struct dbw_db *db)
     r |= dbw_verify_list_revisions(db->conn, db->zones);
     r |= dbw_verify_list_revisions(db->conn, db->hsmkeys);
     r |= dbw_verify_list_revisions(db->conn, db->keys);
+    r |= dbw_verify_list_revisions(db->conn, db->keystates);
+    r |= dbw_verify_list_revisions(db->conn, db->keydependencies);
     return r;
 }
 
@@ -1282,6 +1284,7 @@ dbw_commit(struct dbw_db *db)
     r |= dbw_commit_list(db->conn, db->hsmkeys);
     r |= dbw_commit_list(db->conn, db->keys);
     r |= dbw_commit_list(db->conn, db->keystates);
+    r |= dbw_commit_list(db->conn, db->keydependencies);
     (void)pthread_rwlock_unlock(&db_lock);
     return r;
 }
