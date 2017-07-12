@@ -1,5 +1,10 @@
+OpenDNSSEC 2.1.2 - TBA
+
+ * OPENDNSSEC-901: Enforcer would ignore <ManualKeyGeneration/> tag in conf.xml
+
 OpenDNSSEC 2.1.1 - 2017-04-28
 
+* OPENDNSSEC-882: Signerd exit code always non-zero.
 * OPENDNSSEC-889: MySQL migration script didn't work for all database and
   MySQL versions.
 * OPENDNSSEC-887: Segfault on extraneous <Interval> tag.
