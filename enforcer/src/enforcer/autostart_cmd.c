@@ -52,7 +52,10 @@ autostart(engine_type* engine)
 
 	schedule_purge(engine->taskq); /* Remove old tasks in queue */
 
-	status = resalt_task_schedule(engine, dbconn);
+        if (!engine->config->manual_keygen)
+            hsm_key_factory_schedule_generate_all(engine, 0);
+	status = flush_resalt_task_all(engine, dbconn);
+
 	if (status != ODS_STATUS_OK)
 		ods_log_crit("[%s] failed to create resalt tasks", module_str);
 

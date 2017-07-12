@@ -41,7 +41,7 @@ OpenDNSSEC 2.1.3 - 2017-08-10
                   causing tsig unknown algorithm hmac-sha256
 * OPENDNSSEC-908: Warn when TTL exceeds KASP's MaxZoneTTL instead of capping.
 
-OpenDNSSEC 2.1.2 - 2017-xx-xx
+OpenDNSSEC 2.1.2 - TBA
 
 * OPENDNSSEC-901: Enforcer would ignore <ManualKeyGeneration/> tag in conf.xml
 * OPENDNSSEC-890: Mismatching TTLs in record sets would cause bogus signatures.
