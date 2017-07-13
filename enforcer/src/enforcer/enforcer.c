@@ -56,6 +56,8 @@
 
 #include "enforcer/enforcer.h"
 
+#define DEBUG_ENFORCER_LOGIC 1
+
 #define HIDDEN      DBW_HIDDEN
 #define RUMOURED    DBW_RUMOURED
 #define OMNIPRESENT DBW_OMNIPRESENT
@@ -287,8 +289,7 @@ successor(struct dbw_key *succkey, struct dbw_key *predkey,
 /**
  * TODO
  *
- * \return A positive value if a key exists, zero if a key does not exists and
- * a negative value if an error occurred.
+ * \return A positive value if a key exists, zero if a key does not exists
  */
 static int
 exists_with_successor(struct future_key *future_key, int same_algorithm,
@@ -392,6 +393,11 @@ rule1(struct future_key *future_key, int pretend_update)
     };
     future_key->pretend_update = pretend_update;
     /* Return positive value if any of the masks are found.  */
+#ifdef DEBUG_ENFORCER_LOGIC
+    ods_log_error("DEBUG");
+    ods_log_error("Rule1 pretend=%d", pretend_update);
+    ods_log_error("%d %d", exists(future_key, 0, mask[0]), exists(future_key, 0, mask[1]));
+#endif
     return (exists(future_key, 0, mask[0]) || exists(future_key, 0, mask[1]));
 }
 
@@ -416,6 +422,17 @@ rule2(struct future_key *future_key, int pretend_update)
     };
     future_key->pretend_update = pretend_update;
     /* Return positive value if any of the masks are found.  */
+#ifdef DEBUG_ENFORCER_LOGIC
+        ods_log_error("DEBUG");
+        ods_log_error("Rule2 pretend=%d", pretend_update);
+        ods_log_error("%d %d %d %d %d %d %d", exists(future_key, 1, mask[0])
+            , exists_with_successor(future_key, 1, mask[2], mask[1], DBW_DS)
+            , exists_with_successor(future_key, 1, mask[5], mask[3], DBW_DNSKEY)
+            , exists_with_successor(future_key, 1, mask[5], mask[4], DBW_DNSKEY)
+            , exists_with_successor(future_key, 1, mask[6], mask[3], DBW_DNSKEY)
+            , exists_with_successor(future_key, 1, mask[6], mask[4], DBW_DNSKEY)
+            , unsignedOk(future_key, mask[7], DBW_DS));
+#endif
     return (exists(future_key, 1, mask[0])
         || exists_with_successor(future_key, 1, mask[2], mask[1], DBW_DS)
         || exists_with_successor(future_key, 1, mask[5], mask[3], DBW_DNSKEY)
@@ -443,6 +460,15 @@ rule3(struct future_key *future_key, int pretend_update)
         { NA, OMNIPRESENT, HIDDEN,      NA } /* unsigned state. */
     };
     future_key->pretend_update = pretend_update;
+#ifdef DEBUG_ENFORCER_LOGIC
+        ods_log_error("DEBUG");
+        ods_log_error("Rule3 pretend=%d", pretend_update);
+        ods_log_error("%d %d %d %d %d", exists(future_key, 1, mask[0])
+        , exists_with_successor(future_key, 1, mask[2], mask[1], DBW_DNSKEY)
+        , exists_with_successor(future_key, 1, mask[4], mask[3], DBW_RRSIG)
+        , unsignedOk(future_key, mask[5], DBW_DNSKEY)
+        , all_DS_hidden(future_key));
+#endif
     /* Return positive value if any of the masks are found. */
     return (exists(future_key, 1, mask[0])
         || exists_with_successor(future_key, 1, mask[2], mask[1], DBW_DNSKEY)
