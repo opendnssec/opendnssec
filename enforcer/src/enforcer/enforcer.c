@@ -309,6 +309,7 @@ exists_with_successor(struct future_key *future_key, int same_algorithm,
             if (!match(predkey, future_key, same_algorithm, predecessor_mask)) continue;
 
             /*TODO*/
+            /*This call seems to fail for the most trivial case*/
             if (successor(succkey, predkey, future_key, type)) return 1;
         }
     }

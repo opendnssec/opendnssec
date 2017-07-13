@@ -637,6 +637,14 @@ get_ref(struct dbrow *r, int ci, int **val, void **ptr)
             *ptr = &r->ptr2;
             *val = &r->int2;
             return;
+        case 3:
+            *ptr = &r->ptr3;
+            *val = &r->int3;
+            return;
+        case 4:
+            *ptr = &r->ptr4;
+            *val = &r->int4;
+            return;
     }
     ods_log_assert(0);
 }
@@ -1032,7 +1040,7 @@ dbw_keystates(db_connection_t *dbconn)
 static struct dbw_list *
 dbw_keydependencies(db_connection_t *dbconn)
 {
-    key_dependency_list_t* dbx_list = key_dependency_list_new(dbconn);
+    key_dependency_list_t* dbx_list = key_dependency_list_new_get(dbconn);
     if (!dbx_list) return NULL;
     size_t n = key_dependency_list_size(dbx_list);
     struct dbw_list *list = calloc(1, sizeof (struct dbw_list));
