@@ -419,8 +419,15 @@ hsm_key_factory_schedule_generate(engine_type* engine, const char *policyname,
     task2->policyname = policyname?strdup(policyname):NULL;
     task2->reschedule_enforce_task = reschedule_enforce_task;
 
-    task = task_create(strdup("hsm_key_factory_schedule_generation"),
-        TASK_CLASS_ENFORCER, TASK_TYPE_HSMKEYGEN,
+    char buf[255] = "hsm_key_factory_schedule_generation";
+    char *id_str;
+    if (policykey_id >= 0 && policyname) {
+        snprintf(buf, 255, "Keygen for policy %s policykey %d", policyname, policykey_id);
+    }
+    id_str = strdup(buf);
+
+    /*task = task_create(strdup("hsm_key_factory_schedule_generation"),*/
+    task = task_create(id_str, TASK_CLASS_ENFORCER, TASK_TYPE_HSMKEYGEN,
         hsm_key_factory_generate_cb, task2,
         free, time_now());
 
