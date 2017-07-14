@@ -182,6 +182,7 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
         /*if time is set never advance time but only consume all task <= time*/
 		if (!time) {
             schedule_info(engine->taskq, &time_leap, NULL, NULL);
+            if (time_leap >= 0 && time_leap < time_now()) time_leap = time_now();
             if (processed_enforce && time_leap > time_now()) break;
         }
 		if (time_leap == -1) {
