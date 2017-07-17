@@ -159,6 +159,7 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
         client_printf(sockfd, "Error reading database.\n");
         return 1;
     }
+    int zones_deleted = 0;
     for (size_t z = 0; z < db->zones->n; z++) {
         struct dbw_zone *zone = (struct dbw_zone *)db->zones->set[z];
         if (!all && strcmp(zonename, zone->name)) continue;
@@ -174,6 +175,7 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
         strncat(signconf_del, ".ZONE_DELETED", len);
         rename(zone->signconf_path, signconf_del);
         free(signconf_del);
+        zones_deleted++;
 
         /* Delete all 'zone' related tasks */
         schedule_purge_owner(engine->taskq, TASK_CLASS_ENFORCER, zone->name);
@@ -189,6 +191,11 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
     }
     dbw_free(db);
     free(buf);
+
+    if (!zones_deleted && zonename) {
+        client_printf_err(sockfd, "Unable to delete zone, zone %s not found", zonename);
+        return 1;
+    }
 
     if (write_xml) {
         if (zonelist_export(sockfd, dbconn, engine->config->zonelist_filename, 1) != ZONELIST_EXPORT_OK) {
