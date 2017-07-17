@@ -19,6 +19,7 @@
 	<Enforcer>
 		<Datastore><SQLite>@INSTALL_ROOT@/var/opendnssec/kasp.db</SQLite></Datastore>
 		<AutomaticKeyGenerationPeriod>PT3600S</AutomaticKeyGenerationPeriod>
+		<WorkerThreads>1</WorkerThreads>
 	</Enforcer>
 	<Signer>
 		<WorkingDirectory>@INSTALL_ROOT@/var/opendnssec/signer</WorkingDirectory>
