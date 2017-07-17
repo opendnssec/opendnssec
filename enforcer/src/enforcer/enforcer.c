@@ -56,7 +56,7 @@
 
 #include "enforcer/enforcer.h"
 
-#define DEBUG_ENFORCER_LOGIC 1
+#define DEBUG_ENFORCER_LOGIC 0
 
 #define HIDDEN      DBW_HIDDEN
 #define RUMOURED    DBW_RUMOURED
