@@ -287,12 +287,55 @@ dbw_policy_update(const db_connection_t *dbconn, struct dbrow *row)
 static int
 dbw_policykey_update(const db_connection_t *dbconn, struct dbrow *row)
 {
-    /* Currently there exist no code to modify policykey object (only create)
-     * Thus this is not allowed. */
-    ods_log_assert(0);
-    /*TODO we should actually be able to INSERT policykeys with this code!*/
+    struct db_value id;
+    policy_key_t *dbx_obj;
+    struct dbw_policykey *policykey = (struct dbw_policykey *)row;
+    int ret;
 
-    return 0;
+    memset(&id, 0, sizeof (id));
+    if (!(dbx_obj = policy_key_new(dbconn))) {
+        return 1;
+    }
+
+    switch (row->dirty) {
+        case DBW_DELETE:
+            if (db_value_from_int32(&id, row->id) || policy_key_get_by_id(dbx_obj, &id))
+                return 1;
+            ret = policy_key_delete(dbx_obj);
+            policy_key_free(dbx_obj);
+            return ret;
+        case DBW_UPDATE:
+            if (db_value_from_int32(&id, row->id) || policy_key_get_by_id(dbx_obj, &id))
+                return 1;
+            free(dbx_obj->repository);
+        case DBW_INSERT: /* fall through intentional */
+            {/*pass*/}
+    }
+
+    dbx_obj->policy_id.type = DB_TYPE_INT32;
+    dbx_obj->policy_id.int32 = policykey->policy->id;
+    ods_log_assert(!policykey->policy->dirty);
+
+    dbx_obj->repository          = strdup(policykey->repository);
+    dbx_obj->role                = policykey->role;
+    dbx_obj->algorithm           = policykey->algorithm;
+    dbx_obj->bits                = policykey->bits;
+    dbx_obj->lifetime            = policykey->lifetime;
+    dbx_obj->standby             = policykey->standby;
+    dbx_obj->manual_rollover     = policykey->manual_rollover;
+    dbx_obj->rfc5011             = policykey->rfc5011;
+    dbx_obj->minimize            = policykey->minimize;
+
+    if (row->dirty == DBW_UPDATE) {
+        ods_log_assert(0); /* NOT IMPL! */
+        /*ret = policy_key_update(dbx_obj);*/
+        ret = 1;
+    } else {
+        ret = policy_key_create(dbx_obj);
+        policykey->id = dbx_obj->dbo->last_row_id;
+    }
+    policy_key_free(dbx_obj);
+    return ret;
 }
 
 static int
