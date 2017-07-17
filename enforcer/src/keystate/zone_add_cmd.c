@@ -192,12 +192,14 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
         if (!input) input = zone_name; /* default */
         if (input[0] != '/') {
             snprintf(path_input, PATH_MAX, "%s/unsigned/%s", OPENDNSSEC_STATE_DIR, input);
+            input = path_input;
         }
     } else if (!strcasecmp(input_type, "DNS")) {
         input_type = "DNS";
         if (!input) input = "addns.xml"; /* default */
         if (input[0] != '/') {
             snprintf(path_input, PATH_MAX, "%s/%s", OPENDNSSEC_CONFIG_DIR, input);
+            input = path_input;
         }
     } else {
         client_printf_err(sockfd, "Unable to add zone, %s is not a valid input"
@@ -205,7 +207,6 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
         free(buf);
         return 1;
     }
-    input = path_input;
     if (access(input, F_OK) == -1) {
         client_printf_err(sockfd, "WARNING: The input file %s for zone %s does"
                 " not currently exist. The zone will be added to the database"
@@ -225,12 +226,14 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
         if (!output) output = zone_name; /* default */
         if (output[0] != '/') {
             snprintf(path_output, PATH_MAX, "%s/signed/%s", OPENDNSSEC_STATE_DIR, output);
+            output = path_output;
         }
     } else if (!strcasecmp(output_type, "DNS")) {
         output_type = "DNS";
         if (!output) output = "addns.xml"; /* default*/
         if (output[0] != '/') {
             snprintf(path_output, PATH_MAX, "%s/%s", OPENDNSSEC_CONFIG_DIR, output);
+            output = path_output;
         }
     } else {
         client_printf_err(sockfd, "Unable to add zone, %s is not a valid output"
@@ -238,7 +241,6 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
         free(buf);
         return 1;
     }
-    output = path_output;
     if (access(output, F_OK) == -1) {
         client_printf_err(sockfd, "WARNING: The output file %s for zone %s does"
                 " not currently exist. The zone will be added to the database"
@@ -255,10 +257,11 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 
     if (!signconf) {
         snprintf(path_signconf, PATH_MAX, "%s/signconf/%s.xml", OPENDNSSEC_STATE_DIR, zone_name);
+        signconf = path_signconf;
     } else if (signconf[0] != '/') {
         snprintf(path_signconf, PATH_MAX, "%s/signconf/%s", OPENDNSSEC_STATE_DIR, signconf);
+        signconf = path_signconf;
     }
-    signconf = path_signconf;
 
     client_printf(sockfd, "input is set to %s. \n", input);
     client_printf(sockfd, "output is set to %s. \n", output);

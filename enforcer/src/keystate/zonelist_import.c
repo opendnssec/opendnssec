@@ -83,6 +83,8 @@ xml_read_child(xmlNodePtr node, struct xml_zone *zone)
         if (xml_read_children(node, zone)) return 1;
     } else if (!strcmp((char*)node->name, "Input")) {
         if (xml_read_children(node, zone)) return 1;
+    } else if (!strcmp((char*)node->name, "Output")) {
+        if (xml_read_children(node, zone)) return 1;
     } else if (!strcmp((char*)node->name, "File")) {
         if (!strcmp(node->parent->name, "Input")) {
             zone->inadapter_type = strdup("File");
@@ -103,8 +105,6 @@ xml_read_child(xmlNodePtr node, struct xml_zone *zone)
         } else {
             return 1;
         }
-    } else if (!strcmp((char*)node->name, "Output")) {
-        if (xml_read_children(node, zone)) return 1;
     } else {
         ods_log_deeebug("[zone_*_from_xml] unknown %s", (char*)node->name);
         return 1;
