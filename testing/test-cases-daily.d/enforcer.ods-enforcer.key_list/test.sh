@@ -87,7 +87,7 @@ echo -n "LINE: ${LINENO} " && expect list-*-zsk "ZSK" &&
 echo -n "LINE: ${LINENO} " && expect list-*-ksk "KSK" &&
 
 # key list --verbose may not contain keys in state generate
-! echo -n "LINE: ${LINENO} " && ! expect list-*-verbose "generate" &&
+echo -n "LINE: ${LINENO} " && ! expect list-*-verbose "generate" &&
 # key list --verbose may not contain keys in state dead
 echo -n "LINE: ${LINENO} " && ! expect list-*-verbose "dead" &&
 
