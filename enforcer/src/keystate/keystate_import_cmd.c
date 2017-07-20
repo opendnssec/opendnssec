@@ -53,165 +53,154 @@ const int ksk_mapping[5][4] = {{0,0,0,4},{0,1,1,4},{1,2,2,4},{1,2,2,4},{3,2,2,4}
 const int zsk_mapping[5][4] = {{4,0,4,0},{4,1,4,0},{4,2,4,1},{4,2,4,2},{4,2,4,3}};
 const int ds_at_parent [5] = {0,0,1,3,5};
 
+enum _state14 {
+    GENERATE = 0, PUBLISH, READY, ACTIVE, RETIRE,
+};
 
 static int max(int a, int b) { return a>b?a:b; }
 static int min(int a, int b) { return a<b?a:b; }
 
-
-int
-perform_hsmkey_import(int sockfd, db_connection_t *dbconn,
-	const char *ckaid, const char *rep, const char *zonename, 
-	int bits, int alg, int keytype, unsigned int time)
+/* 0 on success */
+static struct dbw_hsmkey *
+perform_hsmkey_import(int sockfd, struct dbw_db *db,
+    const char *ckaid, const char *rep, struct dbw_zone *zone,
+    int bits, int alg, int keytype, unsigned int time)
 {
-    hsm_ctx_t *hsm_ctx;
-    hsm_key_t *hsm_key = NULL;
-    char *hsm_err;
-    libhsm_key_t *libhsmkey;
-    zone_db_t *zone;
-	
   /* Create an HSM context and check that the repository exists  */
-    if (!(hsm_ctx = hsm_create_context())) {
-        return -1;
-    }
+    hsm_ctx_t *hsm_ctx = hsm_create_context();
+    if (!hsm_ctx) return NULL;
     if (!hsm_token_attached(hsm_ctx, rep)) {
-        if ((hsm_err = hsm_get_error(hsm_ctx))) {
-            ods_log_error("[%s] Error: Unable to check for the repository %s, HSM error: %s", module_str, rep, hsm_err);
-            client_printf_err(sockfd, "Unable to check for the repository %s, HSM error: %s\n", rep, hsm_err);
+        char *hsm_err = hsm_get_error(hsm_ctx);
+        if (hsm_err) {
+            ods_log_error("[%s] Error: Unable to check for the repository %s, HSM error: %s",
+                module_str, rep, hsm_err);
+            client_printf_err(sockfd, "Unable to check for the repository %s, HSM error: %s\n",
+                rep, hsm_err);
             free(hsm_err);
-        }
-        else {
+        } else {
             ods_log_error("[%s] Error: Unable to find repository %s in HSM", module_str, rep);
             client_printf_err(sockfd, "Unable to find repository %s in HSM\n", rep);
         }
         hsm_destroy_context(hsm_ctx);
-        return -1;
+        return NULL;
     }
 
-    if (!(libhsmkey = hsm_find_key_by_id(hsm_ctx, ckaid))) {
-	ods_log_error("[%s] Error: Unable to find the key with this locator: %s", module_str, ckaid);
-	client_printf_err(sockfd, "Unable to find the key with this locator: %s\n", ckaid);
-	hsm_destroy_context(hsm_ctx);
-	return -1;
-    }
-    libhsm_key_free(libhsmkey);
-    hsm_key = hsm_key_new_get_by_locator(dbconn, ckaid);
-    if (hsm_key) {
-        ods_log_error("[%s] Error: Already used this key with this locator: %s", module_str, ckaid);
-        client_printf_err(sockfd, "Already used this key with this locator: %s\n", ckaid);
-        hsm_key_free(hsm_key);
-        hsm_destroy_context(hsm_ctx);
-        return -1;
-    }
-
-    zone = zone_db_new_get_by_name(dbconn, zonename);
-    if (!(hsm_key = hsm_key_new(dbconn))
-                || hsm_key_set_algorithm(hsm_key, alg)
-                || hsm_key_set_bits(hsm_key, bits)
-                || hsm_key_set_inception(hsm_key, time)
-                || hsm_key_set_key_type(hsm_key, HSM_KEY_KEY_TYPE_RSA)
-                || hsm_key_set_locator(hsm_key, ckaid)
-                || hsm_key_set_policy_id(hsm_key, zone_db_policy_id(zone))
-                || hsm_key_set_repository(hsm_key, rep)
-                || hsm_key_set_role(hsm_key, keytype)
-                || hsm_key_set_state(hsm_key, (hsm_key_state_t)HSM_KEY_STATE_PRIVATE)
-                || hsm_key_create(hsm_key))
-    {
-        ods_log_error("[%s] hsm key creation failed, database or memory error", module_str);
-        hsm_key_free(hsm_key);                
-        hsm_destroy_context(hsm_ctx);
-        zone_db_free(zone);
-        return -1;
-    }
-    ods_log_debug("[%s] hsm key with this locator %s is created successfully", module_str, ckaid);
-    hsm_key_free(hsm_key);
-    hsm_destroy_context(hsm_ctx);
-    zone_db_free(zone);
-    return 0;
-}
-
-int 
-perform_keydata_import(int sockfd, db_connection_t *dbconn,
-        const char *ckaid, const char *rep, const char *zonename,
-        int alg, int keystate, int keytype, unsigned int time, int setmin, db_value_t *hsmkey_id)
-{
-    key_data_t *key_data = NULL;
-    hsm_ctx_t *hsm_ctx;
-    char *hsm_err;
-    uint16_t tag;
-    hsm_key_t * hsmkey;
-    libhsm_key_t *libhsmkey;
-    zone_db_t *zone;
-
-    /* Create a HSM context and check that the repository exists  */
-    if (!(hsm_ctx = hsm_create_context())) {
-        return -1;
-    }
-    if (!hsm_token_attached(hsm_ctx, rep)) {
-        if ((hsm_err = hsm_get_error(hsm_ctx))) {
-            ods_log_error("[%s] Error: Unable to check for the repository %s, HSM error: %s", module_str, rep, hsm_err);
-            client_printf_err(sockfd, "Unable to check for the repository %s, HSM error: %s\n", rep, hsm_err);
-            free(hsm_err);
-        }
-        else {
-            ods_log_error("[%s] Error: Unable to find repository %s in HSM", module_str, rep);
-            client_printf_err(sockfd, "Unable to find repository %s in HSM\n", rep);
-        }
-        hsm_destroy_context(hsm_ctx);
-        return -1;
-    }
-
-    if (!(libhsmkey = hsm_find_key_by_id(hsm_ctx, ckaid))) {
+    libhsm_key_t *libhsmkey = hsm_find_key_by_id(hsm_ctx, ckaid);
+    if (!libhsmkey) {
         ods_log_error("[%s] Error: Unable to find the key with this locator: %s", module_str, ckaid);
         client_printf_err(sockfd, "Unable to find the key with this locator: %s\n", ckaid);
         hsm_destroy_context(hsm_ctx);
-        return -1;
+        return NULL;
     }
     libhsm_key_free(libhsmkey);
-    if (!(hsmkey = hsm_key_new_get_by_locator(dbconn, ckaid))) {
-        ods_log_error("[%s] Error: Cannot get hsmkey %s from database, database error", module_str, ckaid);
-        hsm_destroy_context(hsm_ctx);
-        return -1;
-    }
-    if (hsm_keytag(ckaid, alg, keytype == 1 ? 1 : 0, &tag)) {
-        ods_log_error("[%s] Error: Keytag for this key %s is not correct", module_str, ckaid);
-    }
-
-    zone = zone_db_new_get_by_name(dbconn, zonename);
-    if (!(key_data = key_data_new(dbconn))
-                || key_data_set_zone_id(key_data, zone_db_id(zone))
-                || key_data_set_hsm_key_id(key_data, hsm_key_id(hsmkey))
-		|| key_data_set_algorithm (key_data, alg)
-                || key_data_set_inception(key_data, time)
-		|| key_data_set_introducing (key_data, keystate < 4 ? 1 : 0)
-		|| key_data_set_active_zsk(key_data, keytype == 1 || keystate < 2 || keystate > 3 ? 0 : 1)
-		|| key_data_set_publish(key_data,0 < keystate ? 1 : 0)
-		|| key_data_set_active_ksk(key_data, keytype == 2 || keystate == 0 ? 0 : 1)
-		|| key_data_set_role(key_data, keytype)
-		|| key_data_set_ds_at_parent(key_data, keytype == 1 ? ds_at_parent[keystate] : 0)
-		|| key_data_set_keytag(key_data, tag)
-		|| key_data_set_minimize(key_data,setmin)
-                || key_data_create(key_data))
-    {
-        ods_log_error("[%s] key data creation failed, database or memory error", module_str);
-        hsm_key_free(hsmkey);
-        key_data_free(key_data);
-        hsm_destroy_context(hsm_ctx);
-        zone_db_free(zone);
-        return -1;
-    }
-    zone_db_free(zone);
-    ods_log_debug("[%s] key data with this locator %s is created successfully", module_str, ckaid);
-    key_data_free(key_data);
     hsm_destroy_context(hsm_ctx);
-    db_value_copy (hsmkey_id, hsm_key_id(hsmkey));
-    hsm_key_free(hsmkey);
+
+    struct dbw_hsmkey *hsmkey = dbw_get_hsmkey(db, ckaid);
+    if (hsmkey) {
+        ods_log_error("[%s] Error: Already used this key with this locator: %s", module_str, ckaid);
+        client_printf_err(sockfd, "Already used this key with this locator: %s\n", ckaid);
+        return NULL;
+    }
+    hsmkey = dbw_new_hsmkey(db, zone->policy);
+    if (!hsmkey) {
+        ods_log_error("[%s] hsm key creation failed, database or memory error", module_str);
+        return NULL;
+    }
+    hsmkey->locator = strdup(ckaid);
+    hsmkey->repository = strdup(rep);
+    hsmkey->state = DBW_HSMKEY_PRIVATE;
+    hsmkey->bits = bits;
+    hsmkey->algorithm = alg;
+    hsmkey->role = keytype;
+    hsmkey->inception = time;
+    hsmkey->is_revoked = 0;
+    hsmkey->key_type = HSM_KEY_KEY_TYPE_RSA;
+    hsmkey->backup = 0;
+
+    ods_log_debug("[%s] hsm key with this locator %s is created successfully", module_str, ckaid);
+    return hsmkey;
+}
+
+static int
+perform_keydata_import(int sockfd, struct dbw_db *db,
+    struct dbw_zone *zone, int alg, int keystate_14, int keytype,
+    unsigned int time, int setmin, struct dbw_hsmkey *hsmkey)
+{
+    uint16_t tag;
+    if (hsm_keytag(hsmkey->locator, alg, keytype & DBW_KSK, &tag)) {
+        ods_log_error("[%s] Error: Keytag for this key %s is not correct",
+            module_str, hsmkey->locator);
+    }
+    struct dbw_key *key = dbw_new_key(db, zone, hsmkey);
+    struct dbw_keystate *keystate_ds = dbw_new_keystate(db, zone, key);
+    struct dbw_keystate *keystate_dk = dbw_new_keystate(db, zone, key);
+    struct dbw_keystate *keystate_rd = dbw_new_keystate(db, zone, key);
+    struct dbw_keystate *keystate_rs = dbw_new_keystate(db, zone, key);
+    if (!key || !keystate_ds || !keystate_dk || !keystate_rd || !keystate_rs) {
+        ods_log_error("[%s] key data creation failed, database or memory error",
+            module_str);
+        return 1;
+    }
+    key->algorithm = alg;
+    key->inception = time;
+    key->introducing = keystate_14 < RETIRE;
+    key->active_zsk = (keytype&DBW_ZSK) && keystate_14 == ACTIVE;
+    key->active_ksk = (keytype&DBW_KSK) && keystate_14 >= PUBLISH;
+    key->publish = keystate_14 >= PUBLISH;
+    key->role = keytype;
+    key->ds_at_parent = (keytype&DBW_KSK) ? ds_at_parent[keystate_14] : 0;
+    key->keytag = tag;
+    key->minimize = setmin;
+
+    keystate_ds->type = DBW_DS;
+    keystate_ds->last_change = time;
+    keystate_ds->minimize = (key->minimize >> 2) & 1;
+    keystate_ds->ttl = zone->policy->parent_ds_ttl;
+    keystate_ds->state = (keytype & DBW_KSK) ? ksk_mapping[keystate_14][0] : zsk_mapping[keystate_14][0];
+
+    keystate_dk->type = DBW_DNSKEY;
+    keystate_dk->last_change = time;
+    keystate_dk->minimize = (key->minimize >> 1) & 1;
+    keystate_dk->ttl = zone->policy->keys_ttl;
+    keystate_dk->state = (keytype & DBW_KSK) ? ksk_mapping[keystate_14][1] : zsk_mapping[keystate_14][1];
+
+    keystate_rd->type = DBW_RRSIGDNSKEY;
+    keystate_rd->last_change = time;
+    keystate_rd->minimize = 0;
+    keystate_rd->ttl = zone->policy->keys_ttl;
+    keystate_rd->state = (keytype & DBW_KSK) ? ksk_mapping[keystate_14][2] : zsk_mapping[keystate_14][2];
+
+    ttl = max(min(zone->policy->zone_soa_ttl, zone->policy->zone_soa_minimum),
+            (zone->policy_denial_type(policy) == POLICY_DENIAL_TYPE_NSEC3
+                ? ( zone->policy_denial_ttl(policy) > policy_signatures_max_zone_ttl(policy)
+                    ? zone->policy_denial_ttl(policy)
+                    : zone->policy_signatures_max_zone_ttl(policy))
+                : zone->policy_signatures_max_zone_ttl(policy)));
+
+    keystate_rd->type = DBW_RRSIG;
+    keystate_rd->last_change = time;
+    keystate_rd->minimize = (key->minimize >> 0) & 1;
+    keystate_rd->ttl = ttl;
+    keystate_rd->state = (keytype & DBW_KSK) ? ksk_mapping[keystate_14][3] : zsk_mapping[keystate_14][3];
+
+    if (!(key_state = key_state_new(dbconn))
+                || key_state_set_key_data_id(key_state, keydataid)
+       /*         || hsm_key_set_backup(hsm_key, (hsm->require_backup ? HSM_KEY_BACKUP_BACKUP_REQUIRED : HSM_KEY_BACKUP_NO_BACKUP))*/
+                || key_state_set_type(key_state, KEY_STATE_TYPE_RRSIG)
+                || key_state_set_last_change (key_state, time)
+                || key_state_set_minimize(key_state, key_data_minimize(key) & 1)
+                || key_state_set_ttl (key_state, ttl)
+                || key_state_set_state(key_state, keytype == 1 ? ksk_mapping[keystate][3] : zsk_mapping[keystate][3])
+                || key_state_create(key_state))
+
+
+    ods_log_debug("[%s] key data with this locator %s is created successfully", module_str, hsmkey->locator);
     return 0;
 }
 
-int
-perform_keystate_import(int sockfd, db_connection_t *dbconn,
-        const char *ckaid, const char *rep, const char *zonename,
-        int keystate, int keytype, unsigned int time, db_value_t *hsmkeyid)
+static int
+perform_keystate_import(int sockfd, struct dbw_db *db, struct dbw_zone *zone,
+    int keystate, int keytype, unsigned int time, struct dbw_hsmkey *hsmkey)
 {
     key_state_t *key_state = NULL;
     hsm_ctx_t *hsm_ctx;
@@ -223,31 +212,6 @@ perform_keystate_import(int sockfd, db_connection_t *dbconn,
     libhsm_key_t *libhsmkey;
     zone_db_t *zone;
 
-    /* Create a HSM context and check that the repository exists  */
-    if (!(hsm_ctx = hsm_create_context())) {
-        return -1;
-    }
-    if (!hsm_token_attached(hsm_ctx, rep)) {
-        if ((hsm_err = hsm_get_error(hsm_ctx))) {
-            ods_log_error("[%s] Error: Unable to check for the repository %s, HSM error: %s", module_str, rep, hsm_err);
-            client_printf_err(sockfd, "Unable to check for the repository %s, HSM error: %s\n", rep, hsm_err);
-            free(hsm_err);
-        }
-        else {
-            ods_log_error("[%s] Error: Unable to find repository %s in HSM", module_str, rep);
-            client_printf_err(sockfd, "Unable to find repository %s in HSM\n", rep);
-        }
-        hsm_destroy_context(hsm_ctx);
-        return -1;
-    }
-
-    if (!(libhsmkey = hsm_find_key_by_id(hsm_ctx, ckaid))) {
-        ods_log_error("[%s] Error: Unable to find the key with this locator: %s", module_str, ckaid);
-        client_printf(sockfd, "Unable to find the key with this locator: %s\n", ckaid);
-        hsm_destroy_context(hsm_ctx);
-        return -1;
-    }
-    libhsm_key_free(libhsmkey);
     key = key_data_new_get_by_hsm_key_id(dbconn, hsmkeyid);
     keydataid = key_data_id(key);
 
@@ -392,7 +356,6 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
     const char* keytype = NULL;
     const char* keystate = NULL;
     const char *time = NULL;
-    zone_db_t *zone = NULL;
     time_t inception = 0;
     struct tm tm;
     int setmin;
@@ -475,7 +438,7 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
             ods_log_error("[%s] unknown keystate", module_str);
             client_printf_err(sockfd, "unknown keystate\n");
             return -1;
-        } 
+        }
     }
 
     if (argc) {
@@ -489,14 +452,15 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
         client_printf_err(sockfd, "expected --zone \n");
         return -1;
     }
-    if (zonename && !(zone = zone_db_new_get_by_name(dbconn, zonename))) {
+    struct dbw_db *db = dbw_fetch(dbconn);
+    if (!db) return 1;
+    struct dbw_zone *zone = dbw_get_zone(db, zonename);
+    if (zone) {
         ods_log_error("[%s] Unknown zone: %s", module_str, zonename);
         client_printf_err(sockfd, "Unknown zone: %s\n", zonename);
+        dbw_free(db);
         return -1;
     }
-    free(zone);
-    zone = NULL;
-
     if (strptime(time, "%Y-%m-%d-%H:%M:%S", &tm)) {
         tm.tm_isdst = -1;
         inception = mktime(&tm);
@@ -519,36 +483,41 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 
     int type = dbw_txt2enum(dbw_key_role_txt, keytype);
 
-    hsmkey_id = db_value_new();
-    zone = zone_db_new_get_by_name(dbconn, zonename);
-    policy_key = policy_key_new_get_by_policyid_and_role(dbconn, zone_db_policy_id(zone), type);
-    zone_db_free(zone);
-    if (!policy_key) {
-        ods_log_error("Unable to get policyKey, database error!");
-        client_printf_err(sockfd, "Unable to get policyKey, database error!\n");
-        db_value_free((void*)hsmkey_id);
-        return -1;
+    /* Find relevant policykey */
+    struct dbw_policykey *policykey = NULL;
+    for (size_t pk = 0; pk < zone->policy->policykey_count; pk++) {
+        struct dbw_policykey *pkey = zone->policy->policykey[pk];
+        if (pkey->algorithm != atoi(algorithm)) continue;
+        if (pkey->role != type) continue;
+        policykey = pkey;
+        break;
     }
-    if (atoi(algorithm) != policy_key_algorithm(policy_key)) {
-        ods_log_error("Error: the given algorithm in import command doesn't match the algorithm in kasp");
-        client_printf_err(sockfd, "The given algorithm doesn't match the algorithm in kasp\n");
-        db_value_free((void*)hsmkey_id);
-        policy_key_free(policy_key);
-        return -1;
+    if (!policykey) {
+        ods_log_error("Error: Could not find a policykey with specified type and algorithm.");
+        client_printf_err(sockfd, "Could not find a policykey with specified type and algorithm.\n");
+        dbw_free(db);
+        return 1;
     }
-
-    setmin = policy_key_minimize(policy_key);
-    policy_key_free(policy_key);
 
     /* perform task immediately */
-    if (perform_hsmkey_import(sockfd, dbconn, ckaid, repository, zonename, atoi(bits), atoi(algorithm), type, (unsigned int)inception)
-        || perform_keydata_import(sockfd, dbconn, ckaid, repository, zonename, atoi(algorithm), state, type, (unsigned int)inception, setmin, hsmkey_id)
-        || perform_keystate_import(sockfd, dbconn, ckaid, repository, zonename, state, type, (unsigned int)inception, hsmkey_id)) {
+    struct dbw_hsmkey * hsmkey = perform_hsmkey_import(sockfd, db, ckaid,
+        repository, zone, atoi(bits), atoi(algorithm), type, (unsigned int)inception);
+    if (!hsmkey
+        || perform_keydata_import(sockfd, db, zone, atoi(algorithm), state,
+            type, (unsigned int)inception, policykey->minimize, hsmkey)
+        || perform_keystate_import(sockfd, db, zone,
+            state, type, (unsigned int)inception, hsmkey))
+    {
         ods_log_error("[%s] Error: Unable to add key to the database", module_str);
-        db_value_free((void*)hsmkey_id);
-        return -1;
-    } 
-    db_value_free((void*)hsmkey_id);
+        dbw_free(db);
+        return 1;
+    }
+    int ret = dbw_commit(db);
+    dbw_free(db);
+    if (ret) {
+        ods_log_error("[%s] Error: Unable to add key to the database", module_str);
+        return 1;
+    }
     client_printf(sockfd, "Key imported into zone %s\n", zonename);
     return 0;
 }

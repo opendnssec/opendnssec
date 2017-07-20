@@ -376,6 +376,7 @@ void dbw_mark_dirty(struct dbrow *row);
  */
 struct dbw_zone * dbw_get_zone(struct dbw_db *db, char const *zonename);
 struct dbw_policy * dbw_get_policy(struct dbw_db *db, char const *policyname);
+struct dbw_hsmkey * dbw_get_hsmkey(struct dbw_db *db, char const *locator);
 struct dbw_keystate * dbw_get_keystate(struct dbw_key *key, int type);
 
 /* TODO functions below this need to be cleaned up / evaluated*/
@@ -386,11 +387,18 @@ int dbw_add_keystate(struct dbw_db *db, struct dbw_key *key, struct dbw_keystate
 int dbw_add_zone(struct dbw_db *db, struct dbw_policy *policy, struct dbw_zone *zone);
 int dbw_add_hsmkey(struct dbw_db *db, struct dbw_policy *policy, struct dbw_hsmkey *hsmkey);
 
+/**
+ * The dbw_new_* functions create new records and add them to the database
+ * structure. The properties are all initialized to zero.
+ */
 struct dbw_keydependency * dbw_new_keydependency(struct dbw_db *db,
     struct dbw_key *fromkey, struct dbw_key *tokey, int type,
     struct dbw_zone *zone);
 struct dbw_key * dbw_new_key(struct dbw_db *db, struct dbw_zone *zone,
     struct dbw_hsmkey *hsmkey);
+struct dbw_keystate* dbw_new_keystate(struct dbw_db *db, struct dbw_zone *zone,
+    struct dbw_key *key);
+struct dbw_hsmkey* dbw_new_hsmkey(struct dbw_db *db, struct dbw_policy *policy);
 
 /** ALL */
 

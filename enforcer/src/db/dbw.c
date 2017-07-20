@@ -1372,6 +1372,17 @@ dbw_get_keystate(struct dbw_key *key, int type)
     return NULL;
 }
 
+struct dbw_hsmkey *
+dbw_get_hsmkey(struct dbw_db *db, char const *locator)
+{
+    struct dbw_list *list = db->hsmkeys;
+    for (size_t n = 0; n < list->n; n++) {
+        struct dbw_hsmkey *hsmkey = (struct dbw_hsmkey *)list->set[n];
+        if (!strcmp(locator, hsmkey->locator)) return hsmkey;
+    }
+    return NULL;
+}
+
 /* Add object to array */
 static int
 append(void ***array, int *count, void *obj)
@@ -1476,6 +1487,40 @@ dbw_new_key(struct dbw_db *db, struct dbw_zone *zone, struct dbw_hsmkey *hsmkey)
     /* TODO handle errors */
     key->dirty = DBW_INSERT;
     return key;
+}
+
+struct dbw_keystate*
+dbw_new_keystate(struct dbw_db *db, struct dbw_zone *zone, struct dbw_key *key)
+{
+    struct dbw_keystate *keystate = calloc(1, sizeof (struct dbw_keystate));
+    if (!key) return NULL;
+    key->key = key;
+    key->key_id = key->id;
+
+    int r = 0;
+    r |= list_add(db->keystates, (struct dbrow *)keystate);
+    r |= append((void ***)&key->keystate, &key->keystate_count, keystate);
+    /* TODO handle errors */
+    keystate->dirty = DBW_INSERT;
+    return keystate;
+}
+
+struct dbw_hsmkey*
+dbw_new_hsmkey(struct dbw_db *db, struct dbw_policy *policy)
+{
+    struct dbw_hsmkey *hsmkey = calloc(1, sizeof (struct dbw_hsmkey));
+    if (!hsmkey) return NULL;
+    hsmkey->policy = policy;
+    hsmkey->policy_id = policy->id;
+    hsmkey->key_count = 0;
+    hsmkey->key = NULL;
+
+    int r = 0;
+    r |= list_add(db->hsmkeys, (struct dbrow *)hsmkey);
+    r |= append((void ***)&policy->hsmkey, &policy->hsmkey_count, hsmkey);
+    /* TODO handle errors */
+    hsmkey->dirty = DBW_INSERT;
+    return hsmkey;
 }
 
 int
