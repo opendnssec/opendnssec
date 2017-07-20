@@ -1,3 +1,8 @@
+OpenDNSSEC 2.1.2 - 2017-xx-xx
+
+* OPENDNSSEC-901: Enforcer would ignore <ManualKeyGeneration/> tag in conf.xml
+* OPENDNSSEC-890: Mismatching TTLs in record sets would cause bogus signatures.
+
 OpenDNSSEC 2.1.1 - 2017-04-28
 
 * OPENDNSSEC-889: MySQL migration script didn't work for all database and
