@@ -27,7 +27,7 @@ syslog_waitfor 60 "ods-enforcerd: .*1 zone(s) found on policy \"Policy1\""  &&
 syslog_waitfor 60 'ods-enforcerd: .*1 new KSK(s) (2048 bits) need to be created.'  &&
 syslog_waitfor 60 'ods-enforcerd: .*5 new ZSK(s) (2048 bits) need to be created.' &&
 log_this enforcer-keylist   ods-hsmutil list &&
-log_grep enforcer-keylist   stdout "8 keys found." && 
+#log_grep enforcer-keylist   stdout "8 keys found." && 
 
 ##################  1. Keys not shared, same alg & length ###########################
 

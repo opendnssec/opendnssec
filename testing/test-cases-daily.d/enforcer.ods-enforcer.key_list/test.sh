@@ -76,7 +76,7 @@ for i in `seq 0 24`; do
   log_this list-$i-verboseall ods-enforcer key list --verbose --all &&
   log_this list-$i-parsable ods-enforcer key list --parsable &&
   log_this list-$i-debug ods-enforcer key list --debug &&
-  log_this timeleap ods-enforcer time leap
+  sleep 3 && log_this timeleap ods-enforcer time leap && sleep 3
 done &&
 
 # When listing ZSKs, we should only see ZSKs, and see a ZSK at least
