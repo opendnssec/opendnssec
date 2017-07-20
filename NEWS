@@ -7,6 +7,7 @@ OpenDNSSEC 2.2 - 2017-xx-xx
   undocumented since it is not intended for production.
 * OPENDNSSEC-887: Segfault on extraneous <Interval> tag.
 * Libunwind header files presence not properly checked.
+* OPENDNSSEC-508: Implementing <RolloverNotification> tag.
 
 OpenDNSSEC 2.1.0 - 2017-02-22
 
