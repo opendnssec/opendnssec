@@ -441,6 +441,26 @@ engine_setup(void)
         }
         return ODS_STATUS_WRITE_PIDFILE_ERR;
     }
+
+    /* check hsm */
+    if (hsm_open2(engine->config->repositories, hsm_check_pin) != HSM_OK) {
+        char* errorstr =  hsm_get_error(NULL);
+        if (errorstr)
+            ods_log_error("[%s] %s", "hsm", errorstr);
+
+        ods_log_error("[%s] opening hsm failed", engine_str);
+        if (engine->daemonize) {
+            if (errorstr)
+                ods_writeln(pipefd[1], errorstr);
+            write(pipefd[1], "\0", 1);
+            close(pipefd[1]);
+       }
+       free(errorstr);
+       return ODS_STATUS_HSM_ERR;
+    }
+    hsm_close();
+
+
     /* setup done */
     ods_log_verbose("[%s] running as pid %lu", engine_str,
         (unsigned long) engine->pid);
@@ -464,6 +484,7 @@ engine_setup(void)
     engine_start_dnshandler(engine);
     engine_start_xfrhandler(engine);
     tsig_handler_init();
+
     if (engine->daemonize) {
         write(pipefd[1], "\1", 1);
         close(pipefd[1]);
@@ -824,6 +845,7 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize, int info
                     free(error);
                 }
                 ods_log_error("[%s] opening hsm failed (for engine recover)", engine_str);
+                status = ODS_STATUS_HSM_ERR;
                 break;
             }
             zl_changed = engine_recover(engine);
@@ -840,6 +862,7 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize, int info
                 free(error);
             }
             ods_log_error("[%s] opening hsm failed (for engine run)", engine_str);
+            status = ODS_STATUS_HSM_ERR;
             break;
         }
         engine_run(engine);
