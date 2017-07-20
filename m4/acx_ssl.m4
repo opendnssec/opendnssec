@@ -35,15 +35,18 @@ AC_DEFUN([ACX_SSL], [
             if test x_$ssldir = x_/usr/sfw; then
                 SSL_LIBS="$SSL_LIBS -R$ssldir/lib";
             fi
+            save_LIBS=$LIBS
             AC_CHECK_LIB(crypto, HMAC_CTX_reset, [
                     AC_DEFINE_UNQUOTED([HAVE_SSL_NEW_HMAC], [], [Define if you have the SSL libraries with new HMAC related functions.])
                     SSL_LIBS="$SSL_LIBS -lcrypto";
+                    LIBS="$SSL_LIBS $LIBS"
             ], [
                     AC_CHECK_LIB(crypto, HMAC_CTX_init,, [
                             AC_MSG_ERROR([OpenSSL found in $ssldir, but version 0.9.7 or higher is required])
                     ])
             ] )
             AC_CHECK_FUNCS([EVP_sha1 EVP_sha256])
+            LIBS=$saveLIBS
         fi
         AC_SUBST(HAVE_SSL)
         AC_SUBST(HAVE_SSL_NEW_HMAC)
