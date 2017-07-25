@@ -356,7 +356,6 @@ int do_keygen(DAEMONCONFIG *config, KSM_POLICY* policy, hsm_ctx_t *ctx)
     int new_keys = 0;       /* number of keys required */
     unsigned int current_count = 0;  /* number of keys already in HSM */
 
-    int same_keys = 0;      /* Do ksks and zsks look the same ? */
     int ksks_created = 0;   /* Were any KSKs created? */
     
     DB_RESULT result; 
@@ -374,13 +373,6 @@ int do_keygen(DAEMONCONFIG *config, KSM_POLICY* policy, hsm_ctx_t *ctx)
     if (rightnow == NULL) {
         log_msg(config, LOG_ERR, "Couldn't turn \"now\" into a date, quitting...");
         exit(1);
-    }
-
-    /* See if our ZSKs and KSKs look the same */
-    if (policy->ksk->sm == policy->zsk->sm && policy->ksk->bits == policy->zsk->bits && policy->ksk->algorithm == policy->zsk->algorithm) {
-        same_keys = 1;
-    } else {
-        same_keys = 0;
     }
 
     /* How many zones on this policy */ 
@@ -496,11 +488,6 @@ int do_keygen(DAEMONCONFIG *config, KSM_POLICY* policy, hsm_ctx_t *ctx)
     if (status != 0) {
         log_msg(NULL, LOG_ERR, "Could not count current zsk numbers for policy %s", policy->name);
         /* TODO exit? continue with next policy? */
-    }
-    /* Don't have to adjust the queue for shared keys as the prediction has already taken care of that.*/
-    /* Might have to account for ksks */
-    if (same_keys) {
-        keys_in_queue -= ksks_needed;
     }
 
     new_keys = zsks_needed - keys_in_queue;
