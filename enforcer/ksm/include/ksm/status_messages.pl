@@ -91,6 +91,8 @@ print MESSAGE "#define $ARGV[0]_ARRAY_SIZE ($array_size)\n";
 print MESSAGE "\n";
 print MESSAGE "static const char* m_messages[] = {\n" if $ARGV[0] eq 'KME';
 print MESSAGE "static const char* d_messages[] = {\n" if $ARGV[0] eq 'DBS';
+print MESSAGE "static const char* s_messages[] = {\n" if $ARGV[0] eq 'KSM';
+
 
 # Print out the message assignments.
 
