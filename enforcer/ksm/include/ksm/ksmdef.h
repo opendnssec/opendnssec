@@ -41,7 +41,7 @@
 
 #define KSM_SUCCESS 0           /* Successful completion */
 
-#define KSM_BASE        65536       /* Base of KSM status codes */
+#define KSM_BASE        (65536 + 400)       /* Base of KSM status codes */
 
 #define KSM_INVOPTION   (KSM_BASE +  0)     /* ERROR: Invalid command option -%c */
 #define KSM_UNRCOMMAND  (KSM_BASE +  1)     /* ERROR: Unrecognised command */

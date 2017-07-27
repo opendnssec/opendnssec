@@ -1,3 +1,4 @@
+*.o
 Doxyfile
 Makefile
 Makefile.in
@@ -77,6 +78,7 @@ enforcer/ksm/include/ksm/Makefile
 enforcer/ksm/include/ksm/Makefile.in
 enforcer/ksm/include/ksm/dbsmsg.h
 enforcer/ksm/include/ksm/kmemsg.h
+enforcer/ksm/include/ksm/ksmmsg.h
 enforcer/ksm/ksm_dnsseckeys.o
 enforcer/ksm/ksm_import.o
 enforcer/ksm/ksm_init_rundown.o
@@ -250,3 +252,5 @@ tools/solaris/Makefile.in
 tools/solaris/ods-enforcerd.init
 tools/solaris/ods-signerd.init
 /build/
+*.deps/
+*.dirstamp
