@@ -370,7 +370,7 @@ hsm_pkcs11_check_token_name(hsm_ctx_t *ctx,
 
 hsm_repository_t *
 hsm_repository_new(char* name, char* module, char* tokenlabel, char* pin,
-    uint8_t use_pubkey, uint8_t require_backup)
+    uint8_t use_pubkey, uint8_t allowextract, uint8_t require_backup)
 {
     hsm_repository_t* r;
 
@@ -395,6 +395,7 @@ hsm_repository_new(char* name, char* module, char* tokenlabel, char* pin,
         }
     }
     r->use_pubkey = use_pubkey;
+    r->allow_extract = allowextract; 
     r->require_backup = require_backup;
     return r;
 }
@@ -533,6 +534,7 @@ static void
 hsm_config_default(hsm_config_t *config)
 {
     config->use_pubkey = 1;
+    config->allow_extract = 0;
 }
 
 /* creates a session_t structure, and automatically adds and initializes
@@ -2114,6 +2116,8 @@ hsm_open2(hsm_repository_t* rlist,
     repo = rlist;
     while (repo) {
         hsm_config_default(&module_config);
+        module_config.use_pubkey = repo->use_pubkey;
+        module_config.allow_extract = repo->allow_extract;
         if (repo->name && repo->module && repo->tokenlabel) {
             if (repo->pin) {
                 result = hsm_attach(repo->name, repo->tokenlabel,
@@ -2365,9 +2369,11 @@ hsm_generate_rsa_key(hsm_ctx_t *ctx,
     CK_BBOOL ctrue = CK_TRUE;
     CK_BBOOL cfalse = CK_FALSE;
     CK_BBOOL ctoken = CK_TRUE;
+    CK_BBOOL cextractable = CK_FALSE;
 
     session = hsm_find_repository_session(ctx, repository);
     if (!session) return NULL;
+    cextractable = session->module->config->allow_extract ? CK_TRUE : CK_FALSE;
 
     generate_unique_id(ctx, id, 16);
 
@@ -2401,7 +2407,7 @@ hsm_generate_rsa_key(hsm_ctx_t *ctx,
         { CKA_SENSITIVE,   &ctrue,   sizeof (ctrue) },
         { CKA_TOKEN,       &ctrue,   sizeof (ctrue)  },
         { CKA_PRIVATE,     &ctrue,   sizeof (ctrue)  },
-        { CKA_EXTRACTABLE, &cfalse,  sizeof (cfalse) }
+        { CKA_EXTRACTABLE, &cextractable,  sizeof (cextractable) }
     };
 
     rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_GenerateKeyPair(session->session,
@@ -2441,6 +2447,7 @@ hsm_generate_dsa_key(hsm_ctx_t *ctx,
     CK_OBJECT_HANDLE domainPar, publicKey, privateKey;
     CK_BBOOL ctrue = CK_TRUE;
     CK_BBOOL cfalse = CK_FALSE;
+    CK_BBOOL cextractable = CK_FALSE;
 
     /* ids we create are 16 bytes of data */
     unsigned char id[16];
@@ -2449,6 +2456,7 @@ hsm_generate_dsa_key(hsm_ctx_t *ctx,
 
     session = hsm_find_repository_session(ctx, repository);
     if (!session) return NULL;
+    cextractable = session->module->config->allow_extract ? CK_TRUE : CK_FALSE;
 
     generate_unique_id(ctx, id, 16);
 
@@ -2496,8 +2504,10 @@ hsm_generate_dsa_key(hsm_ctx_t *ctx,
         { CKA_SENSITIVE,           &ctrue,   sizeof(ctrue)   },
         { CKA_TOKEN,               &ctrue,   sizeof(ctrue)   },
         { CKA_PRIVATE,             &ctrue,   sizeof(ctrue)   },
-        { CKA_EXTRACTABLE,         &cfalse,  sizeof(cfalse)  }
+        { CKA_EXTRACTABLE, &cextractable,  sizeof (cextractable) }
     };
+
+    cextractable = session->module->config->allow_extract ? CK_TRUE : CK_FALSE;
 
     /* Generate the domain parameters */
 
@@ -2550,6 +2560,7 @@ hsm_generate_gost_key(hsm_ctx_t *ctx,
     CK_OBJECT_HANDLE publicKey, privateKey;
     CK_BBOOL ctrue = CK_TRUE;
     CK_BBOOL cfalse = CK_FALSE;
+    CK_BBOOL cextractable = CK_FALSE;
 
     /* ids we create are 16 bytes of data */
     unsigned char id[16];
@@ -2558,6 +2569,7 @@ hsm_generate_gost_key(hsm_ctx_t *ctx,
 
     session = hsm_find_repository_session(ctx, repository);
     if (!session) return NULL;
+    cextractable = session->module->config->allow_extract ? CK_TRUE : CK_FALSE;
 
     generate_unique_id(ctx, id, 16);
 
@@ -2595,7 +2607,7 @@ hsm_generate_gost_key(hsm_ctx_t *ctx,
         { CKA_SENSITIVE,           &ctrue,   sizeof(ctrue)   },
         { CKA_TOKEN,               &ctrue,   sizeof(ctrue)   },
         { CKA_PRIVATE,             &ctrue,   sizeof(ctrue)   },
-        { CKA_EXTRACTABLE,         &cfalse,  sizeof(cfalse)  }
+        { CKA_EXTRACTABLE,         &cextractable,  sizeof (cextractable) }
     };
 
     /* Generate key pair */
@@ -2629,6 +2641,7 @@ hsm_generate_ecdsa_key(hsm_ctx_t *ctx,
     CK_OBJECT_HANDLE publicKey, privateKey;
     CK_BBOOL ctrue = CK_TRUE;
     CK_BBOOL cfalse = CK_FALSE;
+    CK_BBOOL cextractable = CK_FALSE;
 
     /* ids we create are 16 bytes of data */
     unsigned char id[16];
@@ -2637,6 +2650,7 @@ hsm_generate_ecdsa_key(hsm_ctx_t *ctx,
 
     session = hsm_find_repository_session(ctx, repository);
     if (!session) return NULL;
+    cextractable = session->module->config->allow_extract ? CK_TRUE : CK_FALSE;
 
     generate_unique_id(ctx, id, 16);
 
@@ -2673,7 +2687,7 @@ hsm_generate_ecdsa_key(hsm_ctx_t *ctx,
         { CKA_SENSITIVE,           &ctrue,   sizeof(ctrue)   },
         { CKA_TOKEN,               &ctrue,   sizeof(ctrue)   },
         { CKA_PRIVATE,             &ctrue,   sizeof(ctrue)   },
-        { CKA_EXTRACTABLE,         &cfalse,  sizeof(cfalse)  }
+        { CKA_EXTRACTABLE,         &cextractable,  sizeof (cextractable) }
     };
 
     /* Select the curve */
