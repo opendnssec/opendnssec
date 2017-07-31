@@ -82,10 +82,18 @@ log_grep ods-enforcer-check-1   stdout "$CKA_ID" &&
 ! log_this ods-enforcer-key-import ods-enforcer key import --cka_id 123456 --repository SoftHSM --bits 2048 --algorithm 5 --keystate ready --keytype ZSK  --zone ods --inception_time "2016-08-29-14:17:28" &&
 log_grep ods-enforcer-key-import stderr "Unable to find the key with this locator: 123456" &&
 
-! log_this ods-enforcer-key-import ods-enforcer key import --cka_id 123 --repository SoftHSM_1 --bits 2048 --algorithm 5 --keystate ready --keytype ZSK  --zone ods --inception_time "2016-08-29-14:17:28" &&
+! log_this ods-enforcer-key-import ods-enforcer key import --cka_id $CKA_ID --repository SoftHSM_1 --bits 2048 --algorithm 5 --keystate ready --keytype ZSK  --zone ods --inception_time "2016-08-29-14:17:28" &&
 log_grep ods-enforcer-key-import   stderr "Unable to check for the repository" &&
 log_grep ods-enforcer-key-import stderr "Can't find repository: SoftHSM_1" &&
 
+! log_this ods-enforcer-key-import ods-enforcer key import --cka_id $CKA_ID --repository SoftHSM --bits 2048 --algorithm 5 --keystate ready --keytype ZSK  --zone ods23 --inception_time "2016-08-29-14:17:28" &&
+log_grep ods-enforcer-key-import   stderr "Unknown zone: ods23" &&
+
+! log_this ods-enforcer-key-import ods-enforcer key import --cka_id $CKA_ID --repository SoftHSM --bits 2048 --algorithm 5 --keystate ready1 --keytype ZSK  --zone ods --wrong-option "2016-08-29-14:17:28" &&
+log_grep ods-enforcer-key-import   stderr "unknown arguments" &&
+
+! log_this ods-enforcer-key-import ods-enforcer key import --cka_id $CKA_ID --repository SoftHSM --bits 2048 --algorithm 5 --keystate ready --keytype ZSK  --zone ods --inception_time "2016-08-29-14:17:28" --extra_option fail &&
+log_grep ods-enforcer-key-import   stderr "too many arguments" &&
 
 ############### 3. Then run the 'ods-enforcer key purge' command  #######################################################
 # At this stage there are no dead keys so I don't think it will do anything
