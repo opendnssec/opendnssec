@@ -113,6 +113,12 @@ rrset_type* rrset_create(zone_type* zone, ldns_rr_type type);
 rr_type* rrset_lookup_rr(rrset_type* rrset, ldns_rr* rr);
 
 /**
+ * What TTL should new RR's in this RRS get?
+ *
+ */
+uint32_t rrset_lookup_ttl(rrset_type* rrset, uint32_t default_ttl);
+
+/**
  * Count the number of RRs in this RRset that have is_added.
  * \param[in] rrset RRset
  * \return size_t number of RRs
