@@ -52,7 +52,8 @@ autostart(engine_type* engine)
 
 	schedule_purge(engine->taskq); /* Remove old tasks in queue */
 
-	hsm_key_factory_schedule_generate_all(engine, 0);
+        if (!engine->config->manual_keygen)
+            hsm_key_factory_schedule_generate_all(engine, 0);
 	status = flush_resalt_task_all(engine, dbconn);
 	
 	if (status != ODS_STATUS_OK)
@@ -60,5 +61,4 @@ autostart(engine_type* engine)
 
 	enforce_task_flush_all(engine, dbconn);
 	db_connection_free(dbconn);
-
 }

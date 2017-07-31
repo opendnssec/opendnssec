@@ -384,7 +384,7 @@ int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
         }
     }
 
-    if (any_update) {
+    if (any_update && !engine->config->manual_keygen) {
         hsm_key_factory_schedule_generate_all(engine, 0);
     }
 

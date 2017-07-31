@@ -2611,7 +2611,7 @@ removeDeadKeys(db_connection_t *dbconn, key_data_t** keylist,
 				key_purgable = 0;
 				break;
 			}
-			if (key_state_last_change(state) > key_time) {
+			if (key_time == -1 || key_state_last_change(state) > (unsigned int)key_time) {
 				key_time = key_state_last_change(state);
 			}
 		}
