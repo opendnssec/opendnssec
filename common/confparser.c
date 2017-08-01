@@ -872,7 +872,7 @@ parse_conf_signer_threads(const char* cfgfile)
         return numwt;
     }
     /* no SignerThreads value configured, look at WorkerThreads */
-    return parse_conf_worker_threads(cfgfile, 1);
+    return parse_conf_worker_threads(cfgfile, 0);
 }
 
 time_t
