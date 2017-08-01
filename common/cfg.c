@@ -150,6 +150,8 @@ engine_config(const char* cfgfile,
             parse_conf_automatic_keygen_period(cfgfile);
         ecfg->interfaces = parse_conf_listener(cfgfile);
         ecfg->notify_command = parse_conf_notify_command(cfgfile);
+        ecfg->rollover_notification =
+            parse_conf_rollover_notification(cfgfile);
 
         /* done */
         ods_fclose(cfgfd);

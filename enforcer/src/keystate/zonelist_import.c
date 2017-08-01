@@ -37,6 +37,7 @@
 #include "hsmkey/hsm_key_factory.h"
 
 #include "keystate/zonelist_import.h"
+#include "keystate/zonelist_export.h"
 
 #include <string.h>
 #include <libxml/parser.h>
@@ -72,6 +73,7 @@ int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
     key_state_list_t* key_state_list;
     key_state_t* key_state;
     int any_update = 0;
+    char path[PATH_MAX];
 
     if (!engine) {
         return ZONELIST_IMPORT_ERR_ARGS;
@@ -382,9 +384,17 @@ int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
             }
             zone_db_free(zone);
         }
+        if (snprintf(path, sizeof(path), "%s/%s", engine->config->working_dir_enforcer, OPENDNSSEC_ENFORCER_ZONELIST) >= (int)sizeof(path)
+            || zonelist_export(sockfd, dbconn, path, 0) != ZONELIST_EXPORT_OK)
+        {
+            ods_log_error("[%s] internal zonelist update failed", module_str);
+            client_printf_err(sockfd, "Unable to update the internal zonelist %s, updates will not reach the Signer!\n", path);
+        } else {
+            ods_log_info("[%s] internal zonelist updated successfully", module_str);
+        }
     }
 
-    if (any_update) {
+    if (any_update && !engine->config->manual_keygen) {
         hsm_key_factory_schedule_generate_all(engine, 0);
     }
 

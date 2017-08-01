@@ -108,5 +108,6 @@ time_t parse_conf_automatic_keygen_period(const char* cfgfile);
 struct engineconfig_repository* parse_conf_repositories(const char* cfgfile);
 const char* parse_conf_notify_command(const char* cfgfile);
 struct engineconfig_listener* parse_conf_listener(const char* cfgfile);
+time_t parse_conf_rollover_notification(const char* cfgfile);
 
 #endif /* PARSE_CONFPARSER_H */

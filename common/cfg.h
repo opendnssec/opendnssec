@@ -102,6 +102,7 @@ struct engineconfig_struct {
     time_t automatic_keygen_duration;
     struct engineconfig_repository* repositories;
     struct engineconfig_listener* interfaces;
+    time_t rollover_notification;
     engineconfig_database_type_t db_type;
 };
 
