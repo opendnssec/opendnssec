@@ -1,5 +1,4 @@
 AC_DEFUN([ACX_ENFORCER_DATABASE],[
-
 	AC_ARG_WITH(enforcer-database,
         AC_HELP_STRING([--with-enforcer-database=BACKEND],
         	[Select database backend: sqlite3 (default), mysql]),
