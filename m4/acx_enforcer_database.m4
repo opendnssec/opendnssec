@@ -97,7 +97,4 @@ AC_DEFUN([ACX_ENFORCER_DATABASE],[
 	AC_DEFINE_UNQUOTED(ENFORCER_DB_DATABASE, ["$database_database"], [Database to use when testing the Enforcer database backend])
 	AC_DEFINE_UNQUOTED(ENFORCER_DB_USERNAME, ["$database_username"], [Username to use when testing the Enforcer database backend])
 	AC_DEFINE_UNQUOTED(ENFORCER_DB_PASSWORD, ["$database_password"], [Password to use when testing the Enforcer database backend])
-],[
-  AM_CONDITIONAL(USE_SQLITE, false)
-  AM_CONDITIONAL(USE_MYSQL, false)
 ])
