@@ -102,6 +102,7 @@ int parse_conf_worker_threads(const char* cfgfile);
 int parse_conf_manual_keygen(const char* cfgfile);
 int parse_conf_db_port(const char *cfgfile);
 time_t parse_conf_automatic_keygen_period(const char* cfgfile);
+time_t parse_conf_rollover_notification(const char* cfgfile);
 hsm_repository_t* parse_conf_repositories(const char* cfgfile);
 
 #endif /* PARSE_CONFPARSER_H */

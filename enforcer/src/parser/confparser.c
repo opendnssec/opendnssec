@@ -719,3 +719,23 @@ parse_conf_automatic_keygen_period(const char* cfgfile)
     }
     return period;
 }
+
+time_t
+parse_conf_rollover_notification(const char* cfgfile)
+{
+    time_t period = 0;
+    const char* str = parse_conf_string(cfgfile,
+                                        "//Configuration/Enforcer/RolloverNotification",
+                                        0);
+    if (str) {
+        if (strlen(str) > 0) {
+            duration_type* duration = duration_create_from_string(str);
+            if (duration) {
+                period = duration2time(duration);
+                duration_cleanup(duration);
+            }
+        }
+        free((void*)str);
+    }
+    return period;
+}
