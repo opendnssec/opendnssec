@@ -48,16 +48,13 @@ OpenDNSSEC 2.1.2 - 2017-08-03
 * OPENDNSSEC-906: Tag <AllowExtraction> tag included from late 1.4 development
 * OPENDNSSEC-894: repair configuration script to allow excluding the build of 
                   the enforcer.
-* OPENDNSSEC-890: Mismatching TTLs in record sets would cause bogus signatures
-                  Partial fix, note that mismatching TTLs is bad input
-                  and should never been given.  Nevertheless OpenDNSSEC should
-                  prevent problems, which in most cases will be the case now,
-                  except when
+* OPENDNSSEC-890: Mismatching TTLs in record sets would cause bogus signatures.
 * OPENDNSSEC-886: Improper time calculation on 32 bits machine causes purge
                   time to be skipped.
 * OPENDNSSEC-904 / SUPPORT-216 autoconfigure fails to properly identify
                   functions in ssl library on certain distributions
                   causing tsig unknown algorithm hmac-sha256
+* OPENDNSSEC-908: Warn when TTL exceeds KASP's MaxZoneTTL instead of capping.
 
 OpenDNSSEC 2.1.1 - 2017-04-28
 
