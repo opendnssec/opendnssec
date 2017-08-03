@@ -717,6 +717,20 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
     /* Use rr_list_clone for signing, keep the original rr_list untouched for case preservation */
     rr_list_clone = ldns_rr_list_clone(rr_list);
 
+    /* Further in the code the ORIG_TTL field for the signature will be set
+     * to the TTL of the first RR in the list. We must make sure all RR's
+     * have the same TTL when signing. We do not need to publish these TTLs.
+     * We find the smallest TTL as other software seems to do this.
+     **/
+    uint32_t min_ttl = ldns_rr_ttl(ldns_rr_list_rr(rr_list_clone, 0));
+    for (i = 1; i < ldns_rr_list_rr_count(rr_list_clone); i++) {
+        uint32_t rr_ttl = ldns_rr_ttl(ldns_rr_list_rr(rr_list_clone, i));
+        if (rr_ttl < min_ttl) min_ttl = rr_ttl;
+    }
+    for (i = 0; i < ldns_rr_list_rr_count(rr_list_clone); i++) {
+        ldns_rr_set_ttl(ldns_rr_list_rr(rr_list_clone, i), min_ttl);
+    }
+
     /* Calculate signature validity */
     rrset_sigvalid_period(zone->signconf, rrset->rrtype, signtime,
          &inception, &expiration);
