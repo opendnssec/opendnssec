@@ -1493,9 +1493,9 @@ struct dbw_keystate*
 dbw_new_keystate(struct dbw_db *db, struct dbw_zone *zone, struct dbw_key *key)
 {
     struct dbw_keystate *keystate = calloc(1, sizeof (struct dbw_keystate));
-    if (!key) return NULL;
-    key->key = key;
-    key->key_id = key->id;
+    if (!keystate) return NULL;
+    keystate->key = key;
+    keystate->key_id = key->id;
 
     int r = 0;
     r |= list_add(db->keystates, (struct dbrow *)keystate);

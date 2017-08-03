@@ -170,12 +170,11 @@ perform_keydata_import(int sockfd, struct dbw_db *db,
     keystate_rd->ttl = zone->policy->keys_ttl;
     keystate_rd->state = (keytype & DBW_KSK) ? ksk_mapping[keystate_14][2] : zsk_mapping[keystate_14][2];
 
-    ttl = max(min(zone->policy->zone_soa_ttl, zone->policy->zone_soa_minimum),
-            (zone->policy_denial_type(policy) == POLICY_DENIAL_TYPE_NSEC3
-                ? ( zone->policy_denial_ttl(policy) > policy_signatures_max_zone_ttl(policy)
-                    ? zone->policy_denial_ttl(policy)
-                    : zone->policy_signatures_max_zone_ttl(policy))
-                : zone->policy_signatures_max_zone_ttl(policy)));
+    int ttl = max(
+        min(zone->policy->zone_soa_ttl, zone->policy->zone_soa_minimum),
+        (zone->policy->denial_type == POLICY_DENIAL_TYPE_NSEC3
+            ? max(zone->policy->denial_ttl, zone->policy->signatures_max_zone_ttl)
+            : zone->policy->signatures_max_zone_ttl));
 
     keystate_rd->type = DBW_RRSIG;
     keystate_rd->last_change = time;
@@ -183,131 +182,9 @@ perform_keydata_import(int sockfd, struct dbw_db *db,
     keystate_rd->ttl = ttl;
     keystate_rd->state = (keytype & DBW_KSK) ? ksk_mapping[keystate_14][3] : zsk_mapping[keystate_14][3];
 
-    if (!(key_state = key_state_new(dbconn))
-                || key_state_set_key_data_id(key_state, keydataid)
-       /*         || hsm_key_set_backup(hsm_key, (hsm->require_backup ? HSM_KEY_BACKUP_BACKUP_REQUIRED : HSM_KEY_BACKUP_NO_BACKUP))*/
-                || key_state_set_type(key_state, KEY_STATE_TYPE_RRSIG)
-                || key_state_set_last_change (key_state, time)
-                || key_state_set_minimize(key_state, key_data_minimize(key) & 1)
-                || key_state_set_ttl (key_state, ttl)
-                || key_state_set_state(key_state, keytype == 1 ? ksk_mapping[keystate][3] : zsk_mapping[keystate][3])
-                || key_state_create(key_state))
-
-
     ods_log_debug("[%s] key data with this locator %s is created successfully", module_str, hsmkey->locator);
     return 0;
 }
-
-static int
-perform_keystate_import(int sockfd, struct dbw_db *db, struct dbw_zone *zone,
-    int keystate, int keytype, unsigned int time, struct dbw_hsmkey *hsmkey)
-{
-    key_state_t *key_state = NULL;
-    hsm_ctx_t *hsm_ctx;
-    char *hsm_err;
-    int ttl;
-    key_data_t* key;
-    const db_value_t* keydataid;
-    policy_t* policy;
-    libhsm_key_t *libhsmkey;
-    zone_db_t *zone;
-
-    key = key_data_new_get_by_hsm_key_id(dbconn, hsmkeyid);
-    keydataid = key_data_id(key);
-
-    policy = policy_new(dbconn);
-    zone = zone_db_new_get_by_name(dbconn, zonename);
-    policy_get_by_id(policy, zone_db_policy_id(zone));
-    zone_db_free(zone);
-
-    if (!(key_state = key_state_new(dbconn))
-                || key_state_set_key_data_id(key_state, keydataid)
-                || key_state_set_type(key_state, KEY_STATE_TYPE_DS)
-                || key_state_set_last_change (key_state, time)
-                || key_state_set_minimize(key_state, (key_data_minimize(key) >> 2) & 1)
-                || key_state_set_ttl (key_state, policy_parent_ds_ttl(policy))
-		|| key_state_set_state(key_state, keytype == 1 ? ksk_mapping[keystate][0] : zsk_mapping[keystate][0])
-                || key_state_create(key_state))
-    {
-        ods_log_error("[%s] key state creation for DS failed, database or memory error", module_str);
-        key_data_free(key);
-        policy_free(policy);
-        key_state_free(key_state);
-        hsm_destroy_context(hsm_ctx);
-        return -1;
-    }
-    key_state_free(key_state);
-
-    if (!(key_state = key_state_new(dbconn))
-                || key_state_set_key_data_id(key_state, keydataid)
-                || key_state_set_type(key_state, KEY_STATE_TYPE_DNSKEY)
-                || key_state_set_last_change (key_state, time)
-                || key_state_set_minimize(key_state, (key_data_minimize(key) >> 1) & 1)
-                || key_state_set_ttl (key_state, policy_keys_ttl(policy))
-		|| key_state_set_state(key_state, keytype == 1 ? ksk_mapping[keystate][1] : zsk_mapping[keystate][1])
-                || key_state_create(key_state))
-    {
-        ods_log_error("[%s] key state creation for DNSKEY failed, database or memory error", module_str);
-        key_data_free(key);
-        policy_free(policy);
-        key_state_free(key_state);
-        hsm_destroy_context(hsm_ctx);
-        return -1;
-    }
-    key_state_free(key_state);
-
-    if (!(key_state = key_state_new(dbconn))
-                || key_state_set_key_data_id(key_state, keydataid)
-                || key_state_set_type(key_state, KEY_STATE_TYPE_RRSIGDNSKEY)
-                || key_state_set_last_change (key_state, time)
-                || key_state_set_ttl (key_state, policy_keys_ttl(policy))
-                || key_state_set_state(key_state, keytype == 1 ? ksk_mapping[keystate][2] : zsk_mapping[keystate][2])
-                || key_state_create(key_state))
-    {
-        ods_log_error("[%s] key state creation for RRSIGDNSKEY failed, database or memory error", module_str);
-        key_data_free(key);
-        policy_free(policy);
-        key_state_free(key_state);
-        hsm_destroy_context(hsm_ctx);
-        return -1;
-    }
-    key_state_free(key_state);
-
-    ttl = max(min(policy_zone_soa_ttl(policy), policy_zone_soa_minimum(policy)),
-            (policy_denial_type(policy) == POLICY_DENIAL_TYPE_NSEC3
-                ? ( policy_denial_ttl(policy) > policy_signatures_max_zone_ttl(policy)
-                    ? policy_denial_ttl(policy)
-                    : policy_signatures_max_zone_ttl(policy))
-                : policy_signatures_max_zone_ttl(policy)));
-
-    if (!(key_state = key_state_new(dbconn))
-                || key_state_set_key_data_id(key_state, keydataid)
-       /*         || hsm_key_set_backup(hsm_key, (hsm->require_backup ? HSM_KEY_BACKUP_BACKUP_REQUIRED : HSM_KEY_BACKUP_NO_BACKUP))*/
-                || key_state_set_type(key_state, KEY_STATE_TYPE_RRSIG)
-                || key_state_set_last_change (key_state, time)
-                || key_state_set_minimize(key_state, key_data_minimize(key) & 1)
-                || key_state_set_ttl (key_state, ttl)
-                || key_state_set_state(key_state, keytype == 1 ? ksk_mapping[keystate][3] : zsk_mapping[keystate][3])
-                || key_state_create(key_state))
-    {
-        ods_log_error("[%s] key state creation for RRSIG failed, database or memory error", module_str);
-        key_data_free(key);
-        policy_free(policy);
-        key_state_free(key_state);
-        hsm_destroy_context(hsm_ctx);
-        return -1;
-    }
-    ods_log_debug("[%s] key state with this locator %s is created successfully", module_str, ckaid);
-
-    key_data_free(key);
-    policy_free(policy);
-    key_state_free(key_state);
-    hsm_destroy_context(hsm_ctx);
-
-    return 0;
-}
-
-
 
 static void
 usage(int sockfd)
@@ -502,22 +379,15 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
     /* perform task immediately */
     struct dbw_hsmkey * hsmkey = perform_hsmkey_import(sockfd, db, ckaid,
         repository, zone, atoi(bits), atoi(algorithm), type, (unsigned int)inception);
-    if (!hsmkey
-        || perform_keydata_import(sockfd, db, zone, atoi(algorithm), state,
-            type, (unsigned int)inception, policykey->minimize, hsmkey)
-        || perform_keystate_import(sockfd, db, zone,
-            state, type, (unsigned int)inception, hsmkey))
+    if (!hsmkey || perform_keydata_import(sockfd, db, zone, atoi(algorithm),
+        state, type, (unsigned int)inception, policykey->minimize, hsmkey) ||
+        dbw_commit(db))
     {
         ods_log_error("[%s] Error: Unable to add key to the database", module_str);
         dbw_free(db);
         return 1;
     }
-    int ret = dbw_commit(db);
     dbw_free(db);
-    if (ret) {
-        ods_log_error("[%s] Error: Unable to add key to the database", module_str);
-        return 1;
-    }
     client_printf(sockfd, "Key imported into zone %s\n", zonename);
     return 0;
 }
