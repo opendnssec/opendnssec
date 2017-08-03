@@ -251,6 +251,19 @@ rrset_lookup_rr(rrset_type* rrset, ldns_rr* rr)
     return NULL;
 }
 
+/**
+ * What TTL should new RR's in this RRS get?
+ */
+uint32_t
+rrset_lookup_ttl(rrset_type* rrset, uint32_t default_ttl)
+{
+    for (int i = 0; i < rrset->rr_count; i++) {
+        if (!rrset->rrs[i].is_added) continue;
+        return ldns_rr_ttl(rrset->rrs[i].rr);
+    }
+    return default_ttl;
+}
+
 
 /**
  * Count the number of RRs in this RRset that have is_added.

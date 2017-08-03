@@ -1,6 +1,7 @@
 OpenDNSSEC 2.2 - 2017-xx-xx
 
- * OPENDNSSEC-901: Enforcer would ignore <ManualKeyGeneration/> tag in conf.xml
+* OPENDNSSEC-901: Enforcer would ignore <ManualKeyGeneration/> tag in conf.xml
+* OPENDNSSEC-890: Mismatching TTLs in record sets would cause bogus signatures.
 
 OpenDNSSEC 2.1.1 - 2017-04-28
 
