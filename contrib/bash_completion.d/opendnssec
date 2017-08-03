@@ -36,13 +36,13 @@ _enforcer()
             if [ -z "$PID" ]; then
                 cmds="ZONE_NAME_HERE"
             else
-                cmds=`${COMP_WORDS[0]} zone list |tail -n +4|awk '{ print $1 }' > /dev/null`
+                cmds=`${COMP_WORDS[0]} zone list 2>/dev/null |tail -n +4|awk '{ print $1 }'`
             fi;;
         *"--policy"*)
             if [ -z "$PID" ]; then
                 cmds="POLICY_NAME_HERE"
             else
-                cmds=`${COMP_WORDS[0]} policy list |tail -n +2|awk '{ print $1 }'`
+                cmds=`${COMP_WORDS[0]} policy list 2>/dev/null |tail -n +2|awk '{ print $1 }'`
             fi;;
         *"--socket"*);&
         *"--input"*);&
@@ -61,19 +61,19 @@ _enforcer()
             if [ -z "$PID" ]; then
                 cmds="CKA_ID_NAME_HERE"
             else
-                cmds=`${COMP_WORDS[0]} key list -p -d -a | cut -f 9 -d ";"`
+                cmds=`${COMP_WORDS[0]} key list -p -d -a 2>/dev/null | cut -f 9 -d ";"`
             fi;;
         *"--repository"*)
             if [ -z "$PID" ]; then
                 cmds="REPOSITORY_NAME_HERE"
             else
-                cmds=`${COMP_WORDS[0]} repository list |tail -n +3|awk '{ print $1 }'`
+                cmds=`${COMP_WORDS[0]} repository list 2>/dev/null |tail -n +3|awk '{ print $1 }'`
             fi;;
         *"--keytag"*)
             if [ -z "$PID" ]; then
                 cmds="KEY_TAG_HERE"
             else
-                cmds=`${COMP_WORDS[0]} key list -p -v -a | cut -f 9 -d ";"`
+                cmds=`${COMP_WORDS[0]} key list -p -v -a 2>/dev/null | cut -f 9 -d ";"`
             fi;;
         #*"--bits"*)
         #*"--algorithm"*)
@@ -185,7 +185,7 @@ _signer()
         if [ -z "$PID" ]; then
             ZONES="ZONE_NAME_HERE"
         else
-            ZONES=`${COMP_WORDS[0]} zones|tail -n +2| awk '{print $2}'`
+            ZONES=`${COMP_WORDS[0]} zones 2>/dev/null |tail -n +2| awk '{print $2}'`
         fi
         case "${COMP_WORDS[1]}" in
             *"sign"*)
