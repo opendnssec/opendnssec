@@ -154,6 +154,7 @@ parse_conf_repositories(const char* cfgfile)
     char* tokenlabel;
     char* pin;
     uint8_t use_pubkey;
+    uint8_t allowextract;
     int require_backup;
     hsm_repository_t* rlist = NULL;
     hsm_repository_t* repo  = NULL;
@@ -192,6 +193,7 @@ parse_conf_repositories(const char* cfgfile)
             tokenlabel = NULL;
             pin = NULL;
             use_pubkey = 1;
+            allowextract = 0;
             require_backup = 0;
 
             curNode = xpathObj->nodesetval->nodeTab[i]->xmlChildrenNode;
@@ -208,12 +210,14 @@ parse_conf_repositories(const char* cfgfile)
                     pin = (char *) xmlNodeGetContent(curNode);
                 if (xmlStrEqual(curNode->name, (const xmlChar *)"SkipPublicKey"))
                     use_pubkey = 0;
+                if (xmlStrEqual(curNode->name, (const xmlChar *)"AllowExtraction"))
+                    allowextract = 1;
 
                 curNode = curNode->next;
             }
             if (name && module && tokenlabel) {
                 repo = hsm_repository_new(name, module, tokenlabel, pin,
-                    use_pubkey, require_backup);
+                    use_pubkey, allowextract, require_backup);
             }
             if (!repo) {
                ods_log_error("[%s] unable to add %s repository: "

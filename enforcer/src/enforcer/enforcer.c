@@ -2611,7 +2611,7 @@ removeDeadKeys(db_connection_t *dbconn, key_data_t** keylist,
 				key_purgable = 0;
 				break;
 			}
-			if (key_state_last_change(state) > key_time) {
+			if (key_time == -1 || key_state_last_change(state) > (unsigned int)key_time) {
 				key_time = key_state_last_change(state);
 			}
 		}
@@ -2703,6 +2703,26 @@ update(engine_type *engine, db_connection_t *dbconn, zone_db_t *zone, policy_t c
 	}
 
 	ods_log_info("[%s] update zone: %s", module_str, zone_db_name(zone));
+
+	if (engine->config->rollover_notification && zone_db_next_ksk_roll(zone) > 0) {
+		if ((time_t)zone_db_next_ksk_roll(zone) - engine->config->rollover_notification <= now
+		    && (time_t)zone_db_next_ksk_roll(zone) != now) {
+			time_t t = (time_t) zone_db_next_ksk_roll(zone);
+			ods_log_info("[%s] KSK Rollover for zone %s is impending, "
+				     "rollover will happen at %s",
+				     module_str, zone_db_name(zone), ctime(&t));
+		}
+	}
+	else if (engine->config->rollover_notification && zone_db_next_csk_roll(zone) > 0) {
+		if ((time_t)zone_db_next_csk_roll(zone) - engine->config->rollover_notification <= now
+		    && (time_t)zone_db_next_csk_roll(zone) != now) {
+			time_t t = (time_t) zone_db_next_csk_roll(zone);
+			ods_log_info("[%s] CSK Rollover for zone %s is impending, "
+				     "rollover will happen at %s",
+				     module_str, zone_db_name(zone), ctime(&t));
+		}
+	}
+
 
 	/*
 	 * Update policy.
@@ -2873,6 +2893,19 @@ update(engine_type *engine, db_connection_t *dbconn, zone_db_t *zone, policy_t c
 
     return_time = zone_return_time;
     minTime(policy_return_time, &return_time);
+    /*
+     * Take the rollover notification time into account when scheduling
+     * this zone. We will need to print a message at that time.
+     */
+    if (zone_db_next_ksk_roll(zone) > 0
+        && (zone_db_next_ksk_roll(zone) - engine->config->rollover_notification > now)) {
+        minTime(zone_db_next_ksk_roll(zone) - engine->config->rollover_notification, &return_time);
+    }
+    else if (zone_db_next_csk_roll(zone) > 0
+             && (zone_db_next_csk_roll(zone) - engine->config->rollover_notification > now)) {
+        minTime(zone_db_next_csk_roll(zone) - engine->config->rollover_notification, &return_time);
+    }
+
     minTime(purge_return_time, &return_time);
     return return_time;
 }

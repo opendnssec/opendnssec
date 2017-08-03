@@ -664,7 +664,8 @@ hsm_key_t* hsm_key_factory_get_key(engine_type* engine,
      */
     if (!(hsm_key = hsm_key_list_get_next(hsm_key_list))) {
         ods_log_warning("[hsm_key_factory_get_key] no keys available");
-        hsm_key_factory_schedule_generate(engine, policy_key, 0, 1);
+        if (!engine->config->manual_keygen)
+            hsm_key_factory_schedule_generate(engine, policy_key, 0, 1);
         hsm_key_list_free(hsm_key_list);
         return NULL;
     }
@@ -685,7 +686,8 @@ hsm_key_t* hsm_key_factory_get_key(engine_type* engine,
      * Schedule generation because we used up a key and return the HSM key
      */
     ods_log_debug("[hsm_key_factory_get_key] key allocated");
-    hsm_key_factory_schedule_generate(engine, policy_key, 0, 0);
+    if (!engine->config->manual_keygen)
+        hsm_key_factory_schedule_generate(engine, policy_key, 0, 0);
     return hsm_key;
 }
 

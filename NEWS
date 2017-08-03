@@ -1,5 +1,24 @@
+OpenDNSSEC 2.1.2 - 2017-08-03
+
+* OPENDNSSEC-508: Tag <RolloverNotification> was not functioning correctly
+* OPENDNSSEC-901: Enforcer would ignore <ManualKeyGeneration/> tag in conf.xml
+* OPENDNSSEC-906: Tag <AllowExtraction> tag included from late 1.4 development
+* OPENDNSSEC-894: repair configuration script to allow excluding the build of 
+                  the enforcer.
+* OPENDNSSEC-890: Mismatching TTLs in record sets would cause bogus signatures
+                  Partial fix, note that mismatching TTLs is bad input
+                  and should never been given.  Nevertheless OpenDNSSEC should
+                  prevent problems, which in most cases will be the case now,
+                  except when
+* OPENDNSSEC-886: Improper time calculation on 32 bits machine causes purge
+                  time to be skipped.
+* OPENDNSSEC-904 / SUPPORT-216 autoconfigure fails to properly identify
+                  functions in ssl library on certain distributions
+                  causing tsig unknown algorithm hmac-sha256
+
 OpenDNSSEC 2.1.1 - 2017-04-28
 
+* OPENDNSSEC-882: Signerd exit code always non-zero.
 * OPENDNSSEC-889: MySQL migration script didn't work for all database and
   MySQL versions.
 * OPENDNSSEC-887: Segfault on extraneous <Interval> tag.
