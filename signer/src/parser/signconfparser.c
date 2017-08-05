@@ -29,7 +29,7 @@
  *
  */
 
-#include "parser/confparser.h"
+#include "confparser.h"
 #include "parser/signconfparser.h"
 #include "duration.h"
 #include "log.h"

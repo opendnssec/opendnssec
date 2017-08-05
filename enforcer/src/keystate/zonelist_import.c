@@ -81,7 +81,7 @@ int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
     if (!engine->config) {
         return ZONELIST_IMPORT_ERR_ARGS;
     }
-    if (!engine->config->zonelist_filename) {
+    if (!engine->config->zonelist_filename_enforcer) {
         return ZONELIST_IMPORT_ERR_ARGS;
     }
     if (!dbconn) {
@@ -122,7 +122,7 @@ int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
      * Validate, parse and walk the XML.
      */
     if (!zonelist_path)
-        zonelist_path = engine->config->zonelist_filename;
+        zonelist_path = engine->config->zonelist_filename_enforcer;
      
     if (check_zonelist(zonelist_path, 0, NULL, 0)) {
         client_printf_err(sockfd, "Unable to validate the zonelist XML!\n");
@@ -384,7 +384,7 @@ int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
             }
             zone_db_free(zone);
         }
-        if (snprintf(path, sizeof(path), "%s/%s", engine->config->working_dir, OPENDNSSEC_ENFORCER_ZONELIST) >= (int)sizeof(path)
+        if (snprintf(path, sizeof(path), "%s/%s", engine->config->working_dir_enforcer, OPENDNSSEC_ENFORCER_ZONELIST) >= (int)sizeof(path)
             || zonelist_export(sockfd, dbconn, path, 0) != ZONELIST_EXPORT_OK)
         {
             ods_log_error("[%s] internal zonelist update failed", module_str);

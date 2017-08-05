@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 NLNet Labs. All rights reserved.
+ * Copyright (c) 2017 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -25,20 +25,35 @@
  */
 
 /**
- * Enforcer configuration.
+ * Enforcer and Signer configuration.
  *
  */
 
-#ifndef DAEMON_CONFIG_H
-#define DAEMON_CONFIG_H
+#ifndef SHARED_CONFIG_H
+#define SHARED_CONFIG_H
 
 #include "config.h"
 #include "status.h"
 
 #include <stdio.h>
+#include <stdint.h>
 #include <time.h>
 
-#include "libhsm.h"
+struct engineconfig_repository {
+    struct engineconfig_repository* next;
+    char* name;
+    char* module;
+    char* pin;
+    char* tokenlabel;
+    uint8_t use_pubkey;
+    int require_backup;
+};
+
+struct engineconfig_listener {
+    struct engineconfig_listener* next;
+    char* address;
+    char* port;
+};
 
 typedef enum {
     ENFORCER_DATABASE_TYPE_NONE,
@@ -54,29 +69,40 @@ typedef struct engineconfig_struct engineconfig_type;
 struct engineconfig_struct {
     const char* cfg_filename;
     const char* policy_filename;
-    const char* zonelist_filename;
+    const char* zonelist_filename_enforcer;
+    const char* zonelist_filename_signer;
     const char* zonefetch_filename;
     const char* log_filename;
-    const char* pid_filename;
+    const char* pid_filename_enforcer;
+    const char* pid_filename_signer;
     const char* delegation_signer_submit_command;
     const char* delegation_signer_retract_command;
-    const char* clisock_filename;
-    const char* working_dir;
-    const char* username;
-    const char* group;
-    const char* chroot;
+    const char* clisock_filename_enforcer;
+    const char* clisock_filename_signer;
+    const char* working_dir_enforcer;
+    const char* working_dir_signer;
+    const char* username_enforcer;
+    const char* username_signer;
+    const char* group_enforcer;
+    const char* group_signer;
+    const char* chroot_enforcer;
+    const char* chroot_signer;
     const char* datastore; /* Datastore/SQLite or Datastore/MySQL/Database */
     const char* db_host; /* Datastore/MySQL/Host */
     const char* db_username; /* Datastore/MySQL/Username */
     const char* db_password; /* Datastore/MySQL/Password */
+    const char* notify_command;
     int use_syslog;
-    int num_worker_threads;
+    int num_worker_threads_enforcer;
+    int num_worker_threads_signer;
+    int num_signer_threads;
     int manual_keygen;
     int verbosity;
     int db_port; /* Datastore/MySQL/Host/@Port */
     time_t automatic_keygen_duration;
+    struct engineconfig_repository* repositories;
+    struct engineconfig_listener* interfaces;
     time_t rollover_notification;
-    hsm_repository_t* repositories;
     engineconfig_database_type_t db_type;
 };
 
@@ -108,10 +134,21 @@ ods_status engine_config_check(engineconfig_type* config);
 void engine_config_print(FILE* out, engineconfig_type* config);
 
 /**
+ * Free linked list of hsms 
+ */
+void engine_config_freehsms(struct engineconfig_repository* hsm);
+
+/**
+ * Free linked list of interfaces
+ */
+void engine_config_freelistener(struct engineconfig_listener* listener);
+
+/**
  * Clean up config.
  * \param[in] config engine configuration
  *
  */
 void engine_config_cleanup(engineconfig_type* config);
 
-#endif /* DAEMON_CONFIG_H */
+#endif /* SHARED_CONFIG_H */
+

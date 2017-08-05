@@ -31,6 +31,7 @@
 #include <stdint.h>
 #include <ldns/rbtree.h>
 #include <pthread.h>
+#include "cfg.h"
 
 #define HSM_MAX_SESSIONS 100
 /* 
@@ -176,7 +177,7 @@ function that takes a context can be passed NULL, in which case the
 global context will be used) and log into each HSM.
 */
 int
-hsm_open2(hsm_repository_t* rlist,
+hsm_open2(struct engineconfig_repository* rlist,
          char *(pin_callback)(unsigned int, const char *, unsigned int));
 
 
