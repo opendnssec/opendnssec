@@ -66,27 +66,27 @@ echo "y" | log_this ods-ksmutil-zonetotal_same_2   ods-ksmutil key generate --in
 log_grep ods-ksmutil-zonetotal_same_2   stdout "Info: 0 zone(s) found on policy \"Policy2\"" &&
 log_grep ods-ksmutil-zonetotal_same_2   stdout "Info: Keys will actually be generated for a total of 9 zone(s) as specified by zone total parameter" &&
 log_grep ods-ksmutil-zonetotal_same_2   stdout "all done!" &&
-log_grep ods-ksmutil-zonetotal_same_2   stdout "This will create 3 KSKs (2048 bits) and 27 ZSKs (2048 bits)" &&
+log_grep ods-ksmutil-zonetotal_same_2   stdout "This will create 18 KSKs (2048 bits) and 27 ZSKs (2048 bits)" &&
 log_this ods-ksmutil-keylist_1a   ods-hsmutil list &&
-log_grep ods-ksmutil-keylist_1a   stdout "45 keys found." &&
+log_grep ods-ksmutil-keylist_1a   stdout "60 keys found." &&
 
 # Then when there are some keys in the queue: more than the number of KSK needed but less than the total
 echo "y" | log_this ods-ksmutil-zonetotal_same_3   ods-ksmutil key generate --interval PT40M --policy Policy2 --zonetotal 16 &&
 log_grep ods-ksmutil-zonetotal_same_3   stdout "Info: 0 zone(s) found on policy \"Policy2\"" &&
 log_grep ods-ksmutil-zonetotal_same_3   stdout "Info: Keys will actually be generated for a total of 16 zone(s) as specified by zone total parameter" &&
 log_grep ods-ksmutil-zonetotal_same_3   stdout "all done!" &&
-log_grep ods-ksmutil-zonetotal_same_3   stdout "This will create 0 KSKs (2048 bits) and 35 ZSKs (2048 bits)" &&
+log_grep ods-ksmutil-zonetotal_same_3   stdout "This will create 32 KSKs (2048 bits) and 48 ZSKs (2048 bits)" &&
 log_this ods-ksmutil-keylist_2   ods-hsmutil list &&
-log_grep ods-ksmutil-keylist_2   stdout "80 keys found." &&
+log_grep ods-ksmutil-keylist_2   stdout "140 keys found." &&
 
 # Then when there are more than enough keys in the queue
 echo "y" | log_this ods-ksmutil-zonetotal_same_4   ods-ksmutil key generate --interval PT40M --policy Policy2 --zonetotal 4 &&
 log_grep ods-ksmutil-zonetotal_same_4   stdout "Info: 0 zone(s) found on policy \"Policy2\"" &&
 log_grep ods-ksmutil-zonetotal_same_4   stdout "Info: Keys will actually be generated for a total of 4 zone(s) as specified by zone total parameter" &&
 log_grep ods-ksmutil-zonetotal_same_4   stdout "all done!" &&
-log_grep ods-ksmutil-zonetotal_same_4   stdout "No keys need to be created, quitting..." &&
+log_grep ods-ksmutil-zonetotal_same_4   stdout "This will create 8 KSKs (2048 bits) and 12 ZSKs (2048 bits)" &&
 log_this ods-ksmutil-keylist_2a   ods-hsmutil list &&
-log_grep ods-ksmutil-keylist_2a   stdout "80 keys found." &&
+log_grep ods-ksmutil-keylist_2a   stdout "160 keys found." &&
 
 ##################
 ods_reset_env &&
@@ -107,10 +107,9 @@ echo "y" | log_this ods-ksmutil-zonetotal_diff_2   ods-ksmutil key generate --in
 log_grep ods-ksmutil-zonetotal_diff_2   	stdout "Info: 0 zone(s) found on policy \"Policy3\"" &&
 log_grep ods-ksmutil-zonetotal_diff_2   	stdout "Info: Keys will actually be generated for a total of 12 zone(s) as specified by zone total parameter" &&
 log_waitfor ods-ksmutil-zonetotal_diff_2    stdout 30 "all done!" &&
-log_grep ods-ksmutil-zonetotal_diff_2   	stdout "This will create 18 KSKs (2048 bits) and 27 ZSKs (2048 bits)" &&
-log_grep ods-ksmutil-zonetotal_diff_2   	stdout "all done!" &&
+log_grep ods-ksmutil-zonetotal_diff_2   	stdout "This will create 24 KSKs (2048 bits) and 36 ZSKs (2048 bits)" &&
 log_this ods-ksmutil-keylist_4   ods-hsmutil list &&
-log_grep ods-ksmutil-keylist_4   stdout "60 keys found." &&
+log_grep ods-ksmutil-keylist_4   stdout "75 keys found." &&
  
 ##################
 ods_reset_env &&
@@ -142,9 +141,9 @@ echo "y" | log_this ods-ksmutil-zonetotal_shared_1   ods-ksmutil key generate --
 log_grep ods-ksmutil-zonetotal_shared_1   stdout "Info: 0 zone(s) found on policy \"Policy5\"" &&
 log_grep ods-ksmutil-zonetotal_shared_1   stdout "Info: Keys will actually be generated for a total of 15 zone(s) as specified by zone total parameter" &&
 log_grep ods-ksmutil-zonetotal_shared_1   stdout "all done!" &&
-log_grep ods-ksmutil-zonetotal_shared_1   stdout "This will create 0 KSKs (2048 bits) and 3 ZSKs (2048 bits)" &&
+log_grep ods-ksmutil-zonetotal_shared_1   stdout "This will create 3 KSKs (2048 bits) and 4 ZSKs (2048 bits)" &&
 log_this ods-ksmutil-keylist_7   ods-hsmutil list &&
-log_grep ods-ksmutil-keylist_7   stdout "7 keys found." &&
+log_grep ods-ksmutil-keylist_7   stdout "11 keys found." &&
 
 # Now a policy with shared keys one with alg 7, length 1024 and one with alg 8, length 2048
 echo "y" | log_this ods-ksmutil-zonetotal_shared_2   ods-ksmutil key generate --interval PT40M --policy Policy6 --zonetotal 15 &&
@@ -153,16 +152,16 @@ log_grep ods-ksmutil-zonetotal_shared_2   stdout "Info: Keys will actually be ge
 log_grep ods-ksmutil-zonetotal_shared_2   stdout "all done!" &&
 log_grep ods-ksmutil-zonetotal_shared_2   stdout "This will create 2 KSKs (1024 bits) and 2 ZSKs (2048 bits)" &&
 log_this ods-ksmutil-keylist_8   ods-hsmutil list &&
-log_grep ods-ksmutil-keylist_8   stdout "11 keys found." &&
+log_grep ods-ksmutil-keylist_8   stdout "15 keys found." &&
 
 # Again with some keys in the queue
 echo "y" | log_this ods-ksmutil-zonetotal_shared_3   ods-ksmutil key generate --interval PT80M --policy Policy6 --zonetotal 15 &&
 log_grep ods-ksmutil-zonetotal_shared_3   stdout "Info: 0 zone(s) found on policy \"Policy6\"" &&
 log_grep ods-ksmutil-zonetotal_shared_3   stdout "Info: Keys will actually be generated for a total of 15 zone(s) as specified by zone total parameter" &&
 log_grep ods-ksmutil-zonetotal_shared_3   stdout "all done!" &&
-log_grep ods-ksmutil-zonetotal_shared_3   stdout "This will create 1 KSKs (1024 bits) and 2 ZSKs (2048 bits)" &&
+log_grep ods-ksmutil-zonetotal_shared_3   stdout "This will create 3 KSKs (1024 bits) and 4 ZSKs (2048 bits)" &&
 log_this ods-ksmutil-keylist_9   ods-hsmutil list &&
-log_grep ods-ksmutil-keylist_9   stdout "14 keys found." &&
+log_grep ods-ksmutil-keylist_9   stdout "22 keys found." &&
 
 echo &&
 echo "************OK******************" &&
