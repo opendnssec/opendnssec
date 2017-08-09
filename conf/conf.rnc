@@ -50,7 +50,11 @@ start = element Configuration {
 			element RequireBackup { empty }? &
 
 			# Do not maintain public keys in the repository (optional)
-			element SkipPublicKey { empty }?
+			element SkipPublicKey { empty }? &
+
+			# Generate extractable keys (CKA_EXTRACTABLE = TRUE) (optional)
+			element AllowExtract { empty }?
+
 		}*
 	} &
 
