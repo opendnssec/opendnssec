@@ -534,8 +534,6 @@ zone_add_rr(zone_type* zone, ldns_rr* rr, int do_stats)
     rrset_type* rrset = NULL;
     rr_type* record = NULL;
     ods_status status = ODS_STATUS_OK;
-    char* str = NULL;
-    int i;
 
     ods_log_assert(rr);
     ods_log_assert(zone);
@@ -587,24 +585,16 @@ zone_add_rr(zone_type* zone, ldns_rr* rr, int do_stats)
         ods_log_assert(record->rr);
         ods_log_assert(record->is_added);
         if (ttl_rr != ttl_rrset) {
-            /* YBS: NOTICE! We are correcting the TTLs to ensure every RR in the 
-             * RRSET has the same TTL. Otherwise signatures go BOGUS. While
-             * this works it is **NOT** the correct place to do so. We SHOULD
-             * only correcting the records for the outgoing zone (so only 
-             * correct them while signing). However, the datastructure currently 
-             * in use can not make a distinction between incoming and outgoing.
-             * As a result IXFR's might fail when trying to remove a record
-             * that has its TTL fixed. */
-            str = ldns_rr2str(rr);
+            char *str = ldns_rr2str(rr);
             str[(strlen(str)) - 1] = '\0';
-            for (i = 0; i < strlen(str); i++) {
+            for (int i = 0; i < strlen(str); i++) {
                 if (str[i] == '\t') {
                     str[i] = ' ';
                 }
             }
-            ods_log_error("In zone file %s: TTL for the record '%s' set to %d", zone->name, str, ttl_rrset);
+            ods_log_error("In zone file %s: TTL for the record '%s' (%d) not"
+                " equal to recordset TTL (%d)", zone->name, str, ttl_rr, ttl_rrset);
             LDNS_FREE(str);
-            ldns_rr_set_ttl(rr, ttl_rrset);
         }
     }
     /* update stats */
