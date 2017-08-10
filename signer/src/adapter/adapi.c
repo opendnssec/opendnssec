@@ -322,28 +322,20 @@ adapi_process_rr(zone_type* zone, ldns_rr* rr, int add, int backup)
     }
     /* //MaxZoneTTL. Only set for RRtype != SOA && RRtype != DNSKEY */
     if (tmp && tmp < ldns_rr_ttl(rr)) {
-        /* YBS: NOTICE! We are correcting the TTLs here. While
-         * this works it is **NOT** the correct place to do so. We SHOULD
-         * only correcting the records for the outgoing zone (so only
-         * correct them while signing). However, the datastructure currently
-         * in use can not make a distinction between incoming and outgoing.
-         * As a result IXFR's might fail when trying to remove a record
-         * that has its TTL fixed. */
         char* str = ldns_rdf2str(ldns_rr_owner(rr));
         if (str) {
-            size_t i = 0;
             str[(strlen(str))-1] = '\0';
             /* replace tabs with white space */
-            for (i=0; i < strlen(str); i++) {
+            for (int i = 0; i < strlen(str); i++) {
                 if (str[i] == '\t') {
                     str[i] = ' ';
                 }
             }
-            ods_log_debug("[%s] capping ttl %u to MaxZoneTTL %u for rrset "
+            ods_log_warning("[%s] TTL %u exceeds MaxZoneTTL %u for rrset "
                 "<%s,%s>", adapi_str, ldns_rr_ttl(rr), tmp, str,
                 rrset_type2str(ldns_rr_get_type(rr)));
+            LDNS_FREE(str);
         }
-        ldns_rr_set_ttl(rr, tmp);
     }
 
     /* TODO: DNAME and CNAME checks */
