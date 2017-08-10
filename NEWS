@@ -1,4 +1,4 @@
-OpenDNSSEC 2.1.2 - 2017-08-03
+OpenDNSSEC 2.1.3 - 2017-08-10
 
 * OPENDNSSEC-508: Tag <RolloverNotification> was not functioning correctly
 * OPENDNSSEC-901: Enforcer would ignore <ManualKeyGeneration/> tag in conf.xml
