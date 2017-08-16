@@ -37,6 +37,9 @@
 #include <unistd.h>
 #include <getopt.h>
 
+#include <libxml/parser.h>
+#include <libxml/tree.h>
+
 #include "daemon/engine.h"
 #include "log.h"
 
@@ -44,6 +47,7 @@
 #include <sqlite3.h>
 #include "db/db_schema_sqlite.h"
 #include "db/db_data_sqlite.h"
+
 static const char** create = db_schema_sqlite_create;
 static const char** drop = db_schema_sqlite_drop;
 static const char** data = db_data_sqlite;
@@ -230,6 +234,65 @@ static int db_do2(const char** strs) {
     return 0;
 }
 
+static int empty_zones_file (const char* filename) {
+    xmlDocPtr doc;
+    xmlNodePtr root = NULL;
+    char path[PATH_MAX];
+    char* dirname, *dirlast;
+    if (!filename)
+        return -1;
+
+    if (access(filename, W_OK)) {
+        if (errno == ENOENT) {
+            if ((dirname = strdup(filename))) {
+                if ((dirlast = strrchr(dirname, '/'))) {
+                    *dirlast = 0;
+                    if (access(dirname, W_OK)) {
+                        fprintf(stderr, "Write access to directory denied: %s\n", strerror(errno));
+                        free(dirname);
+                        return -1;
+                    }
+                }
+                free(dirname);
+            }
+        }
+        else {
+            fprintf(stderr, "Write access to file denied: %s\n", strerror(errno));
+            return -1;
+        }
+    }
+
+    if (!(doc = xmlNewDoc((xmlChar*)"1.0"))
+        || !(root = xmlNewNode(NULL, (xmlChar*)"ZoneList")))
+    {
+        fprintf(stderr, "Unable to create XML elements, memory allocation error!\n");
+        if (doc) {
+            xmlFreeDoc(doc);
+        }
+        return -1;
+    }
+    xmlDocSetRootElement(doc, root);
+
+   if (snprintf(path, sizeof(path), "%s.new", filename) >= (int)sizeof(path)) {
+        fprintf(stderr, "Unable to write zonelist, memory allocation error!\n");
+        xmlFreeDoc(doc);
+        return -1;
+    }
+    unlink(path);
+    if (xmlSaveFormatFileEnc(path, doc, "UTF-8", 1) == -1) {
+        fprintf(stderr, "Unable to write zonelist, LibXML error!\n");
+        xmlFreeDoc(doc);
+        return -1;
+    }
+    xmlFreeDoc(doc);
+    if (rename(path, filename)) {
+        fprintf(stderr, "Unable to write zonelist, rename failed!\n");
+        unlink(path);
+        return -1;
+    }
+    return 0;
+}
+
 int main(int argc, char* argv[]) {
     int c, options_index = 0;
     static struct option long_options[] = {
@@ -242,6 +305,7 @@ int main(int argc, char* argv[]) {
     int force = 0;
     engineconfig_type* cfg;
     const char* cfgfile = ODS_SE_CFGFILE;
+    char path[PATH_MAX];
 
     ods_log_init("ods-enforcerd", 0, NULL, 0);
 
@@ -310,6 +374,15 @@ int main(int argc, char* argv[]) {
         fprintf(stderr, "Error: unable to insert initial data!\n");
         disconnect_db();
         return 5;
+    }
+
+    if (snprintf(path, sizeof(path), "%s/%s", cfg->working_dir, OPENDNSSEC_ENFORCER_ZONELIST) >= (int)sizeof(path)
+            || empty_zones_file(path) != 0)
+    {
+        fprintf(stderr, "Unable to clear the internal zonelist %s!\n", path);
+        return 6;
+    } else {
+        printf("Internal zonelist cleared successfully.\n");
     }
 
     engine_config_cleanup(cfg);

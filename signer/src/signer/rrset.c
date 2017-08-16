@@ -203,11 +203,6 @@ rrset_create(zone_type* zone, ldns_rr_type type)
         return NULL;
     }
     CHECKALLOC(rrset = (rrset_type*) malloc(sizeof(rrset_type)));
-    if (!rrset) {
-        ods_log_error("[%s] unable to create RRset %u: allocator_alloc() "
-            "failed", rrset_str, (unsigned) type);
-        return NULL;
-    }
     rrset->next = NULL;
     rrset->rrs = NULL;
     rrset->domain = NULL;
@@ -256,6 +251,19 @@ rrset_lookup_rr(rrset_type* rrset, ldns_rr* rr)
     return NULL;
 }
 
+/**
+ * What TTL should new RR's in this RRS get?
+ */
+uint32_t
+rrset_lookup_ttl(rrset_type* rrset, uint32_t default_ttl)
+{
+    for (int i = 0; i < rrset->rr_count; i++) {
+        if (!rrset->rrs[i].is_added) continue;
+        return ldns_rr_ttl(rrset->rrs[i].rr);
+    }
+    return default_ttl;
+}
+
 
 /**
  * Count the number of RRs in this RRset that have is_added.
@@ -293,10 +301,6 @@ rrset_add_rr(rrset_type* rrset, ldns_rr* rr)
 
     rrs_old = rrset->rrs;
     CHECKALLOC(rrset->rrs = (rr_type*) malloc((rrset->rr_count + 1) * sizeof(rr_type)));
-    if (!rrset->rrs) {
-        ods_fatal_exit("[%s] fatal unable to add RR: allocator_alloc() failed",
-            rrset_str);
-    }
     if (rrs_old) {
         memcpy(rrset->rrs, rrs_old, (rrset->rr_count) * sizeof(rr_type));
     }
@@ -335,10 +339,6 @@ rrset_del_rr(rrset_type* rrset, uint16_t rrnum)
     memset(&rrset->rrs[rrset->rr_count-1], 0, sizeof(rr_type));
     rrs_orig = rrset->rrs;
     CHECKALLOC(rrset->rrs = (rr_type*) malloc((rrset->rr_count - 1) * sizeof(rr_type)));
-    if(!rrset->rrs) {
-        ods_fatal_exit("[%s] fatal unable to delete RR: allocator_alloc() failed",
-            rrset_str);
-    }
     memcpy(rrset->rrs, rrs_orig, (rrset->rr_count -1) * sizeof(rr_type));
     free(rrs_orig);
     rrset->rr_count--;
@@ -716,6 +716,20 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
     }
     /* Use rr_list_clone for signing, keep the original rr_list untouched for case preservation */
     rr_list_clone = ldns_rr_list_clone(rr_list);
+
+    /* Further in the code the ORIG_TTL field for the signature will be set
+     * to the TTL of the first RR in the list. We must make sure all RR's
+     * have the same TTL when signing. We do not need to publish these TTLs.
+     * We find the smallest TTL as other software seems to do this.
+     **/
+    uint32_t min_ttl = ldns_rr_ttl(ldns_rr_list_rr(rr_list_clone, 0));
+    for (i = 1; i < ldns_rr_list_rr_count(rr_list_clone); i++) {
+        uint32_t rr_ttl = ldns_rr_ttl(ldns_rr_list_rr(rr_list_clone, i));
+        if (rr_ttl < min_ttl) min_ttl = rr_ttl;
+    }
+    for (i = 0; i < ldns_rr_list_rr_count(rr_list_clone); i++) {
+        ldns_rr_set_ttl(ldns_rr_list_rr(rr_list_clone, i), min_ttl);
+    }
 
     /* Calculate signature validity */
     rrset_sigvalid_period(zone->signconf, rrset->rrtype, signtime,

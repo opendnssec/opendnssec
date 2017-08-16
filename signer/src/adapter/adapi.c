@@ -324,19 +324,18 @@ adapi_process_rr(zone_type* zone, ldns_rr* rr, int add, int backup)
     if (tmp && tmp < ldns_rr_ttl(rr)) {
         char* str = ldns_rdf2str(ldns_rr_owner(rr));
         if (str) {
-            size_t i = 0;
             str[(strlen(str))-1] = '\0';
             /* replace tabs with white space */
-            for (i=0; i < strlen(str); i++) {
+            for (int i = 0; i < strlen(str); i++) {
                 if (str[i] == '\t') {
                     str[i] = ' ';
                 }
             }
-            ods_log_debug("[%s] capping ttl %u to MaxZoneTTL %u for rrset "
+            ods_log_warning("[%s] TTL %u exceeds MaxZoneTTL %u for rrset "
                 "<%s,%s>", adapi_str, ldns_rr_ttl(rr), tmp, str,
                 rrset_type2str(ldns_rr_get_type(rr)));
+            LDNS_FREE(str);
         }
-        ldns_rr_set_ttl(rr, tmp);
     }
 
     /* TODO: DNAME and CNAME checks */

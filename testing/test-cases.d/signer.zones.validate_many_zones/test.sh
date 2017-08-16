@@ -25,20 +25,20 @@ ods_reset_env  &&
 ods_start_ods-control &&
 
 #########################################################################
-# Basic checks of signing test zones
+echo -n "LINE: ${LINENO} " && echo "\n############ Basic checks of signing test zones #########\n" &&
 
-syslog_waitfor 300 'ods-signerd: .*\[STATS\] example.com' &&
-test -f "$INSTALL_ROOT/var/opendnssec/signed/example.com" &&
+echo -n "LINE: ${LINENO} " && syslog_waitfor 300 'ods-signerd: .*\[STATS\] example.com' &&
+echo -n "LINE: ${LINENO} " && test -f "$INSTALL_ROOT/var/opendnssec/signed/example.com" &&
 
-syslog_waitfor 300 'ods-signerd: .*\[STATS\] all.rr.org' &&
-test -f "$INSTALL_ROOT/var/opendnssec/signed/all.rr.org" &&
+echo -n "LINE: ${LINENO} " && syslog_waitfor 300 'ods-signerd: .*\[STATS\] all.rr.org' &&
+echo -n "LINE: ${LINENO} " && test -f "$INSTALL_ROOT/var/opendnssec/signed/all.rr.org" &&
 
-syslog_waitfor 300 'ods-signerd: .*\[STATS\] all.rr.binary.org' &&
-test -f "$INSTALL_ROOT/var/opendnssec/signed/all.rr.binary.org" &&
+echo -n "LINE: ${LINENO} " && syslog_waitfor 300 'ods-signerd: .*\[STATS\] all.rr.binary.org' &&
+echo -n "LINE: ${LINENO} " && test -f "$INSTALL_ROOT/var/opendnssec/signed/all.rr.binary.org" &&
 
 # OPENDNSSEC-231: Make sure we can support reverse classless zones
-syslog_waitfor 300 'ods-signerd: .*\[STATS\] 64/1.0.168.192.IN-ADDR.ARPA' &&
-test -f "$INSTALL_ROOT/var/opendnssec/signed/64-1.0.168.192.in-addr.arpa" &&
+echo -n "LINE: ${LINENO} " && syslog_waitfor 300 'ods-signerd: .*\[STATS\] 64/1.0.168.192.IN-ADDR.ARPA' &&
+echo -n "LINE: ${LINENO} " && test -f "$INSTALL_ROOT/var/opendnssec/signed/64-1.0.168.192.in-addr.arpa" &&
 
 # Validate the output on redhat
 case "$DISTRIBUTION" in
@@ -58,9 +58,8 @@ esac &&
 # Tests to cover signing specific bugs
 
 #SUPPORT-40 - Double check that all records down to the forth level appear in the output
-# having TTL = 600 due to MaxZoneTTL in kasp.xml
-$GREP -q -- "^test.example.com..*600.*IN.*NS.*ns2.example.com." "$INSTALL_ROOT/var/opendnssec/signed/example.com" &&
-$GREP -q -- "^test1.test.example.com..*600.*IN.*NS.*ns2.example.com." "$INSTALL_ROOT/var/opendnssec/signed/example.com" &&
+echo -n "LINE: ${LINENO} " && $GREP -q -- "^test.example.com..*86400.*IN.*NS.*ns2.example.com." "$INSTALL_ROOT/var/opendnssec/signed/example.com" &&
+echo -n "LINE: ${LINENO} " && $GREP -q -- "^test1.test.example.com..*86400.*IN.*NS.*ns2.example.com." "$INSTALL_ROOT/var/opendnssec/signed/example.com" &&
 
 #OPENDSNSEC-290 - Update the zone by changing a CNAME record to an A record.
 ods_setup_zone test/all.rr.org &&

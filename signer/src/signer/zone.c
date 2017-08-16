@@ -534,8 +534,6 @@ zone_add_rr(zone_type* zone, ldns_rr* rr, int do_stats)
     rrset_type* rrset = NULL;
     rr_type* record = NULL;
     ods_status status = ODS_STATUS_OK;
-    char* str = NULL;
-    int i;
 
     ods_log_assert(rr);
     ods_log_assert(zone);
@@ -574,10 +572,10 @@ zone_add_rr(zone_type* zone, ldns_rr* rr, int do_stats)
     }
     record = rrset_lookup_rr(rrset, rr);
 
-    if (record && ldns_rr_ttl(rr) != ldns_rr_ttl(record->rr))
-        record = NULL;
+    uint32_t ttl_rr = ldns_rr_ttl(rr);
+    uint32_t ttl_rrset = rrset_lookup_ttl(rrset, ttl_rr);
 
-    if (record) {
+    if (record && ttl_rr == ttl_rrset && ttl_rr == ldns_rr_ttl(record->rr)) {
         record->is_added = 1; /* already exists, just mark added */
         record->is_removed = 0; /* unset is_removed */
         return ODS_STATUS_UNCHANGED;
@@ -586,15 +584,16 @@ zone_add_rr(zone_type* zone, ldns_rr* rr, int do_stats)
         ods_log_assert(record);
         ods_log_assert(record->rr);
         ods_log_assert(record->is_added);
-        if (ldns_rr_ttl(rr) != ldns_rr_ttl(rrset->rrs[0].rr)) {
-            str = ldns_rr2str(rr);
+        if (ttl_rr != ttl_rrset) {
+            char *str = ldns_rr2str(rr);
             str[(strlen(str)) - 1] = '\0';
-            for (i = 0; i < strlen(str); i++) {
+            for (int i = 0; i < strlen(str); i++) {
                 if (str[i] == '\t') {
                     str[i] = ' ';
                 }
             }
-            ods_log_error("In zone file %s: TTL for the record '%s' set to %d", zone->name, str, ldns_rr_ttl(rrset->rrs[0].rr));
+            ods_log_error("In zone file %s: TTL for the record '%s' (%d) not"
+                " equal to recordset TTL (%d)", zone->name, str, ttl_rr, ttl_rrset);
             LDNS_FREE(str);
         }
     }

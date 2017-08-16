@@ -1508,6 +1508,19 @@ update(engine_type *engine, struct dbw_db *db, struct dbw_zone *zone, time_t now
     /* Of all the relevant times find the earliest*/
     time_t return_time = zone_return_time;
     minTime(policy_return_time, &return_time);
+    /*
+     * Take the rollover notification time into account when scheduling
+     * this zone. We will need to print a message at that time.
+     */
+    if (zone_db_next_ksk_roll(zone) > 0
+        && (zone_db_next_ksk_roll(zone) - engine->config->rollover_notification > now)) {
+        minTime(zone_db_next_ksk_roll(zone) - engine->config->rollover_notification, &return_time);
+    }
+    else if (zone_db_next_csk_roll(zone) > 0
+             && (zone_db_next_csk_roll(zone) - engine->config->rollover_notification > now)) {
+        minTime(zone_db_next_csk_roll(zone) - engine->config->rollover_notification, &return_time);
+    }
+
     minTime(purge_return_time, &return_time);
     return return_time;
 }

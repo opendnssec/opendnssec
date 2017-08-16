@@ -309,18 +309,22 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
             return -1;
         }
     }
+    else {
+        ods_log_error("[%s] specify keytype for command %s", module_str, cmd);
+        client_printf_err(sockfd, "specify keytype: ZSK, KSK or CSK\n");
+        return -1;
+    }
 
     if (keystate) {
         if (strcasecmp(keystate, "generate") && strcasecmp(keystate, "publish") && strcasecmp(keystate, "ready") && strcasecmp(keystate, "active") && strcasecmp(keystate, "retire") && strcasecmp(keystate, "revoke")) {
             ods_log_error("[%s] unknown keystate", module_str);
-            client_printf_err(sockfd, "unknown keystate\n");
+            client_printf_err(sockfd, "unknown keystate: states are generate, publish, ready, active or retire\n");
             return -1;
         }
     }
-
-    if (argc) {
-        ods_log_error("[%s] unknown arguments for %s command", module_str, key_import_funcblock.cmdname);
-        client_printf_err(sockfd,"unknown arguments\n");
+    else {
+        ods_log_error("[%s] specify keystate for command %s", module_str, cmd);
+        client_printf_err(sockfd, "specify keystate: generate, publish, ready, active or retire\n");
         return -1;
     }
 
@@ -338,24 +342,51 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
         dbw_free(db);
         return -1;
     }
-    if (strptime(time, "%Y-%m-%d-%H:%M:%S", &tm)) {
+    free(zone);
+    zone = NULL;
+
+    if (!algorithm) {
+        ods_log_error("[%s] specify an algorithm for command %s", module_str, cmd);
+        client_printf_err(sockfd, "specify an algorithm\n");
+        dbw_free(db);
+        return -1;
+    }
+    if (!bits) {
+        ods_log_error("[%s] specify bits for command %s", module_str, cmd);
+        client_printf_err(sockfd, "specify bits\n");
+        dbw_free(db);
+        return -1;
+    }
+    if (!repository) {
+        ods_log_error("[%s] specify repository for command %s", module_str, cmd);
+        client_printf_err(sockfd, "specify repository \n");
+        dbw_free(db);
+        return -1;
+    }
+
+    if (time && strptime(time, "%Y-%m-%d-%H:%M:%S", &tm)) {
         tm.tm_isdst = -1;
         inception = mktime(&tm);
+    } else {
+        ods_log_error("[%s] specify inception time for command %s", module_str, cmd);
+        client_printf_err(sockfd, "specify inception time YYYY-MM-DD-HH:MM:SS\n");
+        dbw_free(db);
+        return -1;
     }
 
     /* gen = 0, pub = 1, ready = 2, act = 3, ... */
     int state = -1;
-    if (keystate && !strcasecmp(keystate, "generate"))
+    if (!strcasecmp(keystate, "generate"))
         state = 0;
-    else if (keystate && !strcasecmp(keystate,"publish"))
+    else if (!strcasecmp(keystate,"publish"))
         state = 1;
-    else if (keystate && !strcasecmp(keystate, "ready"))
+    else if (!strcasecmp(keystate, "ready"))
         state = 2;
-    else if (keystate && !strcasecmp(keystate, "active"))
+    else if (!strcasecmp(keystate, "active"))
         state = 3;
-    else if (keystate && !strcasecmp(keystate, "retire"))
+    else if (!strcasecmp(keystate, "retire"))
         state = 4;
-    else if (keystate && !strcasecmp(keystate, "revoke"))
+    else if (!strcasecmp(keystate, "revoke"))
         state = 5;
 
     int type = dbw_txt2enum(dbw_key_role_txt, keytype);

@@ -1,5 +1,20 @@
 OpenDNSSEC 2.2 - 2017-xx-xx
 
+* OPENDNSSEC-901: Enforcer would ignore <ManualKeyGeneration/> tag in conf.xml
+* OPENDNSSEC-890: Mismatching TTLs in record sets would cause bogus signatures.
+* OPENDNSSEC-908: Warn when TTL exceeds KASP's MaxZoneTTL instead of capping.
+
+OpenDNSSEC 2.1.1 - 2017-04-28
+
+* OPENDNSSEC-882: Signerd exit code always non-zero.
+* OPENDNSSEC-889: MySQL migration script didn't work for all database and
+  MySQL versions.
+* OPENDNSSEC-879: --suspend option for 'zone add' was broken. Fixed and
+  undocumented since it is not intended for production.
+* OPENDNSSEC-887: Segfault on extraneous <Interval> tag.
+* Libunwind header files presence not properly checked.
+* OPENDNSSEC-508: Implementing <RolloverNotification> tag.
+
 OpenDNSSEC 2.1.0 - 2017-02-22
 
 * If listening port for signer is not set in conf file, the default value

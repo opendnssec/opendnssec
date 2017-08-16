@@ -501,7 +501,8 @@ hsm_key_factory_get_key(engine_type *engine, struct dbw_db *db,
       * return NULL */
     if (!hkey) {
         ods_log_warning("[hsm_key_factory_get_key] no keys available");
-        hsm_key_factory_schedule_generate(engine, policy->name, pkey->id, 0, 1);
+        if (!engine->config->manual_keygen)
+            hsm_key_factory_schedule_generate(engine, policy->name, pkey->id, 0, 1);
         return NULL;
     }
      /*Update the state of the returned HSM key*/
@@ -510,7 +511,8 @@ hsm_key_factory_get_key(engine_type *engine, struct dbw_db *db,
 
     /*Schedule generation because we used up a key and return the HSM key*/
     ods_log_debug("[hsm_key_factory_get_key] key allocated");
-    hsm_key_factory_schedule_generate(engine, policy->name, pkey->id, 0, 0);
+    if (!engine->config->manual_keygen)
+        hsm_key_factory_schedule_generate(engine, policy->name, pkey->id, 0, 0);
     return hkey;
 }
 

@@ -33,13 +33,14 @@
 #include "db/dbw.h"
 #include "utils/kc_helper.h"
 #include "hsmkey/hsm_key_factory.h"
-
-#include "keystate/zonelist_import.h"
 #include "enforcer/enforce_task.h"
+#include "keystate/zonelist_export.h"
 
 #include <string.h>
 #include <libxml/parser.h>
 #include <libxml/tree.h>
+
+#include "keystate/zonelist_import.h"
 
 static const char* module_str = "zonelist_import";
 
@@ -298,6 +299,14 @@ int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
     if (dbw_commit(db)) {
         r = ZONELIST_IMPORT_ERR_DATABASE;
     } else if (updates) {
+        /** export zonelist */
+        if (zonelist_export(sockfd, dbconn, zonelist_path, 0) != ZONELIST_EXPORT_OK) {
+            ods_log_error("[%s] internal zonelist update failed", module_str);
+            client_printf_err(sockfd, "Unable to update the internal zonelist %s, updates will not reach the Signer!\n", zonelist_path);
+        } else {
+            ods_log_info("[%s] internal zonelist updated successfully", module_str);
+        }
+
         hsm_key_factory_schedule_generate_all(engine, 0);
         /* schedule all changed zones */
         for (size_t z = 0; z < db->zones->n; z++) {
