@@ -661,6 +661,8 @@ engine_update_zones(engine_type* engine, ods_status zl_changed)
             pthread_mutex_unlock(&zone->zone_lock);
             netio_remove_handler(engine->xfrhandler->netio,
                 &zone->xfrd->handler);
+            netio_remove_handler(engine->xfrhandler->netio,
+                &zone->notify->handler);
             zone_cleanup(zone);
             zone = NULL;
             continue;
