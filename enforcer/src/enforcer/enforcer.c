@@ -656,8 +656,8 @@ policyApproval(struct future_key *future_key)
 static unsigned int
 getZoneTTL(struct dbw_zone *zone, int type, const time_t now)
 {
-    time_t end_date;
-    int ttl;
+    time_t end_date = 0;
+    int ttl = 0;
     struct dbw_policy *policy = zone->policy;
 
     switch (type) {
@@ -1512,13 +1512,14 @@ update(engine_type *engine, struct dbw_db *db, struct dbw_zone *zone, time_t now
      * Take the rollover notification time into account when scheduling
      * this zone. We will need to print a message at that time.
      */
-    if (zone_db_next_ksk_roll(zone) > 0
-        && (zone_db_next_ksk_roll(zone) - engine->config->rollover_notification > now)) {
-        minTime(zone_db_next_ksk_roll(zone) - engine->config->rollover_notification, &return_time);
-    }
-    else if (zone_db_next_csk_roll(zone) > 0
-             && (zone_db_next_csk_roll(zone) - engine->config->rollover_notification > now)) {
-        minTime(zone_db_next_csk_roll(zone) - engine->config->rollover_notification, &return_time);
+    if (zone->next_ksk_roll > 0
+            && (zone->next_ksk_roll - engine->config->rollover_notification > now))
+    {
+        minTime(zone->next_ksk_roll - engine->config->rollover_notification, &return_time);
+    } else if (zone->next_csk_roll > 0
+             && (zone->next_csk_roll - engine->config->rollover_notification > now))
+    {
+        minTime(zone->next_csk_roll - engine->config->rollover_notification, &return_time);
     }
 
     minTime(purge_return_time, &return_time);

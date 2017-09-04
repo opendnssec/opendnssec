@@ -36,7 +36,7 @@
 #include "str.h"
 #include "enforcer/enforce_task.h"
 #include "clientpipe.h"
-#include "db/zone_db.h"
+#include "db/dbw.h"
 #include "log.h"
 #include "file.h"
 
@@ -44,213 +44,136 @@
 
 static const char *module_str = "keystate_rollover_cmd";
 
-static int
-perform_keystate_rollover(int sockfd, db_connection_t *dbconn, const char * policyname,
-	const char *zonename, int nkeyrole)
-{
-	policy_t* policy = NULL;
-	zone_db_t* zone = NULL;
-	zone_list_db_t *zonelist = NULL;
-	int reterror = 0;
-	int error = 0;
-	int listsize = 0;
-
-	if (policyname) {
-		policy = policy_new(dbconn);
-		if (policy_get_by_name(policy, policyname)){
-			policy_free(policy);
-			policy = NULL;
-			client_printf_err(sockfd, "unknown policy %s\n", policyname);
-			return -1;
-		}
-                if (policy_retrieve_zone_list(policy)) {
-			ods_log_error("[%s] Error fetching zones", module_str);
-                        client_printf_err(sockfd, "[%s] Error fetching zones", module_str);
-			policy_free(policy);
-			policy = NULL;
-	                return 1;
-                }
-                zonelist = policy_zone_list(policy);
-                listsize = zone_list_db_size(zonelist);
-		if (listsize == 0) {
-			client_printf (sockfd, "No zones on policy %s\n", policy_name(policy));
-			client_printf (sockfd, "No keys to be rolled\n");
-			policy_free(policy);
-			return 0;
-		}
-                zone = zone_list_db_get_next(zonelist);
-	}
-	else if (zonename) {
-		listsize = 1;
-		if (!(zone = zone_db_new_get_by_name(dbconn, zonename))) {
-			client_printf(sockfd, "zone %s not found\n", zonename);
-			return 1;
-		}
-	}
-	
-	while (listsize > 0) {
-		error = 0;
-		switch (nkeyrole) {
-			case 0:
-				if (zone_db_set_roll_ksk_now(zone, 1) ||
-					zone_db_set_roll_zsk_now(zone, 1) ||
-					zone_db_set_roll_csk_now(zone, 1)) {error = 1; break;}
-				client_printf(sockfd, "rolling all keys for zone %s\n", zone_db_name(zone));
-				ods_log_info("[%s] Manual rollover initiated for all keys on Zone: %s",
-					module_str, zone_db_name(zone));
-				break;
-			case KEY_DATA_ROLE_KSK:
-				if (zone_db_set_roll_ksk_now(zone, 1)) {error = 1; break;};
-				client_printf(sockfd, "rolling KSK for zone %s\n", zone_db_name(zone));
-				ods_log_info("[%s] Manual rollover initiated for KSK on Zone: %s", module_str, zone_db_name(zone));
-				break;
-			case KEY_DATA_ROLE_ZSK:
-				if (zone_db_set_roll_zsk_now(zone, 1)) {error = 1; break;}
-				client_printf(sockfd, "rolling ZSK for zone %s\n", zone_db_name(zone));
-				ods_log_info("[%s] Manual rollover initiated for ZSK on Zone: %s", module_str, zone_db_name(zone));
-				break;
-			case KEY_DATA_ROLE_CSK:
-				if (zone_db_set_roll_csk_now(zone, 1)) {error = 1; break;}
-				client_printf(sockfd, "rolling CSK for zone %s\n", zone_db_name(zone));
-				ods_log_info("[%s] Manual rollover initiated for CSK on Zone: %s", module_str, zone_db_name(zone));
-				break;
-			default:
-				ods_log_assert(false && "nkeyrole out of range");
-				ods_log_error_and_printf(sockfd, module_str,
-					"nkeyrole out of range");
-				error = 1;
-		}
-		error = error || zone_db_set_next_change(zone, 0) || zone_db_update(zone);
-		if (error) {
-			ods_log_error_and_printf(sockfd, module_str,
-				"updating zone %s in the database failed", zone_db_name(zone));
-		}
-		reterror = error || reterror;
-		listsize--;
-		zone_db_free(zone);
-		if (listsize > 0)
-			zone = zone_list_db_get_next(zonelist);
-	}
-	policy_free(policy);
-	return reterror;
-}
-
 static void
 usage(int sockfd)
 {
-	client_printf(sockfd,
-		"key rollover\n"
-		"	--zone <zone> | --policy <policy>	aka -z | -p \n"
-		"	[--keytype <keytype>]			aka -t\n"
-	);
-
+    client_printf(sockfd,
+        "key rollover\n"
+        "	--zone <zone> | --policy <policy>	aka -z | -p \n"
+        "	[--keytype <keytype>]			aka -t\n"
+    );
 }
 
 static void
 help(int sockfd)
 {
-	client_printf(sockfd,
-		"Start a key rollover of the desired type *now*. The process is the same\n"
-		"as for the scheduled automated rollovers however it does not wait for\n"
-		"the keys lifetime to expire before rolling. The next rollover is due\n"
-		"after the newest key aged passed its lifetime.\n"
-		"\nOptions:\n"
-		"zone		limit the output to the given the zone\n"
-		"policy		limit the output to the given the policy\n"
-		"keytype		limit the output to the given type, can be KSK, ZSK or CSK (default is all)\n\n"
-	);
+    client_printf(sockfd,
+        "Start a key rollover of the desired type *now*. The process is the same\n"
+        "as for the scheduled automated rollovers however it does not wait for\n"
+        "the keys lifetime to expire before rolling. The next rollover is due\n"
+        "after the newest key aged passed its lifetime.\n"
+        "\nOptions:\n"
+        "zone		limit the output to the given the zone\n"
+        "policy		limit the output to the given the policy\n"
+        "keytype		limit the output to the given type, can be KSK, ZSK or CSK (default is all)\n\n"
+    );
 }
 
 static int
 run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 {
-	char buf[ODS_SE_MAXLINE];
-	#define NARGV 6
-	const char *argv[NARGV];
-	int argc = 0, error, nkeytype = 0;
-	int long_index = 0, opt = 0;
-	const char *zone = NULL, *keytype = NULL, *policy = NULL;
-        db_connection_t* dbconn = getconnectioncontext(context);
-        engine_type* engine = getglobalcontext(context);
+    char buf[ODS_SE_MAXLINE];
+    #define NARGV 6
+    const char *argv[NARGV];
+    int argc = 0, error;
+    int long_index = 0, opt = 0;
+    const char *s_zone = NULL, *keytype = NULL, *s_policy = NULL;
+    db_connection_t* dbconn = getconnectioncontext(context);
+    engine_type* engine = getglobalcontext(context);
 
-	static struct option long_options[] = {
-		{"zone", required_argument, 0, 'z'},
-		{"policy", required_argument, 0, 'p'},
-		{"keytype", required_argument, 0, 't'},
-		{0, 0, 0, 0}
-	};
+    static struct option long_options[] = {
+        {"zone", required_argument, 0, 'z'},
+        {"policy", required_argument, 0, 'p'},
+        {"keytype", required_argument, 0, 't'},
+        {0, 0, 0, 0}
+    };
 
-	ods_log_debug("[%s] %s command", module_str, key_rollover_funcblock.cmdname);
+    ods_log_debug("[%s] %s command", module_str, key_rollover_funcblock.cmdname);
 
-	/* Use buf as an intermediate buffer for the command. */
-	strncpy(buf, cmd, sizeof(buf));
-	buf[sizeof(buf)-1] = '\0';
+    /* Use buf as an intermediate buffer for the command. */
+    strncpy(buf, cmd, sizeof(buf));
+    buf[sizeof(buf)-1] = '\0';
 
-	/* separate the arguments */
-	argc = ods_str_explode(buf, NARGV, argv);
-	if (argc == -1) {
-		client_printf_err(sockfd, "too many arguments\n");
-		ods_log_error("[%s] too many arguments for %s command",
-				module_str, key_rollover_funcblock.cmdname);
-		return -1;
-	}
+    /* separate the arguments */
+    argc = ods_str_explode(buf, NARGV, argv);
+    if (argc == -1) {
+        client_printf_err(sockfd, "too many arguments\n");
+        ods_log_error("[%s] too many arguments for %s command",
+            module_str, key_rollover_funcblock.cmdname);
+        return -1;
+    }
 
-	optind = 0;
-	while ((opt = getopt_long(argc, (char* const*)argv, "p:z:t:", long_options, &long_index)) != -1) {
-		switch (opt) {
-			case 'z':
-				zone = optarg;
-				break;
-			case 'p':
-				policy = optarg;
-				break;
-			case 't':
-				keytype = optarg;
-				break;
-			default:
-				client_printf_err(sockfd, "unknown arguments\n");
-				ods_log_error("[%s] unknown arguments for %s command",
-						module_str, key_rollover_funcblock.cmdname);
-				return -1;
-		}
-	}
-
-	if (!zone && !policy) {
-		ods_log_warning("[%s] expected either --zone <zone> or --policy <policy> for %s command",
-			module_str, key_rollover_funcblock.cmdname);
-		client_printf(sockfd,"expected either --zone <zone> or --policy <policy> option\n");
-		return -1;
-	}
-	else if (zone && policy) {
-		 ods_log_warning("[%s] expected either --zone <zone> or --policy <policy> for %s command",
-                        module_str, key_rollover_funcblock.cmdname);
-                client_printf(sockfd,"expected either --zone <zone> or --policy <policy> option\n");
+    optind = 0;
+    while ((opt = getopt_long(argc,
+        (char* const*)argv, "p:z:t:", long_options, &long_index)) != -1) 
+    {
+        switch (opt) {
+            case 'z':
+                s_zone = optarg;
+                break;
+            case 'p':
+                s_policy = optarg;
+                break;
+            case 't':
+                keytype = optarg;
+                break;
+            default:
+                client_printf_err(sockfd, "unknown arguments\n");
+                ods_log_error("[%s] unknown arguments for %s command",
+                                module_str, key_rollover_funcblock.cmdname);
                 return -1;
-	}
+        }
+    }
 
-	if (keytype) {
-		if (!strncasecmp(keytype, "KSK", 3)) {
-			nkeytype = KEY_DATA_ROLE_KSK;
-		} else if (!strncasecmp(keytype, "ZSK", 3)) {
-			nkeytype = KEY_DATA_ROLE_ZSK;
-		} else if (!strncasecmp(keytype, "CSK", 3)) {
-			nkeytype = KEY_DATA_ROLE_CSK;
-		} else {
-			ods_log_warning("[%s] given keytype \"%s\" invalid",
-				module_str,keytype);
-			client_printf(sockfd, "given keytype \"%s\" invalid\n",
-				keytype);
-			return 1;
-		}
-	}
+    if ((!s_zone && !s_policy) || (s_zone && s_policy)) {
+        ods_log_warning("[%s] expected either --zone <zone> or --policy <policy> for %s command",
+                module_str, key_rollover_funcblock.cmdname);
+        client_printf(sockfd,"expected either --zone <zone> or --policy <policy> option\n");
+        return -1;
+    }
 
-	error = perform_keystate_rollover(sockfd, dbconn, policy, zone, nkeytype);
-	
-	/* YBS: TODO only affected zones */
-	enforce_task_flush_all(engine, dbconn);
-	return error;
+    int keytype_int = 0;
+    if (keytype && (keytype_int = dbw_txt2enum(dbw_key_role_txt, keytype)) == -1) {
+        ods_log_error("[%s] unknown keytype, should be one of KSK, ZSK, or CSK", module_str);
+        client_printf_err(sockfd, "unknown keytype, should be one of KSK, ZSK, or CSK\n");
+        return -1;
+    }
+
+    struct dbw_db *db = dbw_fetch(dbconn);
+    if (!db) return -1;
+    for (size_t p = 0; p < db->policies->n; p++) {
+        struct dbw_policy *policy = (struct dbw_policy *)db->policies->set[p];
+        if (s_policy && strcasecmp(policy->name, s_policy)) continue;
+        for (size_t z = 0; z < policy->zone_count; z++) {
+            struct dbw_zone *zone = policy->zone[z];
+            if (s_zone && strcasecmp(zone->name, s_zone)) continue;
+            /* Key of this zone needs to roll */
+            zone->roll_zsk_now = (keytype_int == DBW_ZSK) || !keytype_int;
+            zone->roll_ksk_now = (keytype_int == DBW_KSK) || !keytype_int;
+            zone->roll_csk_now = (keytype_int == DBW_CSK) || !keytype_int;
+            zone->scratch = 1; /* Flush this zone later */
+            zone->dirty = DBW_UPDATE;
+            client_printf(sockfd, "rolling %s for zone %s\n",
+                keytype_int?dbw_enum2txt(dbw_key_role_txt, keytype_int):"all keys",
+                zone->name);
+            ods_log_info("[%s] Manual rollover initiated for %s on Zone: %s",
+                module_str,
+                keytype_int?dbw_enum2txt(dbw_key_role_txt, keytype_int):"all keys",
+                zone->name);
+        }
+    }
+    error = dbw_commit(db);
+    if (!error) {
+        for (size_t z = 0; z < db->zones->n; z++) {
+            struct dbw_zone *zone = (struct dbw_zone *)db->zones->set[z];
+            if (!zone->scratch) continue;
+            enforce_task_flush_zone(engine, zone->name);
+        }
+    }
+    dbw_free(db);
+    return error;
 }
 
 struct cmd_func_block key_rollover_funcblock = {
-	"key rollover", &usage, &help, NULL, &run
+    "key rollover", &usage, &help, NULL, &run
 };
