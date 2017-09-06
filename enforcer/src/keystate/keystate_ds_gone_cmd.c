@@ -36,7 +36,7 @@
 #include "log.h"
 #include "str.h"
 #include "clientpipe.h"
-#include "db/key_data.h"
+#include "db/dbw.h"
 #include "keystate/keystate_ds.h"
 
 #include "keystate/keystate_ds_gone_cmd.h"
@@ -74,14 +74,8 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 	int error;
         db_connection_t* dbconn = getconnectioncontext(context);
         engine_type* engine = getglobalcontext(context);
-	error = run_ds_cmd(sockfd, cmd, dbconn,
-		KEY_DATA_DS_AT_PARENT_RETRACTED,
-		KEY_DATA_DS_AT_PARENT_UNSUBMITTED, engine);
-	if (error == 0) {
-		/* YBS: TODO only affected zones */
-		enforce_task_flush_all(engine, dbconn);
-	}
-	return error;
+	return run_ds_cmd(sockfd, cmd, dbconn, DBW_DS_AT_PARENT_RETRACTED,
+		DBW_DS_AT_PARENT_UNSUBMITTED, engine);
 }
 
 struct cmd_func_block key_ds_gone_funcblock = {

@@ -30,7 +30,7 @@
 #ifndef _KEYSTATE_LIST_CMD_H_
 #define _KEYSTATE_LIST_CMD_H_
 
-#include "db/key_data.h"
+#include "db/dbw.h"
 
 struct cmd_func_block key_list_funcblock;
 
