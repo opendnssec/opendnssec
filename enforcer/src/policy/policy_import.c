@@ -27,6 +27,7 @@
  */
 
 #include "log.h"
+#include "str.h"
 #include "clientpipe.h"
 #include "utils/kc_helper.h"
 #include "db/dbw.h"
@@ -112,7 +113,7 @@ xml_try_read_content(xmlNodePtr root, char const *path, char **target)
 {
     xmlNodePtr node = xml_find_node(root, path);
     if (!node) return;
-    *target = (char *)xmlNodeGetContent(node);
+    *target = ods_str_trim((char *)xmlNodeGetContent(node), 0);
 }
 
 static void
