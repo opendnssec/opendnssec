@@ -11,6 +11,12 @@
 #define DBW_INSERT   2
 #define DBW_UPDATE   3
 
+#define DBW_MINIMIZE_NONE   0
+#define DBW_MINIMIZE_RRSIG  1
+#define DBW_MINIMIZE_DNSKEY 2
+#define DBW_MINIMIZE_DS     4
+#define DBW_MINIMIZE_DS_RRSIG (DBW_MINIMIZE_DS | DBW_MINIMIZE_RRSIG)
+
 enum dbw_key_role {
     /* Values choosen such that CSK = KSK|ZSK */
     DBW_KSK = 1,
@@ -85,6 +91,15 @@ enum dbw_soa_serial {
 
 static const char * dbw_soa_serial_txt[] = {
     "counter", "datecounter", "unixtime", "keep", NULL
+};
+
+enum dbw_denial_type {
+    DBW_NSEC = 0,
+    DBW_NSEC3 = 1
+};
+
+static const char * dbw_denial_type_txt[] = {
+    "NSEC", "NSEC3"
 };
 
 const char * dbw_enum2txt(const char *c[], int n);
@@ -399,6 +414,8 @@ struct dbw_key * dbw_new_key(struct dbw_db *db, struct dbw_zone *zone,
 struct dbw_keystate* dbw_new_keystate(struct dbw_db *db, struct dbw_zone *zone,
     struct dbw_key *key);
 struct dbw_hsmkey* dbw_new_hsmkey(struct dbw_db *db, struct dbw_policy *policy);
+struct dbw_policykey* dbw_new_policykey(struct dbw_db *db, struct dbw_policy *policy);
+struct dbw_policy* dbw_new_policy(struct dbw_db *db);
 
 /** ALL */
 

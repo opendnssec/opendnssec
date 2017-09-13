@@ -1523,6 +1523,35 @@ dbw_new_hsmkey(struct dbw_db *db, struct dbw_policy *policy)
     return hsmkey;
 }
 
+struct dbw_policykey*
+dbw_new_policykey(struct dbw_db *db, struct dbw_policy *policy)
+{
+    struct dbw_policykey *policykey = calloc(1, sizeof (struct dbw_policykey));
+    if (!policykey) return NULL;
+    policykey->policy = policy;
+    policykey->policy_id = policy->id;
+
+    int r = 0;
+    r |= list_add(db->policykeys, (struct dbrow *)policykey);
+    r |= append((void ***)&policy->policykey, &policy->policykey_count, policykey);
+    /* TODO handle errors */
+    policykey->dirty = DBW_INSERT;
+    return policykey;
+}
+
+struct dbw_policy*
+dbw_new_policy(struct dbw_db *db)
+{
+    struct dbw_policy *policy = calloc(1, sizeof (struct dbw_policy));
+    if (!policy) return NULL;
+
+    int r = 0;
+    r |= list_add(db->policies, (struct dbrow *)policy);
+    /* TODO handle errors */
+    policy->dirty = DBW_INSERT;
+    return policy;
+}
+
 int
 dbw_zone_exists(db_connection_t *dbconn, char const *zonename)
 {
