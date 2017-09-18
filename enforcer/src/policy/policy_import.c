@@ -149,6 +149,17 @@ xml_try_read_int(xmlNodePtr root, char const *path, unsigned int *target)
     xmlFree(txt);
 }
 
+static void
+xml_try_read_prop_int(xmlNodePtr root, char const *path, char const *prop, unsigned int *target)
+{
+    xmlNodePtr node = xml_find_node(root, path);
+    if (!node) return;
+    xmlChar *txt = xmlGetProp(node, (xmlChar *)prop);
+    if (!txt) return;
+    *target = atoi((const char *)txt);
+    xmlFree(txt);
+}
+
 struct xml_policykey *
 xml_read_key(xmlNodePtr node, int role)
 {
@@ -156,6 +167,7 @@ xml_read_key(xmlNodePtr node, int role)
     if (!pk) return NULL;
     pk->role = role;
     xml_try_read_int(node,       "./Algorithm", &pk->algorithm);
+    xml_try_read_prop_int(node,  "./Algorithm" , "length", &pk->bits);
     xml_try_read_duration(node,  "./Lifetime", &pk->lifetime);
     xml_try_read_content(node,   "./Repository", &pk->repository);
     xml_try_read_int(node,       "./Standby", &pk->standby);
@@ -166,9 +178,16 @@ xml_read_key(xmlNodePtr node, int role)
     xml_try_read_content(node,   "./KskRollType", &rolltype_str);
     xml_try_read_content(node,   "./ZskRollType", &rolltype_str);
     xml_try_read_content(node,   "./CskRollType", &rolltype_str);
+    rolltype_str = ods_str_trim(rolltype_str, 0);
     int minimize;
-    if (!rolltype_str) minimize = DBW_MINIMIZE_NONE;
-    else if (!strcasecmp(rolltype_str, "KskDoubleRRset"    )) minimize = DBW_MINIMIZE_NONE;
+    if (!rolltype_str) {
+        switch (role) {
+            case DBW_KSK: minimize = DBW_MINIMIZE_DS; break;
+            case DBW_ZSK: minimize = DBW_MINIMIZE_RRSIG; break;
+            case DBW_CSK: minimize = DBW_MINIMIZE_DS_RRSIG; break;
+            default: minimize = DBW_MINIMIZE_NONE;
+        }
+    } else if (!strcasecmp(rolltype_str, "KskDoubleRRset"    )) minimize = DBW_MINIMIZE_NONE;
     else if (!strcasecmp(rolltype_str, "KskDoubleDS"       )) minimize = DBW_MINIMIZE_DNSKEY;
     else if (!strcasecmp(rolltype_str, "KskDoubleSignature")) minimize = DBW_MINIMIZE_DS;
     else if (!strcasecmp(rolltype_str, "ZskDoubleSignature")) minimize = DBW_MINIMIZE_NONE;
@@ -184,17 +203,6 @@ xml_read_key(xmlNodePtr node, int role)
     free(rolltype_str);
 
     return pk;
-}
-
-static void
-xml_try_read_prop_int(xmlNodePtr root, char const *path, char const *prop, unsigned int *target)
-{
-    xmlNodePtr node = xml_find_node(root, path);
-    if (!node) return;
-    xmlChar *txt = xmlGetProp(node, (xmlChar *)prop);
-    if (!txt) return;
-    *target = atoi((const char *)txt);
-    xmlFree(txt);
 }
 
 static int
