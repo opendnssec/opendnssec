@@ -128,6 +128,9 @@ uint32_t time_datestamp(time_t tt, const char* format, char** str);
  */
 void set_time_now(time_t now);
 
+/* are we running realtime of have we leaped? */
+int time_leaped(void);
+
 /**
  * Set the time_now to a new value.
  * As long as this new value is later than the real now time

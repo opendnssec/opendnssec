@@ -471,6 +471,12 @@ time_now(void)
     return time_now_set ? time_now_set: time(NULL);
 }
 
+int
+time_leaped(void)
+{
+    return time_now_set?1:0;
+}
+
 /**
  * copycode: This code is based on the EXAMPLE in the strftime manual.
  *
