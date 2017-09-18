@@ -461,6 +461,12 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
     }
     if (dbw_commit(db)) {
         r = POLICY_IMPORT_ERR_DATABASE;
+    } else {
+        for (size_t p = 0; p < db->policies->n; p++) {
+            struct dbw_policy *policy = (struct dbw_policy *)db->policies->set[p];
+            if (!policy->scratch) continue;
+            client_printf(sockfd, "Updated policy %s successfully\n", policy->name);
+        }
     }
     dbw_free(db);
     return r;
