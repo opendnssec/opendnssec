@@ -281,7 +281,7 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
     zone->next_change = suspend?-1:0;
 
     /* This should yield a single policy w/o zones */
-    struct dbw_db *db = dbw_fetch(dbconn);
+    struct dbw_db *db = dbw_fetch_filtered(dbconn, DBW_F_POLICY);
     if (!db) {
         client_printf_err(sockfd, "Error reading database\n");
         dbw_zone_free((struct dbrow *)zone);

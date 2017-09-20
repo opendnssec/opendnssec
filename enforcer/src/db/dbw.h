@@ -352,7 +352,7 @@ struct dbw_db {
 /* DB operations */
 
 /**
- * The two following functions are the only two operations that will access
+ * The three following functions are the only two operations that will access
  * the database.
  */
 
@@ -363,6 +363,20 @@ struct dbw_db {
  * return NULL on failure
  */
 struct dbw_db *dbw_fetch(db_connection_t *conn);
+
+/* Filter flags for fetch function */
+#define DBW_F_POLICY        (1<<0)
+#define DBW_F_ZONE          (1<<1)
+#define DBW_F_KEY           (1<<2)
+#define DBW_F_KEYSTATE      (1<<3)
+#define DBW_F_HSMKEY        (1<<4)
+#define DBW_F_POLICYKEY     (1<<5)
+#define DBW_F_KEYDEPENDENCY (1<<6)
+#define DBW_F_ALL           (127)
+/**
+ * Same as above but now only tables included in the mask are fetched
+ */
+struct dbw_db *dbw_fetch_filtered(db_connection_t *conn, int mask);
 
 /**
  * Commit changes to the database. Guarded by a R/W lock. Only records marked

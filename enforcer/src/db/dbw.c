@@ -979,11 +979,15 @@ hsmkey_dbx_to_dbw(const hsm_key_t *dbx_item)
  */
 
 static struct dbw_list *
-dbw_zones(db_connection_t *dbconn)
+dbw_zones(db_connection_t *dbconn, int fetch)
 {
-    zone_list_db_t* dbx_list = zone_list_db_new_get(dbconn);
-    if (!dbx_list) return NULL;
-    size_t n = zone_list_db_size(dbx_list);
+    zone_list_db_t* dbx_list = NULL;
+    size_t n = 0;
+    if (fetch) {
+        dbx_list = zone_list_db_new_get(dbconn);
+        if (!dbx_list) return NULL;
+        n = zone_list_db_size(dbx_list);
+    }
     struct dbw_list *list = calloc(1, sizeof (struct dbw_list));
     if (!list) {
         zone_list_db_free(dbx_list);
@@ -992,32 +996,38 @@ dbw_zones(db_connection_t *dbconn)
     list->free = dbw_zone_free;
     list->update = dbw_zone_update;
     list->revision = dbw_zone_revision;
-    list->set = calloc(n, sizeof (struct dbw_zone *));
-    if (!list->set) {
-        dbw_list_free(list);
-        zone_list_db_free(dbx_list);
-        return NULL;
-    }
-    const zone_db_t* dbx_item;
-    while ((dbx_item = zone_list_db_next(dbx_list)) != NULL && list->n < n) {
-        struct dbrow *row = (struct dbrow *)zone_dbx_to_dbw(dbx_item);
-        if (!row) {
+    if (fetch) {
+        list->set = calloc(n, sizeof (struct dbw_zone *));
+        if (!list->set) {
             dbw_list_free(list);
             zone_list_db_free(dbx_list);
             return NULL;
         }
-        list->set[list->n++] = row;
+        const zone_db_t* dbx_item;
+        while ((dbx_item = zone_list_db_next(dbx_list)) != NULL && list->n < n) {
+            struct dbrow *row = (struct dbrow *)zone_dbx_to_dbw(dbx_item);
+            if (!row) {
+                dbw_list_free(list);
+                zone_list_db_free(dbx_list);
+                return NULL;
+            }
+            list->set[list->n++] = row;
+        }
+        zone_list_db_free(dbx_list);
     }
-    zone_list_db_free(dbx_list);
     return list;
 }
 
 static struct dbw_list *
-dbw_keys(db_connection_t *dbconn)
+dbw_keys(db_connection_t *dbconn, int fetch)
 {
-    key_data_list_t* dbx_list = key_data_list_new_get(dbconn);
-    if (!dbx_list) return NULL;
-    size_t n = key_data_list_size(dbx_list);
+    key_data_list_t* dbx_list = NULL;
+    size_t n = 0;
+    if (fetch) {
+        dbx_list = key_data_list_new_get(dbconn);
+        if (!dbx_list) return NULL;
+        n = key_data_list_size(dbx_list);
+    }
     struct dbw_list *list = calloc(1, sizeof (struct dbw_list));
     if (!list) {
         key_data_list_free(dbx_list);
@@ -1026,32 +1036,38 @@ dbw_keys(db_connection_t *dbconn)
     list->free = dbw_key_free;
     list->update = dbw_key_update;
     list->revision = dbw_key_revision;
-    list->set = calloc(n, sizeof (struct dbw_key *));
-    if (!list->set) {
-        dbw_list_free(list);
-        key_data_list_free(dbx_list);
-        return NULL;
-    }
-    const key_data_t* dbx_item;
-    while ((dbx_item = key_data_list_next(dbx_list)) != NULL && list->n < n) {
-        struct dbrow *row = (struct dbrow *)key_dbx_to_dbw(dbx_item);
-        if (!row) {
+    if (fetch) {
+        list->set = calloc(n, sizeof (struct dbw_key *));
+        if (!list->set) {
             dbw_list_free(list);
             key_data_list_free(dbx_list);
             return NULL;
         }
-        list->set[list->n++] = row;
+        const key_data_t* dbx_item;
+        while ((dbx_item = key_data_list_next(dbx_list)) != NULL && list->n < n) {
+            struct dbrow *row = (struct dbrow *)key_dbx_to_dbw(dbx_item);
+            if (!row) {
+                dbw_list_free(list);
+                key_data_list_free(dbx_list);
+                return NULL;
+            }
+            list->set[list->n++] = row;
+        }
+        key_data_list_free(dbx_list);
     }
-    key_data_list_free(dbx_list);
     return list;
 }
 
 static struct dbw_list *
-dbw_keystates(db_connection_t *dbconn)
+dbw_keystates(db_connection_t *dbconn, int fetch)
 {
-    key_state_list_t* dbx_list = key_state_list_new_get(dbconn);
-    if (!dbx_list) return NULL;
-    size_t n = key_state_list_size(dbx_list);
+    key_state_list_t* dbx_list = NULL;
+    size_t n = 0;
+    if (fetch) {
+        dbx_list = key_state_list_new_get(dbconn);
+        if (!dbx_list) return NULL;
+        n = key_state_list_size(dbx_list);
+    }
     struct dbw_list *list = calloc(1, sizeof (struct dbw_list));
     if (!list) {
         key_state_list_free(dbx_list);
@@ -1060,32 +1076,38 @@ dbw_keystates(db_connection_t *dbconn)
     list->free = dbw_keystate_free;
     list->update = dbw_keystate_update;
     list->revision = dbw_keystate_revision;
-    list->set = calloc(n, sizeof (struct dbw_keystate *));
-    if (!list->set) {
-        dbw_list_free(list);
-        key_state_list_free(dbx_list);
-        return NULL;
-    }
-    const key_state_t* dbx_item;
-    while ((dbx_item = key_state_list_next(dbx_list)) != NULL && list->n < n) {
-        struct dbrow *row = (struct dbrow *)keystate_dbx_to_dbw(dbx_item);
-        if (!row) {
+    if (fetch) {
+        list->set = calloc(n, sizeof (struct dbw_keystate *));
+        if (!list->set) {
             dbw_list_free(list);
             key_state_list_free(dbx_list);
             return NULL;
         }
-        list->set[list->n++] = row;
+        const key_state_t* dbx_item;
+        while ((dbx_item = key_state_list_next(dbx_list)) != NULL && list->n < n) {
+            struct dbrow *row = (struct dbrow *)keystate_dbx_to_dbw(dbx_item);
+            if (!row) {
+                dbw_list_free(list);
+                key_state_list_free(dbx_list);
+                return NULL;
+            }
+            list->set[list->n++] = row;
+        }
+        key_state_list_free(dbx_list);
     }
-    key_state_list_free(dbx_list);
     return list;
 }
 
 static struct dbw_list *
-dbw_keydependencies(db_connection_t *dbconn)
+dbw_keydependencies(db_connection_t *dbconn, int fetch)
 {
-    key_dependency_list_t* dbx_list = key_dependency_list_new_get(dbconn);
-    if (!dbx_list) return NULL;
-    size_t n = key_dependency_list_size(dbx_list);
+    key_dependency_list_t* dbx_list = NULL;
+    size_t n = 0;
+    if (fetch) {
+        dbx_list = key_dependency_list_new_get(dbconn);
+        if (!dbx_list) return NULL;
+        n = key_dependency_list_size(dbx_list);
+    }
     struct dbw_list *list = calloc(1, sizeof (struct dbw_list));
     if (!list) {
         key_dependency_list_free(dbx_list);
@@ -1094,32 +1116,38 @@ dbw_keydependencies(db_connection_t *dbconn)
     list->free = dbw_keydependency_free;
     list->update = dbw_keydependency_update;
     list->revision = dbw_keydependency_revision;
+    if (fetch) {
     list->set = calloc(n, sizeof (struct dbw_keydependency *));
-    if (!list->set) {
-        dbw_list_free(list);
-        key_dependency_list_free(dbx_list);
-        return NULL;
-    }
-    const key_dependency_t* dbx_item;
-    while ((dbx_item = key_dependency_list_next(dbx_list)) != NULL && list->n < n) {
-        struct dbrow *row = (struct dbrow *)keydependency_dbx_to_dbw(dbx_item);
-        if (!row) {
+        if (!list->set) {
             dbw_list_free(list);
             key_dependency_list_free(dbx_list);
             return NULL;
         }
-        list->set[list->n++] = row;
+        const key_dependency_t* dbx_item;
+        while ((dbx_item = key_dependency_list_next(dbx_list)) != NULL && list->n < n) {
+            struct dbrow *row = (struct dbrow *)keydependency_dbx_to_dbw(dbx_item);
+            if (!row) {
+                dbw_list_free(list);
+                key_dependency_list_free(dbx_list);
+                return NULL;
+            }
+            list->set[list->n++] = row;
+        }
+        key_dependency_list_free(dbx_list);
     }
-    key_dependency_list_free(dbx_list);
     return list;
 }
 
 static struct dbw_list *
-dbw_hsmkeys(db_connection_t *dbconn)
+dbw_hsmkeys(db_connection_t *dbconn, int fetch)
 {
-    hsm_key_list_t* dbx_list = hsm_key_list_new_get(dbconn);
-    if (!dbx_list) return NULL;
-    size_t n = hsm_key_list_size(dbx_list);
+    hsm_key_list_t* dbx_list = NULL;
+    size_t n = 0;
+    if (fetch) {
+        dbx_list = hsm_key_list_new_get(dbconn);
+        if (!dbx_list) return NULL;
+        n = hsm_key_list_size(dbx_list);
+    }
     struct dbw_list *list = calloc(1, sizeof (struct dbw_list));
     if (!list) {
         hsm_key_list_free(dbx_list);
@@ -1128,33 +1156,39 @@ dbw_hsmkeys(db_connection_t *dbconn)
     list->free = dbw_hsmkey_free;
     list->update = dbw_hsmkey_update;
     list->revision = dbw_hsmkey_revision;
-    list->set = calloc(n, sizeof (struct dbw_hsmkey *));
-    if (!list->set) {
-        dbw_list_free(list);
-        hsm_key_list_free(dbx_list);
-        return NULL;
-    }
-    const hsm_key_t* dbx_item;
-    while ((dbx_item = hsm_key_list_next(dbx_list)) != NULL && list->n < n) {
-        struct dbrow *row = (struct dbrow *)hsmkey_dbx_to_dbw(dbx_item);
-        if (!row) {
+    if (fetch) {
+        list->set = calloc(n, sizeof (struct dbw_hsmkey *));
+        if (!list->set) {
             dbw_list_free(list);
             hsm_key_list_free(dbx_list);
             return NULL;
         }
-        list->set[list->n++] = row;
+        const hsm_key_t* dbx_item;
+        while ((dbx_item = hsm_key_list_next(dbx_list)) != NULL && list->n < n) {
+            struct dbrow *row = (struct dbrow *)hsmkey_dbx_to_dbw(dbx_item);
+            if (!row) {
+                dbw_list_free(list);
+                hsm_key_list_free(dbx_list);
+                return NULL;
+            }
+            list->set[list->n++] = row;
+        }
+        hsm_key_list_free(dbx_list);
     }
-    hsm_key_list_free(dbx_list);
     return list;
 }
 
 
 static struct dbw_list *
-dbw_policies(db_connection_t *dbconn)
+dbw_policies(db_connection_t *dbconn, int fetch)
 {
-    policy_list_t* dbx_list = policy_list_new_get(dbconn);
-    if (!dbx_list) return NULL;
-    size_t n = policy_list_size(dbx_list);
+    policy_list_t* dbx_list = NULL;
+    size_t n = 0;
+    if (fetch) {
+        dbx_list = policy_list_new_get(dbconn);
+        if (!dbx_list) return NULL;
+        n = policy_list_size(dbx_list);
+    }
     struct dbw_list *list = calloc(1, sizeof (struct dbw_list));
     if (!list) {
         policy_list_free(dbx_list);
@@ -1163,32 +1197,38 @@ dbw_policies(db_connection_t *dbconn)
     list->free = dbw_policy_free;
     list->update = dbw_policy_update;
     list->revision = dbw_policy_revision;
-    list->set = calloc(n, sizeof (struct dbw_policy *));
-    if (!list->set) {
-        dbw_list_free(list);
-        policy_list_free(dbx_list);
-        return NULL;
-    }
-    const policy_t* dbx_item;
-    while ((dbx_item = policy_list_next(dbx_list)) != NULL && list->n < n) {
-        struct dbrow *row = (struct dbrow *)policy_dbx_to_dbw(dbx_item);
-        if (!row) {
+    if (fetch) {
+        list->set = calloc(n, sizeof (struct dbw_policy *));
+        if (!list->set) {
             dbw_list_free(list);
             policy_list_free(dbx_list);
             return NULL;
         }
-        list->set[list->n++] = row;
+        const policy_t* dbx_item;
+        while ((dbx_item = policy_list_next(dbx_list)) != NULL && list->n < n) {
+            struct dbrow *row = (struct dbrow *)policy_dbx_to_dbw(dbx_item);
+            if (!row) {
+                dbw_list_free(list);
+                policy_list_free(dbx_list);
+                return NULL;
+            }
+            list->set[list->n++] = row;
+        }
+        policy_list_free(dbx_list);
     }
-    policy_list_free(dbx_list);
     return list;
 }
 
 static struct dbw_list *
-dbw_policykeys(db_connection_t *dbconn)
+dbw_policykeys(db_connection_t *dbconn, int fetch)
 {
-    policy_key_list_t* dbx_list = policy_key_list_new_get(dbconn);
-    if (!dbx_list) return NULL;
-    size_t n = policy_key_list_size(dbx_list);
+    policy_key_list_t* dbx_list = NULL;
+    size_t n = 0;
+    if (fetch) {
+        dbx_list = policy_key_list_new_get(dbconn);
+        if (!dbx_list) return NULL;
+        n = policy_key_list_size(dbx_list);
+    }
     struct dbw_list *list = calloc(1, sizeof (struct dbw_list));
     if (!list) {
         policy_key_list_free(dbx_list);
@@ -1197,23 +1237,25 @@ dbw_policykeys(db_connection_t *dbconn)
     list->free = dbw_policykey_free;
     list->update = dbw_policykey_update;
     list->revision = dbw_policykey_revision;
-    list->set = calloc(n, sizeof (struct dbw_policykey *));
-    if (!list->set) {
-        dbw_list_free(list);
-        policy_key_list_free(dbx_list);
-        return NULL;
-    }
-    const policy_key_t* dbx_item;
-    while ((dbx_item = policy_key_list_next(dbx_list)) != NULL && list->n < n) {
-        struct dbrow *row = (struct dbrow *)policykey_dbx_to_dbw(dbx_item);
-        if (!row) {
+    if (fetch) {
+        list->set = calloc(n, sizeof (struct dbw_policykey *));
+        if (!list->set) {
             dbw_list_free(list);
             policy_key_list_free(dbx_list);
             return NULL;
         }
-        list->set[list->n++] = row;
+        const policy_key_t* dbx_item;
+        while ((dbx_item = policy_key_list_next(dbx_list)) != NULL && list->n < n) {
+            struct dbrow *row = (struct dbrow *)policykey_dbx_to_dbw(dbx_item);
+            if (!row) {
+                dbw_list_free(list);
+                policy_key_list_free(dbx_list);
+                return NULL;
+            }
+            list->set[list->n++] = row;
+        }
+        policy_key_list_free(dbx_list);
     }
-    policy_key_list_free(dbx_list);
     return list;
 }
 
@@ -1231,7 +1273,7 @@ dbw_free(struct dbw_db *db)
 }
 
 struct dbw_db *
-dbw_fetch(db_connection_t *conn)
+dbw_fetch_filtered(db_connection_t *conn, int mask)
 {
     struct dbw_db *db = calloc(1, sizeof(struct dbw_db));
     if (!db) {
@@ -1245,13 +1287,13 @@ dbw_fetch(db_connection_t *conn)
         return NULL;
     }
     db->conn            = conn;
-    db->policies        = dbw_policies(conn);
-    db->zones           = dbw_zones(conn);
-    db->keys            = dbw_keys(conn);
-    db->keystates       = dbw_keystates(conn);
-    db->hsmkeys         = dbw_hsmkeys(conn);
-    db->policykeys      = dbw_policykeys(conn);
-    db->keydependencies = dbw_keydependencies(conn);
+    db->policies        = dbw_policies(conn, mask|DBW_F_POLICY);
+    db->zones           = dbw_zones(conn, mask|DBW_F_ZONE);
+    db->keys            = dbw_keys(conn, mask|DBW_F_KEY);
+    db->keystates       = dbw_keystates(conn, mask|DBW_F_KEYSTATE);
+    db->hsmkeys         = dbw_hsmkeys(conn, mask|DBW_F_HSMKEY);
+    db->policykeys      = dbw_policykeys(conn, mask|DBW_F_POLICYKEY);
+    db->keydependencies = dbw_keydependencies(conn, mask|DBW_F_KEYDEPENDENCY);
     (void)pthread_rwlock_unlock(&db_lock);
 
     if (!db->policies || !db->zones || !db->keys || !db->keystates ||
@@ -1271,6 +1313,12 @@ dbw_fetch(db_connection_t *conn)
     merge_kt_dp(db->keys,     db->keydependencies);
     merge_kf_dp(db->keys,     db->keydependencies);
     return db;
+}
+
+struct dbw_db *
+dbw_fetch(db_connection_t *conn)
+{
+    return dbw_fetch_filtered(conn, DBW_F_ALL);
 }
 
 static int
