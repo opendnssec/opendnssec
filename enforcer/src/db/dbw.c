@@ -1287,13 +1287,13 @@ dbw_fetch_filtered(db_connection_t *conn, int mask)
         return NULL;
     }
     db->conn            = conn;
-    db->policies        = dbw_policies(conn, mask|DBW_F_POLICY);
-    db->zones           = dbw_zones(conn, mask|DBW_F_ZONE);
-    db->keys            = dbw_keys(conn, mask|DBW_F_KEY);
-    db->keystates       = dbw_keystates(conn, mask|DBW_F_KEYSTATE);
-    db->hsmkeys         = dbw_hsmkeys(conn, mask|DBW_F_HSMKEY);
-    db->policykeys      = dbw_policykeys(conn, mask|DBW_F_POLICYKEY);
-    db->keydependencies = dbw_keydependencies(conn, mask|DBW_F_KEYDEPENDENCY);
+    db->policies        = dbw_policies(conn, mask&DBW_F_POLICY);
+    db->zones           = dbw_zones(conn, mask&DBW_F_ZONE);
+    db->keys            = dbw_keys(conn, mask&DBW_F_KEY);
+    db->keystates       = dbw_keystates(conn, mask&DBW_F_KEYSTATE);
+    db->hsmkeys         = dbw_hsmkeys(conn, mask&DBW_F_HSMKEY);
+    db->policykeys      = dbw_policykeys(conn, mask&DBW_F_POLICYKEY);
+    db->keydependencies = dbw_keydependencies(conn, mask&DBW_F_KEYDEPENDENCY);
     (void)pthread_rwlock_unlock(&db_lock);
 
     if (!db->policies || !db->zones || !db->keys || !db->keystates ||
