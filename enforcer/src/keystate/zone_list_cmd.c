@@ -86,7 +86,7 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 
     ods_log_debug("[%s] %s command", module_str, zone_list_funcblock.cmdname);
 
-    struct dbw_db *db = dbw_fetch(dbconn);
+    struct dbw_db *db = dbw_fetch_filtered(dbconn, DBW_F_POLICY|DBW_F_ZONE);
     if (!db) return 1;
     if (!db->zones->n) {
         client_printf(sockfd, "No zones in database.\n");
