@@ -70,9 +70,8 @@ help(int sockfd)
 }
 
 static int
-run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 {
-    char buf[ODS_SE_MAXLINE];
     #define NARGV 6
     const char *argv[NARGV];
     int argc = 0, error;
@@ -90,12 +89,8 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 
     ods_log_debug("[%s] %s command", module_str, key_rollover_funcblock.cmdname);
 
-    /* Use buf as an intermediate buffer for the command. */
-    strncpy(buf, cmd, sizeof(buf));
-    buf[sizeof(buf)-1] = '\0';
-
     /* separate the arguments */
-    argc = ods_str_explode(buf, NARGV, argv);
+    argc = ods_str_explode(cmd, NARGV, argv);
     if (argc == -1) {
         client_printf_err(sockfd, "too many arguments\n");
         ods_log_error("[%s] too many arguments for %s command",

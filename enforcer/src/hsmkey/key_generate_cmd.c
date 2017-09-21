@@ -63,10 +63,9 @@ help(int sockfd)
 }
 
 static int
-run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 {
     #define NARGV 6
-    char* buf;
     const char* argv[NARGV];
     int argc = 0, long_index =0, opt = 0;
     const char* policy_name = NULL;
@@ -86,17 +85,11 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 
     ods_log_debug("[%s] %s command", module_str, key_generate_funcblock.cmdname);
 
-    if (!(buf = strdup(cmd))) {
-        client_printf_err(sockfd, "memory error\n");
-        return -1;
-    }
-
-    argc = ods_str_explode(buf, NARGV, argv);
+    argc = ods_str_explode(cmd, NARGV, argv);
     if (argc == -1) {
         client_printf_err(sockfd, "too many arguments\n");
         ods_log_error("[%s] too many arguments for %s command",
                       module_str, key_generate_funcblock.cmdname);
-        free(buf);
         return -1;
     }
 
@@ -116,7 +109,6 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
                 client_printf_err(sockfd, "unknown arguments\n");
                 ods_log_error("[%s] unknown arguments for %s command",
                                 module_str, key_generate_funcblock.cmdname);
-                free(buf);
                 return -1;
         }
     }
@@ -127,7 +119,6 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
         {
             client_printf_err(sockfd, "Error parsing the specified duration!\n");
             duration_cleanup(duration);
-            free(buf);
             return 1;
         }
         duration_cleanup(duration);
@@ -139,12 +130,10 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
         hsm_key_factory_schedule_generate_policy(engine, policy_name, duration_time);
     } else {
         client_printf_err(sockfd, "Either --all or --policy needs to be given!\n");
-        free(buf);
         return 1;
     }
 
     client_printf(sockfd, "Key generation task scheduled.\n");
-    free(buf);
     return 0;
 }
 

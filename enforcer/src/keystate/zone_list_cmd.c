@@ -76,7 +76,7 @@ time_to_human(time_t t, char *buf, size_t buflen)
 }
 
 static int
-run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 {
     const char* fmt = "%-31s %-13s %-26s %-34s\n";
     char buf[32];

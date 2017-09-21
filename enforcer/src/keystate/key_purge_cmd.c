@@ -70,11 +70,10 @@ help(int sockfd)
  */
 
 static int
-run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 {
 	const char *zone_name = NULL;
 	const char *policy_name = NULL;
-	char *buf;
 	int argc = 0;
 	const char *argv[MAX_ARGS];
 	int long_index = 0, opt = 0;
@@ -91,17 +90,11 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 
 	ods_log_debug("[%s] %s command", module_str, key_purge_funcblock.cmdname);
 
-	if (!(buf = strdup(cmd))) {
-        	client_printf_err(sockfd, "memory error\n");
-	        return -1;
-   	}
-
-	argc = ods_str_explode(buf, MAX_ARGS, argv);
+	argc = ods_str_explode(cmd, MAX_ARGS, argv);
 	if (argc == -1) {
             client_printf_err(sockfd, "too many arguments\n");
             ods_log_error("[%s] too many arguments for %s command",
                           module_str, key_purge_funcblock.cmdname);
-            free(buf);
             return -1;
 	}
 
@@ -118,7 +111,6 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 				client_printf_err(sockfd, "unknown arguments\n");
 				ods_log_error("[%s] unknown arguments for %s command",
 						module_str, key_purge_funcblock.cmdname);
-				free(buf);
 				return -1;
 		}
 	}
@@ -126,13 +118,11 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
     if ((!zone_name && !policy_name) || (zone_name && policy_name)) {
         ods_log_error("[%s] expected either --zone or --policy", module_str);
         client_printf_err(sockfd, "expected either --zone or --policy \n");
-        free(buf);
         return -1;
     }
 
     struct dbw_db *db = dbw_fetch(dbconn);
     if (!db) {
-        free(buf);
         return 1;
     }
     int purged;
@@ -140,7 +130,6 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
         struct dbw_zone *zone = dbw_get_zone(db, zone_name);
         if (!zone) {
             client_printf_err(sockfd, "unknown zone %s\n", zone_name);
-            free(buf);
             dbw_free(db);
             return -1;
         }
@@ -150,7 +139,6 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
         struct dbw_policy *policy = dbw_get_policy(db, policy_name);
         if (!policy) {
             client_printf_err(sockfd, "unknown policy %s\n", policy_name);
-            free(buf);
             dbw_free(db);
             return -1;
         }
@@ -159,7 +147,6 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
     if (purged)
         error = dbw_commit(db);
     dbw_free(db);
-    free(buf);
     return error;
 }
 

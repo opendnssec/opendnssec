@@ -90,10 +90,9 @@ delete_zone(struct dbw_zone *zone)
 }
 
 static int
-run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 {
     #define NARGV 6
-    char* buf;
     const char* argv[NARGV];
     int argc = 0;
     const char *zonename = NULL;
@@ -114,17 +113,11 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 
     ods_log_debug("[%s] %s command", module_str, zone_del_funcblock.cmdname);
 
-    if (!(buf = strdup(cmd))) {
-        client_printf_err(sockfd, "memory error\n");
-        return -1;
-    }
-
-    argc = ods_str_explode(buf, NARGV, argv);
+    argc = ods_str_explode(cmd, NARGV, argv);
     if (argc == -1) {
         client_printf_err(sockfd, "too many arguments\n");
         ods_log_error("[%s] too many arguments for %s command",
                       module_str, zone_del_funcblock.cmdname);
-        free(buf);
         return -1;
     }
 
@@ -144,13 +137,11 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
                client_printf_err(sockfd, "unknown arguments\n");
                ods_log_error("[%s] unknown arguments for %s command",
                                 module_str, zone_del_funcblock.cmdname);
-               free(buf);
                return -1;
         }
     }
     if (all == (zonename != NULL)) { /*xnor*/
        client_printf_err(sockfd, "Either --zone or --all required.\n");
-       free(buf);
        return -1;
     }
 
@@ -186,11 +177,9 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
     if (dbw_commit(db)) {
         client_printf(sockfd, "Error committing changes to database.\n");
         dbw_free(db);
-        free(buf);
         return 1;
     }
     dbw_free(db);
-    free(buf);
 
     if (!zones_deleted && zonename) {
         client_printf_err(sockfd, "Unable to delete zone, zone %s not found", zonename);

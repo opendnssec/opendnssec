@@ -61,14 +61,13 @@ struct cmd_func_block {
      * 
      * \param sockfd, pipe to client,
      * \param ctx, the client context
-     * \param cmd, command and args for additional parsing null character
-     *        terminated
+     * \param cmd, command and args for additional parsing null terminated
      * \param dbconn, connection to the database.
      * \return 0 command executed, all OK
      *      -1 Errors parsing commandline / missing params
      *       positive error code to return to user.
      */
-    int (*run)(int sockfd, cmdhandler_ctx_type*, const char *cmd);
+    int (*run)(int sockfd, cmdhandler_ctx_type*, char *cmd);
 };
 
 struct cmdhandler_struct {

@@ -67,7 +67,7 @@ help(int sockfd)
 }
 
 static int
-parse_args(int sockfd, char const *cmd, char *buf, char **policy, int *all)
+parse_args(int sockfd, char *cmd, char **policy, int *all)
 {
     #define NARGV 12
     char * argv[NARGV];
@@ -81,9 +81,7 @@ parse_args(int sockfd, char const *cmd, char *buf, char **policy, int *all)
     *all = 0;
     *policy = NULL;
 
-    strncpy(buf, cmd, ODS_SE_MAXLINE);
-    buf[ODS_SE_MAXLINE - 1] = '\0';
-    int argc = ods_str_explode(buf, NARGV, (const char **)argv);
+    int argc = ods_str_explode(cmd, NARGV, (const char **)argv);
     if (argc == -1) {
         ods_log_error("[resalt] too many arguments for %s command",
             resalt_funcblock.cmdname);
@@ -112,14 +110,13 @@ parse_args(int sockfd, char const *cmd, char *buf, char **policy, int *all)
 }
 
 static int
-run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 {
-    char buf[ODS_SE_MAXLINE];
     db_connection_t* dbconn = getconnectioncontext(context);;
     engine_type* engine = getglobalcontext(context);
     char *policy;
     int all;
-    if (parse_args(sockfd, cmd, buf, &policy, &all)) {
+    if (parse_args(sockfd, cmd, &policy, &all)) {
         client_printf_err(sockfd, "Error parsing arguments.\n");
         return 1;
     }
