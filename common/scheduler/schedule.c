@@ -568,21 +568,23 @@ schedule_describetask(task_type* task)
     char* strtask = NULL;
     time_t time;
 
-    if (task) {
-	time = (task->due_date < time_now()) ? time_now() : task->due_date;
-        strtime = ctime_r(&time, ctimebuf);
-        if (strtime) {
-            strtime[strlen(strtime)-1] = '\0';
-        }
-        strtask = (char*) calloc(ODS_SE_MAXLINE, sizeof(char));
-        if (strtask) {
-            snprintf(strtask, ODS_SE_MAXLINE, "On %s I will %s zone %s\n",
-                    strtime ? strtime : "(null)", task->type, task->owner);
-            return strtask;
-        } else {
-            ods_log_error("unable to convert task to string: malloc error");
-            return NULL;
-        }
+    if (!task) return NULL;
+    time = (task->due_date < time_now()) ? time_now() : task->due_date;
+    strtime = ctime_r(&time, ctimebuf);
+    if (strtime) {
+        strtime[strlen(strtime)-1] = '\0';
+    } else {
+        strtime = (char *)"(null)";
+    }
+    strtask = (char*) calloc(ODS_SE_MAXLINE, sizeof(char));
+    if (strtask) {
+        char const *entity = strcmp(TASK_TYPE_RESALT, task->type) ? "zone" : "policy";
+        snprintf(strtask, ODS_SE_MAXLINE, "On %s I will %s %s %s\n",
+            strtime, task->type, entity, task->owner);
+        return strtask;
+    } else {
+        ods_log_error("unable to convert task to string: malloc error");
+        return NULL;
     }
     return strtask;
 }
