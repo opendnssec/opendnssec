@@ -96,6 +96,7 @@ ods_enforcerd_SOURCES = \
 	enforcer/repositorylist_cmd.c enforcer/repositorylist_cmd.h \
 	enforcer/update_all_cmd.c enforcer/update_all_cmd.h \
 	enforcer/update_conf_cmd.c enforcer/update_conf_cmd.h \
+	enforcer/lookahead_cmd.c enforcer/lookahead_cmd.h \
 	utils/kc_helper.c utils/kc_helper.h \
 	db/dbw.c db/dbw.h \
 	db/db_backend.c db/db_backend.h \

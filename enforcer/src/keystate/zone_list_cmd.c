@@ -65,7 +65,7 @@ static const char *
 time_to_human(time_t t, char *buf, size_t buflen)
 {
     if (t >= time_now()) {
-        if (ods_ctime_r(buf, buflen, t))
+        if (ods_ctime_r(t, buf))
             return buf;
         return "<error>";
     }

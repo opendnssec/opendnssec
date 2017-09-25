@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2011 NLNet Labs. All rights reserved.
+ * Copyright (c) 2017 Stichting NLnet Labs
+ * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -24,33 +25,9 @@
  *
  */
 
-#ifndef _ENFORCER_ENFORCER_H_
-#define _ENFORCER_ENFORCER_H_
+#ifndef _ENFORCER_LOOKAHEAD_CMD_H_
+#define _ENFORCER_LOOKAHEAD_CMD_H_
 
-#include "db/dbw.h"
-#include "daemon/engine.h"
+struct cmd_func_block lookahead_funcblock;
 
-/**
- * Does any required work for a zone and its policy.
- * 
- * Does any required work for a zone and its policy.
- * insert new keys, check state of current keys and trashes old ones.
- * Returns the earliest time at which this zone needs attention.
- * When no further attention is needed return -1; Another date in the
- * past simply means ASAP. The function MAY be called again for this 
- * zone sooner than indicated. This is however pointless unless some
- * external event happened that influenced this zone/policy/keys.
- * 
- * @param[in] zone 
- * @param[in] now 
- * @param[in] keyfactory
- * @return time_t Time the function wishes to be called again.
- * */
-time_t
-update(engine_type *engine, struct dbw_db *db, struct dbw_zone *zone, time_t now, int *zone_updated);
-/**
- * same as above except will not create HSM keys.
- */
-time_t
-update_mockup(engine_type *engine, struct dbw_db *db, struct dbw_zone *zone, time_t now, int *zone_updated);
-#endif /* _ENFORCER_ENFORCER_H_ */
+#endif /* _ENFORCER_LOOKAHEAD_CMD_H_ */

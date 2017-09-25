@@ -24,6 +24,7 @@
 #include "enforcer/update_all_cmd.h"
 #include "enforcer/update_conf_cmd.h"
 #include "enforcer/enforce_cmd.h"
+#include "enforcer/lookahead_cmd.h"
 #include "policy/policy_import_cmd.h"
 #include "policy/policy_export_cmd.h"
 #include "policy/policy_purge_cmd.h"
@@ -84,6 +85,7 @@ static struct cmd_func_block* enforcecommands[] = {
         &backup_funcblock,
 
         &enforce_funcblock,
+        &lookahead_funcblock,
         &signconf_funcblock,
 
 

@@ -515,6 +515,21 @@ time_datestamp(time_t tt, const char* format, char** str)
 }
 
 /**
+ * Version of ctime_r that does not feature a trailing '\n' character
+ * buf must be allocated and at least 26 bytes!
+ */
+char *
+ods_ctime_r(time_t t, char *buf)
+{
+    if (!buf) return NULL;
+    char *p = ctime_r(&t, buf);
+    if (!p) return NULL;
+    p += strlen(p) - 1;
+    while (p >= buf && isspace(*p)) *(p--) = 0;
+    return buf;
+}
+
+/**
  * Clean up duration.
  *
  */

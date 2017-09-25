@@ -44,6 +44,8 @@ _enforcer()
             else
                 cmds=`${COMP_WORDS[0]} policy list 2>/dev/null |tail -n +2|awk '{ print $1 }'`
             fi;;
+        *"--steps"*)
+            cmds="10";;
         *"--socket"*);&
         *"--input"*);&
         *"--output"*);&
@@ -88,7 +90,7 @@ _enforcer()
     fi
 
     all_cmds="update repository policy zone zonelist key rollover \
-        backup enforce signconf queue flush start running reload stop \
+        backup enforce look-ahead signconf queue flush start running reload stop \
         verbosity help --help --version --socket"
     if [ $COMP_CWORD -eq 1 ]; then
         cmds=$all_cmds
@@ -117,9 +119,13 @@ _enforcer()
                 cmds=`seq 0 5`;;
             *"help"*)
                 cmds=$all_cmds;;
+            *"look-ahead"*)
+                cmds="--zone --steps";;
         esac
     else
         case "${COMP_WORDS[@]:1}" in
+            *"look-ahead"*)
+                cmds="--zone --steps";;
             *"policy export"*)
                 cmds="--policy --all";;
             *"policy import"*)

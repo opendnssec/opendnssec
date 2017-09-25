@@ -134,8 +134,8 @@ map_keystate(struct dbw_key *key)
  * @param zone: zone key belongs to
  * @param key: key to evaluate
  * @return: human readable transition time/event */
-static char*
-map_keytime(const struct dbw_key *key)
+char*
+map_keytime(const struct dbw_key *key, time_t now)
 {
 	char ct[26];
 	struct tm srtm;
@@ -155,7 +155,7 @@ map_keytime(const struct dbw_key *key)
 	}
 	if (key->zone->next_change < 0)
 		return strdup("-");
-	else if (key->zone->next_change < time_now())
+	else if (key->zone->next_change < now)
 		return strdup("now");
 
 	t = (time_t)key->zone->next_change;
@@ -183,7 +183,7 @@ perform_keystate_list(int sockfd, db_connection_t *dbconn, const char* zonename,
             struct dbw_key *key = zone->key[k];
             if (keyrole && key->role != keyrole) continue;
             if (keystate && strcasecmp(map_keystate(key), keystate)) continue;
-            char* tchange = map_keytime(key); /* allocs */
+            char* tchange = map_keytime(key, time_now()); /* allocs */
                 (*printkey)(sockfd, key, tchange);
             free(tchange);
         }

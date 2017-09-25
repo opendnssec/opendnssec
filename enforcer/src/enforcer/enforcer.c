@@ -56,7 +56,7 @@
 
 #include "enforcer/enforcer.h"
 
-#define DEBUG_ENFORCER_LOGIC 0
+#undef DEBUG_ENFORCER_LOGIC
 
 #define HIDDEN      DBW_HIDDEN
 #define RUMOURED    DBW_RUMOURED
@@ -1250,7 +1250,7 @@ lifetime_too_short(struct dbw_policy *policy, struct dbw_policykey *pkey)
  * @return time_t
  * */
 static time_t
-updatePolicy(engine_type *engine, struct dbw_db *db, struct dbw_zone *zone, const time_t now, int *allow_unsigned, int *zone_updated)
+updatePolicy(engine_type *engine, struct dbw_db *db, struct dbw_zone *zone, const time_t now, int *allow_unsigned, int *zone_updated, int mockup)
 {
     static const char *scmd = "updatePolicy";
     struct dbw_policy *policy = zone->policy;
@@ -1320,8 +1320,23 @@ updatePolicy(engine_type *engine, struct dbw_db *db, struct dbw_zone *zone, cons
         struct dbw_hsmkey *hkey = NULL;
         if (policy->keys_shared)
             hkey = getLastReusableKey(zone, pkey);
-        if (!hkey)
-            hkey = hsm_key_factory_get_key(engine, db, pkey);
+        if (!hkey) {
+            if (!mockup) {
+                hkey = hsm_key_factory_get_key(engine, db, pkey);
+            } else {
+                hkey = dbw_new_hsmkey(db, policy);
+                hkey->locator = strdup("[Not generated yet]");
+                hkey->repository = strdup(pkey->repository);
+                hkey->state = DBW_HSMKEY_PRIVATE;
+                hkey->bits = pkey->bits;
+                hkey->algorithm = pkey->algorithm;
+                hkey->role = pkey->role;
+                hkey->inception = now;
+                hkey->is_revoked = 0;
+                hkey->key_type = HSM_KEY_KEY_TYPE_RSA;
+                hkey->backup = HSM_KEY_BACKUP_NO_BACKUP;
+            }
+        }
         if (!hkey) {
             /* Unable to get/create a HSM key at this time, retry later. */
             ods_log_warning("[%s] %s: No keys available in HSM for "
@@ -1337,7 +1352,8 @@ updatePolicy(engine_type *engine, struct dbw_db *db, struct dbw_zone *zone, cons
         struct dbw_key *key = dbw_new_key(db, zone, hkey);
         if (!key) {
             ods_log_error("[%s] %s: error new key", module_str, scmd);
-            hsm_key_factory_release_key(hkey, NULL);
+            if (!mockup)
+                hsm_key_factory_release_key(hkey, NULL);
             return now + 60;
         }
         key->algorithm = pkey->algorithm;
@@ -1348,15 +1364,19 @@ updatePolicy(engine_type *engine, struct dbw_db *db, struct dbw_zone *zone, cons
         key->ds_at_parent = DBW_DS_AT_PARENT_UNSUBMITTED;
 
         /* Generate keytag for the new key and set it. */
-        uint16_t tag;
-        int err = hsm_keytag(hkey->locator, hkey->algorithm, hkey->role >> 1, &tag);
-        if (err) {
-            /* TODO: better log error */
-            ods_log_error("[%s] %s: error keytag", module_str, scmd);
-            hsm_key_factory_release_key(hkey, NULL);
-            return now + 60;
+        if (!mockup) {
+            uint16_t tag;
+            int err = hsm_keytag(hkey->locator, hkey->algorithm, hkey->role >> 1, &tag);
+            if (err) {
+                /* TODO: better log error */
+                ods_log_error("[%s] %s: error keytag", module_str, scmd);
+                hsm_key_factory_release_key(hkey, NULL);
+                return now + 60;
+            }
+            key->keytag = tag;
+        } else {
+            key->keytag = 0xFFFF;
         }
-        key->keytag = tag;
 
         time_t t_ret = addtime(now, pkey->lifetime);
         minTime(t_ret, &return_at);
@@ -1404,6 +1424,7 @@ removeDeadKeys(struct dbw_zone *zone, const time_t now)
     for (size_t k = 0; k < zone->key_count; k++) {
         struct dbw_key *key = zone->key[k];
         if (key->introducing) continue;
+        if (key->dirty == DBW_DELETE) continue;
         time_t key_time = -1;
         int purgable = 1;
         for (size_t s = 0; s < key->keystate_count; s++) {
@@ -1476,16 +1497,16 @@ set_key_flags(struct dbw_zone *zone)
     return mod_zone;
 }
 
-time_t
-update(engine_type *engine, struct dbw_db *db, struct dbw_zone *zone, time_t now,
-    int *zone_updated)
+static time_t
+_update(engine_type *engine, struct dbw_db *db, struct dbw_zone *zone, time_t now,
+    int *zone_updated, int mockup)
 {
     ods_log_info("[%s] update zone: %s", module_str, zone->name);
 
     /* Update policy.*/
     int allow_unsigned = 0;
     time_t policy_return_time = updatePolicy(engine, db, zone, now,
-        &allow_unsigned, zone_updated);
+        &allow_unsigned, zone_updated, mockup);
     if (allow_unsigned) {
         ods_log_info("[%s] No keys configured for %s, zone will become"
            " unsigned eventually", module_str, zone->name);
@@ -1524,4 +1545,18 @@ update(engine_type *engine, struct dbw_db *db, struct dbw_zone *zone, time_t now
 
     minTime(purge_return_time, &return_time);
     return return_time;
+}
+
+time_t
+update(engine_type *engine, struct dbw_db *db, struct dbw_zone *zone, time_t now,
+    int *zone_updated)
+{
+    return _update(engine, db, zone, now, zone_updated, 0);
+}
+
+time_t
+update_mockup(engine_type *engine, struct dbw_db *db, struct dbw_zone *zone, time_t now,
+    int *zone_updated)
+{
+    return _update(engine, db, zone, now, zone_updated, 1);
 }
