@@ -111,6 +111,113 @@ perform_keystate_list(int sockfd, struct dbw_zone *zone,
     }
 }
 
+static void
+get_ref(struct dbrow *r, int ci, int **val, void **ptr)
+{
+    switch (ci) {
+        case 0:
+            *ptr = &r->ptr0;
+            *val = &r->int0;
+            return;
+        case 1:
+            *ptr = &r->ptr1;
+            *val = &r->int1;
+            return;
+        case 2:
+            *ptr = &r->ptr2;
+            *val = &r->int2;
+            return;
+        case 3:
+            *ptr = &r->ptr3;
+            *val = &r->int3;
+            return;
+        case 4:
+            *ptr = &r->ptr4;
+            *val = &r->int4;
+            return;
+    }
+    ods_log_assert(0);
+}
+
+/**
+ * Break all ties between parents and children for deleted children.
+ * ci: Index of parent pointer in the child structure.
+ * pi: Index of the childlist pointer at the parent
+ */
+static void
+disown(struct dbw_list *list, int ci, int pi)
+{
+    for (size_t i = 0; i < list->n; i++) {
+        struct dbrow *child = list->set[i];
+        if (child->dirty != DBW_DELETE) continue;
+
+        /*Find the parent*/
+        struct dbrow **parent = NULL;
+        int *id;
+        get_ref(child, ci, &id, (void **)&parent);
+
+        /*Find the list of children*/
+        struct dbrow **chldr = NULL;
+        int *count;
+        get_ref(*parent, pi, &count, (void **)&chldr);
+        struct dbrow **children = (struct dbrow **)*chldr;
+
+        /*Find the child in the list (it MUST be there!) and move tail
+         * to the new empty spot. */
+        if (*count == 0) return;
+        for (int i = 0; i < *count; i++) {
+            if (children[i] != child) continue;
+            children[i] = children[--(*count)];
+            return;
+        }
+        ods_log_assert(0);
+    }
+}
+
+/**
+ * Delete all rows in this list marked as DELETE.
+ * List is safe to iterate over afterwards. Deleted items are freed.
+ */
+static void
+purge(struct dbw_list *list)
+{
+    int left = 0;
+    while (left < list->n) {
+        if (list->set[left]->dirty == DBW_DELETE) {
+            list->free(list->set[left]);
+            list->set[left] = list->set[--list->n];
+        } else {
+            left++;
+        }
+    }
+}
+
+static void
+scrub_deleted(struct dbw_db *db)
+{
+    /* First break all references from the parents of these items. 
+     * Number magic: the index of the child list and the index of the parent
+     * in the dbrow structure. see dbw.c */
+    disown(db->policykeys,      0, 0);
+    disown(db->hsmkeys,         0, 1);
+    disown(db->zones,           0, 2);
+    disown(db->keys,            0, 1);
+    disown(db->keystates,       0, 2);
+    disown(db->keys,            1, 1);
+    disown(db->keydependencies, 0, 2);
+    disown(db->keydependencies, 1, 3);
+    disown(db->keydependencies, 2, 4);
+
+    /* The 'deleted' items are no longer referenced. Delete them for real. */
+    purge(db->zones);
+    purge(db->policies);
+    purge(db->policykeys);
+    purge(db->hsmkeys);
+    purge(db->keys);
+    purge(db->keydependencies);
+    purge(db->keystates);
+}
+
 /**
  * Handle the 'look-ahead' command.
  *
@@ -217,6 +324,10 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
         }
         if (t_next == -1) break; /* nothing to be done ever */
         now = t_next;
+        /* Since we are not updating the database but will use this structure
+         * for further enforces we must cleanup everything that is marked
+         * as deleted. */
+        scrub_deleted(db);
     }
     dbw_free(db);
     return 0;

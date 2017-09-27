@@ -260,6 +260,7 @@ successor(struct dbw_key *succkey, struct dbw_key *predkey,
     /* trivial case where predecessor depends directly on successor. */
     for (size_t d = 0; d < predkey->from_keydependency_count; d++) {
         struct dbw_keydependency *keydep = predkey->from_keydependency[d];
+        if (keydep->dirty == DBW_DELETE) continue;
         if (keydep->type != type) continue;
         if (keydep->tokey_id == succkey->id) return 1;
     }
@@ -274,6 +275,7 @@ successor(struct dbw_key *succkey, struct dbw_key *predkey,
      * state as P and X is a successor of P. */
     for (size_t d = 0; d < succkey->to_keydependency_count; d++) {
         struct dbw_keydependency *keydep = succkey->to_keydependency[d];
+        if (keydep->dirty == DBW_DELETE) continue;
         if (keydep->type != type) continue;
         struct dbw_key *fromkey = keydep->fromkey;
         /* An 'in between' key should be in the same state as predecessor. */

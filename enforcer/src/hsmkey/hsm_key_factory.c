@@ -466,7 +466,7 @@ hsm_key_factory_get_key(engine_type *engine, struct dbw_db *db,
     ods_log_debug("[hsm_key_factory_get_key] get %s key",
         (policy->keys_shared ?  "shared" : "private"));
 
-    /* Get a list of unused HSM keys matching our requirments */
+    /* Get a list of unused HSM keys matching our requirements */
     struct dbw_hsmkey *hkey = NULL;
     for (size_t h = 0; h < policy->hsmkey_count; h++) {
         struct dbw_hsmkey *hsmkey = policy->hsmkey[h];
@@ -527,6 +527,7 @@ hsm_key_factory_release_key(struct dbw_hsmkey *hsmkey, struct dbw_key *key)
     } else {
         ods_log_debug("[hsm_key_factory_release_key] key %s marked DELETE", hsmkey->locator);
         hsmkey->state = DBW_HSMKEY_DELETE;
+        /*hsmkey->dirty = DBW_DELETE;*/
         dbw_mark_dirty((struct dbrow *)hsmkey);
     }
 }
