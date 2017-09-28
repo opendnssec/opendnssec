@@ -438,4 +438,6 @@ int dbw_zone_exists(db_connection_t *dbconn, char const *zonename);
 void dbw_policies_add_hsmkey(struct dbw_list *policies, struct dbw_hsmkey *hsmkey);
 void dbw_policies_add_zone(struct dbw_list *policies, struct dbw_zone *zone);
 
+//void dbw_dump_db(struct dbw_db *db);
+
 #endif /*DBW_H*/

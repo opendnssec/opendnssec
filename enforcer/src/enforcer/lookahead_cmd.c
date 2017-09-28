@@ -175,18 +175,28 @@ disown(struct dbw_list *list, int ci, int pi)
 }
 
 /**
- * Delete all rows in this list marked as DELETE.
- * List is safe to iterate over afterwards. Deleted items are freed.
+ * Delete all rows in this list marked as DELETE and assign an ID to any new
+ * rows. List is safe to iterate over afterwards. Deleted items are freed.
  */
 static void
 purge(struct dbw_list *list)
 {
+    /* find max ID in table to we can give new rows a free ID */
+    int max_id = 0;
+    for (int n = 0; n < list->n; n++) {
+        if (list->set[n]->id > max_id) max_id = list->set[n]->id;
+    }
+
     int left = 0;
     while (left < list->n) {
         if (list->set[left]->dirty == DBW_DELETE) {
             list->free(list->set[left]);
             list->set[left] = list->set[--list->n];
         } else {
+            if (list->set[left]->dirty == DBW_INSERT) {
+                list->set[left]->id = ++max_id;
+                list->set[left]->dirty = DBW_CLEAN;
+            }
             left++;
         }
     }
@@ -328,6 +338,7 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
          * for further enforces we must cleanup everything that is marked
          * as deleted. */
         scrub_deleted(db);
+        /*dbw_dump_db(db);*/
     }
     dbw_free(db);
     return 0;

@@ -1615,3 +1615,29 @@ dbw_mark_dirty(struct dbrow *row)
     if (row->dirty == DBW_CLEAN)
         row->dirty = DBW_UPDATE;
 }
+
+/* Summary for debugging purposes */
+/*void*/
+/*dbw_dump_db(struct dbw_db *db)*/
+/*{*/
+    /*for (size_t p = 0; p < db->policies->n; p++) {*/
+        /*struct dbw_policy *policy = (struct dbw_policy *)db->policies->set[p];*/
+        /*printf("policy %d, pkc: %d, hkc: %d, zc: %d\n", policy->id,*/
+            /*policy->policykey_count, policy->hsmkey_count, policy->zone_count);*/
+        /*for (size_t pk = 0; pk < policy->policykey_count; pk++) {*/
+            /*struct dbw_policykey *policykey = policy->policykey[pk];*/
+            /*printf("\tpolicykey: %d\n", policykey->id);*/
+        /*}*/
+        /*for (size_t z = 0; z < policy->zone_count; z++) {*/
+            /*struct dbw_zone *zone = policy->zone[z];*/
+            /*printf("\tzone: %d, kc: %d, kdc: %d\n", zone->id, zone->key_count,*/
+                /*zone->keydependency_count);*/
+            /*for (size_t k = 0; k < zone->key_count; k++) {*/
+                /*struct dbw_key *key = zone->key[k];*/
+                /*printf("\t\tkey: %d, ksc: %d, kdfc: %d, kdtc: %d\n", key->id,*/
+                    /*key->keystate_count, key->from_keydependency_count,*/
+                    /*key->to_keydependency_count);*/
+            /*}*/
+        /*}*/
+    /*}*/
+/*}*/
