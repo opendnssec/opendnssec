@@ -1432,6 +1432,43 @@ int hsm_key_update(hsm_key_t* hsm_key) {
     return ret;
 }
 
+int hsm_key_delete(hsm_key_t* hsmkey) {
+    db_clause_list_t* clause_list;
+    db_clause_t* clause;
+    int ret;
+
+    if (!hsmkey) return DB_ERROR_UNKNOWN;
+    if (!hsmkey->dbo) return DB_ERROR_UNKNOWN;
+    if (db_value_not_empty(&(hsmkey->id))) return DB_ERROR_UNKNOWN;
+    if (!(clause_list = db_clause_list_new())) return DB_ERROR_UNKNOWN;
+
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "id")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_value_copy(db_clause_get_value(clause), &(hsmkey->id))
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        db_clause_list_free(clause_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    if (!(clause = db_clause_new())
+        || db_clause_set_field(clause, "rev")
+        || db_clause_set_type(clause, DB_CLAUSE_EQUAL)
+        || db_value_copy(db_clause_get_value(clause), &(hsmkey->rev))
+        || db_clause_list_add(clause_list, clause))
+    {
+        db_clause_free(clause);
+        db_clause_list_free(clause_list);
+        return DB_ERROR_UNKNOWN;
+    }
+
+    ret = db_object_delete(hsmkey->dbo, clause_list);
+    db_clause_list_free(clause_list);
+    return ret;
+}
+
 int hsm_key_count(hsm_key_t* hsm_key, db_clause_list_t* clause_list, size_t* count) {
     if (!hsm_key) {
         return DB_ERROR_UNKNOWN;

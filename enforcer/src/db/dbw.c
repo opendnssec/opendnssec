@@ -563,10 +563,9 @@ dbw_hsmkey_update(const db_connection_t *dbconn, struct dbrow *row)
 
     switch (row->dirty) {
         case DBW_DELETE:
-            ods_log_assert(0); //TODO NOT IMPL
             if (db_value_from_int32(&id, row->id) || hsm_key_get_by_id(dbx_obj, &id))
                 return 1;
-            /*ret = hsm_key_delete(dbx_obj); //NOT IMPL*/
+            ret = hsm_key_delete(dbx_obj);
             hsm_key_free(dbx_obj);
             return ret;
         case DBW_UPDATE:
@@ -1329,6 +1328,9 @@ dbw_commit_list(const db_connection_t *conn, struct dbw_list *list)
         if (!row->dirty) continue;
         int r = list->update(conn, row);
         if (r) return r;
+        /* TODO: if successful, DELETED rows will be clean and dbw_db
+         * structure will not be safe to reuse. We should remove these items
+         * completely (see lookahead_cmd.c) */
         row->dirty = DBW_CLEAN;
     }
     return 0;

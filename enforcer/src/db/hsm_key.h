@@ -416,6 +416,8 @@ hsm_key_t* hsm_key_new_get_by_locator(const db_connection_t* connection, const c
  */
 int hsm_key_update(hsm_key_t* hsm_key);
 
+int hsm_key_delete(hsm_key_t* hsmkey);
+
 /**
  * Count the number of hsm key objects in the database, if a selection of
  * objects should be counted then it can be limited by a database clause list

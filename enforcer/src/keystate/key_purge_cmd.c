@@ -122,9 +122,8 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
     }
 
     struct dbw_db *db = dbw_fetch(dbconn);
-    if (!db) {
-        return 1;
-    }
+    if (!db) return 1;
+
     int purged;
     if (zone_name) {
         struct dbw_zone *zone = dbw_get_zone(db, zone_name);

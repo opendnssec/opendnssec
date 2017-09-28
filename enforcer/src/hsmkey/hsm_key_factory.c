@@ -526,9 +526,10 @@ hsm_key_factory_release_key(struct dbw_hsmkey *hsmkey, struct dbw_key *key)
         ods_log_debug("[hsm_key_factory_release_key] unable to release hsm_key, in use");
     } else {
         ods_log_debug("[hsm_key_factory_release_key] key %s marked DELETE", hsmkey->locator);
+        hsmkey->dirty = DBW_DELETE;
+        /* state will not be committed to the database but will prevent this 
+         * key to be used in the current iteration. */
         hsmkey->state = DBW_HSMKEY_DELETE;
-        /*hsmkey->dirty = DBW_DELETE;*/
-        dbw_mark_dirty((struct dbrow *)hsmkey);
     }
 }
 
