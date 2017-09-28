@@ -1,6 +1,8 @@
 * would exit on SIGPIPE
 * impl look-ahead
 * OPENDNSSEC-909
+* DS automatically to submitted even if there wasn't a DSsubmitCommand
+    TODO: figure out this bug was before or after DBW
 
 OpenDNSSEC 2.2 - 2017-xx-xx
 

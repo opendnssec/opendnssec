@@ -65,6 +65,9 @@ schedule_ds_tasks(engine_type *engine, struct dbw_zone *zone)
             bRetractFromParent = 1;
         }
     }
+    /* Do not schedule DS tasks when no command is specified */
+    if (!engine->config->delegation_signer_submit_command) bSubmitToParent = 0;
+    if (!engine->config->delegation_signer_retract_command) bRetractFromParent = 0;
     /* Launch ds-submit task when one of the updated key states has the
      * DS_SUBMIT flag set. */
     if (bSubmitToParent) {
