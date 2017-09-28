@@ -1419,7 +1419,7 @@ updatePolicy(engine_type *engine, struct dbw_db *db, struct dbw_zone *zone, cons
 }
 
 static time_t
-removeDeadKeys(struct dbw_zone *zone, const time_t now)
+removeDeadKeys(struct dbw_zone *zone, const time_t now, int mockup)
 {
     static const char *scmd = "removeDeadKeys";
     time_t first_purge = -1;
@@ -1450,7 +1450,7 @@ removeDeadKeys(struct dbw_zone *zone, const time_t now)
             key->keystate[s]->dirty = DBW_DELETE;
         }
         key->dirty = DBW_DELETE;
-        hsm_key_factory_release_key(key->hsmkey, key);
+        hsm_key_factory_release_key_mockup(key->hsmkey, key, mockup);
         /* we can clean up dependency because key is purgable */
         for (size_t d = 0; d < key->from_keydependency_count; d++) {
             key->from_keydependency[d]->dirty = DBW_DELETE;
@@ -1521,7 +1521,7 @@ _update(engine_type *engine, struct dbw_db *db, struct dbw_zone *zone, time_t no
     time_t purge_return_time = -1;
     if (zone->policy->keys_purge_after) {
         purge_return_time = 0;
-        purge_return_time = removeDeadKeys(zone, now);
+        purge_return_time = removeDeadKeys(zone, now, mockup);
     }
 
     if (set_key_flags(zone)) { /* active and publish flags in signconf */

@@ -94,5 +94,7 @@ hsm_key_factory_get_key(engine_type *engine, struct dbw_db *db,
  */
 void
 hsm_key_factory_release_key(struct dbw_hsmkey *hsmkey, struct dbw_key *key);
+void
+hsm_key_factory_release_key_mockup(struct dbw_hsmkey *hsmkey, struct dbw_key *key, int mockup);
 
 #endif /* _HSM_KEY_FACTORY_H_ */

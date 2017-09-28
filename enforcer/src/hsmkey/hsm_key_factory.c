@@ -518,7 +518,7 @@ hsm_key_factory_get_key(engine_type *engine, struct dbw_db *db,
 
 
 void
-hsm_key_factory_release_key(struct dbw_hsmkey *hsmkey, struct dbw_key *key)
+hsm_key_factory_release_key_mockup(struct dbw_hsmkey *hsmkey, struct dbw_key *key, int mockup)
 {
     int c = hsmkey->key_count;
     if (c == 1 && hsmkey->key[0] == key) c--;
@@ -530,6 +530,38 @@ hsm_key_factory_release_key(struct dbw_hsmkey *hsmkey, struct dbw_key *key)
         /* state will not be committed to the database but will prevent this 
          * key to be used in the current iteration. */
         hsmkey->state = DBW_HSMKEY_DELETE;
+        if (!mockup) {
+            /* Don't do any actuall HSM operations when running in dry mode */
+            if (!__hsm_key_factory_lock) {
+                pthread_once(&__hsm_key_factory_once, hsm_key_factory_init);
+                if (!__hsm_key_factory_lock) {
+                    ods_log_error("[hsm_key_factory_generate_policy] mutex init error");
+                    return;
+                }
+            }
+            if (pthread_mutex_lock(__hsm_key_factory_lock)) {
+                ods_log_error("[hsm_key_factory_generate_policy] mutex lock error");
+                return;
+            }
+            hsm_ctx_t *hsm_ctx;
+            if (!(hsm_ctx = hsm_create_context())) {
+                pthread_mutex_unlock(__hsm_key_factory_lock);
+                return;
+            }
+            libhsm_key_t *hkey = hsm_find_key_by_id(hsm_ctx, hsmkey->locator);
+            if (hsm_remove_key(hsm_ctx, hkey)) {
+                ods_log_error("Unable to remove key from HSM");
+            } else {
+                ods_log_error("Successfully removed key from HSM");
+            }
+            hsm_destroy_context(hsm_ctx);
+            pthread_mutex_unlock(__hsm_key_factory_lock);
+        }
     }
 }
 
+void
+hsm_key_factory_release_key(struct dbw_hsmkey *hsmkey, struct dbw_key *key)
+{
+    hsm_key_factory_release_key_mockup(hsmkey, key, 0);
+}
