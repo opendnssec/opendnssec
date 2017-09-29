@@ -107,10 +107,11 @@ minTime(const time_t t, time_t* min)
 static time_t
 addtime(const time_t t, const int seconds)
 {
-	struct tm *tp = localtime(&t);
-	if (!tp) return -1; /* bad, but mktime also returns -1 on error */
-	tp->tm_sec += seconds;
-	return mktime(tp);
+    struct tm timebuf;
+    struct tm *tp = localtime_r(&t, &timebuf);
+    if (!tp) return -1; /* bad, but mktime also returns -1 on error */
+    tp->tm_sec += seconds;
+    return mktime(tp);
 }
 
 /**

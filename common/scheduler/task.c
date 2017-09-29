@@ -199,10 +199,11 @@ task_compare_time_then_ttuple(const void* a, const void* b)
 void
 task_log(task_type* task)
 {
+    char ctimebuf[32]; /* at least 26 according to docs */
     char* strtime = NULL;
 
     if (task) {
-        strtime = ctime(&task->due_date);
+        strtime = ctime_r(&task->due_date, ctimebuf);
         if (strtime) {
             strtime[strlen(strtime)-1] = '\0';
         }

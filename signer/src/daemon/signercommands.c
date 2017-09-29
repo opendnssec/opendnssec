@@ -447,6 +447,7 @@ cmdhandler_handle_cmd_queue(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 {
     engine_type* engine;
     char* strtime = NULL;
+    char ctimebuf[32]; /* at least 26 according to docs */
     char buf[ODS_SE_MAXLINE];
     char* taskdesc;
     size_t i = 0;
@@ -461,7 +462,7 @@ cmdhandler_handle_cmd_queue(int sockfd, cmdhandler_ctx_type* context, char *cmd)
     }
     /* current time */
     now = time_now();
-    strtime = ctime(&now);
+    strtime = ctime_r(&now, ctimebuf);
     (void)snprintf(buf, ODS_SE_MAXLINE, "It is now %s",
         strtime?strtime:"(null)");
     client_printf(sockfd, buf);
