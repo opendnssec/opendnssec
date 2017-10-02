@@ -40,6 +40,8 @@
 #include <libxml/parser.h>
 #include <libxml/tree.h>
 
+#define MAX_ZONE_TTL 86400
+
 struct xml_policykey {
     char* repository;
     unsigned int role;
@@ -300,6 +302,12 @@ repository_names(hsm_repository_t* hsm, char ***list, int *count)
     }
 }
 
+static void
+xml_policy_set_defaults(struct xml_policy *xp)
+{
+    xp->signatures_max_zone_ttl = MAX_ZONE_TTL;
+}
+
 static int
 process_xml(int sockfd, xmlNodePtr root, struct xml_policy** policies_out, int *count_out)
 {
@@ -313,6 +321,7 @@ process_xml(int sockfd, xmlNodePtr root, struct xml_policy** policies_out, int *
     xp = calloc(count, sizeof(struct xml_policy));
     for (int i = 0; i < count; i++) {
         xmlNodePtr node = xpolicies->nodesetval->nodeTab[i];
+        xml_policy_set_defaults(xp+i);
         if (xml_read_policy(node, xp+i)) {
             client_printf_err(sockfd, "Unable to create policy from XML.");
             free(xp);
