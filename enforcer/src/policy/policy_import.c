@@ -242,7 +242,7 @@ xml_read_policy(xmlNodePtr node, struct xml_policy *policy)
     xml_try_read_duration(node, "./Keys/Purge", &policy->keys_purge_after);
 
     xml_try_read_duration(node, "./Zone/PropagationDelay", &policy->zone_propagation_delay);
-    xml_try_read_int(node,      "./Zone/SOA/TTL", &policy->zone_soa_ttl);
+    xml_try_read_duration(node,      "./Zone/SOA/TTL", &policy->zone_soa_ttl);
     xml_try_read_duration(node, "./Zone/SOA/Minimum", &policy->zone_soa_minimum);
     char *serial = NULL;
     xml_try_read_content(node,  "./Zone/SOA/Serial", &serial);
@@ -250,8 +250,8 @@ xml_read_policy(xmlNodePtr node, struct xml_policy *policy)
     free(serial);
 
     xml_try_read_duration(node, "./Parent/PropagationDelay", &policy->parent_propagation_delay);
-    xml_try_read_int(node,      "./Parent/DS/TTL", &policy->parent_ds_ttl);
-    xml_try_read_int(node,      "./Parent/SOA/TTL", &policy->parent_soa_ttl);
+    xml_try_read_duration(node,      "./Parent/DS/TTL", &policy->parent_ds_ttl);
+    xml_try_read_duration(node,      "./Parent/SOA/TTL", &policy->parent_soa_ttl);
     xml_try_read_duration(node, "./Parent/SOA/Minimum", &policy->parent_soa_minimum);
     xml_try_read_duration(node, "./Parent/RegistrationDelay", &policy->parent_registration_delay);
 
