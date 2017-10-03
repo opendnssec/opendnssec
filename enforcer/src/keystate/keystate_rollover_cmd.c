@@ -161,7 +161,10 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
     }
     if (!match) {
         error = 1;
-        client_printf_err(sockfd, "No matching zone found.\n");
+        if (s_zone)
+            client_printf_err(sockfd, "zone %s not found.\n", s_zone);
+        else
+            client_printf_err(sockfd, "No matching zone found.\n");
     } else {
         error = dbw_commit(db);
         if (!error) {
