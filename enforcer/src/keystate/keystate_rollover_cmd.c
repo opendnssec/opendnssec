@@ -136,12 +136,14 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 
     struct dbw_db *db = dbw_fetch(dbconn);
     if (!db) return -1;
+    int match = 0;
     for (size_t p = 0; p < db->policies->n; p++) {
         struct dbw_policy *policy = (struct dbw_policy *)db->policies->set[p];
         if (s_policy && strcasecmp(policy->name, s_policy)) continue;
         for (size_t z = 0; z < policy->zone_count; z++) {
             struct dbw_zone *zone = policy->zone[z];
             if (s_zone && strcasecmp(zone->name, s_zone)) continue;
+            match++;
             /* Key of this zone needs to roll */
             zone->roll_zsk_now = (keytype_int == DBW_ZSK) || !keytype_int;
             zone->roll_ksk_now = (keytype_int == DBW_KSK) || !keytype_int;
@@ -157,12 +159,17 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
                 zone->name);
         }
     }
-    error = dbw_commit(db);
-    if (!error) {
-        for (size_t z = 0; z < db->zones->n; z++) {
-            struct dbw_zone *zone = (struct dbw_zone *)db->zones->set[z];
-            if (!zone->scratch) continue;
-            enforce_task_flush_zone(engine, zone->name);
+    if (!match) {
+        error = 1;
+        client_printf_err(sockfd, "No matching zone found.\n");
+    } else {
+        error = dbw_commit(db);
+        if (!error) {
+            for (size_t z = 0; z < db->zones->n; z++) {
+                struct dbw_zone *zone = (struct dbw_zone *)db->zones->set[z];
+                if (!zone->scratch) continue;
+                enforce_task_flush_zone(engine, zone->name);
+            }
         }
     }
     dbw_free(db);
