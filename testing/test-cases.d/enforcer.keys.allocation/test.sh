@@ -127,7 +127,7 @@ test `ods-hsmutil list | grep ^SoftHSM | wc -l` -eq 12 &&
 
 # YBS: The correct number is 8. In practice there are 12 because of
 # a race condition. So YMMV. All three of the shared zones request
-# new keys simultainiously, starting too many key generation tasks.
+# new keys simultaneously, starting too many key generation tasks.
 # One key of each type is never allocated. Normally these will be
 # used in the next rollover.
 
