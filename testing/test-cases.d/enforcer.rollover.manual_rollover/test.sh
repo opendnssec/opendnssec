@@ -44,7 +44,7 @@ log_grep ods-enforcer-key-rollover_bad1 stdout 'expected either --zone <zone> or
 
 # Make sure nothing happens for a non-existent zone
 ! log_this ods-enforcer-key-rollover_bad2 ods-enforcer key rollover --zone bob --keytype ZSK &&
-log_grep ods-enforcer-key-rollover_bad2 stdout "zone bob not found" &&
+log_grep ods-enforcer-key-rollover_bad2 stderr "zone bob not found" &&
 
 # ******************* Roll the ZSK first ************************ 
 sleep 1 && ods_enforcer_idle &&
