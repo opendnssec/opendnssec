@@ -279,7 +279,7 @@ change_keys_from_to(db_connection_t *dbconn, int sockfd, const char *zonename,
     }
     dbw_free(db);
     client_printf(sockfd, "%d KSK matches found.\n", key_match);
-    client_printf(sockfd, "%d KSKs changed\n", key_match);
+    client_printf(sockfd, "%d KSKs changed.\n", key_match);
     return (!key_match);
 }
 
