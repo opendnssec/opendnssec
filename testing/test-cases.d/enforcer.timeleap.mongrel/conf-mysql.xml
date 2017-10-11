@@ -19,6 +19,8 @@
 	<Enforcer>
 		<Datastore><MySQL><Host>localhost</Host><Database>test</Database><Username>test</Username><Password>test</Password></MySQL></Datastore>
 		<AutomaticKeyGenerationPeriod>PT360000S</AutomaticKeyGenerationPeriod>
+		<DelegationSignerSubmitCommand>true</DelegationSignerSubmitCommand>
+		<DelegationSignerRetractCommand>true</DelegationSignerRetractCommand>
 		<WorkerThreads>0</WorkerThreads>
 	</Enforcer>
 	<Signer>

@@ -54,6 +54,7 @@ ods_stop_enforcer &&
 echo "**** OK" &&
 return $KEEP_LOG_ON_SUCCESS
 
+ods-enforcer key list -a -d -p
 echo  "**** FAILED"
 ods_kill
 return 1
