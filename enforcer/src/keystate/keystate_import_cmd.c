@@ -335,13 +335,12 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
     struct dbw_db *db = dbw_fetch(dbconn);
     if (!db) return 1;
     struct dbw_zone *zone = dbw_get_zone(db, zonename);
-    if (zone) {
+    if (!zone) {
         ods_log_error("[%s] Unknown zone: %s", module_str, zonename);
         client_printf_err(sockfd, "Unknown zone: %s\n", zonename);
         dbw_free(db);
         return -1;
     }
-    free(zone);
     zone = NULL;
 
     if (!algorithm) {
