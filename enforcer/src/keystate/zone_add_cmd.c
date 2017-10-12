@@ -230,18 +230,12 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
                " type! out_type must be 'File' or 'DNS'.\n", output_type);
         return 1;
     }
-    if (access(output, F_OK) == -1) {
-        client_printf_err(sockfd, "WARNING: The output file %s for zone %s does"
-                " not currently exist. The zone will be added to the database"
-                " anyway. \n", output, zone_name);
-        ods_log_warning("[%s] WARNING: The output file %s for zone %s does"
-                " not currently exist. The zone will be added to the database"
-                " anyway.", module_str, output, zone_name);
-    } else if (access(output, R_OK)) {
-        client_printf_err(sockfd, "WARNING: Read access to output file %s for"
-                " zone %s denied! \n ", output, zone_name);
-        ods_log_warning("[%s] WARNING: Read access to output file %s for zone"
-                " %s denied! ", module_str, output, zone_name);
+    if (!access(output, F_OK) && access(output, W_OK)) {
+        client_printf_err(sockfd, "ERROR: Write access to output file %s for"
+                " zone %s denied!\n", output, zone_name);
+        ods_log_warning("[%s] ERROR: Write access to output file %s for zone"
+                " %s denied!", module_str, output, zone_name);
+        return 1;
     }
 
     if (!signconf) {
