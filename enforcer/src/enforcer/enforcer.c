@@ -1352,6 +1352,20 @@ updatePolicy(engine_type *engine, struct dbw_db *db, struct dbw_zone *zone, cons
         }
         ods_log_verbose("[%s] %s: got new key from HSM", module_str, scmd);
 
+        uint16_t tag;
+        /* Generate keytag for the new key and set it. */
+        if (!mockup) {
+            int err = hsm_keytag(hkey->locator, hkey->algorithm, hkey->role & DBW_KSK, &tag);
+            if (err) {
+                /* TODO: better log error */
+                ods_log_error("[%s] %s: error keytag", module_str, scmd);
+                hsm_key_factory_release_key(hkey, NULL);
+                return now + 60;
+            }
+        } else {
+            tag = 0xFFFF;
+        }
+
         struct dbw_key *key = dbw_new_key(db, zone, hkey);
         if (!key) {
             ods_log_error("[%s] %s: error new key", module_str, scmd);
@@ -1365,21 +1379,7 @@ updatePolicy(engine_type *engine, struct dbw_db *db, struct dbw_zone *zone, cons
         key->minimize = pkey->minimize;
         key->introducing = 1;
         key->ds_at_parent = DBW_DS_AT_PARENT_UNSUBMITTED;
-
-        /* Generate keytag for the new key and set it. */
-        if (!mockup) {
-            uint16_t tag;
-            int err = hsm_keytag(hkey->locator, hkey->algorithm, hkey->role >> 1, &tag);
-            if (err) {
-                /* TODO: better log error */
-                ods_log_error("[%s] %s: error keytag", module_str, scmd);
-                hsm_key_factory_release_key(hkey, NULL);
-                return now + 60;
-            }
-            key->keytag = tag;
-        } else {
-            key->keytag = 0xFFFF;
-        }
+        key->keytag = tag;
 
         time_t t_ret = addtime(now, pkey->lifetime);
         minTime(t_ret, &return_at);
