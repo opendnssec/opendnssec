@@ -315,9 +315,9 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
     if (zonename && !exports) {
         ods_log_error("[%s] Unknown zone: %s", module_str, zonename);
         client_printf_err(sockfd, "Unknown zone: %s\n", zonename);
-        return -1;
+        return 1;
     }
-    return r;
+    return 0;
 }
 
 struct cmd_func_block key_export_funcblock = {

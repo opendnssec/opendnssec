@@ -140,7 +140,7 @@ _enforcer()
             *"key list"*)
                 cmds="--verbose --debug --parsable --zone --keystate --all";;
             *"key export"*)
-                cmds="--zone --keystate --keytype --ds";;
+                cmds="--zone --keystate --keytype --ds --all";;
             *"key import"*)
                 cmds="--cka_id --repository --zone --bits --algorithm \
                     --keystate --keytype --inception_time";;
