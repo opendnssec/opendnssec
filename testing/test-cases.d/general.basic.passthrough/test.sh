@@ -8,33 +8,33 @@ if [ -n "$HAVE_MYSQL" ]; then
 fi &&
 
 ods_reset_env &&
-ods_start_ods-control &&
+echo -n "LINE: ${LINENO} " && ods_start_ods-control &&
 
 ## add zone in passthrough policy
-log_this 01-zone_add ods-enforcer zone add -z example.com &&
+echo -n "LINE: ${LINENO} " && log_this 01-zone_add ods-enforcer zone add -z example.com &&
 
 ## wait for signed file to appear
-syslog_waitfor 10 'ods-signerd: .*\[STATS\] example.com' &&
-test -f "$INSTALL_ROOT/var/opendnssec/signed/example.com" &&
+echo -n "LINE: ${LINENO} " && syslog_waitfor 10 'ods-signerd: .*\[STATS\] example.com' &&
+echo -n "LINE: ${LINENO} " && test -f "$INSTALL_ROOT/var/opendnssec/signed/example.com" &&
 
 ## test absence of signatures
-grep -vq RRSIG "$INSTALL_ROOT/var/opendnssec/signed/example.com" &&
+echo -n "LINE: ${LINENO} " && grep RRSIG "$INSTALL_ROOT/var/opendnssec/signed/example.com" &&
 
 ## test serial bump
-SOA1=`grep SOA "$INSTALL_ROOT/var/opendnssec/unsigned/example.com" | cut -f5 | cut -f3 -d" "` &&
-SOA2=`grep SOA "$INSTALL_ROOT/var/opendnssec/signed/example.com" | cut -f5 | cut -f3 -d" "` &&
-test $SOA1 -lt $SOA2 &&
+echo -n "LINE: ${LINENO} " && SOA1=`grep SOA "$INSTALL_ROOT/var/opendnssec/unsigned/example.com" | cut -f5 | cut -f3 -d" "` &&
+echo -n "LINE: ${LINENO} " && SOA2=`grep SOA "$INSTALL_ROOT/var/opendnssec/signed/example.com" | cut -f5 | cut -f3 -d" "` &&
+echo -n "LINE: ${LINENO} " && test "$SOA1" -lt "$SOA2" &&
 
 ## ask for a resign
-touch "$INSTALL_ROOT/var/opendnssec/signed/example.com" &&
-log_this 02-resign ods-signer sign example.com &&
-syslog_waitfor_count 10 2 'ods-signerd: .*\[STATS\] example.com' &&
+echo -n "LINE: ${LINENO} " && touch "$INSTALL_ROOT/var/opendnssec/signed/example.com" &&
+echo -n "LINE: ${LINENO} " && log_this 02-resign ods-signer sign example.com &&
+echo -n "LINE: ${LINENO} " && syslog_waitfor_count 10 2 'ods-signerd: .*\[STATS\] example.com' &&
 
 ## serial bumped again?
-SOA3=`grep SOA "$INSTALL_ROOT/var/opendnssec/signed/example.com" | cut -f5 | cut -f3 -d" "` &&
-test $SOA2 -lt $SOA3 &&
+echo -n "LINE: ${LINENO} " && SOA3=`grep SOA "$INSTALL_ROOT/var/opendnssec/signed/example.com" | cut -f5 | cut -f3 -d" "` &&
+echo -n "LINE: ${LINENO} " && test $SOA2 -lt $SOA3 &&
 
-ods_stop_ods-control &&
+echo -n "LINE: ${LINENO} " && ods_stop_ods-control &&
 return 0
 
 echo

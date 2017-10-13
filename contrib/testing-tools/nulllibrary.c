@@ -17,7 +17,7 @@ static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 static struct connection_struct {
     int validLogin;
     struct session_struct* sessions;
-} connection;
+} connection = { 0 , NULL };
 
 struct session_struct {
     struct connection_struct connection;
@@ -124,6 +124,8 @@ OpenSession(CK_SLOT_ID slot_id, CK_FLAGS flags, void *application, CK_NOTIFY not
         pthread_mutex_lock(&lock);
         sessionImpl->next = connection.sessions;
         sessionImpl->prev = NULL;
+        if(connection.sessions)
+            connection.sessions->prev = sessionImpl;
         connection.sessions = sessionImpl;
         pthread_mutex_unlock(&lock);
         *session = (unsigned long) sessionImpl;
@@ -391,6 +393,7 @@ void
 init(void)
 {
     connection.validLogin = 0;
+    connection.sessions = NULL;
 }
 
 __attribute__((destructor))

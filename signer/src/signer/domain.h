@@ -54,7 +54,6 @@ typedef struct domain_struct domain_type;
     ldns_rdf* dname;
     domain_type* parent;
     rrset_type* rrsets;
-    unsigned is_new : 1;
     unsigned is_apex : 1; /* apex */
 };
 

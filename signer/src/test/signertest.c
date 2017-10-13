@@ -135,7 +135,6 @@ testSign(void)
     command_update(engine, NULL, NULL, NULL, NULL);
     pthread_mutex_lock(&engine->zonelist->zl_lock);
     CU_ASSERT_EQUAL(engine->zonelist->zones->count, 0);
-    ods_log_error("checking %d",engine->zonelist->zones->count);
     pthread_mutex_unlock(&engine->zonelist->zl_lock);
 
     sleep(1);
@@ -144,7 +143,6 @@ testSign(void)
     command_update(engine, NULL, NULL, NULL, NULL);
     pthread_mutex_lock(&engine->zonelist->zl_lock);
     CU_ASSERT_EQUAL(engine->zonelist->zones->count, 1);
-    ods_log_error("checking %d",engine->zonelist->zones->count);
     pthread_mutex_unlock(&engine->zonelist->zl_lock);
 
     sleep(70);

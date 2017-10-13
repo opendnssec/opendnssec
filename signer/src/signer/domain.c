@@ -103,7 +103,6 @@ domain_create(ldns_rdf* dname)
     domain->rrsets = NULL;
     domain->parent = NULL;
     domain->is_apex = 0;
-    domain->is_new = 0;
     return domain;
 }
 

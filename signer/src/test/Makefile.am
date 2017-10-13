@@ -13,10 +13,13 @@ AM_CPPFLAGS = \
 	@CUNIT_INCLUDES@ \
 	@XML2_INCLUDES@
 
-check_PROGRAMS = test
+check_PROGRAMS = unittest
+
+unittest_LDFLAGS = -rdynamic
+unittest_SOURCES = unittest.c
+unittest_LDADD = ../signer/names.o $(LIBCOMPAT) @LDNS_LIBS@ @CUNIT_LIBS@
 
 test_SOURCES = signertest.c ../../../contrib/testing-tools/nulllibrary.c
-
 test_LDFLAGS = -rdynamic
 test_LDADD = \
 	../adapter/adapi.o \
@@ -66,5 +69,5 @@ test_LDADD = \
 	@LDNS_LIBS@ @XML2_LIBS@ @PTHREAD_LIBS@ @RT_LIBS@ @SSL_LIBS@ @C_LIBS@ \
 	@CUNIT_LIBS@
 
-check: test
-	./test $(top_srcdir)/signer/src/test
+check: unittest
+	./unittest

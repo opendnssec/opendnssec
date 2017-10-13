@@ -45,7 +45,6 @@ struct worker_context {
 };
 
 void drudge(worker_type* worker);
-void task_schedule_easy(const char* zonename, task_id class, task_id type, time_t(*fn)(task_type*,const char*,void*,void*), void*, time_t time);
 
 time_t do_readsignconf(task_type* task, const char* zonename, void* zonearg, void *contextarg);
 time_t do_forcereadsignconf(task_type* task, const char* zonename, void* zonearg, void *contextarg);
