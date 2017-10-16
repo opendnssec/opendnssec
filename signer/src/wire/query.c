@@ -685,7 +685,7 @@ query_process_query(query_type* q, ldns_rr_type qtype, engine_type* engine)
         return soa_request(q, engine);
     }
     /* other qtypes */
-    names_view(q->zone->namedb, &view);
+    names_viewobtain(q->zone->namedb, names_AXFROUTVIEW, &view);
     returnstate = query_response(view, q, qtype);
     names_dispose(view);
     return returnstate;

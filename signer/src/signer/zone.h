@@ -76,8 +76,7 @@ struct zone_struct {
     adapter_type* adoutbound; /* outbound adapter */
     /* from signconf.xml */
     signconf_type* signconf; /* signer configuration values */
-    /* zone data */
-    names_source_type namedb;
+    void* namedb;
     uint32_t* nextserial;
     uint32_t* inboundserial;
     uint32_t* outboundserial;

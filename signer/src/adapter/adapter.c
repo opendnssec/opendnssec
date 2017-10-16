@@ -188,7 +188,7 @@ adapter_write(zone_type* zone)
     ods_log_assert(zone->name);
     ods_log_assert(zone->adoutbound->configstr);
 
-    names_view(zone->namedb, &view); /* INTERNAL */
+    names_viewobtain(zone->namedb, names_AXFROUTVIEW, &view);
     switch(zone->adoutbound->type) {
         case ADAPTER_FILE:
             ods_log_verbose("[%s] write zone %s serial %u to output file "

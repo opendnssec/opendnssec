@@ -53,47 +53,44 @@
  *     names_commit(view);
  */
 
-typedef struct names_source_struct* names_source_type;
-typedef struct names_view_struct* names_view_type;
-typedef struct names_iterator_struct* names_iterator;
-typedef struct names_reference_struct* names_reference_type;
-
-struct datastructure;
-
+#include "views/proto.h"
 #include "signer/denial.h"
 #include "signer/domain.h"
 
-typedef domain_type* myvalue_type;
-typedef ldns_rdf* mykey_type;
+int names_clear(void*);
 
-int names_create(names_source_type*, ldns_rdf* apex);
-int names_clear(names_source_type);
-void names_destroy(names_source_type);
-
-int names_view(names_source_type, names_view_type*);
 int names_commit(names_view_type);
 int names_rollback(names_view_type);
 int names_dispose(names_view_type);
 
-/* The following two calls are to be changed */
+/* The following four calls are to be changed */
 domain_type* names_lookupname(names_view_type, ldns_rdf* name);
 domain_type* names_lookupapex(names_view_type);
-
-domain_type* names_addname(names_view_type view, ldns_rdf* name);
-
 uint32_t names_getserial(names_view_type);
 void names_setserial(names_view_type, uint32_t serial);
+
 
 int names_firstdenials(names_view_type,names_iterator*iter);
 int names_reversedenials(names_view_type,names_iterator*iter);
 int names_alldomains(names_view_type,names_iterator*iter);
-int names_parentdomains(names_view_type,domain_type*,names_iterator*iter);
 
-int names_createiterator(struct datastructure*dbase, names_iterator* iter, int indexnum, int reverse);
-int names_iterate(names_iterator*iter, void*);
-int names_advance(names_iterator*iter, void*);
-int names_insert(names_iterator*iter,void*);
-void names_delete(names_iterator*iter);
-int names_end(names_iterator*iter);
+enum names_viewtypes_enum { names_BASEVIEW, names_AXFROUTVIEW, names_SIGNVIEW, names_INPUTVIEW };
+int names_viewobtain(void*, enum names_viewtypes_enum which, names_view_type* view);
+void names_setup(void* baseviewptr, ldns_rdf* zonename);
+
+static domain_type* names_addname(names_view_type view, ldns_rdf* name)
+{
+    char* s = ldns_rdf2str(name);
+    domain_type* d;
+    d = (domain_type*) place(view, s); /* TODO does not return domain_type but dictionary */
+    free(s);
+    return d;
+}
+
+static int
+names_parentdomains(names_view_type view, domain_type* domain, names_iterator* iter)
+{
+    assert(!"TODO NOT IMPLEMENTED");
+}
 
 #endif	/* NAMES_H */

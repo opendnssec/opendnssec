@@ -40,7 +40,7 @@ ods_signerd_SOURCES=		ods-signerd.c \
 				signer/ixfr.c signer/ixfr.h \
 				signer/keys.c signer/keys.h \
 				signer/namedb.c signer/namedb.h \
-				signer/names.c signer/names.h \
+				signer/names.h \
 				signer/nsec3params.c signer/nsec3params.h \
 				signer/rrset.c signer/rrset.h \
 				signer/signconf.c signer/signconf.h \
@@ -60,7 +60,13 @@ ods_signerd_SOURCES=		ods-signerd.c \
 				wire/tcpset.c wire/tcpset.h \
 				wire/tsig.c wire/tsig.h \
 				wire/tsig-openssl.c wire/tsig-openssl.h \
-				wire/xfrd.c wire/xfrd.h
+				wire/xfrd.c wire/xfrd.h \
+				views/dictionary.c \
+				views/index.c \
+				views/iterator.c \
+				views/setup.c \
+				views/table.c \
+				views/views.c
 
 analyze:
 	cd $(srcdir) ; cppcheck --quiet --enable=unusedFunction \

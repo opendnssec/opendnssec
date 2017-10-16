@@ -13,11 +13,7 @@ AM_CPPFLAGS = \
 	@CUNIT_INCLUDES@ \
 	@XML2_INCLUDES@
 
-check_PROGRAMS = unittest
-
-unittest_LDFLAGS = -rdynamic
-unittest_SOURCES = unittest.c
-unittest_LDADD = ../signer/names.o $(LIBCOMPAT) @LDNS_LIBS@ @CUNIT_LIBS@
+# check_PROGRAMS = test
 
 test_SOURCES = signertest.c ../../../contrib/testing-tools/nulllibrary.c
 test_LDFLAGS = -rdynamic
@@ -44,7 +40,6 @@ test_LDADD = \
 	../signer/ixfr.o \
 	../signer/keys.o \
 	../signer/namedb.o \
-	../signer/names.o \
 	../signer/nsec3params.o \
 	../signer/rrset.o \
 	../signer/signconf.o \
@@ -65,9 +60,15 @@ test_LDADD = \
 	../wire/tsig.o \
 	../wire/tsig-openssl.o \
 	../wire/xfrd.o \
+	../views/dictionary.o \
+	../views/index.o \
+	../views/iterator.o \
+	../views/setup.o \
+	../views/table.o \
+	../views/views.o \
 	$(LIBHSM) $(LIBCOMPAT) \
 	@LDNS_LIBS@ @XML2_LIBS@ @PTHREAD_LIBS@ @RT_LIBS@ @SSL_LIBS@ @C_LIBS@ \
 	@CUNIT_LIBS@
 
-check: unittest
-	./unittest
+#check: unittest
+#	./unittest
