@@ -63,6 +63,9 @@ struct datastructure;
 #include "signer/denial.h"
 #include "signer/domain.h"
 
+typedef domain_type* myvalue_type;
+typedef ldns_rdf* mykey_type;
+
 int names_create(names_source_type*, ldns_rdf* apex);
 int names_clear(names_source_type);
 void names_destroy(names_source_type);
