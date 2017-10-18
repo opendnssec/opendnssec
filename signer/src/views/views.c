@@ -72,7 +72,7 @@ changed(names_view_type view, dictionary record, enum changetype type, dictionar
 
 
 void
-own(names_view_type view, dictionary* record)
+names_own(names_view_type view, dictionary* record)
 {
     dictionary* dict;
     changed(view, *record, MOD, &dict);
@@ -82,7 +82,7 @@ own(names_view_type view, dictionary* record)
 }
 
 void*
-place(names_view_type view, char* name)
+names_place(names_view_type view, char* name)
 {
     dictionary content;
     content = names_indexlookup(view->indices[0], name);
@@ -96,7 +96,7 @@ place(names_view_type view, char* name)
 }
 
 void*
-take(names_view_type view, int index, char* name)
+names_take(names_view_type view, int index, char* name)
 {
     dictionary found;
     found = names_indexlookup(view->indices[index], name);
@@ -104,7 +104,7 @@ take(names_view_type view, int index, char* name)
 }
 
 void
-delete(names_view_type view, dictionary record)
+names_remove(names_view_type view, dictionary record)
 {
     names_indexremove(view->indices[0], record);
     changed(view, record, DEL, NULL);
@@ -144,7 +144,7 @@ names_viewcreate(names_view_type base, const char** keynames)
 }
 
 names_iterator
-viewiterator(names_view_type view, int index)
+names_viewiterator(names_view_type view, int index)
 {
     return names_indexiterator(view->indices[index]);
 }

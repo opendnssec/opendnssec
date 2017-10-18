@@ -82,7 +82,7 @@ static domain_type* names_addname(names_view_type view, ldns_rdf* name)
 {
     char* s = ldns_rdf2str(name);
     domain_type* d;
-    d = (domain_type*) place(view, s); /* TODO does not return domain_type but dictionary */
+    d = (domain_type*) names_place(view, s); /* TODO does not return domain_type but dictionary */
     free(s);
     return d;
 }

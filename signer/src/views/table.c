@@ -26,7 +26,7 @@ iterateimpl(names_iterator*i, void** item)
     struct names_iterator_struct** iter = i;
     if(*iter) {
         if((*iter)->current != NULL && (*iter)->current != LDNS_RBTREE_NULL) {
-            if(*item)
+            if(item)
                 *item = (*iter)->current;
             return 1;
         } else {
@@ -45,7 +45,7 @@ advanceimpl(names_iterator*i, void** item)
         if((*iter)->current != NULL && (*iter)->current != LDNS_RBTREE_NULL) {
             (*iter)->current = ldns_rbtree_next((*iter)->current);
             if((*iter)->current != NULL && (*iter)->current != LDNS_RBTREE_NULL) {
-                if(*item)
+                if(item)
                     *item = (*iter)->current;
                 return 1;
             }
@@ -192,6 +192,8 @@ names_changelogsubscribe(names_view_type view, struct names_changelogchain** vie
         *views = malloc(sizeof(struct names_changelogchain));
         (*views)->nviews = 1;
         (*views)->views = malloc(sizeof(struct names_changelogchainentry) * (*views)->nviews);
+        (*views)->firstchangelog = NULL;
+        (*views)->lastchangelog = NULL;
     } else {
         (*views)->nviews += 1;
         (*views)->views = realloc((*views)->views, sizeof(struct names_changelogchainentry) * (*views)->nviews);
@@ -208,7 +210,7 @@ names_changelogsubmit(struct names_changelogchain* views, int viewid, names_tabl
     int i;
     views->views[viewid].nextchangelog = NULL;
     if(views->firstchangelog == NULL) {
-        assert(views->lastchangelog != NULL);
+        assert(views->lastchangelog == NULL);
         views->firstchangelog = views->lastchangelog = changelog;
     } else {
         views->lastchangelog->next = changelog;

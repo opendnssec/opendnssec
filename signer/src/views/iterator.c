@@ -12,17 +12,26 @@ struct iterator_struct {
 int
 names_iterate(iterator*iter, void* item)
 {
-    return (*iter)->iterate(iter, (void**)item);
+    if(*iter)
+        return (*iter)->iterate(iter, (void**)item);
+    else
+        return 0;
 }
 
 int
 names_advance(iterator*iter, void* item)
 {
-    return (*iter)->advance(iter, (void**)item);
+    if(*iter)
+        return (*iter)->advance(iter, (void**)item);
+    else
+        return 0;
 }
 
 int
 names_end(iterator*iter)
 {
-    return (*iter)->end(iter);
+    if(*iter)
+        return (*iter)->end(iter);
+    else
+        return 0;
 }

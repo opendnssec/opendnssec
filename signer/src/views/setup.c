@@ -33,7 +33,7 @@ removeRR(names_view_type view, dictionary record, char* recordtype, char* record
         del(record, recordtype);
         if (names_iterate(&iter, NULL)) {
             names_end(&iter);
-            delete(view, record);
+            names_remove(view, record);
         }
     }
 }
@@ -87,7 +87,7 @@ readzone(names_view_type view, enum operation_enum operation, const char* filena
     prevowner = NULL;
 
     if(operation == PLAIN) {
-        for (domainiter = viewiterator(view, 0); names_iterate(&domainiter, &domainitem); names_advance(&domainiter, NULL)) {
+        for (domainiter = names_viewiterator(view, 0); names_iterate(&domainiter, &domainitem); names_advance(&domainiter, NULL)) {
             for (rrsetiter = all(get(domainitem, "rrs")); names_iterate(&rrsetiter, &rrsetitem); names_advance(&rrsetiter, NULL)) {
                 for (rriter = all(get(rrsetitem, "rr")); names_iterate(&rriter, &rritem); names_advance(&rriter, NULL)) {
                     recordname = getname(domainitem, NULL);
@@ -145,12 +145,12 @@ readzone(names_view_type view, enum operation_enum operation, const char* filena
                 strcat(recorddata, s);
                 free(s);
             }
-            record = place(view, recordname);
+            record = names_place(view, recordname);
             if (!has(record, recordtype, recorddata, NULL)) {
                 switch (operation) {
                     case PLAIN:
                     case DELTAPLUS:
-                        own(view, &record);
+                        names_own(view, &record);
                         set(record, "name", recordname);
                         add(record, recordtype);
                         add(get(record, recordtype), recorddata);
@@ -172,8 +172,8 @@ readzone(names_view_type view, enum operation_enum operation, const char* filena
                     case DELTAPLUS:
                         break;
                     case DELTAMINUS:
-                        record = take(view, 0, recordname);
-                        own(view, &record);
+                        record = names_take(view, 0, recordname);
+                        names_own(view, &record);
                         removeRR(view, record, recordtype, recorddata);
                         break;
                 }
@@ -190,8 +190,8 @@ readzone(names_view_type view, enum operation_enum operation, const char* filena
             recordname = (char*) removal->key;
             recordtype = &recordname[strlen(recordname) + 1];
             recorddata = &recordtype[strlen(recordtype) + 1];
-            record = take(view, 0, recordname);
-            own(view, &record);
+            record = names_take(view, 0, recordname);
+            names_own(view, &record);
             removeRR(view, record, recordtype, recorddata);
         }
         HASH_ITER(hh, removals, removal, tmp) {

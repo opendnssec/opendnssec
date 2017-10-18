@@ -193,7 +193,7 @@ del(dictionary d, char* name)
     return 0;
 }
 
-void*
+dictionary
 add(dictionary d, char* name)
 {
     struct dictionary_struct* dict = (struct dictionary_struct*) d;

@@ -112,8 +112,12 @@ names_indexremove(names_index_type index, dictionary d)
 int
 names_indexremovekey(names_index_type index, char* keyvalue)
 {
+    dictionary find;
     ldns_rbnode_t* node;
-    node = ldns_rbtree_delete(index->tree, keyvalue);
+    find = create(&keyvalue);
+    set(find,"name",keyvalue);
+    node = ldns_rbtree_delete(index->tree, find);
+    dispose(find);
     if(node) {
         free(node);
         return 1;

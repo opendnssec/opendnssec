@@ -81,7 +81,7 @@ dictionary get(dictionary d, const char* name);
 char* getname(dictionary d, const char* name);
 int has(dictionary d, char* name, ...);
 int del(dictionary d, char* name);
-void* add(dictionary d, char* name);
+dictionary add(dictionary d, char* name);
 void set(dictionary d, const char* name, char* value);
 names_iterator all(dictionary dict);
 
@@ -118,13 +118,12 @@ int names_changelogsubscribe(names_view_type view, struct names_changelogchain**
 void names_changelogsubmit(struct names_changelogchain* views, int viewid, names_table_type changelog);
 void names_changelogrelease(struct names_changelogchain* views, names_table_type changelog);
 
-void own(names_view_type view, dictionary* record);
-void* place(names_view_type store, char* name);
-void* take(names_view_type view, int index, char* name);
-void delete(names_view_type view, dictionary record);
+void names_own(names_view_type view, dictionary* record);
+void* names_place(names_view_type store, char* name);
+void* names_take(names_view_type view, int index, char* name);
+void names_remove(names_view_type view, dictionary record);
 names_view_type names_viewcreate(names_view_type base, const char** keynames);
-names_iterator viewiterator(names_view_type view, int index);
-
+names_iterator names_viewiterator(names_view_type view, int index);
 int names_viewcommit(names_view_type view);
 void names_viewreset(names_view_type view);
 
