@@ -341,7 +341,6 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
         dbw_free(db);
         return -1;
     }
-    zone = NULL;
 
     if (!algorithm) {
         ods_log_error("[%s] specify an algorithm for command %s", module_str, cmd);
