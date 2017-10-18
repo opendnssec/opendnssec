@@ -151,7 +151,7 @@ tools_input(zone_type* zone)
     }
     switch(status) {
         case ODS_STATUS_OK:
-            names_commit(view);
+            names_viewcommit(view);
             break;
         case ODS_STATUS_UNCHANGED:
             names_dispose(view);

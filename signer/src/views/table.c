@@ -164,7 +164,7 @@ names_tableitems(names_table_type table)
 
 struct names_changelogchain {
     int nviews;
-    struct {
+    struct names_changelogchainentry {
         names_view_type view;
         names_table_type nextchangelog;
     } *views;
@@ -178,23 +178,28 @@ names_changelogpop(struct names_changelogchain* views, int viewid)
 {
     names_table_type changelog;
     changelog = views->views[viewid].nextchangelog;
-    views->views[viewid].nextchangelog = changelog->next;
+    if (changelog) {
+        views->views[viewid].nextchangelog = changelog->next;
+    }
     return changelog;
 }
 
 int
-names_changelogsubscribe(struct names_changelogchain** views)
+names_changelogsubscribe(names_view_type view, struct names_changelogchain** views)
 {
+    int viewid;
     if(*views == NULL) {
         *views = malloc(sizeof(struct names_changelogchain));
         (*views)->nviews = 1;
-        (*views)->views = malloc(sizeof((*views)->views) * (*views)->nviews);
-        return 0;
+        (*views)->views = malloc(sizeof(struct names_changelogchainentry) * (*views)->nviews);
     } else {
         (*views)->nviews += 1;
-        (*views)->views = realloc((*views)->views, sizeof((*views)->views) * (*views)->nviews);
-        return (*views)->nviews;
+        (*views)->views = realloc((*views)->views, sizeof(struct names_changelogchainentry) * (*views)->nviews);
     }
+    viewid = (*views)->nviews - 1;
+    (*views)->views[viewid].nextchangelog = NULL;
+    (*views)->views[viewid].view = view;
+    return viewid;
 }
 
 void

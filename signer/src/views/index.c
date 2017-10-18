@@ -18,7 +18,7 @@ struct names_iterator_struct {
     ldns_rbnode_t* current;
 };
 
-#define DEFCOMPARE(C) char* C ## data; \
+#define DEFCOMPARE(C) const char* C ## data; \
                       int C ## func(const void *a, const void *b) { \
                           const dictionary x = (dictionary) a; \
                           const dictionary y = (dictionary) b; \
@@ -44,7 +44,7 @@ DEFCOMPARE(cmp16)
 typedef int (*comparefunction)(const void *, const void *);
 
 comparefunction
-getcmp(char*cmp)
+getcmp(const char*cmp)
 {
 #define RTNCOMPARE(C) if(!C ## data || !strcmp(cmp,C ## data)) { \
                           C ## data = (C ## data ? C ## data : cmp); \

@@ -79,8 +79,8 @@ create(char**name)
 {
     struct dictionary_struct* dict;
     dict = malloc(sizeof(struct dictionary_struct));
-    if(name) {
-        dict->name = *name = (*name ? strdup(*name) : *name);
+    if (name) {
+        dict->name = *name = ((*name) ? strdup(*name) : NULL);
     } else {
         dict->name = NULL;
     }
@@ -96,7 +96,7 @@ copytreefn(ldns_rbnode_t* node, void* cargo)
     ldns_rbtree_t* tree = (ldns_rbtree_t*) cargo;
     newnode = malloc(sizeof(ldns_rbnode_t));
     dict = copy((dictionary)node->data);
-    newnode->key = get(dict, NULL);
+    newnode->key = dict->name;
     newnode->data = dict;
     ldns_rbtree_insert(tree, newnode);
 }
@@ -106,8 +106,8 @@ copy(dictionary d)
 {
     struct dictionary_struct* dict = (struct dictionary_struct*) d;
     struct dictionary_struct* target;
-    target = (struct dictionary_struct*) create(NULL);
-    target->name = (dict->name ? strdup(dict->name) : NULL);
+    char* name = d->name;
+    target = (struct dictionary_struct*) create(&name);
     if(dict->tree) {
         target->tree = ldns_rbtree_create(cmp);
         ldns_traverse_postorder(dict->tree, copytreefn, target->tree);
@@ -230,13 +230,15 @@ set(dictionary d, const char* name, char* value)
     if (node == NULL || node == LDNS_RBTREE_NULL) {
         content = (dictionary) create(&value);
         node = malloc(sizeof (struct ldns_rbnode_t));
-        node->key = name;
+        node->key = strdup(name);
         node->data = content;
         ldns_rbtree_insert(dict->tree, node);
     } else {
         content = (dictionary) node->data;
-        free(content->name);
-        content->name = strdup(value);
+        if(strcmp(content->name, value)) {
+            free(content->name);
+            content->name = strdup(value);
+        }
     }
 }
 

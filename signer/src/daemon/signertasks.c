@@ -344,7 +344,7 @@ do_signzone(task_type* task, const char* zonename, void* zonearg, void *contexta
         }
         pthread_mutex_unlock(&zone->stats->stats_lock);
     }
-    names_commit(view);
+    names_viewcommit(view);
     schedule_scheduletask(engine->taskq, TASK_WRITE, zone->name, zone, &zone->zone_lock, schedule_PROMPTLY);
     return schedule_SUCCESS;
 }

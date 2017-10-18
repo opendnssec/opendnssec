@@ -120,7 +120,7 @@ names_viewcreate(names_view_type base, const char** keynames)
     for(i=nindices=0; keynames[i]; i++)
         ++nindices;
     assert(nindices > 0);
-    view = malloc(sizeof(struct names_view_struct)+sizeof(names_index_type)*(nindices-1));
+    view = malloc(sizeof(struct names_view_struct)+sizeof(names_index_type)*(nindices));
     view->base = base;
     view->primarykey = keynames[0];
     view->changelog = names_tablecreate();
@@ -139,7 +139,7 @@ names_viewcreate(names_view_type base, const char** keynames)
     } else {
         view->views = NULL;
     }
-    view->viewid = names_changelogsubscribe(&view->views);
+    view->viewid = names_changelogsubscribe(view, &view->views);
     return view;
 }
 
@@ -176,6 +176,7 @@ updateview(names_view_type view)
 
     while((changelog = names_changelogpop(view->views, view->viewid))) {
         for (iter = names_tableitems(changelog); names_iterate(&iter, &record); names_advance(&iter, NULL)) {
+            /* TODO check for acceptable, if not continue */
             if (names_tableget(view->changelog, getname((record->oldrecord ? record->oldrecord : record->newrecord), view->primarykey))) {
                 if (conflict == 0)
                     resetchangelog(view);
@@ -201,7 +202,7 @@ updateview(names_view_type view)
 }
 
 int
-names_commit(names_view_type view)
+names_viewcommit(names_view_type view)
 {
     int i, conflict;
     names_iterator iter;

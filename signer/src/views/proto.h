@@ -70,6 +70,9 @@ int names_end(names_iterator*iter);
  */
 
 typedef struct dictionary_struct* dictionary;
+typedef struct names_index_struct* names_index_type;
+typedef struct names_table_struct* names_table_type;
+typedef struct names_view_struct* names_view_type;
 
 dictionary create(char**name);
 dictionary copy(dictionary d);
@@ -81,8 +84,6 @@ int del(dictionary d, char* name);
 void* add(dictionary d, char* name);
 void set(dictionary d, const char* name, char* value);
 names_iterator all(dictionary dict);
-
-typedef struct names_index_struct* names_index_type;
 
 int names_indexcreate(names_index_type*, const char* keyname);
 dictionary names_indexlookup(names_index_type, char* keyvalue);
@@ -99,8 +100,6 @@ names_iterator names_indexrange(names_index_type,char* selection,...);
  * names_ module.
  */
 
-typedef struct names_table_struct* names_table_type;
-
 names_table_type names_tablecreate(void);
 void names_tabledispose(names_table_type table);
 void* names_tableget(names_table_type table, char* name);
@@ -115,11 +114,9 @@ names_iterator names_tableitems(names_table_type table);
 
 struct names_changelogchain;
 names_table_type names_changelogpop(struct names_changelogchain* views, int viewid);
-int names_changelogsubscribe(struct names_changelogchain**);
+int names_changelogsubscribe(names_view_type view, struct names_changelogchain**);
 void names_changelogsubmit(struct names_changelogchain* views, int viewid, names_table_type changelog);
 void names_changelogrelease(struct names_changelogchain* views, names_table_type changelog);
-
-typedef struct names_view_struct* names_view_type;
 
 void own(names_view_type view, dictionary* record);
 void* place(names_view_type store, char* name);

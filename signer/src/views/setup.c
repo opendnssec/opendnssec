@@ -56,7 +56,7 @@ composestring(char* dst, char* src, ...)
 enum operation_enum { PLAIN, DELTAMINUS, DELTAPLUS };
 
 int
-readzone(names_view_type view, enum operation_enum operation)
+readzone(names_view_type view, enum operation_enum operation, const char* filename)
 {
     char* s;
     char* recordname;
@@ -82,7 +82,7 @@ readzone(names_view_type view, enum operation_enum operation)
     struct removal_struct* tmp;
     ldns_rr* rr;
 
-    fp = fopen("input","r");
+    fp = fopen(filename,"r");
     origin = NULL;
     prevowner = NULL;
 
@@ -138,7 +138,7 @@ readzone(names_view_type view, enum operation_enum operation)
             }
             recordname = ldns_rdf2str(ldns_rr_owner(rr));
             recordtype = ldns_rr_type2str(ldns_rr_get_type(rr));
-            recorddata = malloc(recorddatalen);
+            recorddata = malloc(recorddatalen+1);
             recorddata[0] = '\0';
             for(i=0; i<ldns_rr_rd_count(rr); i++) {
                 s = ldns_rdf2str(ldns_rr_rdf(rr,i));
@@ -146,8 +146,8 @@ readzone(names_view_type view, enum operation_enum operation)
                 free(s);
             }
             record = place(view, recordname);
-            if(!has(record, recordtype, recorddata, NULL)) {
-                switch(operation) {
+            if (!has(record, recordtype, recorddata, NULL)) {
+                switch (operation) {
                     case PLAIN:
                     case DELTAPLUS:
                         own(view, &record);
@@ -176,8 +176,6 @@ readzone(names_view_type view, enum operation_enum operation)
                         own(view, &record);
                         removeRR(view, record, recordtype, recorddata);
                         break;
-
-            break;
                 }
             }
             free(recordname);
@@ -206,31 +204,3 @@ readzone(names_view_type view, enum operation_enum operation)
     return 0;
 }
 
-int
-setup(void) {
-
-    const char* baseviewkeys[] = {"nameserial", NULL};
-    const char* inputviewkeys[] = {"name", NULL};
-    const char* prepareviewkeys[] = {"name", NULL};
-    const char* signviewkeys[] = {"name", "expire", "denialname", NULL};
-    const char* outputviewkeys[] = {"nameserial", "validfrom", "replacedin", NULL};
-
-    names_view_type baseview;
-    names_view_type inputview;
-    names_view_type prepareview;
-    names_view_type signview;
-    names_view_type outputview;
-    baseview = names_viewcreate(NULL, baseviewkeys);
-    inputview = names_viewcreate(baseview, inputviewkeys);
-    prepareview = names_viewcreate(baseview, prepareviewkeys);
-    signview = names_viewcreate(baseview, signviewkeys);
-    outputview = names_viewcreate(baseview, outputviewkeys);
-
-    readzone(inputview, PLAIN);
-    
-    (void)prepareview;
-    (void)signview;
-    (void)outputview;
-    
-    return 0;
-}
