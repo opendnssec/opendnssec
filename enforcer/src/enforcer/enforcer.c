@@ -1521,7 +1521,6 @@ _update(engine_type *engine, struct dbw_db *db, struct dbw_zone *zone, time_t no
     /*Only purge old keys if the policy says so.*/
     time_t purge_return_time = -1;
     if (zone->policy->keys_purge_after) {
-        purge_return_time = 0;
         purge_return_time = removeDeadKeys(zone, now, mockup);
     }
 
