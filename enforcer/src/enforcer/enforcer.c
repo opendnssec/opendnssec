@@ -76,8 +76,8 @@ struct future_key {
     int pretend_update;
 };
 
-static int max(int a, int b) { return a>b?a:b; }
-static int min(int a, int b) { return a<b?a:b; }
+static int64_t max(int64_t a, int64_t b) { return a>b?a:b; }
+static int64_t min(int64_t a, int64_t b) { return a<b?a:b; }
 
 /**
  * Stores the minimum of parm1 and parm2 in parm2.
@@ -1130,10 +1130,10 @@ existsPolicyForKey(const struct dbw_policy *policy, const struct dbw_key *key)
 /**
  * Find the inception time of the most recent key for this policy.
  */
-static int
+static time_t
 last_inception_policy(const struct dbw_zone *zone, const struct dbw_policykey *pkey)
 {
-    int max_inception = -1;
+    time_t max_inception = -1;
     for (size_t k = 0; k < zone->key_count; k++) {
         struct dbw_key *key = zone->key[k];
         if (!key_matches_pkey(key, pkey)) continue;
@@ -1172,13 +1172,13 @@ setnextroll(struct dbw_zone *zone, enum dbw_key_role role, time_t t)
 {
     switch (role) {
         case DBW_KSK:
-            zone->next_ksk_roll = (unsigned int)t;
+            zone->next_ksk_roll = t;
             break;
         case DBW_ZSK:
-            zone->next_zsk_roll = (unsigned int)t;
+            zone->next_zsk_roll = t;
             break;
         case DBW_CSK:
-            zone->next_csk_roll = (unsigned int)t;
+            zone->next_csk_roll = t;
             break;
         default:
             ods_log_assert(0);
@@ -1297,8 +1297,8 @@ updatePolicy(engine_type *engine, struct dbw_db *db, struct dbw_zone *zone, cons
              * needs to be replaced. If not we reschedule for later based on the
              * youngest key. */
             time_t inception = last_inception_policy(zone, pkey);
-            if (inception != -1 && inception + pkey->lifetime > now) {
-                time_t t_ret = addtime(inception, pkey->lifetime);
+            time_t t_ret = addtime(inception, pkey->lifetime);
+            if (inception != -1 && t_ret > now) {
                 minTime(t_ret, &return_at);
                 setnextroll(zone, pkey->role, t_ret);
                 *zone_updated = 1;

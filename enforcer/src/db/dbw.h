@@ -225,7 +225,7 @@ struct dbw_key {
     unsigned int role;
     unsigned int ds_at_parent;
     unsigned int algorithm;
-    unsigned int inception;
+    time_t inception;
     unsigned int introducing;
     unsigned int should_revoke;
     unsigned int standby;
@@ -250,7 +250,7 @@ struct dbw_keystate {
 
     unsigned int type;
     unsigned int state;
-    unsigned int last_change;
+    time_t last_change;
     unsigned int minimize;
     unsigned int ttl;
 };
@@ -291,7 +291,7 @@ struct dbw_hsmkey {
     unsigned int bits;
     unsigned int algorithm;
     unsigned int role;
-    unsigned int inception;
+    time_t inception;
     unsigned int is_revoked;
     unsigned int key_type;
     unsigned int backup;
