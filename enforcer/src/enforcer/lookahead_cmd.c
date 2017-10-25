@@ -286,10 +286,9 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
         dbw_free(db);
         return 1;
     }
-    /* TODO actually delete keys from structure, these may confuse the enforcer. */
     /* TODO Tab completion */
 
-    time_t now = time_now();
+    time_t now = zone->next_change;
     client_printf(sockfd, "Current state:\n");
     perform_keystate_list(sockfd, zone, printdebugheader, printdebugkey, now);
     for (int i = 0; i < steps; i++) {
