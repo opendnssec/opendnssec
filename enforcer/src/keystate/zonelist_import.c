@@ -189,7 +189,7 @@ process_xml(int sockfd, xmlNodePtr root, struct dbw_db *db)
             }
             struct dbw_policy *p = dbw_get_policy(db, xz.policy);
             if (!p) {
-                client_printf_err(sockfd, "Can't find policy %s in database.", xz.policy);
+                client_printf_err(sockfd, "Can't find policy %s in database.\n", xz.policy);
                 xml_zone_scrub(&xz);
                 return 1;
             }
