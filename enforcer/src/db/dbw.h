@@ -18,7 +18,7 @@
 #define DBW_MINIMIZE_DS_RRSIG (DBW_MINIMIZE_DS | DBW_MINIMIZE_RRSIG)
 
 enum dbw_key_role {
-    /* Values choosen such that CSK = KSK|ZSK */
+    /* Values chosen such that CSK = KSK|ZSK */
     DBW_KSK = 1,
     DBW_ZSK = 2,
     DBW_CSK = 3
@@ -102,7 +102,18 @@ static const char * dbw_denial_type_txt[] = {
     "NSEC", "NSEC3"
 };
 
+/* Returns static string representation of constant.
+ * \param c: array of strings indexed by constant
+ * \param n: constant from matching enum
+ * @return: static string
+ */
 const char * dbw_enum2txt(const char *c[], int n);
+
+/* Found value for a given string txt in set c, case insensitive.
+ * \param c: array of strings indexed by constant
+ * \param txt: Text to look for. Must be an exact, case insensitive, match.
+ * @return enum value or -1 on failure.
+ */
 int dbw_txt2enum(const char *c[], const char *txt);
 
 /* This is a bit icky - sorry
