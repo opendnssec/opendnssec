@@ -274,7 +274,7 @@ engine_stop_threads(engine_type* engine)
     ods_log_debug("[%s] notify workers and drudgers", engine_str);
     schedule_release_all(engine->taskq);
 
-    for (i=0; i < numTotalWorkers; i++) {
+    for (i=numTotalWorkers-1; i >= 0; i--) {
         ods_log_debug("[%s] join worker %d", engine_str, i+1);
         janitor_thread_join(engine->workers[i]->thread_id);
         free(engine->workers[i]->context);
