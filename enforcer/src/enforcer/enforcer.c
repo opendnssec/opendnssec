@@ -1183,6 +1183,7 @@ setnextroll(struct dbw_zone *zone, enum dbw_key_role role, time_t t)
         default:
             ods_log_assert(0);
     }
+    dbw_mark_dirty((struct dbrow *)zone);
 }
 
 static int
@@ -1214,6 +1215,7 @@ set_roll(struct dbw_zone *zone, enum dbw_key_role role, int roll_flag)
         default:
             ods_log_assert(0);
     }
+    dbw_mark_dirty((struct dbrow *)zone);
 }
 
 static int
@@ -1280,6 +1282,7 @@ updatePolicy(engine_type *engine, struct dbw_db *db, struct dbw_zone *zone, cons
         if (!zone->signconf_needs_writing) {
             zone->signconf_needs_writing = 1;
             *zone_updated = 1;
+            dbw_mark_dirty((struct dbrow *)zone);
         }
     } else {
         *allow_unsigned = 0;

@@ -106,6 +106,10 @@ perform_enforce(int sockfd, engine_type *engine, char const *zonename,
         t_next = update(engine, db, zone, time_now(), &zone_updated);
     }
     /* Commit zone to database before we schedule signconf */
+    if (zone->next_change != t_next && t_next >= 0) {
+        zone_updated = 1;
+        dbw_mark_dirty((struct dbrow *)zone);
+    }
     if (zone_updated) {
         zone->next_change = t_next;
         if (dbw_commit(db)) {
