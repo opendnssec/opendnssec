@@ -835,6 +835,9 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize, int info
         if (engine->need_to_reload) {
             ods_log_info("[%s] signer reloading", engine_str);
             engine->need_to_reload = 0;
+            /* Clean out sign queue as the items reference to the old workers.
+             * No need to free the items. They are not owned by the queue. */
+            fifoq_wipe(engine->taskq->signq);
         } else {
             ods_log_info("[%s] signer started (version %s), pid %u",
                 engine_str, PACKAGE_VERSION, engine->pid);
