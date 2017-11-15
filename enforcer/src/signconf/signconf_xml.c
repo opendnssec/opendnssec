@@ -320,27 +320,8 @@ signconf_export_zone(char const *zonename, db_connection_t* dbconn)
     }
     /* We always force. Since now it is scheduled per zone */
     int ret = signconf_xml_export(-1, zone, 1);
+    dbw_commit(db);
     dbw_free(db);
     return ret;
-}
-
-int
-signconf_export_all(int sockfd, db_connection_t* connection, int force)
-{
-    struct dbw_db *db = dbw_fetch(connection);
-    if (!db) return SIGNCONF_EXPORT_ERR_DATABASE;
-    int something_exported = 0;
-    for (size_t z = 0; z < db->zones->n; z++) {
-        struct dbw_zone *zone = (struct dbw_zone *)db->zones->set[z];
-        int ret = signconf_xml_export(sockfd, zone, force);
-        if (ret == SIGNCONF_EXPORT_OK) {
-            something_exported = 1;
-        } else if (ret != SIGNCONF_EXPORT_NO_CHANGE) {
-            dbw_free(db);
-            return ret;
-        }
-    }
-    dbw_free(db);
-    return something_exported ? SIGNCONF_EXPORT_OK : SIGNCONF_EXPORT_NO_CHANGE;
 }
 

@@ -61,17 +61,6 @@
 #define SIGNCONF_EXPORT_NO_CHANGE 6
 
 /**
- * Export the signconf XML for all zones.
- * \param[in] sockfd a socket fd.
- * \param[in] connection a db_connection_t pointer.
- * \param[in] force if non-zero it will force the export for all zones even if
- * there are no updates for the zones.
- * \return SIGNCONF_EXPORT_ERR_* on error, otherwise SIGNCONF_EXPORT_OK or
- * SIGNCONF_EXPORT_NO_CHANGE.
- */
-int signconf_export_all(int sockfd, db_connection_t* connection, int force);
-
-/**
  * Export the signconf XML for zone.
  * \param[in] zonename Name of zone to write signconf for.
  * \param[in] dbconn a db_connection_t pointer.
