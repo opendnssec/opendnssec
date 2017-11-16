@@ -171,15 +171,13 @@ resalt_task_flush(engine_type *engine, db_connection_t *dbconn,
             module_str);
         return ODS_STATUS_DB_ERR;
     }
-    struct dbw_policy *policy = dbw_get_policy(db, policyname);
-    if (!policy) {
-        ods_log_error("[%s] Can't find policy %s in database.",
-            module_str, policyname);
-        return ODS_STATUS_DB_ERR;
-    }
-    if  (policy->denial_type == POLICY_DENIAL_TYPE_NSEC3 && !policy->passthrough) {
-        task_type *task = policy_resalt_task(policyname, engine, time_now());
-        status = schedule_task(engine->taskq, task, 1, 0);
+    for (size_t p = 0; p < db->policies->n; p++) {
+        struct dbw_policy *policy = (struct dbw_policy *)db->policies->set[p];
+        if (policyname && strcmp(policy->name, policyname)) continue;
+        if  (policy->denial_type == POLICY_DENIAL_TYPE_NSEC3 && !policy->passthrough) {
+            task_type *task = policy_resalt_task(policyname, engine, time_now());
+            status = schedule_task(engine->taskq, task, 1, 0);
+        }
     }
     dbw_free(db);
     return status;
