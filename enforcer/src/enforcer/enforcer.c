@@ -755,7 +755,7 @@ markSuccessors(struct dbw_db *db, struct future_key *future_key)
         int exists = 0;
         for (size_t kd = 0; kd < fromkey->from_keydependency_count; kd++) {
             struct dbw_keydependency *keydep = fromkey->from_keydependency[kd];
-            if (keydep->tokey_id == tokey->id) {
+            if (keydep->tokey_id == tokey->id && future_key->type == keydep->type) {
                 exists = 1;
                 break;
             }
