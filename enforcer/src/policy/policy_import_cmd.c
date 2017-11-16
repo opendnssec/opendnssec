@@ -35,6 +35,7 @@
 #include "clientpipe.h"
 #include "policy/policy_import.h"
 #include "policy/policy_resalt_task.h"
+#include "signconf/signconf_task.h"
 #include "enforcer/enforce_task.h"
 
 
@@ -122,6 +123,9 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
     case POLICY_IMPORT_OK:
         /* only zones in policy, and force! */
         enforce_task_flush_all(engine, dbconn);
+        /* In case KASP parameters are changed which don't affect the enforce
+         * task but do affect the signconf we must write new signconfs. */
+        signconf_task_flush_all(engine, dbconn);
         (void)resalt_task_schedule(engine, dbconn);
         return 0;
         break;
