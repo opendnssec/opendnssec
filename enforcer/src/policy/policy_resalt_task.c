@@ -175,7 +175,7 @@ resalt_task_flush(engine_type *engine, db_connection_t *dbconn,
         struct dbw_policy *policy = (struct dbw_policy *)db->policies->set[p];
         if (policyname && strcmp(policy->name, policyname)) continue;
         if  (policy->denial_type == POLICY_DENIAL_TYPE_NSEC3 && !policy->passthrough) {
-            task_type *task = policy_resalt_task(policyname, engine, time_now());
+            task_type *task = policy_resalt_task(policy->name, engine, time_now());
             status = schedule_task(engine->taskq, task, 1, 0);
         }
     }
