@@ -731,12 +731,13 @@ void
 markSuccessors(struct dbw_db *db, struct future_key *future_key)
 {
     static const char *scmd = "markSuccessors";
+    struct dbw_key *fromkey = future_key->key;
 
     /* If key,type in deplist and new state is omnipresent it is no
      * longer relevant for the dependencies */
     if (future_key->next_state == OMNIPRESENT) {
-        for (size_t d = 0; d < future_key->key->to_keydependency_count; d++) {
-            struct dbw_keydependency *dep = future_key->key->to_keydependency[d];
+        for (size_t d = 0; d < fromkey->to_keydependency_count; d++) {
+            struct dbw_keydependency *dep = fromkey->to_keydependency[d];
             if (future_key->type != dep->type) continue;
             dep->dirty = DBW_DELETE; /*unconditionally delete*/
             //TODO WE NEED a keydep delete func 
@@ -745,13 +746,23 @@ markSuccessors(struct dbw_db *db, struct future_key *future_key)
 
     if (!isSuccessable(future_key)) return;
 
-    for (size_t k = 0; k < future_key->key->zone->key_count; k++) {
-        struct dbw_key *key = future_key->key->zone->key[k];
-        if (!isPotentialSuccessor(key, future_key->key, future_key, future_key->type))
+    for (size_t k = 0; k < fromkey->zone->key_count; k++) {
+        struct dbw_key *tokey = fromkey->zone->key[k];
+        if (!isPotentialSuccessor(tokey, fromkey, future_key, future_key->type))
             continue;
 
+        /* First check we didn't already added such a dependency. */
+        int exists = 0;
+        for (size_t kd = 0; kd < fromkey->from_keydependency_count; kd++) {
+            struct dbw_keydependency *keydep = fromkey->from_keydependency[kd];
+            if (keydep->tokey_id == tokey->id) {
+                exists = 1;
+                break;
+            }
+        }
         /* From now on key will depend on futurekey.*/
-        (void) dbw_new_keydependency(db, future_key->key, key, future_key->type, key->zone);
+        if (!exists)
+            (void) dbw_new_keydependency(db, fromkey, tokey, future_key->type, tokey->zone);
     }
 }
 
