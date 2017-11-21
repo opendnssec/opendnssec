@@ -114,18 +114,15 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 {
     db_connection_t* dbconn = getconnectioncontext(context);;
     engine_type* engine = getglobalcontext(context);
-    char *policy;
-    int all;
+    char *policy = NULL;
+    int all = 0;
     if (parse_args(sockfd, cmd, &policy, &all)) {
         client_printf_err(sockfd, "Error parsing arguments.\n");
         return 1;
     }
-    if (all && policy) {
-        client_printf_err(sockfd, "--all and --policy are mutually exclusive.\n");
+    if ((all && policy) || (!all && !policy)) {
+        client_printf_err(sockfd, "Expected either --all or --policy.\n");
         return 1;
-    }
-    if (!all && !policy) { /* Old behavior, deprecated */
-        return resalt_task_schedule(engine, dbconn);
     }
     return resalt_task_flush(engine, dbconn, policy);
 }

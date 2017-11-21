@@ -142,13 +142,13 @@ perform_policy_resalt(task_type* task, char const *policyname, void *userdata,
     else
         resalt_time = now + policy->denial_resalt;
     int r = dbw_commit(db);
-    dbw_free(db);
     if (r) {
         ods_log_error("[%s] unable to update DB", module_str);
     } else {
         signconf_task_flush_policy(engine, dbconn, policy->name);
         ods_log_debug("[%s] policy %s resalted successfully", module_str, policyname);
     }
+    dbw_free(db);
     return resalt_time;
 }
 
