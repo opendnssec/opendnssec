@@ -100,7 +100,7 @@ exec_dnskey_by_id(int sockfd, key_data_t *key, const char* ds_command,
 	ldns_rr *dnskey_rr;
 	int ttl = 0, status, i;
 	const char *locator;
-	char *rrstr, *chrptr;
+	char *rrstr, *chrptr, *cp_ds;
 	zone_db_t* zone;
 	struct stat stat_ret;
         int cka = 0;
@@ -147,13 +147,15 @@ exec_dnskey_by_id(int sockfd, key_data_t *key, const char* ds_command,
 		chrptr[1] = '\0';
 	}
 
+        cp_ds = strdup(ds_command);
+
 	if (!ds_command || ds_command[0] == '\0') {
 		ods_log_error_and_printf(sockfd, module_str, 
 			"No \"DelegationSigner%sCommand\" "
 			"configured.", action);
 		status = 1;
 	} else {
-		pos = strstr(ds_command, " --cka_id");
+                pos = strstr(cp_ds, " --cka_id");
                 if (pos){
                         cka = 1;
                         *pos = '\0';
@@ -161,9 +163,9 @@ exec_dnskey_by_id(int sockfd, key_data_t *key, const char* ds_command,
                         pos = NULL;
                 }
 
-		if (stat(ds_command, &stat_ret) != 0) {
+		if (stat(cp_ds, &stat_ret) != 0) {
 			ods_log_error_and_printf(sockfd, module_str,
-				"Cannot stat file %s: %s", ds_command,
+				"Cannot stat file %s: %s", cp_ds,
 				strerror(errno));
 			status = 2;
 		} else if (S_ISREG(stat_ret.st_mode) && 
@@ -174,14 +176,14 @@ exec_dnskey_by_id(int sockfd, key_data_t *key, const char* ds_command,
 			 * all have execute set */
 			status = 3;
 			ods_log_error_and_printf(sockfd, module_str,
-				"File %s is not executable", ds_command);
+				"File %s is not executable", cp_ds);
 		} else {
 			/* send records to the configured command */
-			FILE *fp = popen(ds_command, "w");
+			FILE *fp = popen(cp_ds, "w");
 			if (fp == NULL) {
 				status = 4;
 				ods_log_error_and_printf(sockfd, module_str,
-					"failed to run command: %s: %s",ds_command,
+					"failed to run command: %s: %s",cp_ds,
 					strerror(errno));
 			} else {
 				int bytes_written;
@@ -192,16 +194,16 @@ exec_dnskey_by_id(int sockfd, key_data_t *key, const char* ds_command,
 				if (bytes_written < 0) {
 					status = 5;
 					ods_log_error_and_printf(sockfd,  module_str,
-						 "[%s] Failed to write to %s: %s", ds_command,
+						 "[%s] Failed to write to %s: %s", cp_ds,
 						 strerror(errno));
 				} else if (pclose(fp) == -1) {
 					status = 6;
 					ods_log_error_and_printf(sockfd, module_str,
-						"failed to close %s: %s", ds_command,
+						"failed to close %s: %s", cp_ds,
 						strerror(errno));
 				} else {
-					client_printf(sockfd, "key %sed to %s\n",
-						action, ds_command);
+					ods_log_info("key %sed to %s\n",
+						action, cp_ds);
 					status = 0;
 				}
 			}
@@ -209,6 +211,7 @@ exec_dnskey_by_id(int sockfd, key_data_t *key, const char* ds_command,
 	}
 	LDNS_FREE(rrstr);
 	ldns_rr_free(dnskey_rr);
+	free(cp_ds);
 	return status;
 }
 
