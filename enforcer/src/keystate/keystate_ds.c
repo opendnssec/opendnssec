@@ -96,7 +96,7 @@ exec_dnskey_by_id(int sockfd, struct dbw_key *key, const char* ds_command,
 {
 	ldns_rr *dnskey_rr;
 	int status, i;
-	char *rrstr, *chrptr, *cp_ds;
+	char *rrstr, *chrptr, *cp_ds = NULL;
 	struct stat stat_ret;
         int cka = 0;
 	char *pos = NULL;
@@ -121,14 +121,13 @@ exec_dnskey_by_id(int sockfd, struct dbw_key *key, const char* ds_command,
 		chrptr[1] = '\0';
 	}
 
-        cp_ds = strdup(ds_command);
-
 	if (!ds_command || ds_command[0] == '\0') {
 		ods_log_error_and_printf(sockfd, module_str, 
 			"No \"DelegationSigner%sCommand\" "
 			"configured.", action);
 		status = 1;
 	} else {
+                cp_ds = strdup(ds_command);
                 pos = strstr(cp_ds, " --cka_id");
                 if (pos){
                         cka = 1;
