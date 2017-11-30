@@ -122,7 +122,7 @@ exec_dnskey_by_id(int sockfd, struct dbw_key *key, const char* ds_command,
 	}
 
 	if (!ds_command || ds_command[0] == '\0') {
-		ods_log_error_and_printf(sockfd, module_str, 
+		ods_log_info(module_str,
 			"No \"DelegationSigner%sCommand\" "
 			"configured.", action);
 		status = 1;
@@ -156,7 +156,7 @@ exec_dnskey_by_id(int sockfd, struct dbw_key *key, const char* ds_command,
 			if (fp == NULL) {
 				status = 4;
 				ods_log_error_and_printf(sockfd, module_str,
-					"failed to run command: %s: %s",cp_ds,
+					"Failed to run command: %s: %s",cp_ds,
 					strerror(errno));
 			} else {
 				int bytes_written;
@@ -166,18 +166,27 @@ exec_dnskey_by_id(int sockfd, struct dbw_key *key, const char* ds_command,
 					bytes_written = fprintf(fp, "%s", rrstr);
 				if (bytes_written < 0) {
 					status = 5;
-					ods_log_error_and_printf(sockfd,  module_str,
+					ods_log_error_and_printf(sockfd, module_str,
 						 "[%s] Failed to write to %s: %s", cp_ds,
 						 strerror(errno));
-				} else if (pclose(fp) == -1) {
-					status = 6;
-					ods_log_error_and_printf(sockfd, module_str,
-						"failed to close %s: %s", cp_ds,
-						strerror(errno));
 				} else {
-					ods_log_info("key %sed to %s\n",
-						action, cp_ds);
-					status = 0;
+                                        int s = pclose(fp);
+                                        if (s == -1) {
+						status = 6;
+						ods_log_error_and_printf(sockfd, module_str,
+							"Failed to close %s: %s", cp_ds,
+							strerror(errno));
+					} else if (s == 0) {
+						ods_log_info("key %sed to %s\n",
+							action, cp_ds);
+						client_printf(sockfd, "key %sed to %s\n",
+                                                        action, cp_ds);
+						status = 0;
+					}
+					else {
+						ods_log_error_and_printf(sockfd, "Failed to run %s", cp_ds);
+                                                status = 7;
+					}
 				}
 			}
 		}
@@ -234,12 +243,14 @@ ds_list_keys(db_connection_t *dbconn, int sockfd, enum dbw_ds_at_parent state)
 int
 change_keys_from_to(db_connection_t *dbconn, int sockfd, const char *zonename,
     const char *cka_id, int keytag, int state_from,
-    int state_to, engine_type *engine)
+    int state_to, engine_type *engine, int cmd)
 {
     struct dbw_db *db = dbw_fetch(dbconn);
     if (!db) return 1;
 
     int key_match = 0;
+    int status = 0;
+    int need_commit = 0;
     for (size_t z = 0; z < db->zones->n; z++) {
         struct dbw_zone *zone = (struct dbw_zone *)db->zones->set[z];
         if (zonename && strcmp(zonename, zone->name)) continue;
@@ -250,34 +261,41 @@ change_keys_from_to(db_connection_t *dbconn, int sockfd, const char *zonename,
             if ((keytag != -1) && key->keytag != keytag) continue;
             if (cka_id && strcmp(key->hsmkey->locator, cka_id)) continue;
             key_match++;
+            status = 0;
             /* if from is submit also exec dsSubmit command? */
-            if (state_from == DBW_DS_AT_PARENT_SUBMIT &&
+            if (!cmd && state_from == DBW_DS_AT_PARENT_SUBMIT &&
                     state_to == DBW_DS_AT_PARENT_SUBMITTED)
             {
-                (void)submit_dnskey_by_id(sockfd, key, engine);
+                status = submit_dnskey_by_id(sockfd, key, engine);
             }
-            else if (state_from == DBW_DS_AT_PARENT_RETRACT &&
+            else if (!cmd && state_from == DBW_DS_AT_PARENT_RETRACT &&
                     state_to == DBW_DS_AT_PARENT_RETRACTED)
             {
-                (void)retract_dnskey_by_id(sockfd, key, engine);
+                status = retract_dnskey_by_id(sockfd, key, engine);
             }
-            key->ds_at_parent = state_to;
-            key->dirty = DBW_UPDATE;
-            zone->scratch = 1;
-            struct dbw_keystate *dnskey = dbw_get_keystate(key, DBW_DS);
-            dnskey->last_change = time_now();
-            dnskey->dirty = DBW_UPDATE;
+
+            if (status == 0) {
+                key->ds_at_parent = state_to;
+                key->dirty = DBW_UPDATE;
+                zone->scratch = 1;
+                struct dbw_keystate *dnskey = dbw_get_keystate(key, DBW_DS);
+                dnskey->last_change = time_now();
+                dnskey->dirty = DBW_UPDATE;
+                need_commit = 1;
+            }
         }
     }
-    if (dbw_commit(db)) {
-        dbw_free(db);
-        client_printf_err(sockfd, "Error committing to database");
-        return 1;
-    }
-    for (size_t z = 0; z < db->zones->n; z++) {
-        struct dbw_zone *zone = (struct dbw_zone *)db->zones->set[z];
-        if (!zone->scratch) continue;
-        enforce_task_flush_zone(engine, zone->name);
+    if (need_commit) {
+        if (dbw_commit(db)) {
+            dbw_free(db);
+            client_printf_err(sockfd, "Error committing to database");
+            return 1;
+        }
+        for (size_t z = 0; z < db->zones->n; z++) {
+            struct dbw_zone *zone = (struct dbw_zone *)db->zones->set[z];
+            if (!zone->scratch) continue;
+            enforce_task_flush_zone(engine, zone->name);
+        }
     }
     dbw_free(db);
     client_printf(sockfd, "%d KSK matches found.\n", key_match);
@@ -373,6 +391,6 @@ run_ds_cmd(int sockfd, const char *cmd, db_connection_t *dbconn, int state_from,
 	}
 
 	ret = change_keys_from_to(dbconn, sockfd, zonename, cka_id, keytag,
-		state_from, state_to, engine);
+		state_from, state_to, engine, 1);
 	return ret;
 }
