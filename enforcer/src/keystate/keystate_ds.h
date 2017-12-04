@@ -33,7 +33,7 @@
 int
 change_keys_from_to(db_connection_t *dbconn, int sockfd, const char *zonename,
     const char *cka_id, int keytag, int state_from,
-    int state_to, engine_type *engine);
+    int state_to, engine_type *engine, int cmd);
 
 int run_ds_cmd(int sockfd, const char *cmd,
     db_connection_t *dbconn, key_data_ds_at_parent_t state_from,
