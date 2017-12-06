@@ -1346,7 +1346,10 @@ dbw_verify_list_revisions(const db_connection_t *conn, struct dbw_list *list)
         struct dbrow *row = list->set[i];
         if (row->dirty != DBW_UPDATE) continue;
         id.int64 = row->id;
-        if (list->revision(conn, &id) != row->revision) return 1;
+        if (list->revision(conn, &id) != row->revision) {
+            ods_log_debug("[dbw_verify_revisions] collision detected on id %d", row->id);
+            return 1;
+        }
     }
     return 0;
 }
@@ -1356,12 +1359,19 @@ static int
 dbw_verify_revisions(struct dbw_db *db)
 {
     int r = 0;
+    ods_log_debug("[dbw_verify_revisions] verifying policies");
     r |= dbw_verify_list_revisions(db->conn, db->policies);
+    ods_log_debug("[dbw_verify_revisions] verifying policykeys");
     r |= dbw_verify_list_revisions(db->conn, db->policykeys);
+    ods_log_debug("[dbw_verify_revisions] verifying zones");
     r |= dbw_verify_list_revisions(db->conn, db->zones);
+    ods_log_debug("[dbw_verify_revisions] verifying hsmkeys");
     r |= dbw_verify_list_revisions(db->conn, db->hsmkeys);
+    ods_log_debug("[dbw_verify_revisions] verifying keys");
     r |= dbw_verify_list_revisions(db->conn, db->keys);
+    ods_log_debug("[dbw_verify_revisions] verifying keystates");
     r |= dbw_verify_list_revisions(db->conn, db->keystates);
+    ods_log_debug("[dbw_verify_revisions] verifying keydependencies");
     r |= dbw_verify_list_revisions(db->conn, db->keydependencies);
     return r;
 }
@@ -1411,6 +1421,18 @@ dbw_get_policy(struct dbw_db *db, char const *policyname)
     }
     return NULL;
 }
+
+struct dbw_policykey *
+dbw_get_policykey(struct dbw_db *db, int id)
+{
+    struct dbw_list *list = db->policykeys;
+    for (size_t n = 0; n < list->n; n++) {
+        struct dbw_policykey *policykey = (struct dbw_policykey *)list->set[n];
+        if (id == policykey->id) return policykey;
+    }
+    return NULL;
+}
+
 
 struct dbw_keystate *
 dbw_get_keystate(struct dbw_key *key, int type)

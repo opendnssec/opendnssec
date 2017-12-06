@@ -86,7 +86,7 @@ int hsm_key_factory_schedule_generate_all(engine_type* engine, time_t duration);
  */
 struct dbw_hsmkey *
 hsm_key_factory_get_key(engine_type *engine, struct dbw_db *db,
-    struct dbw_policykey *pkey);
+    struct dbw_policykey *pkey, struct dbw_zone *zone);
 
 /**
  * Release a key, if its not used anymore it will be marked DELETE.

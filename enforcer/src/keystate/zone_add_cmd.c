@@ -317,14 +317,14 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
      */
     /*(void)dbw_commit(db);*/
     if (!suspend) {
-        if (!engine->config->manual_keygen) {
-            (void)hsm_key_factory_generate_policy(engine, db, policy, 0);
-            if (dbw_commit(db)) {
-                client_printf(sockfd, "Failed to commit keys to database.\n");
-                dbw_free(db);
-                return 1;
-            }
-        }
+        /*if (!engine->config->manual_keygen) {*/
+            /*(void)hsm_key_factory_generate_policy(engine, db, policy, 0);*/
+            /*if (dbw_commit(db)) {*/
+                /*client_printf(sockfd, "Failed to commit keys to database.\n");*/
+                /*dbw_free(db);*/
+                /*return 1;*/
+            /*}*/
+        /*}*/
         ods_log_debug("[%s] Flushing enforce task", module_str);
         (void)schedule_task(engine->taskq, enforce_task(engine, zone->name), 1, 0);
     }

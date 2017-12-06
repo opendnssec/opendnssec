@@ -307,11 +307,11 @@ int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
             ods_log_info("[%s] internal zonelist updated successfully", module_str);
         }
 
-        hsm_key_factory_schedule_generate_all(engine, 0);
+        /*hsm_key_factory_schedule_generate_all(engine, 0);*/
         /* schedule all changed zones */
         for (size_t z = 0; z < db->zones->n; z++) {
             struct dbw_zone *zone = (struct dbw_zone *)db->zones->set[z];
-            if (!zone->scratch || !zone->dirty) continue;
+            if (!zone->scratch) continue;
             enforce_task_flush_zone(engine, zone->name);
         }
         r = ZONELIST_IMPORT_OK;

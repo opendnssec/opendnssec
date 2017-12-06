@@ -52,6 +52,9 @@ typedef struct schedule_struct schedule_type;
 #include "status.h"
 #include "task.h"
 
+#define SCHEDULE_ADD     0 /* ADD will fail of already present */
+#define SCHEDULE_REPLACE 1
+
 struct schedule_handler {
     task_id type;
     task_id class;

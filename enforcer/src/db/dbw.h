@@ -416,6 +416,7 @@ void dbw_mark_dirty(struct dbrow *row);
  */
 struct dbw_zone * dbw_get_zone(struct dbw_db *db, char const *zonename);
 struct dbw_policy * dbw_get_policy(struct dbw_db *db, char const *policyname);
+struct dbw_policykey * dbw_get_policykey(struct dbw_db *db, int id);
 struct dbw_hsmkey * dbw_get_hsmkey(struct dbw_db *db, char const *locator);
 struct dbw_keystate * dbw_get_keystate(struct dbw_key *key, int type);
 

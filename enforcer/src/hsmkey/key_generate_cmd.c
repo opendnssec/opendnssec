@@ -125,9 +125,9 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
     }
 
     if (all) {
-        hsm_key_factory_schedule_generate_all(engine, duration_time);
+        /*hsm_key_factory_schedule_generate_all(engine, duration_time);*/
     } else if (policy_name) {
-        hsm_key_factory_schedule_generate_policy(engine, policy_name, duration_time);
+        /*hsm_key_factory_schedule_generate_policy(engine, policy_name, duration_time);*/
     } else {
         client_printf_err(sockfd, "Either --all or --policy needs to be given!\n");
         return 1;

@@ -1339,7 +1339,7 @@ updatePolicy(engine_type *engine, struct dbw_db *db, struct dbw_zone *zone, cons
             hkey = getLastReusableKey(zone, pkey);
         if (!hkey) {
             if (!mockup) {
-                hkey = hsm_key_factory_get_key(engine, db, pkey);
+                hkey = hsm_key_factory_get_key(engine, db, pkey, zone);
             } else {
                 hkey = dbw_new_hsmkey(db, policy);
                 hkey->locator = strdup("[Not generated yet]");
