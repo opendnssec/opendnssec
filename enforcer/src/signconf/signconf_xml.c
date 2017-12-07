@@ -320,7 +320,9 @@ signconf_export_zone(char const *zonename, db_connection_t* dbconn)
     }
     /* We always force. Since now it is scheduled per zone */
     int ret = signconf_xml_export(-1, zone, 1);
-    dbw_commit(db);
+    if (ret == SIGNCONF_EXPORT_OK) {
+        ret = dbw_commit(db);
+    }
     dbw_free(db);
     return ret;
 }

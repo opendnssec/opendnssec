@@ -54,13 +54,11 @@ perform(task_type* task, char const *zonename, void *userdata, void *context)
     if (ret == SIGNCONF_EXPORT_NO_CHANGE) {
         ods_log_info("[%s] signconf done, no change", module_str);
         return schedule_SUCCESS;
-    }
-    if (ret != SIGNCONF_EXPORT_OK) {
+    } else if (ret) {
         ods_log_error("[%s] signconf failed", module_str);
-        /* YBS reschedule backoff? */
-        return schedule_SUCCESS;
+        return schedule_DEFER;
     }
-    
+
     ods_log_info("[%s] signconf done for zone %s, notifying signer",
         module_str, zonename);
         
