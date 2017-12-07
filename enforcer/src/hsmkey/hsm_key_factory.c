@@ -140,6 +140,24 @@ genq_pop()
     return req;
 }
 
+static int
+genq_exists(const char *zonename)
+{
+    int exists = 0;
+    pthread_once(&__hsm_key_factory_once, hsm_key_factory_init);
+    (void) pthread_mutex_lock(__hsm_key_factory_lock);
+        struct generate_request *p = genq;
+        while (p) {
+            if (p->zonename && !strcmp(zonename, p->zonename)) {
+                exists = 1;
+                break;
+            }
+            p = p->next;
+        }
+    (void) pthread_mutex_unlock(__hsm_key_factory_lock);
+    return exists;
+}
+
 /* 1 if hsmkey and policykey match AND hsmkey is unused. */
 static int
 hsmkey_matches_policykey(struct dbw_hsmkey *hsmkey, struct dbw_policykey *policykey)
@@ -286,7 +304,10 @@ generate_cb(task_type* task, char const *owner, void *userdata,
         }
         for (int i = 0; i < req->count; i++) {
             int error = generate_one_key(engine, db, pkey);
-            if (!error && req->zonename)
+            /* If key is requested by a zone wake up enforce task.
+             * But hold off for a bit when more keys for that zone are in the
+             * queue. This prevents DB collisions. */
+            if (!error && req->zonename && !genq_exists(req->zonename))
                 enforce_task_flush_zone(engine, req->zonename);
         }
     }
