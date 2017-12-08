@@ -192,7 +192,7 @@ schedule_create()
 
     schedule->tasks = ldns_rbtree_create(task_compare_time_then_ttuple);
     schedule->tasks_by_name = ldns_rbtree_create(task_compare_ttuple);
-    schedule->locks_by_name = ldns_rbtree_create(task_compare_ttuple);
+    schedule->locks_by_name = ldns_rbtree_create(task_compare_ttuple_lock);
 
     pthread_mutex_init(&schedule->schedule_lock, NULL);
     pthread_cond_init(&schedule->schedule_cond, NULL);

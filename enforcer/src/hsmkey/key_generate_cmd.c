@@ -26,6 +26,7 @@
  *
  */
 #include <getopt.h>
+#include <math.h>
 
 #include "daemon/engine.h"
 #include "cmdhandler.h"
@@ -58,8 +59,26 @@ help(int sockfd)
         "Pre-generate keys for all or a given policy, the duration to pre-generate for\n"
         "can be specified or otherwise its taken from the conf.xml.\n"
 	"\nOptions:\n"
+
 	"duration	duration to generate keys for\n"
 	"policy|all	generate keys for a specified policy or for all of them \n\n");
+}
+
+static int
+unassigned_key_count(struct dbw_policykey *pkey)
+{
+    int count = 0;
+    for (size_t hk = 0; hk < pkey->policy->hsmkey_count; hk++) {
+        struct dbw_hsmkey *hkey = pkey->policy->hsmkey[hk];
+        if (hkey->algorithm != pkey->algorithm) continue;
+        if (hkey->state != DBW_HSMKEY_UNUSED) continue;
+        if (hkey->bits != pkey->bits) continue;
+        if (hkey->role != pkey->role) continue;
+        if (hkey->is_revoked) continue;
+        if (strcasecmp(hkey->repository, pkey->repository)) continue;
+        count++;
+    }
+    return count;
 }
 
 static int
@@ -73,6 +92,7 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
     time_t duration_time = 0;
     duration_type* duration = NULL;
     int all = 0;
+    int count = 0;
     db_connection_t* dbconn = getconnectioncontext(context);
     engine_type* engine = getglobalcontext(context);
 
@@ -80,6 +100,7 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
         {"policy", required_argument, 0, 'p'},
         {"all", no_argument, 0, 'a'},
         {"duration", required_argument, 0, 'd'},
+        {"count", required_argument, 0, 'c'},
         {0, 0, 0, 0}
     };
 
@@ -94,13 +115,25 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
     }
 
     optind = 0;
-    while ((opt = getopt_long(argc, (char* const*)argv, "p:ad:", long_options, &long_index)) != -1) {
+    while ((opt = getopt_long(argc, (char* const*)argv, "p:ad:c:", long_options, &long_index)) != -1) {
         switch (opt) {
             case 'd':
                 duration_text = optarg;
                 break;
             case 'p':
                 policy_name = optarg;
+                break;
+            case 'c':
+                errno = 0;
+                count = strtol(optarg, NULL, 10);
+                if (errno) {
+                    client_printf_err(sockfd, "Unable to parse number.\n");
+                    return 1;
+                } else if (!count) {
+                    /* abort if count == 0, otherwise we would fall back to duration */
+                    client_printf_err(sockfd, "count must be > 1.\n");
+                    return 1;
+                }
                 break;
             case 'a':
                 all = 1;
@@ -112,7 +145,6 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
                 return -1;
         }
     }
-
     if (duration_text) {
         if (!(duration = duration_create_from_string(duration_text))
             || !(duration_time = duration2time(duration)))
@@ -123,17 +155,32 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
         }
         duration_cleanup(duration);
     }
-
-    if (all) {
-        /*hsm_key_factory_schedule_generate_all(engine, duration_time);*/
-    } else if (policy_name) {
-        /*hsm_key_factory_schedule_generate_policy(engine, policy_name, duration_time);*/
-    } else {
+    if (!all && !policy_name) {
         client_printf_err(sockfd, "Either --all or --policy needs to be given!\n");
         return 1;
     }
+    struct dbw_db *db = dbw_fetch(dbconn);
+    if (!db) return 1;
 
+    for (size_t pk = 0; pk < db->policykeys->n; pk++) {
+        int nr_keys = count;
+        struct dbw_policykey *pkey = (struct dbw_policykey *)db->policykeys->set[pk];
+        if (policy_name && strcasecmp(policy_name, pkey->policy->name)) continue;
+        if (!duration_time)
+            duration_time = engine->config->automatic_keygen_duration;
+        if (!nr_keys) {
+            int multiplier = pkey->policy->keys_shared? 0 : pkey->policy->zone_count;
+            nr_keys = ceil(duration_time / (double)pkey->lifetime);
+            nr_keys *= multiplier;
+            nr_keys -= unassigned_key_count(pkey);
+        }
+        if (nr_keys <= 0) continue;
+        client_printf(sockfd, "Scheduled generation of %d %s's for policy %s.\n",
+            nr_keys, dbw_enum2txt(dbw_key_role_txt, pkey->role), pkey->policy->name);
+        hsm_key_factory_schedule(engine, pkey->id, nr_keys);
+    }
     client_printf(sockfd, "Key generation task scheduled.\n");
+    dbw_free(db);
     return 0;
 }
 

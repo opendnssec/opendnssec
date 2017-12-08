@@ -108,9 +108,12 @@ task_perform(schedule_type* scheduler, task_type* task, void* context)
     if (task->callback) {
         if (task->lock) {
             pthread_mutex_lock(task->lock);
+            ods_log_debug("START TASK: %s %s", task->owner, task->type);
             rescheduleTime = task->callback(task, task->owner, task->userdata, context);
+            ods_log_debug("END TASK: %s %s", task->owner, task->type);
             pthread_mutex_unlock(task->lock);
         } else {
+            ods_log_debug("START TASK WITHOUT LOCK");
             rescheduleTime = task->callback(task, task->owner, task->userdata, context);
         }
     } else {
@@ -154,7 +157,7 @@ task_duplicate_shallow(task_type *task)
     return dup;
 }
 
-int
+static int
 cmp_ttuple(task_type *x, task_type *y)
 {
     int cmp;
@@ -178,6 +181,18 @@ task_compare_ttuple(const void* a, const void* b)
     ods_log_assert(b);
 
     return cmp_ttuple(x, y);
+}
+
+int
+task_compare_ttuple_lock(const void* a, const void* b)
+{
+    task_type* x = (task_type*)a;
+    task_type* y = (task_type*)b;
+    ods_log_assert(a);
+    ods_log_assert(b);
+
+    int cmp = strcmp(x->owner, y->owner);
+    return cmp ? cmp : strcmp(x->class, y->class);
 }
 
 int

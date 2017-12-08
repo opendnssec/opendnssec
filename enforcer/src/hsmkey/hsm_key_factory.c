@@ -38,11 +38,16 @@
 #include "libhsm.h"
 #include "presentation.h"
 
-#include <math.h>
 #include <pthread.h>
 
 #include "hsmkey/hsm_key_factory.h"
 
+/* List of database ID's of recently assigned non-shared hsmkeys. So we can
+ * avoid races assigning the same key twice. This avoids backoffs.
+ * For shared keys this problem isn't as pronounced since they will generally
+ * not need a completely new key */
+#define RU_COUNT 8
+static int ru_nonshared_keys[RU_COUNT];
 static int ru_index;
 
 struct __hsm_key_factory_task {
@@ -67,6 +72,8 @@ static struct generate_request *genq = NULL;
 static void hsm_key_factory_init(void)
 {
     pthread_mutexattr_t attr;
+    for (int i = 0; i < RU_COUNT; i++)
+        ru_nonshared_keys[i] = -1;
     ru_index = 0;
     genq = NULL;
 
@@ -302,16 +309,35 @@ generate_cb(task_type* task, char const *owner, void *userdata,
             genq_free(req);
             continue;
         }
+        int error = 0;
         for (int i = 0; i < req->count; i++) {
-            int error = generate_one_key(engine, db, pkey);
-            /* If key is requested by a zone wake up enforce task.
-             * But hold off for a bit when more keys for that zone are in the
-             * queue. This prevents DB collisions. */
-            if (!error && req->zonename && !genq_exists(req->zonename))
-                enforce_task_flush_zone(engine, req->zonename);
+            ods_log_info("Generating %s for policy %s.\n",
+                dbw_enum2txt(dbw_key_role_txt, pkey->role), pkey->policy->name);
+            error += generate_one_key(engine, db, pkey);
+        }
+        /* If key is requested by a zone wake up enforce task.
+         * But hold off for a bit when more keys for that zone are in the
+         * queue. This prevents DB collisions. */
+        if (!error) {
+            if (req->zonename && !genq_exists(req->zonename)) {
+                struct dbw_zone *zone = dbw_get_zone(db, req->zonename);
+                if (zone) zone->scratch = 1;
+            } else if (!req->zonename) {
+                pkey->policy->scratch = 1;
+            }
         }
     }
     (void)dbw_commit(db);
+    for (size_t p = 0; p < db->policies->n; p++) {
+        struct dbw_policy *policy = (struct dbw_policy *)db->policies->set[p];
+        if (policy->scratch)
+            enforce_task_flush_policy(engine, policy);
+    }
+    for (size_t z = 0; z < db->zones->n; z++) {
+        struct dbw_zone *zone = (struct dbw_zone *)db->zones->set[z];
+        if (zone->scratch && !zone->policy->scratch)
+            enforce_task_flush_zone(engine, zone->name);
+    }
     dbw_free(db);
     return genq ? schedule_DEFER : schedule_SUCCESS;
 }
@@ -335,6 +361,22 @@ schedule_generate(engine_type* engine)
     return 0;
 }
 
+void
+hsm_key_factory_schedule(engine_type *engine, int id, int count)
+{
+    genq_push(id, NULL, count);
+    schedule_generate(engine);
+}
+
+static int
+in_lru(int id)
+{
+    for (int i = 0; i < RU_COUNT; i++) {
+        if (ru_nonshared_keys[i] == id) return 1;
+    }
+    return 0;
+}
+
 struct dbw_hsmkey *
 hsm_key_factory_get_key(engine_type *engine, struct dbw_db *db,
     struct dbw_policykey *pkey, struct dbw_zone *zone)
@@ -344,22 +386,40 @@ hsm_key_factory_get_key(engine_type *engine, struct dbw_db *db,
         (policy->keys_shared ?  "shared" : "private"));
 
     /* Get a list of unused HSM keys matching our requirements */
-    int offset = ru_index++; /* We don't lock this. Worst case is database conflict */
-    struct dbw_hsmkey *hkey = NULL;
-    for (size_t h = 0; h < policy->hsmkey_count; h++) {
-        size_t i = (h + offset) % policy->hsmkey_count;
-        struct dbw_hsmkey *hsmkey = policy->hsmkey[i];
-        if (hsmkey->state != DBW_HSMKEY_UNUSED) continue;
-        if (hsmkey->bits != pkey->bits) continue;
-        if (hsmkey->algorithm != pkey->algorithm) continue;
-        if (hsmkey->role != pkey->role) continue;
-        if (hsmkey->is_revoked != 0) continue;
-        if (strcmp(hsmkey->repository, pkey->repository)) continue;
-        if (hsmkey->bits != pkey->bits) continue;
-        /* we have found an available hsmkey */
-        hkey = hsmkey;
-        break;
-    }
+    pthread_once(&__hsm_key_factory_once, hsm_key_factory_init);
+    (void) pthread_mutex_lock(__hsm_key_factory_lock);
+        struct dbw_hsmkey *hkey = NULL;
+        for (size_t h = 0; h < policy->hsmkey_count; h++) {
+            struct dbw_hsmkey *hsmkey = policy->hsmkey[h];
+            if (hsmkey->state != DBW_HSMKEY_UNUSED) continue;
+            if (hsmkey->bits != pkey->bits) continue;
+            if (hsmkey->algorithm != pkey->algorithm) continue;
+            if (hsmkey->role != pkey->role) continue;
+            if (hsmkey->is_revoked != 0) continue;
+            if (strcmp(hsmkey->repository, pkey->repository)) continue;
+            /* we have found an available hsmkey */
+            /* did anyone else grab it? */
+            if (!policy->keys_shared && in_lru(hsmkey->id)) {
+                hsmkey->scratch = 1; /* Mark as possible candidate. */
+                continue;
+            }
+            hkey = hsmkey;
+            ru_nonshared_keys[(++ru_index) % RU_COUNT] = hsmkey->id;
+            break;
+        }
+        for (int ii = 0; ii < RU_COUNT && !hkey; ii++) {
+            /* No keys seemed to be available. The LRU might be stale. Pick the
+             * oldest free key that *might* be in use. */
+            int id = ru_nonshared_keys[(ru_index-1-ii)%RU_COUNT];
+            if (id == -1) continue;
+            for (size_t h = 0; h < policy->hsmkey_count; h++) {
+                struct dbw_hsmkey *hsmkey = policy->hsmkey[h];
+                if (!hsmkey->scratch || hsmkey->id != id) continue;
+                hkey = hsmkey;
+                break;
+            }
+        }
+    (void) pthread_mutex_unlock(__hsm_key_factory_lock);
      /* If there are no keys returned in the list we schedule generation and
       * return NULL */
     if (!hkey) {
@@ -391,29 +451,15 @@ hsm_key_factory_release_key_mockup(struct dbw_hsmkey *hsmkey, struct dbw_key *ke
          * key to be used in the current iteration. */
         hsmkey->state = DBW_HSMKEY_DELETE;
         if (!mockup) {
-            /* Don't do any actuall HSM operations when running in dry mode */
-            /*pthread_once(&__hsm_key_factory_once, hsm_key_factory_init);*/
-            /*if (!__hsm_key_factory_lock) {*/
-                /*ods_log_error("[hsm_key_factory_generate_policy] mutex init error");*/
-                /*return;*/
-            /*}*/
-            /*if (pthread_mutex_lock(__hsm_key_factory_lock)) {*/
-                /*ods_log_error("[hsm_key_factory_generate_policy] mutex lock error");*/
-                /*return;*/
-            /*}*/
             hsm_ctx_t *hsm_ctx;
-            if (!(hsm_ctx = hsm_create_context())) {
-                /*pthread_mutex_unlock(__hsm_key_factory_lock);*/
-                return;
-            }
+            if (!(hsm_ctx = hsm_create_context())) return;
             libhsm_key_t *hkey = hsm_find_key_by_id(hsm_ctx, hsmkey->locator);
             if (hsm_remove_key(hsm_ctx, hkey)) {
                 ods_log_error("Unable to remove key from HSM");
             } else {
-                ods_log_error("Successfully removed key from HSM");
+                ods_log_info("Successfully removed key from HSM");
             }
             hsm_destroy_context(hsm_ctx);
-            /*pthread_mutex_unlock(__hsm_key_factory_lock);*/
         }
     }
 }

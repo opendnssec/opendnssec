@@ -36,42 +36,8 @@
 
 void hsm_key_factory_deinit(void);
 
-/**
- * TODO
- * \return 0 success, 1 error
- */
-int hsm_key_factory_generate_policy(engine_type* engine, struct dbw_db *db,
-    struct dbw_policy *policy, time_t duration);
-
-/**
- * TODO
- * \return 0 success, 1 error
- */
-int hsm_key_factory_generate_all(engine_type* engine,
-    db_connection_t* connection, time_t duration);
-
-
-/**
- * Schedule a task to generate keys for a specific policy.
- * \param[in] engine an engine_type.
- * \prama[in] policy_orig a policy_t pointer to the policy we will generate keys
- * for.
- * \param[in] duration a time_t specifying the duration to generate keys from,
- * if its zero then the duration from conf.xml is taken.
- * \return non-zero on error.
- */
-int hsm_key_factory_schedule_generate_policy(engine_type* engine,
-    const char *policyname, time_t duration);
-
-/**
- * Schedule a task to generate keys for all policies and policy keys we
- * currently have.
- * \param[in] engine an engine_type.
- * \param[in] duration a time_t specifying the duration to generate keys from,
- * if its zero then the duration from conf.xml is taken.
- * \return non-zero on error.
- */
-int hsm_key_factory_schedule_generate_all(engine_type* engine, time_t duration);
+void
+hsm_key_factory_schedule(engine_type *engine, int id, int count);
 
 /**
  * Allocate a private or shared HSM key for the policy key provided. This will
