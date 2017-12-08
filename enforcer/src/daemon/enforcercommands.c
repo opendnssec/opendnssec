@@ -46,6 +46,7 @@
 #include "signconf/signconf_cmd.h"
 #include "hsmkey/backup_hsmkeys_cmd.h"
 #include "hsmkey/key_generate_cmd.h"
+#include "hsmkey/hsmkey_list_cmd.h"
 
 static char const * cmdh_str = "cmdhandler";
 
@@ -55,6 +56,7 @@ static struct cmd_func_block* enforcecommands[] = {
         &update_conf_funcblock,
         &update_repositorylist_funcblock,
 	&repositorylist_funcblock,
+        &hsmkey_list_funcblock,
         &update_all_funcblock,
         &policy_list_funcblock,
         &policy_export_funcblock,

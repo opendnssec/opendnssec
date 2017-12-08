@@ -62,6 +62,7 @@ ods_enforcerd_SOURCES = \
 	hsmkey/backup_hsmkeys_cmd.c hsmkey/backup_hsmkeys_cmd.h \
 	hsmkey/hsm_key_factory.c hsmkey/hsm_key_factory.h \
 	hsmkey/key_generate_cmd.c hsmkey/key_generate_cmd.h \
+	hsmkey/hsmkey_list_cmd.c hsmkey/hsmkey_list_cmd.h \
 	keystate/zone_list_cmd.c keystate/zone_list_cmd.h \
 	keystate/zone_add_cmd.c keystate/zone_add_cmd.h \
 	keystate/zone_del_cmd.c keystate/zone_del_cmd.h \
