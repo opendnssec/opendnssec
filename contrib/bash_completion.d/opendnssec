@@ -80,8 +80,10 @@ _enforcer()
         #*"--bits"*)
         #*"--algorithm"*)
         #*"--inception_time"*)
+        *"--count"*)
+            cmds="NUMBER";;
         *"--duration"*)
-            cmds="P0Y02M0D";;
+            cmds="P1Y6M P2M6DT3H30M PT3H30M";;
     esac
 
     if [ ! -z "$cmds" ] || [ ! -z "$COMPGEN_OPT" ]; then
@@ -89,7 +91,7 @@ _enforcer()
         return 0
     fi
 
-    all_cmds="update repository policy zone zonelist key rollover \
+    all_cmds="update repository policy zone zonelist key hsmkey rollover \
         backup enforce look-ahead signconf queue flush start running reload stop \
         verbosity help --help --version --socket"
     if [ $COMP_CWORD -eq 1 ]; then
@@ -109,6 +111,8 @@ _enforcer()
             *"key"*)
                 cmds="list export import ds-submit ds-seen ds-retract \
                     ds-gone generate purge rollover";;
+            *"hsmkey"*)
+                cmds="list";;
             *"rollover"*)
                 cmds="list";;
             *"backup"*)
@@ -151,7 +155,7 @@ _enforcer()
             *"key ds-submit"*)
                 cmds="--zone --keytag --cka_id";;
             *"key generate"*)
-                cmds="--duration --policy --all";;
+                cmds="--duration --policy --all --count";;
             *"key purge"*)
                 cmds="--policy --zone";;
             *"key rollover"*)

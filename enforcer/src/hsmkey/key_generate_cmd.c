@@ -179,7 +179,6 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
             nr_keys, dbw_enum2txt(dbw_key_role_txt, pkey->role), pkey->policy->name);
         hsm_key_factory_schedule(engine, pkey->id, nr_keys);
     }
-    client_printf(sockfd, "Key generation task scheduled.\n");
     dbw_free(db);
     return 0;
 }
