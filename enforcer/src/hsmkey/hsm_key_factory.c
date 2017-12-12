@@ -284,11 +284,15 @@ generate_one_key(engine_type *engine, struct dbw_db *db,
     struct dbw_hsmkey *hsmkey = create_hsmkey(policykey, locator,
             hsm->require_backup? HSM_KEY_BACKUP_BACKUP_REQUIRED : HSM_KEY_BACKUP_NO_BACKUP);
     if (!hsmkey) {
+        ods_log_error("[hsm_key_factory_generate] hsm key creation"
+                   " failed, database or memory error");
         free(locator);
         hsm_destroy_context(hsm_ctx);
         return 1;
     }
-    (void)dbw_add_hsmkey(db, policykey->policy, hsmkey);//TODO return val
+    if (!dbw_add_hsmkey(db, policykey->policy, hsmkey))//TODO return val
+        ods_log_debug("[hsm_key_factory_generate] generated key %s successfully", locator);
+
     hsm_destroy_context(hsm_ctx);
     return 0;
 }

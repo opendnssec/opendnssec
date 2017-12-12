@@ -216,12 +216,13 @@ process_xml(int sockfd, xmlNodePtr root, struct dbw_db *db)
                     return 1;
                 }
             } else {
-                zone->scratch = 1;
                 if (!zone_xml_cmp(db, zone, &xz)) {
                     zone->dirty = DBW_CLEAN;
                     xml_zone_scrub(&xz);
+                    client_printf(sockfd, "Zone %s already up-to-date\n", zone->name);
                     continue;
                 }
+                zone->scratch = 1;
                 zone->dirty = DBW_UPDATE;
                 free(zone->signconf_path);
                 free(zone->input_adapter_uri);
@@ -312,6 +313,9 @@ int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
         for (size_t z = 0; z < db->zones->n; z++) {
             struct dbw_zone *zone = (struct dbw_zone *)db->zones->set[z];
             if (!zone->scratch) continue;
+            ods_log_info("[%s] Zone %s updated", module_str, zone->name);
+            client_printf(sockfd, "Updated zone %s successfully\n", zone->name);
+
             enforce_task_flush_zone(engine, zone->name);
         }
         r = ZONELIST_IMPORT_OK;
