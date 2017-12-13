@@ -46,7 +46,7 @@
  * avoid races assigning the same key twice. This avoids backoffs.
  * For shared keys this problem isn't as pronounced since they will generally
  * not need a completely new key */
-#define RU_COUNT 32
+#define RU_COUNT 8
 static int ru_nonshared_keys[RU_COUNT];
 static int ru_index;
 
@@ -121,10 +121,11 @@ genq_push(int policykey_id, const char *zonename, int count)
     req->count = count;
 
     (void) pthread_mutex_lock(__hsm_key_factory_lock);
-        /* If zone is explicely mentioned drop request. */
+        /* If zone is explicitly mentioned drop request. */
         struct generate_request *p = genq;
         while (p) {
-            if (zonename && p->zonename && !strcmp(zonename, p->zonename)) {
+            if (zonename && p->zonename && !strcmp(zonename, p->zonename) &&
+                    p->policykey_id == policykey_id) {
                 genq_free(req);
                 (void) pthread_mutex_unlock(__hsm_key_factory_lock);
                 return;
@@ -404,29 +405,14 @@ hsm_key_factory_get_key(engine_type *engine, struct dbw_db *db,
             /* we have found an available hsmkey */
             /* did anyone else grab it? */
             if (!policy->keys_shared && in_lru(hsmkey->id)) {
-                hsmkey->scratch = 1; /* Mark as possible candidate. */
                 continue;
             }
             hkey = hsmkey;
             ru_nonshared_keys[(++ru_index) % RU_COUNT] = hsmkey->id;
             break;
         }
-        for (int ii = 0; ii < RU_COUNT && !hkey; ii++) {
-            /* No keys seemed to be available. The LRU might be stale. Pick the
-             * oldest free key that *might* be in use. */
-            int id = ru_nonshared_keys[(ru_index-1-ii)%RU_COUNT];
-            if (id == -1) continue;
-            for (size_t h = 0; h < policy->hsmkey_count; h++) {
-                struct dbw_hsmkey *hsmkey = policy->hsmkey[h];
-                if (!hsmkey->scratch || hsmkey->id != id) continue;
-                hkey = hsmkey;
-                break;
-            }
-        }
-        for (size_t h = 0; h < policy->hsmkey_count; h++) {
-            struct dbw_hsmkey *hsmkey = policy->hsmkey[h];
-            hsmkey->scratch = 0;
-        }
+        /* Slowly clear out the list when no key is found. */
+        if (!hkey) ru_nonshared_keys[(++ru_index) % RU_COUNT] = -1;
     (void) pthread_mutex_unlock(__hsm_key_factory_lock);
      /* If there are no keys returned in the list we schedule generation and
       * return NULL */
