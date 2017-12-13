@@ -46,7 +46,7 @@
  * avoid races assigning the same key twice. This avoids backoffs.
  * For shared keys this problem isn't as pronounced since they will generally
  * not need a completely new key */
-#define RU_COUNT 8
+#define RU_COUNT 32
 static int ru_nonshared_keys[RU_COUNT];
 static int ru_index;
 
@@ -319,10 +319,10 @@ generate_cb(task_type* task, char const *owner, void *userdata,
          * But hold off for a bit when more keys for that zone are in the
          * queue. This prevents DB collisions. */
         if (!error) {
-            if (req->zonename && !genq_exists(req->zonename)) {
+            if (req->zonename) {
                 struct dbw_zone *zone = dbw_get_zone(db, req->zonename);
                 if (zone) zone->scratch = 1;
-            } else if (!req->zonename) {
+            } else {
                 pkey->policy->scratch = 1;
             }
         }
@@ -335,11 +335,15 @@ generate_cb(task_type* task, char const *owner, void *userdata,
     }
     for (size_t z = 0; z < db->zones->n; z++) {
         struct dbw_zone *zone = (struct dbw_zone *)db->zones->set[z];
-        if (zone->scratch && !zone->policy->scratch)
+        if (zone->scratch && !zone->policy->scratch) {
             enforce_task_flush_zone(engine, zone->name);
+        }
     }
     dbw_free(db);
-    return genq ? schedule_DEFER : schedule_SUCCESS;
+    (void) pthread_mutex_lock(__hsm_key_factory_lock);
+        struct generate_request *req = genq;
+    (void) pthread_mutex_unlock(__hsm_key_factory_lock);
+    return req ? schedule_IMMEDIATELY : schedule_SUCCESS;
 }
 
 /* schedule generate task for zone. 1 single key */
@@ -349,7 +353,7 @@ schedule_generate(engine_type* engine)
     task_type* task;
     char *id_str = strdup("[key factory]");
     task = task_create(id_str, TASK_CLASS_ENFORCER, TASK_TYPE_HSMKEYGEN,
-        generate_cb, engine, NULL, time_now());
+        generate_cb, engine, NULL, schedule_IMMEDIATELY);
     if (!task) {
         free(id_str);
         return 1;
@@ -418,6 +422,10 @@ hsm_key_factory_get_key(engine_type *engine, struct dbw_db *db,
                 hkey = hsmkey;
                 break;
             }
+        }
+        for (size_t h = 0; h < policy->hsmkey_count; h++) {
+            struct dbw_hsmkey *hsmkey = policy->hsmkey[h];
+            hsmkey->scratch = 0;
         }
     (void) pthread_mutex_unlock(__hsm_key_factory_lock);
      /* If there are no keys returned in the list we schedule generation and
