@@ -39,6 +39,7 @@
 #include "presentation.h"
 
 #include <pthread.h>
+#include <math.h>
 
 #include "hsmkey/hsm_key_factory.h"
 
@@ -298,6 +299,23 @@ generate_one_key(engine_type *engine, struct dbw_db *db,
     return 0;
 }
 
+static int
+unassigned_key_count(struct dbw_policykey *pkey)
+{
+    int count = 0;
+    for (size_t hk = 0; hk < pkey->policy->hsmkey_count; hk++) {
+        struct dbw_hsmkey *hkey = pkey->policy->hsmkey[hk];
+        if (hkey->algorithm != pkey->algorithm) continue;
+        if (hkey->state != DBW_HSMKEY_UNUSED) continue;
+        if (hkey->bits != pkey->bits) continue;
+        if (hkey->role != pkey->role) continue;
+        if (hkey->is_revoked) continue;
+        if (strcasecmp(hkey->repository, pkey->repository)) continue;
+        count++;
+    }
+    return count;
+}
+
 static time_t
 generate_cb(task_type* task, char const *owner, void *userdata,
     void *context)
@@ -307,6 +325,8 @@ generate_cb(task_type* task, char const *owner, void *userdata,
     if (!db) return schedule_DEFER;
     engine_type* engine = userdata;
 
+    int duration_time = engine->config->automatic_keygen_duration;
+
     while (genq) {
         struct generate_request *req = genq_pop();
         struct dbw_policykey *pkey = dbw_get_policykey(db, req->policykey_id);
@@ -314,16 +334,22 @@ generate_cb(task_type* task, char const *owner, void *userdata,
             genq_free(req);
             continue;
         }
+        if (req->count == -1 && duration_time) {
+            /* generate as much as needed to satisfy policy */
+            int multiplier = pkey->policy->keys_shared? 1 : pkey->policy->zone_count;
+            req->count = ceil(duration_time / (double)pkey->lifetime);
+            req->count *= multiplier;
+            req->count -= unassigned_key_count(pkey);
+        }
         int error = 0;
+        int keys_generated = 0;
         for (int i = 0; i < req->count; i++) {
             ods_log_info("Generating %s for policy %s.\n",
                 dbw_enum2txt(dbw_key_role_txt, pkey->role), pkey->policy->name);
             error += generate_one_key(engine, db, pkey);
+            keys_generated++;
         }
-        /* If key is requested by a zone wake up enforce task.
-         * But hold off for a bit when more keys for that zone are in the
-         * queue. This prevents DB collisions. */
-        if (!error) {
+        if (!error && keys_generated) {
             if (req->zonename) {
                 struct dbw_zone *zone = dbw_get_zone(db, req->zonename);
                 if (zone) zone->scratch = 1;
@@ -426,12 +452,14 @@ hsm_key_factory_get_key(engine_type *engine, struct dbw_db *db,
             genq_push(pkey->id, zone->name, 1);
             schedule_generate(engine);
         }
-        return NULL;
+    } else {
+         /*Update the state of the returned HSM key*/
+        hkey->state = policy->keys_shared? DBW_HSMKEY_SHARED : DBW_HSMKEY_PRIVATE;
+        dbw_mark_dirty((struct dbrow *)hkey);
+        ods_log_debug("[hsm_key_factory_get_key] key allocated");
     }
-     /*Update the state of the returned HSM key*/
-    hkey->state = policy->keys_shared? DBW_HSMKEY_SHARED : DBW_HSMKEY_PRIVATE;
-    dbw_mark_dirty((struct dbrow *)hkey);
-    ods_log_debug("[hsm_key_factory_get_key] key allocated");
+    if (!engine->config->manual_keygen)
+        hsm_key_factory_schedule(engine, pkey->id, -1);
     return hkey;
 }
 

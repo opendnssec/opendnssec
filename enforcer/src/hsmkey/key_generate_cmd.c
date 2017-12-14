@@ -46,8 +46,9 @@ usage(int sockfd)
 {
     client_printf(sockfd,
         "key generate\n"
-        "	--duration <duration>			aka -d\n"
-        "	--policy <policy>			aka -p \n"
+        "	--duration <DURATION>			aka -d\n"
+        "	--count <NUMBER				aka -c\n"
+        "	--policy <NAME>				aka -p\n"
         "	--all					aka -a\n"
     );
 }
@@ -60,8 +61,10 @@ help(int sockfd)
         "can be specified or otherwise its taken from the conf.xml.\n"
 	"\nOptions:\n"
 
-	"duration	duration to generate keys for\n"
-	"policy|all	generate keys for a specified policy or for all of them \n\n");
+	"duration	duration to generate keys for. For example: P6M, P1Y2M\n"
+	"		for respectively half a year, and 1 year 2 months.\n"
+	"count		Number of keys to generate.\n"
+	"policy|all	generate keys for a specified policy or for all of them.\n\n");
 }
 
 static int
@@ -166,10 +169,15 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
         int nr_keys = count;
         struct dbw_policykey *pkey = (struct dbw_policykey *)db->policykeys->set[pk];
         if (policy_name && strcasecmp(policy_name, pkey->policy->name)) continue;
+        if (!duration_time && !count) {
+            /* use default duration, factory will figure out amount of keys */
+            hsm_key_factory_schedule(engine, pkey->id, -1);
+            continue;
+        }
         if (!duration_time)
             duration_time = engine->config->automatic_keygen_duration;
         if (!nr_keys) {
-            int multiplier = pkey->policy->keys_shared? 0 : pkey->policy->zone_count;
+            int multiplier = pkey->policy->keys_shared? 1 : pkey->policy->zone_count;
             nr_keys = ceil(duration_time / (double)pkey->lifetime);
             nr_keys *= multiplier;
             nr_keys -= unassigned_key_count(pkey);
