@@ -125,8 +125,9 @@ genq_push(int policykey_id, const char *zonename, int count)
         /* If zone is explicitly mentioned drop request. */
         struct generate_request *p = genq;
         while (p) {
-            if (zonename && p->zonename && !strcmp(zonename, p->zonename) &&
-                    p->policykey_id == policykey_id) {
+            if (((zonename && p->zonename && !strcmp(zonename, p->zonename)) ||
+                (!zonename && !p->zonename)) && p->policykey_id == policykey_id)
+            {
                 genq_free(req);
                 (void) pthread_mutex_unlock(__hsm_key_factory_lock);
                 return;
@@ -449,7 +450,11 @@ hsm_key_factory_get_key(engine_type *engine, struct dbw_db *db,
     if (!hkey) {
         ods_log_warning("[hsm_key_factory_get_key] no keys available");
         if (!engine->config->manual_keygen) {
-            genq_push(pkey->id, zone->name, 1);
+            if (!policy->keys_shared) {
+                genq_push(pkey->id, zone->name, 1);
+            } else {
+                genq_push(pkey->id, NULL, 1);
+            }
             schedule_generate(engine);
         }
     } else {
