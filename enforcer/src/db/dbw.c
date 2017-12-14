@@ -1621,6 +1621,7 @@ dbw_new_policy(struct dbw_db *db)
     r |= list_add(db->policies, (struct dbrow *)policy);
     /* TODO handle errors */
     policy->dirty = DBW_INSERT;
+    policy->denial_salt = strdup("");
     return policy;
 }
 
