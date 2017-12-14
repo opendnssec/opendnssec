@@ -36,6 +36,7 @@
 #include "signconf/signconf_task.h"
 
 #include "policy/policy_import.h"
+#include "policy/policy_resalt_task.h"
 
 #include <libxml/parser.h>
 #include <libxml/tree.h>
@@ -309,6 +310,44 @@ xml_policy_set_defaults(struct xml_policy *xp)
 }
 
 static int
+policy_xml_cmp(int sockfd, struct dbw_policy *p, struct xml_policy *xp)
+{
+    return ((strcasecmp(p->name, xp->name))
+        || (strcasecmp(p->description, xp->description))
+        || (xp->denial_salt && strcmp(p->denial_salt, xp->denial_salt))
+        || (p->passthrough != xp->passthrough)
+        || (p->signatures_resign != xp->signatures_resign)
+        || (p->signatures_refresh != xp->signatures_refresh)
+        || (p->signatures_jitter != xp->signatures_jitter)
+        || (p->signatures_inception_offset != xp->signatures_inception_offset)
+        || (p->signatures_validity_default != xp->signatures_validity_default)
+        || (p->signatures_validity_denial != xp->signatures_validity_denial)
+        || (p->signatures_validity_keyset != xp->signatures_validity_keyset)
+        || (p->signatures_max_zone_ttl != xp->signatures_max_zone_ttl)
+        || (p->denial_type != xp->denial_type)
+        || (p->denial_optout != xp->denial_optout)
+        || (p->denial_ttl != xp->denial_ttl)
+        || (p->denial_resalt != xp->denial_resalt)
+        || (p->denial_algorithm != xp->denial_algorithm)
+        || (p->denial_iterations != xp->denial_iterations)
+        || (p->denial_salt_length != xp->denial_salt_length)
+        || (p->keys_ttl != xp->keys_ttl)
+        || (p->keys_retire_safety != xp->keys_retire_safety)
+        || (p->keys_publish_safety != xp->keys_publish_safety)
+        || (p->keys_shared != xp->keys_shared)
+        || (p->keys_purge_after != xp->keys_purge_after)
+        || (p->zone_propagation_delay != xp->zone_propagation_delay)
+        || (p->zone_soa_ttl != xp->zone_soa_ttl)
+        || (p->zone_soa_minimum != xp->zone_soa_minimum)
+        || (p->zone_soa_serial  != xp->zone_soa_serial)
+        || (p->parent_registration_delay != xp->parent_registration_delay)
+        || (p->parent_propagation_delay != xp->parent_propagation_delay)
+        || (p->parent_ds_ttl != xp->parent_ds_ttl)
+        || (p->parent_soa_ttl != xp->parent_soa_ttl)
+        || (p->parent_soa_minimum != xp->parent_soa_minimum));
+}
+
+static int
 process_xml(int sockfd, xmlNodePtr root, struct xml_policy** policies_out, int *count_out)
 {
     struct xml_policy *xp;
@@ -340,10 +379,12 @@ xml2db(struct dbw_policy *p, struct xml_policy *xp)
 {
     free(p->name);
     free(p->description);
-    free(p->denial_salt);
     p->name                         = strdup(xp->name?xp->name:"");
     p->description                  = strdup(xp->description?xp->description:"");
-    p->denial_salt                  = strdup(xp->denial_salt?xp->denial_salt:"");
+    if (xp->denial_salt) {
+        free(p->denial_salt);
+        p->denial_salt              = strdup(xp->denial_salt);
+    }
     p->passthrough                  = xp->passthrough;
     p->signatures_resign            = xp->signatures_resign;
     p->signatures_refresh           = xp->signatures_refresh;
@@ -421,11 +462,30 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
         dbw_free(db);
         return POLICY_IMPORT_ERR_XML;
     }
+    /* Scratch
+       0: not seen
+       1: unchanged
+       2: created
+       3: updated
+    */
     for (int i = 0; i < count; i++) {
         struct dbw_policy *p = dbw_get_policy(db, (xpolicies+i)->name);
-        if (!p) p = dbw_new_policy(db);
+        if (!p) {
+            p = dbw_new_policy(db);
+            p->scratch = 2;
+        }
+        else if (!policy_xml_cmp(sockfd, p, xpolicies+i)) {
+            p->scratch = 1;
+            client_printf(sockfd, "Policy %s already up-to-date\n", p->name);
+            continue;
+        }
+
+        if (p->denial_salt_length != (xpolicies+i)->denial_salt_length)
+            resalt_task_flush(engine, dbconn, p->name);
+
         xml2db(p, xpolicies+i);
-        p->scratch = 1; /* do not delete */
+        if (!p->scratch)
+            p->scratch = 3; /* do not delete */
         dbw_mark_dirty((struct dbrow *)p);
         /* policykeys */
         for (int pk = 0; pk < p->policykey_count; pk++) {
@@ -473,8 +533,23 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
     } else {
         for (size_t p = 0; p < db->policies->n; p++) {
             struct dbw_policy *policy = (struct dbw_policy *)db->policies->set[p];
-            if (!policy->scratch) continue;
-            client_printf(sockfd, "Updated policy %s successfully\n", policy->name);
+            if (!policy->scratch) {
+                if (do_delete) {
+                    ods_log_info("[policy_import] policy %s deleted", policy->name);
+                    client_printf(sockfd, "Deleted policy %s successfully\n", policy->name);
+                }
+                continue;
+            }
+            else if (policy->scratch == 1)
+                continue;
+            else if (policy->scratch == 2) {
+                ods_log_info("[policy_import] policy %s created", policy->name);
+                client_printf(sockfd, "Created policy %s successfully\n", policy->name);
+            }
+            else {
+                ods_log_info("[policy_import] policy %s updated", policy->name);
+                client_printf(sockfd, "Updated policy %s successfully\n", policy->name);
+            }
         }
     }
     dbw_free(db);
