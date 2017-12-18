@@ -312,7 +312,7 @@ xml_policy_set_defaults(struct xml_policy *xp)
 static int
 policy_xml_cmp(int sockfd, struct dbw_policy *p, struct xml_policy *xp)
 {
-    return ((strcasecmp(p->name, xp->name))
+    if ((strcasecmp(p->name, xp->name))
         || (strcasecmp(p->description, xp->description))
         || (xp->denial_salt && strcmp(p->denial_salt, xp->denial_salt))
         || (p->passthrough != xp->passthrough)
@@ -344,7 +344,33 @@ policy_xml_cmp(int sockfd, struct dbw_policy *p, struct xml_policy *xp)
         || (p->parent_propagation_delay != xp->parent_propagation_delay)
         || (p->parent_ds_ttl != xp->parent_ds_ttl)
         || (p->parent_soa_ttl != xp->parent_soa_ttl)
-        || (p->parent_soa_minimum != xp->parent_soa_minimum));
+        || (p->parent_soa_minimum != xp->parent_soa_minimum))
+        return 1;
+
+    if (xp->policykey_count != p->policykey_count)
+        return 1;
+
+    for (int i = 0; i < xp->policykey_count; i++) {
+        struct xml_policykey *xpolicykey = xp->policykey[i];
+        int match = 0;
+        for (int j = 0; j < p->policykey_count; j++) {
+            struct dbw_policykey *policykey = p->policykey[j];
+            match = (policykey->repository && !strcasecmp (policykey->repository, xpolicykey->repository)
+                && (policykey->role == xpolicykey->role)
+                && (policykey->algorithm == xpolicykey->algorithm)
+                && (policykey->bits == xpolicykey->bits)
+                && (policykey->lifetime == xpolicykey->lifetime)
+                && (policykey->standby == xpolicykey->standby)
+                && (policykey->manual_rollover  == xpolicykey->manual_rollover)
+                && (policykey->rfc5011 == xpolicykey->rfc5011)
+                && (policykey->minimize == xpolicykey->minimize));
+            if (match)
+                break;
+        }
+        if (!match)
+            return 1;
+    }
+    return 0;
 }
 
 static int
