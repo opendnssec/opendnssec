@@ -19,8 +19,8 @@
         <Enforcer>
                 <Datastore><SQLite>@INSTALL_ROOT@/var/opendnssec/kasp.db</SQLite></Datastore>
                 <AutomaticKeyGenerationPeriod>P5D</AutomaticKeyGenerationPeriod>
-                <DelegationSignerSubmitCommand>true</DelegationSignerSubmitCommand>
-                <DelegationSignerRetractCommand>true</DelegationSignerRetractCommand>
+                <!--<DelegationSignerSubmitCommand>true</DelegationSignerSubmitCommand>-->
+                <!--<DelegationSignerRetractCommand>true</DelegationSignerRetractCommand>-->
         </Enforcer>
         <Signer>
                 <WorkingDirectory>@INSTALL_ROOT@/var/opendnssec/signer</WorkingDirectory>
