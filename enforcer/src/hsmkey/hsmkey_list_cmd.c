@@ -41,7 +41,7 @@ static void
 usage(int sockfd)
 {
     client_printf(sockfd,
-        "List generated but unassigned keys per policy.\n"
+        "hsmkey list\n"
     );
 }
 
