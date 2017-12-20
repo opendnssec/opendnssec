@@ -104,6 +104,9 @@ program_setup(const char* cfgfile, int cmdline_verbosity)
     
     /* setup */
     tzset(); /* for portability */
+#ifndef HAVE_ARC4RANDOM
+    srand(time_now());
+#endif
     free((void*)file);
 }
 

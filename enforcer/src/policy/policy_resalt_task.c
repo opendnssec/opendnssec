@@ -128,9 +128,6 @@ perform_policy_resalt(task_type* task, char const *policyname, void *userdata,
         return schedule_SUCCESS; /* no point in rescheduling */
     }
 
-#ifndef HAVE_ARC4RANDOM
-    srand(now);
-#endif
     generate_salt(salt, policy->denial_salt_length);
     to_hex(salt, policy->denial_salt_length, salthex);
     policy->denial_salt = strdup(salthex);
