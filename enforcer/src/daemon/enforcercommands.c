@@ -9,7 +9,7 @@
 #include "daemon/engine.h"
 #include "cmdhandler.h"
 #include "enforcercommands.h"
-#include "db/db_connection.h"
+#include "db/dbw.h"
 
 /* commands to handle */
 #include "policy/policy_resalt_cmd.h"
@@ -24,6 +24,7 @@
 #include "enforcer/update_all_cmd.h"
 #include "enforcer/update_conf_cmd.h"
 #include "enforcer/enforce_cmd.h"
+#include "enforcer/lookahead_cmd.h"
 #include "policy/policy_import_cmd.h"
 #include "policy/policy_export_cmd.h"
 #include "policy/policy_purge_cmd.h"
@@ -45,6 +46,7 @@
 #include "signconf/signconf_cmd.h"
 #include "hsmkey/backup_hsmkeys_cmd.h"
 #include "hsmkey/key_generate_cmd.h"
+#include "hsmkey/hsmkey_list_cmd.h"
 
 static char const * cmdh_str = "cmdhandler";
 
@@ -54,6 +56,7 @@ static struct cmd_func_block* enforcecommands[] = {
         &update_conf_funcblock,
         &update_repositorylist_funcblock,
 	&repositorylist_funcblock,
+        &hsmkey_list_funcblock,
         &update_all_funcblock,
         &policy_list_funcblock,
         &policy_export_funcblock,
@@ -84,6 +87,7 @@ static struct cmd_func_block* enforcecommands[] = {
         &backup_funcblock,
 
         &enforce_funcblock,
+        &lookahead_funcblock,
         &signconf_funcblock,
 
 

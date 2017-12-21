@@ -124,7 +124,7 @@ help(int sockfd)
 }
 
 static int
-run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 {
         engine_type* engine = getglobalcontext(context);
         (void)cmd;

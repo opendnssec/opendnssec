@@ -202,6 +202,7 @@ struct db_object {
     const db_connection_t* connection;
     const char* table;
     const char* primary_key_name;
+    int last_row_id;
     db_object_field_list_t* object_field_list;
 };
 
@@ -284,7 +285,7 @@ int db_object_set_object_field_list(db_object_t* object, db_object_field_list_t*
  * \param[in] value_set a db_value_set_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_object_create(const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set);
+int db_object_create(db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set);
 
 /**
  * Read an object or objects from the database.

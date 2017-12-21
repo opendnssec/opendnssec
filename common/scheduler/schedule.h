@@ -52,6 +52,9 @@ typedef struct schedule_struct schedule_type;
 #include "status.h"
 #include "task.h"
 
+#define SCHEDULE_ADD     0 /* ADD will fail of already present */
+#define SCHEDULE_REPLACE 1
+
 struct schedule_handler {
     task_id type;
     task_id class;
@@ -165,11 +168,12 @@ int schedule_task_istype(task_type* task, task_id type);
 char* schedule_describetask(task_type* task);
 void task_perform(schedule_type* sched, task_type* task, void* context);
 
-#define schedule_PROMPTLY     1
-#define schedule_IMMEDIATELY  0
-#define schedule_SUCCESS     -1
-#define schedule_DEFER       -2
-#define schedule_FAILED      -3
+#define schedule_PROMPTLY     1     /* now */
+#define schedule_IMMEDIATELY  0     /* !! Priority !! */
+#define schedule_SUCCESS     -1     /* Don't reschedule */
+#define schedule_DEFER       -2     /* Retry with backoff */
+#define schedule_FAILED      -3     /* Don't reschedule */
+
 #define schedule_WHATEVER    "[any]"
 #define schedule_WHENEVER    -1
 

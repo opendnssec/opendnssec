@@ -52,22 +52,17 @@
 #include "duration.h"
 #include "log.h"
 #include "daemon/engine.h"
-
-#include "db/zone_db.h"
-#include "db/policy.h"
-#include "db/policy_key.h"
-#include "db/hsm_key.h"
-#include "db/key_data.h"
-#include "db/key_dependency.h"
-#include "db/db_error.h"
+#include "db/dbw.h"
 
 #include "enforcer/enforcer.h"
 
-#define HIDDEN      KEY_STATE_STATE_HIDDEN
-#define RUMOURED    KEY_STATE_STATE_RUMOURED
-#define OMNIPRESENT KEY_STATE_STATE_OMNIPRESENT
-#define UNRETENTIVE KEY_STATE_STATE_UNRETENTIVE
-#define NA          KEY_STATE_STATE_NA
+#undef DEBUG_ENFORCER_LOGIC
+
+#define HIDDEN      DBW_HIDDEN
+#define RUMOURED    DBW_RUMOURED
+#define OMNIPRESENT DBW_OMNIPRESENT
+#define UNRETENTIVE DBW_UNRETENTIVE
+#define NA          DBW_NA
 
 static const char *module_str = "enforcer";
 
@@ -75,110 +70,63 @@ static const char *module_str = "enforcer";
 #define NOKEY_TIMEOUT 60
 
 struct future_key {
-    key_data_t* key;
-    key_state_type_t type;
-    key_state_state_t next_state;
+    struct dbw_key *key;
+    enum dbw_keystate_type type;
+    enum dbw_keystate_state next_state;
     int pretend_update;
 };
 
-static int max(int a, int b) { return a>b?a:b; }
-static int min(int a, int b) { return a<b?a:b; }
+static int64_t max(int64_t a, int64_t b) { return a>b?a:b; }
+static int64_t min(int64_t a, int64_t b) { return a<b?a:b; }
 
 /**
  * Stores the minimum of parm1 and parm2 in parm2.
  * 
  * Stores smallest of two times in min. Avoiding negative values,
  * which mean no update necessary. Any other time in the past: ASAP.
- * 
+ *
  * \param t[in], some time to test
  * \param min[in,out], smallest of t and min.
- * */
+ */
 static inline void
 minTime(const time_t t, time_t* min)
 {
-	assert(min); /* TODO: proper error */
+	ods_log_assert(min); /* TODO: proper error */
 	if ( (t < *min || *min < 0) && t >= 0 ) *min = t;
 }
 
 /**
  * Adds seconds to a time. 
- * 
+ *
  * Adds seconds to a time. Adding seconds directly is not portable.
- * 
+ *
  * \param[in] t, base time
  * \param[in] seconds, seconds to add to base
  * \return sum
- * */
+ */
 static time_t
 addtime(const time_t t, const int seconds)
 {
-	struct tm *tp = localtime(&t);
-	if (!tp) return -1; /* bad, but mktime also returns -1 on error */
-	tp->tm_sec += seconds;
-	return mktime(tp);
+    struct tm timebuf;
+    struct tm *tp = localtime_r(&t, &timebuf);
+    if (!tp) return -1; /* bad, but mktime also returns -1 on error */
+    tp->tm_sec += seconds;
+    return mktime(tp);
 }
 
 /**
- * Retrieve the key_state object from one of the records of a key.
- *
- * \return a key_state_t pointer or NULL on error or if the type specified is
- * invalid.
+ * Return state of a record. If key and future_key are the same and the change
+ * of future_key is on type, use the next_state instead.
  */
-static inline const key_state_t*
-getRecord(key_data_t* key, key_state_type_t type)
+static inline enum dbw_keystate_state
+getState(struct dbw_key* key, enum dbw_keystate_type type, struct future_key *future_key)
 {
-    if (!key) {
-        return NULL;
-    }
-
-    switch (type) {
-    case KEY_STATE_TYPE_DS:
-        return key_data_cached_ds(key);
-
-    case KEY_STATE_TYPE_DNSKEY:
-        return key_data_cached_dnskey(key);
-
-    case KEY_STATE_TYPE_RRSIG:
-        return key_data_cached_rrsig(key);
-
-    case KEY_STATE_TYPE_RRSIGDNSKEY:
-        return key_data_cached_rrsigdnskey(key);
-
-    default:
-        break;
-    }
-
-    return NULL;
-}
-
-/**
- * Return state of a record.
- *
- * \return a key_state_state_t which will be KEY_STATE_STATE_INVALID on error.
- */
-static inline key_state_state_t
-getState(key_data_t* key, key_state_type_t type, struct future_key *future_key)
-{
-    int cmp;
-
-    if (!key) {
-        return KEY_STATE_STATE_INVALID;
-    }
-
-    if (future_key
-        && future_key->pretend_update
-        && future_key->type == type
-        && future_key->key)
+    if (future_key->pretend_update && future_key->type == type
+        && future_key->key == key)
     {
-        if (db_value_cmp(key_data_id(key), key_data_id(future_key->key), &cmp)) {
-            return KEY_STATE_STATE_INVALID;
-        }
-        if (!cmp) {
-            return future_key->next_state;
-        }
+        return future_key->next_state;
     }
-
-    return key_state_state(getRecord(key, type));
+    return dbw_get_keystate(key, type)->state;
 }
 
 /**
@@ -189,117 +137,45 @@ getState(key_data_t* key, key_state_type_t type, struct future_key *future_key)
  * Input state and return state me be the same: the record is said
  * to be stable.
  *
- * \return a key_state_state_t for the next state which will be
- * KEY_STATE_STATE_INVALID on error.
+ * \return a key_state_state_t for the next state
  */
-static key_state_state_t
-getDesiredState(int introducing, key_state_state_t state)
+static enum dbw_keystate_state
+getDesiredState(int introducing, enum dbw_keystate_state state)
 {
-    /*
-     * Given goal and state, what will be the next state?
-     */
     if (!introducing) {
-        /*
-         * We are outroducing this key so we would like to move rumoured and
-         * omnipresent keys to unretentive and unretentive keys to hidden.
-         */
         switch (state) {
-        case HIDDEN:
-            break;
-
-        case RUMOURED:
-            state = UNRETENTIVE;
-            break;
-
-        case OMNIPRESENT:
-            state = UNRETENTIVE;
-            break;
-
-        case UNRETENTIVE:
-            state = HIDDEN;
-            break;
-
-        case NA:
-            break;
-
-        default:
-            state = KEY_STATE_STATE_INVALID;
-            break;
+            case RUMOURED:
+            case OMNIPRESENT: return UNRETENTIVE;
+            case UNRETENTIVE: return HIDDEN;
+            default:          return state;
+        }
+    } else {
+        switch (state) {
+            case HIDDEN:
+            case UNRETENTIVE: return RUMOURED;
+            case RUMOURED:    return OMNIPRESENT;
+            default:          return state;
         }
     }
-    else {
-        /*
-         * We are introducing this key so we would like to move hidden and
-         * unretentive keys to rumoured and rumoured keys to omnipresent.
-         */
-        switch (state) {
-        case HIDDEN:
-            state = RUMOURED;
-            break;
-
-        case RUMOURED:
-            state = OMNIPRESENT;
-            break;
-
-        case OMNIPRESENT:
-            break;
-
-        case UNRETENTIVE:
-            state = RUMOURED;
-            break;
-
-        case NA:
-            break;
-
-        default:
-            state = KEY_STATE_STATE_INVALID;
-            break;
-        }
-    }
-
-    return state;
 }
 
 /**
  * Test if a key matches specific states.
  *
- * \return A positive value if the key match, zero if a key does not match and
- * a negative value if an error occurred.
+ * \return 1 on match, 0 otherwise
  */
 static int
-match(key_data_t* key, struct future_key *future_key, int same_algorithm,
-    const key_state_state_t mask[4])
+match(struct dbw_key *key, struct future_key *future_key, int same_algorithm,
+    const enum dbw_keystate_state mask[4])
 {
-    if (!key) {
-        return -1;
-    }
-    if (!future_key) {
-        return -1;
-    }
-    if (!future_key->key) {
-        return -1;
-    }
-
-    if (same_algorithm
-        && key_data_algorithm(key) != key_data_algorithm(future_key->key))
-    {
+    if (same_algorithm && key->algorithm != future_key->key->algorithm)
         return 0;
-    }
 
-    /*
-     * Check the states against the mask, for each mask that is not NA we
-     * need a match on that key state.
-     */
-    if ((mask[0] != NA
-            && getState(key, KEY_STATE_TYPE_DS, future_key) != mask[0])
-        || (mask[1] != NA
-            && getState(key, KEY_STATE_TYPE_DNSKEY, future_key) != mask[1])
-        || (mask[2] != NA
-            && getState(key, KEY_STATE_TYPE_RRSIGDNSKEY, future_key) != mask[2])
-        || (mask[3] != NA
-            && getState(key, KEY_STATE_TYPE_RRSIG, future_key) != mask[3]))
-    {
-        return 0;
+    /* Check the states against the mask, for each mask that is not NA we
+     * need a match on that key state. */
+    for (int i = 0; i < 4; i++) {
+        if (mask[i] != NA && getState(key, i, future_key) != mask[i])
+            return 0;
     }
     return 1;
 }
@@ -311,479 +187,183 @@ match(key_data_t* key, struct future_key *future_key, int same_algorithm,
  * a negative value if an error occurred.
  */
 static int
-exists(key_data_t** keylist, size_t keylist_size, struct future_key *future_key,
-	int same_algorithm, const key_state_state_t mask[4])
+exists(struct future_key *future_key, int same_algorithm,
+    const enum dbw_keystate_state mask[4])
 {
-    size_t i;
-    if (!keylist || !future_key || !future_key->key)
-        return -1;
-    /* Check the states against the mask. If we have a match we return a
-    * positive value. */
-    for (i = 0; i < keylist_size; i++) {
-        if (match(keylist[i], future_key, same_algorithm, mask) > 0)
-            return 1;
+    for (size_t k = 0; k < future_key->key->zone->key_count; k++) {
+        struct dbw_key *key = future_key->key->zone->key[k];
+        if (match(key, future_key, same_algorithm, mask)) return 1;
     }
-    return 0; /* We've got no match. */
+    return 0;
 }
 
 /**
  * Test if a key is a potential successor.
  *
- * \return A positive value if a key is a potential successor, zero if a key
- * is not and a negative value if an error occurred.
+ * \return 1 if a key is a potential successor, 0 otherwise.
  */
 static int
-isPotentialSuccessor(key_data_t* successor_key, key_data_t* predecessor_key,
-    struct future_key *future_key, key_state_type_t type)
+isPotentialSuccessor(struct dbw_key *succkey, struct dbw_key *predkey,
+    struct future_key *future_key, enum dbw_keystate_type type)
 {
-    if (!successor_key || !predecessor_key || !future_key)
-        return -1;
-
     /* You can't be a successor of yourself */
-    if (!key_data_cmp(successor_key, predecessor_key)) return 0;
+    if (succkey->id == predkey->id) return 0;
+    /* Only rumoured keys can be successor. */
+    if (getState(succkey, type, future_key) != RUMOURED) return 0;
+    /* key of different algorithms may not be in successor relation */
+    if (succkey->algorithm != predkey->algorithm) return 0;
 
-    /*
-     * TODO
-     */
-    if (getState(successor_key, type, future_key) != RUMOURED
-        || key_data_algorithm(successor_key) != key_data_algorithm(predecessor_key))
-    {
-        return 0;
-    }
-
-    /*
-     * TODO
-     */
+    /* Now test whether the appropriate parts of the successor key are in the */
+    /* correct state, or are about to be in the correct state. */
     switch (type) {
-    case KEY_STATE_TYPE_DS: /* Intentional fall-through */
-    case KEY_STATE_TYPE_RRSIG:
-        /*
-         * TODO
-         */
-        if (getState(successor_key, KEY_STATE_TYPE_DNSKEY, future_key) == OMNIPRESENT) {
-            return 1;
-        }
-        break;
-
-    case KEY_STATE_TYPE_DNSKEY:
-        /*
-         * Either both DS's should be omnipresent or both signatures, for the
-         * keys to be in a potential relationship for the DNSKEY.
-         */
-        if ((getState(predecessor_key, KEY_STATE_TYPE_DS, future_key) == OMNIPRESENT
-                && getState(successor_key, KEY_STATE_TYPE_DS, future_key) == OMNIPRESENT)
-            || (getState(predecessor_key, KEY_STATE_TYPE_RRSIG, future_key) == OMNIPRESENT
-                && getState(successor_key, KEY_STATE_TYPE_RRSIG, future_key) == OMNIPRESENT))
-        {
-            return 1;
-        }
-        break;
-
-    case KEY_STATE_TYPE_RRSIGDNSKEY:
-        /*
-         * TODO
-         */
-        break;
-
-    default:
-        return -1;
-    }
-
-    return 0;
-}
-
-/**
- * Test if a key record is a successor.
- *
- * \return A positive value if a key record is a successor, zero if a key is not
- * and a negative value if an error occurred.
- */
-static int
-successor_rec(key_data_t** keylist, size_t keylist_size,
-    key_data_t* successor_key, key_data_t* predecessor_key,
-    struct future_key *future_key,
-    key_state_type_t type, key_dependency_list_t* deplist_ext)
-{
-    size_t i;
-    int cmp;
-    const key_dependency_t* dep;
-    key_data_t *from_key;
-    key_dependency_list_t* deplist;
-
-    if (!keylist) {
-        return -1;
-    }
-    if (!successor_key) {
-        return -1;
-    }
-    if (!predecessor_key) {
-        return -1;
-    }
-    if (!future_key) {
-        return -1;
-    }
-    if (!future_key->key) {
-        return -1;
-    }
-    if (!deplist_ext) {
-        return -1;
-    }
-
-    /*
-     * Make a copy of the deplist in order to preserve where we are in the list
-     * if we are calling ourselves later on.
-     *
-     * TODO: This can be optimized with the implementation of *_list_ref_t or
-     * allocating an array as with keylist.
-     */
-    if (!(deplist = key_dependency_list_new_copy(deplist_ext))) {
-        return -1;
-    }
-
-    /*
-     * Check the trivial case where the predecessor key is already a predecessor
-     * for the successor key.
-     */
-    for (dep = key_dependency_list_begin(deplist); dep; dep = key_dependency_list_next(deplist)) {
-        switch (key_dependency_type(dep)) {
-        case KEY_DEPENDENCY_TYPE_DS:
-            if (type != KEY_STATE_TYPE_DS) {
-                continue;
-            }
-            break;
-
-        case KEY_DEPENDENCY_TYPE_RRSIG:
-            if (type != KEY_STATE_TYPE_RRSIG) {
-                continue;
-            }
-            break;
-
-        case KEY_DEPENDENCY_TYPE_DNSKEY:
-            if (type != KEY_STATE_TYPE_DNSKEY) {
-                continue;
-            }
-            break;
-
-        case KEY_DEPENDENCY_TYPE_RRSIGDNSKEY:
-            if (type != KEY_STATE_TYPE_RRSIGDNSKEY) {
-                continue;
-            }
-            break;
-
-        default:
-            continue;
-        }
-
-        if (db_value_cmp(key_data_id(predecessor_key), key_dependency_from_key_data_id(dep), &cmp)) {
-            key_dependency_list_free(deplist);
-            return -1;
-        }
-        if (cmp) {
-            continue;
-        }
-
-        if (db_value_cmp(key_data_id(successor_key), key_dependency_to_key_data_id(dep), &cmp)) {
-            key_dependency_list_free(deplist);
-            return -1;
-        }
-        if (cmp) {
-            continue;
-        }
-
-        key_dependency_list_free(deplist);
-        return 1;
-    }
-
-    /*
-     * Check the trivial case where there is a direct relationship in the future
-     */
-    if (future_key->pretend_update) {
-        if (db_value_cmp(key_data_id(future_key->key), key_data_id(predecessor_key), &cmp)) {
-            key_dependency_list_free(deplist);
-            return -1;
-        }
-        if (!cmp && isPotentialSuccessor(successor_key, predecessor_key, future_key, type) > 0) {
-            key_dependency_list_free(deplist);
-            return 1;
-        }
-    }
-
-    /*
-     * Check for indirect relationship where X depends on S and X is in the same
-     * state as P and X is a successor of P.
-     */
-    for (dep = key_dependency_list_begin(deplist); dep; dep = key_dependency_list_next(deplist)) {
-        switch (key_dependency_type(dep)) {
-        case KEY_DEPENDENCY_TYPE_DS:
-            if (type != KEY_STATE_TYPE_DS) {
-                continue;
-            }
-            break;
-
-        case KEY_DEPENDENCY_TYPE_RRSIG:
-            if (type != KEY_STATE_TYPE_RRSIG) {
-                continue;
-            }
-            break;
-
-        case KEY_DEPENDENCY_TYPE_DNSKEY:
-            if (type != KEY_STATE_TYPE_DNSKEY) {
-                continue;
-            }
-            break;
-
-        case KEY_DEPENDENCY_TYPE_RRSIGDNSKEY:
-            if (type != KEY_STATE_TYPE_RRSIGDNSKEY) {
-                continue;
-            }
-            break;
-
-        default:
-            continue;
-        }
-
-        if (db_value_cmp(key_data_id(successor_key), key_dependency_to_key_data_id(dep), &cmp)) {
-            key_dependency_list_free(deplist);
-            return -1;
-        }
-        if (cmp) {
-            continue;
-        }
-
-        /*
-         * TODO: This may be optimized by searching for the key in the keylist
-         * first, only retrieving it from the database if needed or giving an
-         * error if it does not exist in the keylist.
-         */
-        if (!(from_key = key_dependency_get_from_key_data(dep))) {
-            key_dependency_list_free(deplist);
-            return -1;
-        }
-
-        /*
-         * The RRSIGDNSKEY is not compared because TODO .
-         */
-        if (getState(predecessor_key, KEY_STATE_TYPE_DS, future_key) != getState(from_key, KEY_STATE_TYPE_DS, future_key)
-            || getState(predecessor_key, KEY_STATE_TYPE_DNSKEY, future_key) != getState(from_key, KEY_STATE_TYPE_DNSKEY, future_key)
-            || getState(predecessor_key, KEY_STATE_TYPE_RRSIG, future_key) != getState(from_key, KEY_STATE_TYPE_RRSIG, future_key))
-        {
-            key_data_free(from_key);
-            continue;
-        }
-        if (successor_rec(keylist, keylist_size, from_key, predecessor_key, future_key, type, deplist_ext) > 0) {
-            key_data_free(from_key);
-            key_dependency_list_free(deplist);
-            return 1;
-        }
-        key_data_free(from_key);
-    }
-    key_dependency_list_free(deplist);
-
-    /*
-     * TODO
-     */
-    if (future_key->pretend_update) {
-        for (i = 0; i < keylist_size; i++) {
-            if (db_value_cmp(key_data_id(predecessor_key), key_data_id(keylist[i]), &cmp)) {
-                return -1;
-            }
-            if (!cmp) {
-                continue;
-            }
-
-            if (isPotentialSuccessor(successor_key, keylist[i], future_key, type) > 0) {
-                /*
-                 * The RRSIGDNSKEY is not compared because TODO .
-                 */
-                if (getState(predecessor_key, KEY_STATE_TYPE_DS, future_key) != getState(keylist[i], KEY_STATE_TYPE_DS, future_key)
-                    || getState(predecessor_key, KEY_STATE_TYPE_DNSKEY, future_key) != getState(keylist[i], KEY_STATE_TYPE_DNSKEY, future_key)
-                    || getState(predecessor_key, KEY_STATE_TYPE_RRSIG, future_key) != getState(keylist[i], KEY_STATE_TYPE_RRSIG, future_key))
-                {
-                    continue;
-                }
-                if (successor_rec(keylist+1, keylist_size-1, successor_key, keylist[i], future_key, type, deplist_ext) > 0) {
-                    return 1;
-                }
-            }
-        }
-    }
-
-    return 0;
-}
-
-/**
- * Test if a key is a successor.
- *
- * \return A positive value if a key is a successor, zero if a key is not and a
- * negative value if an error occurred.
- */
-static int
-successor(key_data_t** keylist, size_t keylist_size, key_data_t* successor_key,
-    key_data_t* predecessor_key, struct future_key *future_key,
-    key_state_type_t type, key_dependency_list_t* deplist)
-{
-    int cmp;
-    const key_dependency_t* dep;
-
-    if (!keylist) {
-        return -1;
-    }
-    if (!successor_key) {
-        return -1;
-    }
-    if (!predecessor_key) {
-        return -1;
-    }
-    if (!future_key) {
-        return -1;
-    }
-    if (!future_key->key) {
-        return -1;
-    }
-    if (!deplist) {
-        return -1;
-    }
-
-    /*
-     * Nothing may depend on our predecessor.
-     */
-    for (dep = key_dependency_list_begin(deplist); dep; dep = key_dependency_list_next(deplist)) {
-        if (db_value_cmp(key_data_id(predecessor_key), key_dependency_to_key_data_id(dep), &cmp)) {
-            return -1;
-        }
-        if (!cmp) {
+        case DBW_DS: /* Intentional fall-through */
+        case DBW_RRSIG:
+            return getState(succkey, DBW_DNSKEY, future_key) == OMNIPRESENT;
+        case DBW_DNSKEY:
+            /* Either both DS's should be omnipresent or both signatures, for the
+             * keys to be in a potential relationship for the DNSKEY.  */
+            return (  getState(predkey, DBW_DS,    future_key) == OMNIPRESENT
+                   && getState(succkey, DBW_DS,    future_key) == OMNIPRESENT )
+                || (  getState(predkey, DBW_RRSIG, future_key) == OMNIPRESENT
+                   && getState(succkey, DBW_RRSIG, future_key) == OMNIPRESENT );
+        default: /* no dependencies defined for DNSKEYRRSIG*/
             return 0;
+    }
+}
+
+/**
+ * Are key k1 and key k2 in the same state after changes to future_key are 
+ * applied?
+ */
+static int
+keys_same_state(struct dbw_key *k1, struct dbw_key *k2, struct future_key *fk)
+{
+    return getState(k1, DBW_DS,     fk) == getState(k2, DBW_DS,     fk)
+        && getState(k1, DBW_DNSKEY, fk) == getState(k2, DBW_DNSKEY, fk)
+        /* RRSIGDNSKEY not relevant. Should follow DNSKEY */
+        && getState(k1, DBW_RRSIG,  fk) == getState(k2, DBW_RRSIG,  fk);
+}
+
+/**
+ * Test recursively if succkey is successor of predkey for type. Either
+ * directly or via succkey' the is successor of predkey. Take a future change
+ * in to account.
+ *
+ * \return 1 on confirmed relation. 0 otherwise.
+ */
+static int
+successor(struct dbw_key *succkey, struct dbw_key *predkey,
+    struct future_key *future_key, enum dbw_keystate_type type)
+{
+    /*s is successor of p when p depends on s or s'*/
+
+    if (predkey->to_keydependency_count > 0) return 0;
+    /* trivial case where predecessor depends directly on successor. */
+    for (size_t d = 0; d < predkey->from_keydependency_count; d++) {
+        struct dbw_keydependency *keydep = predkey->from_keydependency[d];
+        if (keydep->dirty == DBW_DELETE) continue;
+        if (keydep->type != type) continue;
+        if (keydep->tokey_id == succkey->id) return 1;
+    }
+
+    /* trivial case where there is a direct relationship in the future */
+    if (future_key->pretend_update && predkey->id == future_key->key->id) {
+        if (isPotentialSuccessor(succkey, predkey, future_key, type)) {
+            return 1;
         }
     }
-    return successor_rec(keylist, keylist_size, successor_key, predecessor_key, future_key, type, deplist);
+    /* Check for indirect relationship where X depends on S and X is in the same
+     * state as P and X is a successor of P. */
+    for (size_t d = 0; d < succkey->to_keydependency_count; d++) {
+        struct dbw_keydependency *keydep = succkey->to_keydependency[d];
+        if (keydep->dirty == DBW_DELETE) continue;
+        if (keydep->type != type) continue;
+        struct dbw_key *fromkey = keydep->fromkey;
+        /* An 'in between' key should be in the same state as predecessor. */
+        if (!keys_same_state(predkey, fromkey, future_key)) continue;
+        /* Start recursion */
+        if (successor(fromkey, predkey, future_key, type)) {
+            return 1;
+        }
+    }
+    return 0;
 }
 
 /**
  * TODO
  *
- * \return A positive value if a key exists, zero if a key does not exists and
- * a negative value if an error occurred.
+ * \return A positive value if a key exists, zero if a key does not exists
  */
 static int
-exists_with_successor(key_data_t** keylist, size_t keylist_size,
-    struct future_key *future_key, int same_algorithm,
-    const key_state_state_t predecessor_mask[4],
-    const key_state_state_t successor_mask[4], key_state_type_t type,
-    key_dependency_list_t* deplist)
+exists_with_successor(struct future_key *future_key, int same_algorithm,
+    const enum dbw_keystate_state predecessor_mask[4],
+    const enum dbw_keystate_state successor_mask[4], enum dbw_keystate_type type)
 {
-    size_t i, j;
-
-    if (!keylist) {
-        return -1;
-    }
-    if (!future_key) {
-        return -1;
-    }
-
     /*
      * Walk the list of keys, for each key that matches the successor mask we
      * walk the list again and check that key against the keys that match the
-     * predecessor mask if has a valid successor/predecessor relationship.
-     */
-    for (i = 0; i < keylist_size; i++) {
-        if (match(keylist[i], future_key, same_algorithm, successor_mask) < 1) {
-            continue;
-        }
+     * predecessor mask if has a valid successor/predecessor relationship.  */
+    for (size_t k = 0; k < future_key->key->zone->key_count; k++) {
+        struct dbw_key *succkey = future_key->key->zone->key[k];
+        if (!match(succkey, future_key, same_algorithm, successor_mask)) continue;
+        for (size_t ksuc = 0; ksuc < future_key->key->zone->key_count; ksuc++) {
+            if (k == ksuc) continue; /* skip self */
+            struct dbw_key *predkey = future_key->key->zone->key[ksuc];
+            if (!match(predkey, future_key, same_algorithm, predecessor_mask)) continue;
 
-        for (j = 0; j < keylist_size; j++) {
-            if (j == i
-                || match(keylist[j], future_key, same_algorithm, predecessor_mask) < 1)
-            {
-                continue;
-            }
-
-            if (successor(keylist, keylist_size, keylist[i], keylist[j], future_key, type, deplist) > 0) {
-                return 1;
-            }
+            /*TODO*/
+            /*This call seems to fail for the most trivial case*/
+            if (successor(succkey, predkey, future_key, type)) return 1;
         }
     }
     return 0;
+}
+
+
+static void
+fix_mask(const enum dbw_keystate_state mask[4], enum dbw_keystate_state fixed[4])
+{
+    fixed[0] = mask[0];
+    fixed[1] = mask[3];
+    fixed[2] = mask[1];
+    fixed[3] = mask[2];
 }
 
 /**
  * Test if keys are in a good unsigned state.
  *
  * \return A positive value if keys are in a good unsigned state, zero if keys
- * are not and a negative value if an error occurred.
+ * are not.
  */
 static int
-unsignedOk(key_data_t** keylist, size_t keylist_size,
-    struct future_key *future_key,
-    const key_state_state_t mask[4], key_state_type_t type)
+unsignedOk(struct future_key *future_key, const enum dbw_keystate_state mask[4],
+    enum dbw_keystate_type type)
 {
-    size_t i;
-    key_state_state_t cmp_mask[4];
+    enum dbw_keystate_state cmp_mask[4];
+    /*enum dbw_keystate_state fixed[4];*/
+    /*fix_mask(mask, fixed);*/
+    struct dbw_zone *zone = future_key->key->zone;
 
-    if (!keylist) {
-        return -1;
-    }
-    if (!future_key) {
-        return -1;
-    }
-    if (!future_key->key) {
-        return -1;
-    }
-
-    for (i = 0; i < keylist_size; i++) {
-        if (key_data_algorithm(keylist[i]) != key_data_algorithm(future_key->key)) {
-            continue;
+    for (size_t k = 0; k < zone->key_count; k++) {
+        struct dbw_key *key = zone->key[k];
+        /* if key has different algorithm it does not influence the key we
+         * are testing. */
+        if (key->algorithm != future_key->key->algorithm) continue;
+        /* States in mask might be influenced by future_key */
+        for (int i = 0; i < 4; i++) {
+            if (i == type) {
+                cmp_mask[i] = getState(key, type, future_key);
+            } else {
+                /*cmp_mask[i] = fixed[i];*/
+                cmp_mask[i] = mask[i];
+            }
         }
-
-        cmp_mask[0] = type == KEY_STATE_TYPE_DS
-            ? getState(keylist[i], type, future_key)
-            : mask[0];
-        cmp_mask[1] = type == KEY_STATE_TYPE_DNSKEY
-            ? getState(keylist[i], type, future_key)
-            : mask[1];
-        cmp_mask[2] = type == KEY_STATE_TYPE_RRSIGDNSKEY
-            ? getState(keylist[i], type, future_key)
-            : mask[2];
-        cmp_mask[3] = type == KEY_STATE_TYPE_RRSIG
-            ? getState(keylist[i], type, future_key)
-            : mask[3];
-
-        /*
-         * If the state is hidden or NA for the given type this key is okay.
-         */
-        switch (type) {
-        case KEY_STATE_TYPE_DS:
-            if (cmp_mask[0] == HIDDEN || cmp_mask[0] == NA) {
-                continue;
-            }
-            break;
-
-        case KEY_STATE_TYPE_DNSKEY:
-            if (cmp_mask[1] == HIDDEN || cmp_mask[1] == NA) {
-                continue;
-            }
-            break;
-
-        case KEY_STATE_TYPE_RRSIGDNSKEY:
-            if (cmp_mask[2] == HIDDEN || cmp_mask[2] == NA) {
-                continue;
-            }
-            break;
-
-        case KEY_STATE_TYPE_RRSIG:
-            if (cmp_mask[3] == HIDDEN || cmp_mask[3] == NA) {
-                continue;
-            }
-            break;
-
-        default:
-            return -1;
-        }
-
-        if (exists(keylist, keylist_size, future_key, 1, cmp_mask) < 1) {
-            return 0;
-        }
+        /* If the state is hidden or NA for the given type this key is okay. */
+        if (cmp_mask[type] == HIDDEN || cmp_mask[type] == NA) continue;
+        /* It is NOT okay to be insigned for this key unless there is a key
+         * (in the future) to which the mask applies */
+        if (!exists(future_key, 1, cmp_mask)) return 0;
     }
-
     return 1;
 }
 
@@ -791,144 +371,125 @@ unsignedOk(key_data_t** keylist, size_t keylist_size,
  *
  * \return 0 if !HIDDEN DS is found, 1 if no such DS where found */
 static int
-all_DS_hidden(key_data_t** keylist, size_t keylist_size,
-    struct future_key *future_key)
+all_DS_hidden(struct future_key *future_key)
 {
-    size_t i;
-    key_state_state_t state;
-
-    assert(keylist);
-    assert(future_key);
-    assert(future_key->key);
-
-    for (i = 0; i < keylist_size; i++) {
-        /*If not same algorithm. Doesn't affect us.*/
-        if (key_data_algorithm(keylist[i]) != key_data_algorithm(future_key->key)) continue;
-        state = getState(keylist[i], KEY_STATE_TYPE_DS, future_key);
+    for (size_t k = 0; k < future_key->key->zone->key_count; k++) {
+        struct dbw_key *key = future_key->key->zone->key[k];
+        if (key->algorithm != future_key->key->algorithm) continue;
+        enum dbw_keystate_state state = getState(key, DBW_DS, future_key);
         if (state != HIDDEN && state != NA) return 0; /*Test failed. Found DS.*/
     }
-    return 1; /*No DS where found.*/
+    return 1; /*No such DS where found.*/
 }
 
 /**
  * Checks for existence of DS.
  *
  * \return A positive value if the rule applies, zero if the rule does not
- * apply and a negative value if an error occurred.
+ * apply
  */
 static int
-rule1(key_data_t** keylist, size_t keylist_size, struct future_key *future_key,
-    int pretend_update)
+rule1(struct future_key *future_key, int pretend_update)
 {
-    static const key_state_state_t mask[2][4] = {
+    static const enum dbw_keystate_state mask[2][4] = {
         { OMNIPRESENT, NA, NA, NA },/* a good key state.  */
         { RUMOURED,    NA, NA, NA } /* the DS is introducing.  */
     };
-
-    if (!keylist || !future_key || !future_key->key) {
-        return -1;
-    }
-
     future_key->pretend_update = pretend_update;
-
     /* Return positive value if any of the masks are found.  */
-    return (exists(keylist, keylist_size, future_key, 0, mask[0]) > 0
-        || exists(keylist, keylist_size, future_key, 0, mask[1]) > 0);
+#ifdef DEBUG_ENFORCER_LOGIC
+    ods_log_error("DEBUG");
+    ods_log_error("Rule1 pretend=%d", pretend_update);
+    ods_log_error("%d %d", exists(future_key, 0, mask[0]), exists(future_key, 0, mask[1]));
+#endif
+    return (exists(future_key, 0, mask[0]) || exists(future_key, 0, mask[1]));
 }
 
 /**
  * Checks for a valid DNSKEY situation.
  *
  * \return A positive value if the rule applies, zero if the rule does not
- * apply and a negative value if an error occurred.
+ * apply
  */
 static int
-rule2(key_data_t** keylist, size_t keylist_size, struct future_key *future_key,
-    int pretend_update, key_dependency_list_t* deplist)
+rule2(struct future_key *future_key, int pretend_update)
 {
-    static const key_state_state_t mask[8][4] = {
-        { OMNIPRESENT, OMNIPRESENT, OMNIPRESENT, NA },/*good key state.*/
-        { RUMOURED,    OMNIPRESENT, OMNIPRESENT, NA },/*introducing DS state.*/
-        { UNRETENTIVE, OMNIPRESENT, OMNIPRESENT, NA },/*outroducing DS state.*/
-        { OMNIPRESENT, RUMOURED,    RUMOURED,    NA },/*introducing DNSKEY state.*/
-        { OMNIPRESENT, OMNIPRESENT, RUMOURED,    NA },
-        { OMNIPRESENT, UNRETENTIVE, UNRETENTIVE, NA },/*outroducing DNSKEY state.*/
-        { OMNIPRESENT, UNRETENTIVE, OMNIPRESENT, NA },
-        { HIDDEN,      OMNIPRESENT, OMNIPRESENT, NA } /*unsigned state.*/
+    static const enum dbw_keystate_state  mask[8][4] = {
+        { OMNIPRESENT, NA, OMNIPRESENT, OMNIPRESENT },/*good key state.*/
+        { RUMOURED,    NA, OMNIPRESENT, OMNIPRESENT },/*introducing DS state.*/
+        { UNRETENTIVE, NA, OMNIPRESENT, OMNIPRESENT },/*outroducing DS state.*/
+        { OMNIPRESENT, NA, RUMOURED,    RUMOURED    },/*introducing DNSKEY state.*/
+        { OMNIPRESENT, NA, OMNIPRESENT, RUMOURED    },
+        { OMNIPRESENT, NA, UNRETENTIVE, UNRETENTIVE },/*outroducing DNSKEY state.*/
+        { OMNIPRESENT, NA, UNRETENTIVE, OMNIPRESENT },
+        { HIDDEN,      NA, OMNIPRESENT, OMNIPRESENT } /*unsigned state.*/
     };
-
-    if (!keylist || !future_key || !future_key->key) {
-        return -1;
-    }
-
     future_key->pretend_update = pretend_update;
-
     /* Return positive value if any of the masks are found.  */
-    return (exists(keylist, keylist_size, future_key, 1, mask[0]) > 0
-        || exists_with_successor(keylist, keylist_size, future_key, 1, mask[2], mask[1], KEY_STATE_TYPE_DS, deplist) > 0
-        || exists_with_successor(keylist, keylist_size, future_key, 1, mask[5], mask[3], KEY_STATE_TYPE_DNSKEY, deplist) > 0
-        || exists_with_successor(keylist, keylist_size, future_key, 1, mask[5], mask[4], KEY_STATE_TYPE_DNSKEY, deplist) > 0
-        || exists_with_successor(keylist, keylist_size, future_key, 1, mask[6], mask[3], KEY_STATE_TYPE_DNSKEY, deplist) > 0
-        || exists_with_successor(keylist, keylist_size, future_key, 1, mask[6], mask[4], KEY_STATE_TYPE_DNSKEY, deplist) > 0
-        || unsignedOk(keylist, keylist_size, future_key, mask[7], KEY_STATE_TYPE_DS) > 0);
+#ifdef DEBUG_ENFORCER_LOGIC
+        ods_log_error("DEBUG");
+        ods_log_error("Rule2 pretend=%d", pretend_update);
+        ods_log_error("%d %d %d %d %d %d %d", exists(future_key, 1, mask[0])
+            , exists_with_successor(future_key, 1, mask[2], mask[1], DBW_DS)
+            , exists_with_successor(future_key, 1, mask[5], mask[3], DBW_DNSKEY)
+            , exists_with_successor(future_key, 1, mask[5], mask[4], DBW_DNSKEY)
+            , exists_with_successor(future_key, 1, mask[6], mask[3], DBW_DNSKEY)
+            , exists_with_successor(future_key, 1, mask[6], mask[4], DBW_DNSKEY)
+            , unsignedOk(future_key, mask[7], DBW_DS));
+#endif
+    return (exists(future_key, 1, mask[0])
+        || exists_with_successor(future_key, 1, mask[2], mask[1], DBW_DS)
+        || exists_with_successor(future_key, 1, mask[5], mask[3], DBW_DNSKEY)
+        || exists_with_successor(future_key, 1, mask[5], mask[4], DBW_DNSKEY)
+        || exists_with_successor(future_key, 1, mask[6], mask[3], DBW_DNSKEY)
+        || exists_with_successor(future_key, 1, mask[6], mask[4], DBW_DNSKEY)
+        || unsignedOk(future_key, mask[7], DBW_DS));
 }
 
 /**
  * Checks for a valid signature situation.
  *
  * \return A positive value if the rule applies, zero if the rule does not
- * apply and a negative value if an error occurred.
+ * apply
  */
 static int
-rule3(key_data_t** keylist, size_t keylist_size, struct future_key *future_key,
-    int pretend_update, key_dependency_list_t* deplist)
+rule3(struct future_key *future_key, int pretend_update)
 {
-    static const key_state_state_t mask[6][4] = {
-        { NA, OMNIPRESENT, NA, OMNIPRESENT },/* good key state. */
-        { NA, RUMOURED,    NA, OMNIPRESENT },/* introducing DNSKEY state. */
-        { NA, UNRETENTIVE, NA, OMNIPRESENT },/* outroducing DNSKEY state. */
-        { NA, OMNIPRESENT, NA, RUMOURED    },/* introducing RRSIG state. */
-        { NA, OMNIPRESENT, NA, UNRETENTIVE },/* outroducing RRSIG state. */
-        { NA, HIDDEN,      NA, OMNIPRESENT } /* unsigned state. */
+    static const enum dbw_keystate_state  mask[6][4] = {
+        { NA, OMNIPRESENT, OMNIPRESENT, NA },/* good key state. */
+        { NA, OMNIPRESENT, RUMOURED,    NA },/* introducing DNSKEY state. */
+        { NA, OMNIPRESENT, UNRETENTIVE, NA },/* outroducing DNSKEY state. */
+        { NA, RUMOURED   , OMNIPRESENT, NA },/* introducing RRSIG state. */
+        { NA, UNRETENTIVE, OMNIPRESENT, NA },/* outroducing RRSIG state. */
+        { NA, OMNIPRESENT, HIDDEN,      NA } /* unsigned state. */
     };
-
-    if (!keylist || !future_key || !future_key->key) {
-        return -1;
-    }
-
     future_key->pretend_update = pretend_update;
-
+#ifdef DEBUG_ENFORCER_LOGIC
+        ods_log_error("DEBUG");
+        ods_log_error("Rule3 pretend=%d", pretend_update);
+        ods_log_error("%d %d %d %d %d", exists(future_key, 1, mask[0])
+        , exists_with_successor(future_key, 1, mask[2], mask[1], DBW_DNSKEY)
+        , exists_with_successor(future_key, 1, mask[4], mask[3], DBW_RRSIG)
+        , unsignedOk(future_key, mask[5], DBW_DNSKEY)
+        , all_DS_hidden(future_key));
+#endif
     /* Return positive value if any of the masks are found. */
-    return (exists(keylist, keylist_size, future_key, 1, mask[0]) > 0
-        || exists_with_successor(keylist, keylist_size, future_key, 1, mask[2], mask[1], KEY_STATE_TYPE_DNSKEY, deplist) > 0
-        || exists_with_successor(keylist, keylist_size, future_key, 1, mask[4], mask[3], KEY_STATE_TYPE_RRSIG, deplist) > 0
-        || unsignedOk(keylist, keylist_size, future_key, mask[5], KEY_STATE_TYPE_DNSKEY) > 0
-        || all_DS_hidden(keylist, keylist_size, future_key) > 0);
+    return (exists(future_key, 1, mask[0])
+        || exists_with_successor(future_key, 1, mask[2], mask[1], DBW_DNSKEY)
+        || exists_with_successor(future_key, 1, mask[4], mask[3], DBW_RRSIG)
+        || unsignedOk(future_key, mask[5], DBW_DNSKEY)
+        || all_DS_hidden(future_key));
 }
 
 /**
  * Checks if transition to next_state maintains validity of zone.
  *
- * \return A positive value if the transition is allowed, zero if it is not and
- * a negative value if an error occurred.
+ * \return A positive value if the transition is allowed, zero if it is not.
  */
 static int
-dnssecApproval(key_data_t** keylist, size_t keylist_size,
-    struct future_key* future_key, int allow_unsigned,
-    key_dependency_list_t* deplist)
+dnssecApproval(struct future_key *future_key, int allow_unsigned)
 {
-    if (!keylist) {
-        return -1;
-    }
-    if (!future_key) {
-        return -1;
-    }
-    if (!deplist) {
-        return -1;
-    }
-
-    /*
-     * Check if DNSSEC state will be invalid by the transition by checking that
+    /* Check if DNSSEC state will be invalid by the transition by checking that
      * all 3 DNSSEC rules apply. Rule 1 only applies if we are not allowing an
      * unsigned state.
      *
@@ -943,21 +504,9 @@ dnssecApproval(key_data_t** keylist, size_t keylist_size,
      * rule2 - Handles DNSKEY states.
      * rule3 - Handles signatures.
      */
-    if ((allow_unsigned
-            || !rule1(keylist, keylist_size, future_key, 0)
-            || rule1(keylist, keylist_size, future_key, 1) > 0)
-        && (!rule2(keylist, keylist_size, future_key, 0, deplist)
-            || rule2(keylist, keylist_size, future_key, 1, deplist) > 0)
-        && (!rule3(keylist, keylist_size, future_key, 0, deplist)
-            || rule3(keylist, keylist_size, future_key, 1, deplist) > 0))
-    {
-        /*
-         * All rules apply, we allow transition.
-         */
-        return 1;
-    }
-
-    return 0;
+    return  ( !rule1(future_key, 0) || rule1(future_key, 1) || allow_unsigned )
+         && ( !rule2(future_key, 0) || rule2(future_key, 1))
+         && ( !rule3(future_key, 0) || rule3(future_key, 1));
 }
 
 /**
@@ -966,47 +515,38 @@ dnssecApproval(key_data_t** keylist, size_t keylist_size,
  * Given a record, its next state, and its last change time when may
  * apply the transition? This is largely policy related.
  *
- * return a time_t with the absolute time or -1 on error.
+ * return a time_t with the absolute time
  */
 static time_t
-minTransitionTime(policy_t const *policy, key_state_type_t type,
-    key_state_state_t next_state, const time_t lastchange, const int ttl)
+minTransitionTime(const struct dbw_policy *policy, enum dbw_keystate_type type,
+    enum dbw_keystate_state next_state, const time_t lastchange, const int ttl)
 {
-    if (!policy) {
-        return -1;
-    }
-
-    /*
-     * We may freely move a record to a uncertain state.
-     */
-    if (next_state == RUMOURED || next_state == UNRETENTIVE) {
-        return lastchange;
-    }
+    /* We may freely move a record to a uncertain state.  */
+    if (next_state == RUMOURED || next_state == UNRETENTIVE) return lastchange;
 
     switch (type) {
-    case KEY_STATE_TYPE_DS:
-        return addtime(lastchange, ttl
-            + policy_parent_registration_delay(policy)
-            + policy_parent_propagation_delay(policy));
+        case DBW_DS:
+            return addtime(lastchange, ttl
+                + policy->parent_registration_delay
+                + policy->parent_propagation_delay);
 
-    /* TODO: 5011 will create special case here */
-    case KEY_STATE_TYPE_DNSKEY: /* intentional fall-through */
-    case KEY_STATE_TYPE_RRSIGDNSKEY:
-        return addtime(lastchange, ttl
-            + policy_zone_propagation_delay(policy)
-            + ( next_state == OMNIPRESENT
-                ? policy_keys_publish_safety(policy)
-                : policy_keys_retire_safety(policy) ));
+        /* TODO: 5011 will create special case here */
+        case DBW_DNSKEY: /* intentional fall-through */
+        case DBW_RRSIGDNSKEY:
+            return addtime(lastchange, ttl
+                + policy->zone_propagation_delay
+                + ( next_state == OMNIPRESENT
+                    ? policy->keys_publish_safety
+                    : policy->keys_retire_safety ));
 
-    case KEY_STATE_TYPE_RRSIG:
-        return addtime(lastchange, ttl
-            + policy_zone_propagation_delay(policy));
+        case DBW_RRSIG:
+            return addtime(lastchange, ttl
+                + policy->zone_propagation_delay);
 
-    default:
-        break;
+        default:
+            ods_log_assert(0);
+            return 0; /* squelch compiler */
     }
-
-    return -1;
 }
 
 /**
@@ -1019,141 +559,92 @@ minTransitionTime(policy_t const *policy, key_state_type_t type,
  * a negative value if an error occurred.
  */
 static int
-policyApproval(key_data_t** keylist, size_t keylist_size,
-    struct future_key* future_key, key_dependency_list_t* deplist)
+policyApproval(struct future_key *future_key)
 {
-    static const key_state_state_t dnskey_algorithm_rollover[4] = { OMNIPRESENT, OMNIPRESENT, OMNIPRESENT, NA };
-    static const key_state_state_t mask[14][4] = {
+    /*TODO this code was never used?*/
+    /*static const enum dbw_keystate_state dnskey_algorithm_rollover[4] =*/
+        /*{ OMNIPRESENT, OMNIPRESENT, OMNIPRESENT, NA };*/
+    static const enum dbw_keystate_state mask[14][4] = {
         /*ZSK*/
-        { NA, OMNIPRESENT, NA, OMNIPRESENT },   /*This indicates a good key state.*/
-        { NA, RUMOURED,    NA, OMNIPRESENT },   /*This indicates a introducing DNSKEY state.*/
-        { NA, UNRETENTIVE, NA, OMNIPRESENT },   /*This indicates a outroducing DNSKEY state.*/
-        { NA, OMNIPRESENT, NA, RUMOURED },      /*This indicates a introducing RRSIG state.*/
-        { NA, OMNIPRESENT, NA, UNRETENTIVE },   /*This indicates a outroducing RRSIG state.*/
-        { NA, HIDDEN,      NA, OMNIPRESENT },   /*This indicates an unsigned state.*/
+        { NA, OMNIPRESENT, OMNIPRESENT, NA },   /* good key state.*/
+        { NA, OMNIPRESENT, RUMOURED,    NA },   /* introducing DNSKEY */
+        { NA, OMNIPRESENT, UNRETENTIVE, NA },   /* outroducing DNSKEY */
+        { NA, RUMOURED,    OMNIPRESENT, NA },   /* introducing RRSIG */
+        { NA, UNRETENTIVE, OMNIPRESENT, NA },   /* outroducing RRSIG */
+        { NA, OMNIPRESENT, HIDDEN,      NA },   /* unsigned state.*/
 
         /*KSK*/
-        { OMNIPRESENT, OMNIPRESENT, OMNIPRESENT, NA },  /*This indicates a good key state.*/
-        { RUMOURED,    OMNIPRESENT, OMNIPRESENT, NA },  /*This indicates an introducing DS state.*/
-        { UNRETENTIVE, OMNIPRESENT, OMNIPRESENT, NA },  /*This indicates an outroducing DS state.*/
-        { OMNIPRESENT, RUMOURED,    RUMOURED,    NA },  /*These indicates an introducing DNSKEY state.*/
-        { OMNIPRESENT, OMNIPRESENT, RUMOURED,    NA },
-        { OMNIPRESENT, UNRETENTIVE, UNRETENTIVE, NA },  /*These indicates an outroducing DNSKEY state.*/
-        { OMNIPRESENT, UNRETENTIVE, OMNIPRESENT, NA },
-        { HIDDEN,      OMNIPRESENT, OMNIPRESENT, NA }   /*This indicates an unsigned state.*/
+        { OMNIPRESENT, NA, OMNIPRESENT, OMNIPRESENT },  /* good key state */
+        { RUMOURED   , NA, OMNIPRESENT, OMNIPRESENT },  /* introducing DS */
+        { UNRETENTIVE, NA, OMNIPRESENT, OMNIPRESENT },  /* outroducing DS */
+        { OMNIPRESENT, NA, RUMOURED,    RUMOURED    },  /* introducing DNSKEY */
+        { OMNIPRESENT, NA, OMNIPRESENT, RUMOURED    },
+        { OMNIPRESENT, NA, UNRETENTIVE, UNRETENTIVE },  /* outroducing DNSKEY */
+        { OMNIPRESENT, NA, UNRETENTIVE, OMNIPRESENT },
+        { HIDDEN     , NA, OMNIPRESENT, OMNIPRESENT }   /* unsigned state.*/
     };
-    
-    if (!keylist || !future_key || !future_key->key) {
-        return -1;
-    }
 
-    /*
-     * Once the record is introduced the policy has no influence.
-     */
-    if (future_key->next_state != RUMOURED) {
-        return 1;
-    }
+    /* Once the record is introduced the policy has no influence. */
+    if (future_key->next_state != RUMOURED) return 1;
 
-    /*
-     * Check if policy prevents transition if the next state is rumoured.
-     */
+    /* Check if policy prevents transition if the next state is rumoured.  */
     switch (future_key->type) {
-    case KEY_STATE_TYPE_DS:
-        /*
-         * If we want to minimize the DS transitions make sure the DNSKEY is
-         * fully propagated.
-         */
-        if (key_state_minimize(key_data_cached_ds(future_key->key))
-            && key_state_state(key_data_cached_dnskey(future_key->key)) != OMNIPRESENT)
-        {
-            /*
-             * DNSKEY is not fully propagated so we will not do any transitions.
-             */
-            return 0;
-        }
-        break;
+        
+    case DBW_DS:
+        /* If we want to minimize the DS transitions make sure the DNSKEY is
+         * fully propagated.  */
+        return !(dbw_get_keystate(future_key->key, DBW_DS)->minimize
+            && dbw_get_keystate(future_key->key, DBW_DNSKEY)->state != OMNIPRESENT);
 
-    case KEY_STATE_TYPE_DNSKEY:
-        if (!key_state_minimize(key_data_cached_dnskey(future_key->key))) {
-            /* There are no restrictions for the DNSKEY transition so we can
-             * just continue. */
-            return 1;
-        }
+    case DBW_DNSKEY:
+        /* There are no restrictions for the DNSKEY transition so we can
+         * just continue. */
+        if (!dbw_get_keystate(future_key->key, DBW_DNSKEY)->minimize) return 1;
         /* Check that signatures has been propagated for CSK/ZSK. */
-        if (key_data_role(future_key->key) & KEY_DATA_ROLE_ZSK ) {
-            if (key_state_state(key_data_cached_rrsig(future_key->key)) == OMNIPRESENT
-                || key_state_state(key_data_cached_rrsig(future_key->key)) == NA)
+        if (future_key->key->role & DBW_ZSK) {
+            if (dbw_get_keystate(future_key->key, DBW_RRSIG)->state == OMNIPRESENT
+                || dbw_get_keystate(future_key->key, DBW_RRSIG)->state == NA)
             {
-                /* RRSIG fully propagated so we will do the transitions. */
-                return 1;
+                return 1; /* RRSIG fully propagated so we will do the transitions. */
             }
         }
         /* Check if the DS is introduced and continue if it is. */
-        if (key_data_role(future_key->key) & KEY_DATA_ROLE_KSK ) {
-            if (key_state_state(key_data_cached_ds(future_key->key)) == OMNIPRESENT
-                || key_state_state(key_data_cached_ds(future_key->key)) == NA)
+        if (future_key->key->role & DBW_KSK) {
+            if (dbw_get_keystate(future_key->key, DBW_DS)->state == OMNIPRESENT
+                || dbw_get_keystate(future_key->key, DBW_DS)->state == NA)
             {
                 return 1;
             }
         }
         /* We might be doing an algorithm rollover so we check if there are
          * no other good KSK available and ignore the minimize flag if so. */
-        return !(exists(keylist, keylist_size, future_key, 1, mask[6]) > 0
-            || exists_with_successor(keylist, keylist_size, future_key, 1, mask[8], mask[7], KEY_STATE_TYPE_DS, deplist) > 0
-            || exists_with_successor(keylist, keylist_size, future_key, 1, mask[11], mask[9], KEY_STATE_TYPE_DNSKEY, deplist) > 0);
+        return !exists(future_key, 1, mask[6])
+            && !exists_with_successor(future_key, 1, mask[8], mask[7], DBW_DS)
+            && !exists_with_successor(future_key, 1, mask[11], mask[9], DBW_DNSKEY);
 
-    case KEY_STATE_TYPE_RRSIGDNSKEY:
-        /*
-         * The only time not to introduce RRSIG DNSKEY is when the DNSKEY is
-         * still hidden.
-         *
-         * TODO: How do we know we are introducing the RRSIG DNSKEY? We might be
-         * outroducing it.
-         */
-        if (key_state_state(key_data_cached_dnskey(future_key->key)) == HIDDEN) {
-            return 0;
-        }
-        break;
+    case DBW_RRSIGDNSKEY:
+        /* The only time not to introduce RRSIG DNSKEY is when the DNSKEY is
+         * still hidden. */
+        return !(dbw_get_keystate(future_key->key, DBW_DNSKEY)->state == HIDDEN);
 
-    case KEY_STATE_TYPE_RRSIG:
-        if (!key_state_minimize(key_data_cached_rrsig(future_key->key))) {
-            /*
-             * There are no restrictions for the RRSIG transition so we can
-             * just continue.
-             */
-            break;
-        }
-
-        /*
-         * Check if the DNSKEY is introduced and continue if it is.
-         */
-        if (key_state_state(key_data_cached_dnskey(future_key->key)) == OMNIPRESENT) {
-            break;
-        }
-
-        /*
-         * We might be doing an algorithm rollover so we check if there are
-         * no other good ZSK available and ignore the minimize flag if so.
-         *
-         * TODO: How is this related to ZSK/CSK? There are no check for key_data_role().
-         */
-        if (exists(keylist, keylist_size, future_key, 1, mask[0]) > 0
-            || exists_with_successor(keylist, keylist_size, future_key, 1, mask[2], mask[1], KEY_STATE_TYPE_DNSKEY, deplist) > 0
-            || exists_with_successor(keylist, keylist_size, future_key, 1, mask[4], mask[3], KEY_STATE_TYPE_RRSIG, deplist) > 0
-            )
-        {
-            /*
-             * We found a good key, so we will not do any transition.
-             */
-            return 0;
-        }
-        break;
+    case DBW_RRSIG:
+        /* There are no restrictions for the RRSIG transition if there is no
+         * need to minimize, we can just continue.  */
+        if (!dbw_get_keystate(future_key->key, DBW_RRSIG)->minimize) return 1;
+        /* Check if the DNSKEY is fully introduced and continue if it is. */
+        if (dbw_get_keystate(future_key->key, DBW_DNSKEY)->state == OMNIPRESENT)
+            return 1;
+        /* We might be doing an algorithm rollover so we check if there are
+         * no other good ZSK available and ignore the minimize flag if so. */
+        return !exists(future_key, 1, mask[0])
+            && !exists_with_successor(future_key, 1, mask[2], mask[1], DBW_DNSKEY)
+            && !exists_with_successor(future_key, 1, mask[4], mask[3], DBW_RRSIG);
 
     default:
-        return 0;
+        ods_log_assert(0);
     }
-
-    return 1;
+    ods_log_assert(0);
+    return 0; /* squelch compiler */
 }
 
 /**
@@ -1165,938 +656,520 @@ policyApproval(key_data_t** keylist, size_t keylist_size,
  *
  * \return The TTL that should be used for the record or -1 on error.
  */
-static int
-getZoneTTL(policy_t const *policy, zone_db_t* zone, key_state_type_t type,
-    const time_t now)
+static unsigned int
+getZoneTTL(struct dbw_zone *zone, int type, const time_t now)
 {
-    time_t end_date;
-    int ttl;
-
-    if (!policy) {
-        return -1;
-    }
-    if (!zone) {
-        return -1;
-    }
+    time_t end_date = 0;
+    int ttl = 0;
+    struct dbw_policy *policy = zone->policy;
 
     switch (type) {
-    case KEY_STATE_TYPE_DS:
-        end_date = zone_db_ttl_end_ds(zone);
-        ttl = policy_parent_ds_ttl(policy);
-        break;
-
-    case KEY_STATE_TYPE_DNSKEY: /* Intentional fall-through */
-    case KEY_STATE_TYPE_RRSIGDNSKEY:
-        end_date = zone_db_ttl_end_dk(zone);
-        ttl = policy_keys_ttl(policy);
-        break;
-
-    case KEY_STATE_TYPE_RRSIG:
-        end_date = zone_db_ttl_end_rs(zone);
-        ttl = max(min(policy_zone_soa_ttl(policy), policy_zone_soa_minimum(policy)),
-            ( policy_denial_type(policy) == POLICY_DENIAL_TYPE_NSEC3
-                ? ( policy_denial_ttl(policy) > policy_signatures_max_zone_ttl(policy)
-                    ? policy_denial_ttl(policy)
-                    : policy_signatures_max_zone_ttl(policy) )
-                : policy_signatures_max_zone_ttl(policy) ));
-        break;
-
-    default:
-        return -1;
+        case DBW_DS:
+            end_date = zone->ttl_end_ds;
+            ttl = policy->parent_ds_ttl;
+            break;
+        case DBW_DNSKEY: /* Intentional fall-through */
+        case DBW_RRSIGDNSKEY:
+            end_date = zone->ttl_end_dk;
+            ttl = policy->keys_ttl;
+            break;
+        case DBW_RRSIG:
+            end_date = zone->ttl_end_rs;
+            ttl = max(min(policy->zone_soa_ttl, policy->zone_soa_minimum),
+                ( policy->denial_type == POLICY_DENIAL_TYPE_NSEC3
+                    ? ( policy->denial_ttl > policy->signatures_max_zone_ttl
+                        ? policy->denial_ttl
+                        : policy->signatures_max_zone_ttl )
+                    : policy->signatures_max_zone_ttl ));
+            break;
+        default:
+            ods_log_assert(0);
     }
 
     return max((int)difftime(end_date, now), ttl);
 }
 
+static struct dbw_keystate *
+getstate(struct dbw_key *key, enum dbw_keystate_type type)
+{
+    for (size_t s = 0; s < key->keystate_count; s++) {
+        if (key->keystate[s]->type == type) return key->keystate[s];
+    }
+    return NULL;
+}
+
 /**
  * Find out if this key can be in a successor relationship
  *
- * \return A positive value if the key is in a successor relationship, zero if
- * it is not and a negative value if an error occurred.
+ * return 1 if it is successable by a new key, 0 otherwise
  */
 static int
 isSuccessable(struct future_key* future_key)
 {
-    if (!future_key) {
-        return -1;
-    }
-
-    if (future_key->next_state != UNRETENTIVE) {
-        return 0;
-    }
+    if (future_key->next_state != UNRETENTIVE) return 0;
 
     switch (future_key->type) {
-    case KEY_STATE_TYPE_DS:
-    case KEY_STATE_TYPE_RRSIG:
-        if (key_state_state(key_data_cached_dnskey(future_key->key)) != OMNIPRESENT) {
+        case DBW_DS:
+        case DBW_RRSIG:
+            return getstate(future_key->key, DBW_DNSKEY)->state == OMNIPRESENT;
+        case DBW_RRSIGDNSKEY:
             return 0;
-        }
-        break;
-
-    case KEY_STATE_TYPE_RRSIGDNSKEY:
-        return 0;
-
-    case KEY_STATE_TYPE_DNSKEY:
-        if (key_state_state(key_data_cached_ds(future_key->key)) != OMNIPRESENT
-            && key_state_state(key_data_cached_rrsig(future_key->key)) != OMNIPRESENT)
-        {
-            return 0;
-        }
-        break;
-
-    default:
-        return -1;
+        case DBW_DNSKEY:
+            return getstate(future_key->key, DBW_DS)->state == OMNIPRESENT
+                || getstate(future_key->key, DBW_RRSIG)->state == OMNIPRESENT;
+        default:
+            ods_log_assert(0);
+            return 0; /* squelch compiler */
     }
-
-    return 1;
 }
 
 /**
  * Establish relationships between keys in keylist and the future_key.
  * Also remove relationships not longer relevant for future_key.
- *
- * \return A positive value if keys where successfully marked, zero if the
- * future_key can not be a successor and a negative value if an error occurred.
  */
-static int
-markSuccessors(db_connection_t *dbconn, key_data_t** keylist,
-    size_t keylist_size, struct future_key *future_key,
-    key_dependency_list_t* deplist, const zone_db_t* zone)
+void
+markSuccessors(struct dbw_db *db, struct future_key *future_key)
 {
     static const char *scmd = "markSuccessors";
-    size_t i;
-    key_dependency_t *key_dependency, *kd;
-    key_dependency_type_t key_dependency_type;
-    int cmp;
-
-    if (!dbconn || !keylist || !future_key || !deplist || !zone) {
-        return -1;
-    }
+    struct dbw_key *fromkey = future_key->key;
 
     /* If key,type in deplist and new state is omnipresent it is no
      * longer relevant for the dependencies */
     if (future_key->next_state == OMNIPRESENT) {
-        /* Remove any entries for this key,type tuple from successors */
-        for (kd = key_dependency_list_get_begin(deplist); kd;
-            key_dependency_free(kd),
-            kd = key_dependency_list_get_next(deplist))
-        {
-            if (db_value_cmp(key_data_id(future_key->key),
-                    key_dependency_to_key_data_id(kd), &cmp) == DB_OK &&
-                !cmp && kd->type == (key_dependency_type_t)future_key->type)
-            {
-                    key_dependency_delete(kd);
-            }
-
+        for (size_t d = 0; d < fromkey->to_keydependency_count; d++) {
+            struct dbw_keydependency *dep = fromkey->to_keydependency[d];
+            if (future_key->type != dep->type) continue;
+            dep->dirty = DBW_DELETE; /*unconditionally delete*/
+            //TODO WE NEED a keydep delete func 
         }
     }
 
-    if (isSuccessable(future_key) < 1) {
-        return 0;
+    if (!isSuccessable(future_key)) return;
+
+    for (size_t k = 0; k < fromkey->zone->key_count; k++) {
+        struct dbw_key *tokey = fromkey->zone->key[k];
+        if (!isPotentialSuccessor(tokey, fromkey, future_key, future_key->type))
+            continue;
+
+        /* First check we didn't already added such a dependency. */
+        int exists = 0;
+        for (size_t kd = 0; kd < fromkey->from_keydependency_count; kd++) {
+            struct dbw_keydependency *keydep = fromkey->from_keydependency[kd];
+            if (keydep->tokey_id == tokey->id && future_key->type == keydep->type) {
+                exists = 1;
+                break;
+            }
+        }
+        /* From now on key will depend on futurekey.*/
+        if (!exists)
+            (void) dbw_new_keydependency(db, fromkey, tokey, future_key->type, tokey->zone);
     }
+}
 
-    for (i = 0; i < keylist_size; i++) {
-        if (isPotentialSuccessor(keylist[i], future_key->key, future_key, future_key->type) > 0) {
-            switch (future_key->type) {
-            case KEY_STATE_TYPE_DS:
-                key_dependency_type = KEY_DEPENDENCY_TYPE_DS;
-                break;
+static int
+has_omnipresent_dnskey(struct dbw_zone *zone)
+{
+    for (size_t k = 0; k < zone->key_count; k++) {
+        struct dbw_keystate *keystate = getstate(zone->key[k], DBW_DNSKEY);
+        if (!keystate) continue;
+        if (keystate->state == DBW_OMNIPRESENT) return 1;
+    }
+    return 0;
+}
 
-            case KEY_STATE_TYPE_DNSKEY:
-                key_dependency_type = KEY_DEPENDENCY_TYPE_DNSKEY;
-                break;
+static void
+track_ttls(struct dbw_zone *zone, const time_t now)
+{
+    struct dbw_policy *policy = zone->policy;
+    /*
+     * This code keeps track of TTL changes. If in the past a large TTL is used,
+     * our keys *may* need to transition extra careful to make sure each
+     * resolver picks up the RRset. When this date passes we may start using the
+     * policies TTL.
+     */
+    if (zone->ttl_end_ds <= now) { /*DS*/
+        zone->ttl_end_ds = addtime(now, policy->parent_ds_ttl);
+        dbw_mark_dirty((struct dbrow *)zone);
+    }
+    if (zone->ttl_end_dk <= now) { /*DNSKEY*/
+        unsigned int ttl;
+        if (has_omnipresent_dnskey(zone)) {
+            ttl = policy->keys_ttl;
+        } else {
+            /* No dnskeys published yet. So consider negative caching as well. */
+            ttl = max(policy->keys_ttl, min(policy->zone_soa_ttl,
+                policy->zone_soa_minimum));
+        }
+        zone->ttl_end_dk = addtime(now, ttl);
+        dbw_mark_dirty((struct dbrow *)zone);
+    }
+    if (zone->ttl_end_rs <= now) { /*RRSIG*/
+        unsigned int ttl;
+        if (policy->denial_type == POLICY_DENIAL_TYPE_NSEC3) {
+            ttl = max(policy->signatures_max_zone_ttl, policy->denial_ttl);
+        } else {
+            ttl = policy->signatures_max_zone_ttl;
+        }
+        zone->ttl_end_rs = addtime(now, max(ttl,
+            min(policy->zone_soa_ttl, policy->zone_soa_minimum)));
+        dbw_mark_dirty((struct dbrow *)zone);
+    }
+}
 
-            case KEY_STATE_TYPE_RRSIGDNSKEY:
-                key_dependency_type = KEY_DEPENDENCY_TYPE_RRSIGDNSKEY;
-                break;
+static unsigned int
+minimize(struct dbw_key *key, int type)
+{
+    unsigned int m = key->minimize;
+    switch (type) {
+        case DBW_DS:     return (m>>2)&1;
+        case DBW_DNSKEY: return (m>>1)&1;
+        case DBW_RRSIG:  return (m>>0)&1;
+        default:         return 0;
+    }
+}
 
-            case KEY_STATE_TYPE_RRSIG:
-                key_dependency_type = KEY_DEPENDENCY_TYPE_RRSIG;
-                break;
+static unsigned int
+initial_state(unsigned int type, unsigned int role)
+{
+    switch (type) {
+        case DBW_DS:
+        case DBW_RRSIGDNSKEY:
+            return (DBW_KSK & role)? DBW_HIDDEN : DBW_NA;
+        case DBW_DNSKEY:
+            return DBW_HIDDEN;
+        case DBW_RRSIG:
+            return (DBW_ZSK & role)? DBW_HIDDEN : DBW_NA;
+    }
+    ods_log_assert(0);
+    return 0; /* squelch compiler */
+}
+
+static void
+generate_missing_keystates(struct dbw_db *db, struct dbw_zone *zone, time_t now)
+    //TODO call from policy update instead of zoneupdate
+{
+    static const char *scmd = "generate_missing_keystates";
+    for (size_t k = 0; k < zone->key_count; k++) {
+        for (int i = DBW_DS; i <= DBW_RRSIGDNSKEY; i++) {
+            struct dbw_keystate *keystate = getstate(zone->key[k], i);
+            if (keystate) continue;
+            keystate = calloc(1, sizeof (struct dbw_keystate));
+            if (!keystate) {
+                ods_log_error("[%s] %s memory allocation error", module_str, scmd);
+                continue;
+            }
+            keystate->key_id = zone->key[k]->id;
+            keystate->type = i;
+            keystate->minimize = minimize(zone->key[k], i);
+            /* We might consider not generating non relevant key states. */
+            keystate->state = initial_state(i, zone->key[k]->role);
+            keystate->last_change = now;
+            keystate->ttl = getZoneTTL(zone, i, now);
+            if (dbw_add_keystate(db, zone->key[k], keystate)) {
+                ods_log_error("[%s] %s memory allocation error", module_str, scmd);
+                continue;
+            }
+        }
+    }
+}
+
+
+static int
+is_ds_waiting_for_user(struct dbw_keystate *keystate, enum dbw_keystate_state next_state)
+{
+    if (keystate->type != DBW_DS)
+        return 0;
+    if (next_state == DBW_OMNIPRESENT)
+        return keystate->key->ds_at_parent != DBW_DS_AT_PARENT_SEEN;
+    if (next_state == DBW_HIDDEN)
+        return keystate->key->ds_at_parent != DBW_DS_AT_PARENT_UNSUBMITTED;
+    return 0;
+}
+
+/**
+ * \return 1 if changes to key have been made. 0 otherwise.
+ */
+static int
+handle_ds_at_parent(struct dbw_key *key, enum dbw_keystate_state next_state)
+{
+    /* If we are handling a DS we depend on the user or
+     * some other external process. We must communicate
+     * through the DSSeen and -submit flags. */
+    if (next_state == RUMOURED) {
+        /* Ask the user to submit the DS to the parent. */
+        switch (key->ds_at_parent) {
+            case DBW_DS_AT_PARENT_SEEN:
+            case DBW_DS_AT_PARENT_SUBMIT:
+            case DBW_DS_AT_PARENT_SUBMITTED:
+                return 0;
+
+            case DBW_DS_AT_PARENT_RETRACT:
+                /* Hypothetical case where we reintroduce keys. */
+                key->ds_at_parent = KEY_DATA_DS_AT_PARENT_SUBMITTED;
+                return 1;
 
             default:
-                return -1;
+                key->ds_at_parent = KEY_DATA_DS_AT_PARENT_SUBMIT;
+                return 1;
             }
+    } else if (next_state == UNRETENTIVE) {
+        /* Ask the user to remove the DS from the parent. */
+        switch (key->ds_at_parent) {
+            case DBW_DS_AT_PARENT_SUBMIT:
+                /* Never submitted.
+                 * NOTE: not safe if we support reintroducing of keys. */
+                key->ds_at_parent = DBW_DS_AT_PARENT_UNSUBMITTED;
+                return 1;
 
-            if (!(key_dependency = key_dependency_new(dbconn))
-                || key_dependency_set_from_key_data_id(key_dependency, key_data_id(future_key->key))
-                || key_dependency_set_to_key_data_id(key_dependency, key_data_id(keylist[i]))
-                || key_dependency_set_type(key_dependency, key_dependency_type)
-                || key_dependency_set_zone_id(key_dependency, zone_db_id(zone))
-                || key_dependency_create(key_dependency))
-            {
-                ods_log_error("[%s] %s: unable to create key dependency between %s and %s",
-                    module_str, scmd,
-                    hsm_key_locator(key_data_cached_hsm_key(future_key->key)),
-                    hsm_key_locator(key_data_cached_hsm_key(keylist[i])));
-                key_dependency_free(key_dependency);
-                return -1;
-            }
-            key_dependency_free(key_dependency);
+            case KEY_DATA_DS_AT_PARENT_UNSUBMITTED:
+            case KEY_DATA_DS_AT_PARENT_RETRACTED:
+            case KEY_DATA_DS_AT_PARENT_RETRACT:
+                return 0;
+
+            default:
+                key->ds_at_parent = DBW_DS_AT_PARENT_RETRACT;
+                return 1;
         }
     }
-
-    return 1;
+    return 0;
 }
 
 /**
  * Try to push each key for this zone to a next state. If one changes
  * visit the rest again. Loop stops when no changes can be made without
  * advance of time. Return time of first possible event.
- * 
+ *
  * @param zone, zone we are processing
  * @param now, current time
  * @return first absolute time some record *could* be advanced.
  * */
 static time_t
-updateZone(db_connection_t *dbconn, policy_t const *policy, zone_db_t* zone,
-    const time_t now, int allow_unsigned, int *zone_updated,
-    key_data_t** keylist, size_t keylist_size, key_dependency_list_t *deplist)
+updateZone(struct dbw_db *db, struct dbw_zone *zone, const time_t now,
+    int allow_unsigned, int *zone_updated)
 {
-	time_t returntime_zone = -1;
-	unsigned int ttl;
-	static const char *scmd = "updateZone";
-	size_t i;
-	unsigned int j, change;
-	static const key_state_type_t type[] = {
-	    KEY_STATE_TYPE_DS,
-	    KEY_STATE_TYPE_DNSKEY,
-	    KEY_STATE_TYPE_RRSIGDNSKEY,
-	    KEY_STATE_TYPE_RRSIG
-	};
+    static const char *scmd = "updateZone";
     struct future_key future_key;
-    key_state_state_t next_state;
-    key_state_state_t state;
-    time_t returntime_key;
-    key_state_t* key_state;
-    int key_data_updated, process, key_state_created;
-    const db_enum_t* state_enum, *next_state_enum, *type_enum;
-	key_dependency_list_t *deplisttmp = NULL;
+    time_t returntime_zone = -1;
 
-    if (!dbconn) {
-        /* TODO: better log error */
-        ods_log_error("[%s] %s: no dbconn", module_str, scmd);
-        return returntime_zone;
-    }
-	if (!policy) {
-        /* TODO: better log error */
-        ods_log_error("[%s] %s: no policy", module_str, scmd);
-		return returntime_zone;
-	}
-	if (!zone) {
-        /* TODO: better log error */
-        ods_log_error("[%s] %s: no zone", module_str, scmd);
-		return returntime_zone;
-	}
-	if (!zone_updated) {
-        /* TODO: better log error */
-        ods_log_error("[%s] %s: no zone_updated", module_str, scmd);
-		return returntime_zone;
-	}
-    if (!keylist) {
-        /* TODO: better log error */
-        ods_log_error("[%s] %s: no keylist", module_str, scmd);
-        return returntime_zone;
-    }
-    if (!deplist) {
-        /* TODO: better log error */
-        ods_log_error("[%s] %s: no deplist", module_str, scmd);
-        return returntime_zone;
-    }
+    struct dbw_policy *policy = zone->policy;
 
-    ods_log_verbose("[%s] %s: processing %s with policyName %s", module_str, scmd, zone_db_name(zone), policy_name(policy));
+     ods_log_verbose("[%s] %s: processing %s with policyName %s",
+         module_str, scmd, zone->name, policy->name);
+    track_ttls(zone, now);
+    generate_missing_keystates(db, zone, now);
 
-    deplisttmp = zone_db_get_key_dependencies(zone);
+    int stable = 0;
+    while (!stable) {
+        stable = 1;
+        for (size_t k = 0; k < zone->key_count; k++) {
+            struct dbw_key *key = zone->key[k];
+            ods_log_verbose("[%s] %s: processing key %s %u", module_str, scmd,
+                key->hsmkey->locator, key->minimize);
+            for (size_t s = 0; s < key->keystate_count; s++) {
+                time_t returntime_keystate;
+                struct dbw_keystate *keystate = key->keystate[s];
+                enum dbw_keystate_state next_state = getDesiredState(key->introducing, keystate->state);
+                if (next_state == keystate->state) continue;
+                if (is_ds_waiting_for_user(keystate, next_state)) continue;
 
-	/*
-	 * The process variable will indicate if we are processing, if something
-	 * fails and sets it to 0 then it will fall through to the end.
-	 */
-    process = 1;
+                ods_log_verbose("[%s] %s: May %s %s %s in state %s transition to %s?",
+                    module_str, scmd,
+                    dbw_key_role_txt[key->role],
+                    key->hsmkey->locator,
+                    dbw_keystate_type_txt[keystate->type],
+                    dbw_keystate_state_txt[keystate->state],
+                    dbw_keystate_state_txt[next_state]);
 
-	/*
-	 * This code keeps track of TTL changes. If in the past a large TTL is used,
-	 * our keys *may* need to transition extra careful to make sure each
-	 * resolver picks up the RRset. When this date passes we may start using the
-	 * policies TTL.
-	 */
-	if (process && zone_db_ttl_end_ds(zone) <= now) {
-		if (zone_db_set_ttl_end_ds(zone, addtime(now, policy_parent_ds_ttl(policy)))) {
-            ods_log_error("[%s] %s: zone_db_set_ttl_end_ds() failed", module_str, scmd);
-            process = 0;
-		}
-		else {
-            *zone_updated = 1;
-		}
-	}
-	if (process && zone_db_ttl_end_dk(zone) <= now) {
-		/*
-		 * If no DNSKEY is currently published we must take negative caching
-		 * into account.
-		 */
-		for (i = 0; i < keylist_size; i++) {
-			if (key_state_state(key_data_cached_dnskey(keylist[i])) == OMNIPRESENT) {
-				break;
-			}
-		}
-		if (keylist_size < i) {
-			ttl = max(policy_keys_ttl(policy),
-				min(policy_zone_soa_ttl(policy), policy_zone_soa_minimum(policy)));
-		}
-		else {
-			ttl = policy_keys_ttl(policy);
-		}
-		if (zone_db_set_ttl_end_dk(zone, addtime(now, ttl))) {
-            ods_log_error("[%s] %s: zone_db_set_ttl_end_dk() failed", module_str, scmd);
-            process = 0;
-        }
-        else {
-            *zone_updated = 1;
-        }
-	}
-	if (process && zone_db_ttl_end_rs(zone) <= now) {
-		if (policy_denial_type(policy) == POLICY_DENIAL_TYPE_NSEC3) {
-			ttl = max(policy_signatures_max_zone_ttl(policy), policy_denial_ttl(policy));
-		}
-		else {
-			ttl = policy_signatures_max_zone_ttl(policy);
-		}
-		if (zone_db_set_ttl_end_rs(zone, addtime(now, max(
-			min(policy_zone_soa_ttl(policy), policy_zone_soa_minimum(policy)),
-				ttl))))
-		{
-            ods_log_error("[%s] %s: zone_db_set_ttl_end_rs() failed", module_str, scmd);
-            process = 0;
-        }
-        else {
-            *zone_updated = 1;
-        }
-	}
-
-    /*
-     * Create key states that do not exist.
-     */
-    for (i = 0; process && i < keylist_size; i++) {
-        key_state_created = 0;
-        if (!key_data_cached_ds(keylist[i])) {
-            if (!(key_state = key_state_new(dbconn))
-                || key_state_set_key_data_id(key_state, key_data_id(keylist[i]))
-                || key_state_set_type(key_state, KEY_STATE_TYPE_DS)
-                || key_state_set_minimize(key_state, (key_data_minimize(keylist[i]) >> 2) & 1)
-                || key_state_set_state(key_state, key_data_role(keylist[i]) & KEY_DATA_ROLE_KSK ? HIDDEN : NA)
-                || key_state_set_last_change(key_state, now)
-                || key_state_set_ttl(key_state, getZoneTTL(policy, zone, KEY_STATE_TYPE_DS, now))
-                || key_state_create(key_state))
-            {
-                ods_log_error("[%s] %s: key state DS creation failed", module_str, scmd);
-                process = 0;
-                key_state_free(key_state);
-                key_state = NULL;
-                break;
-            }
-            key_state_created = 1;
-            key_state_free(key_state);
-            key_state = NULL;
-
-            if (!zone_db_signconf_needs_writing(zone)) {
-                if (zone_db_set_signconf_needs_writing(zone, 1)) {
-                    ods_log_error("[%s] %s: zone_db_set_signconf_needs_writing() failed", module_str, scmd);
-                    process = 0;
-                    break;
-                }
-                else {
-                    *zone_updated = 1;
-                }
-            }
-        }
-        if (!key_data_cached_dnskey(keylist[i])) {
-            if (!(key_state = key_state_new(dbconn))
-                || key_state_set_key_data_id(key_state, key_data_id(keylist[i]))
-                || key_state_set_type(key_state, KEY_STATE_TYPE_DNSKEY)
-                || key_state_set_minimize(key_state, (key_data_minimize(keylist[i]) >> 1) & 1)
-                || key_state_set_state(key_state, HIDDEN)
-                || key_state_set_last_change(key_state, now)
-                || key_state_set_ttl(key_state, getZoneTTL(policy, zone, KEY_STATE_TYPE_DNSKEY, now))
-                || key_state_create(key_state))
-            {
-                ods_log_error("[%s] %s: key state DNSKEY creation failed", module_str, scmd);
-                process = 0;
-                key_state_free(key_state);
-                key_state = NULL;
-                break;
-            }
-            key_state_created = 1;
-            key_state_free(key_state);
-            key_state = NULL;
-
-            if (!zone_db_signconf_needs_writing(zone)) {
-                if (zone_db_set_signconf_needs_writing(zone, 1)) {
-                    ods_log_error("[%s] %s: zone_db_set_signconf_needs_writing() failed", module_str, scmd);
-                    process = 0;
-                    break;
-                }
-                else {
-                    *zone_updated = 1;
-                }
-            }
-        }
-        if (!key_data_cached_rrsigdnskey(keylist[i])) {
-            if (!(key_state = key_state_new(dbconn))
-                || key_state_set_key_data_id(key_state, key_data_id(keylist[i]))
-                || key_state_set_type(key_state, KEY_STATE_TYPE_RRSIGDNSKEY)
-                || key_state_set_state(key_state, key_data_role(keylist[i]) & KEY_DATA_ROLE_KSK ? HIDDEN : NA)
-                || key_state_set_last_change(key_state, now)
-                || key_state_set_ttl(key_state, getZoneTTL(policy, zone, KEY_STATE_TYPE_RRSIGDNSKEY, now))
-                || key_state_create(key_state))
-            {
-                ods_log_error("[%s] %s: key state RRSIGDNSKEY creation failed", module_str, scmd);
-                process = 0;
-                key_state_free(key_state);
-                key_state = NULL;
-                break;
-            }
-            key_state_created = 1;
-            key_state_free(key_state);
-            key_state = NULL;
-
-            if (!zone_db_signconf_needs_writing(zone)) {
-                if (zone_db_set_signconf_needs_writing(zone, 1)) {
-                    ods_log_error("[%s] %s: zone_db_set_signconf_needs_writing() failed", module_str, scmd);
-                    process = 0;
-                    break;
-                }
-                else {
-                    *zone_updated = 1;
-                }
-            }
-        }
-        if (!key_data_cached_rrsig(keylist[i])) {
-            if (!(key_state = key_state_new(dbconn))
-                || key_state_set_key_data_id(key_state, key_data_id(keylist[i]))
-                || key_state_set_type(key_state, KEY_STATE_TYPE_RRSIG)
-                || key_state_set_minimize(key_state, key_data_minimize(keylist[i]) & 1)
-                || key_state_set_state(key_state, key_data_role(keylist[i]) & KEY_DATA_ROLE_ZSK ? HIDDEN : NA)
-                || key_state_set_last_change(key_state, now)
-                || key_state_set_ttl(key_state, getZoneTTL(policy, zone, KEY_STATE_TYPE_RRSIG, now))
-                || key_state_create(key_state))
-            {
-                ods_log_error("[%s] %s: key state RRSIG creation failed", module_str, scmd);
-                process = 0;
-                key_state_free(key_state);
-                key_state = NULL;
-                break;
-            }
-            key_state_created = 1;
-            key_state_free(key_state);
-            key_state = NULL;
-
-            if (!zone_db_signconf_needs_writing(zone)) {
-                if (zone_db_set_signconf_needs_writing(zone, 1)) {
-                    ods_log_error("[%s] %s: zone_db_set_signconf_needs_writing() failed", module_str, scmd);
-                    process = 0;
-                    break;
-                }
-                else {
-                    *zone_updated = 1;
-                }
-            }
-        }
-        if (key_state_created) {
-            if (key_data_cache_key_states(keylist[i])) {
-                ods_log_error("[%s] %s: Unable to recache key states after creating some", module_str, scmd);
-                process = 0;
-                break;
-            }
-        }
-    }
-
-	/*
-	 * Keep looping till there are no state changes and find the earliest update
-	 * time to return.
-	 */
-	do {
-		change = 0;
-		for (i = 0; process && i < keylist_size; i++) {
-			ods_log_verbose("[%s] %s: processing key %s %u", module_str, scmd,
-				hsm_key_locator(key_data_cached_hsm_key(keylist[i])), key_data_minimize(keylist[i]));
-
-			for (j = 0; process && j < (sizeof(type) / sizeof(key_state_state_t)); j++) {
-                /*
-                 * If the state or desired_state is invalid something went wrong
-                 * and we should return.
-                 */
-			    if ((state = getState(keylist[i], type[j], NULL)) == KEY_STATE_STATE_INVALID
-			        || (next_state = getDesiredState(key_data_introducing(keylist[i]), state)) == KEY_STATE_STATE_INVALID)
-			    {
-	                ods_log_error("[%s] %s: (state || next_state) == INVALID", module_str, scmd);
-	                process = 0;
-	                break;
-			    }
-
-			    /*
-			     * If there is no change in key state we continue.
-			     */
-			    if (state == next_state) {
-			        continue;
-			    }
-
-			    /*
-			     * If the key state is a DS then we need to check if we still
-			     * are waiting for user input before we can transition the key.
-			     */
-			    if (type[j] == KEY_STATE_TYPE_DS) {
-			        if ((next_state == OMNIPRESENT
-			                && key_data_ds_at_parent(keylist[i]) != KEY_DATA_DS_AT_PARENT_SEEN)
-			            || (next_state == HIDDEN
-			                && key_data_ds_at_parent(keylist[i]) != KEY_DATA_DS_AT_PARENT_UNSUBMITTED))
-			        {
-			            continue;
-			        }
-			    }
-
-			    for (type_enum = key_state_enum_set_type; type_enum->text; type_enum++) {
-			        if (type_enum->value == (int)type[j]) {
-			            break;
-			        }
-			    }
-                for (state_enum = key_state_enum_set_state; state_enum->text; state_enum++) {
-                    if (state_enum->value == (int)state) {
-                        break;
-                    }
-                }
-                for (next_state_enum = key_state_enum_set_state; next_state_enum->text; next_state_enum++) {
-                    if (next_state_enum->value == (int)next_state) {
-                        break;
-                    }
-                }
-			    ods_log_verbose("[%s] %s: May %s %s %s in state %s transition to %s?", module_str, scmd,
-			        key_data_role_text(keylist[i]),
-			        hsm_key_locator(key_data_cached_hsm_key(keylist[i])),
-			        type_enum->text,
-			        state_enum->text,
-			        next_state_enum->text);
-
-                future_key.key = keylist[i];
-                future_key.type = type[j];
+                /* Whenever the code is looking at keystate and *pretend_update*
+                 * is set. This key should be handles AS IF it already changed
+                 * state. */
+                future_key.key = key;
+                future_key.type = keystate->type;
                 future_key.next_state = next_state;
-
-                /*
-                 * Check if policy prevents transition.
-                 */
-                if (policyApproval(keylist, keylist_size, &future_key, deplist) < 1) {
-                    continue;
-                }
+                future_key.pretend_update = 0;
+                
+                /* Check if policy prevents transition. */
+                if (!policyApproval(&future_key)) continue;
                 ods_log_verbose("[%s] %s Policy says we can (1/3)", module_str, scmd);
 
-                /*
-                 * Check if DNSSEC state prevents transition.
-                 */
-                if (dnssecApproval(keylist, keylist_size, &future_key, allow_unsigned, deplisttmp) < 1) {
-                    continue;
-                }
+                /* Check if DNSSEC state prevents transition.  */
+                if (!dnssecApproval(&future_key, allow_unsigned)) continue;
                 ods_log_verbose("[%s] %s DNSSEC says we can (2/3)", module_str, scmd);
 
-                returntime_key = minTransitionTime(policy, type[j], next_state,
-                    key_state_last_change(getRecord(keylist[i], type[j])),
-                    getZoneTTL(policy, zone, type[j], now));
+                returntime_keystate = minTransitionTime(policy, keystate->type, next_state,
+                    keystate->last_change, getZoneTTL(zone, keystate->type, now));
 
-                /*
-                 * If this is an RRSIG and the DNSKEY is omnipresent and next
+                /* If this is an RRSIG and the DNSKEY is omnipresent and next
                  * state is a certain state, wait an additional signature
-                 * lifetime to allow for 'smooth rollover'.
-                 */
-                static const key_state_state_t mask[2][4] = {
-                    {NA, OMNIPRESENT, NA, UNRETENTIVE},
-                    {NA, OMNIPRESENT, NA, RUMOURED}
+                 * lifetime to allow for 'smooth rollover'.  */
+                static const enum dbw_keystate_state mask[2][4] = {
+                    {NA, UNRETENTIVE, OMNIPRESENT, NA},
+                    {NA, RUMOURED,    OMNIPRESENT, NA}
                 };
-                int zsk_out = exists(keylist, keylist_size, &future_key,
-                    1, mask[0]);
-                int zsk_in = exists(keylist, keylist_size, &future_key,
-                    1, mask[1]);
+                int zsk_out = exists(&future_key, 1, mask[0]);
+                int zsk_in  = exists(&future_key, 1, mask[1]);
 
-                if (type[j] == KEY_STATE_TYPE_RRSIG
-                    && key_state_state(key_data_cached_dnskey(keylist[i])) == OMNIPRESENT
+                if (keystate->type == DBW_RRSIG
+                    && getstate(key, DBW_DNSKEY)->state == OMNIPRESENT
                     && ((next_state == OMNIPRESENT && zsk_out)
                         || (next_state == HIDDEN && zsk_in)))
                 {
-                    returntime_key = addtime(returntime_key,
-                        policy_signatures_jitter(policy)
-                        + max(policy_signatures_validity_default(policy),
-                            policy_signatures_validity_denial(policy))
-                        + policy_signatures_resign(policy)
-                        - policy_signatures_refresh(policy));
+                    returntime_keystate = addtime(returntime_keystate,
+                        policy->signatures_jitter
+                        + max(policy->signatures_validity_default,
+                            policy->signatures_validity_denial)
+                        + policy->signatures_resign
+                        - policy->signatures_refresh);
                 }
 
-                /*
-                 * It is to soon to make this change. Schedule it.
-                 */
-                if (returntime_key > now) {
-                    minTime(returntime_key, &returntime_zone);
+                /* It is to soon to make this change. Schedule it. */
+                if (returntime_keystate > now) {
+                    minTime(returntime_keystate, &returntime_zone);
+                    continue;
+                }
+                ods_log_verbose("[%s] %s Timing says we can (3/3) now: %lu key: %lu",
+                    module_str, scmd, (unsigned long)now, (unsigned long)returntime_keystate);
+
+                /* A record can only reach Omnipresent if properly backed up. */
+                if (next_state == OMNIPRESENT
+                    && (key->hsmkey->backup == HSM_KEY_BACKUP_BACKUP_REQUIRED
+                    ||  key->hsmkey->backup == HSM_KEY_BACKUP_BACKUP_REQUESTED))
+                {
+                    ods_log_crit("[%s] %s Ready for transition but key"
+                        " material not backed up yet (%s)",
+                        module_str, scmd, key->hsmkey->locator);
+                    /* Try again in 60 seconds */
+                    returntime_keystate = addtime(now, 60);
+                    minTime(returntime_keystate, &returntime_zone);
                     continue;
                 }
 
-                ods_log_verbose("[%s] %s Timing says we can (3/3) now: %lu key: %lu",
-                    module_str, scmd, (unsigned long)now, (unsigned long)returntime_key);
+                if (keystate->type == DBW_DS && handle_ds_at_parent(key, next_state))
+                    dbw_mark_dirty((struct dbrow *)key);
 
-                /*
-                 * A record can only reach Omnipresent if properly backed up.
-                 */
-                if (next_state == OMNIPRESENT) {
-                    if (hsm_key_backup(key_data_cached_hsm_key(keylist[i])) == HSM_KEY_BACKUP_BACKUP_REQUIRED
-                        || hsm_key_backup(key_data_cached_hsm_key(keylist[i])) == HSM_KEY_BACKUP_BACKUP_REQUESTED)
-                    {
-                        ods_log_crit("[%s] %s Ready for transition but key material not backed up yet (%s)",
-                            module_str, scmd, hsm_key_locator(key_data_cached_hsm_key(keylist[i])));
-
-                        /*
-                         * Try again in 60 seconds
-                         */
-                        returntime_key = addtime(now, 60);
-                        minTime(returntime_key, &returntime_zone);
-                        continue;
-                    }
-                }
-
-                /*
-                 * If we are handling a DS we depend on the user or
-                 * some other external process. We must communicate
-                 * through the DSSeen and -submit flags.
-                 */
-                if (type[j] == KEY_STATE_TYPE_DS) {
-                    key_data_updated = 0;
-
-                    /*
-                     * Ask the user to submit the DS to the parent.
-                     */
-                    if (next_state == RUMOURED) {
-                        switch (key_data_ds_at_parent(keylist[i])) {
-                        case KEY_DATA_DS_AT_PARENT_SEEN:
-                        case KEY_DATA_DS_AT_PARENT_SUBMIT:
-                        case KEY_DATA_DS_AT_PARENT_SUBMITTED:
-                            break;
-
-                        case KEY_DATA_DS_AT_PARENT_RETRACT:
-                            /*
-                             * Hypothetical case where we reintroduce keys.
-                             */
-                            key_data_set_ds_at_parent(keylist[i], KEY_DATA_DS_AT_PARENT_SUBMITTED);
-                            key_data_updated = 1;
-                            break;
-
-                        default:
-                            key_data_set_ds_at_parent(keylist[i], KEY_DATA_DS_AT_PARENT_SUBMIT);
-                            key_data_updated = 1;
-                        }
-                    }
-                    /*
-                     * Ask the user to remove the DS from the parent.
-                     */
-                    else if (next_state == UNRETENTIVE) {
-                        switch(key_data_ds_at_parent(keylist[i])) {
-                        case KEY_DATA_DS_AT_PARENT_SUBMIT:
-                            /*
-                             * Never submitted.
-                             * NOTE: not safe if we support reintroducing of keys.
-                             */
-                            key_data_set_ds_at_parent(keylist[i], KEY_DATA_DS_AT_PARENT_UNSUBMITTED);
-                            key_data_updated = 1;
-                            break;
-
-                        case KEY_DATA_DS_AT_PARENT_UNSUBMITTED:
-                        case KEY_DATA_DS_AT_PARENT_RETRACTED:
-                        case KEY_DATA_DS_AT_PARENT_RETRACT:
-                            break;
-
-                        default:
-                            key_data_set_ds_at_parent(keylist[i], KEY_DATA_DS_AT_PARENT_RETRACT);
-                            key_data_updated = 1;
-                        }
-                    }
-
-                    /*
-                     * Save the changes made to the key data if any.
-                     */
-                    if (key_data_updated) {
-                        if (key_data_update(keylist[i])) {
-                            ods_log_error("[%s] %s: key data update failed", module_str, scmd);
-                            process = 0;
-                            break;
-                        }
-                        /*
-                         * We now need to reread the key data object.
-                         *
-                         * TODO: This needs investigation how to do better.
-                         */
-                        if (key_data_get_by_id(keylist[i], key_data_id(keylist[i]))
-                            || key_data_cache_key_states(keylist[i])
-                            || key_data_cache_hsm_key(keylist[i]))
-                        {
-                            ods_log_error("[%s] %s: key data reread failed", module_str, scmd);
-                            process = 0;
-                            break;
-                        }
-                    }
-                }
-
-                /*
-                 * We've passed all tests! Make the transition.
-                 */
-                key_state = NULL;
-
-                switch (future_key.type) {
-                case KEY_STATE_TYPE_DS:
-                    key_state = key_data_get_cached_ds(future_key.key);
-                    break;
-
-                case KEY_STATE_TYPE_DNSKEY:
-                    key_state = key_data_get_cached_dnskey(future_key.key);
-                    break;
-
-                case KEY_STATE_TYPE_RRSIG:
-                    key_state = key_data_get_cached_rrsig(future_key.key);
-                    break;
-
-                case KEY_STATE_TYPE_RRSIGDNSKEY:
-                    key_state = key_data_get_cached_rrsigdnskey(future_key.key);
-                    break;
-
-                default:
-                    ods_log_error("[%s] %s: future key type error", module_str, scmd);
-                    process = 0;
-                    break;
-                }
-
-                for (next_state_enum = key_state_enum_set_state; next_state_enum->text; next_state_enum++) {
-                    if (next_state_enum->value == (int)next_state) {
-                        break;
-                    }
-                }
+                /* We've passed all tests! Make the transition. */
                 ods_log_verbose("[%s] %s: Transitioning %s %s %s from %s to %s", module_str, scmd,
-                    key_data_role_text(keylist[i]),
-                    hsm_key_locator(key_data_cached_hsm_key(keylist[i])),
-                    key_state_type_text(key_state),
-                    key_state_state_text(key_state),
-                    next_state_enum->text);
+                    dbw_key_role_txt[key->role],
+                    key->hsmkey->locator,
+                    dbw_keystate_type_txt[keystate->type],
+                    dbw_keystate_state_txt[keystate->state],
+                    dbw_keystate_state_txt[next_state]);
 
-                if (key_state_set_state(key_state, future_key.next_state)
-                    || key_state_set_last_change(key_state, now)
-                    || key_state_set_ttl(key_state, getZoneTTL(policy, zone, future_key.type, now))
-                    || key_state_update(key_state))
-                {
-                    ods_log_error("[%s] %s: key state transition failed", module_str, scmd);
-                    process = 0;
-		    key_state_free(key_state);
-                    break;
+                keystate->state = next_state;
+                keystate->last_change = now;
+                keystate->ttl = getZoneTTL(zone, keystate->type, now);
+                /* we don't want DELETED or INSERTED to be marked UPDATE */
+                dbw_mark_dirty((struct dbrow *)keystate);
+                stable = 0; /* There have been changes. Keep processing */
+                /* Let the caller know there have been changes to the zone */
+                *zone_updated = 1;
+
+                if (!zone->signconf_needs_writing) {
+                    zone->signconf_needs_writing = 1;
+                    dbw_mark_dirty((struct dbrow *)zone);
                 }
-                key_state_free(key_state);
+                markSuccessors(db, &future_key);
+            }
+        }
+    }
+    return returntime_zone;
+}
 
-                if (!zone_db_signconf_needs_writing(zone)) {
-                    if (zone_db_set_signconf_needs_writing(zone, 1)) {
-                        ods_log_error("[%s] %s: zone_db_set_signconf_needs_writing() failed", module_str, scmd);
-                        process = 0;
-                        break;
-                    }
-                    else {
-                        *zone_updated = 1;
-                    }
-                }
-
-                if (markSuccessors(dbconn, keylist, keylist_size, &future_key, deplisttmp, zone) < 0) {
-                    ods_log_error("[%s] %s: markSuccessors() error", module_str, scmd);
-                    process = 0;
-                    break;
-                }
-                /*deps have changed reload*/
-				key_dependency_list_free(deplisttmp);
-                deplisttmp = zone_db_get_key_dependencies(zone);
-
-
-                if (key_data_cache_key_states(keylist[i])) {
-                    ods_log_error("[%s] %s: Unable to recache key states after transition", module_str, scmd);
-                    process = 0;
-                    break;
-                }
-
-                change = true;
-			}
-		}
-	} while (process && change);
-	key_dependency_list_free(deplisttmp);
-	return returntime_zone;
+int
+hsmkey_in_use_by_zone(const struct dbw_hsmkey *hsmkey, const struct dbw_zone *zone)
+{
+    /* a hsmkey is indirectly linked to a zone via a key */
+    for (size_t k = 0; k < hsmkey->key_count; k++) {
+        struct dbw_key *key = hsmkey->key[k];
+        if (key->zone_id == zone->id) return 1;
+    }
+    return 0;
 }
 
 /**
- * Get a reusable key for this policy key.
+ * Get a reusable HSMkey for this policy key. NULL of no such key exists
  */
-static const hsm_key_t*
-getLastReusableKey(key_data_list_t *key_list, const policy_key_t *pkey)
+static struct dbw_hsmkey *
+getLastReusableKey(const struct dbw_zone *zone, const struct dbw_policykey *pkey)
 {
-	const key_data_t *key;
-	hsm_key_t *hkey, *hkey_young = NULL;
-	hsm_key_list_t* hsmkeylist;
-	int match;
-	int cmp;
+    struct dbw_hsmkey *newest = NULL;
+    /* We need to find the newest shareable key that matches pkey
+     * and is NOT already in use by THIS zone. */
+    for (size_t h = 0; h < pkey->policy->hsmkey_count; h++) {
+        struct dbw_hsmkey *hkey = zone->policy->hsmkey[h];
+        if (hkey->state == DBW_HSMKEY_UNUSED) continue;
+        /* bitwise pkey->role implies hkey->role. We are looking for hsmkeys
+         * !p|h. skip otherwise. */
+        if (~hkey->role & pkey->role) continue;
+        if (hsmkey_in_use_by_zone(hkey, zone)) continue;
+        /** This key matches, is it newer? */
+        if (!newest || newest->inception < hkey->inception) newest = hkey;
+    }
+    return newest;
+}
 
-	if (!key_list || !pkey)
-		return NULL;
 
-	hsmkeylist = hsm_key_list_new_get_by_policy_key(pkey);
-	for (hkey = hsm_key_list_get_begin(hsmkeylist); hkey;
-		hkey = hsm_key_list_get_next(hsmkeylist))
-	{
-		/** only match if the hkey has at least the role(s) of pkey */
-		if ((~hsm_key_role(hkey) & policy_key_role(pkey)) != 0 ||
-			/** hsmkey must be in use already. Allocating UNUSED keys is a
-			 * job for the keyfactory */
-			hkey->state == HSM_KEY_STATE_UNUSED )
-		{
-			hsm_key_free(hkey);
-			continue;
-		}
-
-		/** Now find out if hsmkey is in used by zone */
-		for (match = 0, key = key_data_list_begin(key_list); key; key = key_data_list_next(key_list)) {
-			if (!db_value_cmp(key_data_hsm_key_id(key), hsm_key_id(hkey), &cmp)
-				&& cmp == 0)
-			{
-				/** we have match, so this hsm_key is no good */
-				match = 1;
-				break;
-			}
-		}
-		if (match) {
-			hsm_key_free(hkey);
-			continue;
-		}
-
-		/** This key matches, is it newer? */
-		if (!hkey_young || hsm_key_inception(hkey_young) < hsm_key_inception(hkey)) {
-			hsm_key_free(hkey_young);
-			hkey_young = hkey;
-		}
-	}
-
-	hsm_key_list_free(hsmkeylist);
-	return hkey_young;
+static int
+key_matches_pkey(const struct dbw_key *key, const struct dbw_policykey *pkey)
+{
+    return (pkey->role == key->role
+        && !strcmp(key->hsmkey->repository, pkey->repository)
+        && key->hsmkey->algorithm == pkey->algorithm
+        && key->hsmkey->bits == pkey->bits);
 }
 
 /**
  * Test for the existence of key-configuration in the policy for
- * which key could be generated.
+ * which key could have been generated.
  * 
- * \param[in] policykeylist list of policy keys that must be able to rewind.
+ * \param[in] policy
  * \param[in] key key to be tested.
- * \return 1 if a matching policy exists, 0 otherwise. -1 on error.
+ * \return 1 if a matching policy exists, 0 otherwise.
  */
 static int
-existsPolicyForKey(policy_key_list_t *policykeylist, const key_data_t *key)
+existsPolicyForKey(const struct dbw_policy *policy, const struct dbw_key *key)
 {
-	static const char *scmd = "existsPolicyForKey";
-	const policy_key_t *pkey;
-	hsm_key_t *hkey;
+    static const char *scmd = "existsPolicyForKey";
 
-	if (!policykeylist) {
-		return -1;
-	}
-	if (!key) {
-		return -1;
-	}
-
-	if (!(hkey = key_data_get_hsm_key(key))) {
-		/*
-		 * This key is not associated with actual key material!
-		 * This is a bug or database corruption.
-		 * Crashing here is an option but we just return false so the 
-		 * key will be thrown away in a graceful manner.
-		 */
-		ods_log_verbose("[%s] %s no hsmkey!", module_str, scmd);
-		return 0;
-	}
-	pkey = policy_key_list_begin(policykeylist);
-	while (pkey) {
-		if ((int)policy_key_role(pkey) == (int)key_data_role(key) &&
-			hsm_key_repository(hkey) && policy_key_repository(pkey) &&
-			strcmp(hsm_key_repository(hkey), policy_key_repository(pkey)) == 0 &&
-			hsm_key_algorithm(hkey) == policy_key_algorithm(pkey) &&
-			hsm_key_bits(hkey) == policy_key_bits(pkey))
-		{
-			hsm_key_free(hkey);
-			return 1;
-		}
-		pkey = policy_key_list_next(policykeylist);
-	}
-	ods_log_verbose("[%s] %s not found such config", module_str, scmd);
-	hsm_key_free(hkey);
-	return 0;
+    for (size_t pk = 0; pk < policy->policykey_count; pk++) {
+        struct dbw_policykey *pkey = policy->policykey[pk];
+        if (key_matches_pkey(key, pkey)) return 1;
+    }
+    return 0;
 }
 
-static int
-last_inception_policy(key_data_list_t *key_list, const policy_key_t *pkey)
+/**
+ * Find the inception time of the most recent key for this policy.
+ */
+static time_t
+last_inception_policy(const struct dbw_zone *zone, const struct dbw_policykey *pkey)
 {
-	const key_data_t *key = NULL;
-	hsm_key_t *hsmkey = NULL;
-	int max_inception = -1;
-
-	if (!key_list || !pkey) return -1;
-	
-	/*
-	 * Must match: role, bits, algorithm and repository.
-	 */
-	for (key = key_data_list_begin(key_list); key;
-		key = key_data_list_next(key_list))
-	{
-		if ((int)policy_key_role(pkey) != (int)key_data_role(key) ||
-			policy_key_algorithm(pkey) != key_data_algorithm(key) ||
-			(hsmkey = key_data_get_hsm_key(key)) == NULL ||
-			policy_key_bits(pkey) != hsm_key_bits(hsmkey) ||
-			policy_key_algorithm(pkey) != hsm_key_algorithm(hsmkey) ||
-			strcmp(policy_key_repository(pkey), hsm_key_repository(hsmkey)))
-		{
-			hsm_key_free(hsmkey);
-			hsmkey = NULL;
-			continue;
-		}
-		hsm_key_free(hsmkey);
-		hsmkey = NULL;
-		/** This key matches, is it newer? */
-		if (max_inception == -1 || max_inception < (signed int)key_data_inception(key))
-		{
-			max_inception = key_data_inception(key);
-		}
-	}
-	return max_inception;
+    time_t max_inception = -1;
+    for (size_t k = 0; k < zone->key_count; k++) {
+        struct dbw_key *key = zone->key[k];
+        if (!key_matches_pkey(key, pkey)) continue;
+        max_inception = max(max_inception, key->inception);
+    }
+    return max_inception;
 }
 
 /**
  * Test for existence of a similar key.
  * 
- * \param[in] Key list
+ * \param[in] zone
  * \param[in] Role
  * \param[in] Algorithm
- * \return existence of such a key.
+ * \return existence of such a key. 1 if it does
  */
 static int
-key_for_conf(key_data_list_t *key_list, const policy_key_t *pkey)
+key_for_conf(const struct dbw_zone *zone, const struct dbw_policykey *pkey)
 {
-	const key_data_t *key;
-
-	if (!key_list) {
-		return 0;
-	}
-	if (!pkey) {
-		return 0;
-	}
-
-	for (key = key_data_list_begin(key_list); key;
-		key = key_data_list_next(key_list))
-	{
-		if (policy_key_algorithm(pkey) == key_data_algorithm(key) &&
-			(int)policy_key_role(pkey) == (int)key_data_role(key))
-		{
-			return 1;
-		}
-	}
-	return 0;
+    for (size_t k = 0; k < zone->key_count; k++) {
+        struct dbw_key *key = zone->key[k];
+        if (pkey->algorithm == key->algorithm && pkey->role == key->role)
+            return 1;
+    }
+    return 0;
 }
 
 /**
@@ -2105,69 +1178,82 @@ key_for_conf(key_data_list_t *key_list, const policy_key_t *pkey)
  * \return Zero on success, a positive value on database error and a negative
  * value on generic errors.
  */
-static void 
-setnextroll(zone_db_t *zone, const policy_key_t *pkey, time_t t)
+static void
+setnextroll(struct dbw_zone *zone, enum dbw_key_role role, time_t t)
 {
-	assert(zone);
-	assert(pkey);
-
-	switch(policy_key_role(pkey)) {
-		case POLICY_KEY_ROLE_KSK:
-			zone->next_ksk_roll = (unsigned int)t;
-			break;
-		case POLICY_KEY_ROLE_ZSK:
-			zone->next_zsk_roll = (unsigned int)t;
-			break;
-		case POLICY_KEY_ROLE_CSK:
-			zone->next_csk_roll = (unsigned int)t;
-			break;
-		default:
-			assert(0);
-	}
+    switch (role) {
+        case DBW_KSK:
+            zone->next_ksk_roll = t;
+            break;
+        case DBW_ZSK:
+            zone->next_zsk_roll = t;
+            break;
+        case DBW_CSK:
+            zone->next_csk_roll = t;
+            break;
+        default:
+            ods_log_assert(0);
+    }
+    dbw_mark_dirty((struct dbrow *)zone);
 }
 
 static int
-enforce_roll(const zone_db_t *zone, const policy_key_t *pkey)
+enforce_roll(const struct dbw_zone *zone, const struct dbw_policykey *pkey)
 {
-	if (!zone) {
-		return 0;
-	}
-	if (!pkey) {
-		return 0;
-	}
+    switch(pkey->role) {
+        case DBW_KSK: return zone->roll_ksk_now;
+        case DBW_ZSK: return zone->roll_zsk_now;
+        case DBW_CSK: return zone->roll_csk_now;
+        default:
+            ods_log_assert(0);
+            return 0; /* squelch compiler */
+    }
+}
 
-	switch(policy_key_role(pkey)) {
-		case POLICY_KEY_ROLE_KSK:
-			return zone_db_roll_ksk_now(zone);
-		case POLICY_KEY_ROLE_ZSK:
-			return zone_db_roll_zsk_now(zone);
-		case POLICY_KEY_ROLE_CSK:
-			return zone_db_roll_csk_now(zone);
-		default:
-			return 0;
-	}
+static void
+set_roll(struct dbw_zone *zone, enum dbw_key_role role, int roll_flag)
+{
+    switch (role) {
+        case DBW_KSK:
+            zone->roll_ksk_now = roll_flag;
+            break;
+        case DBW_ZSK:
+            zone->roll_zsk_now = roll_flag;
+            break;
+        case DBW_CSK:
+            zone->roll_csk_now = roll_flag;
+            break;
+        default:
+            ods_log_assert(0);
+    }
+    dbw_mark_dirty((struct dbrow *)zone);
 }
 
 static int
-set_roll(zone_db_t *zone, const policy_key_t *pkey, unsigned int roll)
+lifetime_too_short(struct dbw_policy *policy, struct dbw_policykey *pkey)
 {
-	if (!zone) {
-		return 0;
-	}
-	if (!pkey) {
-		return 0;
-	}
-
-	switch(policy_key_role(pkey)) {
-		case POLICY_KEY_ROLE_KSK:
-			return zone_db_set_roll_ksk_now(zone, roll);
-		case POLICY_KEY_ROLE_ZSK:
-			return zone_db_set_roll_zsk_now(zone, roll);
-		case POLICY_KEY_ROLE_CSK:
-			return zone_db_set_roll_csk_now(zone, roll);
-		default:
-			return 1;
-	}
+    static const char *scmd = "lifetime_too_short";
+    if ((pkey->role & DBW_KSK) &&
+        policy->parent_ds_ttl + policy->keys_ttl >= pkey->lifetime)
+    {
+        ods_log_error("[%s] %s: For policy %s %s key lifetime of %d "
+            "is unreasonably short with respect to sum of parent "
+            "TTL (%d) and key TTL (%d). Will not insert key!",
+            module_str, scmd, policy->name, dbw_key_role_txt[pkey->role],
+            pkey->lifetime, policy->parent_ds_ttl, policy->keys_ttl);
+        return 1;
+    }
+    if ((pkey->role & DBW_ZSK) &&
+        policy->signatures_max_zone_ttl + policy->keys_ttl >= pkey->lifetime)
+    {
+        ods_log_error("[%s] %s: For policy %s %s key lifetime of %d "
+            "is unreasonably short with respect to sum of parent "
+            "TTL (%d) and key TTL (%d). Will not insert key!",
+            module_str, scmd, policy->name, dbw_key_role_txt[pkey->role],
+            pkey->lifetime, policy->signatures_max_zone_ttl , policy->keys_ttl);
+        return 1;
+    }
+    return 0;
 }
 
 /**
@@ -2180,732 +1266,313 @@ set_roll(zone_db_t *zone, const policy_key_t *pkey, unsigned int roll)
  * @return time_t
  * */
 static time_t
-updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t const *policy,
-	zone_db_t *zone, const time_t now, int *allow_unsigned, int *zone_updated)
+updatePolicy(engine_type *engine, struct dbw_db *db, struct dbw_zone *zone, const time_t now, int *allow_unsigned, int *zone_updated, int mockup)
 {
-	time_t return_at = -1;
-	key_data_list_t *keylist;
-	policy_key_list_t *policykeylist;
-	const key_data_t *key;
-	key_data_t *mutkey = NULL;
-	key_data_t *mutkey2 = NULL;
-	const policy_key_t *pkey;
-	const hsm_key_t *hsmkey;
-	hsm_key_t *hsmkey2 = NULL;
-	hsm_key_t *newhsmkey = NULL;
-	static const char *scmd = "updatePolicy";
-	int force_roll;
-	time_t t_ret;
-	key_data_role_t key_role;
-	int err;
-	uint16_t tag;
-	int ret;
+    static const char *scmd = "updatePolicy";
+    struct dbw_policy *policy = zone->policy;
+    time_t return_at = -1;
 
-	if (!dbconn) {
-		/* TODO: better log error */
-		ods_log_error("[%s] %s: no dbconn", module_str, scmd);
-		return now + 60;
-	}
-	if (!policy) {
-		/* TODO: better log error */
-		ods_log_error("[%s] %s: no policy", module_str, scmd);
-		return now + 60;
-	}
-	if (!zone) {
-		/* TODO: better log error */
-		ods_log_error("[%s] %s: no zone", module_str, scmd);
-		return now + 60;
-	}
-	if (!allow_unsigned) {
-		/* TODO: better log error */
-		ods_log_error("[%s] %s: no allow_unsigned", module_str, scmd);
-		return now + 60;
-	}
-	if (!zone_updated) {
-		/* TODO: better log error */
-		ods_log_error("[%s] %s: no zone_updated", module_str, scmd);
-		return now + 60;
-	}
+    ods_log_verbose("[%s] %s: policyName: %s", module_str, scmd, policy->name);
 
-	ods_log_verbose("[%s] %s: policyName: %s", module_str, scmd, policy_name(policy));
+    /* Decommission all key data objects without any matching policy key config. */
+    for (size_t k = 0; k < zone->key_count; k++) {
+        struct dbw_key *key = zone->key[k];
+        if (!key->introducing) continue; /* already know as old */
+        if (!existsPolicyForKey(policy, key)) {
+            key->introducing = 0;
+            dbw_mark_dirty((struct dbrow *)key);
+        }
+    }
 
-	/*
-	 * Get all policy keys (configurations) for the given policy and fetch all
-	 * the policy key database objects so we can iterate over it more then once.
-	 */
-	if (!(policykeylist = policy_get_policy_keys(policy))) {
-		/* TODO: better log error */
-		ods_log_error("[%s] %s: error policy_get_policy_keys()", module_str, scmd);
-		policy_key_list_free(policykeylist);
-		return now + 60;
-	}
+    if (policy->policykey_count == 0) {
+        /* If no keys are configured an unsigned zone is okay. */
+        *allow_unsigned = 1;
+        /* If there are no keys configured set 'signconf_needs_writing'
+         * every time this function is called. Normally this is triggered by
+         * updateZone. But without keys it wouldn't. */
+        if (!zone->signconf_needs_writing) {
+            zone->signconf_needs_writing = 1;
+            *zone_updated = 1;
+            dbw_mark_dirty((struct dbrow *)zone);
+        }
+    } else {
+        *allow_unsigned = 0;
+    }
 
-	/*
-	 * Get all key data objects for the given zone and fetch all the objects
-	 * from the database so we can use the list again later.
-	 */
-	if (!(keylist = zone_db_get_keys(zone))) {
-		/* TODO: better log error */
-		ods_log_error("[%s] %s: error zone_db_get_keys()", module_str, scmd);
-		key_data_list_free(keylist);
-		policy_key_list_free(policykeylist);
-		return now + 60;
-	}
+    for (size_t pk = 0; pk < policy->policykey_count; pk++) {
+        struct dbw_policykey *pkey = policy->policykey[pk];
+        /* We force a roll when indicated by the user or when we do not have
+         * any keys yet. */
+        int force_roll = enforce_roll(zone, pkey) || !key_for_conf(zone, pkey);
+        if (pkey->manual_rollover && !force_roll) continue;
+    
+        if (!force_roll) {
+            /* We do not need to roll but we should check if the youngest key
+             * needs to be replaced. If not we reschedule for later based on the
+             * youngest key. */
+            time_t inception = last_inception_policy(zone, pkey);
+            time_t t_ret = addtime(inception, pkey->lifetime);
+            if (inception != -1 && t_ret > now) {
+                minTime(t_ret, &return_at);
+                setnextroll(zone, pkey->role, t_ret);
+                *zone_updated = 1;
+                continue;
+            }
+        }
+        /* Time for a new key */
+        ods_log_verbose("[%s] %s: New key needed for role %s",
+                module_str, scmd, dbw_key_role_txt[pkey->role]);
 
-	/*
-	 * Decommission all key data objects without any matching policy key config.
-	 */
-	while ((key = key_data_list_next(keylist))) {
-		ret = existsPolicyForKey(policykeylist, key);
-		if (ret < 0) {
-			/* TODO: better log error */
-			ods_log_error("[%s] %s: error existsPolicyForKey() < 0", module_str, scmd);
-			key_data_list_free(keylist);
-			policy_key_list_free(policykeylist);
-			return now + 60;
-		}
-		if (!ret) {
-			if (!(mutkey = key_data_new_copy(key))
-				|| key_data_set_introducing(mutkey, 0)
-				|| key_data_update(mutkey))
-			{
-				/* TODO: better log error */
-				ods_log_error("[%s] %s: error update mutkey", module_str, scmd);
-				key_data_free(mutkey);
-				key_data_list_free(keylist);
-				policy_key_list_free(policykeylist);
-				return now + 60;
-			}
-			key_data_free(mutkey);
-			mutkey = NULL;
-		}
-	}
+        /* Sanity check for unreasonable short key lifetime.
+         * This would produce silly output and give the signer lots of useless
+         * work to do otherwise. */
+        if (lifetime_too_short(policy, pkey)) {
+            setnextroll(zone, pkey->role, now);
+            *zone_updated = 1;
+            continue;
+        }
 
-	pkey = policy_key_list_begin(policykeylist);
+        /* Get a new key, either a existing/shared key if the policy is set to
+         * share keys or create a new key. */
+        struct dbw_hsmkey *hkey = NULL;
+        if (policy->keys_shared)
+            hkey = getLastReusableKey(zone, pkey);
+        if (!hkey) {
+            if (!mockup) {
+                hkey = hsm_key_factory_get_key(engine, db, pkey, zone);
+            } else {
+                hkey = dbw_new_hsmkey(db, policy);
+                hkey->locator = strdup("[Not generated yet]");
+                hkey->repository = strdup(pkey->repository);
+                hkey->state = DBW_HSMKEY_PRIVATE;
+                hkey->bits = pkey->bits;
+                hkey->algorithm = pkey->algorithm;
+                hkey->role = pkey->role;
+                hkey->inception = now;
+                hkey->is_revoked = 0;
+                hkey->key_type = HSM_KEY_KEY_TYPE_RSA;
+                hkey->backup = HSM_KEY_BACKUP_NO_BACKUP;
+            }
+        }
+        if (!hkey) {
+            /* Unable to get/create a HSM key at this time, retry later. */
+            ods_log_warning("[%s] %s: No keys available in HSM for "
+                "policy %s, retry in %d seconds",
+                module_str, scmd, policy->name, NOKEY_TIMEOUT);
+            minTime(now + NOKEY_TIMEOUT, &return_at);
+            setnextroll(zone, pkey->role, now);
+            *zone_updated = 1;
+            continue;
+        }
+        ods_log_verbose("[%s] %s: got new key from HSM", module_str, scmd);
 
-	/*
-	 * If no keys are configured an unsigned zone is okay.
-	 */
-	*allow_unsigned = pkey ? 0 : 1;
+        uint16_t tag;
+        /* Generate keytag for the new key and set it. */
+        if (!mockup) {
+            int err = hsm_keytag(hkey->locator, hkey->algorithm, hkey->role & DBW_KSK, &tag);
+            if (err) {
+                /* TODO: better log error */
+                ods_log_error("[%s] %s: error keytag", module_str, scmd);
+                hsm_key_factory_release_key(hkey, NULL);
+                return now + 60;
+            }
+        } else {
+            tag = 0xFFFF;
+        }
 
-	/* If there are no keys configured set 'signconf_needs_writing'
-	 * every time this function is called */
-	if (!policy_key_list_size(policykeylist)) {
-		if (zone_db_set_signconf_needs_writing(zone, 1)) {
-			ods_log_error("[%s] %s: zone_db_set_signconf_needs_writing() failed", module_str, scmd);
-		} else {
-			*zone_updated = 1;
-		}
-	}
+        struct dbw_key *key = dbw_new_key(db, zone, hkey);
+        if (!key) {
+            ods_log_error("[%s] %s: error new key", module_str, scmd);
+            if (!mockup)
+                hsm_key_factory_release_key(hkey, NULL);
+            return now + 60;
+        }
+        key->algorithm = pkey->algorithm;
+        key->inception = now;
+        key->role = pkey->role;
+        key->minimize = pkey->minimize;
+        key->introducing = 1;
+        key->ds_at_parent = DBW_DS_AT_PARENT_UNSUBMITTED;
+        key->keytag = tag;
 
-	for (; pkey; pkey = policy_key_list_next(policykeylist)) {
-		newhsmkey = NULL;
-		/*
-		 * Check if we should roll, first get the roll state from the zone then
-		 * check if the policy key is set to manual rollover and last check the
-		 * key timings.
-		 */
-		force_roll = enforce_roll(zone, pkey);
-		if (policy_key_manual_rollover(pkey)) {
-			/*
-			 * If this policy key is set to manual rollover and we do not have
-			 * a key yet (for ex first run) then we should roll anyway.
-			 */
-			if (!key_for_conf(keylist, pkey)) {
-				force_roll = 1;
-			}
-			else if (!force_roll) {
-				/*
-				 * Since this is set to manual rollover we do not want it to
-				 * roll unless we have zone state saying that we should roll.
-				 */
-				continue;
-			}
-		}
-		if (!force_roll) {
-			int inception = -1;
-			/*
-			 * We do not need to roll but we should check if the youngest key
-			 * needs to be replaced. If not we reschedule for later based on the
-			 * youngest key.
-			 * TODO: Describe better why the youngest?!?
-			 */
-			inception = last_inception_policy(keylist, pkey);
-			if (inception != -1 &&
-				inception + policy_key_lifetime(pkey) > now)
-			{
-				t_ret = addtime(inception, policy_key_lifetime(pkey));
-				minTime(t_ret, &return_at);
-				setnextroll(zone, pkey, t_ret);
-				*zone_updated = 1;
-				continue;
-			}
-		}
-		
-		/*
-		 * Time for a new key
-		 */
-		ods_log_verbose("[%s] %s: New key needed for role %s",
-			module_str, scmd, policy_key_role_text(pkey));
+        time_t t_ret = addtime(now, pkey->lifetime);
+        minTime(t_ret, &return_at);
+        setnextroll(zone, pkey->role, t_ret);
+        *zone_updated = 1;
 
-		/*
-		 * Sanity check for unreasonable short key lifetime.
-		 * This would produce silly output and give the signer lots of useless
-		 * work to do otherwise.
-		 */
-		if ((policy_key_role(pkey) == POLICY_KEY_ROLE_KSK ||
-			policy_key_role(pkey) == POLICY_KEY_ROLE_CSK) &&
-			policy_parent_ds_ttl(policy) + policy_keys_ttl(policy) >=
-			policy_key_lifetime(pkey))
-		{
-			ods_log_error("[%s] %s: For policy %s %s key lifetime of %d "
-				"is unreasonably short with respect to sum of parent "
-				"TTL (%d) and key TTL (%d). Will not insert key!",
-				module_str, scmd, policy_name(policy), policy_key_role_text(pkey),
-				policy_key_lifetime(pkey), policy_parent_ds_ttl(policy),
-				policy_keys_ttl(policy));
-			setnextroll(zone, pkey, now);
-			*zone_updated = 1;
-			continue;
-		}
-		if ((policy_key_role(pkey) == POLICY_KEY_ROLE_ZSK ||
-			policy_key_role(pkey) == POLICY_KEY_ROLE_CSK) &&
-			policy_signatures_max_zone_ttl(policy) + policy_keys_ttl(policy) >=
-			policy_key_lifetime(pkey))
-		{
-			ods_log_crit("[%s] %s: For policy %s %s key lifetime of %d "
-				"is unreasonably short with respect to sum of "
-				"MaxZoneTTL (%d) and key TTL (%d). Will not insert key!",
-				module_str, scmd, policy_name(policy), policy_key_role_text(pkey),
-				policy_key_lifetime(pkey), policy_signatures_max_zone_ttl(policy),
-				policy_keys_ttl(policy));
-			setnextroll(zone, pkey, now);
-			*zone_updated = 1;
-			continue;
-		}
+        /* Tell similar keys to out-troduce.
+         * Similar keys are those that match role, algorithm, bits and repository
+         * and are introduced.
+         *
+         * NOTE:
+         * Will not work if a policy has 2 or more keys of the same role, algorithm,
+         * bits and repository. Unclear how to fix this since keys are not directly
+         * related to a policy key.
+         * We currently do not allow two policy keys with the same attributes.
+         */
+        for (size_t k = 0; k < zone->key_count; k++) {
+            struct dbw_key *oldkey = zone->key[k];
+            if (!oldkey->introducing) continue; /* already know as old */
+            if (!key_matches_pkey(oldkey, pkey)) continue;
+            if (oldkey == key) continue;
 
-		/*
-		 * Get a new key, either a existing/shared key if the policy is set to
-		 * share keys or create a new key.
-		 */
-		if (policy_keys_shared(policy)) {
-			hsmkey = getLastReusableKey(keylist, pkey);
+            oldkey->introducing = 0;
+            dbw_mark_dirty((struct dbrow *)oldkey);
+            *zone_updated = 1;
+            ods_log_verbose("[%s] %s: decommissioning old key: %s",
+                module_str, scmd, oldkey->hsmkey->locator);
+        }
 
-			if (!hsmkey) {
-				newhsmkey = hsm_key_factory_get_key(engine, dbconn, pkey, HSM_KEY_STATE_SHARED);
-				hsmkey = newhsmkey;
-			}
-		} else {
-			newhsmkey = hsm_key_factory_get_key(engine, dbconn, pkey, HSM_KEY_STATE_PRIVATE);
-			hsmkey = newhsmkey;
-		}
-
-		if (!hsmkey) {
-			/*
-			 * Unable to get/create a HSM key at this time, retry later.
-			 */
-			ods_log_warning("[%s] %s: No keys available in HSM for policy %s, retry in %d seconds",
-				module_str, scmd, policy_name(policy), NOKEY_TIMEOUT);
-			minTime(now + NOKEY_TIMEOUT, &return_at);
-			setnextroll(zone, pkey, now);
-			*zone_updated = 1;
-			continue;
-		}
-		ods_log_verbose("[%s] %s: got new key from HSM", module_str, scmd);
-
-		/*
-		 * TODO: This will be replaced once roles are global
-		 */
-		key_role = KEY_DATA_ROLE_INVALID;
-		switch (policy_key_role(pkey)) {
-		case POLICY_KEY_ROLE_KSK:
-			key_role = KEY_DATA_ROLE_KSK;
-			break;
-
-		case POLICY_KEY_ROLE_ZSK:
-			key_role = KEY_DATA_ROLE_ZSK;
-			break;
-
-		case POLICY_KEY_ROLE_CSK:
-			key_role = KEY_DATA_ROLE_CSK;
-			break;
-
-		default:
-			break;
-		}
-
-		/*
-		 * Create a new key data object.
-		 */
-		if (!(mutkey = key_data_new(dbconn))
-			|| key_data_set_zone_id(mutkey, zone_db_id(zone))
-			|| key_data_set_hsm_key_id(mutkey, hsm_key_id(hsmkey))
-			|| key_data_set_algorithm(mutkey, policy_key_algorithm(pkey))
-			|| key_data_set_inception(mutkey, now)
-			|| key_data_set_role(mutkey, key_role)
-			|| key_data_set_minimize(mutkey, policy_key_minimize(pkey))
-			|| key_data_set_introducing(mutkey, 1)
-			|| key_data_set_ds_at_parent(mutkey, KEY_DATA_DS_AT_PARENT_UNSUBMITTED))
-		{
-			/* TODO: better log error */
-			ods_log_error("[%s] %s: error new key", module_str, scmd);
-			key_data_free(mutkey);
-			if (newhsmkey) {
-			    hsm_key_factory_release_key(newhsmkey, dbconn);
-			}
-			hsm_key_free(newhsmkey);
-			key_data_list_free(keylist);
-			policy_key_list_free(policykeylist);
-			return now + 60;
-		}
-
-		/*
-		 * Generate keytag for the new key and set it.
-		 */
-		err = hsm_keytag(hsm_key_locator(hsmkey), hsm_key_algorithm(hsmkey),
-			((hsm_key_role(hsmkey) == HSM_KEY_ROLE_KSK
-				|| hsm_key_role(hsmkey) == HSM_KEY_ROLE_CSK)
-				? 1 : 0),
-			&tag);
-		if (err || key_data_set_keytag(mutkey, tag))
-		{
-			/* TODO: better log error */
-			ods_log_error("[%s] %s: error keytag", module_str, scmd);
-			key_data_free(mutkey);
-			if (newhsmkey) {
-				hsm_key_factory_release_key(newhsmkey, dbconn);
-			}
-			hsm_key_free(newhsmkey);
-			key_data_list_free(keylist);
-			policy_key_list_free(policykeylist);
-			return now + 60;
-		}
-
-		/*
-		 * Create the new key in the database, if successful we set the next
-		 * roll after the lifetime of the key.
-		 */
-		if (key_data_create(mutkey)) {
-			/* TODO: better log error */
-			ods_log_error("[%s] %s: error key_data_create()", module_str, scmd);
-			key_data_free(mutkey);
-			if (newhsmkey) {
-				hsm_key_factory_release_key(newhsmkey, dbconn);
-			}
-			hsm_key_free(newhsmkey);
-			key_data_list_free(keylist);
-			policy_key_list_free(policykeylist);
-			return now + 60;
-		}
-		t_ret = addtime(now, policy_key_lifetime(pkey));
-		minTime(t_ret, &return_at);
-		setnextroll(zone, pkey, t_ret);
-		*zone_updated = 1;
-
-		/*
-		 * Tell similar keys to out-troduce.
-		 * Similar keys are those that match role, algorithm, bits and repository
-		 * and are introduced.
-		 *
-		 * NOTE:
-		 * Will not work if a policy has 2 or more keys of the same role, algorithm,
-		 * bits and repository. Unclear how to fix this since keys are not directly
-		 * related to a policy key.
-		 * We currently do not allow two policy keys with the same attributes.
-		 */
-		for (key = key_data_list_begin(keylist); key; key = key_data_list_next(keylist)) {
-			if (key_data_introducing(key)
-				&& key_data_role(key) == key_data_role(mutkey)
-				&& key_data_algorithm(key) == key_data_algorithm(mutkey)
-				&& (hsmkey2 = key_data_get_hsm_key(key))
-				&& hsm_key_bits(hsmkey2) == hsm_key_bits(hsmkey)
-				&& !strcmp(hsm_key_repository(hsmkey2), hsm_key_repository(hsmkey)))
-			{
-				if (!(mutkey2 = key_data_new_copy(key))
-					|| key_data_set_introducing(mutkey2, 0)
-					|| key_data_update(mutkey2))
-				{
-					/* TODO: better log error */
-					ods_log_error("[%s] %s: error update mutkey2", module_str, scmd);
-					key_data_free(mutkey2);
-					hsm_key_free(hsmkey2);
-					key_data_free(mutkey);
-					hsm_key_free(newhsmkey);
-					key_data_list_free(keylist);
-					policy_key_list_free(policykeylist);
-					return now + 60;
-				}
-
-				ods_log_verbose("[%s] %s: decommissioning old key: %s", module_str, scmd, hsm_key_locator(hsmkey2));
-
-				key_data_free(mutkey2);
-				mutkey2 = NULL;
-			}
-			hsm_key_free(hsmkey2);
-			hsmkey2 = NULL;
-		}
-
-		key_data_free(mutkey);
-		mutkey = NULL;
-		hsm_key_free(newhsmkey);
-		newhsmkey = NULL;
-
-		/*
-		 * Clear roll now (if set) in the zone for this policy key.
-		 */
-		if (enforce_roll(zone, pkey)) {
-			if (set_roll(zone, pkey, 0)) {
-				/* TODO: better log error */
-				ods_log_error("[%s] %s: error set_roll()", module_str, scmd);
-				key_data_list_free(keylist);
-				policy_key_list_free(policykeylist);
-				return now + 60;
-			}
-			*zone_updated = 1;
-		}
-	}
-
-	key_data_list_free(keylist);
-	policy_key_list_free(policykeylist);
-
-	return return_at;
+        /* Clear roll now (if set) in the zone for this policy key. */
+        if (enforce_roll(zone, pkey)) {
+            set_roll(zone, pkey->role, 0);
+            *zone_updated = 1;
+            dbw_mark_dirty((struct dbrow *)zone);
+        }
+    }
+    return return_at;
 }
 
 static time_t
-removeDeadKeys(db_connection_t *dbconn, key_data_t** keylist,
-	size_t keylist_size, key_dependency_list_t *deplist, const time_t now,
-	const int purgetime)
+removeDeadKeys(struct dbw_zone *zone, const time_t now, int mockup)
 {
-	static const char *scmd = "removeDeadKeys";
-	time_t first_purge = -1, key_time;
-	size_t i, deplist2_size = 0;
-	int key_purgable, cmp;
-	unsigned int j;
-	const key_state_t* state = NULL;
-	key_dependency_t **deplist2 = NULL;
+    static const char *scmd = "removeDeadKeys";
+    time_t first_purge = -1;
+    for (size_t k = 0; k < zone->key_count; k++) {
+        struct dbw_key *key = zone->key[k];
+        if (key->introducing) continue;
+        if (key->dirty == DBW_DELETE) continue;
+        time_t key_time = -1;
+        int purgable = 1;
+        for (size_t s = 0; s < key->keystate_count; s++) {
+            struct dbw_keystate *keystate = key->keystate[s];
+            if (keystate->state == NA) continue;
+            purgable &= (keystate->state == HIDDEN);
+            key_time = max(key_time, keystate->last_change);
+        }
+        /* Add purge delay to keytime */
+        if (key_time != -1)
+            key_time = addtime(key_time, zone->policy->keys_purge_after);
+        if (!purgable) continue; /* Eval next key */
 
-	assert(keylist);
-	assert(deplist);
-
-	deplist2_size = key_dependency_list_size(deplist);
-	deplist2 = (key_dependency_t**)calloc(deplist2_size, sizeof(key_dependency_t*));
-	/* deplist might be NULL but is always freeable */
-	if (deplist2_size > 0)
-	    deplist2[0] = key_dependency_list_get_begin(deplist);
-	for (i = 1; i < deplist2_size; i++)
-		deplist2[i] = key_dependency_list_get_next(deplist);
-	
-	for (i = 0; i < keylist_size; i++) {
-		if (key_data_introducing(keylist[i])) continue;
-		key_time = -1;
-		key_purgable = 1;
-		for (j = 0; j<4; j++) {
-			switch(j){
-				case 0: state = key_data_cached_ds(keylist[i]); break;
-				case 1: state = key_data_cached_dnskey(keylist[i]); break;
-				case 2: state = key_data_cached_rrsigdnskey(keylist[i]); break;
-				case 3: state = key_data_cached_rrsig(keylist[i]);
-			}
-			if (key_state_state(state) == NA) continue;
-			if (key_state_state(state) != HIDDEN) {
-				key_purgable = 0;
-				break;
-			}
-			if (key_time == -1 || key_state_last_change(state) > (unsigned int)key_time) {
-				key_time = key_state_last_change(state);
-			}
-		}
-        if (key_time != -1) key_time = addtime(key_time, purgetime);
-        if (key_purgable) {
-			/* key is purgable, is it time yet? */
-            if (now >= key_time) {
-                key_state_t* ks_ds = key_data_get_cached_ds(keylist[i]);
-                key_state_t* ks_dk = key_data_get_cached_dnskey(keylist[i]);
-                key_state_t* ks_rd = key_data_get_cached_rrsigdnskey(keylist[i]);
-                key_state_t* ks_rs = key_data_get_cached_rrsig(keylist[i]);
-
-                ods_log_info("[%s] %s deleting key: %s", module_str, scmd,
-                    hsm_key_locator(key_data_cached_hsm_key(keylist[i])));
-
-                if (   key_state_delete(ks_ds) || key_state_delete(ks_dk)
-                    || key_state_delete(ks_rd) || key_state_delete(ks_rs)
-                    || key_data_delete(keylist[i])
-                    || hsm_key_factory_release_key_id(hsm_key_id(key_data_cached_hsm_key(keylist[i])), dbconn))
-                {
-                    /* TODO: better log error */
-                    ods_log_error("[%s] %s: key_state_delete() || key_data_delete() || hsm_key_factory_release_key() failed", module_str, scmd);
-                }
-                key_state_free(ks_ds);
-                key_state_free(ks_dk);
-                key_state_free(ks_rd);
-                key_state_free(ks_rs);
-            } else {
-                minTime(key_time, &first_purge);
-            }
-            /* we can clean up dependency because key is purgable */
-
-            for (j = 0; j < deplist2_size; j++) {
-                if (!deplist2[j]) continue;
-                if (db_value_cmp(key_data_id(keylist[i]), key_dependency_from_key_data_id(deplist2[j]), &cmp)) {
-                    /* TODO: better log error */
-                    ods_log_error("[%s] %s: cmp deplist from failed", module_str, scmd);
-                    break;
-                }
-                if(cmp) continue;
-
-                if (key_dependency_delete(deplist2[j])) {
-                    /* TODO: better log error */
-                    ods_log_error("[%s] %s: key_dependency_delete() failed", module_str, scmd);
-                    break;
-                }
-            }
+        /* key is purgable, is it time yet? */
+        if (now < key_time) {
+            minTime(key_time, &first_purge);
+            continue;
+        }
+        ods_log_info("[%s] %s deleting key: %s", module_str, scmd, key->hsmkey->locator);
+        for (size_t s = 0; s < key->keystate_count; s++) {
+            key->keystate[s]->dirty = DBW_DELETE;
+        }
+        key->dirty = DBW_DELETE;
+        hsm_key_factory_release_key_mockup(key->hsmkey, key, mockup);
+        /* we can clean up dependency because key is purgable */
+        for (size_t d = 0; d < key->from_keydependency_count; d++) {
+            key->from_keydependency[d]->dirty = DBW_DELETE;
         }
     }
-    for (i = 0; i < deplist2_size; i++){
-	key_dependency_free(deplist2[i]);
-    }
-	free(deplist2);
-	return first_purge;
+    return first_purge;
 }
 
-time_t
-update(engine_type *engine, db_connection_t *dbconn, zone_db_t *zone, policy_t const *policy, time_t now, int *zone_updated)
+static int
+set_key_flags(struct dbw_zone *zone)
 {
-	int allow_unsigned = 0;
-    time_t policy_return_time, zone_return_time, purge_return_time = -1, return_time;
-    key_data_list_t *key_list;
-    const key_data_t* key;
-    key_data_t** keylist = NULL;
-    size_t keylist_size, i;
-    key_dependency_list_t *deplist;
-    static const char *scmd = "update";
-    int key_data_updated;
-
-	if (!engine) {
-		ods_log_error("[%s] no engine", module_str);
-		return now + 60;
-	}
-	if (!dbconn) {
-		ods_log_error("[%s] no dbconn", module_str);
-		return now + 60;
-	}
-	if (!zone) {
-		ods_log_error("[%s] no zone", module_str);
-		return now + 60;
-	}
-	if (!policy) {
-		ods_log_error("[%s] no policy", module_str);
-		return now + 60;
-	}
-	if (!zone_updated) {
-		ods_log_error("[%s] no zone_updated", module_str);
-		return now + 60;
-	}
-
-	ods_log_info("[%s] update zone: %s", module_str, zone_db_name(zone));
-
-	if (engine->config->rollover_notification && zone_db_next_ksk_roll(zone) > 0) {
-		if ((time_t)zone_db_next_ksk_roll(zone) - engine->config->rollover_notification <= now
-		    && (time_t)zone_db_next_ksk_roll(zone) != now) {
-			time_t t = (time_t) zone_db_next_ksk_roll(zone);
-			ods_log_info("[%s] KSK Rollover for zone %s is impending, "
-				     "rollover will happen at %s",
-				     module_str, zone_db_name(zone), ctime(&t));
-		}
-	}
-	else if (engine->config->rollover_notification && zone_db_next_csk_roll(zone) > 0) {
-		if ((time_t)zone_db_next_csk_roll(zone) - engine->config->rollover_notification <= now
-		    && (time_t)zone_db_next_csk_roll(zone) != now) {
-			time_t t = (time_t) zone_db_next_csk_roll(zone);
-			ods_log_info("[%s] CSK Rollover for zone %s is impending, "
-				     "rollover will happen at %s",
-				     module_str, zone_db_name(zone), ctime(&t));
-		}
-	}
-
-
-	/*
-	 * Update policy.
-	 */
-	policy_return_time = updatePolicy(engine, dbconn, policy, zone, now, &allow_unsigned, zone_updated);
-
-	if (allow_unsigned) {
-		ods_log_info("[%s] No keys configured for %s, zone will become unsigned eventually",
-		    module_str, zone_db_name(zone));
-	}
-
-    /*
-     * Get all key data/state/hsm objects for later processing.
-     */
-    if (!(deplist = zone_db_get_key_dependencies(zone))) {
-        /* TODO: better log error */
-        ods_log_error("[%s] %s: error zone_db_get_key_dependencies()", module_str, scmd);
-        key_dependency_list_free(deplist);
-        return now + 60;
-    }
-    if (!(key_list = zone_db_get_keys(zone))) {
-        /* TODO: better log error */
-        ods_log_error("[%s] %s: error zone_db_get_keys()", module_str, scmd);
-        key_data_list_free(key_list);
-        key_dependency_list_free(deplist);
-        return now + 60;
-    }
-    /*WTF DOES THIS CODE DO?*/
-    if (!(keylist_size = key_data_list_size(key_list))) {
-        if ((key = key_data_list_begin(key_list))) {
-            while (key) {
-                keylist_size++;
-                key = key_data_list_next(key_list);
-            }
-        }
-    }
-    if (keylist_size) {
-        if (!(keylist = (key_data_t**)calloc(keylist_size, sizeof(key_data_t*)))) {
-            /* TODO: better log error */
-            ods_log_error("[%s] %s: error calloc(keylist_size)", module_str, scmd);
-            key_data_list_free(key_list);
-            key_dependency_list_free(deplist);
-            return now + 60;
-        }
-        for (i = 0; i < keylist_size; i++) {
-            if (!i) {
-                keylist[i] = key_data_list_get_begin(key_list);
-            }
-            else {
-                keylist[i] = key_data_list_get_next(key_list);
-            }
-            if (!keylist[i]
-                || key_data_cache_hsm_key(keylist[i])
-                || key_data_cache_key_states(keylist[i]))
-            {
-                ods_log_error("[%s] %s: error key_data_list cache", module_str, scmd);
-                for (i = 0; i < keylist_size; i++) {
-                    if (keylist[i]) {
-                        key_data_free(keylist[i]);
-                    }
-                }
-                free(keylist);
-                key_data_list_free(key_list);
-                key_dependency_list_free(deplist);
-                return now + 60;
-            }
-        }
-    }
-    key_data_list_free(key_list);
-
-    /*
-     * Update zone.
-     */
-    zone_return_time = updateZone(dbconn, policy, zone, now, allow_unsigned, zone_updated,
-	    keylist, keylist_size, deplist);
-
-    /*
-     * Only purge old keys if the policy says so.
-     */
-	if (policy_keys_purge_after(policy) && keylist) {
-	    purge_return_time = removeDeadKeys(dbconn, keylist, keylist_size, deplist, now,
-	        policy_keys_purge_after(policy));
-	}
-
-    /*
-     * Always set these flags. Normally this needs to be done _only_ when the
+    /* Always set these flags. Normally this needs to be done _only_ when the
      * Signer config needs writing. However a previous Signer config might not
      * be available, we have no way of telling. :(
      */
-	for (i = 0; i < keylist_size; i++) {
-	    key_data_updated = 0;
+    int mod_zone = 0;
+    enum dbw_keystate_state state;
+    for (size_t i = 0; i < zone->key_count; i++) {
+        struct dbw_key *key = zone->key[i];
+        int mod_key = 0;
+        int in_use;
 
-		/* hack */
-		key_data_set_publish(keylist[i], 0);
-		key_data_set_active_ksk(keylist[i], 0);
-		key_data_set_active_zsk(keylist[i], 0);
-		key_data_updated = 1;
-	    /*
-	     * TODO: description
-	     */
-	    if (key_state_state(key_data_cached_dnskey(keylist[i])) == OMNIPRESENT
-	        || key_state_state(key_data_cached_dnskey(keylist[i])) == RUMOURED)
-	    {
-	        if (!key_data_publish(keylist[i])) {
-	            if (key_data_set_publish(keylist[i], 1)) {
-	                ods_log_error("[%s] %s: key_data_set_publish() failed",
-	                    module_str, scmd);
-	                break;
-	            }
-
-	            key_data_updated = 1;
-	        }
-	    }
-
-        /*
-         * TODO: description
-         */
-        if (key_state_state(key_data_cached_rrsigdnskey(keylist[i])) == OMNIPRESENT
-            || key_state_state(key_data_cached_rrsigdnskey(keylist[i])) == RUMOURED)
-        {
-            if (!key_data_active_ksk(keylist[i])) {
-                if (key_data_set_active_ksk(keylist[i], 1)) {
-                    ods_log_error("[%s] %s: key_data_set_active_ksk() failed",
-                        module_str, scmd);
-                    break;
-                }
-
-                key_data_updated = 1;
-            }
+        state = dbw_get_keystate(key, DBW_DNSKEY)->state;
+        in_use = state == OMNIPRESENT || state == RUMOURED;
+        if (key->publish != in_use) {
+            key->publish = in_use;
+            mod_key = 1;
         }
-
-        /*
-         * TODO: description
-         */
-        if (key_state_state(key_data_cached_rrsig(keylist[i])) == OMNIPRESENT
-            || key_state_state(key_data_cached_rrsig(keylist[i])) == RUMOURED)
-        {
-            if (!key_data_active_zsk(keylist[i])) {
-                if (key_data_set_active_zsk(keylist[i], 1)) {
-                    ods_log_error("[%s] %s: key_data_set_active_zsk() failed",
-                        module_str, scmd);
-                    break;
-                }
-
-                key_data_updated = 1;
-            }
+        state = dbw_get_keystate(key, DBW_RRSIGDNSKEY)->state;
+        in_use = state == OMNIPRESENT || state == RUMOURED;
+        if (key->active_ksk != in_use) {
+            key->active_ksk = in_use;
+            mod_key = 1;
         }
-
-        if (key_data_updated) {
-            if (key_data_update(keylist[i])) {
-                ods_log_error("[%s] %s: key_data_update() failed",
-                    module_str, scmd);
-                break;
-            }
+        state = dbw_get_keystate(key, DBW_RRSIG)->state;
+        in_use = state == OMNIPRESENT || state == RUMOURED;
+        if (key->active_zsk != in_use) {
+            key->active_zsk = in_use;
+            mod_key = 1;
         }
-	}
-
-    /*
-     * Release cached objects.
-     */
-    for (i = 0; i < keylist_size; i++) {
-        if (keylist[i]) {
-            key_data_free(keylist[i]);
+        if (mod_key) {
+            mod_zone = 1;
+            dbw_mark_dirty((struct dbrow *)key);
         }
     }
-    free(keylist);
-    key_dependency_list_free(deplist);
+    return mod_zone;
+}
 
-    return_time = zone_return_time;
+static time_t
+_update(engine_type *engine, struct dbw_db *db, struct dbw_zone *zone, time_t now,
+    int *zone_updated, int mockup)
+{
+    ods_log_info("[%s] update zone: %s", module_str, zone->name);
+
+    /* Update policy.*/
+    int allow_unsigned = 0;
+    time_t policy_return_time = updatePolicy(engine, db, zone, now,
+        &allow_unsigned, zone_updated, mockup);
+    if (allow_unsigned) {
+        ods_log_info("[%s] No keys configured for %s, zone will become"
+           " unsigned eventually", module_str, zone->name);
+    }
+
+    /* Update zone.*/
+    time_t zone_return_time = updateZone(db, zone, now, allow_unsigned, zone_updated);
+
+    /*Only purge old keys if the policy says so.*/
+    time_t purge_return_time = -1;
+    if (zone->policy->keys_purge_after) {
+        purge_return_time = removeDeadKeys(zone, now, mockup);
+    }
+
+    if (set_key_flags(zone)) { /* active and publish flags in signconf */
+        *zone_updated = 1;
+    }
+
+    /* Of all the relevant times find the earliest*/
+    time_t return_time = zone_return_time;
     minTime(policy_return_time, &return_time);
     /*
      * Take the rollover notification time into account when scheduling
      * this zone. We will need to print a message at that time.
      */
-    if (zone_db_next_ksk_roll(zone) > 0
-        && (zone_db_next_ksk_roll(zone) - engine->config->rollover_notification > now)) {
-        minTime(zone_db_next_ksk_roll(zone) - engine->config->rollover_notification, &return_time);
-    }
-    else if (zone_db_next_csk_roll(zone) > 0
-             && (zone_db_next_csk_roll(zone) - engine->config->rollover_notification > now)) {
-        minTime(zone_db_next_csk_roll(zone) - engine->config->rollover_notification, &return_time);
+    if (zone->next_ksk_roll > 0
+            && (zone->next_ksk_roll - engine->config->rollover_notification > now))
+    {
+        minTime(zone->next_ksk_roll - engine->config->rollover_notification, &return_time);
+    } else if (zone->next_csk_roll > 0
+             && (zone->next_csk_roll - engine->config->rollover_notification > now))
+    {
+        minTime(zone->next_csk_roll - engine->config->rollover_notification, &return_time);
     }
 
     minTime(purge_return_time, &return_time);
     return return_time;
+}
+
+time_t
+update(engine_type *engine, struct dbw_db *db, struct dbw_zone *zone, time_t now,
+    int *zone_updated)
+{
+    return _update(engine, db, zone, now, zone_updated, 0);
+}
+
+time_t
+update_mockup(engine_type *engine, struct dbw_db *db, struct dbw_zone *zone, time_t now,
+    int *zone_updated)
+{
+    return _update(engine, db, zone, now, zone_updated, 1);
 }

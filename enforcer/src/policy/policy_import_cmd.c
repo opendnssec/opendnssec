@@ -35,6 +35,7 @@
 #include "clientpipe.h"
 #include "policy/policy_import.h"
 #include "policy/policy_resalt_task.h"
+#include "signconf/signconf_task.h"
 #include "enforcer/enforce_task.h"
 
 
@@ -72,7 +73,7 @@ help(int sockfd)
 
 
 static int
-run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 {
     #define NARGV 3
     db_connection_t* dbconn = getconnectioncontext(context);;
@@ -80,7 +81,6 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 
     int remove_missing_policies = 0, argc = 0;
     int long_index = 0, opt = 0;
-    char buf[ODS_SE_MAXLINE];
     char const *argv[NARGV];
 
     static struct option long_options[] = {
@@ -96,13 +96,8 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 
     ods_log_debug("[%s] %s command", module_str, policy_import_funcblock.cmdname);
 
-    if (!cmd) return -1;
-
-    strncpy(buf, cmd, sizeof(buf));
-    buf[sizeof(buf)-1] = '\0';
-
     /* separate the arguments*/
-    argc = ods_str_explode(buf, NARGV, argv);
+    argc = ods_str_explode(cmd, NARGV, argv);
     if (argc == -1) {
         ods_log_error("[%s] too many arguments for %s command",
                         module_str, policy_import_funcblock.cmdname);
@@ -128,7 +123,10 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
     case POLICY_IMPORT_OK:
         /* only zones in policy, and force! */
         enforce_task_flush_all(engine, dbconn);
-        (void)flush_resalt_task_all(engine, dbconn);
+        /* In case KASP parameters are changed which don't affect the enforce
+         * task but do affect the signconf we must write new signconfs. */
+        signconf_task_flush_all(engine, dbconn);
+        (void)resalt_task_schedule(engine, dbconn);
         return 0;
         break;
 

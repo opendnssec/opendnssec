@@ -83,6 +83,8 @@ int db_connection_setup(db_connection_t* connection);
  */
 int db_connection_connect(const db_connection_t* connection);
 
+int db_connection_last_id(const db_connection_t* connection, int *last_id);
+
 /**
  * Create an object in the database. The `object` refer to the database object
  * begin created, the `object_field_list` describes the fields that should be

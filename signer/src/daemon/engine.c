@@ -274,7 +274,7 @@ engine_stop_threads(engine_type* engine)
     ods_log_debug("[%s] notify workers and drudgers", engine_str);
     schedule_release_all(engine->taskq);
 
-    for (i=0; i < numTotalWorkers; i++) {
+    for (i=numTotalWorkers-1; i >= 0; i--) {
         ods_log_debug("[%s] join worker %d", engine_str, i+1);
         janitor_thread_join(engine->workers[i]->thread_id);
         free(engine->workers[i]->context);
@@ -835,6 +835,9 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize, int info
         if (engine->need_to_reload) {
             ods_log_info("[%s] signer reloading", engine_str);
             engine->need_to_reload = 0;
+            /* Clean out sign queue as the items reference to the old workers.
+             * No need to free the items. They are not owned by the queue. */
+            fifoq_wipe(engine->taskq->signq);
         } else {
             ods_log_info("[%s] signer started (version %s), pid %u",
                 engine_str, PACKAGE_VERSION, engine->pid);

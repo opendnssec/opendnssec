@@ -97,13 +97,11 @@ void
 dnshandler_start(dnshandler_type* dnshandler)
 {
     size_t i = 0;
-    engine_type* engine = NULL;
 
     ods_log_assert(dnshandler);
     ods_log_assert(dnshandler->engine);
     ods_log_debug("[%s] start", dnsh_str);
 
-    engine = dnshandler->engine;
     /* udp */
     for (i=0; i < dnshandler->interfaces->count; i++) {
         struct udp_data* data = NULL;

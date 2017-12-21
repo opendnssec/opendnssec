@@ -128,6 +128,9 @@ uint32_t time_datestamp(time_t tt, const char* format, char** str);
  */
 void set_time_now(time_t now);
 
+/* are we running realtime of have we leaped? */
+int time_leaped(void);
+
 /**
  * Set the time_now to a new value.
  * As long as this new value is later than the real now time
@@ -151,5 +154,15 @@ time_t time_now(void);
  *
  */
 void duration_cleanup(duration_type* duration);
+
+/**
+ * Version of ctime_r that does not feature a trailing '\n' character
+ *
+ * \param[in] t time_t value to print to buf
+ * \param[in] buf buffer to write the formatted date/time to must be at least 
+ *          26 bytes wide.
+ * \return	buf to indicate success or NULL to indicate failure.
+ */
+char *ods_ctime_r(time_t t, char *buf);
 
 #endif /* UTIL_DURATION_H */

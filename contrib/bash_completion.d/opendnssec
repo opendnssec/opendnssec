@@ -36,14 +36,16 @@ _enforcer()
             if [ -z "$PID" ]; then
                 cmds="ZONE_NAME_HERE"
             else
-                cmds=`${COMP_WORDS[0]} zone list |tail -n +4|awk '{ print $1 }' > /dev/null`
+                cmds=`${COMP_WORDS[0]} zone list 2>/dev/null |tail -n +4|awk '{ print $1 }'`
             fi;;
         *"--policy"*)
             if [ -z "$PID" ]; then
                 cmds="POLICY_NAME_HERE"
             else
-                cmds=`${COMP_WORDS[0]} policy list |tail -n +2|awk '{ print $1 }'`
+                cmds=`${COMP_WORDS[0]} policy list 2>/dev/null |tail -n +2|awk '{ print $1 }'`
             fi;;
+        *"--steps"*)
+            cmds="10";;
         *"--socket"*);&
         *"--input"*);&
         *"--output"*);&
@@ -61,25 +63,27 @@ _enforcer()
             if [ -z "$PID" ]; then
                 cmds="CKA_ID_NAME_HERE"
             else
-                cmds=`${COMP_WORDS[0]} key list -p -d -a | cut -f 9 -d ";"`
+                cmds=`${COMP_WORDS[0]} key list -p -d -a 2>/dev/null | cut -f 9 -d ";"`
             fi;;
         *"--repository"*)
             if [ -z "$PID" ]; then
                 cmds="REPOSITORY_NAME_HERE"
             else
-                cmds=`${COMP_WORDS[0]} repository list |tail -n +3|awk '{ print $1 }'`
+                cmds=`${COMP_WORDS[0]} repository list 2>/dev/null |tail -n +3|awk '{ print $1 }'`
             fi;;
         *"--keytag"*)
             if [ -z "$PID" ]; then
                 cmds="KEY_TAG_HERE"
             else
-                cmds=`${COMP_WORDS[0]} key list -p -v -a | cut -f 9 -d ";"`
+                cmds=`${COMP_WORDS[0]} key list -p -v -a 2>/dev/null | cut -f 9 -d ";"`
             fi;;
         #*"--bits"*)
         #*"--algorithm"*)
         #*"--inception_time"*)
+        *"--count"*)
+            cmds="NUMBER";;
         *"--duration"*)
-            cmds="P0Y02M0D";;
+            cmds="P1Y6M P2M6DT3H30M PT3H30M";;
     esac
 
     if [ ! -z "$cmds" ] || [ ! -z "$COMPGEN_OPT" ]; then
@@ -87,8 +91,8 @@ _enforcer()
         return 0
     fi
 
-    all_cmds="update repository policy zone zonelist key rollover \
-        backup enforce signconf queue flush start running reload stop \
+    all_cmds="update repository policy zone zonelist key hsmkey rollover \
+        backup enforce look-ahead signconf queue flush start running reload stop \
         verbosity help --help --version --socket"
     if [ $COMP_CWORD -eq 1 ]; then
         cmds=$all_cmds
@@ -107,6 +111,8 @@ _enforcer()
             *"key"*)
                 cmds="list export import ds-submit ds-seen ds-retract \
                     ds-gone generate purge rollover";;
+            *"hsmkey"*)
+                cmds="list";;
             *"rollover"*)
                 cmds="list";;
             *"backup"*)
@@ -117,9 +123,13 @@ _enforcer()
                 cmds=`seq 0 5`;;
             *"help"*)
                 cmds=$all_cmds;;
+            *"look-ahead"*)
+                cmds="--zone --steps";;
         esac
     else
         case "${COMP_WORDS[@]:1}" in
+            *"look-ahead"*)
+                cmds="--zone --steps";;
             *"policy export"*)
                 cmds="--policy --all";;
             *"policy import"*)
@@ -134,7 +144,7 @@ _enforcer()
             *"key list"*)
                 cmds="--verbose --debug --parsable --zone --keystate --all";;
             *"key export"*)
-                cmds="--zone --keystate --keytype --ds";;
+                cmds="--zone --keystate --keytype --ds --all";;
             *"key import"*)
                 cmds="--cka_id --repository --zone --bits --algorithm \
                     --keystate --keytype --inception_time";;
@@ -145,7 +155,7 @@ _enforcer()
             *"key ds-submit"*)
                 cmds="--zone --keytag --cka_id";;
             *"key generate"*)
-                cmds="--duration --policy --all";;
+                cmds="--duration --policy --all --count";;
             *"key purge"*)
                 cmds="--policy --zone";;
             *"key rollover"*)
@@ -185,7 +195,7 @@ _signer()
         if [ -z "$PID" ]; then
             ZONES="ZONE_NAME_HERE"
         else
-            ZONES=`${COMP_WORDS[0]} zones|tail -n +2| awk '{print $2}'`
+            ZONES=`${COMP_WORDS[0]} zones 2>/dev/null |tail -n +2| awk '{print $2}'`
         fi
         case "${COMP_WORDS[1]}" in
             *"sign"*)

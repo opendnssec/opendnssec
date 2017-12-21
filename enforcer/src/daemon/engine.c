@@ -632,6 +632,7 @@ engine_init(engine_type* engine, int daemonize)
     sigaction(SIGHUP, &action, NULL);
     sigaction(SIGTERM, &action, NULL);
     sigaction(SIGINT, &action, NULL);
+    sigaction(SIGPIPE, &action, NULL);
     engine->dbcfg_list = NULL;
 }
 

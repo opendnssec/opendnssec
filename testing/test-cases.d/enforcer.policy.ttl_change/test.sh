@@ -8,53 +8,77 @@
 #  - start update policy
 #  - key rollover -t ZSK
 #  - see how long it takes for the new DNSKEY to become omnipresent
-#runtime: about 11 seconds 
+
+## expected behaviour introduction will take about and hour, roll as well.
+## runtime 8 seconds
+## wrong: roll takes about a minute (the newer TTL)
 
 if [ -n "$HAVE_MYSQL" ]; then
         ods_setup_conf conf.xml conf-mysql.xml
 fi &&
 
-ods_reset_env -i &&
-ods_start_enforcer &&
-
-echo "################## ZONE ADD 1" &&
+ods_reset_env -i -n &&
 echo -n "LINE: ${LINENO} " && ods-enforcer zone add --zone ods1 &&
-echo -n "LINE: ${LINENO} " && ods_enforcer_idle &&
-echo -n "LINE: ${LINENO} " && ods-enforcer zone list &&
-
 echo "################## LEAP TO OMNIPRESENT ZSK DNSKEY" &&
-echo -n "LINE: ${LINENO} " && ods_enforcer_leap_over 120 &&
+echo "LINE: ${LINENO} " && TSTART=`ods-enforcer queue|grep "It is now"|sed -E "s/^.*\(([0-9]+) .*$/\1/"` &&
+echo -n "LINE: ${LINENO} " && echo "Current time:" $TSTART
+echo -n "LINE: ${LINENO} " && ods-enforcer time leap --attach &&
+echo -n "LINE: ${LINENO} " && ods-enforcer time leap --attach &&
+echo -n "LINE: ${LINENO} " && ods-enforcer time leap --attach &&
 
-echo "################## LOWER TTL AND RESTART" &&
+echo "################## TEST: 1 ZSK with DNSKEY OMNIPRESENT" &&
+echo "LINE: ${LINENO} " && COUNT=`ods-enforcer key list -d -p |grep ZSK|cut -f 4 -d ";" |grep -c omnipresent` &&
+echo "LINE: ${LINENO} " && [ $COUNT -eq 1 ] &&
+
+echo "################## TEST: roughly an hour should have passed" &&
+echo "LINE: ${LINENO} " && TEND=`ods-enforcer queue|grep "It is now"|sed -E "s/^.*\(([0-9]+) .*$/\1/"` &&
+DELTA=$((TEND-TSTART)) &&
+echo -n "LINE: ${LINENO} " && echo "seconds passed:" $DELTA &&
+test $DELTA -gt 3500 && ## roughly an hour must have passed in this one leap
+
+echo "################## LOWER TTL AND RELOAD" &&
 echo -n "LINE: ${LINENO} " && cp kasp-short-ttl.xml  "$INSTALL_ROOT/etc/opendnssec/kasp.xml" &&
 echo -n "LINE: ${LINENO} " && ods-enforcer policy import &&
-## Sleep for a bit. policy import triggers enforce and might conflict with key rollover
-sleep 10 &&
-
-echo "################## START ZSK ROLL" &&
 echo -n "LINE: ${LINENO} " && ods-enforcer key rollover -t ZSK -z ods1 &&
 
-echo "################## TESTING 2ND ZSK IS NOT ACTIVE FOR ENOUGH TIME" &&
-echo -n "LINE: ${LINENO} " && ods_enforcer_leap_to 3600 &&
-echo -n "LINE: ${LINENO} " && ods-enforcer key list -d -p | grep ZSK &&
-echo -n "LINE: ${LINENO} " && COUNT=`ods-enforcer key list -d -p |grep ZSK|cut -f 4 -d ";" |grep -c omnipresent` &&
-echo -n "LINE: ${LINENO} " && [ $COUNT -eq 1 ] &&
+echo "################## LEAP TO OMNIPRESENT ZSK DNSKEY" &&
+echo "LINE: ${LINENO} " && TSTART=`ods-enforcer queue|grep "It is now"|sed -E "s/^.*\(([0-9]+) .*$/\1/"` &&
+echo -n "LINE: ${LINENO} " && echo "Current time:" $TSTART
+echo -n "LINE: ${LINENO} " && ods-enforcer time leap --attach &&
+echo -n "LINE: ${LINENO} " && ods-enforcer time leap --attach &&
 
-echo "################## BUT A MOMENT LATER IT IS" &&
-echo -n "LINE: ${LINENO} " && ods-enforcer time leap &&
-echo -n "LINE: ${LINENO} " && sleep 5 && # give a bit of time for the enforce to finish
-echo -n "LINE: ${LINENO} " && COUNT=`ods-enforcer key list -d -p |grep ZSK|cut -f 4 -d ";" |grep -c omnipresent` &&
-echo -n "LINE: ${LINENO} " && [ $COUNT -eq 2 ] &&
+echo "################## TEST: roughly an hour should have passed" &&
+echo "LINE: ${LINENO} " && COUNT=`ods-enforcer key list -d -p |grep ZSK|cut -f 4 -d ";" |grep -c omnipresent` &&
+echo "LINE: ${LINENO} " && [ $COUNT -eq 2 ] &&
 
-###############################################################################
-## NOTICE: we would expect roughly an hour + a minute here. (Old TTL + margins)
-## If we would botch it up we expect a minute + a minute. (New TTL + margin)
-## However somehow in reality we see an hour + an hour + a minute (2x old TTL
-## + margin). Likely this is some sort of side effect of time leap or 
-## inconsistent handling of timestamps wrt timezones. This test is written
-## so it will still succeed if we once fix that bug. (i.e. anything more than
-## an hour is okay)
-###############################################################################
+echo "LINE: ${LINENO} " && TEND=`ods-enforcer queue|grep "It is now"|sed -E "s/^.*\(([0-9]+) .*$/\1/"` &&
+DELTA=$((TEND-TSTART)) &&
+echo -n "LINE: ${LINENO} " && echo "seconds passed:" $DELTA &&
+test $DELTA -gt 3500 && ## roughly an hour must have passed in this one leap
+
+## Now we add 3th key, but since the previous DNSKEY set had a 1 minute TTL
+## we expect roughly that time to pass for the DNSKEY to go rum->omn
+
+echo "DEBUG: " && ods-enforcer key list -d -p &&
+echo -n "LINE: ${LINENO} " && ods-enforcer key rollover -t ZSK -z ods1 &&
+echo "DEBUG: " && ods-enforcer key list -d -p &&
+echo -n "LINE: ${LINENO} " && ods-enforcer time leap --attach &&
+echo "DEBUG: " && ods-enforcer key list -d -p &&
+
+echo "################## LEAP TO OMNIPRESENT ZSK DNSKEY" &&
+echo -n "LINE: ${LINENO} " && echo "Current time:" $TSTART
+echo "LINE: ${LINENO} " && TSTART=`ods-enforcer queue|grep "It is now"|sed -E "s/^.*\(([0-9]+) .*$/\1/"` &&
+echo -n "LINE: ${LINENO} " && ods-enforcer time leap --attach &&
+echo "DEBUG: " && ods-enforcer key list -d -p &&
+
+echo "################## TEST: roughly an minute should have passed" &&
+echo "LINE: ${LINENO} " && COUNT=`ods-enforcer key list -d -p |grep ZSK|cut -f 4 -d ";" |grep -c omnipresent` &&
+echo "LINE: ${LINENO} " && [ $COUNT -eq 3 ] &&
+echo "LINE: ${LINENO} " && TEND=`ods-enforcer queue|grep "It is now"|sed -E "s/^.*\(([0-9]+) .*$/\1/"` &&
+DELTA=$((TEND-TSTART)) &&
+echo -n "LINE: ${LINENO} " && echo "seconds passed:" $DELTA &&
+test $DELTA -lt 70 && ## roughly a minute must have passed in this one leap
+
 
 echo "################## TEST TEARDOWN" &&
 echo -n "LINE: ${LINENO} " && ods_stop_enforcer &&
@@ -71,4 +95,3 @@ echo "************error******************"
 echo
 ods_kill
 return 1
-

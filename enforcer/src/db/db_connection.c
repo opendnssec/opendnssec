@@ -99,6 +99,17 @@ int db_connection_connect(const db_connection_t* connection) {
     return db_backend_connect(connection->backend, connection->configuration_list);
 }
 
+int db_connection_last_id(const db_connection_t* connection, int *last_id) {
+    if (!connection) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!connection->backend) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    return db_backend_last_id(connection->backend, last_id);
+}
+
 int db_connection_create(const db_connection_t* connection, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set) {
     if (!connection) {
         return DB_ERROR_UNKNOWN;

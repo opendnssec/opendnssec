@@ -90,6 +90,17 @@ int db_backend_handle_connect(const db_backend_handle_t* backend_handle, const d
     return backend_handle->connect_function((void*)backend_handle->data, configuration_list);
 }
 
+int db_backend_handle_last_id(const db_backend_handle_t* backend_handle, int *last_id) {
+    if (!backend_handle) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!backend_handle->last_id_function) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    return backend_handle->last_id_function((void*)backend_handle->data, last_id);
+}
+
 int db_backend_handle_create(const db_backend_handle_t* backend_handle, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set) {
     if (!backend_handle) {
         return DB_ERROR_UNKNOWN;
@@ -208,6 +219,15 @@ int db_backend_handle_set_disconnect(db_backend_handle_t* backend_handle, db_bac
     }
 
     backend_handle->disconnect_function = disconnect_function;
+    return DB_OK;
+}
+
+int db_backend_handle_set_last_id(db_backend_handle_t* backend_handle, db_backend_handle_last_id_t last_id_function) {
+    if (!backend_handle) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    backend_handle->last_id_function = last_id_function;
     return DB_OK;
 }
 
@@ -380,6 +400,17 @@ int db_backend_connect(const db_backend_t* backend, const db_configuration_list_
     }
 
     return db_backend_handle_connect(backend->handle, configuration_list);
+}
+
+int db_backend_last_id(const db_backend_t* backend, int *last_id) {
+    if (!backend) {
+        return DB_ERROR_UNKNOWN;
+    }
+    if (!backend->handle) {
+        return DB_ERROR_UNKNOWN;
+    }
+
+    return db_backend_handle_last_id(backend->handle, last_id);
 }
 
 int db_backend_create(const db_backend_t* backend, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set) {
