@@ -156,7 +156,11 @@ exec_dnskey_by_id(int sockfd, struct dbw_key *key, const char* ds_command,
 			if (fp == NULL) {
 				status = 4;
 				ods_log_error_and_printf(sockfd, module_str,
+<<<<<<< HEAD
 					"Failed to run command: %s: %s",cp_ds,
+=======
+					"failed to run command: %s: %s",cp_ds,
+>>>>>>> upstream/develop
 					strerror(errno));
 			} else {
 				int bytes_written;
@@ -166,6 +170,7 @@ exec_dnskey_by_id(int sockfd, struct dbw_key *key, const char* ds_command,
 					bytes_written = fprintf(fp, "%s", rrstr);
 				if (bytes_written < 0) {
 					status = 5;
+<<<<<<< HEAD
 					ods_log_error_and_printf(sockfd, module_str,
 						 "[%s] Failed to write to %s: %s", cp_ds,
 						 strerror(errno));
@@ -187,6 +192,20 @@ exec_dnskey_by_id(int sockfd, struct dbw_key *key, const char* ds_command,
 						ods_log_error_and_printf(sockfd, "Failed to run %s", cp_ds);
                                                 status = 7;
 					}
+=======
+					ods_log_error_and_printf(sockfd,  module_str,
+						 "[%s] Failed to write to %s: %s", cp_ds,
+						 strerror(errno));
+				} else if (pclose(fp) == -1) {
+					status = 6;
+					ods_log_error_and_printf(sockfd, module_str,
+						"failed to close %s: %s", cp_ds,
+						strerror(errno));
+				} else {
+					ods_log_info("key %sed to %s\n",
+						action, cp_ds);
+					status = 0;
+>>>>>>> upstream/develop
 				}
 			}
 		}

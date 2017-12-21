@@ -11,6 +11,7 @@ OpenDNSSEC 2.2 - 2017-xx-xx
 * OPENDNSSEC-908: Warn when TTL exceeds KASP's MaxZoneTTL instead of capping.
 * OPENDNSSEC-885: Command policy resalt without arguments is no longer allowed.
   Either policy or all must be specified.
+* OPENDNSSEC-910: DelegationSignerSubmitCommand would strip --cka_id
 
 OpenDNSSEC 2.1.1 - 2017-04-28
 
