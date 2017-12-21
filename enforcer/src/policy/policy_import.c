@@ -488,30 +488,27 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
         dbw_free(db);
         return POLICY_IMPORT_ERR_XML;
     }
-    /* Scratch
-       0: not seen
-       1: unchanged
-       2: created
-       3: updated
-    */
     for (int i = 0; i < count; i++) {
         struct dbw_policy *p = dbw_get_policy(db, (xpolicies+i)->name);
-        if (!p) {
-            p = dbw_new_policy(db);
-            p->scratch = 2;
+        if (p) {
+            p->scratch |= POLICY_SEEN;
+            if (!policy_xml_cmp(sockfd, p, xpolicies+i)) {
+                client_printf(sockfd, "Policy %s already up-to-date\n", p->name);
+                continue;
+            }
+            else {
+                p->scratch |= POLICY_UPDATED;
+                if (p->denial_salt_length != (xpolicies+i)->denial_salt_length) {
+                    p->scratch |= POLICY_RESALT;
+                }
+            }
         }
-        else if (!policy_xml_cmp(sockfd, p, xpolicies+i)) {
-            p->scratch = 1;
-            client_printf(sockfd, "Policy %s already up-to-date\n", p->name);
-            continue;
+        else {
+           p = dbw_new_policy(db);
+           p->scratch |= POLICY_SEEN|POLICY_CREATED;
         }
-
-        if (p->denial_salt_length != (xpolicies+i)->denial_salt_length)
-            resalt_task_flush(engine, dbconn, p->name);
 
         xml2db(p, xpolicies+i);
-        if (!p->scratch)
-            p->scratch = 3; /* do not delete */
         dbw_mark_dirty((struct dbrow *)p);
         /* policykeys */
         for (int pk = 0; pk < p->policykey_count; pk++) {
@@ -566,15 +563,16 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
                 }
                 continue;
             }
-            else if (policy->scratch == 1)
-                continue;
-            else if (policy->scratch == 2) {
+            else if (policy->scratch&POLICY_CREATED) {
                 ods_log_info("[policy_import] policy %s created", policy->name);
                 client_printf(sockfd, "Created policy %s successfully\n", policy->name);
             }
-            else {
+            else if (policy->scratch&POLICY_UPDATED){
                 ods_log_info("[policy_import] policy %s updated", policy->name);
                 client_printf(sockfd, "Updated policy %s successfully\n", policy->name);
+            }
+            if (policy->scratch&POLICY_RESALT) {
+                resalt_task_flush(engine, dbconn, policy->name);
             }
         }
     }

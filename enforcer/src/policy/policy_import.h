@@ -53,6 +53,12 @@
  */
 #define POLICY_IMPORT_ERR_MEMORY 4
 
+
+#define POLICY_SEEN (1<<0)
+#define POLICY_CREATED (1<<1)
+#define POLICY_UPDATED (1<<2)
+#define POLICY_RESALT (1<<3)
+
 /*
  * Import policies from the configured KASP XML and sync it with the database.
  * \param[in] sockfd a client socket which progress is written to if non-zero.
