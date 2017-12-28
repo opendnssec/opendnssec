@@ -37,6 +37,17 @@ syslog_waitfor 60 "ods-enforcerd: .*\[enforce_task\] please submit DS with keyta
 
 # Key list should show KSK in ready state
 log_this ods-enforcer-key-list1_1 ods-enforcer key list &&
+log_grep ods-enforcer-key-list1_1 stdout 'ods[[:space:]]*KSK[[:space:]]*ready[[:space:]]*waiting for ds-submit' &&
+log_grep ods-enforcer-key-list1_1 stdout 'ods[[:space:]]*ZSK[[:space:]]*active' &&
+
+log_this ods-enforcer-dssubmit_ods1 ods-enforcer key ds-submit --zone ods --keytag $KSK_KEY_TAG &&
+log_grep ods-enforcer-dssubmit_ods1 stdout "1 KSK matches found." &&
+log_grep ods-enforcer-dssubmit_ods1 stdout "1 KSKs changed" &&
+
+sleep 1 && ods_enforcer_idle &&
+
+# Key list should show KSK in ready state
+log_this ods-enforcer-key-list1_1 ods-enforcer key list &&
 log_grep ods-enforcer-key-list1_1 stdout 'ods[[:space:]]*KSK[[:space:]]*ready[[:space:]]*waiting for ds-seen' &&
 log_grep ods-enforcer-key-list1_1 stdout 'ods[[:space:]]*ZSK[[:space:]]*active' &&
 

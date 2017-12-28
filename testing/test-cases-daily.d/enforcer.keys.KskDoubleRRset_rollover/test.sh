@@ -24,6 +24,7 @@ echo -n "LINE: ${LINENO} " && KSK1=`ods-enforcer key list -v -p --all | grep "KS
 echo -n "LINE: ${LINENO} " && sleep 2 && ods-enforcer time leap && sleep 3 &&
 echo -n "LINE: ${LINENO} " && sleep 2 && ods-enforcer time leap && sleep 3 &&
 
+echo -n "LINE: ${LINENO} " && ods-enforcer key ds-submit -z ods --cka_id $KSK1 && sleep 3 &&
 echo -n "LINE: ${LINENO} " && ods-enforcer key ds-seen -z ods --cka_id $KSK1 && sleep 3 &&
 echo -n "LINE: ${LINENO} " && sleep 2 && ods-enforcer time leap && sleep 3 &&
 
@@ -68,8 +69,9 @@ echo -n "LINE: ${LINENO} " && ods_stop_signer && sleep 4 &&
 
 echo &&
 echo "########## LEAP TIME TILL THE ROLLOVER IS COMPLETED ######### " &&
-# New KSK is waiting for ds-seen 
-ods-enforcer key ds-seen -z ods --cka_id $KSK2 && sleep 3 &&
+# New KSK is waiting for ds-seen
+echo -n "LINE: ${LINENO} " && ods-enforcer key ds-submit -z ods --cka_id $KSK2 && sleep 3 &&
+echo -n "LINE: ${LINENO} " && ods-enforcer key ds-seen -z ods --cka_id $KSK2 && sleep 3 &&
 
 echo -n "LINE: ${LINENO} " && sleep 2 && ods-enforcer time leap && sleep 3 &&
 echo -n "LINE: ${LINENO} " && sleep 2 && ods-enforcer time leap && sleep 3 &&
@@ -77,6 +79,7 @@ echo -n "LINE: ${LINENO} " && sleep 2 && ods-enforcer time leap && sleep 3 &&
 echo -n "LINE: ${LINENO} " && ods-enforcer key list -d -p | grep "ods;KSK;omnipresent;omnipresent;omnipresent;NA;1;1;$KSK2" &&
 echo -n "LINE: ${LINENO} " && ods-enforcer key list -d -p | grep "ods;KSK;unretentive;unretentive;unretentive;NA;0;0;$KSK1" &&
 
+echo -n "LINE: ${LINENO} " && ods-enforcer key ds-retract -z ods --cka_id $KSK1 && sleep 3 &&
 echo -n "LINE: ${LINENO} " && ods-enforcer key ds-gone -z ods --cka_id $KSK1 && sleep 3 &&
 
 echo -n "LINE: ${LINENO} " && time=`ods-enforcer queue | grep "It is now" | cut -d "(" -f2 | cut -d " " -f1` &&

@@ -160,7 +160,7 @@ sleep 3 && ods_enforcer_idle &&
 log_this ods-enforcer-zone_del_2  ods-enforcer zone delete --zone ods2 --xml  &&
 sleep 1 && ods_enforcer_idle &&
 log_grep ods-enforcer-zone_del_2  stdout "Deleted zone ods2 successfully" &&
-log_grep ods-enforcer-zone_del_2 stdout "Zonelist .*/etc/opendnssec/zonelist.xml updated successfully" &&
+log_grep ods-enforcer-zone_del_2 stdout "Exported zonelist to .*/etc/opendnssec/zonelist.xml successfully" &&
 log_this ods-enforcer-zone_del_list_2   ods-enforcer zone list &&
 ! log_grep ods-enforcer-zone_del_list_2   stdout "ods2[[:space:]]*Policy1" &&
 
@@ -168,8 +168,8 @@ log_this ods-enforcer-zone_del_list_2   ods-enforcer zone list &&
 ! $GREP -q -- "ods2" "$INSTALL_ROOT/etc/opendnssec/zonelist.xml" &&
 
 # Test deleting a non-existant zone
-! log_this ods-enforcer-zone_del_2  ods-enforcer zone delete -z ods1  &&
-log_grep ods-enforcer-zone_del_2 stderr  "Unable to delete zone, zone ods1 not found!" && 
+! log_this ods-enforcer-zone_del_2  ods-enforcer zone delete -z ods1 &&
+log_grep ods-enforcer-zone_del_2 stderr  "Unable to delete zone, zone ods1 not found" &&
 
 # Delete all remaining zones 
 sleep 1 && ods_enforcer_idle &&

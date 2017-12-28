@@ -1621,7 +1621,7 @@ ods_compare_gold_vs_base_signconf ()
 		# Exit subshell
 	done
 
-	if ! diff gold_temp base_temp; then
+	if ! diff -w gold_temp base_temp; then
 		return 1
 	fi
 

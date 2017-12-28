@@ -49,6 +49,10 @@ echo -n "LINE: ${LINENO} " && log_this ods-enforcer-cka-id ods-enforcer key list
 echo -n "LINE: ${LINENO} " && KSK_CKA_ID=`log_grep -o ods-enforcer-cka-id stdout "ods[[:space:]]*KSK[[:space:]]*ready" | awk '{print $9}'` &&
 echo $KSK_CKA_ID &&
 #echo -n "LINE: ${LINENO} " && ods-enforcer key ds-seen -z ods -k `ods-enforcer key ds-seen 2>/dev/null | sed -e 's/^ods[[:space:]]\+KSK[[:space:]]\+[[:digit:]]\+[[:space:]]\+\([[:xdigit:]]\{32\}\)[[:space:]]*/\1/p' -e d` &&
+
+echo -n "LINE: ${LINENO} " && ods-enforcer key ds-submit -z ods -k $KSK_CKA_ID &&
+echo -n "LINE: ${LINENO} " && ods_enforcer_idle &&
+
 echo -n "LINE: ${LINENO} " && ods-enforcer key ds-seen -z ods -k $KSK_CKA_ID &&
 echo -n "LINE: ${LINENO} " && ods_enforcer_idle &&
 

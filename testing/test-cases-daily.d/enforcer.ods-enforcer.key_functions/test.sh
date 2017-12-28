@@ -29,13 +29,13 @@ ods_enforcer_leap_to 7200 &&
 log_this ods-enforcer-check-0   ods-enforcer key list --verbose &&
 log_grep ods-enforcer-check-0   stdout "ZSK.*active" &&
 log_grep ods-enforcer-check-0   stdout "ZSK.*publish" &&
-log_grep ods-enforcer-check-0   stdout "KSK.*waiting for ds-seen" &&
+log_grep ods-enforcer-check-0   stdout "KSK.*waiting for ds-submit" &&
 log_grep ods-enforcer-check-0   stdout "KSK.*publish" &&
 
 # Get the key tags.
 ZSK_CKA_ID_1=`log_grep -o ods-enforcer-check-0 stdout "ZSK.*active" | sed 's/^.*\([0-9a-fA-F]\{32\}\).*$/\1/'` &&
 ZSK_CKA_ID_2=`log_grep -o ods-enforcer-check-0 stdout "ZSK.*publish" | sed 's/^.*\([0-9a-fA-F]\{32\}\).*$/\1/'` &&
-KSK_CKA_ID_STANDBY=`log_grep -o ods-enforcer-check-0 stdout "KSK.*waiting for ds-seen" | sed 's/^.*\([0-9a-fA-F]\{32\}\).*$/\1/'` &&
+KSK_CKA_ID_STANDBY=`log_grep -o ods-enforcer-check-0 stdout "KSK.*waiting for ds-submit" | sed 's/^.*\([0-9a-fA-F]\{32\}\).*$/\1/'` &&
 KSK_CKA_ID_1=`log_grep -o ods-enforcer-check-0 stdout "KSK.*publish" | sed 's/^.*\([0-9a-fA-F]\{32\}\).*$/\1/'` &&
 
 ##################  TEST  ###########################

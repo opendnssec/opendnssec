@@ -19,10 +19,10 @@
 	<Enforcer>
 		<Datastore><MySQL><Host>localhost</Host><Database>test</Database><Username>test</Username><Password>test</Password></MySQL></Datastore>
 		<AutomaticKeyGenerationPeriod>PT50H</AutomaticKeyGenerationPeriod>
-		<WorkerThreads>0</WorkerThreads>
+		<WorkerThreads>1</WorkerThreads>
 	</Enforcer>
 	<Signer>
-		<WorkingDirectory>@INSTALL_ROOT@/var/opendnssec/tmp</WorkingDirectory>
+		<WorkingDirectory>@INSTALL_ROOT@/var/opendnssec/signer</WorkingDirectory>
 		<WorkerThreads>4</WorkerThreads>
 	</Signer>
 </Configuration>
