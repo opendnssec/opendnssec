@@ -43,7 +43,6 @@
 #include "util.h"
 
 static const char* task_str = "task";
-static pthread_mutex_t worklock = PTHREAD_MUTEX_INITIALIZER;
 
 const char* TASK_CLASS_ENFORCER = "enforcer";
 const char* TASK_CLASS_SIGNER   = "signer";
@@ -107,24 +106,16 @@ task_perform(schedule_type* scheduler, task_type* task, void* context)
     ods_status status;
 
     if (task->callback) {
-        /*
-         * It is sad but we need worklock to prevent concurrent database
-         * access. Our code is not able to handle that properly. (we can't
-         * really tell the difference between an error and nodata.) Once we
-         * fixed our database backend this lock can be removed.
-         */
-        ods_log_assert(task->owner);
-        if (!strcmp(task->class, TASK_CLASS_ENFORCER))
-            pthread_mutex_lock(&worklock);
         if (task->lock) {
             pthread_mutex_lock(task->lock);
+            ods_log_debug("START TASK: %s %s", task->owner, task->type);
             rescheduleTime = task->callback(task, task->owner, task->userdata, context);
+            ods_log_debug("END TASK: %s %s", task->owner, task->type);
             pthread_mutex_unlock(task->lock);
         } else {
+            ods_log_debug("START TASK WITHOUT LOCK");
             rescheduleTime = task->callback(task, task->owner, task->userdata, context);
         }
-        if (!strcmp(task->class, TASK_CLASS_ENFORCER))
-            pthread_mutex_unlock(&worklock);
     } else {
         /* We'll allow a task without callback, just don't reschedule. */
         rescheduleTime = schedule_SUCCESS;
@@ -147,7 +138,7 @@ task_perform(schedule_type* scheduler, task_type* task, void* context)
         }
     } else {
         task_destroy(task);
-    }    
+    }
 }
 
 task_type*
@@ -166,7 +157,7 @@ task_duplicate_shallow(task_type *task)
     return dup;
 }
 
-int
+static int
 cmp_ttuple(task_type *x, task_type *y)
 {
     int cmp;
@@ -193,6 +184,18 @@ task_compare_ttuple(const void* a, const void* b)
 }
 
 int
+task_compare_ttuple_lock(const void* a, const void* b)
+{
+    task_type* x = (task_type*)a;
+    task_type* y = (task_type*)b;
+    ods_log_assert(a);
+    ods_log_assert(b);
+
+    int cmp = strcmp(x->owner, y->owner);
+    return cmp ? cmp : strcmp(x->class, y->class);
+}
+
+int
 task_compare_time_then_ttuple(const void* a, const void* b)
 {
     task_type* x = (task_type*)a;
@@ -211,10 +214,11 @@ task_compare_time_then_ttuple(const void* a, const void* b)
 void
 task_log(task_type* task)
 {
+    char ctimebuf[32]; /* at least 26 according to docs */
     char* strtime = NULL;
 
     if (task) {
-        strtime = ctime(&task->due_date);
+        strtime = ctime_r(&task->due_date, ctimebuf);
         if (strtime) {
             strtime[strlen(strtime)-1] = '\0';
         }

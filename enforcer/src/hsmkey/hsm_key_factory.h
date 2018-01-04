@@ -29,57 +29,15 @@
 #ifndef _HSM_KEY_FACTORY_H_
 #define _HSM_KEY_FACTORY_H_
 
-#include "db/hsm_key.h"
-#include "db/policy_key.h"
+#include "db/dbw.h"
 #include "daemon/engine.h"
 
 #include <time.h>
 
 void hsm_key_factory_deinit(void);
-/**
- * TODO
- * \return 0 success, 1 error
- */
-int hsm_key_factory_generate(engine_type* engine,
-    const db_connection_t* connection, const policy_t* policy, const policy_key_t* policy_key,
-    time_t duration);
 
-/**
- * TODO
- * \return 0 success, 1 error
- */
-int hsm_key_factory_generate_policy(engine_type* engine,
-    const db_connection_t* connection, const policy_t* policy, time_t duration);
-
-/**
- * TODO
- * \return 0 success, 1 error
- */
-int hsm_key_factory_generate_all(engine_type* engine,
-    const db_connection_t* connection, time_t duration);
-
-
-/**
- * Schedule a task to generate keys for a specific policy.
- * \param[in] engine an engine_type.
- * \prama[in] policy_orig a policy_t pointer to the policy we will generate keys
- * for.
- * \param[in] duration a time_t specifying the duration to generate keys from,
- * if its zero then the duration from conf.xml is taken.
- * \return non-zero on error.
- */
-int hsm_key_factory_schedule_generate_policy(engine_type* engine,
-    const policy_t* policy_orig, time_t duration);
-
-/**
- * Schedule a task to generate keys for all policies and policy keys we
- * currently have.
- * \param[in] engine an engine_type.
- * \param[in] duration a time_t specifying the duration to generate keys from,
- * if its zero then the duration from conf.xml is taken.
- * \return non-zero on error.
- */
-int hsm_key_factory_schedule_generate_all(engine_type* engine, time_t duration);
+void
+hsm_key_factory_schedule(engine_type *engine, int id, int count);
 
 /**
  * Allocate a private or shared HSM key for the policy key provided. This will
@@ -92,24 +50,17 @@ int hsm_key_factory_schedule_generate_all(engine_type* engine, time_t duration);
  * \return an allocated HSM key or NULL on error or if there are no unused keys
  * available for allocation right now.
  */
-hsm_key_t* hsm_key_factory_get_key(engine_type* engine,
-    const db_connection_t* connection, const policy_key_t* policy_key,
-    hsm_key_state_t hsm_key_state);
+struct dbw_hsmkey *
+hsm_key_factory_get_key(engine_type *engine, struct dbw_db *db,
+    struct dbw_policykey *pkey, struct dbw_zone *zone);
 
 /**
- * Release a key, if its not used anyore it will be marked DELETE.
- * \param[in] hsm_key_id a db_value_t pointer with the hsm_key database id.
- * \return non-zero on error.
+ * Release a key, if its not used anymore it will be marked DELETE.
+ * \param[in] key
  */
-int hsm_key_factory_release_key_id(const db_value_t* hsm_key_id,
-    const db_connection_t* connection);
-
-/**
- * Release a key, if its not used anyore it will be marked DELETE.
- * \param[in] hsm_key a hsm_key_t pointer with the hsm_key to release.
- * \return non-zero on error.
- */
-int hsm_key_factory_release_key(hsm_key_t* hsm_key,
-    const db_connection_t* connection);
+void
+hsm_key_factory_release_key(struct dbw_hsmkey *hsmkey, struct dbw_key *key);
+void
+hsm_key_factory_release_key_mockup(struct dbw_hsmkey *hsmkey, struct dbw_key *key, int mockup);
 
 #endif /* _HSM_KEY_FACTORY_H_ */

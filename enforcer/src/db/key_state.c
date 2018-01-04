@@ -892,6 +892,64 @@ key_state_list_t* key_state_list_new(const db_connection_t* connection) {
     return key_state_list;
 }
 
+int
+key_state_list_get(key_state_list_t* key_state_list)
+{
+    size_t i;
+    if (!key_state_list || !key_state_list->dbo)
+        return DB_ERROR_UNKNOWN;
+    if (key_state_list->result_list)
+        db_result_list_free(key_state_list->result_list);
+    if (key_state_list->object_list_size) {
+        for (i = 0; i < key_state_list->object_list_size; i++) {
+            if (key_state_list->object_list[i]) {
+                key_state_free(key_state_list->object_list[i]);
+            }
+        }
+        key_state_list->object_list_size = 0;
+        key_state_list->object_list_first = 0;
+    }
+    if (key_state_list->object_list) {
+        free(key_state_list->object_list);
+        key_state_list->object_list = NULL;
+    }
+    if (!(key_state_list->result_list = db_object_read(key_state_list->dbo, NULL, NULL))
+        || db_result_list_fetch_all(key_state_list->result_list))
+    {
+        return DB_ERROR_UNKNOWN;
+    }
+    /*if (key_state_list->associated_fetch*/
+        /*&& key_state_list_get_associated(key_state_list))*/
+    /*{*/
+        /*return DB_ERROR_UNKNOWN;*/
+    /*}*/
+    return DB_OK;
+}
+
+key_state_list_t*
+key_state_list_new_get(const db_connection_t* connection)
+{
+    key_state_list_t* key_state_list;
+    if (!connection) return NULL;
+    if (!(key_state_list = key_state_list_new(connection))
+        || key_state_list_get(key_state_list))
+    {
+        key_state_list_free(key_state_list);
+        return NULL;
+    }
+    return key_state_list;
+}
+
+size_t
+key_state_list_size(key_state_list_t* key_state_list)
+{
+    if (!key_state_list) return 0;
+    if (key_state_list->object_store && key_state_list->object_list)
+        return key_state_list->object_list_size;
+    if (!key_state_list->result_list) return 0;
+    return db_result_list_size(key_state_list->result_list);
+}
+
 key_state_list_t* key_state_list_new_copy(const key_state_list_t* from_key_state_list) {
     key_state_list_t* key_state_list;
 

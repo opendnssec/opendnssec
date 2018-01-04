@@ -31,6 +31,8 @@
 #include "duration.h"
 #include "log.h"
 #include "file.h"
+#include "daemon/engine.h"
+#include "db/dbw.h"
 
 #include "signconf/signconf_task.h"
 
@@ -52,13 +54,11 @@ perform(task_type* task, char const *zonename, void *userdata, void *context)
     if (ret == SIGNCONF_EXPORT_NO_CHANGE) {
         ods_log_info("[%s] signconf done, no change", module_str);
         return schedule_SUCCESS;
-    }
-    if (ret != SIGNCONF_EXPORT_OK) {
+    } else if (ret) {
         ods_log_error("[%s] signconf failed", module_str);
-        /* YBS reschedule backoff? */
-        return schedule_SUCCESS;
+        return schedule_DEFER;
     }
-    
+
     ods_log_info("[%s] signconf done for zone %s, notifying signer",
         module_str, zonename);
         
@@ -83,43 +83,27 @@ signconf_task_flush_zone(engine_type *engine, db_connection_t *dbconn,
 
 void
 signconf_task_flush_policy(engine_type *engine, db_connection_t *dbconn,
-    policy_t const *policy)
+    char const *policyname)
 {
-    zone_db_t const *zone;
-    zone_list_db_t *zonelist;
-
-    ods_log_assert(policy);
-    
-    zonelist = zone_list_db_new_get_by_policy_id(dbconn, policy_id(policy));
-    if (!zonelist) {
+    struct dbw_db *db = dbw_fetch(dbconn);
+    if (!db) {
         ods_log_error("[%s] Can't fetch zones for policy %s from database",
-            module_str, policy_name(policy));
+            module_str, policyname);
         return;
     }
-    while ((zone = zone_list_db_next(zonelist))) {
-        signconf_task_flush_zone(engine, dbconn, zone_db_name(zone));
+    for (size_t p = 0; p < db->policies->n; p++) {
+        struct dbw_policy *policy = (struct dbw_policy *)db->policies->set[p];
+        if (policyname && strcmp(policyname, policy->name)) continue;
+        for (size_t z = 0; z < policy->zone_count; z++) {
+            struct dbw_zone *zone = policy->zone[z];
+            signconf_task_flush_zone(engine, dbconn, zone->name);
+        }
     }
-    zone_list_db_free(zonelist);
+    dbw_free(db);
 }
 
 void
 signconf_task_flush_all(engine_type *engine, db_connection_t *dbconn)
 {
-    zone_list_db_t *zonelist;
-    zone_db_t const *zone;
-
-    zonelist = zone_list_db_new(dbconn);
-    if (!zonelist) {
-        ods_log_error("[%s] Can't fetch zones from database", module_str);
-        return;
-    }
-    if (zone_list_db_get(zonelist)) { /* fetch all */
-        ods_log_error("[%s] Can't fetch zones from database", module_str);
-        zone_list_db_free(zonelist);
-        return;
-    }
-    while ((zone = zone_list_db_next(zonelist))) {
-        signconf_task_flush_zone(engine, dbconn, zone_db_name(zone));
-    }
-    zone_list_db_free(zonelist);
+    signconf_task_flush_policy(engine, dbconn, NULL);
 }

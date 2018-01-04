@@ -122,6 +122,8 @@ void task_destroy(task_type* task);
 
 /* used in our reverse lookup structure. */
 int task_compare_ttuple(const void* a, const void* b);
+/* used in our reverse lookup structure. */
+int task_compare_ttuple_lock(const void* a, const void* b);
 /* This is used for sorting our queue */
 int task_compare_time_then_ttuple(const void* a, const void* b);
 /* Create new task, copy ttuple from existing task. NULL on malloc

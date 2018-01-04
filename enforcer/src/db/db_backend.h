@@ -75,6 +75,8 @@ typedef int (*db_backend_handle_connect_t)(void* data, const db_configuration_li
  */
 typedef int (*db_backend_handle_disconnect_t)(void* data);
 
+typedef int (*db_backend_handle_last_id_t)(void* data, int *last_id);
+
 /**
  * Function pointer for creating a object in a database backend. The backend
  * handle specific data is supplied in `data`.
@@ -172,6 +174,7 @@ struct db_backend_handle {
     db_backend_handle_shutdown_t shutdown_function;
     db_backend_handle_connect_t connect_function;
     db_backend_handle_disconnect_t disconnect_function;
+    db_backend_handle_last_id_t last_id_function;
     db_backend_handle_create_t create_function;
     db_backend_handle_read_t read_function;
     db_backend_handle_update_t update_function;
@@ -297,6 +300,8 @@ int db_backend_handle_set_connect(db_backend_handle_t* backend_handle, db_backen
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_backend_handle_set_disconnect(db_backend_handle_t* backend_handle, db_backend_handle_disconnect_t disconnect_function);
+
+int db_backend_handle_set_last_id(db_backend_handle_t* backend_handle, db_backend_handle_last_id_t last_id_function);
 
 /**
  * Set the create function of a database backend handle.
@@ -439,6 +444,8 @@ int db_backend_initialize(const db_backend_t* backend);
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int db_backend_connect(const db_backend_t* backend, const db_configuration_list_t* configuration_list);
+
+int db_backend_last_id(const db_backend_t* backend, int *last_id);
 
 /**
  * Create an object in the database. The `object` refer to the database object

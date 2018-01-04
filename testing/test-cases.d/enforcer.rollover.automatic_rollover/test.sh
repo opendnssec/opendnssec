@@ -46,6 +46,7 @@ ZSK_KEYTAG2=`log_grep -o ods-enforcer-key-list2 stdout "ods[[:space:]]*ZSK[[:spa
 
 # ***************************** run ds-seen command to have active KSK  ********************************** 
 ods_enforcer_idle &&
+log_this ods-enforcer-ds-seen ods-enforcer key ds-submit -z ods --keytag $KSK_KEYTAG1 &&
 log_this ods-enforcer-ds-seen ods-enforcer key ds-seen -z ods --keytag $KSK_KEYTAG1 &&
 sleep 1 && ods_enforcer_idle &&
 
@@ -73,6 +74,8 @@ return 0
 echo
 echo "************ERROR******************"
 echo
+ods-enforcer key list -dp
+ods-enforcer key list -v
 ods_kill
 return 1
 

@@ -35,7 +35,7 @@
 #include "log.h"
 #include "str.h"
 #include "clientpipe.h"
-#include "db/zone_db.h"
+#include "db/dbw.h"
 #include "hsmkey/hsm_key_factory.h"
 #include "keystate/zonelist_update.h"
 #include "keystate/zonelist_export.h"
@@ -68,71 +68,39 @@ help(int sockfd)
     );
 }
 
-static int delete_key_data(zone_db_t* zone, db_connection_t *dbconn, int sockfd) {
-    int successful;
-    key_data_list_t* key_data_list;
-    key_data_t* key_data;
-    key_state_list_t* key_state_list;
-    key_state_t* key_state;
-
+static int
+delete_zone(struct dbw_zone *zone)
+{
     /*
      * Get key data for the zone and for each key data get the key state
      * and try to delete all key state then the key data
      */
-    if (!(key_data_list = key_data_list_new_get_by_zone_id(dbconn, zone_db_id(zone)))) {
-        client_printf_err(sockfd, "Unable to get key data for zone %s from database!\n", zone_db_name(zone));
-        return 0;
+    for (size_t ki = 0; ki < zone->key_count; ki++) {
+        struct dbw_key *key = zone->key[ki];
+        for (size_t si = 0; si < key->keystate_count; si++) {
+            struct dbw_keystate *keystate = key->keystate[si];
+            keystate->dirty = DBW_DELETE;
+        }
+        struct dbw_hsmkey *hsmkey = key->hsmkey;
+        hsm_key_factory_release_key(hsmkey, key);
+        key->dirty = DBW_DELETE;
     }
-    successful = 1;
-    for (key_data = key_data_list_get_next(key_data_list); key_data; key_data_free(key_data), key_data = key_data_list_get_next(key_data_list)) {
-        if (!(key_state_list = key_state_list_new_get_by_key_data_id(dbconn, key_data_id(key_data)))) {
-            client_printf_err(sockfd, "Unable to get key states for key data %s of zone %s from database!\n", key_data_role_text(key_data), zone_db_name(zone));
-            successful = 0;
-            continue;
-        }
-
-        for (key_state = key_state_list_get_next(key_state_list); key_state; key_state_free(key_state), key_state = key_state_list_get_next(key_state_list)) {
-            if (key_state_delete(key_state)) {
-                client_printf_err(sockfd, "Unable to delete key state %s for key data %s of zone %s from database!\n", key_state_type_text(key_state), key_data_role_text(key_data), zone_db_name(zone));
-                successful = 0;
-                continue;
-            }
-        }
-        key_state_list_free(key_state_list);
-
-        if (key_data_delete(key_data)) {
-            client_printf_err(sockfd, "Unable to delete key data %s of zone %s from database!\n", key_data_role_text(key_data), zone_db_name(zone));
-            successful = 0;
-            continue;
-        }
-
-        if (hsm_key_factory_release_key_id(key_data_hsm_key_id(key_data), dbconn)) {
-            client_printf_err(sockfd, "Unable to release HSM key for key data %s of zone %s from database!\n", key_data_role_text(key_data), zone_db_name(zone));
-            successful = 0;
-            continue;
-        }
-    }
-    key_data_list_free(key_data_list);
-
-    return successful;
+    zone->dirty = DBW_DELETE;
+    return 0; /* success */
 }
 
 static int
-run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 {
     #define NARGV 6
-    char* buf;
     const char* argv[NARGV];
     int argc = 0;
-    const char *zone_name2 = NULL;
+    const char *zonename = NULL;
     int all = 0;
     int write_xml = 0;
     int long_index = 0, opt = 0;
-    zone_list_db_t* zone_list;
-    zone_db_t* zone;
     int ret = 0;
     char path[PATH_MAX];
-    char *signconf_del = NULL;
     db_connection_t* dbconn = getconnectioncontext(context);;
     engine_type* engine = getglobalcontext(context);
     char cmd2[SYSTEM_MAXLEN];
@@ -146,17 +114,11 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 
     ods_log_debug("[%s] %s command", module_str, zone_del_funcblock.cmdname);
 
-    if (!(buf = strdup(cmd))) {
-        client_printf_err(sockfd, "memory error\n");
-        return -1;
-    }
-
-    argc = ods_str_explode(buf, NARGV, argv);
+    argc = ods_str_explode(cmd, NARGV, argv);
     if (argc == -1) {
         client_printf_err(sockfd, "too many arguments\n");
         ods_log_error("[%s] too many arguments for %s command",
                       module_str, zone_del_funcblock.cmdname);
-        free(buf);
         return -1;
     }
 
@@ -164,7 +126,7 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
     while ((opt = getopt_long(argc, (char* const*)argv, "z:au", long_options, &long_index)) != -1) {
         switch (opt) {
             case 'z':
-                zone_name2 = optarg;
+                zonename = optarg;
                 break;
             case 'a':
                 all = 1;
@@ -176,136 +138,74 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
                client_printf_err(sockfd, "unknown arguments\n");
                ods_log_error("[%s] unknown arguments for %s command",
                                 module_str, zone_del_funcblock.cmdname);
-               free(buf);
                return -1;
         }
     }
+    if (all == (zonename != NULL)) { /*xnor*/
+       client_printf_err(sockfd, "Either --zone or --all required.\n");
+       return -1;
+    }
 
-    if (zone_name2 && !all) {
-        if (!(zone = zone_db_new_get_by_name(dbconn, zone_name2))) {
-            client_printf_err(sockfd, "Unable to delete zone, zone %s not found!\n", zone_name2);
-            free(buf);
-            return 1;
+    struct dbw_db *db = dbw_fetch(dbconn);
+    if (!db) {
+        client_printf(sockfd, "Error reading database.\n");
+        return 1;
+    }
+    int zones_deleted = 0;
+    for (size_t z = 0; z < db->zones->n; z++) {
+        struct dbw_zone *zone = (struct dbw_zone *)db->zones->set[z];
+        if (!all && strcmp(zonename, zone->name)) continue;
+        if (delete_zone(zone)) {
+            client_printf(sockfd, "Error deleting zone %s.\n", zone->name);
+            dbw_free(db);
+            ret = 1;
+            continue;
         }
-
-        if (!delete_key_data(zone, dbconn, sockfd)) {
-            zone_db_free(zone);
-            free(buf);
-            return 1;
-        }
-        if (zone_db_delete(zone)) {
-            client_printf_err(sockfd, "Unable to delete zone %s from database!\n", zone_name2);
-            zone_db_free(zone);
-            free(buf);
-            return 1;
-        }
-        signconf_del = (char*) calloc(strlen(zone_db_signconf_path(zone)) +
-            strlen(".ZONE_DELETED") + 1, sizeof(char));
-        if (!signconf_del) {
-            ods_log_error("[%s] malloc failed", module_str);
-            zone_db_free(zone);
-            free(buf);
-            return 1;
-        }
-        strncpy(signconf_del, zone_db_signconf_path(zone), strlen(zone_db_signconf_path(zone)));
-        strncat(signconf_del, ".ZONE_DELETED", strlen(".ZONE_DELETED"));
-        rename(zone_db_signconf_path(zone), signconf_del);
+        int len = strlen(zone->signconf_path) + strlen(".ZONE_DELETED") + 1;
+        char *signconf_del = malloc(len);
+        strcpy(signconf_del, zone->signconf_path);
+        strncat(signconf_del, ".ZONE_DELETED", len);
+        rename(zone->signconf_path, signconf_del);
         free(signconf_del);
-        signconf_del = NULL;
+        zones_deleted++;
 
         /* Delete all 'zone' related tasks */
-        schedule_purge_owner(engine->taskq, TASK_CLASS_ENFORCER, zone_name2);
-
-        ods_log_info("[%s] zone %s deleted", module_str, zone_name2);
-        client_printf(sockfd, "Deleted zone %s successfully\n", zone_name2);
-    } else if (!zone_name2 && all) {
-        if (!(zone_list = zone_list_db_new_get(dbconn))) {
-            client_printf_err(sockfd, "Unable to get list of zones from database!\n");
-            free(buf);
-            return 1;
-        }
-        for (zone = zone_list_db_get_next(zone_list); zone; zone_db_free(zone), zone = zone_list_db_get_next(zone_list)) {
-            if (!delete_key_data(zone, dbconn, sockfd)) {
-                continue;
-            }
-            if (zone_db_delete(zone)) {
-                client_printf_err(sockfd, "Unable to delete zone %s from database!\n", zone_db_name(zone));
-                continue;
-            }
-
-            signconf_del = (char*) calloc(strlen(zone_db_signconf_path(zone)) +
-                strlen(".ZONE_DELETED") + 1, sizeof(char));
-            if (!signconf_del) {
-                ods_log_error("[%s] malloc failed", module_str);
-                zone_db_free(zone);
-                zone_list_db_free(zone_list);
-                free(buf);
-                return 1;
-            }
-            strncpy(signconf_del, zone_db_signconf_path(zone), strlen(zone_db_signconf_path(zone)));
-            strncat(signconf_del, ".ZONE_DELETED", strlen(".ZONE_DELETED"));
-            rename(zone_db_signconf_path(zone), signconf_del);
-            free(signconf_del);
-            signconf_del = NULL;
-
-            /* Delete all 'zone' related tasks */
-            schedule_purge_owner(engine->taskq, TASK_CLASS_ENFORCER, zone_db_name(zone));
-
-            ods_log_info("[%s] zone %s deleted", module_str, zone_db_name(zone));
-            client_printf(sockfd, "Deleted zone %s successfully\n", zone_db_name(zone));
-        }
-        zone_list_db_free(zone_list);
-        zone = NULL;
-        client_printf(sockfd, "All zones deleted successfully\n");
-    } else {
-        client_printf_err(sockfd, "expected either --zone <zone> or --all\n");
-        free(buf);
-        return -1;
+        schedule_purge_owner(engine->taskq, TASK_CLASS_ENFORCER, zone->name);
+        ods_log_info("[%s] zone %s deleted", module_str, zone->name);
+        client_printf(sockfd, "Deleted zone %s successfully\n", zone->name);
     }
-    free(buf);
+    //todo handle error
+    if (dbw_commit(db)) {
+        client_printf(sockfd, "Error committing changes to database.\n");
+        dbw_free(db);
+        return 1;
+    }
+    dbw_free(db);
+
+    if (!zones_deleted && zonename) {
+        client_printf_err(sockfd, "Unable to delete zone, zone %s not found", zonename);
+        return 1;
+    }
 
     if (write_xml) {
-        if (zone) {
-            if (zonelist_update_delete(sockfd, engine->config->zonelist_filename, zone, 1) != ZONELIST_UPDATE_OK) {
-                ods_log_error("[%s] zonelist %s updated failed", module_str, engine->config->zonelist_filename);
-                client_printf_err(sockfd, "Zonelist %s update failed!\n", engine->config->zonelist_filename);
-                ret = 1;
-            } else {
-                ods_log_info("[%s] zonelist %s updated successfully", module_str, engine->config->zonelist_filename);
-                client_printf(sockfd, "Zonelist %s updated successfully\n", engine->config->zonelist_filename);
-            }
+        if (zonelist_export(sockfd, dbconn, engine->config->zonelist_filename, 1) != ZONELIST_EXPORT_OK) {
+            ods_log_error("[%s] zonelist exported to %s failed", module_str, engine->config->zonelist_filename);
+            client_printf_err(sockfd, "Exported zonelist to %s failed!\n", engine->config->zonelist_filename);
+            ret = 1;
         } else {
-            if (zonelist_export(sockfd, dbconn, engine->config->zonelist_filename, 1) != ZONELIST_EXPORT_OK) {
-                ods_log_error("[%s] zonelist exported to %s failed", module_str, engine->config->zonelist_filename);
-                client_printf_err(sockfd, "Exported zonelist to %s failed!\n", engine->config->zonelist_filename);
-                ret = 1;
-            } else {
-                ods_log_info("[%s] zonelist exported to %s successfully", module_str, engine->config->zonelist_filename);
-                client_printf(sockfd, "Exported zonelist to %s successfully\n", engine->config->zonelist_filename);
-            }
+            ods_log_info("[%s] zonelist exported to %s successfully", module_str, engine->config->zonelist_filename);
+            client_printf(sockfd, "Exported zonelist to %s successfully\n", engine->config->zonelist_filename);
         }
     }
 
-    if (zone) {
-        if (snprintf(path, sizeof(path), "%s/%s", engine->config->working_dir, OPENDNSSEC_ENFORCER_ZONELIST) >= (int)sizeof(path)
-            || zonelist_update_delete(sockfd, path, zone, 0) != ZONELIST_UPDATE_OK)
-        {
-            ods_log_error("[%s] internal zonelist update failed", module_str);
-            client_printf_err(sockfd, "Unable to update the internal zonelist %s, updates will not reach the Signer!\n", path);
-            ret = 1;
-        } else {
-            ods_log_info("[%s] internal zonelist updated successfully", module_str);
-        }
+    if (snprintf(path, sizeof(path), "%s/%s", engine->config->working_dir, OPENDNSSEC_ENFORCER_ZONELIST) >= (int)sizeof(path)
+        || zonelist_export(sockfd, dbconn, path, 0) != ZONELIST_EXPORT_OK)
+    {
+        ods_log_error("[%s] internal zonelist update failed", module_str);
+        client_printf_err(sockfd, "Unable to update the internal zonelist %s, updates will not reach the Signer!\n", path);
+        ret = 1;
     } else {
-        if (snprintf(path, sizeof(path), "%s/%s", engine->config->working_dir, OPENDNSSEC_ENFORCER_ZONELIST) >= (int)sizeof(path)
-            || zonelist_export(sockfd, dbconn, path, 0) != ZONELIST_EXPORT_OK)
-        {
-            ods_log_error("[%s] internal zonelist update failed", module_str);
-            client_printf_err(sockfd, "Unable to update the internal zonelist %s, updates will not reach the Signer!\n", path);
-            ret = 1;
-        } else {
-            ods_log_info("[%s] internal zonelist updated successfully", module_str);
-        }
+        ods_log_info("[%s] internal zonelist updated successfully", module_str);
     }
 
     if (snprintf(cmd2, sizeof(cmd2), "%s %s", SIGNER_CLI_UPDATE, "--all") >= (int)sizeof(cmd2)
@@ -314,7 +214,6 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
         ods_log_error("[%s] unable to notify signer of zone deletion!", module_str);
     }
 
-    zone_db_free(zone);
     return ret;
 }
 

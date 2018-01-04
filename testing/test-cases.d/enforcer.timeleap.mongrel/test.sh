@@ -30,7 +30,7 @@ for n in $RANGE
 do
     echo -n "$n " &&
     DIFF=1 &&
-    ods-enforcer key list -a -v -p 2>/dev/null | cut -d ";" -f 1-6,8|sed -r "s/[0-9-]{10} [0-9:]{8}/date time/" | sort > base/$n.verbose &&
+    ods-enforcer key list -a -v -p 2>/dev/null | cut -d ";" -f 1-6,8|sed -r "s/[0-9-]{10} [0-9:]{8}|now/date time/" | sort > base/$n.verbose &&
     ods-enforcer key list -a -d -p 2>/dev/null | cut -d ";" -f 1-8 | sort > base/$n.debug &&
     log_this 02_timeleap 'ods-enforcer time leap --attach' &&
     ( log_this 03_ds-seen 'ods-enforcer key ds-seen --all' || true ) &&
@@ -54,6 +54,7 @@ ods_stop_enforcer &&
 echo "**** OK" &&
 return $KEEP_LOG_ON_SUCCESS
 
+ods-enforcer key list -a -d -p
 echo  "**** FAILED"
 ods_kill
 return 1
