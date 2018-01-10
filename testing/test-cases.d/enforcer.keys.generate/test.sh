@@ -35,9 +35,9 @@ syslog_waitfor $ENFORCER_WAIT 'ods-enforcerd: .*No zones on policy Policy1, skip
 log_this ods-zone-add-1 ods-ksmutil zone add --zone ods1 --policy Policy1 &&
 ods_start_enforcer_timeshift &&
 
-syslog_grep_count 1  "ods-enforcerd: .*1 zone(s) found on policy \"Policy1\""  &&
-syslog_grep_count 1  'ods-enforcerd: .*1 new KSK(s) (2048 bits) need to be created.'  &&
-syslog_grep_count 1  'ods-enforcerd: .*5 new ZSK(s) (2048 bits) need to be created.' &&
+syslog_grep_count 1  "ods-enforcerd: 1 zone(s) found on policy \"Policy1\""  &&
+syslog_grep_count 1  'ods-enforcerd: 1 new KSK(s) (2048 bits) need to be created.'  &&
+syslog_grep_count 1  'ods-enforcerd: 5 new ZSK(s) (2048 bits) need to be created.' &&
 log_this enforcer-keylist   ods-hsmutil list &&
 log_grep enforcer-keylist   stdout "6 keys found." && 
 
@@ -53,9 +53,9 @@ log_this ods-zone-add-4 ods-ksmutil zone add --zone ods4 --policy Policy2 &&
 export ENFORCER_TIMESHIFT='01-01-2010 12:00' &&
 ods_start_enforcer_timeshift &&
 
-syslog_grep_count 1  "ods-enforcerd: .*3 zone(s) found on policy \"Policy2\""  &&
-syslog_grep_count 1  'ods-enforcerd: .*6 new KSK(s) (2048 bits) need to be created.'  &&
-syslog_grep_count 1  'ods-enforcerd: .*9 new ZSK(s) (2048 bits) need to be created.' &&
+syslog_grep_count 1  "ods-enforcerd: 3 zone(s) found on policy \"Policy2\""  &&
+syslog_grep_count 1  'ods-enforcerd: 6 new KSK(s) (2048 bits) need to be created.'  &&
+syslog_grep_count 1  'ods-enforcerd: 9 new ZSK(s) (2048 bits) need to be created.' &&
 log_this enforcer-keylist_1   ods-hsmutil list &&
 log_grep enforcer-keylist_1   stdout "15 keys found." && 
 
@@ -68,10 +68,10 @@ log_this ods-zone-add-10 ods-ksmutil zone add --zone ods10 --policy Policy2 &&
 export ENFORCER_TIMESHIFT='01-01-2010 12:00' &&
 ods_start_enforcer_timeshift &&
 
-syslog_grep_count 1 "ods-enforcerd: .*9 zone(s) found on policy \"Policy2\""  &&
+syslog_grep_count 1 "ods-enforcerd: 9 zone(s) found on policy \"Policy2\""  &&
 # 3 ZSKs have been made active so we need more keys than when we run the test from ods-ksmutil
-syslog_grep_count 2  'ods-enforcerd: .*6 new KSK(s) (2048 bits) need to be created.'  &&
-syslog_grep_count 1  'ods-enforcerd: .*27 new ZSK(s) (2048 bits) need to be created.' &&
+syslog_grep_count 1  'ods-enforcerd: 12 new KSK(s) (2048 bits) need to be created.'  &&
+syslog_grep_count 1  'ods-enforcerd: 21 new ZSK(s) (2048 bits) need to be created.' &&
 log_this enforcer-keylist_1a   ods-hsmutil list &&
 log_grep enforcer-keylist_1a   stdout "48 keys found." &&
 
@@ -87,10 +87,10 @@ log_this ods-zone-add-17 ods-ksmutil zone add --zone ods17 --policy Policy2 &&
 export ENFORCER_TIMESHIFT='01-01-2010 12:00' &&
 ods_start_enforcer_timeshift &&
 
-syslog_grep_count 1  "ods-enforcerd: .*16 zone(s) found on policy \"Policy2\""  &&
-syslog_grep_count 1  'ods-enforcerd: .*No new KSKs need to be created.'  &&
+syslog_grep_count 1  "ods-enforcerd: 16 zone(s) found on policy \"Policy2\""  &&
+syslog_grep_count 1  'ods-enforcerd: 14 new KSK(s) (2048 bits) need to be created.'  &&
 # 6 more ZSKs have been made active so we need more keys than when we run the test from ods-ksmutil
-syslog_grep_count 1  'ods-enforcerd: .*41 new ZSK(s) (2048 bits) need to be created.' &&
+syslog_grep_count 1  'ods-enforcerd: 27 new ZSK(s) (2048 bits) need to be created.' &&
 log_this enforcer-keylist_2   ods-hsmutil list &&
 log_grep enforcer-keylist_2   stdout "89 keys found." &&
 
@@ -99,11 +99,11 @@ log_grep enforcer-keylist_2   stdout "89 keys found." &&
 export ENFORCER_TIMESHIFT='01-01-2010 12:00' &&
 ods_start_enforcer_timeshift &&
 
-syslog_grep_count 2  "ods-enforcerd: .*16 zone(s) found on policy \"Policy2\""  &&
-syslog_grep_count 2  'ods-enforcerd: .*No new KSKs need to be created.'  &&
+syslog_grep_count 2  "ods-enforcerd: 16 zone(s) found on policy \"Policy2\""  &&
+syslog_grep_count 1  'ods-enforcerd: No new KSKs need to be created.'  &&
 # 7 more ZSKs have been made active so we need more keys than when we run the test from ods-ksmutil
 # Note we can't distinguish this from 27 new keys so let it count as 2 instances :-(
-syslog_grep_count 2  'ods-enforcerd: .*7 new ZSK(s) (2048 bits) need to be created.' &&
+syslog_grep_count 1  'ods-enforcerd: 7 new ZSK(s) (2048 bits) need to be created.' &&
 log_this enforcer-keylist_2a   ods-hsmutil list &&
 log_grep enforcer-keylist_2a   stdout "96 keys found." &&
 
@@ -120,9 +120,9 @@ log_this ods-zone-add-3 ods-ksmutil zone add --zone ods3 --policy Policy3 &&
 export ENFORCER_TIMESHIFT='01-01-2010 12:00' &&
 ods_start_enforcer_timeshift &&
 
-syslog_grep_count 1  "ods-enforcerd: .*3 zone(s) found on policy \"Policy3\""  &&
-syslog_grep_count 3  'ods-enforcerd: .*6 new KSK(s) (2048 bits) need to be created.'  &&
-syslog_grep_count 2  'ods-enforcerd: .*9 new ZSK(s) (2048 bits) need to be created.' &&
+syslog_grep_count 1  "ods-enforcerd: 3 zone(s) found on policy \"Policy3\""  &&
+syslog_grep_count 2  'ods-enforcerd: 6 new KSK(s) (2048 bits) need to be created.'  &&
+syslog_grep_count 2  'ods-enforcerd: 9 new ZSK(s) (2048 bits) need to be created.' &&
 log_this enforcer-keylist_3   ods-hsmutil list &&
 log_grep enforcer-keylist_3   stdout "15 keys found." &&
 
@@ -140,10 +140,10 @@ log_this ods-zone-add-12 ods-ksmutil zone add --zone ods12 --policy Policy3 &&
 export ENFORCER_TIMESHIFT='01-01-2010 12:00' &&
 ods_start_enforcer_timeshift &&
 
-syslog_grep_count 1  "ods-enforcerd: .*12 zone(s) found on policy \"Policy3\""  &&
-syslog_grep_count 1  'ods-enforcerd: .*18 new KSK(s) (2048 bits) need to be created.'  &&
+syslog_grep_count 1  "ods-enforcerd: 12 zone(s) found on policy \"Policy3\""  &&
+syslog_grep_count 1  'ods-enforcerd: 18 new KSK(s) (2048 bits) need to be created.'  &&
 # 3 more ZSKs have been made active so we need more keys than when we run the test from ods-ksmutil
-syslog_grep_count 1  'ods-enforcerd: .*30 new ZSK(s) (2048 bits) need to be created.' &&
+syslog_grep_count 1  'ods-enforcerd: 30 new ZSK(s) (2048 bits) need to be created.' &&
 log_this enforcer-keylist_4   ods-hsmutil list &&
 log_grep enforcer-keylist_4   stdout "63 keys found." &&
  
@@ -159,9 +159,9 @@ log_this ods-zone-add-3 ods-ksmutil zone add --zone ods3 --policy Policy4 &&
 export ENFORCER_TIMESHIFT='01-01-2010 12:00' &&
 ods_start_enforcer_timeshift &&
 
-syslog_grep_count 1  "ods-enforcerd: .*3 zone(s) found on policy \"Policy4\""  &&
-syslog_grep_count 1  'ods-enforcerd: .*9 new KSK(s) (2048 bits) need to be created.'  &&
-syslog_grep_count 3  'ods-enforcerd: .*9 new ZSK(s) (2048 bits) need to be created.' &&
+syslog_grep_count 1  "ods-enforcerd: 3 zone(s) found on policy \"Policy4\""  &&
+syslog_grep_count 1  'ods-enforcerd: 9 new KSK(s) (2048 bits) need to be created.'  &&
+syslog_grep_count 3  'ods-enforcerd: 9 new ZSK(s) (2048 bits) need to be created.' &&
 log_this enforcer-keylist_5   ods-hsmutil list &&
 log_grep enforcer-keylist_5   stdout "18 keys found." &&
 
@@ -205,11 +205,11 @@ log_this ods-zone-add-30 ods-ksmutil zone add --zone ods30 --policy Policy6 &&
 export ENFORCER_TIMESHIFT='01-01-2010 12:00' &&
 ods_start_enforcer_timeshift &&
 
-syslog_grep_count 1 "ods-enforcerd: .*15 zone(s) found on policy \"Policy5\""  &&
-syslog_grep_count 1  "ods-enforcerd: .*15 zone(s) found on policy \"Policy6\""  &&
-syslog_grep_count 1  'ods-enforcerd: .*2 new KSK(s) (2048 bits) need to be created.' &&
-syslog_grep_count 1  'ods-enforcerd: .*2 new KSK(s) (1024 bits) need to be created.' &&
-syslog_grep_count 2  'ods-enforcerd: .*2 new ZSK(s) (2048 bits) need to be created.'  &&
+syslog_grep_count 1 "ods-enforcerd: 15 zone(s) found on policy \"Policy5\""  &&
+syslog_grep_count 1  "ods-enforcerd: 15 zone(s) found on policy \"Policy6\""  &&
+syslog_grep_count 1  'ods-enforcerd: 2 new KSK(s) (2048 bits) need to be created.' &&
+syslog_grep_count 1  'ods-enforcerd: 2 new KSK(s) (1024 bits) need to be created.' &&
+syslog_grep_count 2  'ods-enforcerd: 2 new ZSK(s) (2048 bits) need to be created.'  &&
 log_this enforcer-keylist_8   ods-hsmutil list &&
 log_grep enforcer-keylist_8   stdout "8 keys found." &&
 
@@ -221,13 +221,13 @@ log_this ods-ksmutil-update-kasp ods-ksmutil update kasp &&
 # Again with some keys in the queue
 ods_start_enforcer_timeshift &&
 
-syslog_grep_count 2  "ods-enforcerd: .*15 zone(s) found on policy \"Policy5\""  &&
-syslog_grep_count 2  'ods-enforcerd: .*9 new KSK(s) (2048 bits) need to be created.'  &&
-syslog_grep_count 1  'ods-enforcerd: .*21 new ZSK(s) (2048 bits) need to be created.' &&
+syslog_grep_count 2  "ods-enforcerd: 15 zone(s) found on policy \"Policy5\""  &&
+syslog_grep_count 1  'ods-enforcerd: 10 new KSK(s) (2048 bits) need to be created.'  &&
+syslog_grep_count 2  'ods-enforcerd: 20 new ZSK(s) (2048 bits) need to be created.' &&
 
-syslog_grep_count 2  "ods-enforcerd: .*15 zone(s) found on policy \"Policy6\""  &&
-syslog_grep_count 1  'ods-enforcerd: .*10 new KSK(s) (1024 bits) need to be created.'  &&
-syslog_grep_count 1  'ods-enforcerd: .*20 new ZSK(s) (2048 bits) need to be created.' &&
+syslog_grep_count 2  "ods-enforcerd: 15 zone(s) found on policy \"Policy6\""  &&
+syslog_grep_count 1  'ods-enforcerd: 10 new KSK(s) (1024 bits) need to be created.'  &&
+syslog_grep_count 2  'ods-enforcerd: 20 new ZSK(s) (2048 bits) need to be created.' &&
 log_this enforcer-keylist_9   ods-hsmutil list &&
 log_grep enforcer-keylist_9   stdout "68 keys found." &&
 

@@ -10,8 +10,8 @@ fi &&
 ods_reset_env &&
 
 ods_start_enforcer &&
-syslog_grep 60 'ods-enforcerd: .*Repository SoftHSM is full, cannot create more ZSKs for policy default' &&
-syslog_grep 60 'ods-enforcerd: .*Not enough keys to satisfy zsk policy for zone: ods' &&
+syslog_waitfor 60 'ods-enforcerd: .*Repository SoftHSM is full, cannot create more ZSKs for policy default' &&
+syslog_waitfor 60 'ods-enforcerd: .*Not enough keys to satisfy zsk policy for zone: ods' &&
 
 ods_stop_enforcer &&
 return 0
