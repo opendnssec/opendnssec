@@ -55,6 +55,7 @@ echo -n "LINE: ${LINENO} " && testvalidity 28800 &&
 
 echo -n "LINE: ${LINENO} " && ods-enforcer zone delete -z ods &&
 echo -n "LINE: ${LINENO} " && rm -f "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
+echo -n "LINE: ${LINENO} " && sleep 1 &&
 
 echo -n "LINE: ${LINENO} " && echo "verifying with keyset validity explicitly set" &&
 echo -n "LINE: ${LINENO} " && ods-enforcer zone add -z ods -p explicitkeysetvalidity &&
