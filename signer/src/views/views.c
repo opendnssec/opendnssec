@@ -1,7 +1,14 @@
+#define _LARGEFILE64_SOURCE
+#define _GNU_SOURCE
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <ldns/ldns.h>
 #include "uthash.h"
 #include "signer/names.h"
@@ -9,6 +16,7 @@
 
 struct names_view_struct {
     names_view_type base;
+    const char* apex;
     const char* primarykey;
     names_table_type changelog;
     int viewid;
@@ -23,72 +31,84 @@ struct changelogrecord {
 };
 enum changetype { ADD, DEL, MOD };
 
-static int
+static void
 changed(names_view_type view, dictionary record, enum changetype type, dictionary** target)
 {
-    char* name;
+    int status;
+    const char* name;
     struct changelogrecord* change;
     struct changelogrecord** changeptr;
-    name = getname(record, view->primarykey);
+    status = getset(record, view->primarykey, &name, NULL);
+    assert(status);
     changeptr = (struct changelogrecord**) names_tableput(view->changelog, name);
+    if(target)
+        *target = NULL;
     if(*changeptr == NULL) {
-        *changeptr = change = malloc(sizeof(struct changelogrecord));
-        change->oldrecord = record;
-        change->newrecord = record;
+        change = malloc(sizeof(struct changelogrecord));
+        *changeptr = change;
         switch(type) {
             case ADD:
                 change->oldrecord = NULL;
-                change->newrecord = record;
-                if(target)
-                    *target = NULL;
+                change->newrecord = NULL;
                 break;
             case DEL:
                 change->oldrecord = record;
                 change->newrecord = NULL;
-                if(target)
-                    *target = NULL;
                 break;
             case MOD:
                 change->oldrecord = record;
+                if(target) {
+                    *target = &change->newrecord;
+                    change->newrecord = NULL;
+                } else
+                    change->newrecord = record;
+                break;
+        }
+    } else {
+        change = *changeptr;
+        switch(type) {
+            case ADD:
+                change->newrecord = record;
+                break;
+            case DEL:
+                change->newrecord = NULL;
+                break;
+            case MOD:
                 change->newrecord = record;
                 if(target)
                     *target = &change->newrecord;
                 break;
         }
-        return 0;
-    } else {
-        change = *changeptr;
-        if(change->oldrecord == change->newrecord) {
-            if(target)
-                *target = &change->newrecord;
-            return 0;
-        } else {
-            if(target)
-                *target = NULL;
-            return 1;
-        }
     }
 }
-
 
 void
 names_own(names_view_type view, dictionary* record)
 {
     dictionary* dict;
     changed(view, *record, MOD, &dict);
-    if(dict && *record == *dict) {
-        *dict = *record = copy(*record);
+    if(dict && *dict == NULL) {
+        names_indexremove(view->indices[0], *record);
+        *dict = copy(*record);
+        names_indexinsert(view->indices[0], *dict);
     }
+    *record = *dict;
+}
+
+void
+names_amend(names_view_type view, dictionary record)
+{
+    changed(view, record, MOD, NULL);
 }
 
 void*
 names_place(names_view_type view, char* name)
 {
     dictionary content;
-    content = names_indexlookup(view->indices[0], name);
+    content = names_indexlookupkey(view->indices[0], name);
     if(content == NULL) {
         content = create(&name);
-        set(content,"name",name);
+        annotate(content, (view->apex ? strdup(view->apex) : NULL));
         names_indexinsert(view->indices[0], content);
         changed(view, content, ADD, NULL);
     }
@@ -99,7 +119,7 @@ void*
 names_take(names_view_type view, int index, char* name)
 {
     dictionary found;
-    found = names_indexlookup(view->indices[index], name);
+    found = names_indexlookupkey(view->indices[index], name);
     return found;
 }
 
@@ -122,17 +142,20 @@ names_viewcreate(names_view_type base, const char** keynames)
     assert(nindices > 0);
     view = malloc(sizeof(struct names_view_struct)+sizeof(names_index_type)*(nindices));
     view->base = base;
-    view->primarykey = keynames[0];
+    view->apex = (base ? base->apex : NULL);
+    view->primarykey = "namerevision"; // FIXME keynames[0];
     view->changelog = names_tablecreate();
     view->nindices = nindices;
     for(i=0; i<nindices; i++) {
         names_indexcreate(&view->indices[i], keynames[i]);
     }
     if(base != NULL) {
-        /* swapping next two loops might get better performance */
+        /* swapping next two loops might gest better performance */
         for(iter=names_indexiterator(base->indices[0]); names_iterate(&iter, &content); names_advance(&iter, NULL)) {
-            for(i=0; i<nindices; i++) {
-                names_indexinsert(view->indices[i], content);
+            if(names_indexinsert(view->indices[0], content)) {
+                for(i=1; i<nindices; i++) {
+                    names_indexinsert(view->indices[i], content);
+                }
             }
         }
         view->views = base->views;
@@ -141,6 +164,37 @@ names_viewcreate(names_view_type base, const char** keynames)
     }
     view->viewid = names_changelogsubscribe(view, &view->views);
     return view;
+}
+
+void
+disposedict(void* arg, void* key, void* val)
+{
+    dictionary d = (dictionary) val;
+    (void)arg;
+    (void)key;
+    names_recorddestroy(d);
+}
+
+void
+names_viewdestroy(names_view_type view)
+{
+    int i;
+    marshall_handle store = NULL;
+    names_changelogdestroy(view->changelog);
+    for(i=1; i<view->nindices; i++) {
+        names_indexdestroy(view->indices[i], NULL, NULL);
+    }
+    if(view->base == NULL) {
+        names_changelogdestroyall(view->views, &store);
+        names_indexdestroy(view->indices[0], disposedict, NULL);
+    } else {
+        names_indexdestroy(view->indices[0], NULL, NULL);
+    }
+    marshallclose(store);
+    // FIXME close store->fd
+    if(view->viewid == 0)
+        free((void*)view->apex);
+    free(view);
 }
 
 names_iterator
@@ -162,41 +216,54 @@ resetchangelog(names_view_type view)
             names_indexinsert(view->indices[0], record->oldrecord);
         }
     }
-    names_tabledispose(view->changelog);
+    names_changelogdestroy(view->changelog);
     view->changelog = names_tablecreate();
 }
 
 static int
-updateview(names_view_type view)
+updateview(names_view_type view, names_table_type* mychangelog)
 {
     int i, conflict = 0;
     names_iterator iter;
     struct changelogrecord* record;
     names_table_type changelog;
+    const char* name;
 
-    while((changelog = names_changelogpop(view->views, view->viewid))) {
-        for (iter = names_tableitems(changelog); names_iterate(&iter, &record); names_advance(&iter, NULL)) {
-            /* TODO check for acceptable, if not continue */
-            if (names_tableget(view->changelog, getname((record->oldrecord ? record->oldrecord : record->newrecord), view->primarykey))) {
-                if (conflict == 0)
-                    resetchangelog(view);
-                conflict = 1;
-            }
-            if (record->oldrecord == record->newrecord) {
-                /* TODO verify not modified in our changelog */
-            } else {
-                /* TODO verify not accessed in our changelog */
-                if (record->oldrecord != NULL) {
-                    for (i = 0; i < view->nindices; i++)
-                        names_indexremove(view->indices[i], record->oldrecord);
+    while((changelog = names_changelogpoppush(view->views, view->viewid, mychangelog))) {
+        if (changelog) {
+            for (iter=names_tableitems(changelog); names_iterate(&iter,&record); names_advance(&iter, NULL)) {
+                if(record->newrecord && !names_indexaccept(view->indices[0], record->newrecord))
+                    continue;
+                if (record->oldrecord != record->newrecord) {
+                    if(record->oldrecord)
+                        getset(record->oldrecord, view->primarykey, &name, NULL);
+                    else
+                        getset(record->newrecord, view->primarykey, &name, NULL);
+                    if (names_tableget(view->changelog, name)) {
+                        if (conflict == 0)
+                            resetchangelog(view);
+                        conflict = 1;
+                    }
+                    if (record->oldrecord != NULL) {
+                        /* FIXME EXPERIMENT */
+                        if(record->newrecord != NULL) {
+                            for(i=0; i<view->nindices; i++)
+                                names_indexremove(view->indices[i], record->newrecord);
+                        } else {
+                            for(i=0; i<view->nindices; i++)
+                                names_indexremove(view->indices[i], record->oldrecord);
+                        }
+                    }
+                    if (record->newrecord != NULL) {
+                        if(names_indexinsert(view->indices[0], record->newrecord))
+                            for(i=1; i<view->nindices; i++)
+                                if(names_indexaccept(view->indices[i], record->newrecord))
+                                    names_indexinsert(view->indices[i], record->newrecord);
+                    }
                 }
-                if (record->newrecord != NULL) {
-                    for (i = 0; i < view->nindices; i++)
-                        names_indexinsert(view->indices[i], record->newrecord);
-                }
             }
+            names_changelogrelease(view->views, changelog);
         }
-        names_changelogrelease(view->views, changelog);
     }
     return conflict;
 }
@@ -207,8 +274,7 @@ names_viewcommit(names_view_type view)
     int i, conflict;
     names_iterator iter;
     struct changelogrecord* record;
-    names_table_type changelog;
-    conflict = updateview(view);
+    conflict = updateview(view, &view->changelog);
     if(!conflict) {
         for(iter=names_tableitems(view->changelog); names_iterate(&iter, &record); names_advance(&iter, NULL)) {
             for(i=1; i<view->nindices; i++) {
@@ -218,9 +284,6 @@ names_viewcommit(names_view_type view)
                     names_indexinsert(view->indices[i], record->newrecord);
             }
         }
-        changelog = view->changelog;
-        view->changelog = names_tablecreate();
-        names_changelogsubmit(view->views, view->viewid, changelog);
         return 0;
     } else {
         return 1;
@@ -231,72 +294,142 @@ void
 names_viewreset(names_view_type view)
 {
     resetchangelog(view);
-    updateview(view);
-}
-
-void
-names_setup(void* baseviewptr, ldns_rdf* zonename)
-{
-    const char* baseviewkeys[] = {"nameserial", NULL};
-    const char* inputviewkeys[] = {"name", NULL};
-    const char* prepareviewkeys[] = {"name", NULL};
-    const char* signviewkeys[] = {"name", "expire", "denialname", NULL};
-    const char* outputviewkeys[] = {"nameserial", "validfrom", "replacedin", NULL};
-
-    names_view_type baseview;
-    names_view_type inputview;
-    names_view_type prepareview;
-    names_view_type signview;
-    names_view_type outputview;
-    baseview = names_viewcreate(NULL, baseviewkeys);
-    inputview = names_viewcreate(baseview, inputviewkeys);
-    prepareview = names_viewcreate(baseview, prepareviewkeys);
-    signview = names_viewcreate(baseview, signviewkeys);
-    outputview = names_viewcreate(baseview, outputviewkeys);
-
-    (void)inputview;
-    (void)prepareview;
-    (void)signview;
-    (void)outputview;
+    updateview(view, NULL);
 }
 
 int
-names_clear(void* source)
+names_viewrestore(names_view_type view, const char* apex, int basefd, char* filename)
 {
-    assert(!"TODO NOT IMPLEMENTED");
-}
+    int count = 1;
+    int fd;
+    dictionary record;
+    marshall_handle marsh;
 
-/* TODO reimplement viewobtain chain as this structure does not belong here */
-struct names_changelogchain {
-    int nviews;
-    struct {
-        names_view_type view;
-        names_table_type nextchangelog;
-    } *views;
-    names_table_type firstchangelog;
-    names_table_type lastchangelog;
-};
-int
-names_viewobtain(void* ptr, enum names_viewtypes_enum which, names_view_type* view)
-{
-    names_view_type baseview = (names_view_type) ptr;
-    switch(which) {
-        case names_BASEVIEW:
-            *view = baseview->views->views[0].view;
-            break;
-        case names_INPUTVIEW:
-            *view = baseview->views->views[1].view;
-            break;
-        case names_SIGNVIEW:
-            *view = baseview->views->views[3].view;
-            break;
-        case names_AXFROUTVIEW:
-            *view = baseview->views->views[4].view;
-            break;
+    view->apex = strdup(apex);
+    
+    fd = openat(basefd, filename, O_RDWR|O_LARGEFILE);
+    if(fd >= 0) {
+        marsh = marshallinput(fd);
+        do {
+            marshalling(marsh, "domain", &record, &count, 128/*FIXME*/, names_recordmarshall);
+            if(record) {
+                names_indexinsert(view->indices[0], record);
+            }
+        } while(record);
+        marshallclose(marsh);
+        marsh = marshalloutput(fd);
+        names_changelogpersistsetup(view->views, marsh);
+        return 0;
+    } else {
+        return 1;
     }
+}
+
+int
+names_viewpersist(names_view_type view, int basefd, char* filename)
+{
+    char* tmpfilename = NULL;
+    size_t tmpfilenamelen;
+    int fd;
+    names_iterator iter;
+    marshall_handle marsh;
+    marshall_handle oldmarsh;
+
+    tmpfilenamelen = snprintf(tmpfilename,0,"%s.tmp",filename);
+    tmpfilename = malloc(tmpfilenamelen+1);
+    tmpfilenamelen = snprintf(tmpfilename,tmpfilenamelen+1,"%s.tmp",filename);
+
+    updateview(view, NULL);
+
+    CHECK((fd = openat(basefd, tmpfilename, O_CREAT|O_WRONLY|O_LARGEFILE|O_TRUNC,0666)) < 0);
+    marsh = marshalloutput(fd);
+    iter = names_indexiterator(view->indices[0]);
+    names_changelogpersistfull(view->views, &iter, view->viewid, marsh, &oldmarsh);
+    marshallclose(oldmarsh);
+    CHECK(renameat(basefd, tmpfilename, basefd, filename));
+    names_end(&iter);
+
+    free(tmpfilename);
     return 0;
 }
 
+void
+names_dumpviewinfo(names_view_type view, char* preamble)
+{
+    names_iterator iter;
+    int i, count;
+    fprintf(stderr,"%s",preamble);
+    for(i=0; i<view->nindices; i++) {
+        count = 0;
+        for(iter = names_viewiterator(view, count); names_iterate(&iter,NULL); names_advance(&iter,NULL))
+            ++count;
+        fprintf(stderr," %s=%d",*(char**)(view->indices[i]),count);
+    }
+    fprintf(stderr,"\n");
+}
+
+void
+names_dumpviewfull(FILE* fp, names_view_type view)
+{
+    names_iterator iter;
+    dictionary record;
+    marshall_handle marsh;
+    marsh = marshallprint(fp);
+    for(iter = names_viewiterator(view, 0); names_iterate(&iter,&record); names_advance(&iter,NULL))
+        marshalling(marsh, "domain", record, NULL, 0, names_recordmarshall);
+    marshallclose(marsh);
+}
+
+void
+names_dumprecord(FILE* fp, dictionary record)
+{
+    marshall_handle marsh;
+    marsh = marshallprint(fp);
+    marshalling(marsh, "domain", record, NULL, 0, names_recordmarshall);
+    marshallclose(marsh);
+}
+
+names_iterator
+noexpiry(names_view_type view)
+{
+    struct dual entry;
+    dictionary record;
+    names_iterator iter;
+    names_iterator result;
+    result = generic_iterator(sizeof(struct dual));
+    for (iter=names_indexiterator(view->indices[1]); names_iterate(&iter,&record); names_advance(&iter,NULL)) {
+        entry.dst = record;
+        entry.src = names_indexlookup(view->indices[2], record);
+        generic_add(result,&entry);
+    }
+    return result;
+}
+
+
+names_iterator
+neighbors(names_view_type view)
+{
+    struct dual entry;
+    dictionary record;
+    names_iterator iter;
+    names_iterator result;
+    result = generic_iterator(sizeof(struct dual));
+    for (iter=names_indexiterator(view->indices[1]); names_iterate(&iter,&record); names_advance(&iter,NULL)) {
+        entry.dst = record;
+        entry.src = names_indexlookup(view->indices[2], record);
+        generic_add(result,&entry);
+    }
+    return result;
+}
+
+names_iterator
+expiring(names_view_type view)
+{
+    names_iterator iter;
+    iter = generic_iterator(sizeof (struct dual));
+    // FIXME
+    return iter;
+}
 int
 names_firstdenials(names_view_type view,names_iterator*iter)
 {
@@ -314,14 +447,6 @@ names_alldomains(names_view_type view, names_iterator*iter)
 {
     assert(!"TODO NOT IMPLEMENTED");
 }
-
-#ifdef NOTDEFINED
-int
-names_parentdomains(names_view_type view,domain_type* ,names_iterator*iter)
-{
-    assert(!"TODO NOT IMPLEMENTED");
-}
-#endif
 
 void
 names_delete(names_iterator* iter)
@@ -353,16 +478,35 @@ names_setserial(names_view_type view, uint32_t serial)
     assert(!"TODO NOT IMPLEMENTED");
 }
 
-int
-names_dispose(names_view_type view)
-{
-    names_viewreset(view);
-    return 0;
-}
+struct names_changelogchain {
+    pthread_mutex_t lock;
+    int nviews;
+    struct names_changelogchainentry {
+        names_view_type view;
+        names_table_type nextchangelog;
+    } *views;
+    names_table_type firstchangelog;
+    names_table_type lastchangelog;
+    marshall_handle store;
+};
 
 int
-names_rollback(names_view_type view)
+names_viewobtain(void* ptr, enum names_viewtypes_enum which, names_view_type* view)
 {
-    names_viewreset(view);
+    names_view_type baseview = (names_view_type) ptr;
+    switch(which) {
+        case names_BASEVIEW:
+            *view = baseview->views->views[0].view;
+            break;
+        case names_INPUTVIEW:
+            *view = baseview->views->views[1].view;
+            break;
+        case names_SIGNVIEW:
+            *view = baseview->views->views[3].view;
+            break;
+        case names_AXFROUTVIEW:
+            *view = baseview->views->views[4].view;
+            break;
+    }
     return 0;
 }

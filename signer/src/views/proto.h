@@ -61,6 +61,26 @@ int names_iterate(names_iterator*iter, void* item);
 int names_advance(names_iterator*iter, void* item);
 int names_end(names_iterator*iter);
 
+names_iterator generic_iterator(size_t size);
+void generic_add(names_iterator i, void* ptr);
+
+struct marshall_struct;
+typedef struct marshall_struct* marshall_handle;
+
+marshall_handle marshallcopy(int fd);
+marshall_handle marshallinput(int fd);
+marshall_handle marshalloutput(int fd);
+marshall_handle marshallprint(FILE* fp);
+void marshallclose(marshall_handle h);
+int marshallself(marshall_handle h, void* member);
+int marshallbyte(marshall_handle h, void* member);
+int marshallinteger(marshall_handle h, void* member);
+int marshallstring(marshall_handle h, void* member);
+int marshallstringarray(marshall_handle h, void* member);
+int marshalling(marshall_handle h, char* name, void* members, int *membercount, size_t membersize, int (*memberfunction)(marshall_handle,void*));
+
+extern int* marshall_OPTIONAL;
+
 /* A dictionary is an abstract data structure capable of storing key
  * value pairs, where each value is again a dictionary.
  * A (sub)dictionary can also have a name.
@@ -74,25 +94,53 @@ typedef struct names_index_struct* names_index_type;
 typedef struct names_table_struct* names_table_type;
 typedef struct names_view_struct* names_view_type;
 
+void composestring(char* dst, char* src, ...);
+int composestring2(char** ptr, char* src, ...);
+int composestringf(char** ptr, char*fmt,...);
+int getset(dictionary d, const char* name, const char** get, char** set);
+
 dictionary create(char**name);
-dictionary copy(dictionary d);
-void dispose(dictionary d);
-dictionary get(dictionary d, const char* name);
-char* getname(dictionary d, const char* name);
-int has(dictionary d, char* name, ...);
-int del(dictionary d, char* name);
-dictionary add(dictionary d, char* name);
-void set(dictionary d, const char* name, char* value);
-names_iterator all(dictionary dict);
+void annotate(dictionary, const char* apex);
+void names_recorddestroy(dictionary);
+dictionary copy(dictionary);
+void dispose(dictionary);
+char* getname(dictionary, const char* name);
+int names_recordcompare_namerevision(dictionary a, dictionary b);
+int names_recordhasdata(dictionary, char* name, char* data);
+void names_recordadddata(dictionary, char* name, char* data);
+void names_recorddeldata(dictionary, char* name, char* data);
+names_iterator names_recordalltypes(dictionary);
+names_iterator names_recordallvalues(dictionary, char*name);
+int names_recordhasvalidupto(dictionary);
+int names_recordgetvalidupto(dictionary);
+void names_recordsetvalidupto(dictionary, int value);
+int names_recordhasvalidfrom(dictionary);
+int names_recordgetvalidfrom(dictionary);
+void names_recordsetvalidfrom(dictionary, int value);
+int names_recordhasexpiry(dictionary);
+int names_recordgetexpiry(dictionary);
+void names_recordsetexpiry(dictionary, int value);
+int names_recordmarshall(marshall_handle h, void* d);
+
+struct dual {
+    dictionary src;
+    dictionary dst;
+};
 
 int names_indexcreate(names_index_type*, const char* keyname);
-dictionary names_indexlookup(names_index_type, char* keyvalue);
+dictionary names_indexlookup(names_index_type, dictionary);
+dictionary names_indexlookupkey(names_index_type, char* keyvalue);
 int names_indexremove(names_index_type, dictionary);
-int names_indexremovekey(names_index_type,char* keyvalue);
-void names_indexinsert(names_index_type, dictionary);
-void names_indexdestroy(names_index_type);
+int names_indexremovekey(names_index_type,const char* keyvalue);
+int names_indexinsert(names_index_type, dictionary);
+void names_indexdestroy(names_index_type, void (*userfunc)(void* arg, void* key, void* val), void* userarg);
+int names_indexaccept(names_index_type, dictionary);
 names_iterator names_indexiterator(names_index_type);
 names_iterator names_indexrange(names_index_type,char* selection,...);
+
+names_iterator noexpiry(names_view_type);
+names_iterator neighbors(names_view_type);
+names_iterator expiring(names_view_type);
 
 /* Table structures are used internally by views to record changes made in
  * the view.  A table is a set of changes, also dubbed a changelog.
@@ -101,10 +149,10 @@ names_iterator names_indexrange(names_index_type,char* selection,...);
  */
 
 names_table_type names_tablecreate(void);
-void names_tabledispose(names_table_type table);
+void names_tabledispose(names_table_type table, void (*userfunc)(void* arg, void* key, void* val), void* userarg);
 void* names_tableget(names_table_type table, char* name);
 int names_tabledel(names_table_type table, char* name);
-void** names_tableput(names_table_type table, char* name);
+void** names_tableput(names_table_type table, const char* name);
 void names_tableconcat(names_table_type* list, names_table_type item);
 names_iterator names_tableitems(names_table_type table);
 
@@ -113,18 +161,35 @@ names_iterator names_tableitems(names_table_type table);
  */
 
 struct names_changelogchain;
-names_table_type names_changelogpop(struct names_changelogchain* views, int viewid);
+
+void names_changelogdestroy(names_table_type changelog);
+void names_changelogdestroyall(struct names_changelogchain* views, marshall_handle* store);
+names_table_type names_changelogpoppush(struct names_changelogchain* views, int viewid, names_table_type* mychangelog);
 int names_changelogsubscribe(names_view_type view, struct names_changelogchain**);
-void names_changelogsubmit(struct names_changelogchain* views, int viewid, names_table_type changelog);
 void names_changelogrelease(struct names_changelogchain* views, names_table_type changelog);
+void names_changelogpersistincr(struct names_changelogchain* views, names_table_type changelog);
+void names_changelogpersistsetup(struct names_changelogchain* views, marshall_handle store);
+int names_changelogpersistfull(struct names_changelogchain* views, names_iterator* iter, int viewid, marshall_handle store, marshall_handle* oldstore);
+void names_restore(int basefd, char* filename, struct names_changelogchain* views, names_view_type view, int viewid);
+void names_persist(names_view_type view, int basefd, char* filename);
 
 void names_own(names_view_type view, dictionary* record);
+void names_amend(names_view_type view, dictionary record);
 void* names_place(names_view_type store, char* name);
 void* names_take(names_view_type view, int index, char* name);
 void names_remove(names_view_type view, dictionary record);
 names_view_type names_viewcreate(names_view_type base, const char** keynames);
+void names_viewdestroy(names_view_type view);
 names_iterator names_viewiterator(names_view_type view, int index);
 int names_viewcommit(names_view_type view);
 void names_viewreset(names_view_type view);
+int names_viewpersist(names_view_type view, int basefd, char* filename);
+int names_viewrestore(names_view_type view, const char* apex, int basefd, char* filename);
+
+void names_dumprecord(FILE*, dictionary record);
+void names_dumpviewinfo(names_view_type view, char* preamble);
+void names_dumpviewfull(FILE*, names_view_type view);
+
+#define CHECK(CMD) do { if(CMD) { if(errno!=0) fprintf(stderr,"%s (%d)\n",strerror(errno),errno); assert(!#CMD); } } while(0)
 
 #endif

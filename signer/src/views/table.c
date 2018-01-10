@@ -1,7 +1,15 @@
+#define _LARGEFILE64_SOURCE
+#define _GNU_SOURCE
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <pthread.h>
 #include <ldns/ldns.h>
 #include "uthash.h"
 #include "proto.h"
@@ -24,10 +32,12 @@ static int
 iterateimpl(names_iterator*i, void** item)
 {
     struct names_iterator_struct** iter = i;
-    if(*iter) {
+    if (item)
+        *item = NULL;
+    if (*iter) {
         if((*iter)->current != NULL && (*iter)->current != LDNS_RBTREE_NULL) {
             if(item)
-                *item = (*iter)->current;
+                *item = (void*) (*iter)->current->data;
             return 1;
         } else {
             free(*iter);
@@ -41,12 +51,14 @@ static int
 advanceimpl(names_iterator*i, void** item)
 {
     struct names_iterator_struct** iter = i;
-    if(*iter) {
+    if (item)
+        *item = NULL;
+    if (*iter) {
         if((*iter)->current != NULL && (*iter)->current != LDNS_RBTREE_NULL) {
             (*iter)->current = ldns_rbtree_next((*iter)->current);
             if((*iter)->current != NULL && (*iter)->current != LDNS_RBTREE_NULL) {
                 if(item)
-                    *item = (*iter)->current;
+                    *item = (void*) (*iter)->current->data;
                 return 1;
             }
         }
@@ -84,17 +96,28 @@ names_tablecreate(void)
     return table;
 }
 
+struct destroyinfo {
+    void (*free)(void* arg, void* key, void* val);
+    void* arg;
+};
+
 static void
 disposenode(ldns_rbnode_t* node, void* cargo)
 {
-    (void)cargo;
+    struct destroyinfo* user = cargo;
+    if(user && user->free) {
+        user->free(user->arg, (void*)node->key, (void*)node->data);
+    }
     free(node);
 }
 
 void
-names_tabledispose(names_table_type table)
+names_tabledispose(names_table_type table, void (*userfunc)(void* arg, void* key, void* val), void* userarg)
 {
-    ldns_traverse_postorder(table->tree, disposenode, NULL);
+    struct destroyinfo cargo;
+    cargo.free = userfunc;
+    cargo.arg = userarg;
+    ldns_traverse_postorder(table->tree, disposenode, (userfunc?&cargo:NULL));
     ldns_rbtree_free(table->tree);
     free(table);
 }
@@ -126,7 +149,7 @@ names_tabledel(names_table_type table, char* name)
 }
 
 void**
-names_tableput(names_table_type table, char* name)
+names_tableput(names_table_type table, const char* name)
 {
     struct ldns_rbnode_t* node;
 
@@ -163,6 +186,7 @@ names_tableitems(names_table_type table)
 }
 
 struct names_changelogchain {
+    pthread_mutex_t lock;
     int nviews;
     struct names_changelogchainentry {
         names_view_type view;
@@ -170,18 +194,76 @@ struct names_changelogchain {
     } *views;
     names_table_type firstchangelog;
     names_table_type lastchangelog;
+    marshall_handle store;
 };
 
+static void
+destroynode(void* arg, void* key, void* val)
+{
+    (void)arg;
+    (void)key;
+    free(val);
+}
+
+void
+names_changelogdestroy(names_table_type table)
+{
+    names_tabledispose(table, destroynode, NULL);
+}
+
+void
+names_changelogdestroyall(struct names_changelogchain* views, marshall_handle* store)
+{
+    names_table_type next;
+    pthread_mutex_destroy(&views->lock);
+    if(store)
+        *store = views->store;
+    while(views->firstchangelog) {
+        next = views->firstchangelog->next;
+        names_changelogdestroy(views->firstchangelog);
+        views->firstchangelog = next;
+    }
+    free(views->views);
+    free(views);
+}
 
 names_table_type
-names_changelogpop(struct names_changelogchain* views, int viewid)
+names_changelogpoppush(struct names_changelogchain* views, int viewid, names_table_type* mychangelog)
 {
-    names_table_type changelog;
-    changelog = views->views[viewid].nextchangelog;
-    if (changelog) {
-        views->views[viewid].nextchangelog = changelog->next;
+    int i;
+    names_table_type poppedchangelog;
+    names_table_type pushedchangelog;
+    CHECK(pthread_mutex_lock(&views->lock));
+    poppedchangelog = views->views[viewid].nextchangelog;
+    if (poppedchangelog) {
+        views->views[viewid].nextchangelog = poppedchangelog->next;
+    } else {
+        if(mychangelog) {
+            pushedchangelog = *mychangelog;
+            *mychangelog = names_tablecreate();
+            views->views[viewid].nextchangelog = NULL;
+            if (views->firstchangelog == NULL) {
+                assert(views->lastchangelog == NULL);
+                views->firstchangelog = views->lastchangelog = pushedchangelog;
+            } else {
+                assert(views->lastchangelog != pushedchangelog);
+                views->lastchangelog->next = pushedchangelog;
+                views->lastchangelog = pushedchangelog;
+            }
+            for (i=0; i<views->nviews; i++) {
+                if (i != viewid) {
+                    if (views->views[i].nextchangelog == NULL) {
+                        views->views[i].nextchangelog = pushedchangelog;
+                    }
+                } else {
+                    assert(views->views[viewid].nextchangelog == NULL);
+                }
+            }
+            //names_changelogpersistincr(views, pushedchangelog);
+        }
     }
-    return changelog;
+    CHECK(pthread_mutex_unlock(&views->lock));
+    return poppedchangelog;
 }
 
 int
@@ -190,45 +272,30 @@ names_changelogsubscribe(names_view_type view, struct names_changelogchain** vie
     int viewid;
     if(*views == NULL) {
         *views = malloc(sizeof(struct names_changelogchain));
+        CHECK(pthread_mutex_init(&(*views)->lock, NULL));
+        CHECK(pthread_mutex_lock(&(*views)->lock));
         (*views)->nviews = 1;
         (*views)->views = malloc(sizeof(struct names_changelogchainentry) * (*views)->nviews);
         (*views)->firstchangelog = NULL;
         (*views)->lastchangelog = NULL;
+        (*views)->store = NULL;
     } else {
+        CHECK(pthread_mutex_lock(&(*views)->lock));
         (*views)->nviews += 1;
         (*views)->views = realloc((*views)->views, sizeof(struct names_changelogchainentry) * (*views)->nviews);
     }
     viewid = (*views)->nviews - 1;
     (*views)->views[viewid].nextchangelog = NULL;
     (*views)->views[viewid].view = view;
+    CHECK(pthread_mutex_unlock(&(*views)->lock));
     return viewid;
-}
-
-void
-names_changelogsubmit(struct names_changelogchain* views, int viewid, names_table_type changelog)
-{
-    int i;
-    views->views[viewid].nextchangelog = NULL;
-    if(views->firstchangelog == NULL) {
-        assert(views->lastchangelog == NULL);
-        views->firstchangelog = views->lastchangelog = changelog;
-    } else {
-        views->lastchangelog->next = changelog;
-        views->lastchangelog = changelog;
-    }
-    for (i = 0; i < views->nviews; i++) {
-        if (i != viewid) {
-            if (views->views[viewid].nextchangelog == NULL) {
-                views->views[viewid].nextchangelog = changelog;
-            }
-        }
-    }
 }
 
 void
 names_changelogrelease(struct names_changelogchain* views, names_table_type changelog)
 {
     int i;
+    CHECK(pthread_mutex_lock(&views->lock));
     if(changelog == views->firstchangelog) {
         for(i=0; i<views->nviews; i++) {
             if(views->views[i].nextchangelog == changelog)
@@ -239,7 +306,61 @@ names_changelogrelease(struct names_changelogchain* views, names_table_type chan
             if(views->firstchangelog == NULL) {
                 views->lastchangelog = NULL;
             }
-            names_tabledispose(changelog);
+            names_changelogdestroy(changelog);
         }
     }
+    CHECK(pthread_mutex_unlock(&views->lock));
+}
+
+void
+names_changelogpersistincr(struct names_changelogchain* views, names_table_type changelog)
+{
+    int count = 1;
+    names_iterator iter;
+    dictionary record;
+    if(views->store == NULL)
+        return;
+    for(iter=names_tableitems(changelog); names_iterate(&iter,&record); names_advance(&iter,NULL)) { // FIXME TOTALLY WRONG!!! THESE ARE CHANGELOGRECORDS
+        marshalling(views->store, "domain", &record, &count, sizeof(dictionary), names_recordmarshall);
+    }
+    record = NULL;
+    marshalling(views->store, "domain", &record, &count, sizeof(dictionary), names_recordmarshall);
+}
+
+void
+names_changelogpersistsetup(struct names_changelogchain* views, marshall_handle store)
+{
+    CHECK(pthread_mutex_lock(&views->lock));
+    views->store = store;
+    CHECK(pthread_mutex_unlock(&views->lock));
+}
+
+int
+names_changelogpersistfull(struct names_changelogchain* views, names_iterator* iter, int viewid, marshall_handle store, marshall_handle* oldstore)
+{
+    int count = 1;
+    dictionary record;
+    names_table_type changelog;
+    names_iterator moreiter;
+
+    if(names_iterate(iter, &record)) {
+        do {
+            marshalling(store, "domain", &record, &count, sizeof(dictionary), names_recordmarshall);
+        } while(names_advance(iter,&record));
+    }
+    record = NULL;
+    marshalling(store, "domain", &record, &count, sizeof(dictionary), names_recordmarshall);
+
+    CHECK(pthread_mutex_lock(&views->lock));
+    for(changelog = views->views[viewid].nextchangelog; changelog; changelog=changelog->next) {
+        for(moreiter=names_tableitems(changelog); names_iterate(&moreiter,&record); names_advance(&moreiter,NULL)) {
+            marshalling(views->store, "domain", &record, &count, sizeof(dictionary), names_recordmarshall);
+        }
+        record = NULL;
+        marshalling(views->store, "domain", &record, &count, sizeof(dictionary), names_recordmarshall);
+    }
+    *oldstore = views->store;
+    views->store = store;
+    CHECK(pthread_mutex_unlock(&views->lock));
+    return 0;
 }
