@@ -9,6 +9,7 @@ OpenDNSSEC 2.2 - 2017-xx-xx
 * OPENDNSSEC-901: Enforcer would ignore <ManualKeyGeneration/> tag in conf.xml
 * OPENDNSSEC-890: Mismatching TTLs in record sets would cause bogus signatures.
 * OPENDNSSEC-908: Warn when TTL exceeds KASP's MaxZoneTTL instead of capping.
+* OPENDNSSEC-620: SocketFile and PidFile where not reconized in the signer config.
 * OPENDNSSEC-885: Command policy resalt without arguments is no longer allowed.
   Either policy or all must be specified.
 * OPENDNSSEC-910: DelegationSignerSubmitCommand would strip --cka_id

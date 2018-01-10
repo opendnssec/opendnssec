@@ -123,6 +123,12 @@ start = element Configuration {
 		# User & group to drop privs to
 		privs? &
 
+		# File used to detect signerd is already running.
+		element PidFile { xsd:string }? &
+
+		# Socket to use for communicating between enforcer and enforcerd
+		element SocketFile { xsd:string }? &
+
 		# Location to store intermediate zone information
 		# DEFAULT: $(localstatedir)/opendnssec/tmp
 		element WorkingDirectory { xsd:string }? &
