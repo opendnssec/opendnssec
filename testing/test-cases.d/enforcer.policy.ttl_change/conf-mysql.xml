@@ -19,7 +19,7 @@
 	<Enforcer>
 		<Datastore><MySQL><Host>localhost</Host><Database>test</Database><Username>test</Username><Password>test</Password></MySQL></Datastore>
 		<AutomaticKeyGenerationPeriod>P1Y</AutomaticKeyGenerationPeriod>
-		<WorkerThreads>1</WorkerThreads>
+		<WorkerThreads>0</WorkerThreads>
 	</Enforcer>
 	<Signer>
 		<WorkingDirectory>@INSTALL_ROOT@/var/opendnssec/signer</WorkingDirectory>

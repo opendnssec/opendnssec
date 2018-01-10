@@ -26,6 +26,11 @@
  *
  */
 
+/**
+ * FILE
+ * list: zone, policy, next change, signconfpath
+ */
+
 #include "config.h"
 
 #include "cmdhandler.h"
@@ -36,9 +41,7 @@
 #include "str.h"
 #include "duration.h"
 #include "clientpipe.h"
-#include "db/zone_db.h"
-#include "db/policy.h"
-#include "db/db_value.h"
+#include "db/dbw.h"
 
 #include "keystate/zone_list_cmd.h"
 
@@ -47,8 +50,7 @@ static const char *module_str = "zone_list_cmd";
 static void
 usage(int sockfd)
 {
-	client_printf(sockfd,
-		"zone list\n");
+    client_printf(sockfd, "zone list\n");
 }
 
 static void
@@ -59,82 +61,57 @@ help(int sockfd)
     );
 }
 
+static const char *
+time_to_human(time_t t, char *buf, size_t buflen)
+{
+    if (t >= time_now()) {
+        if (ods_ctime_r(t, buf))
+            return buf;
+        return "<error>";
+    }
+    if (t >= 0)
+        return "as soon as possible";
+    return "no changes scheduled";
+
+}
+
 static int
-run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 {
     const char* fmt = "%-31s %-13s %-26s %-34s\n";
-    zone_list_db_t* zone_list;
-    const zone_db_t* zone;
-    policy_t* policy = NULL;
-    const char* nctime;
     char buf[32];
-    int cmp;
     db_connection_t* dbconn = getconnectioncontext(context);
     engine_type* engine = getglobalcontext(context);
     (void)cmd;
 
-	ods_log_debug("[%s] %s command", module_str, zone_list_funcblock.cmdname);
+    ods_log_debug("[%s] %s command", module_str, zone_list_funcblock.cmdname);
 
-	if (!(zone_list = zone_list_db_new_get(dbconn))) {
-	    client_printf_err(sockfd, "Unable to get list of zones, memory allocation or database error!\n");
-	    return 1;
-	}
+    struct dbw_db *db = dbw_fetch_filtered(dbconn, DBW_F_POLICY|DBW_F_ZONE);
+    if (!db) return 1;
 
     client_printf(sockfd, "Database set to: %s\n", engine->config->datastore);
-    if (!(zone = zone_list_db_next(zone_list))) {
+
+    if (!db->zones->n) {
         client_printf(sockfd, "No zones in database.\n");
-        zone_list_db_free(zone_list);
+        dbw_free(db);
         return 0;
     }
-
     client_printf(sockfd, "Zones:\n");
     client_printf(sockfd, fmt, "Zone:", "Policy:", "Next change:",
         "Signer Configuration:");
-    while (zone) {
-        if (zone_db_next_change(zone) >= time_now()) {
-            if (!ods_ctime_r(buf, sizeof(buf), zone_db_next_change(zone))) {
-                nctime = "invalid date/time";
-            }
-            else {
-                nctime = buf;
-            }
-        } else if (zone_db_next_change(zone) >= 0) {
-            nctime = "as soon as possible";
-        } else {
-            nctime = "no changes scheduled";
-        }
 
-        if (policy) {
-            /*
-             * If we already have a policy object; If policy_id compare fails
-             * or if they are not the same free the policy object to we will
-             * later retrieve the correct policy
-             */
-            if (db_value_cmp(policy_id(policy), zone_db_policy_id(zone), &cmp)
-                || cmp)
-            {
-                policy_free(policy);
-                policy = NULL;
-            }
+    for (size_t p = 0; p < db->policies->n; p++) {
+        struct dbw_policy *policy = (struct dbw_policy *)db->policies->set[p];
+        for (size_t i = 0; i < policy->zone_count; i++) {
+            struct dbw_zone *z = policy->zone[i];
+            client_printf(sockfd, fmt, z->name, z->policy->name,
+                time_to_human(z->next_change, buf, sizeof(buf)), z->signconf_path);
         }
-        if (!policy) {
-            policy = zone_db_get_policy(zone);
-        }
-
-        client_printf(sockfd, fmt,
-            zone_db_name(zone),
-            (policy ? policy_name(policy) : "NOT_FOUND"),
-            nctime,
-            zone_db_signconf_path(zone));
-
-        zone = zone_list_db_next(zone_list);
     }
-    policy_free(policy);
-    zone_list_db_free(zone_list);
-
+    dbw_free(db);
     return 0;
 }
 
 struct cmd_func_block zone_list_funcblock = {
-	"zone list", &usage, &help, NULL, &run
+    "zone list", &usage, &help, NULL, &run
 };

@@ -1042,6 +1042,18 @@ const char* policy_zone_soa_serial_text(const policy_t* policy) {
     return NULL;
 }
 
+const char* policy_zone_soa_serial_text2(unsigned int zone_soa_serial)
+{
+    const db_enum_t* enum_set = policy_enum_set_zone_soa_serial;
+    while (enum_set->text) {
+        if (enum_set->value == zone_soa_serial) {
+            return enum_set->text;
+        }
+        enum_set++;
+    }
+    return NULL;
+}
+
 unsigned int policy_parent_registration_delay(const policy_t* policy) {
     if (!policy) {
         return 0;
@@ -3311,4 +3323,16 @@ policy_t* policy_list_get_next(policy_list_t* policy_list) {
         return NULL;
     }
     return policy;
+}
+
+size_t
+policy_list_size(policy_list_t* policy_list)
+{
+    if (!policy_list)
+        return 0;
+    if (policy_list->object_store && policy_list->object_list)
+        return policy_list->object_list_size;
+    if (!policy_list->result_list)
+        return 0;
+    return db_result_list_size(policy_list->result_list);
 }

@@ -30,7 +30,7 @@
 #define _KEYSTATE_ZONELIST_IMPORT_H_
 
 #include "daemon/engine.h"
-#include "db/db_connection.h"
+#include "db/dbw.h"
 
 /**
  * Indicates a successful zonelist import.

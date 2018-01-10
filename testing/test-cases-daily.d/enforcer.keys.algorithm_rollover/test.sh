@@ -27,6 +27,7 @@ echo -n "LINE: ${LINENO} " && KSK1=`ods-enforcer key list -v -p --all | grep "KS
 # Leap to the time that both KSK and ZSK are used for signing
 echo -n "LINE: ${LINENO} " && sleep 3 && ods-enforcer time leap && sleep 3 &&
 echo -n "LINE: ${LINENO} " && sleep 3 && ods-enforcer time leap && sleep 3 &&
+echo -n "LINE: ${LINENO} " && sleep 3 && ods-enforcer key ds-submit -z ods --cka_id $KSK1 && sleep 3 &&
 echo -n "LINE: ${LINENO} " && sleep 3 && ods-enforcer key ds-seen -z ods --cka_id $KSK1 && sleep 3 &&
 echo -n "LINE: ${LINENO} " && sleep 3 && ods-enforcer time leap && sleep 3 &&
 
@@ -104,6 +105,9 @@ echo -n "LINE: ${LINENO} " && validns -t $time "$INSTALL_ROOT/var/opendnssec/sig
 echo -n "LINE: ${LINENO} " && ods_stop_signer && sleep 5 &&
 
 # Now we are sure the new DS is published everywhere
+echo -n "LINE: ${LINENO} " && sleep 3 && ods-enforcer key ds-submit -z ods --cka_id $KSK2 &&
+echo -n "LINE: ${LINENO} " && sleep 3 && ods-enforcer key ds-retract -z ods --cka_id $KSK1 &&
+
 echo -n "LINE: ${LINENO} " && sleep 3 && ods-enforcer key ds-seen -z ods --cka_id $KSK2 &&
 echo -n "LINE: ${LINENO} " && sleep 3 && ods-enforcer key ds-gone -z ods --cka_id $KSK1 &&
 echo -n "LINE: ${LINENO} " && sleep 3 && ods-enforcer time leap && sleep 3 &&

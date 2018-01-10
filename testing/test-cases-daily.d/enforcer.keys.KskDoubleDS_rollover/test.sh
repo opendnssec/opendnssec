@@ -23,6 +23,7 @@ echo -n "LINE: ${LINENO} " && KSK1=`ods-enforcer key list -v -p --all | grep "KS
 echo -n "LINE: ${LINENO} " && sleep 2 && ods-enforcer time leap && sleep 3 &&
 echo -n "LINE: ${LINENO} " && sleep 2 && ods-enforcer time leap && sleep 3 &&
 
+echo -n "LINE: ${LINENO} " && ods-enforcer key ds-submit -z ods --keytag $KSK1 && sleep 3 &&
 echo -n "LINE: ${LINENO} " && ods-enforcer key ds-seen -z ods --keytag $KSK1 && sleep 3 &&
 
 echo -n "LINE: ${LINENO} " && sleep 2 && ods-enforcer time leap && sleep 3 &&
@@ -69,6 +70,7 @@ echo -n "LINE: ${LINENO} " && ods_stop_signer && sleep 4 &&
 echo &&
 echo "######## LEAP TIME TILL THE ROLLOVER IS COMPLETED ############ " &&
 # New KSK is waiting for ds-seen 
+echo -n "LINE: ${LINENO} " && ods-enforcer key ds-submit -z ods --keytag $KSK2 && sleep 3 &&
 echo -n "LINE: ${LINENO} " && ods-enforcer key ds-seen -z ods --keytag $KSK2 && sleep 3 &&
 
 echo -n "LINE: ${LINENO} " && sleep 2 && ods-enforcer time leap && sleep 3 &&
@@ -92,6 +94,7 @@ echo -n "LINE: ${LINENO} " && validns -t $time "$INSTALL_ROOT/var/opendnssec/sig
 echo -n "LINE: ${LINENO} " && ods_stop_signer && sleep 5 &&
 
 echo -n "LINE: ${LINENO} " && sleep 2 && ods-enforcer time leap && sleep 3 &&
+echo -n "LINE: ${LINENO} " && ods-enforcer key ds-retract -z ods --keytag $KSK1 && sleep 3 &&
 echo -n "LINE: ${LINENO} " && ods-enforcer key ds-gone -z ods --keytag $KSK1 && sleep 3 &&
 
 echo -n "LINE: ${LINENO} " && time=`ods-enforcer queue | grep "It is now" | cut -d "(" -f2 | cut -d " " -f1` &&

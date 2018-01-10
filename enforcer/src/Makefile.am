@@ -62,6 +62,7 @@ ods_enforcerd_SOURCES = \
 	hsmkey/backup_hsmkeys_cmd.c hsmkey/backup_hsmkeys_cmd.h \
 	hsmkey/hsm_key_factory.c hsmkey/hsm_key_factory.h \
 	hsmkey/key_generate_cmd.c hsmkey/key_generate_cmd.h \
+	hsmkey/hsmkey_list_cmd.c hsmkey/hsmkey_list_cmd.h \
 	keystate/zone_list_cmd.c keystate/zone_list_cmd.h \
 	keystate/zone_add_cmd.c keystate/zone_add_cmd.h \
 	keystate/zone_del_cmd.c keystate/zone_del_cmd.h \
@@ -96,7 +97,9 @@ ods_enforcerd_SOURCES = \
 	enforcer/repositorylist_cmd.c enforcer/repositorylist_cmd.h \
 	enforcer/update_all_cmd.c enforcer/update_all_cmd.h \
 	enforcer/update_conf_cmd.c enforcer/update_conf_cmd.h \
+	enforcer/lookahead_cmd.c enforcer/lookahead_cmd.h \
 	utils/kc_helper.c utils/kc_helper.h \
+	db/dbw.c db/dbw.h \
 	db/db_backend.c db/db_backend.h \
 	db/db_clause.c db/db_clause.h \
 	db/db_configuration.c db/db_configuration.h \

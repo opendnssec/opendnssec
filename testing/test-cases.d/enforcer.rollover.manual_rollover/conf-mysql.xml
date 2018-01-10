@@ -18,6 +18,8 @@
 	</Common>
 	<Enforcer>
 		<Datastore><MySQL><Host>localhost</Host><Database>test</Database><Username>test</Username><Password>test</Password></MySQL></Datastore>
+		<DelegationSignerSubmitCommand>true</DelegationSignerSubmitCommand>
+		<DelegationSignerRetractCommand>true</DelegationSignerRetractCommand>
 	</Enforcer>
 	<Signer>
 		<WorkingDirectory>@INSTALL_ROOT@/var/opendnssec/signer</WorkingDirectory>

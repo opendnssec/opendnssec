@@ -1,12 +1,10 @@
 #ifndef _KEYSTATE_KEY_PURGE_H_
 #define _KEYSTATE_KEY_PURGE_H_
 
-#include "daemon/engine.h"
-#include "db/db_connection.h"
-#include "db/zone_db.h"
-#include "db/policy.h"
+#include "db/dbw.h"
 
-int removeDeadKeysNow(int sockfd, db_connection_t *dbconn, policy_t *policy, zone_db_t *rzone);
+int removeDeadKeysNow_zone(int sockfd, struct dbw_db *db, struct dbw_zone *zone);
+int removeDeadKeysNow_policy(int sockfd, struct dbw_db *db, struct dbw_policy *policy);
 
 #endif
 

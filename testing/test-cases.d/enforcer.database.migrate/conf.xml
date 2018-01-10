@@ -12,6 +12,7 @@
 	<Common>
 		<Logging>
 			<Syslog><Facility>local0</Facility></Syslog>
+			<Verbosity>5</Verbosity>
 		</Logging>
 		<PolicyFile>@INSTALL_ROOT@/etc/opendnssec/kasp.xml</PolicyFile>
 		<ZoneListFile>@INSTALL_ROOT@/etc/opendnssec/zonelist.xml</ZoneListFile>

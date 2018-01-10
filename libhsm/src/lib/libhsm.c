@@ -2095,6 +2095,16 @@ hsm_create_empty_rrsig(const ldns_rr_list *rrset,
  *  API functions
  */
 
+hsm_repository_t *
+hsm_find_repository(hsm_repository_t *rlist, char const *name)
+{
+    while (rlist) {
+        if (!strcmp(name, rlist->name)) return rlist;
+        rlist = rlist->next;
+    }
+    return NULL;
+}
+
 int
 hsm_open2(hsm_repository_t* rlist,
          char *(pin_callback)(unsigned int, const char *, unsigned int))

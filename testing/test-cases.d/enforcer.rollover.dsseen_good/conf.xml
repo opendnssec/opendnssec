@@ -18,6 +18,8 @@
 	</Common>
 	<Enforcer>
 		<Datastore><SQLite>@INSTALL_ROOT@/var/opendnssec/kasp.db</SQLite></Datastore>
+		<DelegationSignerSubmitCommand>true</DelegationSignerSubmitCommand>
+		<DelegationSignerRetractCommand>true</DelegationSignerRetractCommand>
 	</Enforcer>
 	<Signer>
 		<WorkingDirectory>@INSTALL_ROOT@/var/opendnssec/signer</WorkingDirectory>

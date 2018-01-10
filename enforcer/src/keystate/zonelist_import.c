@@ -30,388 +30,312 @@
 
 #include "log.h"
 #include "clientpipe.h"
-#include "db/zone_db.h"
-#include "db/key_data.h"
-#include "db/key_state.h"
+#include "db/dbw.h"
 #include "utils/kc_helper.h"
 #include "hsmkey/hsm_key_factory.h"
-
-#include "keystate/zonelist_import.h"
+#include "enforcer/enforce_task.h"
 #include "keystate/zonelist_export.h"
 
 #include <string.h>
 #include <libxml/parser.h>
 #include <libxml/tree.h>
 
+#include "keystate/zonelist_import.h"
+
 static const char* module_str = "zonelist_import";
 
-struct __zonelist_import_zone;
-struct __zonelist_import_zone {
-    struct __zonelist_import_zone* next;
-    char* name;
-    int processed;
+struct xml_zone {
+    char *name;
+    char *policy;
+    char *signconf;
+    char *inadapter_type;
+    char *inadapter_uri;
+    char *outadapter_type;
+    char *outadapter_uri;
 };
+
+static int
+xml_read_child(xmlNodePtr node, struct xml_zone *zone);
+
+static int
+xml_read_children(xmlNodePtr pnode, struct xml_zone *zone)
+{
+    xmlNodePtr cnode = pnode->children;
+    while (cnode) {
+        if (cnode->type == XML_ELEMENT_NODE) {
+            if (xml_read_child(cnode, zone)) return 1;
+        }
+        cnode = cnode->next;
+    }
+    return 0;
+}
+
+static int
+xml_read_child(xmlNodePtr node, struct xml_zone *zone)
+{
+    if (!strcmp((char*)node->name, "Zone")) {
+        zone->name = xmlGetProp(node, (xmlChar *)"name");
+        if (xml_read_children(node, zone)) return 1;
+    } else if (!strcmp((char*)node->name, "Policy")) {
+        zone->policy = xmlNodeGetContent(node);
+    } else if (!strcmp((char*)node->name, "SignerConfiguration")) {
+        zone->signconf = xmlNodeGetContent(node);
+    } else if (!strcmp((char*)node->name, "Adapters")) {
+        if (xml_read_children(node, zone)) return 1;
+    } else if (!strcmp((char*)node->name, "Input")) {
+        if (xml_read_children(node, zone)) return 1;
+    } else if (!strcmp((char*)node->name, "Output")) {
+        if (xml_read_children(node, zone)) return 1;
+    } else if (!strcmp((char*)node->name, "File")) {
+        if (!strcmp(node->parent->name, "Input")) {
+            zone->inadapter_type = strdup("File");
+            zone->inadapter_uri = xmlNodeGetContent(node);
+        } else if (!strcmp(node->parent->name, "Output")) {
+            zone->outadapter_type = strdup("File");
+            zone->outadapter_uri = xmlNodeGetContent(node);
+        } else {
+            return 1;
+        }
+    } else if (!strcmp((char*)node->name, "Adapter")) {
+        if (!strcmp(node->parent->name, "Input")) {
+            zone->inadapter_type = xmlGetProp(node, (xmlChar *)"type");
+            zone->inadapter_uri = xmlNodeGetContent(node);
+        } else if (!strcmp(node->parent->name, "Output")) {
+            zone->outadapter_type = xmlGetProp(node, (xmlChar *)"type");
+            zone->outadapter_uri = xmlNodeGetContent(node);
+        } else {
+            return 1;
+        }
+    } else {
+        ods_log_deeebug("[zone_*_from_xml] unknown %s", (char*)node->name);
+        return 1;
+    }
+    return 0;
+}
+
+/* 1 looks good, 0 some error */
+static int
+validate_zone(int sockfd, struct xml_zone *z)
+{
+    if (!(z->name && z->policy && z->signconf && z->inadapter_type
+           && z->inadapter_uri && z->outadapter_type && z->outadapter_uri))
+    {
+        return 0;
+    }
+    if(!strcmp(z->inadapter_uri,"File")){
+        if(access(z->inadapter_uri, F_OK) == -1) {
+            client_printf_err(sockfd, "WARNING: The input file %s for zone %s "
+                "does not currently exist. The zone will be added to the "
+                "database anyway.\n", z->inadapter_uri, z->name);
+            ods_log_warning("[%s] WARNING: The input file %s for zone %s "
+                "does not currently exist. The zone will be added to the "
+                "database anyway.", module_str, z->inadapter_uri, z->name);
+        } else if (access(z->inadapter_uri, R_OK)) {
+            client_printf_err(sockfd, module_str, "WARNING: Read access to "
+                "input file %s for zone %s denied! \n", z->inadapter_uri, z->name);
+            ods_log_warning("[%s] WARNING: Read access to input file %s for "
+                "zone %s denied!", module_str, z->inadapter_uri, z->name);
+        }
+    }
+    return 1;
+}
+
+static void
+xml_zone_scrub(struct xml_zone *xml)
+{
+    free(xml->name);
+    free(xml->policy);
+    free(xml->signconf);
+    free(xml->inadapter_uri);
+    free(xml->inadapter_type);
+    free(xml->outadapter_uri);
+    free(xml->outadapter_type);
+}
+
+/* 0 for equal*/
+static int
+zone_xml_cmp(struct dbw_db *db, struct dbw_zone *zone, struct xml_zone *xml)
+{
+    return (strcasecmp(zone->policy->name, xml->policy)
+        || strcasecmp(zone->signconf_path, xml->signconf)
+        || strcasecmp(zone->input_adapter_uri, xml->inadapter_uri)
+        || strcasecmp(zone->input_adapter_type, xml->inadapter_type)
+        || strcasecmp(zone->output_adapter_uri, xml->outadapter_uri)
+        || strcasecmp(zone->output_adapter_type, xml->outadapter_type));
+}
+
+static int
+process_xml(int sockfd, xmlNodePtr root, struct dbw_db *db)
+{
+    xmlNodePtr node;
+    struct xml_zone xz;
+
+    for (; root; root = root->next) {
+        if (root->type != XML_ELEMENT_NODE) continue;
+        if (strcmp((char*)root->name, "ZoneList")) continue;
+        for (node = root->children; node; node = node->next) {
+            if (node->type != XML_ELEMENT_NODE) continue;
+            memset(&xz, 0, sizeof (struct xml_zone));
+            if (xml_read_child(node, &xz)) {
+                client_printf_err(sockfd, "Unable to create zone %s from XML, XML "
+                    "content may be improperly formatted.\n", xz.name?xz.name:"[unknown]");
+                return 1;
+            }
+            if (!validate_zone(sockfd, &xz)) {
+                client_printf_err(sockfd, "Unable to create zone %s from XML, XML "
+                    "content may be invalid.\n", xz.name?xz.name:"[unknown]");
+                xml_zone_scrub(&xz);
+                return 1;
+            }
+            struct dbw_policy *p = dbw_get_policy(db, xz.policy);
+            if (!p) {
+                client_printf_err(sockfd, "Can't find policy %s in database.\n", xz.policy);
+                xml_zone_scrub(&xz);
+                return 1;
+            }
+            struct dbw_zone *zone = dbw_get_zone(db, xz.name);
+            if (!zone) { /* create new  */
+                zone = calloc(1, sizeof (struct dbw_zone));
+                if (!zone) {
+                    client_printf_err(sockfd, "zonelist import memory error.\n");
+                    xml_zone_scrub(&xz);
+                    return 1;
+                }
+                zone->dirty = DBW_INSERT;
+                zone->scratch = 2;
+                zone->name                = xz.name;
+                zone->policy              = p;
+                zone->signconf_path       = xz.signconf;
+                zone->input_adapter_uri   = xz.inadapter_uri;
+                zone->input_adapter_type  = xz.inadapter_type;
+                zone->output_adapter_uri  = xz.outadapter_uri;
+                zone->output_adapter_type = xz.outadapter_type;
+                if (dbw_add_zone(db, p, zone)) {
+                    client_printf_err(sockfd, "zonelist import memory error.\n");
+                    dbw_zone_free((struct dbrow *)zone);
+                    return 1;
+                }
+            } else {
+                zone->scratch = 1;
+                if (!zone_xml_cmp(db, zone, &xz)) {
+                    zone->dirty = DBW_CLEAN;
+                    xml_zone_scrub(&xz);
+                    client_printf(sockfd, "Zone %s already up-to-date\n", zone->name);
+                    continue;
+                }
+                zone->scratch = 3;
+                zone->dirty = DBW_UPDATE;
+                free(zone->signconf_path);
+                free(zone->input_adapter_uri);
+                free(zone->input_adapter_type);
+                free(zone->output_adapter_uri);
+                free(zone->output_adapter_type);
+                free(xz.name);
+                zone->policy              = p;
+                zone->signconf_path       = xz.signconf;
+                zone->input_adapter_uri   = xz.inadapter_uri;
+                zone->input_adapter_type  = xz.inadapter_type;
+                zone->output_adapter_uri  = xz.outadapter_uri;
+                zone->output_adapter_type = xz.outadapter_type;
+            }
+        }
+    }
+    return 0;
+}
 
 int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
     int do_delete, const char* zonelist_path)
 {
     xmlDocPtr doc;
     xmlNodePtr root;
-    xmlNodePtr node;
-    xmlChar* name;
-    int updated;
-    int database_error = 0;
-    int xml_error = 0;
-    zone_db_t* zone;
-    const zone_db_t* zone_walk;
-    zone_list_db_t* zone_list;
-    struct __zonelist_import_zone* zones = NULL;
-    struct __zonelist_import_zone* zone2;
-    int successful;
-    key_data_list_t* key_data_list;
-    key_data_t* key_data;
-    key_state_list_t* key_state_list;
-    key_state_t* key_state;
-    int any_update = 0;
-    char path[PATH_MAX];
+    struct dbw_db *db = dbw_fetch(dbconn);
+    if (!db) return ZONELIST_IMPORT_ERR_DATABASE;
 
-    if (!engine) {
-        return ZONELIST_IMPORT_ERR_ARGS;
-    }
-    if (!engine->config) {
-        return ZONELIST_IMPORT_ERR_ARGS;
-    }
-    if (!engine->config->zonelist_filename) {
-        return ZONELIST_IMPORT_ERR_ARGS;
-    }
-    if (!dbconn) {
-        return ZONELIST_IMPORT_ERR_ARGS;
-    }
-
-    /*
-     * Retrieve all the current zones so they can be marked processed later and
-     * then the unprocessed can be deleted
-     */
-    if (!(zone_list = zone_list_db_new_get(dbconn))) {
-        client_printf_err(sockfd, "Unable to fetch all the current zones in the database!\n");
-        return ZONELIST_IMPORT_ERR_DATABASE;
-    }
-    for (zone_walk = zone_list_db_next(zone_list); zone_walk; zone_walk = zone_list_db_next(zone_list)) {
-        if (!(zone2 = calloc(1, sizeof(struct __zonelist_import_zone)))
-            || !(zone2->name = strdup(zone_db_name(zone_walk))))
-        {
-            client_printf_err(sockfd, "Memory allocation error!\n");
-            zone_list_db_free(zone_list);
-            if (zone2) {
-                free(zone2);
-            }
-            for (zone2 = zones; zone2; zone2 = zones) {
-                free(zone2->name);
-                zones = zone2->next;
-                free(zone2);
-            }
-            return ZONELIST_IMPORT_ERR_MEMORY;
-        }
-
-        zone2->next = zones;
-        zones = zone2;
-    }
-    zone_list_db_free(zone_list);
-
-    /*
-     * Validate, parse and walk the XML.
-     */
+    /* Validate, parse and walk the XML. */
     if (!zonelist_path)
         zonelist_path = engine->config->zonelist_filename;
-     
     if (check_zonelist(zonelist_path, 0, NULL, 0)) {
         client_printf_err(sockfd, "Unable to validate the zonelist XML!\n");
-        for (zone2 = zones; zone2; zone2 = zones) {
-            free(zone2->name);
-            zones = zone2->next;
-            free(zone2);
-        }
+        dbw_free(db);
         return ZONELIST_IMPORT_ERR_XML;
-    }
-
-    if (!(doc = xmlParseFile(zonelist_path))) {
+    } else if (!(doc = xmlParseFile(zonelist_path))) {
         client_printf_err(sockfd, "Unable to read/parse zonelist XML file %s!\n",
             zonelist_path);
-        for (zone2 = zones; zone2; zone2 = zones) {
-            free(zone2->name);
-            zones = zone2->next;
-            free(zone2);
-        }
+        dbw_free(db);
         return ZONELIST_IMPORT_ERR_XML;
-    }
-
-    if (!(root = xmlDocGetRootElement(doc))) {
+    } else if (!(root = xmlDocGetRootElement(doc))) {
         client_printf_err(sockfd, "Unable to get the root element in the zonelist XML!\n");
         xmlFreeDoc(doc);
-        for (zone2 = zones; zone2; zone2 = zones) {
-            free(zone2->name);
-            zones = zone2->next;
-            free(zone2);
-        }
+        dbw_free(db);
         return ZONELIST_IMPORT_ERR_XML;
     }
 
-    for (; root; root = root->next) {
-        if (root->type != XML_ELEMENT_NODE) {
-            continue;
-        }
-
-        if (!strcmp((char*)root->name, "ZoneList")) {
-            for (node = root->children; node; node = node->next) {
-                if (node->type != XML_ELEMENT_NODE) {
-                    continue;
+    for (size_t z = 0; z < db->zones->n; z++) {
+        /* All zones not mentioned xml will be deleted */
+        db->zones->set[z]->scratch = 0;
+    }
+    int r = process_xml(sockfd, root, db);
+    xmlFreeDoc(doc);
+    if (r) {
+        dbw_free(db);
+        return ZONELIST_IMPORT_ERR_XML;
+    }
+    int updates = 0; /* did anything change at all?  */
+    for (size_t z = 0; z < db->zones->n; z++) {
+        struct dbw_zone *zone = (struct dbw_zone *)db->zones->set[z];
+        updates |= zone->scratch;
+        if (do_delete && !zone->scratch && zone->dirty == DBW_CLEAN) {
+            /* This zone is not visited at all, therefore must be deleted */
+            zone->dirty = DBW_DELETE;
+            for (size_t k = 0; k < zone->key_count; k++) {
+                struct dbw_key *key = zone->key[k];
+                key->dirty = DBW_DELETE;
+                for (size_t s = 0; s < key->keystate_count; s++) {
+                    struct dbw_keystate *keystate = key->keystate[s];
+                    keystate->dirty = DBW_DELETE;
                 }
-                if (strcmp((char*)node->name, "Zone")) {
-                    continue;
-                }
-
-                if (!(name = xmlGetProp(node, (const xmlChar*)"name"))) {
-                    client_printf_err(sockfd, "Invalid Zone element in zonelist XML!\n");
-                    xmlFreeDoc(doc);
-                    for (zone2 = zones; zone2; zone2 = zones) {
-                        free(zone2->name);
-                        zones = zone2->next;
-                        free(zone2);
-                    }
-                    return ZONELIST_IMPORT_ERR_XML;
-                }
-
-                if (!(zone = zone_db_new(dbconn))) {
-                    client_printf_err(sockfd, "Memory allocation error!\n");
-                    xmlFree(name);
-                    xmlFreeDoc(doc);
-                    for (zone2 = zones; zone2; zone2 = zones) {
-                        free(zone2->name);
-                        zones = zone2->next;
-                        free(zone2);
-                    }
-                    return ZONELIST_IMPORT_ERR_MEMORY;
-                }
-
-                /*
-                 * Fetch the zone by name, if we can't find it create a new
-                 * one otherwise update the existing one
-                 */
-                if (zone_db_get_by_name(zone, (char*)name)) {
-                    if (zone_db_create_from_xml(zone, node)) {
-                        client_printf_err(sockfd,
-                            "Unable to create zone %s from XML, XML content may be invalid!\n",
-                            (char*)name);
-                        zone_db_free(zone);
-                        xmlFree(name);
-                        xml_error = 1;
-                        continue;
-                    }
-
-                    if (zone_db_create(zone)) {
-                        client_printf_err(sockfd,
-                            "Unable to create zone %s in the database!\n",
-                            (char*)name);
-                        zone_db_free(zone);
-                        xmlFree(name);
-                        database_error = 1;
-                        continue;
-                    }
-
-		    if(!strcmp(zone_db_input_adapter_type(zone),"File")){
-                        if(access(zone_db_input_adapter_uri(zone), F_OK) == -1) {
-                            client_printf_err(sockfd, "WARNING: The input file %s for zone %s does not currently exist. The zone will be added to the database anyway.\n", zone_db_input_adapter_uri(zone), zone_db_name(zone));
-			    ods_log_warning("[%s] WARNING: The input file %s for zone %s does not currently exist. The zone will be added to the database anyway.", module_str, zone_db_input_adapter_uri(zone), zone_db_name(zone));
-                        }
-                        else if (access(zone_db_input_adapter_uri(zone), R_OK)) {
-                            client_printf_err(sockfd, module_str, "WARNING: Read access to input file %s for zone %s denied! \n", zone_db_input_adapter_uri(zone), zone_db_name(zone));
-			    ods_log_warning("[%s] WARNING: Read access to input file %s for zone %s denied!", module_str, zone_db_input_adapter_uri(zone), zone_db_name(zone));
-                        }
-                    }
-
-                    ods_log_info("[%s] zone %s created", module_str, (char*)name);
-                    client_printf(sockfd, "Zone %s created successfully\n",
-                        (char*)name);
-                    any_update = 1;
-                }
-                else {
-                    /*
-                     * Mark it processed even if update fails so its not deleted
-                     */
-                    for (zone2 = zones; zone2; zone2 = zone2->next) {
-                        if (zone2->processed) {
-                            continue;
-                        }
-                        if (!strcmp(zone2->name, (char*)name)) {
-                            zone2->processed = 1;
-                            break;
-                        }
-                    }
-
-                    /*
-                     * Update the zone, if any data has changed then updated
-                     * will be set to non-zero and if so we update the database
-                     */
-                    if (zone_db_update_from_xml(zone, node, &updated)) {
-                        client_printf_err(sockfd,
-                            "Unable to update zone %s from XML, XML content may be invalid!\n",
-                            (char*)name);
-                        zone_db_free(zone);
-                        xmlFree(name);
-                        xml_error = 1;
-                        for (zone2 = zones; zone2; zone2 = zones) {
-                            free(zone2->name);
-                            zones = zone2->next;
-                            free(zone2);
-                        }
-                        continue;
-                    }
-
-                    /*
-                     * Update the zone in the database
-                     */
-                    if (updated) {
-                        if (zone_db_update(zone)) {
-                            client_printf_err(sockfd, "Unable to update zone %s in database!\n",
-                                (char*)name);
-                            zone_db_free(zone);
-                            xmlFree(name);
-                            database_error = 1;
-                            continue;
-                        }
-
-                        ods_log_info("[%s] zone %s updated", module_str, (char*)name);
-                        client_printf(sockfd, "Updated zone %s successfully\n",
-                            (char*)name);
-                        any_update = 1;
-                    }
-                    else {
-                        client_printf(sockfd, "Zone %s already up-to-date\n",
-                            (char*)name);
-                    }
-                }
-                zone_db_free(zone);
-                xmlFree(name);
+                hsm_key_factory_release_key(key->hsmkey, key);
             }
         }
     }
-
-    if (do_delete) {
-        /*
-         * Delete zones that have not been processed
-         */
-        for (zone2 = zones; zone2; zone2 = zone2->next) {
-            if (zone2->processed) {
-                continue;
-            }
-
-            if (!(zone = zone_db_new(dbconn))) {
-                client_printf_err(sockfd, "Memory allocation error!\n");
-                xmlFreeDoc(doc);
-                for (zone2 = zones; zone2; zone2 = zones) {
-                    free(zone2->name);
-                    zones = zone2->next;
-                    free(zone2);
-                }
-                return ZONELIST_IMPORT_ERR_MEMORY;
-            }
-
-            /*
-             * Fetch the zone by name, if it exists we try and delete it
-             */
-            if (!zone_db_get_by_name(zone, zone2->name)) {
-                /*
-                 * Get key data for the zone and for each key data get the key state
-                 * and try to delete all key state then the key data
-                 */
-                if (!(key_data_list = key_data_list_new_get_by_zone_id(dbconn, zone_db_id(zone)))) {
-                    client_printf_err(sockfd, "Unable to get key data for zone %s from database!\n", zone2->name);
-                    zone_db_free(zone);
-                    database_error = 1;
-                    continue;
-                }
-                successful = 1;
-                for (key_data = key_data_list_get_next(key_data_list); key_data; key_data_free(key_data), key_data = key_data_list_get_next(key_data_list)) {
-                    if (!(key_state_list = key_state_list_new_get_by_key_data_id(dbconn, key_data_id(key_data)))) {
-                        client_printf_err(sockfd, "Unable to get key states for key data %s of zone %s from database!\n", key_data_role_text(key_data), zone2->name);
-                        database_error = 1;
-                        successful = 0;
-                        continue;
-                    }
-
-                    for (key_state = key_state_list_get_next(key_state_list); key_state; key_state_free(key_state), key_state = key_state_list_get_next(key_state_list)) {
-                        if (key_state_delete(key_state)) {
-                            client_printf_err(sockfd, "Unable to delete key state %s for key data %s of zone %s from database!\n", key_state_type_text(key_state), key_data_role_text(key_data), zone2->name);
-                            database_error = 1;
-                            successful = 0;
-                            continue;
-                        }
-                    }
-                    key_state_list_free(key_state_list);
-
-                    if (key_data_delete(key_data)) {
-                        client_printf_err(sockfd, "Unable to delete key data %s of zone %s from database!\n", key_data_role_text(key_data), zone2->name);
-                        database_error = 1;
-                        successful = 0;
-                        continue;
-                    }
-
-                    if (hsm_key_factory_release_key_id(key_data_hsm_key_id(key_data), dbconn)) {
-                        client_printf_err(sockfd, "Unable to release HSM key for key data %s of zone %s from database!\n", key_data_role_text(key_data), zone2->name);
-                        successful = 0;
-                        continue;
-                    }
-                }
-                key_data_list_free(key_data_list);
-
-                if (!successful) {
-                    zone_db_free(zone);
-                    continue;
-                }
-                if (zone_db_delete(zone)) {
-                    client_printf_err(sockfd, "Unable to delete zone %s from database!\n", zone2->name);
-                    zone_db_free(zone);
-                    database_error = 1;
-                    continue;
-                }
-
-                ods_log_info("[%s] zone %s deleted", module_str, zone2->name);
-                client_printf(sockfd, "Deleted zone %s successfully\n", zone2->name);
-            }
-            else {
-                client_printf_err(sockfd, "Unable to delete zone %s from database!\n", zone2->name);
-                database_error = 1;
-            }
-            zone_db_free(zone);
-        }
-        if (snprintf(path, sizeof(path), "%s/%s", engine->config->working_dir, OPENDNSSEC_ENFORCER_ZONELIST) >= (int)sizeof(path)
-            || zonelist_export(sockfd, dbconn, path, 0) != ZONELIST_EXPORT_OK)
-        {
+    if (dbw_commit(db)) {
+        r = ZONELIST_IMPORT_ERR_DATABASE;
+    } else if (updates) {
+        /** export zonelist */
+        if (zonelist_export(sockfd, dbconn, zonelist_path, 0) != ZONELIST_EXPORT_OK) {
             ods_log_error("[%s] internal zonelist update failed", module_str);
-            client_printf_err(sockfd, "Unable to update the internal zonelist %s, updates will not reach the Signer!\n", path);
+            client_printf_err(sockfd, "Unable to update the internal zonelist %s, updates will not reach the Signer!\n", zonelist_path);
         } else {
             ods_log_info("[%s] internal zonelist updated successfully", module_str);
         }
-    }
 
-    if (any_update && !engine->config->manual_keygen) {
-        hsm_key_factory_schedule_generate_all(engine, 0);
-    }
+        /*hsm_key_factory_schedule_generate_all(engine, 0);*/
+        /* schedule all changed zones */
+        for (size_t z = 0; z < db->zones->n; z++) {
+            struct dbw_zone *zone = (struct dbw_zone *)db->zones->set[z];
+            if (!zone->scratch) {
+                if (do_delete)
+                    client_printf(sockfd, "Deleted zone %s successfully\n", zone->name);
+                continue;
+            }
+            else if (zone->scratch == 1)
+                continue;
+            else if (zone->scratch == 2) {
+                ods_log_info("[%s] Zone %s created", module_str, zone->name);
+                client_printf(sockfd, "Zone %s created successfully\n", zone->name);
+            }
+            else {
+                ods_log_info("[%s] Zone %s updated", module_str, zone->name);
+                client_printf(sockfd, "Updated zone %s successfully\n", zone->name);
+            }
 
-    for (zone2 = zones; zone2; zone2 = zones) {
-        free(zone2->name);
-        zones = zone2->next;
-        free(zone2);
+            enforce_task_flush_zone(engine, zone->name);
+        }
+        r = ZONELIST_IMPORT_OK;
+    } else {
+        r = ZONELIST_IMPORT_NO_CHANGE;
     }
-    xmlFreeDoc(doc);
-    if (database_error) {
-        return ZONELIST_IMPORT_ERR_DATABASE;
-    }
-    if (xml_error) {
-        return ZONELIST_IMPORT_ERR_XML;
-    }
-    if (!any_update) {
-        return ZONELIST_IMPORT_NO_CHANGE;
-    }
-    return ZONELIST_IMPORT_OK;
+    dbw_free(db);
+    return r;
 }
+

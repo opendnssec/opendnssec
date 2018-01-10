@@ -24,18 +24,16 @@ ods_reset_env -n &&
 
 echo "################## ZONE ADD 1 ###########################" &&
 echo -n "LINE: ${LINENO} " && ods-enforcer zone add --zone ods1 &&
-
+echo -n "LINE: ${LINENO} " && visual_sleep 2 &&
 echo "################## ZONE ADD 2 ###########################" &&
 echo -n "LINE: ${LINENO} " && ods-enforcer zone add --zone ods2 &&
 
 echo "################## ROLL KSK ###########################" &&
 echo -n "LINE: ${LINENO} " && ods_enforcer_idle &&
-echo -n "LINE: ${LINENO} " && visual_sleep 3 &&
 echo -n "LINE: ${LINENO} " && ods-enforcer key rollover -z ods2 -t KSK &&
 
 echo "################## CHECK ###########################" &&
 echo -n "LINE: ${LINENO} " && ods_enforcer_idle &&
-echo -n "LINE: ${LINENO} " && visual_sleep 4 &&
 
 echo -n "LINE: ${LINENO} " && KSK1=`ods-enforcer key list -d -p | grep ods1 | grep KSK |cut -d ";" -f 9` &&
 echo -n "LINE: ${LINENO} " && ZSK1=`ods-enforcer key list -d -p | grep ods1 | grep ZSK |cut -d ";" -f 9` &&

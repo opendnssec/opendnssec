@@ -38,10 +38,7 @@
 #include "str.h"
 #include "clientpipe.h"
 #include "duration.h"
-#include "db/key_data.h"
-#include "db/zone_db.h"
-#include "db/db_error.h"
-#include "db/hsm_key.h"
+#include "db/dbw.h"
 #include "libhsm.h"
 #include "libhsmdns.h"
 
@@ -94,48 +91,25 @@ get_dnskey(const char *id, const char *zone, int alg, uint32_t ttl)
 
 /** returns non 0 on error */
 static int
-exec_dnskey_by_id(int sockfd, key_data_t *key, const char* ds_command,
+exec_dnskey_by_id(int sockfd, struct dbw_key *key, const char* ds_command,
 	const char* action)
 {
 	ldns_rr *dnskey_rr;
-	int ttl = 0, status, i;
-	const char *locator;
-	char *rrstr, *chrptr;
-	zone_db_t* zone;
+	int status, i;
+	char *rrstr, *chrptr, *cp_ds = NULL;
 	struct stat stat_ret;
         int cka = 0;
 	char *pos = NULL;
 
 	assert(key);
-
-	zone = key_data_get_zone(key);
-	if(key_data_cache_hsm_key(key) != DB_OK) {
-		ods_log_error_and_printf(sockfd, module_str,
-			"Error fetching from database");
-		zone_db_free(zone);
-		return 1;
-	}
-	locator = hsm_key_locator(key_data_hsm_key(key));
-	if (!locator) {
-		zone_db_free(zone);
-		return 1;
-	}
-	/* This fetches the states from the DB, I'm only assuming they get
-	 * cleaned up when 'key' is cleaned(?) */
-	if (key_data_cache_key_states(key) != DB_OK) {
-		zone_db_free(zone);
-		return 1;
-	}
-
-	ttl = key_state_ttl(key_data_cached_dnskey(key));
-
-	dnskey_rr = get_dnskey(locator, zone_db_name(zone), key_data_algorithm(key), ttl);
-	zone_db_free(zone);
+	char *locator = key->hsmkey->locator;
+	struct dbw_keystate *dnskey = dbw_get_keystate(key, DBW_DNSKEY);
+	if (!dnskey) return 1;
+	dnskey_rr = get_dnskey(locator, key->zone->name, key->algorithm, dnskey->ttl);
 	if (!dnskey_rr) return 2;
-
 	rrstr = ldns_rr2str(dnskey_rr);
 
-	/* Replace tab with white-space */
+	/* Replace tab with space */
 	for (i = 0; rrstr[i]; ++i) {
 		if (rrstr[i] == '\t') rrstr[i] = ' ';
 	}
@@ -148,12 +122,13 @@ exec_dnskey_by_id(int sockfd, key_data_t *key, const char* ds_command,
 	}
 
 	if (!ds_command || ds_command[0] == '\0') {
-		ods_log_error_and_printf(sockfd, module_str, 
+		ods_log_info(module_str,
 			"No \"DelegationSigner%sCommand\" "
 			"configured.", action);
 		status = 1;
 	} else {
-		pos = strstr(ds_command, " --cka_id");
+                cp_ds = strdup(ds_command);
+                pos = strstr(cp_ds, " --cka_id");
                 if (pos){
                         cka = 1;
                         *pos = '\0';
@@ -161,9 +136,9 @@ exec_dnskey_by_id(int sockfd, key_data_t *key, const char* ds_command,
                         pos = NULL;
                 }
 
-		if (stat(ds_command, &stat_ret) != 0) {
+		if (stat(cp_ds, &stat_ret) != 0) {
 			ods_log_error_and_printf(sockfd, module_str,
-				"Cannot stat file %s: %s", ds_command,
+				"Cannot stat file %s: %s", cp_ds,
 				strerror(errno));
 			status = 2;
 		} else if (S_ISREG(stat_ret.st_mode) && 
@@ -174,14 +149,14 @@ exec_dnskey_by_id(int sockfd, key_data_t *key, const char* ds_command,
 			 * all have execute set */
 			status = 3;
 			ods_log_error_and_printf(sockfd, module_str,
-				"File %s is not executable", ds_command);
+				"File %s is not executable", cp_ds);
 		} else {
 			/* send records to the configured command */
-			FILE *fp = popen(ds_command, "w");
+			FILE *fp = popen(cp_ds, "w");
 			if (fp == NULL) {
 				status = 4;
 				ods_log_error_and_printf(sockfd, module_str,
-					"failed to run command: %s: %s",ds_command,
+					"Failed to run command: %s: %s",cp_ds,
 					strerror(errno));
 			} else {
 				int bytes_written;
@@ -191,256 +166,152 @@ exec_dnskey_by_id(int sockfd, key_data_t *key, const char* ds_command,
 					bytes_written = fprintf(fp, "%s", rrstr);
 				if (bytes_written < 0) {
 					status = 5;
-					ods_log_error_and_printf(sockfd,  module_str,
-						 "[%s] Failed to write to %s: %s", ds_command,
-						 strerror(errno));
-				} else if (pclose(fp) == -1) {
-					status = 6;
 					ods_log_error_and_printf(sockfd, module_str,
-						"failed to close %s: %s", ds_command,
-						strerror(errno));
+						 "[%s] Failed to write to %s: %s", cp_ds,
+						 strerror(errno));
 				} else {
-					client_printf(sockfd, "key %sed to %s\n",
-						action, ds_command);
-					status = 0;
+                                        int s = pclose(fp);
+                                        if (s == -1) {
+						status = 6;
+						ods_log_error_and_printf(sockfd, module_str,
+							"Failed to close %s: %s", cp_ds,
+							strerror(errno));
+					} else if (s == 0) {
+						ods_log_info("key %sed to %s\n",
+							action, cp_ds);
+						client_printf(sockfd, "key %sed to %s\n",
+                                                        action, cp_ds);
+						status = 0;
+					}
+					else {
+						ods_log_error_and_printf(sockfd, "Failed to run %s", cp_ds);
+                                                status = 7;
+					}
 				}
 			}
 		}
 	}
 	LDNS_FREE(rrstr);
 	ldns_rr_free(dnskey_rr);
+	free(cp_ds);
 	return status;
 }
 
 static int
-submit_dnskey_by_id(int sockfd, key_data_t *key, engine_type* engine)
+submit_dnskey_by_id(int sockfd, struct dbw_key *key, engine_type* engine)
 {
-	const char* ds_submit_command;
-	ds_submit_command = engine->config->delegation_signer_submit_command;
-	return exec_dnskey_by_id(sockfd, key, ds_submit_command, "submit");
+    const char* ds_submit_command;
+    ds_submit_command = engine->config->delegation_signer_submit_command;
+    return exec_dnskey_by_id(sockfd, key, ds_submit_command, "submit");
 }
 
 static int
-retract_dnskey_by_id(int sockfd, key_data_t *key, engine_type* engine)
+retract_dnskey_by_id(int sockfd, struct dbw_key *key, engine_type* engine)
 {
-	const char* ds_retract_command;
-	ds_retract_command = engine->config->delegation_signer_retract_command;
-	return exec_dnskey_by_id(sockfd, key, ds_retract_command, "retract");
+    const char* ds_retract_command;
+    ds_retract_command = engine->config->delegation_signer_retract_command;
+    return exec_dnskey_by_id(sockfd, key, ds_retract_command, "retract");
 }
 
 static int
-ds_list_keys(db_connection_t *dbconn, int sockfd,
-	key_data_ds_at_parent_t state)
+ds_list_keys(db_connection_t *dbconn, int sockfd, enum dbw_ds_at_parent state)
 {
-	const char *fmth = "%-31s %-13s %-13s %-40s\n";
-	const char *fmtl = "%-31s %-13s %-13u %-40s\n";
+    const char *fmth = "%-31s %-13s %-13s %-40s\n";
+    const char *fmtl = "%-31s %-13s %-13u %-40s\n";
 
-	key_data_list_t *key_list;
-	const key_data_t *key;
-	zone_db_t *zone = NULL;
-	hsm_key_t* hsmkey = NULL;
-	db_clause_list_t* clause_list;
-	db_clause_t* clause;
+    struct dbw_db *db = dbw_fetch(dbconn);
+    if (!db) return 1;
 
-	if (!(key_list = key_data_list_new(dbconn))
-		|| !(clause_list = db_clause_list_new()))
-	{
-		key_data_list_free(key_list);
-		return 10;
-	}
-	if (!(clause = key_data_role_clause(clause_list, KEY_DATA_ROLE_ZSK))
-		|| db_clause_set_type(clause, DB_CLAUSE_NOT_EQUAL)
-		|| !(clause = key_data_ds_at_parent_clause(clause_list, state))
-		|| db_clause_set_type(clause, DB_CLAUSE_EQUAL))
-	{
-		key_data_list_free(key_list);
-		db_clause_list_free(clause_list);
-		return 11;
-	}
-	if (key_data_list_get_by_clauses(key_list, clause_list)) {
-		key_data_list_free(key_list);
-		db_clause_list_free(clause_list);
-		return 12;
-	}
-	db_clause_list_free(clause_list);
-
-	client_printf(sockfd, fmth, "Zone:", "Key role:", "Keytag:", "Id:");
-
-	for (key = key_data_list_next(key_list); key;
-		key = key_data_list_next(key_list))
-	{
-		zone = key_data_get_zone(key);
-		hsmkey = key_data_get_hsm_key(key);
-		client_printf(sockfd, fmtl,
-			(zone ? zone_db_name(zone) : "NOT_FOUND"),
-			key_data_role_text(key), key_data_keytag(key),
-			(hsmkey ? hsm_key_locator(hsmkey) : "NOT_FOUND")
-		);
-		zone_db_free(zone);
-		hsm_key_free(hsmkey);
-	}
-	key_data_list_free(key_list);
-	return 0;
-}
-
-static int
-push_clauses(db_clause_list_t *clause_list, zone_db_t *zone,
-	key_data_ds_at_parent_t state_from, const hsm_key_t* hsmkey, int keytag)
-{
-	db_clause_t* clause;
-
-	if (!key_data_zone_id_clause(clause_list, zone_db_id(zone)))
-		return 1;
-	if (!(clause = key_data_role_clause(clause_list, KEY_DATA_ROLE_ZSK)) ||
-			db_clause_set_type(clause, DB_CLAUSE_NOT_EQUAL))
-		return 1;
-	if (!key_data_ds_at_parent_clause(clause_list, state_from))
-		return 1;
-
-	/* filter in id and or keytag conditionally. */
-	if (hsmkey) {
-		if (hsmkey && !key_data_hsm_key_id_clause(clause_list, hsm_key_id(hsmkey)))
-			return 1;
-	}
-	if (keytag > 0) {
-		if (!key_data_keytag_clause(clause_list, keytag))
-			return 1;
-	}
-	return 0;
-}
-
-/** Update timestamp on DS of key to now */
-static int
-ds_changed(key_data_t *key)
-{
-	key_state_list_t* keystatelist;
-	key_state_t* keystate;
-
-	if(key_data_retrieve_key_state_list(key)) return 1;
-	keystatelist = key_data_key_state_list(key);
-	keystate = key_state_list_get_begin(keystatelist);
-	if (!keystate) return 1;
-
-	while (keystate) {
-		key_state_t* keystate_next;
-		if (keystate->type == KEY_STATE_TYPE_DS) {
-			keystate->last_change = time_now();
-			if(key_state_update(keystate)) {
-				key_state_free(keystate);
-				return 1;
-			}
-			key_state_free(keystate);
-			return 0;
-		}
-		keystate_next = key_state_list_get_next(keystatelist);
-		key_state_free(keystate);
-		keystate = keystate_next;
-	}
-	return 1;
+    client_printf(sockfd, fmth, "Zone:", "Key role:", "Keytag:", "Id:");
+    for (size_t z = 0; z < db->zones->n; z++) {
+        struct dbw_zone *zone = (struct dbw_zone *)db->zones->set[z];
+        for (size_t k = 0; k < zone->key_count; k++) {
+            struct dbw_key *key = zone->key[k];
+            if (!(key->role & DBW_KSK)) continue;
+            if (key->ds_at_parent != state) continue;
+            client_printf(sockfd, fmtl, zone->name,
+                dbw_enum2txt(dbw_key_role_txt, key->role), key->keytag,
+                key->hsmkey->locator);
+        }
+    }
+    dbw_free(db);
+    return 0;
 }
 
 /* Change DS state, when zonename not given do it for all zones!
  */
 int
-change_keys_from_to(db_connection_t *dbconn, int sockfd,
-	const char *zonename, const hsm_key_t* hsmkey, int keytag,
-	key_data_ds_at_parent_t state_from, key_data_ds_at_parent_t state_to,
-	engine_type *engine)
+change_keys_from_to(db_connection_t *dbconn, int sockfd, const char *zonename,
+    const char *cka_id, int keytag, int state_from,
+    int state_to, engine_type *engine, int cmd)
 {
-	key_data_list_t *key_list = NULL;
-	key_data_t *key;
-	zone_db_t *zone = NULL;
-	int status = 0, key_match = 0, key_mod = 0;
-	db_clause_list_t* clause_list = NULL;
-	db_clause_t* clause = NULL;
-	char *tmp_zone_name;
+    struct dbw_db *db = dbw_fetch(dbconn);
+    if (!db) return 1;
 
-	if (zonename) {
-		if (!(key_list = key_data_list_new(dbconn)) ||
-			!(clause_list = db_clause_list_new()) ||
-			!(zone = zone_db_new_get_by_name(dbconn, zonename)) ||
-			push_clauses(clause_list, zone, state_from, hsmkey, keytag) ||
-			key_data_list_get_by_clauses(key_list, clause_list))
-		{
-			key_data_list_free(key_list);
-			db_clause_list_free(clause_list);
-			zone_db_free(zone);
-			client_printf_err(sockfd, "Could not find ksk for zone %s, "
-				"does zone exist?\n", zonename);
-			ods_log_error("[%s] Error fetching from database", module_str);
-			return 10;
-		}
-		db_clause_list_free(clause_list);
-	} else {
-		/* Select all KSKs */
-		if (!(clause_list = db_clause_list_new()) ||
-			!key_data_ds_at_parent_clause(clause_list, state_from) ||
-			!(clause = key_data_role_clause(clause_list, KEY_DATA_ROLE_ZSK)) ||
-			db_clause_set_type(clause, DB_CLAUSE_NOT_EQUAL) != DB_OK ||
-			!(key_list = key_data_list_new_get_by_clauses(dbconn, clause_list)))
-		{
-			key_data_list_free(key_list);
-			db_clause_list_free(clause_list);
-			ods_log_error("[%s] Error fetching from database", module_str);
-			return 14;
-		}
-		db_clause_list_free(clause_list);
-	}
-	while ((key = key_data_list_get_next(key_list))) {
-		key_match++;
-		/* if from is submit also exec dsSubmit command? */
-		if (state_from == KEY_DATA_DS_AT_PARENT_SUBMIT &&
-			state_to == KEY_DATA_DS_AT_PARENT_SUBMITTED)
-		{
-			(void)submit_dnskey_by_id(sockfd, key, engine);
-		} else if (state_from == KEY_DATA_DS_AT_PARENT_RETRACT &&
-			state_to == KEY_DATA_DS_AT_PARENT_RETRACTED)
-		{
-			(void)retract_dnskey_by_id(sockfd, key, engine);
-		}
+    int key_match = 0;
+    int status = 0;
+    int need_commit = 0;
+    for (size_t z = 0; z < db->zones->n; z++) {
+        struct dbw_zone *zone = (struct dbw_zone *)db->zones->set[z];
+        if (zonename && strcmp(zonename, zone->name)) continue;
+        for (size_t k = 0; k < zone->key_count; k++) {
+            struct dbw_key *key = zone->key[k];
+            if (!(key->role & DBW_KSK)) continue;
+            if (state_from != key->ds_at_parent) continue;
+            if ((keytag != -1) && key->keytag != keytag) continue;
+            if (cka_id && strcmp(key->hsmkey->locator, cka_id)) continue;
+            key_match++;
+            status = 0;
+            /* if from is submit also exec dsSubmit command? */
+            if (!cmd && state_from == DBW_DS_AT_PARENT_SUBMIT &&
+                    state_to == DBW_DS_AT_PARENT_SUBMITTED)
+            {
+                status = submit_dnskey_by_id(sockfd, key, engine);
+            }
+            else if (!cmd && state_from == DBW_DS_AT_PARENT_RETRACT &&
+                    state_to == DBW_DS_AT_PARENT_RETRACTED)
+            {
+                status = retract_dnskey_by_id(sockfd, key, engine);
+            }
 
-		if (key_data_set_ds_at_parent(key, state_to) ||
-			key_data_update(key) || ds_changed(key) )
-		{
-			key_data_free(key);
-			ods_log_error("[%s] Error writing to database", module_str);
-			client_printf(sockfd, "[%s] Error writing to database", module_str);
-			status = 12;
-			break;
-		}
-		key_mod++;
-		/* We need to schedule enforce for owner of key. */
-		tmp_zone_name = zone_db_ext_zonename_from_id(dbconn, &key->zone_id);
-		if (tmp_zone_name)
-			enforce_task_flush_zone(engine, tmp_zone_name);
-		free(tmp_zone_name);
-		key_data_free(key);
-	}
-	key_data_list_free(key_list);
-
-	client_printf(sockfd, "%d KSK matches found.\n", key_match);
-	if (!key_match) status = 11;
-	client_printf(sockfd, "%d KSKs changed.\n", key_mod);
-	if (zone && key_mod > 0) {
-		zone->next_change = 0; /* asap */
-		(void)zone_db_update(zone);
-	}
-	zone_db_free(zone);
-	return status;
+            if (status == 0) {
+                key->ds_at_parent = state_to;
+                key->dirty = DBW_UPDATE;
+                zone->scratch = 1;
+                struct dbw_keystate *dnskey = dbw_get_keystate(key, DBW_DS);
+                dnskey->last_change = time_now();
+                dnskey->dirty = DBW_UPDATE;
+                need_commit = 1;
+            }
+        }
+    }
+    if (need_commit) {
+        if (dbw_commit(db)) {
+            dbw_free(db);
+            client_printf_err(sockfd, "Error committing to database");
+            return 1;
+        }
+        for (size_t z = 0; z < db->zones->n; z++) {
+            struct dbw_zone *zone = (struct dbw_zone *)db->zones->set[z];
+            if (!zone->scratch) continue;
+            enforce_task_flush_zone(engine, zone->name);
+        }
+    }
+    dbw_free(db);
+    client_printf(sockfd, "%d KSK matches found.\n", key_match);
+    client_printf(sockfd, "%d KSKs changed.\n", key_match);
+    return (!key_match);
 }
 
 int
-run_ds_cmd(int sockfd, const char *cmd,
-	db_connection_t *dbconn, key_data_ds_at_parent_t state_from,
-	key_data_ds_at_parent_t state_to, engine_type *engine)
+run_ds_cmd(int sockfd, const char *cmd, db_connection_t *dbconn, int state_from,
+	int state_to, engine_type *engine)
 {
 	#define NARGV 6
 	const char *zonename = NULL, *cka_id = NULL, *keytag_s = NULL;
 	int keytag = -1;
-	hsm_key_t* hsmkey = NULL;
 	int ret;
 	char buf[ODS_SE_MAXLINE];
-	zone_db_t* zone = NULL;
 	int all = 0;
 	int argc = 0, long_index = 0, opt = 0;
 	const char* argv[NARGV];
@@ -486,18 +357,13 @@ run_ds_cmd(int sockfd, const char *cmd,
 		}
 	}
 
-	if (!all && !zonename && !cka_id && !keytag_s) {
-		return ds_list_keys(dbconn, sockfd, state_from);
-	}
-
 	if (keytag_s) {
 		keytag = atoi(keytag_s);
 		if (keytag < 0 || keytag >= 65536) {
 			ods_log_warning("[%s] value \"%d\" for --keytag is invalid",
 				module_str, keytag);
-                        client_printf_err(sockfd, "value \"%d\" for --keytag is invalid\n",
-                                keytag);
-
+			client_printf_err(sockfd, "value \"%d\" for --keytag is invalid\n",
+				keytag);
 			return 1;
 		}
 	}
@@ -508,22 +374,14 @@ run_ds_cmd(int sockfd, const char *cmd,
 		return -1;
 	}
 
-	if (zonename && (!(zone = zone_db_new(dbconn)) || zone_db_get_by_name(zone, zonename))) {
-		ods_log_warning ("[%s] Error: Unable to find a zone named \"%s\" in database\n", module_str, zonename);
-	        client_printf_err(sockfd, "Error: Unable to find a zone named \"%s\" in database\n", zonename);
-		zone_db_free(zone);
-		zone = NULL;
-        	return -1;
+	/* With no options we list everything in state_from */
+	if (!all && !zonename && !cka_id && !keytag_s) {
+		return ds_list_keys(dbconn, sockfd, state_from);
 	}
-	zone_db_free(zone);
-	zone = NULL;
-        if (!zonename && (keytag != -1 || cka_id)) {
-                ods_log_warning ("[%s] Error: expected --zone <zone>", module_str);
-                client_printf_err(sockfd, "Error: expected --zone <zone>\n");
-                return -1;
-        }
 
-	if (!(zonename && ((cka_id && keytag == -1) || (!cka_id && keytag != -1))) && !all)
+	/* At this point (zonename must be given and either id, tag) or all exclusively */
+	if (!(( all && !zonename && !cka_id && (keytag == -1)) ||
+	    (!all &&  zonename && ((cka_id != NULL)^(keytag != -1)))))
 	{
 		ods_log_warning("[%s] expected --zone and either --cka_id or "
 			"--keytag option or expected --all", module_str);
@@ -531,13 +389,8 @@ run_ds_cmd(int sockfd, const char *cmd,
 			"--keytag option or expected --all.\n");
 		return -1;
 	}
-	
-	if (cka_id && !(hsmkey = hsm_key_new_get_by_locator(dbconn, cka_id))) {
-			client_printf_err(sockfd, "CKA_ID %s can not be found!\n", cka_id);
-			return -1;
-	}
-	ret = change_keys_from_to(dbconn, sockfd, zonename, hsmkey, keytag,
-		state_from, state_to, engine);
-	hsm_key_free(hsmkey);
+
+	ret = change_keys_from_to(dbconn, sockfd, zonename, cka_id, keytag,
+		state_from, state_to, engine, 1);
 	return ret;
 }

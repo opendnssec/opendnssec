@@ -821,6 +821,31 @@ static db_result_t* db_backend_sqlite_next(void* data, int finish) {
     return result;
 }
 
+static int
+db_backend_sqlite_last_id(void* data, int *last_id)
+{
+    db_backend_sqlite_t* backend_sqlite = (db_backend_sqlite_t*)data;
+    static char const *sql = "SELECT last_insert_rowid()";
+    sqlite3_stmt* statement = NULL;
+
+    if (__db_backend_sqlite_prepare(backend_sqlite, &statement, sql, -1)) {
+        return DB_ERROR_UNKNOWN;
+    }
+    int ret = __db_backend_sqlite_step(backend_sqlite, statement);
+    if (ret != SQLITE_DONE && ret != SQLITE_ROW) {
+        __db_backend_sqlite_finalize(statement);
+        return DB_ERROR_UNKNOWN;
+    }
+    *last_id = sqlite3_column_int(statement, 0);
+    ret = sqlite3_errcode(backend_sqlite->db);
+    if ((ret != SQLITE_OK && ret != SQLITE_ROW && ret != SQLITE_DONE)) {
+        __db_backend_sqlite_finalize(statement);
+        return DB_ERROR_UNKNOWN;
+    }
+    __db_backend_sqlite_finalize(statement);
+    return DB_OK;
+}
+
 static int db_backend_sqlite_create(void* data, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set) {
     db_backend_sqlite_t* backend_sqlite = (db_backend_sqlite_t*)data;
     const db_object_field_t* object_field;
@@ -1858,6 +1883,7 @@ db_backend_handle_t* db_backend_sqlite_new_handle(void) {
             || db_backend_handle_set_shutdown(backend_handle, db_backend_sqlite_shutdown)
             || db_backend_handle_set_connect(backend_handle, db_backend_sqlite_connect)
             || db_backend_handle_set_disconnect(backend_handle, db_backend_sqlite_disconnect)
+            || db_backend_handle_set_last_id(backend_handle, db_backend_sqlite_last_id)
             || db_backend_handle_set_create(backend_handle, db_backend_sqlite_create)
             || db_backend_handle_set_read(backend_handle, db_backend_sqlite_read)
             || db_backend_handle_set_update(backend_handle, db_backend_sqlite_update)
