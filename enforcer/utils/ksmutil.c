@@ -7845,10 +7845,10 @@ int cmd_genkeys()
     StrFree(rightnow);
 
     /* Log if a backup needs to be run for these keys */
-    if (ksks_created && policy->ksk->require_backup) {
+    if (ksks_created > 0 && policy->ksk->require_backup) {
         printf("NOTE: keys generated in repository %s will not become active until they have been backed up\n", policy->ksk->sm_name);
     }
-    if (new_ksks && policy->zsk->require_backup && (policy->zsk->sm != policy->ksk->sm)) {
+    if (new_ksks > 0 && policy->zsk->require_backup && (policy->zsk->sm != policy->ksk->sm)) {
         printf("NOTE: keys generated in repository %s will not become active until they have been backed up\n", policy->zsk->sm_name);
     }
 
