@@ -800,7 +800,8 @@ int KsmKeyCountStillGood(int policy_id, int sm, int bits, int algorithm, int int
     /* Create the SQL command to interrogate the database */ 
  
      /* Use 'distinct location' here so we don't count multiple entries for zones which share keys*/
-    sql = StrStrdup("SELECT COUNT(DISTINCT location) FROM KEYDATA_VIEW");
+    sql = StrStrdup("SELECT COUNT(*) FROM ");
+    StrAppend(&sql, "(SELECT DISTINCT location FROM KEYDATA_VIEW");
     if (policy_id != -1) {
         DqsConditionInt(&sql, "policy_id", DQS_COMPARE_EQ, policy_id, where++);
     }
@@ -826,6 +827,30 @@ int KsmKeyCountStillGood(int policy_id, int sm, int bits, int algorithm, int int
 #endif /* USE_MYSQL */
     StrAppend(&sql, buffer);
     StrAppend(&sql, " or RETIRE is NULL)");
+
+    StrAppend(&sql, " and location NOT IN (SELECT DISTINCT location FROM KEYDATA_VIEW");
+    where = 0;
+    if (policy_id != -1) {
+        DqsConditionInt(&sql, "policy_id", DQS_COMPARE_EQ, policy_id, where++);
+    }
+    if (sm != -1) {
+        DqsConditionInt(&sql, "securitymodule_id", DQS_COMPARE_EQ, sm, where++);
+    }
+    if (bits != -1) {
+        DqsConditionInt(&sql, "size", DQS_COMPARE_EQ, bits, where++);
+    }
+    DqsConditionInt(&sql, "keytype", DQS_COMPARE_EQ, keytype, where++);
+    if (algorithm != -1) {
+        DqsConditionInt(&sql, "algorithm", DQS_COMPARE_EQ, algorithm, where++);
+    }
+
+#ifdef USE_MYSQL
+    StrAppend(&sql, " and (RETIRE is NOT NULL) and (RETIRE < ");
+#else
+    StrAppend(&sql, " and (RETIRE is NOT NULL) and (DATETIME(RETIRE) < ");
+#endif
+    StrAppend(&sql, buffer);
+    StrAppend(&sql, " )))");
 
     /*DqsConditionKeyword(&sql, "zone_id", DQS_COMPARE_IS, "NULL", where++);*/
     DqsEnd(&sql); 
