@@ -36,13 +36,14 @@ echo -n "LINE: ${LINENO} " && test -n "$ZSK1_ID" &&
 echo -n "LINE: ${LINENO} " && ods-enforcer key list -v | grep $KSK1_ID | grep publish &&
 echo -n "LINE: ${LINENO} " && ods-enforcer key list -v | grep $ZSK1_ID | grep ready &&
 
-echo "################## DS-SEEN ###########################" &&
+echo "################## DS-SUBMIT/DS-SEEN ###########################" &&
 echo -n "LINE: ${LINENO} " && ods_enforcer_leap_over 4 &&
 
 echo -n "LINE: ${LINENO} " && ods-enforcer key list -v | grep $KSK1_ID | grep ready &&
-echo -n "LINE: ${LINENO} " && ods-enforcer key list -v | grep $KSK1_ID | grep ds-seen &&
+echo -n "LINE: ${LINENO} " && ods-enforcer key list -v | grep $KSK1_ID | grep ds-submit &&
 echo -n "LINE: ${LINENO} " && ods-enforcer key list -v | grep $ZSK1_ID | grep active &&
 
+echo -n "LINE: ${LINENO} " && ods-enforcer key ds-submit -z ods -k $KSK1_ID && sleep 3 &&
 echo -n "LINE: ${LINENO} " && ods-enforcer key ds-seen -z ods -k $KSK1_ID &&
 echo -n "LINE: ${LINENO} " && ods-enforcer key list -v | grep $KSK1_ID | grep active &&
 echo -n "LINE: ${LINENO} " && ods-enforcer key list -v | grep $ZSK1_ID | grep active &&
@@ -72,12 +73,15 @@ echo -n "LINE: ${LINENO} " && ods_enforcer_leap_over 22 &&
 
 echo -n "LINE: ${LINENO} " && ods-enforcer key list -v | grep $KSK1_ID | grep retire &&
 echo -n "LINE: ${LINENO} " && ods-enforcer key list -v | grep $KSK2_ID | grep ready &&
-echo -n "LINE: ${LINENO} " && ods-enforcer key list -v | grep $KSK1_ID | grep ds-gone &&
-echo -n "LINE: ${LINENO} " && ods-enforcer key list -v | grep $KSK2_ID | grep ds-seen &&
+echo -n "LINE: ${LINENO} " && ods-enforcer key list -v | grep $KSK1_ID | grep ds-retract &&
+echo -n "LINE: ${LINENO} " && ods-enforcer key list -v | grep $KSK2_ID | grep ds-submit &&
 
+echo -n "LINE: ${LINENO} " && ods-enforcer key ds-submit -z ods -k $KSK2_ID && sleep 3 &&
 echo -n "LINE: ${LINENO} " && ods-enforcer key ds-seen -z ods -k $KSK2_ID &&
 ## ds-gone fails on busy DB if ds-seen still running
 echo -n "LINE: ${LINENO} " && ods_enforcer_leap_over 2 &&
+
+echo -n "LINE: ${LINENO} " && ods-enforcer key ds-retract -z ods -k $KSK1_ID && sleep 3 &&
 echo -n "LINE: ${LINENO} " && ods-enforcer key ds-gone -z ods -k $KSK1_ID &&
 
 echo "################## FINAL CHECK ###########################" &&
