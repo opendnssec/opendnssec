@@ -128,7 +128,7 @@ echo -n "LINE: ${LINENO} " && ods-signerd --set-time $time && sleep 10 && ods-si
 
 echo -n "LINE: ${LINENO} " && sleep 2 && ods-signer update --all && sleep 10 &&
 echo -n "LINE: ${LINENO} " && sleep 2 && ods-signer sign --all && sleep 3 &&
-echo -n "LINE: ${LINENO} " && syslog_waitfor_count 900 10 'ods-signerd: .*\[STATS\] ods' &&
+echo -n "LINE: ${LINENO} " && syslog_waitfor_count 900 11 'ods-signerd: .*\[STATS\] ods' &&
 
 echo -n "LINE: ${LINENO} " && validns -t $time "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
 
