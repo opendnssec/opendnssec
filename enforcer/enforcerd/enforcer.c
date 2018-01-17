@@ -556,10 +556,10 @@ int do_keygen(DAEMONCONFIG *config, KSM_POLICY* policy, hsm_ctx_t *ctx)
     StrFree(rightnow);
 
     /* Log if a backup needs to be run for these keys */
-    if (ksks_created && policy->ksk->require_backup) {
+    if (ksks_created > 0 && policy->ksk->require_backup) {
         log_msg(config, LOG_INFO, "NOTE: keys generated in repository %s will not become active until they have been backed up", policy->ksk->sm_name);
     }
-    if (new_keys && policy->zsk->require_backup && (policy->zsk->sm != policy->ksk->sm)) {
+    if (new_keys > 0 && policy->zsk->require_backup && (policy->zsk->sm != policy->ksk->sm)) {
         log_msg(config, LOG_INFO, "NOTE: keys generated in repository %s will not become active until they have been backed up", policy->zsk->sm_name);
     }
 
