@@ -1470,6 +1470,10 @@ removeDeadKeys(struct dbw_zone *zone, const time_t now, int mockup)
         for (size_t d = 0; d < key->from_keydependency_count; d++) {
             key->from_keydependency[d]->dirty = DBW_DELETE;
         }
+        if (!zone->signconf_needs_writing) {
+            zone->signconf_needs_writing = 1;
+            dbw_mark_dirty((struct dbrow *)zone);
+        }
     }
     return first_purge;
 }
