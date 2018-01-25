@@ -452,4 +452,11 @@ void dbw_policies_add_zone(struct dbw_list *policies, struct dbw_zone *zone);
 
 //void dbw_dump_db(struct dbw_db *db);
 
+void sort_policies(const struct dbw_policy *arr[], int n);
+void sort_zones(const struct dbw_zone *arr[], int n);
+void sort_keys(const struct dbw_key *arr[], int n);
+static int compare_policies(const void *a, const void *b);
+static int compare_zones(const void *a, const void *b);
+static int compare_keys(const void *a, const void *b);
+
 #endif /*DBW_H*/

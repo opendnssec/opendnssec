@@ -98,8 +98,12 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
     client_printf(sockfd, fmt, "Zone:", "Policy:", "Next change:",
         "Signer Configuration:");
 
+    sort_policies((const struct dbw_policy **)db->policies->set, db->policies->n);
     for (size_t p = 0; p < db->policies->n; p++) {
         struct dbw_policy *policy = (struct dbw_policy *)db->policies->set[p];
+
+        sort_zones((const struct dbw_zone **)policy->zone, policy->zone_count);
+
         for (size_t i = 0; i < policy->zone_count; i++) {
             struct dbw_zone *z = policy->zone[i];
             client_printf(sockfd, fmt, z->name, z->policy->name,
