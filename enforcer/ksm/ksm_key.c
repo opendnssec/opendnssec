@@ -850,7 +850,7 @@ int KsmKeyCountStillGood(int policy_id, int sm, int bits, int algorithm, int int
     StrAppend(&sql, " and (RETIRE is NOT NULL) and (DATETIME(RETIRE) < ");
 #endif
     StrAppend(&sql, buffer);
-    StrAppend(&sql, " )))");
+    StrAppend(&sql, " ))) AS q");
 
     /*DqsConditionKeyword(&sql, "zone_id", DQS_COMPARE_IS, "NULL", where++);*/
     DqsEnd(&sql); 
