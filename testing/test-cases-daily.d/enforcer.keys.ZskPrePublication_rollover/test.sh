@@ -25,6 +25,7 @@ echo -n "LINE: ${LINENO} " && KSK1=`ods-enforcer key list -v -p | grep "KSK" | c
 # Leap to the time that both KSK and ZSK are used for signing
 echo -n "LINE: ${LINENO} " && sleep 3 && ods-enforcer time leap && sleep 3 &&
 echo -n "LINE: ${LINENO} " && sleep 3 && ods-enforcer time leap && sleep 3 &&
+echo -n "LINE: ${LINENO} " && sleep 3 && ods-enforcer key ds-submit -z ods --cka_id $KSK1 && sleep 3 &&
 echo -n "LINE: ${LINENO} " && sleep 3 && ods-enforcer key ds-seen -z ods --cka_id $KSK1 && sleep 3 &&
 echo -n "LINE: ${LINENO} " && sleep 3 && ods-enforcer time leap && sleep 3 &&
 
@@ -130,7 +131,7 @@ echo -n "LINE: ${LINENO} " && ods-signerd --set-time $time && sleep 10 && ods-si
 
 echo -n "LINE: ${LINENO} " && sleep 3 && ods-signer update --all && sleep 10 &&
 echo -n "LINE: ${LINENO} " && sleep 3 && ods-signer sign --all && sleep 5 &&
-echo -n "LINE: ${LINENO} " && syslog_waitfor_count 900 11 'ods-signerd: .*\[STATS\] ods' &&
+echo -n "LINE: ${LINENO} " && syslog_waitfor_count 900 12 'ods-signerd: .*\[STATS\] ods' &&
 echo -n "LINE: ${LINENO} " && validns -t $time "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
 
 echo &&

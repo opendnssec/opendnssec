@@ -45,6 +45,8 @@ ods_enforcer_leap_to 93600 &&
 # We should be ready for a ds-submit and ds-seen on ods
 syslog_grep "ods-enforcerd: .*please submit DS with keytag $KSK_KEYTAG for zone ods" &&
 
+log_this ods-enforcer-dssubmit_ods1   ods-enforcer key ds-submit --zone ods --keytag $KSK_KEYTAG &&
+
 # Key list should show KSK in ready state
 log_this ods-enforcer-key-list1_1 ods-enforcer key list &&
 log_grep ods-enforcer-key-list1_1 stdout 'ods[[:space:]]*KSK[[:space:]]*ready     waiting for ds-seen' &&

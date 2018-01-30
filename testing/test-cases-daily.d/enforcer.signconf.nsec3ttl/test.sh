@@ -36,8 +36,8 @@ rm base/* &&
 # Note the exported kasp has all times in seconds to can't be compared to the input kasp.xml
 echo "Exporting policy" &&
 ods-enforcer policy export --all > kasp.xml.temp~ &&
-sed -e 's#>.*</Salt># />#g' kasp.xml.temp~ > kasp.xml.temp2~ && 
-diff -w  kasp.xml.temp2~ kasp.xml.gold_exported && 
+sed -e 's#>.*</Salt># />#g' kasp.xml.temp~ > kasp.xml.temp2~ &&
+log_this ods-compare-kasp1 ods_comparexml  kasp.xml.temp2~ kasp.xml.gold_exported &&
 echo "Exported policy OK" &&
 
 # Lets fire up the signer and check what ends up in the zones
@@ -75,10 +75,11 @@ log_this ods-compare-signconfs2  ods_compare_gold_vs_base_signconf &&
 #rm base/* &&
 
 # Lets export the policies again and double check
+echo "Exporting policy2" &&
 ods-enforcer policy export --all > kasp.xml.temp3~ && 
 sed -e 's#>.*</Salt># />#g' kasp.xml.temp3~ > kasp.xml.temp4~ &&
-diff  -w  kasp.xml.temp4~ kasp.xml.gold_exported2 && 
-echo "Exported changed policy OK" &&
+log_this ods-compare-kasp2 ods_comparexml  kasp.xml.temp4~ kasp.xml.gold_exported2 &&
+echo "Exported changed policy2 OK" &&
 
 syslog_waitfor_count 60 2 'ods-signerd: .*\[STATS\] no-ttl' &&
 syslog_waitfor_count 60 2 'ods-signerd: .*\[STATS\] with-ttl' &&

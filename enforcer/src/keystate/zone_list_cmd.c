@@ -88,12 +88,14 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 
     struct dbw_db *db = dbw_fetch_filtered(dbconn, DBW_F_POLICY|DBW_F_ZONE);
     if (!db) return 1;
+
+    client_printf(sockfd, "Database set to: %s\n", engine->config->datastore);
+
     if (!db->zones->n) {
         client_printf(sockfd, "No zones in database.\n");
         dbw_free(db);
         return 0;
     }
-    client_printf(sockfd, "Database set to: %s\n", engine->config->datastore);
     client_printf(sockfd, "Zones:\n");
     client_printf(sockfd, fmt, "Zone:", "Policy:", "Next change:",
         "Signer Configuration:");
