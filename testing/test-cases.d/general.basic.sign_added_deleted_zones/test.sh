@@ -61,7 +61,7 @@ log_this ods-enforcer-zone_add   ods-enforcer zone delete --zone ods1 &&
 sleep 5 && ods_enforcer_idle &&
 log_grep ods-enforcer-zone_add   stdout "Deleted zone.*ods1" &&
 
-sleep 3 &&
+syslog_waitfor 180 "zone ods1 deleted" &&
 
 log_this ods-signer-sign-all ods-signer update --all &&
 log_this ods-signer-sign-all ods-signer sign --all &&
