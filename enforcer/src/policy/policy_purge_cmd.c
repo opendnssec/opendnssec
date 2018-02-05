@@ -75,6 +75,9 @@ purge_policies(int sockfd, db_connection_t *dbconn)
         for (size_t pk = 0; pk < policy->policykey_count; pk++) {
             policy->policykey[pk]->dirty = DBW_DELETE;
         }
+        for (size_t hk = 0; hk < policy->hsmkey_count; hk++) {
+            policy->hsmkey[hk]->dirty = DBW_DELETE;
+        }
     }
     if (dbw_commit(db)) {
         ods_log_crit("[%s] Failed to apply changes to the database", module_str);
