@@ -194,7 +194,10 @@ perform_keystate_list(int sockfd, db_connection_t *dbconn, const char* zonename,
 
     if (zonename) {
         struct dbw_zone *zone = dbw_get_zone(db, zonename);
-        print_sorted_keys(sockfd, keyrole, keystate, zone, printkey);
+        if (zone)
+            print_sorted_keys(sockfd, keyrole, keystate, zone, printkey);
+        else
+            client_printf_err(sockfd, "Unable to get zone %s from database!\n", zonename);
     }
     else {
         sort_policies((const struct dbw_policy **)db->policies->set, db->policies->n);

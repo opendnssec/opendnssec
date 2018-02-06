@@ -1691,8 +1691,8 @@ compare_keys(const void *a, const void *b)
     const struct dbw_key *bb = *(const struct dbw_key **)b;
 
     if (aa->role != bb->role)
-        return aa->role > bb->role;
-    return aa->inception > bb->inception;
+        return aa->role - bb->role;
+    return aa->inception - bb->inception;
 }
 
 void
