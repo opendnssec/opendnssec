@@ -3,6 +3,7 @@
 * OPENDNSSEC-909
 * DS automatically to submitted even if there wasn't a DSsubmitCommand
     TODO: figure out this bug was before or after DBW
+* Implement explicit ordering in key list cmd
 
 OpenDNSSEC 2.2 - 2017-xx-xx
 
