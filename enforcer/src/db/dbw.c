@@ -1666,3 +1666,49 @@ dbw_mark_dirty(struct dbrow *row)
         /*}*/
     /*}*/
 /*}*/
+
+static int
+compare_policies(const void *a, const void *b)
+{
+    const struct dbw_policy *aa = *(const struct dbw_policy **)a;
+    const struct dbw_policy *bb = *(const struct dbw_policy **)b;
+    return strcmp (aa->name, bb->name);
+}
+
+static int
+compare_zones(const void *a, const void *b)
+{
+    const struct dbw_zone *aa = *(const struct dbw_zone **)a;
+    const struct dbw_zone *bb = *(const struct dbw_zone **)b;
+
+    return strcmp (aa->name, bb->name);
+}
+
+static int
+compare_keys(const void *a, const void *b)
+{
+    const struct dbw_key *aa = *(const struct dbw_key **)a;
+    const struct dbw_key *bb = *(const struct dbw_key **)b;
+
+    if (aa->role != bb->role)
+        return aa->role - bb->role;
+    return aa->inception - bb->inception;
+}
+
+void
+sort_policies(const struct dbw_policy *arr[], int n)
+{
+    qsort(arr, n, sizeof(const struct dbw_policy*), compare_policies);
+}
+
+void
+sort_zones(const struct dbw_zone *arr[], int n)
+{
+    qsort(arr, n, sizeof(const struct dbw_zone*), compare_zones);
+}
+
+void
+sort_keys(const struct dbw_key *arr[], int n)
+{
+    qsort(arr, n, sizeof(const struct dbw_key*), compare_keys);
+}

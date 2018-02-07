@@ -164,6 +164,21 @@ map_keytime(const struct dbw_key *key, time_t now)
 	return strdup(ct);
 }
 
+static void
+print_sorted_keys(int sockfd, int keyrole, const char *keystate, struct dbw_zone *zone, void (printkey)(int sockfd, struct dbw_key *key, char *tchange))
+{
+    sort_keys((const struct dbw_key **)zone->key, zone->key_count);
+    for (size_t k = 0; k < zone->key_count; k++) {
+        struct dbw_key *key = zone->key[k];
+        if (keyrole && key->role != keyrole) continue;
+        if (keystate && strcasecmp(map_keystate(key), keystate)) continue;
+        char* tchange = map_keytime(key, time_now()); /* allocs */
+        (*printkey)(sockfd, key, tchange);
+        free(tchange);
+    }
+
+}
+
 static int
 perform_keystate_list(int sockfd, db_connection_t *dbconn, const char* zonename,
     int keyrole, const char* keystate, void (printheader)(int sockfd),
@@ -176,16 +191,24 @@ perform_keystate_list(int sockfd, db_connection_t *dbconn, const char* zonename,
         return 1;
     }
     if (printheader) (*printheader)(sockfd);
-    for (size_t z = 0; z < db->zones->n; z++) {
-        struct dbw_zone *zone = (struct dbw_zone *)db->zones->set[z];
-        if (zonename && strcmp(zone->name, zonename)) continue;
-        for (size_t k = 0; k < zone->key_count; k++) {
-            struct dbw_key *key = zone->key[k];
-            if (keyrole && key->role != keyrole) continue;
-            if (keystate && strcasecmp(map_keystate(key), keystate)) continue;
-            char* tchange = map_keytime(key, time_now()); /* allocs */
-                (*printkey)(sockfd, key, tchange);
-            free(tchange);
+
+    if (zonename) {
+        struct dbw_zone *zone = dbw_get_zone(db, zonename);
+        if (zone)
+            print_sorted_keys(sockfd, keyrole, keystate, zone, printkey);
+        else
+            client_printf_err(sockfd, "Unable to get zone %s from database!\n", zonename);
+    }
+    else {
+        sort_policies((const struct dbw_policy **)db->policies->set, db->policies->n);
+
+        for (size_t i = 0; i < db->policies->n; i++) {
+            struct dbw_policy *policy = (struct dbw_policy *) db->policies->set[i];
+            sort_zones((const struct dbw_zone **)policy->zone, policy->zone_count);
+            for (size_t z = 0; z < policy->zone_count; z++) {
+                struct dbw_zone *zone = policy->zone[z];
+                print_sorted_keys(sockfd, keyrole, keystate, zone, printkey);
+            }
         }
     }
     dbw_free(db);
