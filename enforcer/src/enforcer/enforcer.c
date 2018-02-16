@@ -57,6 +57,7 @@
 #include "enforcer/enforcer.h"
 
 #undef DEBUG_ENFORCER_LOGIC
+#define DEBUG_ENFORCER_LOGIC
 
 #define HIDDEN      DBW_HIDDEN
 #define RUMOURED    DBW_RUMOURED
@@ -68,13 +69,6 @@ static const char *module_str = "enforcer";
 
 /** When no key available wait this many seconds before asking again. */
 #define NOKEY_TIMEOUT 60
-
-struct future_key {
-    struct dbw_key *key;
-    enum dbw_keystate_type type;
-    enum dbw_keystate_state next_state;
-    int pretend_update;
-};
 
 static int64_t max(int64_t a, int64_t b) { return a>b?a:b; }
 static int64_t min(int64_t a, int64_t b) { return a<b?a:b; }
@@ -119,13 +113,8 @@ addtime(const time_t t, const int seconds)
  * of future_key is on type, use the next_state instead.
  */
 static inline enum dbw_keystate_state
-getState(struct dbw_key* key, enum dbw_keystate_type type, struct future_key *future_key)
+getState(struct dbw_key* key, enum dbw_keystate_type type)
 {
-    if (future_key->pretend_update && future_key->type == type
-        && future_key->key == key)
-    {
-        return future_key->next_state;
-    }
     return dbw_get_keystate(key, type)->state;
 }
 
@@ -165,16 +154,14 @@ getDesiredState(int introducing, enum dbw_keystate_state state)
  * \return 1 on match, 0 otherwise
  */
 static int
-match(struct dbw_key *key, struct future_key *future_key, int same_algorithm,
+match(struct dbw_key *key, int algorithm, int same_algorithm,
     const enum dbw_keystate_state mask[4])
 {
-    if (same_algorithm && key->algorithm != future_key->key->algorithm)
-        return 0;
-
+    if (same_algorithm && key->algorithm != algorithm) return 0;
     /* Check the states against the mask, for each mask that is not NA we
      * need a match on that key state. */
     for (int i = 0; i < 4; i++) {
-        if (mask[i] != NA && getState(key, i, future_key) != mask[i])
+        if (mask[i] != NA && getState(key, i) != mask[i])
             return 0;
     }
     return 1;
@@ -187,12 +174,12 @@ match(struct dbw_key *key, struct future_key *future_key, int same_algorithm,
  * a negative value if an error occurred.
  */
 static int
-exists(struct future_key *future_key, int same_algorithm,
+exists(struct dbw_zone *zone, int algorithm, int same_algorithm,
     const enum dbw_keystate_state mask[4])
 {
-    for (size_t k = 0; k < future_key->key->zone->key_count; k++) {
-        struct dbw_key *key = future_key->key->zone->key[k];
-        if (match(key, future_key, same_algorithm, mask)) return 1;
+    for (size_t k = 0; k < zone->key_count; k++) {
+        struct dbw_key *key = zone->key[k];
+        if (match(key, algorithm, same_algorithm, mask)) return 1;
     }
     return 0;
 }
@@ -204,12 +191,12 @@ exists(struct future_key *future_key, int same_algorithm,
  */
 static int
 isPotentialSuccessor(struct dbw_key *succkey, struct dbw_key *predkey,
-    struct future_key *future_key, enum dbw_keystate_type type)
+    enum dbw_keystate_type type)
 {
     /* You can't be a successor of yourself */
     if (succkey->id == predkey->id) return 0;
     /* Only rumoured keys can be successor. */
-    if (getState(succkey, type, future_key) != RUMOURED) return 0;
+    if (getState(succkey, type) != RUMOURED) return 0;
     /* key of different algorithms may not be in successor relation */
     if (succkey->algorithm != predkey->algorithm) return 0;
 
@@ -218,14 +205,14 @@ isPotentialSuccessor(struct dbw_key *succkey, struct dbw_key *predkey,
     switch (type) {
         case DBW_DS: /* Intentional fall-through */
         case DBW_RRSIG:
-            return getState(succkey, DBW_DNSKEY, future_key) == OMNIPRESENT;
+            return getState(succkey, DBW_DNSKEY) == OMNIPRESENT;
         case DBW_DNSKEY:
             /* Either both DS's should be omnipresent or both signatures, for the
              * keys to be in a potential relationship for the DNSKEY.  */
-            return (  getState(predkey, DBW_DS,    future_key) == OMNIPRESENT
-                   && getState(succkey, DBW_DS,    future_key) == OMNIPRESENT )
-                || (  getState(predkey, DBW_RRSIG, future_key) == OMNIPRESENT
-                   && getState(succkey, DBW_RRSIG, future_key) == OMNIPRESENT );
+            return (  getState(predkey, DBW_DS) == OMNIPRESENT
+                   && getState(succkey, DBW_DS) == OMNIPRESENT )
+                || (  getState(predkey, DBW_RRSIG) == OMNIPRESENT
+                   && getState(succkey, DBW_RRSIG) == OMNIPRESENT );
         default: /* no dependencies defined for DNSKEYRRSIG*/
             return 0;
     }
@@ -236,12 +223,11 @@ isPotentialSuccessor(struct dbw_key *succkey, struct dbw_key *predkey,
  * applied?
  */
 static int
-keys_same_state(struct dbw_key *k1, struct dbw_key *k2, struct future_key *fk)
+keys_same_state(struct dbw_key *k1, struct dbw_key *k2)
 {
-    return getState(k1, DBW_DS,     fk) == getState(k2, DBW_DS,     fk)
-        && getState(k1, DBW_DNSKEY, fk) == getState(k2, DBW_DNSKEY, fk)
-        /* RRSIGDNSKEY not relevant. Should follow DNSKEY */
-        && getState(k1, DBW_RRSIG,  fk) == getState(k2, DBW_RRSIG,  fk);
+    for (int i = 0; i < 4; i++)
+        if (getState(k1, i) != getState(k2, i)) return 0;
+    return 1;
 }
 
 /**
@@ -251,40 +237,73 @@ keys_same_state(struct dbw_key *k1, struct dbw_key *k2, struct future_key *fk)
  *
  * \return 1 on confirmed relation. 0 otherwise.
  */
-static int
-successor(struct dbw_key *succkey, struct dbw_key *predkey,
-    struct future_key *future_key, enum dbw_keystate_type type)
-{
-    /*s is successor of p when p depends on s or s'*/
+/*static int*/
+/*successor(struct dbw_key *succkey, struct dbw_key *predkey,*/
+    /*enum dbw_keystate_type type)*/
+/*{*/
+    /*//PRED DEPS on SUCC*/
+    /*[>s is successor of p when p depends on s or s'<]*/
 
-    if (predkey->to_keydependency_count > 0) return 0;
-    /* trivial case where predecessor depends directly on successor. */
-    for (size_t d = 0; d < predkey->from_keydependency_count; d++) {
-        struct dbw_keydependency *keydep = predkey->from_keydependency[d];
-        if (keydep->dirty == DBW_DELETE) continue;
-        if (keydep->type != type) continue;
-        if (keydep->tokey_id == succkey->id) return 1;
-    }
+    /* There is a dependency TO predeccessor (older key depending on us)
+     * pred is an intermediate key */
+    /*if (predkey->to_keydependency_count > 0) return 0;*/
+    
+    /*[> trivial case where predecessor depends directly on successor. <]*/
+    /*for (size_t d = 0; d < predkey->from_keydependency_count; d++) {*/
+        /*struct dbw_keydependency *keydep = predkey->from_keydependency[d];*/
+        /*if (keydep->dirty == DBW_DELETE) continue;*/
+        /*if (keydep->type != type) continue;*/
+        /*if (keydep->tokey_id == succkey->id) return 1;*/
+    /*}*/
 
-    /* trivial case where there is a direct relationship in the future */
-    if (future_key->pretend_update && predkey->id == future_key->key->id) {
-        if (isPotentialSuccessor(succkey, predkey, future_key, type)) {
-            return 1;
-        }
-    }
+    /*[> trivial case where there is a direct relationship in the future <]*/
+    /*if (isPotentialSuccessor(succkey, predkey, type)) {*/
+        /*return 1;*/
+    /*}*/
     /* Check for indirect relationship where X depends on S and X is in the same
      * state as P and X is a successor of P. */
-    for (size_t d = 0; d < succkey->to_keydependency_count; d++) {
-        struct dbw_keydependency *keydep = succkey->to_keydependency[d];
-        if (keydep->dirty == DBW_DELETE) continue;
-        if (keydep->type != type) continue;
-        struct dbw_key *fromkey = keydep->fromkey;
-        /* An 'in between' key should be in the same state as predecessor. */
-        if (!keys_same_state(predkey, fromkey, future_key)) continue;
-        /* Start recursion */
-        if (successor(fromkey, predkey, future_key, type)) {
-            return 1;
-        }
+    /*for (size_t d = 0; d < succkey->to_keydependency_count; d++) {*/
+        /*struct dbw_keydependency *keydep = succkey->to_keydependency[d];*/
+        /*if (keydep->dirty == DBW_DELETE) continue;*/
+        /*if (keydep->type != type) continue;*/
+        /*struct dbw_key *fromkey = keydep->fromkey;*/
+        /*[> An 'in between' key should be in the same state as predecessor. <]*/
+        /*if (!keys_same_state(predkey, fromkey)) continue;*/
+        /*[> Start recursion <]*/
+        /*if (successor(fromkey, predkey, type)) {*/
+            /*return 1;*/
+        /*}*/
+    /*}*/
+    /*return 0;*/
+/*}*/
+static int
+find_succ(struct dbw_key *P, const enum dbw_keystate_state pmask[4],
+    const enum dbw_keystate_state smask[4], int algorithm,
+    enum dbw_keystate_type type)
+{
+    //found successor
+    /*if (match(P, algorithm, 1, smask)) return 1;*/
+    //find next predecessor
+    for (size_t d = 0; d < P->from_keydependency_count; d++) {
+        struct dbw_keydependency *dep = P->from_keydependency[d];
+        if (dep->type != type) continue;
+        struct dbw_key *PP = dep->tokey;
+        if (match(PP, algorithm, 1, smask)) return 1;
+        if (!match(PP, algorithm, 1, pmask)) continue;
+        if (find_succ(PP, pmask, smask, algorithm, type)) return 1;
+    }
+    /* maybe such a relation doesn't exist yet */
+    //maybe a new dependency?
+    //must be the last (and the first) in the chain.
+    if (P->from_keydependency_count != 0) return 0;
+    for (size_t kk = 0; kk < P->zone->key_count; kk++) {
+        struct dbw_key *S = P->zone->key[kk];
+        if (!match(S, algorithm, 1, smask)) continue;
+        //must be not part of a chain
+        if (S->to_keydependency_count != 0) continue;
+        if (S->from_keydependency_count != 0) continue; //redundant check
+        // could P and S be potential successors?
+        return 1;
     }
     return 0;
 }
@@ -295,28 +314,46 @@ successor(struct dbw_key *succkey, struct dbw_key *predkey,
  * \return A positive value if a key exists, zero if a key does not exists
  */
 static int
-exists_with_successor(struct future_key *future_key, int same_algorithm,
-    const enum dbw_keystate_state predecessor_mask[4],
-    const enum dbw_keystate_state successor_mask[4], enum dbw_keystate_type type)
+exists_with_successor(struct dbw_zone *zone, int algorithm, int same_algorithm,
+    const enum dbw_keystate_state pmask[4],
+    const enum dbw_keystate_state smask[4], enum dbw_keystate_type type)
 {
+/*i   is there a key P == pmask depending on a key S == smask*/
+
+    //First look for key P in state pmask with noting depending on P
+
+    for (size_t k = 0; k < zone->key_count; k++) {
+        struct dbw_key *P = zone->key[k];
+        //must be the first in the chain
+        if (P->to_keydependency_count != 0) continue;
+        if (!match(P, algorithm, 1, pmask)) continue;
+        if (find_succ(P, pmask, smask, algorithm, type)) return 1;
+
+    }
+    return 0;
+
+
+
     /*
      * Walk the list of keys, for each key that matches the successor mask we
      * walk the list again and check that key against the keys that match the
      * predecessor mask if has a valid successor/predecessor relationship.  */
-    for (size_t k = 0; k < future_key->key->zone->key_count; k++) {
-        struct dbw_key *succkey = future_key->key->zone->key[k];
-        if (!match(succkey, future_key, same_algorithm, successor_mask)) continue;
-        for (size_t ksuc = 0; ksuc < future_key->key->zone->key_count; ksuc++) {
-            if (k == ksuc) continue; /* skip self */
-            struct dbw_key *predkey = future_key->key->zone->key[ksuc];
-            if (!match(predkey, future_key, same_algorithm, predecessor_mask)) continue;
+    /*for (size_t k = 0; k < zone->key_count; k++) {*/
+        /*struct dbw_key *succkey = zone->key[k];*/
+        /*if (!match(succkey, algorithm, same_algorithm, successor_mask)) continue;*/
+        /*//YBS now find a predecessor.*/
+        /*if (has_predecessor(zone, succ_key, type)) return 1;*/
+        /*[>for (size_t ksuc = 0; ksuc < zone->key_count; ksuc++) {<]*/
+            /*[>if (k == ksuc) continue; [> skip self <]<]*/
+            /*[>struct dbw_key *predkey = zone->key[ksuc];<]*/
+            /*[>if (!match(predkey, algorithm, same_algorithm, predecessor_mask)) continue;<]*/
 
-            /*TODO*/
-            /*This call seems to fail for the most trivial case*/
-            if (successor(succkey, predkey, future_key, type)) return 1;
-        }
-    }
-    return 0;
+            /*[>[>TODO<]<]*/
+            /*[>[>This call seems to fail for the most trivial case<]<]*/
+            /*[>if (successor(succkey, predkey, type)) return 1;<]*/
+        /*[>}<]*/
+    /*}*/
+    /*return 0;*/
 }
 
 
@@ -336,47 +373,79 @@ fix_mask(const enum dbw_keystate_state mask[4], enum dbw_keystate_state fixed[4]
  * are not.
  */
 static int
-unsignedOk(struct future_key *future_key, const enum dbw_keystate_state mask[4],
+unsignedOk(struct dbw_zone *zone, int algorithm, const enum dbw_keystate_state mask[4],
     enum dbw_keystate_type type)
 {
-    enum dbw_keystate_state cmp_mask[4];
-    /*enum dbw_keystate_state fixed[4];*/
-    /*fix_mask(mask, fixed);*/
-    struct dbw_zone *zone = future_key->key->zone;
+    /*All [type] should be HIDDEN or NA.*/
+    /*if [type] is S instead:*/
+        /*there must be a key x with [type]=S AND matching rest of mask.*/
+        /*AND*/
+        /*no other key may have [type] != S/H/NA*/
 
+    int count[] = {0,0,0,0,0};
     for (size_t k = 0; k < zone->key_count; k++) {
         struct dbw_key *key = zone->key[k];
+        count[getState(key, type)]++;
+    }
+    int spread = 0;
+    spread += !!count[RUMOURED];
+    spread += !!count[OMNIPRESENT];
+    spread += !!count[UNRETENTIVE];
+    /* basic case, everything HIDDEN or NA */
+    if (spread == 0) return 1;
+    /* if not everything HIDDEN we must have only one of the above states */
+    if (spread > 1) return 0;
+
+    /* check if there exists a key matching the mask */
+    int state = 0;
+    if (count[RUMOURED] != 0)
+        state = RUMOURED;
+    else if (count[OMNIPRESENT] != 0)
+        state = OMNIPRESENT;
+    else if (count[UNRETENTIVE] != 0)
+        state = UNRETENTIVE;
+
+    enum dbw_keystate_state cmp_mask[4];
+    memcpy(cmp_mask, mask, 4 * sizeof(enum dbw_keystate_state));
+    cmp_mask[type] = state;
+
+    return exists(zone, algorithm, 1, cmp_mask);
+
+    /*enum dbw_keystate_state cmp_mask[4];*/
+
+    /*for (size_t k = 0; k < zone->key_count; k++) {*/
+        /*struct dbw_key *key = zone->key[k];*/
         /* if key has different algorithm it does not influence the key we
          * are testing. */
-        if (key->algorithm != future_key->key->algorithm) continue;
-        /* States in mask might be influenced by future_key */
-        for (int i = 0; i < 4; i++) {
-            if (i == type) {
-                cmp_mask[i] = getState(key, type, future_key);
-            } else {
-                /*cmp_mask[i] = fixed[i];*/
-                cmp_mask[i] = mask[i];
-            }
-        }
-        /* If the state is hidden or NA for the given type this key is okay. */
-        if (cmp_mask[type] == HIDDEN || cmp_mask[type] == NA) continue;
-        /* It is NOT okay to be insigned for this key unless there is a key
+        /*if (key->algorithm != algorithm) continue;*/
+        /*[> States in mask might be influenced by future_key <]*/
+        /*for (int i = 0; i < 4; i++) {*/
+            /*if (i == type) {*/
+                /*cmp_mask[i] = getState(key, type);*/
+            /*} else {*/
+                /*[>cmp_mask[i] = fixed[i];<]*/
+                /*cmp_mask[i] = mask[i];*/
+            /*}*/
+        /*}*/
+        /*[> If the state is hidden or NA for the given type this key is okay. <]*/
+        /*if (cmp_mask[type] == HIDDEN || cmp_mask[type] == NA) continue;*/
+        /* It is NOT okay to be unsigned for this key unless there is a key
          * (in the future) to which the mask applies */
-        if (!exists(future_key, 1, cmp_mask)) return 0;
-    }
-    return 1;
+        /*if (!exists(zone, algorithm, 1, cmp_mask)) return 0;*/
+    /*}*/
+    /*return 1;*/
 }
 
 /* Check if ALL DS records for this algorithm are hidden
  *
  * \return 0 if !HIDDEN DS is found, 1 if no such DS where found */
 static int
-all_DS_hidden(struct future_key *future_key)
+all_DS_hidden(struct dbw_zone *zone, int algorithm)
 {
-    for (size_t k = 0; k < future_key->key->zone->key_count; k++) {
-        struct dbw_key *key = future_key->key->zone->key[k];
-        if (key->algorithm != future_key->key->algorithm) continue;
-        enum dbw_keystate_state state = getState(key, DBW_DS, future_key);
+    for (size_t k = 0; k < zone->key_count; k++) {
+        struct dbw_key *key = zone->key[k];
+        if (key->algorithm != algorithm) continue;
+        enum dbw_keystate_state state = getState(key, DBW_DS);
         if (state != HIDDEN && state != NA) return 0; /*Test failed. Found DS.*/
     }
     return 1; /*No such DS where found.*/
@@ -389,20 +458,18 @@ all_DS_hidden(struct future_key *future_key)
  * apply
  */
 static int
-rule1(struct future_key *future_key, int pretend_update)
+rule1(struct dbw_zone *zone, int algorithm)
 {
     static const enum dbw_keystate_state mask[2][4] = {
         { OMNIPRESENT, NA, NA, NA },/* a good key state.  */
         { RUMOURED,    NA, NA, NA } /* the DS is introducing.  */
     };
-    future_key->pretend_update = pretend_update;
     /* Return positive value if any of the masks are found.  */
 #ifdef DEBUG_ENFORCER_LOGIC
-    ods_log_error("DEBUG");
-    ods_log_error("Rule1 pretend=%d", pretend_update);
-    ods_log_error("%d %d", exists(future_key, 0, mask[0]), exists(future_key, 0, mask[1]));
+    ods_log_error("DEBUG rule1");
+    ods_log_error("%d %d", exists(zone, algorithm, 0, mask[0]), exists(zone, algorithm, 0, mask[1]));
 #endif
-    return (exists(future_key, 0, mask[0]) || exists(future_key, 0, mask[1]));
+    return (exists(zone, algorithm, 0, mask[0]) || exists(zone, algorithm, 0, mask[1]));
 }
 
 /**
@@ -412,7 +479,7 @@ rule1(struct future_key *future_key, int pretend_update)
  * apply
  */
 static int
-rule2(struct future_key *future_key, int pretend_update)
+rule2(struct dbw_zone *zone, int algorithm)
 {
     static const enum dbw_keystate_state  mask[8][4] = {
         { OMNIPRESENT, NA, OMNIPRESENT, OMNIPRESENT },/*good key state.*/
@@ -424,26 +491,24 @@ rule2(struct future_key *future_key, int pretend_update)
         { OMNIPRESENT, NA, UNRETENTIVE, OMNIPRESENT },
         { HIDDEN,      NA, OMNIPRESENT, OMNIPRESENT } /*unsigned state.*/
     };
-    future_key->pretend_update = pretend_update;
     /* Return positive value if any of the masks are found.  */
 #ifdef DEBUG_ENFORCER_LOGIC
-        ods_log_error("DEBUG");
-        ods_log_error("Rule2 pretend=%d", pretend_update);
-        ods_log_error("%d %d %d %d %d %d %d", exists(future_key, 1, mask[0])
-            , exists_with_successor(future_key, 1, mask[2], mask[1], DBW_DS)
-            , exists_with_successor(future_key, 1, mask[5], mask[3], DBW_DNSKEY)
-            , exists_with_successor(future_key, 1, mask[5], mask[4], DBW_DNSKEY)
-            , exists_with_successor(future_key, 1, mask[6], mask[3], DBW_DNSKEY)
-            , exists_with_successor(future_key, 1, mask[6], mask[4], DBW_DNSKEY)
-            , unsignedOk(future_key, mask[7], DBW_DS));
+        ods_log_error("DEBUG rule2");
+        ods_log_error("%d %d %d %d %d %d %d", exists(zone, algorithm, 1, mask[0])
+            , exists_with_successor(zone, algorithm, 1, mask[2], mask[1], DBW_DS)
+            , exists_with_successor(zone, algorithm, 1, mask[5], mask[3], DBW_DNSKEY)
+            , exists_with_successor(zone, algorithm, 1, mask[5], mask[4], DBW_DNSKEY)
+            , exists_with_successor(zone, algorithm, 1, mask[6], mask[3], DBW_DNSKEY)
+            , exists_with_successor(zone, algorithm, 1, mask[6], mask[4], DBW_DNSKEY)
+            , unsignedOk(zone, algorithm, mask[7], DBW_DS));
 #endif
-    return (exists(future_key, 1, mask[0])
-        || exists_with_successor(future_key, 1, mask[2], mask[1], DBW_DS)
-        || exists_with_successor(future_key, 1, mask[5], mask[3], DBW_DNSKEY)
-        || exists_with_successor(future_key, 1, mask[5], mask[4], DBW_DNSKEY)
-        || exists_with_successor(future_key, 1, mask[6], mask[3], DBW_DNSKEY)
-        || exists_with_successor(future_key, 1, mask[6], mask[4], DBW_DNSKEY)
-        || unsignedOk(future_key, mask[7], DBW_DS));
+    return (exists(zone, algorithm, 1, mask[0])
+        || exists_with_successor(zone, algorithm, 1, mask[2], mask[1], DBW_DS)
+        || exists_with_successor(zone, algorithm, 1, mask[5], mask[3], DBW_DNSKEY)
+        || exists_with_successor(zone, algorithm, 1, mask[5], mask[4], DBW_DNSKEY)
+        || exists_with_successor(zone, algorithm, 1, mask[6], mask[3], DBW_DNSKEY)
+        || exists_with_successor(zone, algorithm, 1, mask[6], mask[4], DBW_DNSKEY)
+        || unsignedOk(zone, algorithm, mask[7], DBW_DS));
 }
 
 /**
@@ -453,7 +518,7 @@ rule2(struct future_key *future_key, int pretend_update)
  * apply
  */
 static int
-rule3(struct future_key *future_key, int pretend_update)
+rule3(struct dbw_zone *zone, int algorithm)
 {
     static const enum dbw_keystate_state  mask[6][4] = {
         { NA, OMNIPRESENT, OMNIPRESENT, NA },/* good key state. */
@@ -463,22 +528,20 @@ rule3(struct future_key *future_key, int pretend_update)
         { NA, UNRETENTIVE, OMNIPRESENT, NA },/* outroducing RRSIG state. */
         { NA, OMNIPRESENT, HIDDEN,      NA } /* unsigned state. */
     };
-    future_key->pretend_update = pretend_update;
 #ifdef DEBUG_ENFORCER_LOGIC
-        ods_log_error("DEBUG");
-        ods_log_error("Rule3 pretend=%d", pretend_update);
-        ods_log_error("%d %d %d %d %d", exists(future_key, 1, mask[0])
-        , exists_with_successor(future_key, 1, mask[2], mask[1], DBW_DNSKEY)
-        , exists_with_successor(future_key, 1, mask[4], mask[3], DBW_RRSIG)
-        , unsignedOk(future_key, mask[5], DBW_DNSKEY)
-        , all_DS_hidden(future_key));
+        ods_log_error("DEBUG rule3");
+        ods_log_error("%d %d %d %d %d", exists(zone, algorithm, 1, mask[0])
+        , exists_with_successor(zone, algorithm, 1, mask[2], mask[1], DBW_DNSKEY)
+        , exists_with_successor(zone, algorithm, 1, mask[4], mask[3], DBW_RRSIG)
+        , unsignedOk(zone, algorithm, mask[5], DBW_DNSKEY)
+        , all_DS_hidden(zone, algorithm));
 #endif
     /* Return positive value if any of the masks are found. */
-    return (exists(future_key, 1, mask[0])
-        || exists_with_successor(future_key, 1, mask[2], mask[1], DBW_DNSKEY)
-        || exists_with_successor(future_key, 1, mask[4], mask[3], DBW_RRSIG)
-        || unsignedOk(future_key, mask[5], DBW_DNSKEY)
-        || all_DS_hidden(future_key));
+    return (exists(zone, algorithm, 1, mask[0])
+        || exists_with_successor(zone, algorithm, 1, mask[2], mask[1], DBW_DNSKEY)
+        || exists_with_successor(zone, algorithm, 1, mask[4], mask[3], DBW_RRSIG)
+        || unsignedOk(zone, algorithm, mask[5], DBW_DNSKEY)
+        || all_DS_hidden(zone, algorithm));
 }
 
 /**
@@ -487,7 +550,8 @@ rule3(struct future_key *future_key, int pretend_update)
  * \return A positive value if the transition is allowed, zero if it is not.
  */
 static int
-dnssecApproval(struct future_key *future_key, int allow_unsigned)
+dnssecApproval(struct dbw_zone *zone, struct dbw_key *key, enum dbw_keystate_type type,
+    enum dbw_keystate_state next_state, int allow_unsigned)
 {
     /* Check if DNSSEC state will be invalid by the transition by checking that
      * all 3 DNSSEC rules apply. Rule 1 only applies if we are not allowing an
@@ -504,9 +568,29 @@ dnssecApproval(struct future_key *future_key, int allow_unsigned)
      * rule2 - Handles DNSKEY states.
      * rule3 - Handles signatures.
      */
-    return  ( !rule1(future_key, 0) || rule1(future_key, 1) || allow_unsigned )
-         && ( !rule2(future_key, 0) || rule2(future_key, 1))
-         && ( !rule3(future_key, 0) || rule3(future_key, 1));
+    int before_change = 0;
+    int after_change = 0;
+
+    before_change |= ( rule1(zone, key->algorithm) << 0 );
+    before_change |= ( rule2(zone, key->algorithm) << 1 );
+    before_change |= ( rule3(zone, key->algorithm) << 2 );
+
+    struct dbw_keystate *keystate = dbw_get_keystate(key, type);
+    int current_state = keystate->state;
+    keystate->state = next_state;
+        /* if we make the rules more sophisticated by using the timing information
+         * as well, we also need to set last_change to now here.  */
+        after_change |= ( rule1(zone, key->algorithm) << 0 );
+        after_change |= ( rule2(zone, key->algorithm) << 1 );
+        after_change |= ( rule3(zone, key->algorithm) << 2 );
+    keystate->state = current_state;
+
+    int valid = ((~before_change)|after_change)&0x7;
+    valid |= allow_unsigned; //disable rule1
+#ifdef DEBUG_ENFORCER_LOGIC
+        ods_log_error("DEBUG dnssec %d %d %d", before_change, after_change, valid);
+#endif
+    return valid == 0x7;
 }
 
 /**
@@ -559,11 +643,9 @@ minTransitionTime(const struct dbw_policy *policy, enum dbw_keystate_type type,
  * a negative value if an error occurred.
  */
 static int
-policyApproval(struct future_key *future_key)
+policyApproval(struct dbw_zone *zone, struct dbw_key *key, enum dbw_keystate_type type,
+    enum dbw_keystate_state next_state)
 {
-    /*TODO this code was never used?*/
-    /*static const enum dbw_keystate_state dnskey_algorithm_rollover[4] =*/
-        /*{ OMNIPRESENT, OMNIPRESENT, OMNIPRESENT, NA };*/
     static const enum dbw_keystate_state mask[14][4] = {
         /*ZSK*/
         { NA, OMNIPRESENT, OMNIPRESENT, NA },   /* good key state.*/
@@ -585,60 +667,58 @@ policyApproval(struct future_key *future_key)
     };
 
     /* Once the record is introduced the policy has no influence. */
-    if (future_key->next_state != RUMOURED) return 1;
+    if (next_state != RUMOURED) return 1;
 
+    struct dbw_keystate *ks_ds = dbw_get_keystate(key, DBW_DS);
+    struct dbw_keystate *ks_dnskey = dbw_get_keystate(key, DBW_DNSKEY);
+    struct dbw_keystate *ks_sigkey = dbw_get_keystate(key, DBW_RRSIGDNSKEY);
+    struct dbw_keystate *ks_rrsig = dbw_get_keystate(key, DBW_RRSIG);
     /* Check if policy prevents transition if the next state is rumoured.  */
-    switch (future_key->type) {
-        
+    switch (type) {
+
     case DBW_DS:
         /* If we want to minimize the DS transitions make sure the DNSKEY is
          * fully propagated.  */
-        return !(dbw_get_keystate(future_key->key, DBW_DS)->minimize
-            && dbw_get_keystate(future_key->key, DBW_DNSKEY)->state != OMNIPRESENT);
+        return !(ks_ds->minimize && ks_dnskey->state != OMNIPRESENT);
 
     case DBW_DNSKEY:
         /* There are no restrictions for the DNSKEY transition so we can
          * just continue. */
-        if (!dbw_get_keystate(future_key->key, DBW_DNSKEY)->minimize) return 1;
+        if (!ks_dnskey->minimize) return 1;
         /* Check that signatures has been propagated for CSK/ZSK. */
-        if (future_key->key->role & DBW_ZSK) {
-            if (dbw_get_keystate(future_key->key, DBW_RRSIG)->state == OMNIPRESENT
-                || dbw_get_keystate(future_key->key, DBW_RRSIG)->state == NA)
-            {
+        if (key->role & DBW_ZSK) {
+            if (ks_rrsig->state == OMNIPRESENT || ks_rrsig->state == NA) {
                 return 1; /* RRSIG fully propagated so we will do the transitions. */
             }
         }
         /* Check if the DS is introduced and continue if it is. */
-        if (future_key->key->role & DBW_KSK) {
-            if (dbw_get_keystate(future_key->key, DBW_DS)->state == OMNIPRESENT
-                || dbw_get_keystate(future_key->key, DBW_DS)->state == NA)
-            {
+        if (key->role & DBW_KSK) {
+            if (ks_ds->state == OMNIPRESENT || ks_ds->state == NA) {
                 return 1;
             }
         }
         /* We might be doing an algorithm rollover so we check if there are
          * no other good KSK available and ignore the minimize flag if so. */
-        return !exists(future_key, 1, mask[6])
-            && !exists_with_successor(future_key, 1, mask[8], mask[7], DBW_DS)
-            && !exists_with_successor(future_key, 1, mask[11], mask[9], DBW_DNSKEY);
+        return !exists(zone, key->algorithm, 1, mask[6])
+            && !exists_with_successor(zone, key->algorithm, 1, mask[8], mask[7], DBW_DS)
+            && !exists_with_successor(zone, key->algorithm, 1, mask[11], mask[9], DBW_DNSKEY);
 
     case DBW_RRSIGDNSKEY:
         /* The only time not to introduce RRSIG DNSKEY is when the DNSKEY is
          * still hidden. */
-        return !(dbw_get_keystate(future_key->key, DBW_DNSKEY)->state == HIDDEN);
+        return ks_dnskey->state != HIDDEN;
 
     case DBW_RRSIG:
         /* There are no restrictions for the RRSIG transition if there is no
          * need to minimize, we can just continue.  */
-        if (!dbw_get_keystate(future_key->key, DBW_RRSIG)->minimize) return 1;
+        if (!ks_rrsig->minimize) return 1;
         /* Check if the DNSKEY is fully introduced and continue if it is. */
-        if (dbw_get_keystate(future_key->key, DBW_DNSKEY)->state == OMNIPRESENT)
-            return 1;
+        if (ks_dnskey->state == OMNIPRESENT) return 1;
         /* We might be doing an algorithm rollover so we check if there are
          * no other good ZSK available and ignore the minimize flag if so. */
-        return !exists(future_key, 1, mask[0])
-            && !exists_with_successor(future_key, 1, mask[2], mask[1], DBW_DNSKEY)
-            && !exists_with_successor(future_key, 1, mask[4], mask[3], DBW_RRSIG);
+        return !exists(zone, key->algorithm, 1, mask[0])
+            && !exists_with_successor(zone, key->algorithm, 1, mask[2], mask[1], DBW_DNSKEY)
+            && !exists_with_successor(zone, key->algorithm, 1, mask[4], mask[3], DBW_RRSIG);
 
     default:
         ods_log_assert(0);
@@ -704,19 +784,20 @@ getstate(struct dbw_key *key, enum dbw_keystate_type type)
  * return 1 if it is successable by a new key, 0 otherwise
  */
 static int
-isSuccessable(struct future_key* future_key)
+isSuccessable(struct dbw_key *key, enum dbw_keystate_type type,
+    enum dbw_keystate_state next_state)
 {
-    if (future_key->next_state != UNRETENTIVE) return 0;
+    if (next_state != UNRETENTIVE) return 0;
 
-    switch (future_key->type) {
+    switch (type) {
         case DBW_DS:
         case DBW_RRSIG:
-            return getstate(future_key->key, DBW_DNSKEY)->state == OMNIPRESENT;
+            return getstate(key, DBW_DNSKEY)->state == OMNIPRESENT;
         case DBW_RRSIGDNSKEY:
             return 0;
         case DBW_DNSKEY:
-            return getstate(future_key->key, DBW_DS)->state == OMNIPRESENT
-                || getstate(future_key->key, DBW_RRSIG)->state == OMNIPRESENT;
+            return getstate(key, DBW_DS)->state == OMNIPRESENT
+                || getstate(key, DBW_RRSIG)->state == OMNIPRESENT;
         default:
             ods_log_assert(0);
             return 0; /* squelch compiler */
@@ -728,41 +809,42 @@ isSuccessable(struct future_key* future_key)
  * Also remove relationships not longer relevant for future_key.
  */
 void
-markSuccessors(struct dbw_db *db, struct future_key *future_key)
+markSuccessors(struct dbw_db *db, struct dbw_zone *zone, struct dbw_key *key,
+    enum dbw_keystate_type type, enum dbw_keystate_state next_state)
 {
     static const char *scmd = "markSuccessors";
-    struct dbw_key *fromkey = future_key->key;
+    struct dbw_key *fromkey = key;
 
     /* If key,type in deplist and new state is omnipresent it is no
      * longer relevant for the dependencies */
-    if (future_key->next_state == OMNIPRESENT) {
+    if (next_state == OMNIPRESENT) {
         for (size_t d = 0; d < fromkey->to_keydependency_count; d++) {
             struct dbw_keydependency *dep = fromkey->to_keydependency[d];
-            if (future_key->type != dep->type) continue;
+            if (type != dep->type) continue;
             dep->dirty = DBW_DELETE; /*unconditionally delete*/
             //TODO WE NEED a keydep delete func 
         }
     }
 
-    if (!isSuccessable(future_key)) return;
+    if (!isSuccessable(key, type, next_state)) return;
 
-    for (size_t k = 0; k < fromkey->zone->key_count; k++) {
-        struct dbw_key *tokey = fromkey->zone->key[k];
-        if (!isPotentialSuccessor(tokey, fromkey, future_key, future_key->type))
+    for (size_t k = 0; k < zone->key_count; k++) {
+        struct dbw_key *tokey = zone->key[k];
+        if (!isPotentialSuccessor(tokey, fromkey, type))
             continue;
 
         /* First check we didn't already added such a dependency. */
         int exists = 0;
         for (size_t kd = 0; kd < fromkey->from_keydependency_count; kd++) {
             struct dbw_keydependency *keydep = fromkey->from_keydependency[kd];
-            if (keydep->tokey_id == tokey->id && future_key->type == keydep->type) {
+            if (keydep->tokey_id == tokey->id && type == keydep->type) {
                 exists = 1;
                 break;
             }
         }
         /* From now on key will depend on futurekey.*/
         if (!exists)
-            (void) dbw_new_keydependency(db, fromkey, tokey, future_key->type, tokey->zone);
+            (void) dbw_new_keydependency(db, fromkey, tokey, type, zone);
     }
 }
 
@@ -948,7 +1030,6 @@ updateZone(struct dbw_db *db, struct dbw_zone *zone, const time_t now,
     int allow_unsigned, int *zone_updated)
 {
     static const char *scmd = "updateZone";
-    struct future_key future_key;
     time_t returntime_zone = -1;
 
     struct dbw_policy *policy = zone->policy;
@@ -980,20 +1061,12 @@ updateZone(struct dbw_db *db, struct dbw_zone *zone, const time_t now,
                     dbw_keystate_state_txt[keystate->state],
                     dbw_keystate_state_txt[next_state]);
 
-                /* Whenever the code is looking at keystate and *pretend_update*
-                 * is set. This key should be handles AS IF it already changed
-                 * state. */
-                future_key.key = key;
-                future_key.type = keystate->type;
-                future_key.next_state = next_state;
-                future_key.pretend_update = 0;
-                
                 /* Check if policy prevents transition. */
-                if (!policyApproval(&future_key)) continue;
+                if (!policyApproval(zone, key, keystate->type, next_state)) continue;
                 ods_log_verbose("[%s] %s Policy says we can (1/3)", module_str, scmd);
 
                 /* Check if DNSSEC state prevents transition.  */
-                if (!dnssecApproval(&future_key, allow_unsigned)) continue;
+                if (!dnssecApproval(zone, key, keystate->type, next_state, allow_unsigned)) continue;
                 ods_log_verbose("[%s] %s DNSSEC says we can (2/3)", module_str, scmd);
 
                 returntime_keystate = minTransitionTime(policy, keystate->type, next_state,
@@ -1006,8 +1079,8 @@ updateZone(struct dbw_db *db, struct dbw_zone *zone, const time_t now,
                     {NA, UNRETENTIVE, OMNIPRESENT, NA},
                     {NA, RUMOURED,    OMNIPRESENT, NA}
                 };
-                int zsk_out = exists(&future_key, 1, mask[0]);
-                int zsk_in  = exists(&future_key, 1, mask[1]);
+                int zsk_out = exists(zone, key->algorithm, 1, mask[0]);
+                int zsk_in  = exists(zone, key->algorithm, 1, mask[1]);
 
                 if (keystate->type == DBW_RRSIG
                     && getstate(key, DBW_DNSKEY)->state == OMNIPRESENT
@@ -1068,7 +1141,7 @@ updateZone(struct dbw_db *db, struct dbw_zone *zone, const time_t now,
                     zone->signconf_needs_writing = 1;
                     dbw_mark_dirty((struct dbrow *)zone);
                 }
-                markSuccessors(db, &future_key);
+                markSuccessors(db, zone, key, keystate->type, next_state);
             }
         }
     }
