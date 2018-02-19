@@ -385,6 +385,7 @@ unsignedOk(struct dbw_zone *zone, int algorithm, const enum dbw_keystate_state m
     int count[] = {0,0,0,0,0};
     for (size_t k = 0; k < zone->key_count; k++) {
         struct dbw_key *key = zone->key[k];
+        if (key->algorithm != algorithm) continue;
         count[getState(key, type)]++;
     }
     int spread = 0;
