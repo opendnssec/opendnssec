@@ -308,7 +308,8 @@ find_succ(struct dbw_key *P, const enum dbw_keystate_state pmask[4],
     /* maybe such a relation doesn't exist yet */
     //maybe a new dependency?
     //must be the last (and the first) in the chain.
-    if (P->from_keydependency_count != 0) return 0;
+    if (dependencies_for_type(P->from_keydependency, P->from_keydependency_count, type) != 0)
+        return 0;
     for (size_t kk = 0; kk < P->zone->key_count; kk++) {
         struct dbw_key *S = P->zone->key[kk];
         if (!match(S, algorithm, 1, smask)) continue;
