@@ -276,6 +276,19 @@ keys_same_state(struct dbw_key *k1, struct dbw_key *k2)
     /*}*/
     /*return 0;*/
 /*}*/
+
+static int
+dependencies_for_type(struct dbw_keydependency **deplist, int count,
+    enum dbw_keystate_type type)
+{
+    int c = 0;
+    for (size_t d = 0; d < count; d++) {
+        struct dbw_keydependency *dep = deplist[d];
+        if (dep->type == type) c++;
+    }
+    return c;
+}
+
 static int
 find_succ(struct dbw_key *P, const enum dbw_keystate_state pmask[4],
     const enum dbw_keystate_state smask[4], int algorithm,
@@ -300,8 +313,10 @@ find_succ(struct dbw_key *P, const enum dbw_keystate_state pmask[4],
         struct dbw_key *S = P->zone->key[kk];
         if (!match(S, algorithm, 1, smask)) continue;
         //must be not part of a chain
-        if (S->to_keydependency_count != 0) continue;
-        if (S->from_keydependency_count != 0) continue; //redundant check
+        if (dependencies_for_type(S->to_keydependency, S->to_keydependency_count, type) != 0)
+            continue;
+        if (dependencies_for_type(S->from_keydependency, S->from_keydependency_count, type) != 0)
+            continue;
         // could P and S be potential successors?
         return 1;
     }
@@ -325,7 +340,8 @@ exists_with_successor(struct dbw_zone *zone, int algorithm, int same_algorithm,
     for (size_t k = 0; k < zone->key_count; k++) {
         struct dbw_key *P = zone->key[k];
         //must be the first in the chain
-        if (P->to_keydependency_count != 0) continue;
+        if (dependencies_for_type(P->to_keydependency, P->to_keydependency_count, type) != 0)
+            continue;
         if (!match(P, algorithm, 1, pmask)) continue;
         if (find_succ(P, pmask, smask, algorithm, type)) return 1;
 
@@ -411,30 +427,6 @@ unsignedOk(struct dbw_zone *zone, int algorithm, const enum dbw_keystate_state m
     cmp_mask[type] = state;
 
     return exists(zone, algorithm, 1, cmp_mask);
-
-    /*enum dbw_keystate_state cmp_mask[4];*/
-
-    /*for (size_t k = 0; k < zone->key_count; k++) {*/
-        /*struct dbw_key *key = zone->key[k];*/
-        /* if key has different algorithm it does not influence the key we
-         * are testing. */
-        /*if (key->algorithm != algorithm) continue;*/
-        /*[> States in mask might be influenced by future_key <]*/
-        /*for (int i = 0; i < 4; i++) {*/
-            /*if (i == type) {*/
-                /*cmp_mask[i] = getState(key, type);*/
-            /*} else {*/
-                /*[>cmp_mask[i] = fixed[i];<]*/
-                /*cmp_mask[i] = mask[i];*/
-            /*}*/
-        /*}*/
-        /*[> If the state is hidden or NA for the given type this key is okay. <]*/
-        /*if (cmp_mask[type] == HIDDEN || cmp_mask[type] == NA) continue;*/
-        /* It is NOT okay to be unsigned for this key unless there is a key
-         * (in the future) to which the mask applies */
-        /*if (!exists(zone, algorithm, 1, cmp_mask)) return 0;*/
-    /*}*/
-    /*return 1;*/
 }
 
 /* Check if ALL DS records for this algorithm are hidden
