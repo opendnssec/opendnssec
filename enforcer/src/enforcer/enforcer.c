@@ -57,7 +57,6 @@
 #include "enforcer/enforcer.h"
 
 #undef DEBUG_ENFORCER_LOGIC
-#define DEBUG_ENFORCER_LOGIC
 
 #define HIDDEN      DBW_HIDDEN
 #define RUMOURED    DBW_RUMOURED
@@ -85,7 +84,7 @@ static int64_t min(int64_t a, int64_t b) { return a<b?a:b; }
 static inline void
 minTime(const time_t t, time_t* min)
 {
-	ods_log_assert(min); /* TODO: proper error */
+	ods_log_assert(min);
 	if ( (t < *min || *min < 0) && t >= 0 ) *min = t;
 }
 
@@ -109,8 +108,7 @@ addtime(const time_t t, const int seconds)
 }
 
 /**
- * Return state of a record. If key and future_key are the same and the change
- * of future_key is on type, use the next_state instead.
+ * Return state of a record.
  */
 static inline enum dbw_keystate_state
 getState(struct dbw_key* key, enum dbw_keystate_type type)
@@ -170,8 +168,7 @@ match(struct dbw_key *key, int algorithm, int same_algorithm,
 /**
  * Test if a key exist with certain states.
  *
- * \return A positive value if a key exists, zero if a key does not exists and
- * a negative value if an error occurred.
+ * \return A positive value if a key exists, zero if a key does not exists.
  */
 static int
 exists(struct dbw_zone *zone, int algorithm, int same_algorithm,
@@ -218,65 +215,10 @@ isPotentialSuccessor(struct dbw_key *succkey, struct dbw_key *predkey,
     }
 }
 
-/**
- * Are key k1 and key k2 in the same state after changes to future_key are 
- * applied?
+/*
+ * count number of key dependencies in given list that are applicable
+ * to type.
  */
-static int
-keys_same_state(struct dbw_key *k1, struct dbw_key *k2)
-{
-    for (int i = 0; i < 4; i++)
-        if (getState(k1, i) != getState(k2, i)) return 0;
-    return 1;
-}
-
-/**
- * Test recursively if succkey is successor of predkey for type. Either
- * directly or via succkey' the is successor of predkey. Take a future change
- * in to account.
- *
- * \return 1 on confirmed relation. 0 otherwise.
- */
-/*static int*/
-/*successor(struct dbw_key *succkey, struct dbw_key *predkey,*/
-    /*enum dbw_keystate_type type)*/
-/*{*/
-    /*//PRED DEPS on SUCC*/
-    /*[>s is successor of p when p depends on s or s'<]*/
-
-    /* There is a dependency TO predeccessor (older key depending on us)
-     * pred is an intermediate key */
-    /*if (predkey->to_keydependency_count > 0) return 0;*/
-    
-    /*[> trivial case where predecessor depends directly on successor. <]*/
-    /*for (size_t d = 0; d < predkey->from_keydependency_count; d++) {*/
-        /*struct dbw_keydependency *keydep = predkey->from_keydependency[d];*/
-        /*if (keydep->dirty == DBW_DELETE) continue;*/
-        /*if (keydep->type != type) continue;*/
-        /*if (keydep->tokey_id == succkey->id) return 1;*/
-    /*}*/
-
-    /*[> trivial case where there is a direct relationship in the future <]*/
-    /*if (isPotentialSuccessor(succkey, predkey, type)) {*/
-        /*return 1;*/
-    /*}*/
-    /* Check for indirect relationship where X depends on S and X is in the same
-     * state as P and X is a successor of P. */
-    /*for (size_t d = 0; d < succkey->to_keydependency_count; d++) {*/
-        /*struct dbw_keydependency *keydep = succkey->to_keydependency[d];*/
-        /*if (keydep->dirty == DBW_DELETE) continue;*/
-        /*if (keydep->type != type) continue;*/
-        /*struct dbw_key *fromkey = keydep->fromkey;*/
-        /*[> An 'in between' key should be in the same state as predecessor. <]*/
-        /*if (!keys_same_state(predkey, fromkey)) continue;*/
-        /*[> Start recursion <]*/
-        /*if (successor(fromkey, predkey, type)) {*/
-            /*return 1;*/
-        /*}*/
-    /*}*/
-    /*return 0;*/
-/*}*/
-
 static int
 dependencies_for_type(struct dbw_keydependency **deplist, int count,
     enum dbw_keystate_type type)
@@ -289,43 +231,48 @@ dependencies_for_type(struct dbw_keydependency **deplist, int count,
     return c;
 }
 
+/*
+ * Given a predecessor key P that matches pmask test whether there is a
+ * key S (and an arbitrary amount of P' keys in between) that matches smask
+ */
 static int
 find_succ(struct dbw_key *P, const enum dbw_keystate_state pmask[4],
     const enum dbw_keystate_state smask[4], int algorithm,
     enum dbw_keystate_type type)
 {
-    //found successor
-    /*if (match(P, algorithm, 1, smask)) return 1;*/
-    //find next predecessor
+    /* recursive definition */
     for (size_t d = 0; d < P->from_keydependency_count; d++) {
         struct dbw_keydependency *dep = P->from_keydependency[d];
         if (dep->type != type) continue;
         struct dbw_key *PP = dep->tokey;
+        /* if key PP matches smask we found key S, success! */
         if (match(PP, algorithm, 1, smask)) return 1;
+        /* This was not S. Is it a P'? */
         if (!match(PP, algorithm, 1, pmask)) continue;
         if (find_succ(PP, pmask, smask, algorithm, type)) return 1;
     }
-    /* maybe such a relation doesn't exist yet */
-    //maybe a new dependency?
-    //must be the last (and the first) in the chain.
+    /* From the last P' to S there might not yet been a dependency defined.
+     * Test if this is the case. */
+    /* But if there already is a dependency from P defined we can't do this. */
     if (dependencies_for_type(P->from_keydependency, P->from_keydependency_count, type) != 0)
         return 0;
+    /* Scan for potential S */
     for (size_t kk = 0; kk < P->zone->key_count; kk++) {
         struct dbw_key *S = P->zone->key[kk];
         if (!match(S, algorithm, 1, smask)) continue;
-        //must be not part of a chain
+        /* We found a potential S, now test whether it is unencumbered. */
         if (dependencies_for_type(S->to_keydependency, S->to_keydependency_count, type) != 0)
             continue;
         if (dependencies_for_type(S->from_keydependency, S->from_keydependency_count, type) != 0)
             continue;
-        // could P and S be potential successors?
-        return 1;
+        return 1; /* it is! */
     }
     return 0;
 }
 
 /**
- * TODO
+ * Test the existence of a pair of keys P, S in zone with states pmask and
+ * smask. There might be a successor relation defined between these keys.
  *
  * \return A positive value if a key exists, zero if a key does not exists
  */
@@ -334,57 +281,25 @@ exists_with_successor(struct dbw_zone *zone, int algorithm, int same_algorithm,
     const enum dbw_keystate_state pmask[4],
     const enum dbw_keystate_state smask[4], enum dbw_keystate_type type)
 {
-/*i   is there a key P == pmask depending on a key S == smask*/
-
-    //First look for key P in state pmask with noting depending on P
-
+    /* try all keys */
     for (size_t k = 0; k < zone->key_count; k++) {
         struct dbw_key *P = zone->key[k];
-        //must be the first in the chain
+        /* must be the first in the chain */
         if (dependencies_for_type(P->to_keydependency, P->to_keydependency_count, type) != 0)
             continue;
+        /* must match pmask */
         if (!match(P, algorithm, 1, pmask)) continue;
+        /* find S*/
         if (find_succ(P, pmask, smask, algorithm, type)) return 1;
 
     }
     return 0;
-
-
-
-    /*
-     * Walk the list of keys, for each key that matches the successor mask we
-     * walk the list again and check that key against the keys that match the
-     * predecessor mask if has a valid successor/predecessor relationship.  */
-    /*for (size_t k = 0; k < zone->key_count; k++) {*/
-        /*struct dbw_key *succkey = zone->key[k];*/
-        /*if (!match(succkey, algorithm, same_algorithm, successor_mask)) continue;*/
-        /*//YBS now find a predecessor.*/
-        /*if (has_predecessor(zone, succ_key, type)) return 1;*/
-        /*[>for (size_t ksuc = 0; ksuc < zone->key_count; ksuc++) {<]*/
-            /*[>if (k == ksuc) continue; [> skip self <]<]*/
-            /*[>struct dbw_key *predkey = zone->key[ksuc];<]*/
-            /*[>if (!match(predkey, algorithm, same_algorithm, predecessor_mask)) continue;<]*/
-
-            /*[>[>TODO<]<]*/
-            /*[>[>This call seems to fail for the most trivial case<]<]*/
-            /*[>if (successor(succkey, predkey, type)) return 1;<]*/
-        /*[>}<]*/
-    /*}*/
-    /*return 0;*/
-}
-
-
-static void
-fix_mask(const enum dbw_keystate_state mask[4], enum dbw_keystate_state fixed[4])
-{
-    fixed[0] = mask[0];
-    fixed[1] = mask[3];
-    fixed[2] = mask[1];
-    fixed[3] = mask[2];
 }
 
 /**
- * Test if keys are in a good unsigned state.
+ * Test if keys are in a good unsigned state. For example when we have a key
+ * with a rumoured DS and omnipresent DNSKEY, every other key may not have
+ * its DS other than rumoured or hidden.
  *
  * \return A positive value if keys are in a good unsigned state, zero if keys
  * are not.
@@ -393,12 +308,7 @@ static int
 unsignedOk(struct dbw_zone *zone, int algorithm, const enum dbw_keystate_state mask[4],
     enum dbw_keystate_type type)
 {
-    /*All [type] should be HIDDEN or NA.*/
-    /*if [type] is S instead:*/
-        /*there must be a key x with [type]=S AND matching rest of mask.*/
-        /*AND*/
-        /*no other key may have [type] != S/H/NA*/
-
+    /* collect the amount of keys in each state */
     int count[] = {0,0,0,0,0};
     for (size_t k = 0; k < zone->key_count; k++) {
         struct dbw_key *key = zone->key[k];
@@ -411,10 +321,12 @@ unsignedOk(struct dbw_zone *zone, int algorithm, const enum dbw_keystate_state m
     spread += !!count[UNRETENTIVE];
     /* basic case, everything HIDDEN or NA */
     if (spread == 0) return 1;
-    /* if not everything HIDDEN we must have only one of the above states */
+    /* if not everything HIDDEN we must have only one of the above states.
+     * Two different states are always wrong. */
     if (spread > 1) return 0;
 
-    /* check if there exists a key matching the mask */
+    /* check if there exists a key matching the mask.
+     * adjust the mask so that the state of [type] is the found state. */
     int state = 0;
     if (count[RUMOURED] != 0)
         state = RUMOURED;
@@ -427,6 +339,7 @@ unsignedOk(struct dbw_zone *zone, int algorithm, const enum dbw_keystate_state m
     memcpy(cmp_mask, mask, 4 * sizeof(enum dbw_keystate_state));
     cmp_mask[type] = state;
 
+    /* if we can find such a key all is well. */
     return exists(zone, algorithm, 1, cmp_mask);
 }
 
@@ -565,10 +478,12 @@ dnssecApproval(struct dbw_zone *zone, struct dbw_key *key, enum dbw_keystate_typ
     int before_change = 0;
     int after_change = 0;
 
+    /* set flag for each rule */
     before_change |= ( rule1(zone, key->algorithm) << 0 );
     before_change |= ( rule2(zone, key->algorithm) << 1 );
     before_change |= ( rule3(zone, key->algorithm) << 2 );
 
+    /* safe current state, apply change and test again.*/
     struct dbw_keystate *keystate = dbw_get_keystate(key, type);
     int current_state = keystate->state;
     keystate->state = next_state;
@@ -577,8 +492,12 @@ dnssecApproval(struct dbw_zone *zone, struct dbw_key *key, enum dbw_keystate_typ
         after_change |= ( rule1(zone, key->algorithm) << 0 );
         after_change |= ( rule2(zone, key->algorithm) << 1 );
         after_change |= ( rule3(zone, key->algorithm) << 2 );
-    keystate->state = current_state;
+    keystate->state = current_state; /* restore */
 
+    /* before => after (implication)
+     * If one of the rules isn't satisfied in the before situation we allow
+     * it to be unsatisfied in the after situation. This provides us a way to
+     * recover from an invalid state. */
     int valid = ((~before_change)|after_change)&0x7;
     valid |= allow_unsigned; //disable rule1
 #ifdef DEBUG_ENFORCER_LOGIC
