@@ -270,6 +270,26 @@ find_succ(struct dbw_key *P, const enum dbw_keystate_state pmask[4],
     return 0;
 }
 
+static int
+first_of_dependency_chain(struct dbw_key *P, enum dbw_keystate_type type)
+{
+    if (!dependencies_for_type(P->to_keydependency, P->to_keydependency_count, type))
+        return 1;
+    /* if not first, is predecessor hidden? */
+
+    for (size_t d = 0; d < P->to_keydependency_count; d++) {
+        struct dbw_keydependency *dep = P->to_keydependency[d];
+        if (dep->type != type) continue;
+        struct dbw_key *fromkey = dep->fromkey;
+        if (getState(fromkey, type) == HIDDEN && fromkey->to_keydependency_count == 0)
+            return 1;
+        /* if we can find a predeccessor with state[type]=hidden
+         * and no predeccessors itself. we can consider this key
+         * a valid first of the chain. */
+    }
+    return 0;
+}
+
 /**
  * Test the existence of a pair of keys P, S in zone with states pmask and
  * smask. There might be a successor relation defined between these keys.
@@ -285,8 +305,7 @@ exists_with_successor(struct dbw_zone *zone, int algorithm, int same_algorithm,
     for (size_t k = 0; k < zone->key_count; k++) {
         struct dbw_key *P = zone->key[k];
         /* must be the first in the chain */
-        if (dependencies_for_type(P->to_keydependency, P->to_keydependency_count, type) != 0)
-            continue;
+        if (!first_of_dependency_chain(P, type)) continue;
         /* must match pmask */
         if (!match(P, algorithm, 1, pmask)) continue;
         /* find S*/
