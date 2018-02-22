@@ -181,6 +181,20 @@ exists(struct dbw_zone *zone, int algorithm, int same_algorithm,
     return 0;
 }
 
+static int
+exists_with_ds_state(struct dbw_zone *zone, int algorithm, int same_algorithm,
+    const enum dbw_keystate_state mask[4], int ds_state)
+{
+    for (size_t k = 0; k < zone->key_count; k++) {
+        struct dbw_key *key = zone->key[k];
+        if (match(key, algorithm, same_algorithm, mask)) {
+            if (key->ds_at_parent >= ds_state)
+                return 1;
+        }
+    }
+    return 0;
+}
+
 /**
  * Test if a key is a potential successor.
  *
@@ -358,6 +372,19 @@ unsignedOk(struct dbw_zone *zone, int algorithm, const enum dbw_keystate_state m
     memcpy(cmp_mask, mask, 4 * sizeof(enum dbw_keystate_state));
     cmp_mask[type] = state;
 
+    /* TODO: if type was DS, the key we must find must also be in the same
+     * ds_at_parent state as the offending DS we found. */
+    if (type == DBW_DS) {
+        int ds_state = -1;
+        /* find the key that has DS in [state] */
+        for (size_t k = 0; k < zone->key_count; k++) {
+            struct dbw_key *key = zone->key[k];
+            if (key->algorithm != algorithm) continue;
+            if (getState(key, DBW_DS) != state) continue;
+            ds_state = max(ds_state, key->ds_at_parent);
+        }
+        return exists_with_ds_state(zone, algorithm, 1, cmp_mask, ds_state);
+    }
     /* if we can find such a key all is well. */
     return exists(zone, algorithm, 1, cmp_mask);
 }

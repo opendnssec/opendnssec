@@ -4,6 +4,8 @@
 * DS automatically to submitted even if there wasn't a DSsubmitCommand
     TODO: figure out this bug was before or after DBW
 * Implement explicit ordering in key list cmd
+* OPENDNSSEC-914: Rolling keys before finishing a previous roll could lead
+  to invalid state in some cases.
 
 OpenDNSSEC 2.2 - 2017-xx-xx
 
