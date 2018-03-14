@@ -52,7 +52,8 @@ typedef enum key_data_ds_at_parent {
     KEY_DATA_DS_AT_PARENT_SUBMITTED = 2,
     KEY_DATA_DS_AT_PARENT_SEEN = 3,
     KEY_DATA_DS_AT_PARENT_RETRACT = 4,
-    KEY_DATA_DS_AT_PARENT_RETRACTED = 5
+    KEY_DATA_DS_AT_PARENT_RETRACTED = 5,
+    KEY_DATA_DS_AT_PARENT_GONE = 6
 } key_data_ds_at_parent_t;
 extern const db_enum_t key_data_enum_set_ds_at_parent[];
 

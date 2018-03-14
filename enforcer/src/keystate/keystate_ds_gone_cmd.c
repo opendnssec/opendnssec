@@ -75,7 +75,7 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
         db_connection_t* dbconn = getconnectioncontext(context);
         engine_type* engine = getglobalcontext(context);
 	return run_ds_cmd(sockfd, cmd, dbconn, DBW_DS_AT_PARENT_RETRACTED,
-		DBW_DS_AT_PARENT_UNSUBMITTED, engine);
+		DBW_DS_AT_PARENT_GONE, engine);
 }
 
 struct cmd_func_block key_ds_gone_funcblock = {

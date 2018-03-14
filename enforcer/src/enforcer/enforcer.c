@@ -188,7 +188,8 @@ exists_with_ds_state(struct dbw_zone *zone, int algorithm, int same_algorithm,
     for (size_t k = 0; k < zone->key_count; k++) {
         struct dbw_key *key = zone->key[k];
         if (match(key, algorithm, same_algorithm, mask)) {
-            if (key->ds_at_parent >= ds_state)
+            if ((key->ds_at_parent == ds_state)
+             || ( key->ds_at_parent > ds_state && key->ds_at_parent <= DBW_DS_AT_PARENT_SEEN))
                 return 1;
         }
     }
@@ -342,51 +343,21 @@ unsignedOk(struct dbw_zone *zone, int algorithm, const enum dbw_keystate_state m
     enum dbw_keystate_type type)
 {
     /* collect the amount of keys in each state */
-    int count[] = {0,0,0,0,0};
     for (size_t k = 0; k < zone->key_count; k++) {
         struct dbw_key *key = zone->key[k];
         if (key->algorithm != algorithm) continue;
-        count[getState(key, type)]++;
-    }
-    int spread = 0;
-    spread += !!count[RUMOURED];
-    spread += !!count[OMNIPRESENT];
-    spread += !!count[UNRETENTIVE];
-    /* basic case, everything HIDDEN or NA */
-    if (spread == 0) return 1;
-    /* if not everything HIDDEN we must have only one of the above states.
-     * Two different states are always wrong. */
-    if (spread > 1) return 0;
-
-    /* check if there exists a key matching the mask.
-     * adjust the mask so that the state of [type] is the found state. */
-    int state = 0;
-    if (count[RUMOURED] != 0)
-        state = RUMOURED;
-    else if (count[OMNIPRESENT] != 0)
-        state = OMNIPRESENT;
-    else if (count[UNRETENTIVE] != 0)
-        state = UNRETENTIVE;
 
     enum dbw_keystate_state cmp_mask[4];
     memcpy(cmp_mask, mask, 4 * sizeof(enum dbw_keystate_state));
-    cmp_mask[type] = state;
+    cmp_mask[type] = getState(key, type);
 
-    /* TODO: if type was DS, the key we must find must also be in the same
-     * ds_at_parent state as the offending DS we found. */
-    if (type == DBW_DS) {
-        int ds_state = -1;
-        /* find the key that has DS in [state] */
-        for (size_t k = 0; k < zone->key_count; k++) {
-            struct dbw_key *key = zone->key[k];
-            if (key->algorithm != algorithm) continue;
-            if (getState(key, DBW_DS) != state) continue;
-            ds_state = max(ds_state, key->ds_at_parent);
-        }
-        return exists_with_ds_state(zone, algorithm, 1, cmp_mask, ds_state);
+    if (cmp_mask[type] == HIDDEN || cmp_mask[type] == NA) continue;
+
+    cmp_mask[DBW_DS] = NA;
+    if  (!exists_with_ds_state(zone, algorithm, 1, cmp_mask, key->ds_at_parent)) return 0;
     }
-    /* if we can find such a key all is well. */
-    return exists(zone, algorithm, 1, cmp_mask);
+
+   return 1;
 }
 
 /* Check if ALL DS records for this algorithm are hidden
@@ -923,7 +894,7 @@ is_ds_waiting_for_user(struct dbw_keystate *keystate, enum dbw_keystate_state ne
     if (next_state == DBW_OMNIPRESENT)
         return keystate->key->ds_at_parent != DBW_DS_AT_PARENT_SEEN;
     if (next_state == DBW_HIDDEN)
-        return keystate->key->ds_at_parent != DBW_DS_AT_PARENT_UNSUBMITTED;
+        return (keystate->key->ds_at_parent != DBW_DS_AT_PARENT_UNSUBMITTED && keystate->key->ds_at_parent != DBW_DS_AT_PARENT_GONE);
     return 0;
 }
 
@@ -963,6 +934,7 @@ handle_ds_at_parent(struct dbw_key *key, enum dbw_keystate_state next_state)
                 return 1;
 
             case KEY_DATA_DS_AT_PARENT_UNSUBMITTED:
+            case KEY_DATA_DS_AT_PARENT_GONE:
             case KEY_DATA_DS_AT_PARENT_RETRACTED:
             case KEY_DATA_DS_AT_PARENT_RETRACT:
                 return 0;
