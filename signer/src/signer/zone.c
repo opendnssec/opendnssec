@@ -359,6 +359,25 @@ zone_prepare_keys(zone_type* zone)
 }
 
 
+ods_status
+zone_add_rr(zone_type* zone, names_view_type view, ldns_rr* rr, int do_stats)
+{
+    dictionary record;
+    ods_status status;
+    record = names_place(view, ldns_rdf2str(ldns_rr_owner(rr)));
+    /* We only ought to entize the domain when newly added, but cannot detect this properly */
+    status = namedb_domain_entize(view, record, zone->apex);
+    if (status != ODS_STATUS_OK) {
+        ods_log_error("[%s] unable to add RR to zone %s: failed to entize domain", zone_str, zone->name);
+        return ODS_STATUS_ERR;
+    }
+    /* FIXME we should check the TTL of the rr conforms to the other rr already present */
+    if(!names_recordhasdata(record, ldns_rr_get_type(rr), rr, 0)) {
+        rrset_add_rr(record, rr);
+    }
+}
+
+
 /**
  * Lookup RRset.
  *
