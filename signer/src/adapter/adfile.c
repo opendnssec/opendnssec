@@ -342,22 +342,12 @@ adfile_write(zone_type* adzone, names_view_type view, const char* filename)
     if (!tmpname) {
         return ODS_STATUS_MALLOC_ERR;
     }
-    fd = ods_fopen(tmpname, NULL, "w");
-    if (fd) {
-        status = adapi_printzone(fd, adzone, view);
-        ods_fclose(fd);
-        if (status == ODS_STATUS_OK) {
-            if (adzone->adoutbound->error) {
-                ods_log_error("[%s] unable to write zone %s file %s: one or "
-                    "more RR print failed", adapter_str, adzone->name,
-                    filename);
-                /* clear error */
-                adzone->adoutbound->error = 0;
-                status = ODS_STATUS_FWRITE_ERR;
-            }
+    if(writezone(view, tmpname, adzone->apex, NULL)) {
+        if (adzone->adoutbound->error) {
+            ods_log_error("[%s] unable to write zone %s file %s", adapter_str, adzone->name, filename);
+            adzone->adoutbound->error = 0;
+            status = ODS_STATUS_FWRITE_ERR;
         }
-    } else {
-        status = ODS_STATUS_FOPEN_ERR;
     }
 
     if (status == ODS_STATUS_OK) {

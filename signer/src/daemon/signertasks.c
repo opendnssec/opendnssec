@@ -85,7 +85,7 @@ worker_queue_zone(struct worker_context* context, fifoq_type* q, names_view_type
 {
     names_iterator iter;
     domain_type* domain;
-    for(names_alldomains(view, &iter); names_iterate(&iter,&domain); names_advance(&iter,NULL)) {
+    for(iter=expiring(view); names_iterate(&iter,&domain); names_advance(&iter,NULL)) {
         worker_queue_domain(context, q, domain, nsubtasks);
     }
 }
@@ -119,15 +119,13 @@ signdomain(struct worker_context* superior, hsm_ctx_t* ctx, domain_type* domain)
     rrset_type* rrset = NULL;
     denial_type* denial = NULL;
     ods_log_assert(domain);
-    rrset = domain->rrsets;
-    while (rrset) {
+    while(eachdomainset(&rrset, domain)) {
         if((status = rrset_sign(superior->zone, superior->view, domain, ctx, rrset, superior->clock_in)) != ODS_STATUS_OK)
             return status;
-        rrset = rrset->next;
     }
-    denial = (denial_type*) domain->denial;
-    if (denial && denial->rrset) {
-        if((status = rrset_sign(superior->zone, superior->view, domain, ctx, denial->rrset, superior->clock_in)) != ODS_STATUS_OK)
+    denialset(&rrset, domain);
+    if (rrset) {
+        if((status = rrset_sign(superior->zone, superior->view, domain, ctx, rrset, superior->clock_in)) != ODS_STATUS_OK)
             return status;
     }
     return ODS_STATUS_OK;
@@ -260,20 +258,17 @@ do_signzone(task_type* task, const char* zonename, void* zonearg, void *contexta
     engine_type* engine = context->engine;
     worker_type* worker = context->worker;
     zone_type* zone = zonearg;
-    names_view_type view;
     ods_status status;
     time_t start = 0;
     time_t end = 0;
     long nsubtasks = 0;
     long nsubtasksfailed = 0;
     
-    names_viewobtain(zone->namedb, names_SIGNVIEW, &view);
-
     context->clock_in = time_now();
     context->zone = zone;
-    context->view = view; 
+    context->view = zone->signview;
 
-    status = zone_update_serial(zone, view);
+    status = zone_update_serial(zone, zone->prepareview);
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] unable to sign zone %s: failed to increment serial", worker->name, task->owner);
         ods_log_crit("[%s] CRITICAL: failed to sign zone %s: %s",
@@ -308,7 +303,7 @@ do_signzone(task_type* task, const char* zonename, void* zonearg, void *contexta
     status = zone_prepare_keys(zone);
     if (status == ODS_STATUS_OK) {
         /* queue menial, hard signing work */
-        worker_queue_zone(context, worker->taskq->signq, view, &nsubtasks);
+        worker_queue_zone(context, worker->taskq->signq, zone->signview, &nsubtasks);
         ods_log_deeebug("[%s] wait until drudgers are finished "
                 "signing zone %s", worker->name, task->owner);
         /* sleep until work is done */
@@ -339,12 +334,12 @@ do_signzone(task_type* task, const char* zonename, void* zonearg, void *contexta
                 (unsigned int)*zone->inboundserial);
             stats_clear(zone->stats);
             pthread_mutex_unlock(&zone->stats->stats_lock);
-            names_rollback(view);
+            names_viewreset(zone->prepareview);
             return schedule_SUCCESS;
         }
         pthread_mutex_unlock(&zone->stats->stats_lock);
     }
-    names_viewcommit(view);
+    names_viewcommit(zone->prepareview);
     schedule_scheduletask(engine->taskq, TASK_WRITE, zone->name, zone, &zone->zone_lock, schedule_PROMPTLY);
     return schedule_SUCCESS;
 }

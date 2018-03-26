@@ -116,7 +116,7 @@ namedb_domain_entize(names_view_type view, domain_type* domain, ldns_rdf* apex)
         }
         parent_domain = names_lookupname(view, parent_rdf);
         if (!parent_domain) {
-            parent_domain = names_addname(view, parent_rdf);
+            parent_domain = names_place(view, ldns_rdf2str(parent_rdf));
             ldns_rdf_deep_free(parent_rdf);
             if (!parent_domain) {
                 ods_log_error("[%s] unable to entize domain: failed to add "

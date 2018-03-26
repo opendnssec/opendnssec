@@ -382,52 +382,6 @@ unlink_backup_file(const char* filename, const char* extension)
     }
 }
 
-/**
- * Handle the 'clear' command.
- *
- */
-static int
-cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
-{
-    engine_type* engine;
-    char buf[ODS_SE_MAXLINE];
-    zone_type* zone = NULL;
-    uint32_t inbserial = 0;
-    uint32_t intserial = 0;
-    uint32_t outserial = 0;
-    engine = getglobalcontext(context);
-    unlink_backup_file(cmdargument(cmd, NULL, ""), ".inbound");
-    unlink_backup_file(cmdargument(cmd, NULL, ""), ".backup");
-    unlink_backup_file(cmdargument(cmd, NULL, ""), ".axfr");
-    unlink_backup_file(cmdargument(cmd, NULL, ""), ".ixfr");
-    pthread_mutex_lock(&engine->zonelist->zl_lock);
-    zone = zonelist_lookup_zone_by_name(engine->zonelist, cmdargument(cmd, NULL, ""),
-            LDNS_RR_CLASS_IN);
-    pthread_mutex_unlock(&engine->zonelist->zl_lock);
-    if (zone) {
-        pthread_mutex_lock(&zone->zone_lock);
-	names_clear(zone->namedb);
-        signconf_cleanup(zone->signconf);
-        zone->signconf = signconf_create();
-        
-        /* If a zone does not have a task we probably never read a signconf
-         * for it. Skip reschedule step */
-        schedule_scheduletask(engine->taskq, TASK_FORCESIGNCONF, zone->name, zone, &zone->zone_lock, schedule_IMMEDIATELY);
-        pthread_mutex_unlock(&zone->zone_lock);
-
-        (void) snprintf(buf, ODS_SE_MAXLINE, "Internal zone information about "
-                "%s cleared", cmdargument(cmd, NULL, ""));
-        ods_log_info("[%s] internal zone information about %s cleared",
-                cmdh_str, cmdargument(cmd, NULL, ""));
-    } else {
-        (void) snprintf(buf, ODS_SE_MAXLINE, "Cannot clear zone %s, zone not "
-                "found", cmdargument(cmd, NULL, ""));
-        ods_log_warning("[%s] cannot clear zone %s, zone not found",
-                cmdh_str, cmdargument(cmd, NULL, ""));
-    }
-    client_printf(sockfd, buf);
-    return 0;
-}
 
 
 /**
@@ -594,7 +548,6 @@ cmdhandler_handle_cmd_verbosity(int sockfd, cmdhandler_ctx_type* context, const 
 struct cmd_func_block helpCmdDef = { "help", NULL, NULL, NULL, &cmdhandler_handle_cmd_help };
 struct cmd_func_block zonesCmdDef = { "zones", NULL, NULL, NULL, &cmdhandler_handle_cmd_zones };
 struct cmd_func_block signCmdDef = { "sign", NULL, NULL, NULL, &cmdhandler_handle_cmd_sign };
-struct cmd_func_block clearCmdDef = { "clear", NULL, NULL, NULL, &cmdhandler_handle_cmd_clear };
 struct cmd_func_block queueCmdDef = { "queue", NULL, NULL, NULL, &cmdhandler_handle_cmd_queue };
 struct cmd_func_block flushCmdDef = { "flush", NULL, NULL, NULL, &cmdhandler_handle_cmd_flush };
 struct cmd_func_block updateCmdDef = { "update", NULL, NULL, NULL, &cmdhandler_handle_cmd_update };
@@ -609,7 +562,6 @@ struct cmd_func_block* signcommands[] = {
     &helpCmdDef,
     &zonesCmdDef,
     &signCmdDef,
-    &clearCmdDef,
     &queueCmdDef,
     &flushCmdDef,
     &updateCmdDef,

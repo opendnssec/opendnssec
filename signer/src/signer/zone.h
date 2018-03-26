@@ -76,7 +76,14 @@ struct zone_struct {
     adapter_type* adoutbound; /* outbound adapter */
     /* from signconf.xml */
     signconf_type* signconf; /* signer configuration values */
-    void* namedb;
+
+    names_view_type baseview;
+    names_view_type inputview;
+    names_view_type prepareview;
+    names_view_type signview;
+    names_view_type outputview;
+    char *persistviews;
+
     uint32_t* nextserial;
     uint32_t* inboundserial;
     uint32_t* outboundserial;
@@ -165,7 +172,7 @@ ods_status zone_update_serial(zone_type* zone, names_view_type view);
  * \return rrset_type* RRset, if found
  *
  */
-rrset_type* zone_lookup_apex_rrset(names_view_type view, ldns_rr_type type);
+ldns_rr* zone_lookup_apex_rrset(names_view_type view, ldns_rr_type type,ldns_rr*);
 
 /**
  * Add RR.

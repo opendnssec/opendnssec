@@ -504,6 +504,7 @@ response_encode_rr(query_type* q, ldns_rr* rr, ldns_pkt_section section)
 static uint16_t
 response_encode_rrset(query_type* q, rrset_type* rrset, ldns_pkt_section section)
 {
+    ldns_rr* rr;
     rrsig_type* rrsig;
     uint16_t i = 0;
     uint16_t added = 0;
@@ -511,12 +512,12 @@ response_encode_rrset(query_type* q, rrset_type* rrset, ldns_pkt_section section
     ods_log_assert(rrset);
     ods_log_assert(section);
 
-    for (i = 0; i < rrset->rr_count; i++) {
-        added += response_encode_rr(q, rrset->rrs[i].rr, section);
+    while(eachrr(rrset, &rr)) {
+        added += response_encode_rr(q, rr, section);
     }
     if (q->edns_rr && q->edns_rr->dnssec_ok) {
-        while((rrsig = collection_iterator(rrset->rrsigs))) {
-            added += response_encode_rr(q, rrsig->rr, section);
+        while(eachrrsig(&rrsig,rr)) {
+            added += response_encode_rr(q, rr, section);
         }
     }
     /* truncation? */
@@ -531,6 +532,7 @@ response_encode_rrset(query_type* q, rrset_type* rrset, ldns_pkt_section section
 static void
 response_encode(query_type* q, response_type* r)
 {
+    ldns_rr* rr;
     uint16_t counts[LDNS_SECTION_ANY];
     ldns_pkt_section s = LDNS_SECTION_QUESTION;
     size_t i = 0;
@@ -540,9 +542,9 @@ response_encode(query_type* q, response_type* r)
         counts[s] = 0;
     }
     for (s = LDNS_SECTION_ANSWER; s < LDNS_SECTION_ANY; s++) {
-        for (i = 0; i < r->rrset_count; i++) {
+        while(eachrr(NULL, &rr)) {
             if (r->sections[i] == s) {
-                counts[s] += response_encode_rrset(q, r->rrsets[i], s);
+                counts[s] += response_encode_rrset(q, rr, s);
             }
         }
     }
@@ -567,20 +569,20 @@ query_response(names_view_type view, query_type* q, ldns_rr_type qtype)
         return QUERY_DISCARDED;
     }
     r.rrset_count = 0;
-    rrset = zone_lookup_apex_rrset(view, qtype);
+    rrset = zone_lookup_apex_rrset(view, qtype, NULL);
     if (rrset) {
         if (!response_add_rrset(&r, rrset, LDNS_SECTION_ANSWER)) {
             return query_servfail(q);
         }
         /* NS RRset goes into Authority Section */
-        rrset = zone_lookup_apex_rrset(view, LDNS_RR_TYPE_NS);
+        rrset = zone_lookup_apex_rrset(view, LDNS_RR_TYPE_NS, NULL);
         if (rrset) {
             if (!response_add_rrset(&r, rrset, LDNS_SECTION_AUTHORITY)) {
                 return query_servfail(q);
             }
         } /* else: not having NS RRs is not fatal  */
     } else if (qtype != LDNS_RR_TYPE_SOA) {
-        rrset = zone_lookup_apex_rrset(view, LDNS_RR_TYPE_SOA);
+        rrset = zone_lookup_apex_rrset(view, LDNS_RR_TYPE_SOA, NULL);
         if (!rrset) {
             return query_servfail(q);
         }
@@ -685,7 +687,7 @@ query_process_query(query_type* q, ldns_rr_type qtype, engine_type* engine)
         return soa_request(q, engine);
     }
     /* other qtypes */
-    names_viewobtain(q->zone->namedb, names_AXFROUTVIEW, &view);
+    view = q->zone->outputview;
     returnstate = query_response(view, q, qtype);
     names_dispose(view);
     return returnstate;

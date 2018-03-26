@@ -335,24 +335,6 @@ adapi_del_rr(zone_type* zone, names_view_type view, ldns_rr* rr, int backup)
 
 
 /**
- * Print zone.
- *
- */
-ods_status
-adapi_printzone(FILE* fd, zone_type* zone, names_view_type view)
-{
-    ods_status status = ODS_STATUS_OK;
-    if (!fd || !zone) {
-        ods_log_error("[%s] unable to print zone: file descriptor, zone or "
-            "name database missing", adapi_str);
-        return ODS_STATUS_ASSERT_ERR;
-    }
-    namedb_export(fd, view, &status);
-    return status;
-}
-
-
-/**
  * Print axfr.
  *
  */
@@ -368,7 +350,7 @@ adapi_printaxfr(FILE* fd, zone_type* zone, names_view_type view)
     }
     namedb_export(fd, view, &status);
     if (status == ODS_STATUS_OK) {
-        rrset = zone_lookup_apex_rrset(view, LDNS_RR_TYPE_SOA);
+        rrset = zone_lookup_apex_rrset(view, LDNS_RR_TYPE_SOA, NULL);
         ods_log_assert(rrset);
         rrset_print(fd, rrset, 1, &status);
     }

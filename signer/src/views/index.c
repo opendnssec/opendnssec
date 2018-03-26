@@ -9,12 +9,12 @@
 #pragma GCC optimize ("O0")
 
 typedef int (*comparefunction)(const void *, const void *);
-typedef int (*acceptfunction)(names_index_type index, dictionary newitem, dictionary currentitem, int* cmp);
+typedef int (*acceptfunction)(dictionary newitem, dictionary currentitem, int* cmp);
 
 struct names_index_struct {
-    char* keyname;
+    const char* keyname;
     ldns_rbtree_t* tree;
-    acceptfunction  acceptfunc;
+    acceptfunction acceptfunc;
 };
 
 struct names_iterator_struct {
@@ -25,253 +25,16 @@ struct names_iterator_struct {
 };
 
 int
-acceptance1(names_index_type index, dictionary newitem, dictionary currentitem, int *cmp)
-{
-    (void)index;
-    (void)currentitem;
-    if(getset(newitem,"validfrom",NULL,NULL))
-        return 1;
-    else
-        return 0;
-}
-
-#define DEFINECOMPARISON(N) \
-    int N(names_index_type, dictionary, dictionary, int*); \
-    int N ## _ldns(const void* a, const void* b) { \
-    int rc; N(NULL, (dictionary)a, (dictionary)b, &rc); return rc; }
-
-DEFINECOMPARISON(comparename)
-DEFINECOMPARISON(comparenamerevision)
-DEFINECOMPARISON(compareexpiry)
-DEFINECOMPARISON(comparedenialname)
-DEFINECOMPARISON(compareupcomingset)
-DEFINECOMPARISON(compareincomingset)
-DEFINECOMPARISON(comparecurrentset)
-DEFINECOMPARISON(comparerelevantset)
-DEFINECOMPARISON(comparesignedset)
-
-int
-comparename(names_index_type index, dictionary newitem, dictionary curitem, int* cmp)
-{
-    const char* left;
-    const char* right;
-    (void)index;
-    if (curitem) {
-        if (cmp) {
-            getset(newitem, "name", &left, NULL);
-            getset(curitem, "name", &right, NULL);
-            assert(left);
-            assert(right);
-            *cmp = strcmp(left, right);
-        }
-    }
-    return 1;
-}
-
-int
-comparenamerevision(names_index_type index, dictionary newitem, dictionary curitem, int* cmp)
-{
-    const char* left;
-    const char* right;
-    (void)index;
-    if (curitem) {
-        if (cmp) {
-            getset(newitem, "namerevision", &left, NULL);
-            getset(curitem, "namerevision", &right, NULL);
-            assert(left);
-            assert(right);
-            *cmp = strcmp(left, right);
-        }
-    }
-    return 1;
-}
-
-int
-compareexpiry(names_index_type index, dictionary newitem, dictionary curitem, int* cmp)
-{
-    const char* left;
-    const char* right;
-    (void)index;
-    getset(newitem, "expiry", &left, NULL);
-    if (curitem) {
-        if (cmp) {
-            getset(curitem, "expiry", &right, NULL);
-            assert(left);
-            assert(right);
-            *cmp = strcmp(left, right);
-        }
-    }
-    if (!left)
-        return 0;
-    return 1;
-}
-
-/* rule: you cannot ammend a field when that field is in use for to store a record in an index */
-
-int
-comparedenialname(names_index_type index, dictionary newitem, dictionary curitem, int* cmp)
-{
-    const char* left;
-    const char* right;
-    (void)index;
-    getset(newitem, "denialname", &left, NULL);
-    if (curitem) {
-        if(cmp) {
-            getset(curitem, "denialname", &right, NULL);
-            assert(left);
-            assert(right);
-            *cmp = strcmp(left, right);
-            /* in case *cmp == 0 then we could make an assertion that
-             * the names of a and b also need to be the same, otherwise
-             * we have a hash collision we cannot continue with.
-             */
-        }
-    }
-    if (!left)
-        return 0;
-    return 1;
-}
-
-int
-compareupcomingset(names_index_type index, dictionary newitem, dictionary curitem, int* cmp)
-{
-    int c;
-    const char* left;
-    const char* right;
-    (void)index;
-    if(curitem) {
-        getset(newitem, "name", &left, NULL);
-        getset(curitem, "name", &right, NULL);
-        c = strcmp(left, right);
-        if(cmp)
-            *cmp = c;
-        if(c == 0) {
-            getset(newitem, "revision", &left, NULL);
-            getset(curitem, "revision", &right, NULL);
-            if(strcmp(left, right) <= 0) {
-                return 0;
-            }
-        }
-    }
-    return 1;
-}
-
-int
-compareincomingset(names_index_type index, dictionary newitem, dictionary curitem, int* cmp)
-{
-    int c;
-    const char* left;
-    const char* right;
-    (void)index;
-    if(curitem) {
-        getset(newitem, "name", &left, NULL);
-        getset(curitem, "name", &right, NULL);
-        c = strcmp(left, right);
-        if(cmp)
-            *cmp = c;
-        if(c == 0) {
-            getset(newitem, "revision", &left, NULL);
-            getset(curitem, "revision", &right, NULL);
-            if(strcmp(left, right) <= 0) {
-                return 0;
-            }
-        }
-    }
-    if(getset(newitem, "validfrom", NULL, NULL))
-        return 0;
-    return 1;
-}
-
-int
-comparecurrentset(names_index_type index, dictionary newitem, dictionary curitem, int* cmp)
-{
-    const char* left;
-    const char* right;
-    (void)index;
-    if (curitem) {
-        if (cmp) {
-            getset(curitem, "name", &left, NULL);
-            getset(newitem, "name", &right, NULL);
-            *cmp = strcmp(left, right);
-        }
-    }
-    if (getset(newitem, "validupto", NULL, NULL))
-        return 0;
-    if (!getset(newitem, "validfrom", NULL, NULL))
-        return 0;
-    return 1;
-}
-
-int
-comparerelevantset(names_index_type index, dictionary newitem, dictionary curitem, int* cmp)
-{
-    int c;
-    const char* left;
-    const char* right;
-    (void)index;
-    if (curitem) {
-        getset(curitem, "name", &left, NULL);
-        getset(newitem, "name", &right, NULL);
-        c = strcmp(left, right);
-        if (cmp)
-            *cmp = c;
-        if (c == 0) {
-            getset(newitem, "revision", &left, NULL);
-            getset(curitem, "revision", &right, NULL);
-            if (strcmp(left, right) <= 0)
-                return 0;
-        }
-    }
-    if (getset(newitem, "validupto", NULL, NULL))
-        return 0;
-    return 1;
-}
-
-int
-comparesignedset(names_index_type index, dictionary newitem, dictionary curitem, int* cmp)
-{
-    const char* left;
-    const char* right;
-    (void)index;
-    if (curitem) {
-        if (cmp) {
-            getset(curitem, "name", &left, NULL);
-            getset(newitem, "name", &right, NULL);
-            *cmp = strcmp(left, right);
-        }
-    }
-    if (getset(newitem, "validupto", NULL, NULL))
-        return 0;
-    if (!getset(newitem, "validfrom", NULL, NULL))
-        return 0;
-    return 1;
-}
-
-int
 names_indexcreate(names_index_type* index, const char* keyname)
 {
-    *index = malloc(sizeof(struct names_index_struct));
     comparefunction comparfunc;
-#define REFERCOMPARISON(F,N) do { (*index)->keyname = strdup(F); comparfunc = N ## _ldns; (*index)->acceptfunc = N; } while(0)
-    if(!strcmp(keyname,"name")) {
-        REFERCOMPARISON("name", comparename);
-    } else if(!strcmp(keyname,"namerevision")) {
-        REFERCOMPARISON("namerevision", comparenamerevision);
-    } else if(!strcmp(keyname,"nameupcoming")) {
-        REFERCOMPARISON("name", compareupcomingset);
-    } else if(!strcmp(keyname,"namenoserial")) {
-        REFERCOMPARISON("name", compareincomingset);
-    } else if(!strcmp(keyname,"namenewserial")) {
-        REFERCOMPARISON("name", comparecurrentset);
-    } else if(!strcmp(keyname,"validnow")) {
-        REFERCOMPARISON("name", comparesignedset);
-    } else if(!strcmp(keyname,"expiry")) {
-        REFERCOMPARISON("expiry",compareexpiry);
-    } else if(!strcmp(keyname,"denialname")) {
-        REFERCOMPARISON("denialname",comparedenialname);
-    } else {
-        abort();
-    }
+    acceptfunction  acceptfunc;
+    *index = malloc(sizeof(struct names_index_struct));
+    names_recordindexfunction(keyname, &acceptfunc, &comparfunc);
+    assert(acceptfunc);
+    assert(comparfunc);
+    (*index)->keyname = strdup(keyname);
+    (*index)->acceptfunc = acceptfunc;
     (*index)->tree = ldns_rbtree_create(comparfunc);
     return 0;
 }
@@ -299,7 +62,7 @@ names_indexdestroy(names_index_type index, void (*userfunc)(void* arg, void* key
     cargo.arg = userarg;
     ldns_traverse_postorder(index->tree, disposenode, (userfunc?&cargo:NULL));
     ldns_rbtree_free(index->tree);
-    free(index->keyname);
+    free((void*)index->keyname);
     free(index);
 }
 
@@ -308,7 +71,7 @@ names_indexaccept(names_index_type index, dictionary record)
 {
     int cmp;
     if(index->acceptfunc) {
-        return index->acceptfunc(index, record, NULL, &cmp);
+        return index->acceptfunc(record, NULL, &cmp);
     } else
         return 1;
 }
@@ -318,7 +81,7 @@ names_indexinsert(names_index_type index, dictionary d)
 {
     int cmp;
     ldns_rbnode_t* node;
-    if(index->acceptfunc(index, d, NULL, NULL)) {
+    if(index->acceptfunc(d, NULL, NULL)) {
         node = malloc(sizeof(ldns_rbnode_t));
         assert(d);
         node->key = d;
@@ -327,25 +90,46 @@ names_indexinsert(names_index_type index, dictionary d)
             free(node);
             node = ldns_rbtree_search(index->tree, d);
             assert(node);
-            if(index->acceptfunc(index, d, (dictionary)node->data, &cmp)) {
-                node->key = d;
-                node->data = d;
-                return 1;
-            } else
-                return 0;
-        } else
+            switch(index->acceptfunc(d, (dictionary)node->data, &cmp)) {
+                case 0:
+                    return 0;
+                case 1:
+                    if(names_recordhasmarker(d)) {
+                        ldns_rbtree_delete(index->tree, node->key);
+                    } else {
+                        node->key = d;
+                        node->data = d;
+                    }
+                    return 1;
+                case 2:
+                    ldns_rbtree_delete(index->tree, node->key);
+                    return 0;
+                default:
+                    abort(); // FIXME
+            }
+        } else {
             return 1;
-    } else
+        }
+    } else {
+        node = ldns_rbtree_search(index->tree, d);
+        if(node != NULL) {
+            if(names_recordhasmarker(d) ||
+               index->acceptfunc(d, (dictionary)node->data, &cmp) == 0 ||
+               (cmp == 0 && node->key == d)) {
+                ldns_rbtree_delete(index->tree, node->key);
+            }
+        }
         return 0;
+    }
 }
 
 dictionary
-names_indexlookupkey(names_index_type index, char* keyvalue)
+names_indexlookupkey(names_index_type index, const char* keyvalue)
 {
     dictionary find;
     dictionary found;
-    find = create(NULL);
-    getset(find,index->keyname,NULL,&keyvalue);
+    find = names_recordcreate(NULL);
+    getset(find,index->keyname,NULL,&keyvalue); // FIXME realisticly we only lookup on name
     found = names_indexlookup(index, find);
     dispose(find);
     return found;
@@ -374,7 +158,7 @@ names_indexremovekey(names_index_type index, const char* keyvalue)
 {
     dictionary find;
     ldns_rbnode_t* node;
-    find = create(NULL);
+    find = names_recordcreate(NULL);
     getset(find, index->keyname, NULL, &keyvalue);
     node = ldns_rbtree_delete(index->tree, find);
     dispose(find);
@@ -446,22 +230,35 @@ names_indexiterator(names_index_type index)
 }
 
 names_iterator
-names_indexrange(names_index_type index, char* selection,...)
+names_indexrange(names_index_type index, char* selection, ...)
 {
     va_list ap;
+    const char* find;
+    const char* found;
+    int findlen;
+    dictionary record;
+    ldns_rbnode_t* node;
     names_iterator iter;
     va_start(ap, selection);
-    va_end(ap);
-    iter = malloc(sizeof (struct names_iterator_struct));
-    iter->iterate = iterateimpl;
-    iter->advance = advanceimpl;
-    iter->end = endimpl;
+    iter = names_iterator_create(0);
     if (index->tree) {
-        if (!ldns_rbtree_find_less_equal(index->tree, selection, &iter->current)) {
-            if (iter->current)
-                iter->current = ldns_rbtree_next(iter->current);
+        find = va_arg(ap, char*);
+        findlen = strlen(find);
+        record = names_recordcreate(NULL);
+        getset(record, "name", NULL, &find);
+        (void)ldns_rbtree_find_less_equal(index->tree, record, &node);
+        names_recorddestroy(record);
+        while(node && node != LDNS_RBTREE_NULL) {
+            record = (dictionary)node->key;
+            getset(record,"name",&found,NULL);
+            if(!strncmp(find,found,findlen) && (found[findlen-1]=='\0' || found[findlen-1]=='.')) {
+                names_iterator_add(iter, record);
+            } else {
+                break;
+            }
+            node = ldns_rbtree_previous(node);
         }
-    } else
-        iter->current = NULL;
+    }
+    va_end(ap);
     return iter;
 }

@@ -193,7 +193,7 @@ domain_is_occluded(names_view_type view, domain_type* domain)
     if (domain->is_apex) {
         return LDNS_RR_TYPE_SOA;
     }
-    for(names_parentdomains(view,domain,&iter); names_iterate(&iter, &parent); names_advance(&iter,NULL)) {
+    for(names_viewiterate(view,"ancestors",ldns_rdf2str(domain->dname)); names_iterate(&iter, &parent); names_advance(&iter,NULL)) {
         if (domain_lookup_rrset(parent, LDNS_RR_TYPE_NS)) {
             /* Glue / Empty non-terminal to Glue */
             names_end(&iter);

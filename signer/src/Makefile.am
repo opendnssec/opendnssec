@@ -35,14 +35,14 @@ ods_signerd_SOURCES=		ods-signerd.c \
 				parser/zonelistparser.c parser/zonelistparser.h \
 				signer/backup.c signer/backup.h \
 				hsm.c hsm.h \
-				signer/denial.c signer/denial.h \
-				signer/domain.c signer/domain.h \
+				signer/denial.h \
+				signer/domain.h \
 				signer/ixfr.c signer/ixfr.h \
 				signer/keys.c signer/keys.h \
-				signer/namedb.c signer/namedb.h \
+				signer/namedb.h \
 				signer/names.h \
 				signer/nsec3params.c signer/nsec3params.h \
-				signer/rrset.c signer/rrset.h \
+				signer/rrset.h \
 				signer/signconf.c signer/signconf.h \
 				signer/stats.c signer/stats.h \
 				signer/tools.c signer/tools.h \
@@ -62,11 +62,25 @@ ods_signerd_SOURCES=		ods-signerd.c \
 				wire/tsig-openssl.c wire/tsig-openssl.h \
 				wire/xfrd.c wire/xfrd.h \
 				views/dictionary.c \
+				views/functions.c \
 				views/index.c \
 				views/iterator.c \
-				views/setup.c \
+				views/iteratorgeneric.c \
+				views/logging.c \
 				views/table.c \
-				views/views.c
+				views/views.c \
+				views/marshalling.c \
+				views/commitlog.c \
+				views/httpd.c views/httpd.h \
+				views/names.c \
+				views/ringbuf.h \
+				views/rpc.c \
+				views/utilities.c views/utilities.h \
+				views/zoneinput.c \
+				views/zoneoutput.c \
+				views/zonesign.c \
+				views/zonesignrecord.c \
+				views/proto.h
 
 analyze:
 	cd $(srcdir) ; cppcheck --quiet --enable=unusedFunction \

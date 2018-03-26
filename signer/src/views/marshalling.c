@@ -1,14 +1,16 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <string.h>
 #include <unistd.h>
 #include <assert.h>
+#include <ldns/ldns.h>
 #include "proto.h"
 
 #pragma GCC optimize ("O0")
 
-enum marshall_mode { marshall_COPY, marshall_READ, marshall_WRITE, marshall_PRINT, marshall_COUNT };
-enum marshall_func { marshall_BASIC, marshall_OBJECT, marshall_SELF };
+enum marshall_mode { COPY, READ, WRITE, PRINT, COUNT };
+enum marshall_func { BASIC, OBJECT, SELF };
 
 int optionaldummy;
 int* marshall_OPTIONAL = &optionaldummy;
@@ -22,47 +24,55 @@ struct marshall_struct {
     int indentcount;
 };
 
-static marshall_handle
-marshallcreate(enum marshall_mode mode, int fd, FILE *fp)
+marshall_handle
+marshallcreate(enum marshall_method method, ...)
 {
-    marshall_handle h;
+    va_list ap;
+    marshall_handle h, old;
     h = malloc(sizeof(struct marshall_struct));
-    h->mode = mode;
-    h->fd = fd;
-    h->fp = fp;
+    h->fd = -1;
+    h->fp = NULL;
+    va_start(ap, method);
+    switch(method) {
+        case marshall_INPUT:
+            h->mode = READ;
+            h->fd = va_arg(ap, int);
+            break;
+        case marshall_OUTPUT:
+            h->mode = WRITE;
+            h->fd = va_arg(ap, int);
+            break;
+        case marshall_PRINT:
+            h->mode = PRINT;
+            h->fp = va_arg(ap, FILE*);
+            break;
+        case marshall_APPEND:
+            h->mode = WRITE;
+            old = va_arg(ap, marshall_handle);
+            h->fd = old->fd;
+            h->fp = old->fp;
+            old->fd = -1;
+            old->fp = NULL;
+            break;
+    }
+    va_end(ap);
     h->indentlvl = 0;
     h->indentincr = 2;
     h->indentcount = 0;
     return h;
 }
 
-marshall_handle
-marshallcopy(int fd)
-{
-    return marshallcreate(marshall_COPY, fd, NULL);
-}
-
-marshall_handle
-marshallinput(int fd)
-{
-    return marshallcreate(marshall_READ, fd, NULL);
-}
-
-marshall_handle
-marshalloutput(int fd)
-{
-    return marshallcreate(marshall_WRITE, fd, NULL);
-}
-
-marshall_handle
-marshallprint(FILE* fp)
-{
-    return marshallcreate(marshall_PRINT, 0, fp);
-}
-
 void
 marshallclose(marshall_handle h)
 {
+    if(!h)
+        return;
+    if (h->fp && h->fp != stdout && h->fp != stderr) {
+        fclose(h->fp);
+    }
+    if (h->fd >= 0) {
+        close(h->fd);
+    }
     free(h);
 }
 
@@ -79,25 +89,25 @@ marshallinteger(marshall_handle h, void* member)
 {
     int size;
     switch(h->mode) {
-        case marshall_COPY:
-        abort();
+        case COPY:
+            abort(); // FIXME
             break;
-        case marshall_READ:
+        case READ:
             size = read(h->fd, member, sizeof(int));
             assert(size==sizeof(int));
             break;
-        case marshall_WRITE:
+        case WRITE:
             size = write(h->fd, member, sizeof(int));
             assert(size==sizeof(int));
             break;
-        case marshall_COUNT:
-            abort();
+        case COUNT:
+            abort(); // FIXME
             break;
-        case marshall_PRINT:
+        case PRINT:
             size = fprintf(h->fp, "%d", *(int*)member);
             break;
         default:
-            abort();
+            abort(); // FIXME
     }
     return size;
 }
@@ -107,17 +117,17 @@ marshallbyte(marshall_handle h, void* member)
 {
     int size;
     switch(h->mode) {
-        case marshall_COPY:
+        case COPY:
             break;
-        case marshall_READ:
+        case READ:
             size = read(h->fd, member, 1);
             break;
-        case marshall_WRITE:
+        case WRITE:
             size = write(h->fd, member, 1);
             break;
-        case marshall_COUNT:
+        case COUNT:
             break;
-        case marshall_PRINT:
+        case PRINT:
             size = fprintf(h->fp, "%c", *(unsigned char*)member);
             break;
     }
@@ -131,11 +141,11 @@ marshallstring(marshall_handle h, void* member)
     int len;
     char** str = member;
     switch(h->mode) {
-        case marshall_COPY:
+        case COPY:
             *str = strdup(*str);
             size = strlen(*str);
             break;
-        case marshall_READ:
+        case READ:
             size = marshallinteger(h, &len);
             if(len >= 0) {
                 *str = malloc(len + 1);
@@ -146,7 +156,7 @@ marshallstring(marshall_handle h, void* member)
                 *str = NULL;
             }
             break;
-        case marshall_WRITE:
+        case WRITE:
             if(*str) {
                 len = strlen(*str);
                 size = marshallinteger(h, &len);
@@ -157,7 +167,7 @@ marshallstring(marshall_handle h, void* member)
                 size = marshallinteger(h, &len);
             }
             break;
-        case marshall_COUNT:
+        case COUNT:
             if(*str) {
                 len = strlen(*str);
             } else {
@@ -166,7 +176,7 @@ marshallstring(marshall_handle h, void* member)
             size = marshallinteger(h, &len);
             size += len;
             break;
-        case marshall_PRINT:
+        case PRINT:
             if(*str) {
                 size = fprintf(h->fp, "\"%s\"", *str);
             } else {
@@ -185,15 +195,77 @@ marshallstringarray(marshall_handle h, void* member)
     return marshallstring(h, (void*)member);
 }
 
+int
+marshallldnsrr(marshall_handle h, void* member)
+{
+    ldns_rr** rr = (ldns_rr**)member;
+    int size;
+    int len;
+    char* str;
+    switch(h->mode) {
+        case COPY:
+            *rr = ldns_rr_clone(*rr);
+            break;
+        case READ:
+            size = marshallinteger(h, &len);
+            if(len >= 0) {
+                str = malloc(len + 1);
+                read(h->fd, str, sizeof(char)*len);
+                str[len] = '\0';
+                size += len;
+                ldns_rr_new_frm_str(&rr, str, 0, NULL, NULL);
+            } else {
+                *rr = NULL;
+            }
+            break;
+        case WRITE:
+            if(*rr) {
+                str = ldns_rr2str(rr);
+                len = strlen(str);
+                size = marshallinteger(h, &len);
+                write(h->fd, str, sizeof(char)*len);
+                size += len;
+                free(str);
+            } else {
+                len = -1;
+                size = marshallinteger(h, &len);
+            }
+            break;
+        case COUNT:
+            if(*rr) {
+                str = ldns_rr2str(rr);
+                len = strlen(str);
+                free(str);
+            } else {
+                len = -1;
+            }
+            size = marshallinteger(h, &len);
+            size += len;
+            break;
+        case PRINT:
+            if(*rr) {
+                str = ldns_rr2str(rr);
+                size = fprintf(h->fp, "\"%s\"", str);
+                free(str);
+            } else {
+                size = fprintf(h->fp, "NULL");
+            }
+            break;
+        default:
+            size = -1;
+    }
+    return size;
+}
+
 enum marshall_func
 marshallfunc(int (*memberfunction)(marshall_handle,void*))
 {
     if(memberfunction == NULL || memberfunction == marshallself) {
-        return marshall_SELF;
+        return SELF;
     } else if(memberfunction == marshallinteger || memberfunction == marshallstring || memberfunction == marshallstringarray) {
-        return marshall_BASIC;
+        return BASIC;
     } else {
-        return marshall_OBJECT;
+        return OBJECT;
     }
 }
 
@@ -206,11 +278,11 @@ marshalling(marshall_handle h, char* name, void* members, int *membercount, size
     int optional;
     if(membercount == marshall_OPTIONAL) {
         membercount = &optional;
-        if(h->mode != marshall_READ)
+        if(h->mode != READ)
             optional = (*(void**)members ? 1 : 0);
     }
     switch(h->mode) {
-        case marshall_COPY:
+        case COPY:
             if(membercount) {
                 size = *membercount * membersize;
                 array = malloc(size);
@@ -226,7 +298,7 @@ marshalling(marshall_handle h, char* name, void* members, int *membercount, size
                 memberfunction(h, members);
             }
             break;
-        case marshall_READ:
+        case READ:
             if(name != NULL) {
                 if(membercount) {
                     size = marshallinteger(h, membercount);
@@ -247,8 +319,8 @@ marshalling(marshall_handle h, char* name, void* members, int *membercount, size
                 }
             }
             break;
-        case marshall_WRITE:
-        case marshall_COUNT:
+        case WRITE:
+        case COUNT:
             if(name != NULL) {
                 if(membercount) {
                     dest = *(char**) members;
@@ -268,7 +340,7 @@ marshalling(marshall_handle h, char* name, void* members, int *membercount, size
                 }
             }
             break;
-        case marshall_PRINT:
+        case PRINT:
             if (name == NULL) {
                 h->indentlvl -= h->indentincr;
                 if (membercount != NULL) {
@@ -290,7 +362,7 @@ marshalling(marshall_handle h, char* name, void* members, int *membercount, size
             } else {
                 dest = (char*) members;
                 switch (marshallfunc(memberfunction)) {
-                    case marshall_SELF:
+                    case SELF:
                         if (membercount == NULL) {
                             size = fprintf(h->fp, "%*.*s%s = {\n", h->indentlvl, h->indentlvl, "", name);
                             h->indentlvl += h->indentincr * 2;
@@ -301,7 +373,7 @@ marshalling(marshall_handle h, char* name, void* members, int *membercount, size
                             size = fprintf(h->fp, "%*.*s%s = [ ],\n", h->indentlvl, h->indentlvl, "", name);
                         }
                         break;
-                    case marshall_BASIC:
+                    case BASIC:
                         if (membercount == NULL) {
                             size = fprintf(h->fp, "%*.*s%s = ", h->indentlvl, h->indentlvl, "", name);
                             memberfunction(h, dest);
@@ -319,7 +391,7 @@ marshalling(marshall_handle h, char* name, void* members, int *membercount, size
                             size += fprintf(h->fp, "],\n");
                         }
                         break;
-                    case marshall_OBJECT:
+                    case OBJECT:
                         if (membercount == NULL) {
                             if(dest != NULL) {
                                 size = fprintf(h->fp, "%*.*s%s = {\n", h->indentlvl, h->indentlvl, "", name);
@@ -333,7 +405,7 @@ marshalling(marshall_handle h, char* name, void* members, int *membercount, size
                             size = fprintf(h->fp, "%*.*s%s = {\n", h->indentlvl, h->indentlvl, "", name);
                             h->indentlvl += h->indentincr;
                             h->indentlvl += h->indentincr;
-                            memberfunction(h, &(dest[0]));
+                            memberfunction(h, &((*(char**)dest)[0]));
                             h->indentlvl -= h->indentincr;
                             size = fprintf(h->fp, "%*.*s},\n", h->indentlvl, h->indentlvl, "");
                             h->indentlvl -= h->indentincr;

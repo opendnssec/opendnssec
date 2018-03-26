@@ -221,6 +221,9 @@ AC_CHECK_FUNC(backtrace, [AC_DEFINE([HAVE_BACKTRACE], [1], [Define if backtrace 
 AC_CHECK_LIB(backtrace, backtrace_full, [AC_DEFINE([HAVE_BACKTRACE_FULL], [1], [Define if backtrace_full supported]) LIBS="$LIBS -lbacktrace"])
 AC_CHECK_LIB(unwind, unw_backtrace, [AC_CHECK_HEADERS(libunwind.h, [AC_DEFINE([HAVE_LIBUNWIND], [1], [Define if libunwind supported]) LIBS="$LIBS -lunwind -lunwind-x86_64"], [], [])])
 
+ACX_LIBMICROHTTPD
+ACX_LIBJANSSON
+
 AC_CONFIG_HEADER([common/config.h])
 
 AC_CONFIG_FILES([

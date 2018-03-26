@@ -188,7 +188,8 @@ adapter_write(zone_type* zone)
     ods_log_assert(zone->name);
     ods_log_assert(zone->adoutbound->configstr);
 
-    names_viewobtain(zone->namedb, names_AXFROUTVIEW, &view);
+    view = zone->outputview;
+    names_viewreset(view);
     switch(zone->adoutbound->type) {
         case ADAPTER_FILE:
             ods_log_verbose("[%s] write zone %s serial %u to output file "
@@ -204,7 +205,6 @@ adapter_write(zone_type* zone)
                 "adapter", adapter_str, zone->name);
             status = ODS_STATUS_ERR;
     }
-    names_dispose(view);
     /* not reached */
     return status;
 }
