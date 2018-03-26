@@ -15,7 +15,11 @@
 
 #pragma GCC optimize ("O0")
 
+<<<<<<< HEAD
 int
+=======
+void
+>>>>>>> 1a831fc0337790ce6da1d083968aaf026992ae81
 writezone(names_view_type view, const char* filename, const char* apex, int* defaultttl)
 {
     char* s;
@@ -54,5 +58,8 @@ writezone(names_view_type view, const char* filename, const char* apex, int* def
     }
     fclose(fp);
     ldns_rdf_free(origin);
+<<<<<<< HEAD
     return 0;
+=======
+>>>>>>> 1a831fc0337790ce6da1d083968aaf026992ae81
 }
