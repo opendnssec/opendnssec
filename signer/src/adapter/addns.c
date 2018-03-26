@@ -659,7 +659,7 @@ dnsout_send_notify(zone_type* z, names_view_type view)
     ods_log_assert(z->name);
     rrset = zone_lookup_apex_rrset(view, LDNS_RR_TYPE_SOA);
     ods_log_assert(rrset);
-    soa = ldns_rr_clone(rrset->rrs[0].rr);
+    soa = ldns_rr_clone(getsoa(rrset));
     notify_enable(z->notify, soa);
 }
 

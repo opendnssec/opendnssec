@@ -46,18 +46,6 @@ typedef struct domain_struct domain_type;
 #define SE_NSEC3_RDATA_BITMAP      5
 
 /**
- * Domain.
- *
- */
- struct domain_struct {
-    denial_type* denial;
-    ldns_rdf* dname;
-    domain_type* parent;
-    rrset_type* rrsets;
-    unsigned is_apex : 1; /* apex */
-};
-
-/**
  * Log domain name.
  * \param[in] rdf domain name
  * \param[in] pre log message
@@ -74,14 +62,6 @@ void log_dname(ldns_rdf* rdf, const char* pre, int level);
  *
  */
 domain_type* domain_create(ldns_rdf* dname);
-
-/**
- * Count the number of RRsets at this domain with RRs that have is_added.
- * \param[in] domain domain
- * \return size_t number of RRsets
- *
- */
-size_t domain_count_rrset_is_added(domain_type* domain);
 
 /**
  * Look up RRset at this domain.

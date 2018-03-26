@@ -100,7 +100,7 @@ tools_input(zone_type* zone)
     ods_log_assert(zone->signconf);
     
     names_view_type view;
-    names_viewobtain(zone->namedb, names_INPUTVIEW, &view);
+    view = zone->inputview;
     
     /* Key Rollover? */
     status = zone_publish_dnskeys(zone, view, 0);
@@ -157,7 +157,7 @@ tools_input(zone_type* zone)
             names_dispose(view);
             break;
         default:
-            names_rollback(view);
+            names_viewreset(view);
     }
     return status;
 }

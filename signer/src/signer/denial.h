@@ -46,16 +46,6 @@ typedef struct denial_struct denial_type;
 #include "signer/zone.h"
 
 /**
- * Denial of Existence data point.
- *
- */
-struct denial_struct {
-    ldns_rdf* dname;
-    rrset_type* rrset;
-    unsigned changed : 1;
-};
-
-/**
  * Create new Denial of Existence data point.
  * \param[in] zoneptr zone reference
  * \param[in] dname owner name

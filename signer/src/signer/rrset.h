@@ -41,25 +41,6 @@ typedef struct rrset_struct rrset_type;
 #include "zone.h"
 #include "datastructure.h"
 
-struct rrsig_struct {
-    ldns_rr* rr;
-    const char* key_locator;
-    uint32_t key_flags;
-};
-
-struct rr_struct {
-    ldns_rr* rr;
-};
-
-struct rrset_struct {
-    rrset_type* next;
-    ldns_rr_type rrtype;
-    rr_type* rrs;
-    size_t rr_count;
-    collection_t rrsigs;
-    unsigned needs_signing : 1;
-};
-
 /**
  * Log RR.
  * \param[in] rr RR

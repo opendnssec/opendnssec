@@ -108,7 +108,7 @@ zone_create(char* name, ldns_rr_class klass)
     }
     zone->stats = stats_create();
     zone->rrstore = rrset_store_initialize();
-    names_setup(&zone->namedb, zone->apex);
+    names_docreate(zone, "storage"); // FIXME storage name per zone and missing dir
     return zone;
 }
 
@@ -364,69 +364,6 @@ zone_prepare_keys(zone_type* zone)
 
 
 /**
- * Update serial.
- *
- */
-ods_status
-zone_update_serial(zone_type* zone, names_view_type view)
-{
-    ods_status status = ODS_STATUS_OK;
-    rrset_type* rrset = NULL;
-    rr_type* soa = NULL;
-    ldns_rr* rr = NULL;
-    ldns_rdf* soa_rdata = NULL;
-
-    ods_log_assert(zone);
-    ods_log_assert(zone->apex);
-    ods_log_assert(zone->name);
-    ods_log_assert(zone->signconf);
-
-    rrset = zone_lookup_apex_rrset(view, LDNS_RR_TYPE_SOA);
-    if (!rrset || !rrset->rrs || !rrset->rrs[0].rr) {
-        ods_log_error("[%s] unable to update zone %s soa serial: failed to find soa rrset", zone_str, zone->name);
-        return ODS_STATUS_ERR;
-    }
-    ods_log_assert(rrset);
-    ods_log_assert(rrset->rrs);
-    ods_log_assert(rrset->rrs[0].rr);
-    rr = ldns_rr_clone(rrset->rrs[0].rr);
-    if (!rr) {
-        ods_log_error("[%s] unable to update zone %s soa serial: failed to "
-            "clone soa rr", zone_str, zone->name);
-        return ODS_STATUS_ERR;
-    }
-    status = namedb_update_serial(zone, zone->name,
-        zone->signconf->soa_serial, *zone->inboundserial);
-    if (status != ODS_STATUS_OK) {
-        ods_log_error("[%s] unable to update zone %s soa serial: %s",
-            zone_str, zone->name, ods_status2str(status));
-        if (status == ODS_STATUS_CONFLICT_ERR) {
-            ods_log_error("[%s] If this is the result of a key rollover, "
-                "please increment the serial in the unsigned zone %s",
-                zone_str, zone->name);
-        }
-        ldns_rr_free(rr);
-        return status;
-    }
-    soa_rdata = ldns_rr_set_rdf(rr,
-        ldns_native2rdf_int32(LDNS_RDF_TYPE_INT32,
-        *zone->outboundserial), SE_SOA_RDATA_SERIAL);
-    if (soa_rdata) {
-        ldns_rdf_deep_free(soa_rdata);
-        soa_rdata = NULL;
-    } else {
-        ods_log_error("[%s] unable to update zone %s soa serial: failed to "
-            "replace soa serial rdata", zone_str, zone->name);
-        ldns_rr_free(rr);
-        return ODS_STATUS_ERR;
-    }
-    soa = rrset_add_rr(rrset, rr);
-    ods_log_assert(soa);
-    return ODS_STATUS_OK;
-}
-
-
-/**
  * Lookup RRset.
  *
  */
@@ -464,24 +401,20 @@ zone_add_rr(zone_type* zone, names_view_type view, ldns_rr* rr, int do_stats)
     ods_log_assert(zone->name);
     ods_log_assert(zone->signconf);
     /* If we already have this RR, return ODS_STATUS_UNCHANGED */
-    domain = names_lookupname(view, ldns_rr_owner(rr));
+    domain = names_lookupname(view, ldns_rdf2str(ldns_rr_owner(rr)));
     if (!domain) {
-        domain = names_addname(view, ldns_rr_owner(rr));
+        domain = names_place(view, ldns_rdf2str(ldns_rr_owner(rr)));
         if (!domain) {
             ods_log_error("[%s] unable to add RR to zone %s: "
                 "failed to add domain", zone_str, zone->name);
             return ODS_STATUS_ERR;
         }
-        if (ldns_dname_compare(domain->dname, zone->apex) == 0) {
-            domain->is_apex = 1;
-        } else {
             status = namedb_domain_entize(view, domain, zone->apex);
             if (status != ODS_STATUS_OK) {
                 ods_log_error("[%s] unable to add RR to zone %s: "
                     "failed to entize domain", zone_str, zone->name);
                 return ODS_STATUS_ERR;
             }
-        }
     }
     rrset = domain_lookup_rrset(domain, ldns_rr_get_type(rr));
     if (!rrset) {
@@ -503,7 +436,6 @@ zone_add_rr(zone_type* zone, names_view_type view, ldns_rr* rr, int do_stats)
     } else {
         record = rrset_add_rr(rrset, rr);
         ods_log_assert(record);
-        ods_log_assert(record->rr);
         if (ldns_rr_ttl(rr) != ldns_rr_ttl(rrset->rrs[0].rr)) {
             str = ldns_rr2str(rr);
             str[(strlen(str)) - 1] = '\0';
