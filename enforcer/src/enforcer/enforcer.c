@@ -127,11 +127,15 @@ getState(struct dbw_key* key, enum dbw_keystate_type type)
  * \return a key_state_state_t for the next state
  */
 static enum dbw_keystate_state
-getDesiredState(int introducing, enum dbw_keystate_state state)
+getDesiredState(int introducing, enum dbw_keystate_state state, struct dbw_keystate *ks)
 {
     if (!introducing) {
         switch (state) {
             case RUMOURED:
+                if (ks->type == DBW_DS && ks->key->ds_at_parent < DBW_DS_AT_PARENT_SUBMITTED) {
+                    ks->key->ds_at_parent = DBW_DS_AT_PARENT_UNSUBMITTED;
+                }
+                return UNRETENTIVE;
             case OMNIPRESENT: return UNRETENTIVE;
             case UNRETENTIVE: return HIDDEN;
             default:          return state;
@@ -1008,7 +1012,7 @@ updateZone(struct dbw_db *db, struct dbw_zone *zone, const time_t now,
             for (size_t s = 0; s < key->keystate_count; s++) {
                 time_t returntime_keystate;
                 struct dbw_keystate *keystate = key->keystate[s];
-                enum dbw_keystate_state next_state = getDesiredState(key->introducing, keystate->state);
+                enum dbw_keystate_state next_state = getDesiredState(key->introducing, keystate->state, keystate);
                 if (next_state == keystate->state) continue;
                 if (is_ds_waiting_for_user(keystate, next_state)) continue;
 
