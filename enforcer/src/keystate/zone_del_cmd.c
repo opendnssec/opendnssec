@@ -81,6 +81,14 @@ delete_zone(struct dbw_zone *zone)
             struct dbw_keystate *keystate = key->keystate[si];
             keystate->dirty = DBW_DELETE;
         }
+        for (size_t fd = 0; fd < key->from_keydependency_count; fd++) {
+            struct dbw_keydependency *from_dep = key->from_keydependency[fd];
+            from_dep->dirty = DBW_DELETE;
+        }
+        for (size_t td = 0; td < key->to_keydependency_count; td++) {
+            struct dbw_keydependency *to_dep = key->to_keydependency[td];
+            to_dep->dirty = DBW_DELETE;
+        }
         struct dbw_hsmkey *hsmkey = key->hsmkey;
         hsm_key_factory_release_key(hsmkey, key);
         key->dirty = DBW_DELETE;
@@ -183,7 +191,7 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
     dbw_free(db);
 
     if (!zones_deleted && zonename) {
-        client_printf_err(sockfd, "Unable to delete zone, zone %s not found", zonename);
+        client_printf_err(sockfd, "Unable to delete zone, zone %s not found\n", zonename);
         return 1;
     }
 

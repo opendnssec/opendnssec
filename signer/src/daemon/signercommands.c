@@ -424,7 +424,7 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_ctx_type* context, char *cmd)
         pthread_mutex_unlock(&zone->zone_lock);
 
         (void)snprintf(buf, ODS_SE_MAXLINE, "Internal zone information about "
-            "%s cleared", cmdargument(cmd, NULL, ""));
+            "%s cleared\n", cmdargument(cmd, NULL, ""));
         ods_log_info("[%s] internal zone information about %s cleared",
             cmdh_str, cmdargument(cmd, NULL, ""));
     } else {
