@@ -165,12 +165,11 @@ disown(struct dbw_list *list, int ci, int pi)
         /*Find the child in the list (it MUST be there!) and move tail
          * to the new empty spot. */
         if (*count == 0) return;
-        for (int i = 0; i < *count; i++) {
-            if (children[i] != child) continue;
-            children[i] = children[--(*count)];
-            return;
+        for (int j = 0; j < *count; j++) {
+            if (children[j] != child) continue;
+            children[j] = children[--(*count)];
+            break;
         }
-        ods_log_assert(0);
     }
 }
 
