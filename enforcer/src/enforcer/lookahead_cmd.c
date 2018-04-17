@@ -288,9 +288,24 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
     }
     /* TODO Tab completion */
 
-    time_t now = zone->next_change;
+    time_t now = time_now();
     client_printf(sockfd, "Current state:\n");
     perform_keystate_list(sockfd, zone, printdebugheader, printdebugkey, now);
+
+    int waiting_for_user = 0;
+    for (size_t k = 0; k < zone->key_count; k++) {
+        struct dbw_key *key = zone->key[k];
+        if (key->ds_at_parent == DBW_DS_AT_PARENT_SUBMIT ||
+            key->ds_at_parent == DBW_DS_AT_PARENT_SUBMITTED ||
+            key->ds_at_parent == DBW_DS_AT_PARENT_RETRACT ||
+            key->ds_at_parent == DBW_DS_AT_PARENT_RETRACTED) {
+            waiting_for_user = 1;
+            break;
+        }
+    }
+    if (!waiting_for_user)
+        now = zone->next_change;
+
     for (int i = 0; i < steps; i++) {
         time_t t_next = -1;
         int zone_updated = 0;
@@ -300,7 +315,7 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
         }
         char tbuf[26];
         if (!ods_ctime_r(now, tbuf)) memset(tbuf, 0 , sizeof(tbuf));
-        client_printf(sockfd, "\nat %s zone %s will look like:\n", tbuf, zone->name);
+        client_printf(sockfd, "\non %s zone %s will look like:\n", tbuf, zone->name);
         if (zone_updated) {
             perform_keystate_list(sockfd, zone, printdebugheader, printdebugkey, now);
             client_printf(sockfd, "\n");
