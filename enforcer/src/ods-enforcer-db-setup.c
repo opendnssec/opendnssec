@@ -376,7 +376,7 @@ int main(int argc, char* argv[]) {
         return 5;
     }
 
-    if (snprintf(path, sizeof(path), "%s/%s", cfg->working_dir, OPENDNSSEC_ENFORCER_ZONELIST) >= (int)sizeof(path)
+    if (snprintf(path, sizeof(path), "%s/%s", cfg->working_dir_enforcer, OPENDNSSEC_ENFORCER_ZONELIST) >= (int)sizeof(path)
             || empty_zones_file(path) != 0)
     {
         fprintf(stderr, "Unable to clear the internal zonelist %s!\n", path);

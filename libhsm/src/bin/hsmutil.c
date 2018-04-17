@@ -37,8 +37,7 @@
 #include "hsmtest.h"
 
 #include <libhsmdns.h>
-
-extern hsm_repository_t* parse_conf_repositories(const char* cfgfile);
+#include "confparser.h"
 
 extern char *optarg;
 char *progname = NULL;

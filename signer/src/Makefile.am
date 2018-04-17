@@ -22,14 +22,12 @@ ods_signerd_SOURCES=		ods-signerd.c \
 				adapter/addns.c adapter/addns.h \
 				adapter/adfile.c adapter/adfile.h \
 				adapter/adutil.c adapter/adutil.h \
-				daemon/cfg.c daemon/cfg.h \
 				daemon/signercommands.c daemon/signercommands.h \
 				daemon/dnshandler.c daemon/dnshandler.h \
 				daemon/xfrhandler.c daemon/xfrhandler.h \
 				daemon/engine.c daemon/engine.h \
 				daemon/signertasks.c daemon/signertasks.h \
 				parser/addnsparser.c parser/addnsparser.h \
-				parser/confparser.c parser/confparser.h \
 				parser/signconfparser.c parser/signconfparser.h \
 				parser/zonelistparser.c parser/zonelistparser.h \
 				signer/backup.c signer/backup.h \

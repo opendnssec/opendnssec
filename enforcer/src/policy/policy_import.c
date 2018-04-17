@@ -291,10 +291,10 @@ xml_read_policy(xmlNodePtr node, struct xml_policy *policy)
 }
 
 static void
-repository_names(hsm_repository_t* hsm, char ***list, int *count)
+repository_names(struct engineconfig_repository* hsm, char ***list, int *count)
 {
     *count = 0;
-    for (hsm_repository_t *h = hsm; h; h = h->next) (*count)++;
+    for (struct engineconfig_repository *h = hsm; h; h = h->next) (*count)++;
     *list = malloc((*count) * sizeof(char *));
     if (!(*list)) *count = 0;
     for (int i = 0; i < *count; i++) {
