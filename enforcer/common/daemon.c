@@ -58,6 +58,8 @@
 #include "ksm/dbsdef.h"
 #include "ksm/kmemsg.h"
 #include "ksm/kmedef.h"
+#include "ksm/ksmmsg.h"
+#include "ksm/ksmdef.h"
 #include "ksm/message.h"
 #include "ksm/string_util.h"
 
@@ -243,6 +245,7 @@ main(int argc, char *argv[]){
     MsgInit();
     MsgRegister(KME_MIN_VALUE, KME_MAX_VALUE, m_messages, ksm_log_msg);
     MsgRegister(DBS_MIN_VALUE, DBS_MAX_VALUE, d_messages, ksm_log_msg);
+    MsgRegister(KSM_MIN_VALUE, KSM_MAX_VALUE, s_messages, ksm_log_msg);
 
     /* Do something. You need to provide this function somewhere */
     server_main(&config);
