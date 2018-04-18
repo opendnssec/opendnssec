@@ -69,16 +69,17 @@ help(int sockfd)
 static void
 printdebugheader(int sockfd) {
     client_printf(sockfd,
+            "Step: "
             "Key role:     "
             "DS:          DNSKEY:      RRSIGDNSKEY: RRSIG:       "
             "Time:                 Pub: Act: Id:\n");
 }
 
 static void
-printdebugkey_fmt(int sockfd, char const *fmt, struct dbw_key *key, char const  *tchange)
+printdebugkey_fmt(int sockfd, char const *fmt, struct dbw_key *key, char const  *tchange, int step)
 {
     (void)tchange;
-    client_printf(sockfd, fmt,
+    client_printf(sockfd, fmt, step,
         dbw_enum2txt(dbw_key_role_txt, key->role),
         dbw_enum2txt(dbw_keystate_state_txt, dbw_get_keystate(key, DBW_DS)->state), /*  TODO */
         dbw_enum2txt(dbw_keystate_state_txt, dbw_get_keystate(key, DBW_DNSKEY)->state),
@@ -91,22 +92,22 @@ printdebugkey_fmt(int sockfd, char const *fmt, struct dbw_key *key, char const  
 }
 
 static void
-printdebugkey(int sockfd, struct dbw_key *key, char *tchange)
+printdebugkey(int sockfd, struct dbw_key *key, char *tchange, int step)
 {
-    printdebugkey_fmt(sockfd, "%-13s %-12s %-12s %-12s %-12s %-21s %d %4d    %s\n", key, tchange);
+    printdebugkey_fmt(sockfd, "%-5d %-13s %-12s %-12s %-12s %-12s %-21s %d %4d    %s\n", key, tchange, step);
 }
 
 static void
-perform_keystate_list(int sockfd, struct dbw_zone *zone,
+perform_keystate_list(int sockfd, int step, struct dbw_zone *zone,
     void (printheader)(int sockfd),
-    void (printkey)(int sockfd, struct dbw_key *key, char* tchange), time_t now)
+    void (printkey)(int sockfd, struct dbw_key *key, char* tchange, int step), time_t now)
 {
     if (printheader) (*printheader)(sockfd);
     for (size_t k = 0; k < zone->key_count; k++) {
         struct dbw_key *key = zone->key[k];
         if (key->dirty == DBW_DELETE) continue;
         char* tchange = map_keytime(key, now); /* allocs */
-            (*printkey)(sockfd, key, tchange);
+            (*printkey)(sockfd, key, tchange, step);
         free(tchange);
     }
 }
@@ -289,7 +290,7 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 
     time_t now = time_now();
     client_printf(sockfd, "Current state:\n");
-    perform_keystate_list(sockfd, zone, printdebugheader, printdebugkey, now);
+    perform_keystate_list(sockfd, 0, zone, printdebugheader, printdebugkey, now);
 
     int waiting_for_user = 0;
     for (size_t k = 0; k < zone->key_count; k++) {
@@ -316,34 +317,34 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
         if (!ods_ctime_r(now, tbuf)) memset(tbuf, 0 , sizeof(tbuf));
         client_printf(sockfd, "\non %s zone %s will look like:\n", tbuf, zone->name);
         if (zone_updated) {
-            perform_keystate_list(sockfd, zone, printdebugheader, printdebugkey, now);
+            perform_keystate_list(sockfd, i+1, zone, printdebugheader, printdebugkey, now);
             client_printf(sockfd, "\n");
         } else {
-            client_printf(sockfd, " - No changes to zone.\n");
+            client_printf(sockfd, "i+1 - No changes to zone.\n");
         }
         for (size_t k = 0; k < zone->key_count; k++) {
             struct dbw_key *key = zone->key[k];
             if (key->ds_at_parent == DBW_DS_AT_PARENT_SUBMIT) {
                 key->ds_at_parent = DBW_DS_AT_PARENT_SUBMITTED;
-                client_printf(sockfd, " - Submitting DS to parent zone.\n");
+                client_printf(sockfd, "%d - Submitting DS to parent zone.\n", i+1);
                 t_next = now;
             } else if (key->ds_at_parent == DBW_DS_AT_PARENT_RETRACT) {
                 key->ds_at_parent = DBW_DS_AT_PARENT_RETRACTED;
-                client_printf(sockfd, " - Removing DS from parent zone.\n");
+                client_printf(sockfd, "%d - Removing DS from parent zone.\n", i+1);
                 t_next = now;
             } else if (key->ds_at_parent == DBW_DS_AT_PARENT_SUBMITTED) {
                 key->ds_at_parent = DBW_DS_AT_PARENT_SEEN;
-                client_printf(sockfd, " - Marking DS as seen.\n");
+                client_printf(sockfd, "%d - Marking DS as seen.\n", i+1);
                 t_next = now;
             } else if (key->ds_at_parent == DBW_DS_AT_PARENT_RETRACTED) {
                 key->ds_at_parent = DBW_DS_AT_PARENT_UNSUBMITTED;
-                client_printf(sockfd, " - Marking DS as gone.\n");
+                client_printf(sockfd, "%d - Marking DS as gone.\n", i+1);
                 t_next = now;
             }
         }
         if (zone->signconf_needs_writing) {
             zone->signconf_needs_writing = 0;
-            client_printf(sockfd, " - Writing signconf.\n");
+            client_printf(sockfd, "%d - Writing signconf.\n", i+1);
         }
         if (t_next == -1) break; /* nothing to be done ever */
         now = t_next;
