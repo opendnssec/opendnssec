@@ -681,3 +681,86 @@ janitor_disablecoredump(void)
 fail:
     return -1;
 }
+
+struct janitor_pthread_barrier_struct {
+    pthread_mutex_t mutex;
+    pthread_cond_t cond;
+    unsigned int waiting;
+    unsigned int count;
+};
+
+#ifdef pthread_barrier_init
+#undef pthread_barrier_init
+#endif
+#define pthread_barrier_init janitor_pthread_barrier_init
+#ifdef pthread_barrier_destroy
+#undef pthread_barrier_destroy
+#endif
+#define pthread_barrier_destroy janitor_pthread_barrier_destroy
+#ifdef pthread_barrier_wait
+#undef pthread_barrier_wait
+#endif
+#define pthread_barrier_wait janitor_pthread_barrier_wait
+#ifndef PTHREAD_BARRIER_SERIAL_THREAD
+#define PTHREAD_BARRIER_SERIAL_THREAD 1
+#endif
+
+int
+janitor_pthread_barrier_init(pthread_barrier_t* barrier, const pthread_barrierattr_t* attr, unsigned int count)
+{
+    struct janitor_pthread_barrier_struct* b;
+    b = malloc(sizeof(struct janitor_pthread_barrier_struct));
+    if(count == 0 || attr != NULL) {
+        errno = EINVAL;
+        return -1;
+    }
+    if(pthread_mutex_init(&b->mutex, 0) < 0) {
+        free(b);
+        return -1;
+    }
+    if(pthread_cond_init(&b->cond, 0) < 0) {
+        pthread_mutex_destroy(&b->mutex);
+        free(b);
+        return -1;
+    }
+    b->count = count;
+    b->waiting = 0;
+    *(void**)barrier = b;
+    return 0;
+}
+
+int
+janitor_pthread_barrier_destroy(pthread_barrier_t* barrier)
+{
+    struct janitor_pthread_barrier_struct* b = *(void**)barrier;
+    pthread_mutex_lock(&b->mutex);
+    if(b->count > 0) {
+        pthread_mutex_unlock(&b->mutex);
+        errno = EBUSY;
+        return -1;
+    }
+    *(void**)barrier = NULL;
+    pthread_mutex_unlock(&b->mutex);
+    pthread_cond_destroy(&b->cond);
+    pthread_mutex_destroy(&b->mutex);
+    free(b);
+    return 0;
+}
+
+int
+janitor_pthread_barrier_wait(pthread_barrier_t* barrier)
+{
+    struct janitor_pthread_barrier_struct* b = *(void**)barrier;
+    pthread_mutex_lock(&b->mutex);
+    b->waiting += 1;
+    if(b->waiting == b->count) {
+        b->count = 0;
+        pthread_cond_broadcast(&b->cond);
+        pthread_mutex_unlock(&b->mutex);
+        return PTHREAD_BARRIER_SERIAL_THREAD;
+    } else {
+        pthread_cond_wait(&b->cond, &b->mutex);
+        pthread_mutex_unlock(&b->mutex);
+        return 0;
+    }
+}
