@@ -596,7 +596,7 @@ hsm_session_init(hsm_ctx_t *ctx, hsm_session_t **session,
                                    (unsigned char *) pin,
                                    strlen((char *)pin));
 
-    if (rv_login == CKR_OK) {
+    if (rv_login == CKR_OK || rv_login == CKR_USER_ALREADY_LOGGED_IN) {
         *session = hsm_session_new(module, session_handle);
         return HSM_OK;
     } else {
@@ -667,7 +667,7 @@ hsm_ctx_new()
 {
     hsm_ctx_t *ctx;
     CHECKALLOC(ctx = malloc(sizeof(hsm_ctx_t)));
-    memset(ctx->session, 0, HSM_MAX_SESSIONS);
+    memset(ctx->session, 0, HSM_MAX_SESSIONS * sizeof(hsm_ctx_t*));
     ctx->session_count = 0;
     ctx->error = 0;
     return ctx;
@@ -3114,7 +3114,7 @@ hsm_get_error(hsm_ctx_t *gctx)
 
     if (ctx->error) {
         ctx->error = 0;
-        CHECKALLOC(message = malloc(HSM_ERROR_MSGSIZE));
+        CHECKALLOC(message = malloc(HSM_ERROR_MSGSIZE+3));
 
         snprintf(message, HSM_ERROR_MSGSIZE,
             "%s: %s",
