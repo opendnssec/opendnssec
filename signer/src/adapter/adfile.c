@@ -48,7 +48,6 @@
 static const char* adapter_str = "adapter";
 static ods_status adfile_read_file(FILE* fd, zone_type* zone, names_view_type view);
 
-
 /**
  * Read the next RR from zone file.
  *
@@ -306,9 +305,6 @@ adfile_read(zone_type* adzone, names_view_type view)
     }
     status = adfile_read_file(fd, adzone, view);
     ods_fclose(fd);
-    if (status == ODS_STATUS_OK) {
-        adapi_trans_full(adzone, view, 0);
-    }
     return status;
 }
 
@@ -342,7 +338,7 @@ adfile_write(zone_type* adzone, names_view_type view, const char* filename)
     if (!tmpname) {
         return ODS_STATUS_MALLOC_ERR;
     }
-    if(writezone(view, tmpname, adzone->apex, NULL)) {
+    if(writezone(view, tmpname)) {
         if (adzone->adoutbound->error) {
             ods_log_error("[%s] unable to write zone %s file %s", adapter_str, adzone->name, filename);
             adzone->adoutbound->error = 0;

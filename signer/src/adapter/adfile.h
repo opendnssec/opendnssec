@@ -37,7 +37,7 @@
 
 #include <stdio.h>
 
-#include "signer/names.h"
+#include "views/proto.h"
 
 /**
  * File adapter.

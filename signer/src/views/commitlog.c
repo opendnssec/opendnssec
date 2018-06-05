@@ -1,6 +1,8 @@
 #define _LARGEFILE64_SOURCE
 #define _GNU_SOURCE
 
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -158,27 +160,6 @@ names_commitlogsubscribe(names_view_type view, names_commitlog_type* commitlogpt
     (*commitlogptr)->views[viewid].view = view;
     CHECK(pthread_mutex_unlock(&(*commitlogptr)->lock));
     return viewid;
-}
-
-void
-names_commitlogrelease(names_commitlog_type commitlog, names_table_type changelog)
-{
-    int i;
-    CHECK(pthread_mutex_lock(&commitlog->lock));
-    if(changelog == commitlog->firstchangelog) {
-        for(i=0; i<commitlog->nviews; i++) {
-            if(commitlog->views[i].nextchangelog == changelog)
-                break;
-        }
-        if(i == commitlog->nviews) {
-            commitlog->firstchangelog = commitlog->firstchangelog->next;
-            if(commitlog->firstchangelog == NULL) {
-                commitlog->lastchangelog = NULL;
-            }
-            names_commitlogdestroy(changelog);
-        }
-    }
-    CHECK(pthread_mutex_unlock(&commitlog->lock));
 }
 
 void

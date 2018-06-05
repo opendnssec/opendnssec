@@ -125,6 +125,65 @@ zone2node(zone_type* zone)
     return node;
 }
 
+void*
+zonelist_get(zonelist_type* zonelist, const char* name)
+{
+    struct ldns_rbnode_t* node;
+    node = ldns_rbtree_search(zonelist->zones, name);
+    if (node == NULL || node == LDNS_RBTREE_NULL) {
+        return NULL;
+    } else {
+        return (void*) node->data;
+    }
+}
+
+void*
+zonelist_obtainresource(zonelist_type* zonelist, const char* name, size_t offset)
+{
+    struct ldns_rbnode_t* node;
+    zone_type* zone;
+    names_view_type* viewptr;
+    names_view_type view;
+    pthread_mutex_lock(&zonelist->zl_lock);
+    node = ldns_rbtree_search(zonelist->zones, name);
+    if (node == NULL || node == LDNS_RBTREE_NULL) {
+        view = NULL;
+    } else {
+        zone = (zone_type*) node->data;
+        viewptr = (void*)&(((char*)zone)[offset]);
+        view = *viewptr;
+        if(view == NULL) {
+            if(viewptr == &zone->inputview) {
+            } else if(viewptr == &zone->inputview) {
+                // FIXME
+            }
+        }
+        *viewptr = NULL;
+    }
+    pthread_mutex_lock(&zonelist->zl_lock);
+    return view;
+}
+
+
+void*
+zonelist_releaseresource(zonelist_type* zonelist, const char* name, size_t offset, names_view_type view)
+{
+    struct ldns_rbnode_t* node;
+    zone_type* zone;
+    names_view_type* viewptr;
+    pthread_mutex_lock(&zonelist->zl_lock);
+    node = ldns_rbtree_search(zonelist->zones, name);
+    if (node == NULL || node == LDNS_RBTREE_NULL) {
+        view = NULL;
+    } else {
+        zone = (zone_type*) node->data;
+        viewptr = (void*)&(((char*)zone)[offset]);
+        *viewptr = view;
+    }
+    pthread_mutex_lock(&zonelist->zl_lock);
+    return view;
+}
+
 
 /**
  * Lookup zone.
@@ -182,6 +241,13 @@ zonelist_lookup_zone_by_dname(zonelist_type* zonelist, ldns_rdf* dname,
 }
 
 
+static const char* baseviewkeys[] = { "namerevision", NULL};
+static const char* inputviewkeys[] = { "nameupcoming", "namehierarchy", NULL};
+static const char* prepareviewkeys[] = { "namerevision", "namenoserial", "namenewserial", NULL};
+static const char* neighviewkeys[] = { "nameready", "denialname", NULL};
+static const char* signviewkeys[] = { "nameready", "expiry", "denialname", NULL};
+static const char* outputviewkeys[] = { "validnow", NULL};
+
 /**
  * Add zone.
  *
@@ -190,6 +256,7 @@ zone_type*
 zonelist_add_zone(zonelist_type* zlist, zone_type* zone)
 {
     ldns_rbnode_t* new_node = NULL;
+    char* zoneapex;
     if (!zone) {
         return NULL;
     }
@@ -214,6 +281,19 @@ zonelist_add_zone(zonelist_type* zlist, zone_type* zone)
         return NULL;
     }
     zone->zl_status = ZONE_ZL_ADDED;
+
+    zoneapex = ldns_rdf2str(zone->apex);
+    /*if(zoneapex[strlen(zoneapex)-1] == '.')
+        zoneapex[strlen(zoneapex)-1] = '\0';*/
+    zone->baseview = names_viewcreate(NULL, "  base    ", baseviewkeys);
+    names_viewrestore(zone->baseview, zoneapex, -1, NULL); // FIXME proper restore filename
+    zone->inputview = names_viewcreate(zone->baseview,   "  input   ", inputviewkeys);
+    zone->prepareview = names_viewcreate(zone->baseview, "  prepare ", prepareviewkeys);
+    zone->neighview = names_viewcreate(zone->baseview, "  neighbr ", neighviewkeys);
+    zone->signview = names_viewcreate(zone->baseview,    "  sign    ", signviewkeys);
+    zone->outputview = names_viewcreate(zone->baseview,  "  output  ", outputviewkeys);
+    free(zoneapex);
+
     zlist->just_added++;
     return zone;
 }

@@ -44,17 +44,14 @@ typedef struct zone_struct zone_type;
 #include "scheduler/schedule.h"
 #include "locks.h"
 #include "status.h"
-#include "signer/ixfr.h"
-#include "signer/namedb.h"
 #include "signer/signconf.h"
 #include "signer/stats.h"
-#include "signer/rrset.h"
 #include "wire/buffer.h"
 #include "wire/notify.h"
 #include "wire/xfrd.h"
 #include "datastructure.h"
 #include "daemon/engine.h"
-#include "signer/names.h"
+#include "views/proto.h"
 
 struct schedule_struct;
 
@@ -80,6 +77,7 @@ struct zone_struct {
     names_view_type baseview;
     names_view_type inputview;
     names_view_type prepareview;
+    names_view_type neighview;
     names_view_type signview;
     names_view_type outputview;
     char *persistviews;
@@ -95,7 +93,6 @@ struct zone_struct {
     pthread_mutex_t zone_lock;
     pthread_mutex_t xfr_lock;
     /* backing store for rrsigs (both domain as denial) */
-    collection_class rrstore;
     int zoneconfigvalid; /* flag indicating whether the signconf has at least once been read */
 };
 

@@ -39,7 +39,7 @@ struct engine_struct;
 
 typedef struct worker_struct worker_type;
 struct worker_struct {
-    char* name;
+    const char* name;
     schedule_type* taskq;
     janitor_thread_t thread_id;
     int need_to_exit;
@@ -56,7 +56,7 @@ struct worker_struct {
  * \return worker_type* created worker
  *
  */
-worker_type* worker_create(char* name, schedule_type* taskq);
+worker_type* worker_create(const char* name, schedule_type* taskq);
 
 /**
  * Start working.

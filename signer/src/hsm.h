@@ -65,6 +65,6 @@ ods_status lhsm_get_key(hsm_ctx_t* ctx, ldns_rdf* owner, key_type* key_id, int s
  *
  */
 ldns_rr* lhsm_sign(hsm_ctx_t* ctx, ldns_rr_list* rrset, key_type* key_id,
-    ldns_rdf* owner, time_t inception, time_t expiration);
+    time_t inception, time_t expiration);
 
 #endif /* SHARED_HSM_H */

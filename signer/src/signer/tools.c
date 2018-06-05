@@ -66,7 +66,7 @@ tools_signconf(zone_type* zone)
              * Or NSEC -> NSEC3, or NSEC3 -> NSEC, or NSEC3 params changed.
              * All NSEC(3)s become invalid.
              */
-            /* BERRY namedb_wipe_denial(zone, NULL); */
+            /* FIXME namedb_wipe_denial(zone, NULL); */
         }
         /* all ok, switch signer configuration */
         signconf_cleanup(zone->signconf);
@@ -154,7 +154,7 @@ tools_input(zone_type* zone)
             names_viewcommit(view);
             break;
         case ODS_STATUS_UNCHANGED:
-            names_dispose(view);
+            names_viewreset(view);
             break;
         default:
             names_viewreset(view);
@@ -246,8 +246,8 @@ tools_output(zone_type* zone, engine_type* engine)
         pthread_mutex_lock(&zone->stats->stats_lock);
         zone->stats->end_time = time(NULL);
         ods_log_debug("[%s] log stats for zone %s serial %u", tools_str,
-            zone->name?zone->name:"(null)", (unsigned) *zone->outboundserial);
-        stats_log(zone->stats, zone->name, *zone->outboundserial,
+            (zone->name?zone->name:"(null)"), (unsigned) (zone->outboundserial ? *zone->outboundserial : 0));
+        stats_log(zone->stats, zone->name, (zone->outboundserial ? *zone->outboundserial : 0),
             zone->signconf->nsec_type);
         stats_clear(zone->stats);
         pthread_mutex_unlock(&zone->stats->stats_lock);

@@ -30,18 +30,9 @@
 #include "config.h"
 
 #include <microhttpd.h>
+#include "proto.h"
+#include "wire/acl.h"
 
-typedef struct interface_struct interface_type;
-union acl_addr_storage {
-    struct in_addr addr;
-    struct in6_addr addr6;
-};
-struct interface_struct {
-    char* port;
-    char* address;
-    int family;
-    union acl_addr_storage addr;
-};
 typedef struct http_interface_struct http_interface_type;
 struct http_interface_struct {
     char* port;
@@ -88,11 +79,12 @@ struct httpd {
     struct MHD_Daemon *daemon;
     int if_count;
     struct sockaddr_storage *ifs;
+    zonelist_type* zonelist;
 };
 
 int rpcproc_apply(struct httpd*, struct rpc *rpc);
 
-struct httpd* httpd_create(struct http_listener_struct* config);
+struct httpd* httpd_create(struct http_listener_struct* config, zonelist_type* zonelist);
 void httpd_destroy(struct httpd *httpd);
 void httpd_start(struct httpd *httpd);
 void httpd_stop(struct httpd *httpd);

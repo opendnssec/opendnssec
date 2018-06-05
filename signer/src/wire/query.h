@@ -94,9 +94,12 @@ struct query_struct {
  */
 typedef struct response_struct response_type;
 struct response_struct {
-    size_t rrset_count;
-    ldns_pkt_section sections[QUERY_RESPONSE_MAX_RRSET];
-    rrset_type* rrsets[QUERY_RESPONSE_MAX_RRSET];
+    ldns_rr_list* answersection;
+    ldns_rr_list* authoritysection;
+    ldns_rr_list* additionalsection;
+    ldns_rr_list* answersectionsigs;
+    ldns_rr_list* authoritysectionsigs;
+    ldns_rr_list* additionalsectionsigs;
 };
 
 /**

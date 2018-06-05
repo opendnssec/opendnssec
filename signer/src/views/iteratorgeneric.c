@@ -1,3 +1,5 @@
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -5,56 +7,22 @@
 #include "proto.h"
 
 struct names_iterator_struct {
-    int (*iterate)(names_iterator*iter, void**);
-    int (*advance)(names_iterator*iter, void**);
+    int (*iterate)(names_iterator*iter, void*);
+    int (*advance)(names_iterator*iter, void*);
     int (*end)(names_iterator*iter);
-    int itemcnt, itemmax, itemidx;
+    int itemcnt, itemidx;
     size_t itemsiz;
-    char* items;
+    void* itemdata;
+    void (*itemfunc)(names_iterator iter,void*,int,void*);
+    void* previous;
 };
 
 static int
-iterateimpl(names_iterator* iter, void** item)
+endimpl(names_iterator*iter)
 {
-    if (item)
-        *item = NULL;
-    if (*iter) {
-        if ((*iter)->itemidx < (*iter)->itemcnt) {
-            if (item) {
-                if(!(*iter)->itemsiz) {
-                    *item = (((void**)((*iter)->items))[(*iter)->itemidx]);
-                } else {
-                    //*item = &((*iter)->items[(*iter)->itemidx * (*iter)->itemsiz]);
-                    memcpy(item, &((*iter)->items[(*iter)->itemidx * (*iter)->itemsiz]), (*iter)->itemsiz);
-                }
-            }
-            return 1;
-        } else {
-            free(*iter);
-            *iter = NULL;
-        }
-    }
-    return 0;
-}
-
-static int
-advanceimpl(names_iterator*i, void** item)
-{
-    struct names_iterator_struct** iter = i;
-    if (item)
-        *item = NULL;
-    if (*iter) {
-        (*iter)->itemidx += 1;
-        if ((*iter)->itemidx < (*iter)->itemcnt) {
-            if (item) {
-                if(!(*iter)->itemsiz) {
-                    *item = (((void**)((*iter)->items))[(*iter)->itemidx]);
-                } else {
-                    *item = &((*iter)->items[(*iter)->itemidx * (*iter)->itemsiz]);
-                }
-            }
-            return 1;
-        }
+    if((*iter)->previous)
+        (*iter)->itemfunc(*iter, (*iter)->itemdata, -1, (*iter)->previous);
+    if(*iter) {
         free(*iter);
         *iter = NULL;
     }
@@ -62,62 +30,95 @@ advanceimpl(names_iterator*i, void** item)
 }
 
 static int
-endimpl(names_iterator*iter)
+iterateimpl(names_iterator* iter, void* ptr)
 {
-    if(*iter) free(*iter);
-        *iter = NULL;
+    if (*iter) {
+        if ((*iter)->itemidx < (*iter)->itemcnt) {
+            if (ptr) {
+                (*iter)->itemfunc(*iter, (*iter)->itemdata, (*iter)->itemidx, ptr);
+            }
+            return 1;
+        } else {
+            endimpl(iter);
+        }
+    }
     return 0;
 }
 
+static int
+advanceimpl(names_iterator* iter, void* ptr)
+{
+    if (*iter) {
+        (*iter)->itemidx += 1;
+        if ((*iter)->itemidx < (*iter)->itemcnt) {
+            if (ptr) {
+                (*iter)->itemfunc(*iter, (*iter)->itemdata, (*iter)->itemidx, ptr);
+            }
+            return 1;
+        }
+        endimpl(iter);
+    }
+    return 0;
+}
 names_iterator
-names_iterator_create(size_t size)
+names_iterator_create(int count, void* data, void (*indexfunc)(names_iterator iter,void*,int,void*), size_t itemsiz)
 {
     names_iterator iter;
     iter = malloc(sizeof(struct names_iterator_struct));
     iter->iterate = iterateimpl;
     iter->advance = advanceimpl;
     iter->end = endimpl;
-    iter->itemcnt = 0;
-    iter->itemmax = 20;
+    iter->itemcnt = count;
     iter->itemidx = 0;
-    iter->itemsiz = size;
-    iter->items = malloc(iter->itemmax * (iter->itemsiz?iter->itemsiz:sizeof(void*)));;
+    iter->itemsiz = itemsiz;
+    iter->itemdata = data;
+    iter->itemfunc = indexfunc;
+    iter->previous = NULL;
     return iter;
 }
 
-void
-names_iterator_add(names_iterator iter, void* ptr)
+names_iterator
+names_iterator_createarray(int count, void* data, void (*indexfunc)(names_iterator iter,void*,int,void*))
 {
-    size_t itemsiz;
-    itemsiz = (iter->itemsiz ? iter->itemsiz : sizeof(void*));
-    if(iter->itemcnt == iter->itemmax) {
-        iter->itemmax *= 2;
-        iter->items = realloc(iter->items, iter->itemmax * itemsiz);
-    }
-    if(!iter->itemsiz)
-        ((void**)(iter->items))[iter->itemcnt] = ptr;
-    else
-        memcpy(&(iter->items[iter->itemcnt * itemsiz]), ptr, itemsiz);
-    iter->itemcnt += 1;
+    return names_iterator_create(count, data, indexfunc, 0);
+}
+
+static void
+refsindexfunc(names_iterator iter, void** array, int index, void** ptr)
+{
+    *ptr = array[index];
+}
+
+names_iterator
+names_iterator_createrefs(void)
+{
+    return names_iterator_create(0, NULL, refsindexfunc, sizeof(void*));
+}
+
+static void
+dataindexfunc(names_iterator iter, char* data, int index, void* ptr)
+{
+    memcpy(ptr, &(((char*)(iter->itemdata))[iter->itemsiz * index]), iter->itemsiz);
+}
+
+names_iterator
+names_iterator_createdata(size_t size)
+{
+    return names_iterator_create(0, NULL, dataindexfunc, size);
 }
 
 void
-names_iterator_addall(names_iterator iter, int count, void* base, size_t memsize, ssize_t offset)
+names_iterator_addptr(names_iterator iter, void* ptr)
 {
-    int i;
-    size_t itemsiz;
-    itemsiz = (iter->itemsiz ? iter->itemsiz : sizeof(void*));
-    iter->itemmax = iter->itemcnt + count;
-    iter->items = realloc(iter->items, iter->itemmax * itemsiz);
-    for(i=0; i<count; i++) {
-        if(offset >= 0) {
-            if(!iter->itemsiz)
-                ((void**)(iter->items))[iter->itemcnt] = *(char**)&(((char*)base)[memsize*i+offset]);
-            else
-                memcpy(&(iter->items[iter->itemcnt * itemsiz]), *(char**)&(((char*)base)[memsize*i+offset]), itemsiz);
-        } else {
-            memcpy(&(iter->items[iter->itemcnt * itemsiz]), &(((char*)base)[memsize*i]), itemsiz);
-        }
-        iter->itemcnt += 1;
-    }    
+    iter->itemcnt += 1;
+    iter->itemdata = realloc(iter->itemdata, iter->itemsiz * iter->itemcnt);
+    ((void**)(iter->itemdata))[iter->itemcnt-1] = ptr;
+}
+
+void
+names_iterator_adddata(names_iterator iter, void* ptr)
+{
+    iter->itemcnt += 1;
+    iter->itemdata = realloc(iter->itemdata, iter->itemsiz * iter->itemcnt);
+    memcpy(&(((char*)(iter->itemdata))[iter->itemsiz * (iter->itemcnt-1)]), ptr, iter->itemsiz);
 }

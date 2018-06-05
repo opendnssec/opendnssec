@@ -1,6 +1,8 @@
 #define _LARGEFILE64_SOURCE
 #define _GNU_SOURCE
 
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,15 +16,21 @@
 #include "utilities.h"
 #include "proto.h"
 
+struct searchfunc {
+    names_index_type index;
+    names_index_type index2;
+    names_indexrange_func search;
+};
+
 struct names_view_struct {
     const char* viewname;
     names_view_type base;
-    const char* apex;
-    const char* apexrr;
-    int defaultttl;
+    struct names_view_zone zonedata;
     names_table_type changelog;
     int viewid;
     names_commitlog_type commitlog;
+    int nsearchfuncs;
+    struct searchfunc* searchfuncs;
     int nindices;
     names_index_type indices[];
 };
@@ -32,7 +40,7 @@ struct names_change_struct {
     dictionary oldrecord;
 };
 typedef struct names_change_struct* names_change_type;
-enum changetype { ADD, DEL, MOD };
+enum changetype { ADD, DEL, MOD, UPD };
 
 static void
 changed(names_view_type view, dictionary record, enum changetype type, dictionary** target)
@@ -50,7 +58,7 @@ changed(names_view_type view, dictionary record, enum changetype type, dictionar
         switch(type) {
             case ADD:
                 change->oldrecord = NULL;
-                change->record = NULL;
+                change->record = record;
                 break;
             case DEL:
                 change->oldrecord = record;
@@ -58,6 +66,15 @@ changed(names_view_type view, dictionary record, enum changetype type, dictionar
                 break;
             case MOD:
                 change->oldrecord = record;
+                if(target) {
+                    *target = &change->record;
+                    change->record = NULL;
+                } else
+                    change->record = record;
+                break;
+            case UPD:
+                change->oldrecord = record;
+                change->record = record;
                 if(target) {
                     *target = &change->record;
                     change->record = NULL;
@@ -79,6 +96,10 @@ changed(names_view_type view, dictionary record, enum changetype type, dictionar
                 if(target)
                     *target = &change->record;
                 break;
+            case UPD:
+                if(target)
+                    *target = &change->record;
+                break;
         }
     }
 }
@@ -90,7 +111,20 @@ names_own(names_view_type view, dictionary* record)
     changed(view, *record, MOD, &dict);
     if(dict && *dict == NULL) {
         names_indexremove(view->indices[0], *record);
-        *dict = names_recordcopy(*record);
+        *dict = names_recordcopy(*record, 1);
+        names_indexinsert(view->indices[0], *dict);
+    }
+    *record = *dict;
+}
+
+void
+names_update(names_view_type view, dictionary* record)
+{
+    dictionary* dict;
+    changed(view, *record, UPD, &dict);
+    if(dict && *dict == NULL) {
+        names_indexremove(view->indices[0], *record);
+        *dict = names_recordcopy(*record, 0);
         names_indexinsert(view->indices[0], *dict);
     }
     *record = *dict;
@@ -99,7 +133,7 @@ names_own(names_view_type view, dictionary* record)
 void
 names_amend(names_view_type view, dictionary record)
 {
-    changed(view, record, MOD, NULL);
+    changed(view, record, UPD, NULL);
 }
 
 void*
@@ -111,7 +145,7 @@ names_place(names_view_type view, const char* name)
     if(content == NULL) {
         newname = (char*)name;
         content = names_recordcreate(&newname);
-        annotate(content, (view->apex ? strdup(view->apex) : NULL));
+        names_recordannotate(content, &view->zonedata);
         names_indexinsert(view->indices[0], content);
         changed(view, content, ADD, NULL);
     }
@@ -122,6 +156,8 @@ void*
 names_take(names_view_type view, int index, const char* name)
 {
     dictionary found;
+    if(name == NULL)
+        name = view->zonedata.apex;
     found = names_indexlookupkey(view->indices[index], name);
     return found;
 }
@@ -146,11 +182,25 @@ names_viewcreate(names_view_type base, const char* viewname, const char** keynam
     view = malloc(sizeof(struct names_view_struct)+sizeof(names_index_type)*(nindices));
     view->viewname = (viewname ? strdup(viewname) : NULL);
     view->base = base;
-    view->apex = (base ? base->apex : NULL);
+    view->zonedata.apex = (base ? base->zonedata.apex : NULL);
+    view->zonedata.defaultttl = NULL;
+    view->zonedata.signconf = NULL;
     view->changelog = names_tablecreate();
+    view->nsearchfuncs = 0;
+    view->searchfuncs = NULL;
     view->nindices = nindices;
     for(i=0; i<nindices; i++) {
         names_indexcreate(&view->indices[i], keynames[i]);
+        names_indexsearchfunction(view->indices[i], view, keynames[i]);
+    }
+    if(!strcmp(viewname,"  input   ")) {
+    } else if(!strcmp(viewname,"  prepare ")) {
+        names_viewaddsearchfunction2(view, view->indices[1], view->indices[2], names_iteratorincoming);
+    } else if(!strcmp(viewname,"  neighbr ")) {
+        names_viewaddsearchfunction2(view, view->indices[0], view->indices[1], names_iteratordenialchainupdates);
+    } else if(!strcmp(viewname,"  sign    ")) {
+        names_viewaddsearchfunction2(view, view->indices[0], view->indices[2], names_iteratordenialchainupdates);
+    } else if(!strcmp(viewname,"  output  ")) {
     }
     if(base != NULL) {
         /* swapping next two loops might get better performance */
@@ -195,53 +245,106 @@ names_viewdestroy(names_view_type view)
     }
     marshallclose(store);
     free((void*)view->viewname);
+    if(view->zonedata.defaultttl)
+        free((void*)view->zonedata.defaultttl);
     if(view->viewid == 0)
-        free((void*)view->apex);
+        free((void*)view->zonedata.apex);
     free(view);
 }
 
-names_iterator
-names_viewiterator(names_view_type view, int index)
+void
+names_viewaddsearchfunction(names_view_type view, names_index_type index, names_indexrange_func searchfunc)
 {
-    return names_indexiterator(view->indices[index]);
+    view->nsearchfuncs += 1;
+    view->searchfuncs = realloc(view->searchfuncs, sizeof(struct searchfunc) * view->nsearchfuncs);
+    view->searchfuncs[view->nsearchfuncs-1].index = index;
+    view->searchfuncs[view->nsearchfuncs-1].index2 = NULL;
+    view->searchfuncs[view->nsearchfuncs-1].search = searchfunc;
 }
 
-int
-ancestors(names_view_type view, char* name)
+void
+names_viewaddsearchfunction2(names_view_type view, names_index_type primary, names_index_type secondary, names_indexrange_func searchfunc)
 {
-    ldns_rdf* apex;
-    ldns_rdf* dname;
-    ldns_rdf* parent;
-    dictionary dict;
+    view->nsearchfuncs += 1;
+    view->searchfuncs = realloc(view->searchfuncs, sizeof(struct searchfunc) * view->nsearchfuncs);
+    view->searchfuncs[view->nsearchfuncs-1].index = primary;
+    view->searchfuncs[view->nsearchfuncs-1].index2 = secondary;
+    view->searchfuncs[view->nsearchfuncs-1].search = searchfunc;
+}
 
-    apex = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, view->apex);
-    dname = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, name);
-    
-    while(dict && ldns_dname_is_subdomain(dname, apex)) {
-        parent = ldns_dname_left_chop(dname);
-        if (parent) {
-            dict = names_take(view, 0, parent);
-            ldns_rdf_deep_free(parent);
+names_iterator
+names_viewiterator(names_view_type view, names_indexrange_func func, ...)
+{
+    int i;
+    va_list ap;
+    names_iterator iter;
+    if(func == NULL) {
+        return names_indexiterator(view->indices[0]);
+    } else {
+        for(i=0; i<view->nsearchfuncs; i++) {
+            if(view->searchfuncs[i].search == func) {
+                va_start(ap, func);
+                if(view->searchfuncs[i].index2 != NULL) {
+                    iter = view->searchfuncs[i].search(view->searchfuncs[i].index, view->searchfuncs[i].index2, ap);
+                } else {
+                    iter = view->searchfuncs[i].search(view->searchfuncs[i].index, ap);
+                }
+                va_end(ap);
+                return iter;
+            }
         }
     }
-    return 0;
+    abort(); // FIXME?
+    return NULL;
 }
 
 names_iterator
-names_viewiterate(names_view_type view, const char* selector, ...)
+names_iteratorincoming(names_index_type primary, names_index_type secondary, va_list ap)
 {
-    va_list ap;
-    char* name;
+    struct dual entry;
+    dictionary record;
     names_iterator iter;
-    va_start(ap, selector);
-    if(!strcmp(selector, "allbelow")) {
-        name = va_arg(ap, char*);
-        iter = names_indexrange(view->indices[1], selector, name);
-    } else {
-        abort(); // FIXME
+    names_iterator result;
+    result = names_iterator_createdata(sizeof(struct dual));
+    for (iter=names_indexiterator(primary); names_iterate(&iter,&record); names_advance(&iter,NULL)) {
+        entry.src = record;
+        entry.dst = names_indexlookup(secondary, record);
+        names_iterator_adddata(result,&entry);
     }
-    va_end(ap);
-    return iter;
+    return result;
+}
+
+names_iterator
+names_iteratorexpiring(names_index_type index, va_list ap)
+{
+    dictionary record;
+    names_iterator iter;
+    names_iterator result;
+    result = names_iterator_createrefs();
+    for (iter=names_indexiterator(index); names_iterate(&iter,&record); names_advance(&iter,NULL)) {
+        names_iterator_addptr(result, record);
+    }
+    return result;
+}
+
+names_iterator
+names_iteratordenialchainupdates(names_index_type primary, names_index_type secondary, va_list ap)
+{
+    struct dual entry;
+    dictionary record;
+    names_iterator iter;
+    names_iterator result;
+    result = names_iterator_createdata(sizeof(struct dual));
+    for (iter=names_indexiterator(primary); names_iterate(&iter,&record); names_advance(&iter,NULL)) {
+        if(names_recordgetid(record,"denialname")) {
+            entry.src = record;
+            entry.dst = names_indexlookupnext(secondary, record);
+            assert(entry.src);
+            assert(entry.dst);
+            names_iterator_adddata(result,&entry);
+        }
+    }
+    return result;
 }
 
 static void
@@ -250,6 +353,7 @@ resetchangelog(names_view_type view)
     names_iterator iter;
     names_change_type change;
     for(iter=names_tableitems(view->changelog); names_iterate(&iter, &change); names_advance(&iter, NULL)) {
+        assert(change->record != change->oldrecord); /* we cannot handle updates like amends */
         if(change->record != NULL) {
             names_indexremove(view->indices[0], change->record);
         }
@@ -316,13 +420,37 @@ names_viewreset(names_view_type view)
     updateview(view, NULL);
 }
 
+int
+names_viewsync(names_view_type view)
+{
+    int i, conflict = 0;
+    names_iterator iter;
+    names_change_type change;
+    names_table_type changelog;
+    const char* name;
+
+    changelog = NULL;
+    while((names_commitlogpoppush(view->commitlog, view->viewid, &changelog, NULL))) {
+        for(iter = names_tableitems(changelog); names_iterate(&iter, &change); names_advance(&iter, NULL)) {
+            name = names_recordgetid(change->record, NULL);
+            if(change->record != NULL) {
+                names_indexinsert(view->indices[0], change->record);
+                for(i=1; i<view->nindices; i++)
+                    names_indexinsert(view->indices[i], change->record);
+            }
+        }
+    }
+    return conflict;
+}
+
 static void
 persistfn(names_table_type table, marshall_handle store)
 {
     names_iterator iter;
     names_change_type change;
     for(iter=names_tableitems(table); names_iterate(&iter, &change); names_advance(&iter, NULL)) {
-        names_recordmarshall(&(change->record), store);
+        if(change->record != change->oldrecord) /* ignore updates like amend */
+            names_recordmarshall(&(change->record), store);
     }
     names_recordmarshall(NULL, store);
 }
@@ -335,26 +463,30 @@ names_viewrestore(names_view_type view, const char* apex, int basefd, const char
     marshall_handle input;
     marshall_handle output;
 
-    view->apex = strdup(apex);
+    view->zonedata.apex = strdup(apex);
 
-    if(basefd >= 0)
-        fd = openat(basefd, filename, O_RDWR|O_LARGEFILE);
-    else
-        fd = open(filename, O_RDWR|O_LARGEFILE);
-    if(fd >= 0) {
-        input = marshallcreate(marshall_INPUT, fd);
-        do {
-            names_recordmarshall(&record, input);
-            if(record) {
-                names_indexinsert(view->indices[0], record);
-            }
-        } while(record);
-        output = marshallcreate(marshall_APPEND, input);
-        marshallclose(input);
-        names_commitlogpersistappend(view->commitlog, persistfn, output);
-        return 0;
+    if(filename != NULL) {
+        if(basefd >= 0)
+            fd = openat(basefd, filename, O_RDWR|O_LARGEFILE);
+        else
+            fd = open(filename, O_RDWR|O_LARGEFILE);
+        if(fd >= 0) {
+            input = marshallcreate(marshall_INPUT, fd);
+            do {
+                names_recordmarshall(&record, input);
+                if(record) {
+                    names_indexinsert(view->indices[0], record);
+                }
+            } while(record);
+            output = marshallcreate(marshall_APPEND, input);
+            marshallclose(input);
+            names_commitlogpersistappend(view->commitlog, persistfn, output);
+            return 0;
+        } else {
+            return 1;
+        }
     } else {
-        return 1;
+        return 0;
     }
 }
 
@@ -396,30 +528,23 @@ names_viewpersist(names_view_type view, int basefd, char* filename)
 }
 
 int
-names_viewgetdefaultttl(names_view_type view)
+names_viewgetdefaultttl(names_view_type view, int* defaultttl)
 {
-    return view->defaultttl;
+    if(view->zonedata.defaultttl) {
+        *defaultttl = view->zonedata.defaultttl;
+        return 1;
+    } else
+        return 0;
 }
 
-ldns_rr*
-names_viewgetapex(names_view_type view)
+int
+names_viewgetapex(names_view_type view, ldns_rdf** apexptr)
 {
-    return view->apexrr;
-}
-
-void
-names_dumpviewinfo(names_view_type view)
-{
-    names_iterator iter;
-    int i, count;
-    fprintf(stderr,"%s",view->viewname);
-    for(i=0; i<view->nindices; i++) {
-        count = 0;
-        for(iter = names_viewiterator(view, count); names_iterate(&iter,NULL); names_advance(&iter,NULL))
-            ++count;
-        fprintf(stderr," %s=%d",*(char**)(view->indices[i]),count);
-    }
-    fprintf(stderr,"\n");
+    if(view->zonedata.apex) {
+        *apexptr = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, view->zonedata.apex);
+        return 1;
+    } else
+        return 0;
 }
 
 void
@@ -429,7 +554,7 @@ names_dumpviewfull(FILE* fp, names_view_type view)
     dictionary record;
     marshall_handle marsh;
     marsh = marshallcreate(marshall_PRINT, fp);
-    for(iter = names_viewiterator(view, 0); names_iterate(&iter,&record); names_advance(&iter,NULL))
+    for(iter = names_viewiterator(view, NULL); names_iterate(&iter,&record); names_advance(&iter,NULL))
         names_recordmarshall(&record, marsh);
     marshallclose(marsh);
 }
@@ -443,48 +568,36 @@ names_dumprecord(FILE* fp, dictionary record)
     marshallclose(marsh);
 }
 
-names_iterator
-noexpiry(names_view_type view)
+
+void
+names_viewlookupall(names_view_type view, ldns_rdf* dname, ldns_rr_type type, ldns_rr_list** rrs, ldns_rr_list** rrsigs)
 {
-    struct dual entry;
     dictionary record;
-    names_iterator iter;
-    names_iterator result;
-    result = names_iterator_create(sizeof(struct dual));
-    for (iter=names_indexiterator(view->indices[1]); names_iterate(&iter,&record); names_advance(&iter,NULL)) {
-        entry.dst = record;
-        entry.src = names_indexlookup(view->indices[2], record);
-        names_iterator_add(result,&entry);
+    char* name;
+    name = (dname ? ldns_rdf2str(dname) : NULL);
+    record = names_take(view, 0, name);
+    if(record) {
+        names_recordlookupall(record, type, NULL, rrs, rrsigs);
+    } else {
+        *rrs = NULL;
+        *rrsigs = NULL;
     }
-    return result;
+    if(name)
+        free(name);
 }
 
-
-names_iterator
-neighbors(names_view_type view)
-{
-    struct dual entry;
-    dictionary record;
-    names_iterator iter;
-    names_iterator result;
-    result = names_iterator_create(sizeof(struct dual));
-    for (iter=names_indexiterator(view->indices[1]); names_iterate(&iter,&record); names_advance(&iter,NULL)) {
-        entry.dst = record;
-        entry.src = names_indexlookup(view->indices[2], record);
-        names_iterator_add(result,&entry);
-    }
-    return result;
-}
-
-names_iterator
-expiring(names_view_type view)
+void
+names_viewlookupone(names_view_type view, ldns_rdf* dname, ldns_rr_type type, ldns_rr* template, ldns_rr** rr)
 {
     dictionary record;
-    names_iterator iter;
-    names_iterator result;
-    result = names_iterator_create(0);
-    for (iter=names_indexiterator(view->indices[0]); names_iterate(&iter,&record); names_advance(&iter,NULL)) {
-        names_iterator_add(result, record);
+    char* name;
+    name = (dname ? ldns_rdf2str(dname) : NULL);
+    record = names_take(view, 0, name);
+    if(record) {
+        names_recordlookupone(record, type, template, rr);
+    } else {
+        *rr = NULL;
     }
-    return result;
+    if(name)
+        free(name);
 }

@@ -32,7 +32,6 @@
 #include "file.h"
 #include "log.h"
 #include "util.h"
-#include "signer/backup.h"
 #include "signer/keys.h"
 #include "signer/signconf.h"
 #include "status.h"

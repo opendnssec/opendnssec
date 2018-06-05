@@ -1,3 +1,5 @@
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -213,14 +215,14 @@ marshallldnsrr(marshall_handle h, void* member)
                 read(h->fd, str, sizeof(char)*len);
                 str[len] = '\0';
                 size += len;
-                ldns_rr_new_frm_str(&rr, str, 0, NULL, NULL);
+                ldns_rr_new_frm_str(rr, str, 0, NULL, NULL);
             } else {
                 *rr = NULL;
             }
             break;
         case WRITE:
             if(*rr) {
-                str = ldns_rr2str(rr);
+                str = ldns_rr2str(*rr);
                 len = strlen(str);
                 size = marshallinteger(h, &len);
                 write(h->fd, str, sizeof(char)*len);
@@ -233,7 +235,7 @@ marshallldnsrr(marshall_handle h, void* member)
             break;
         case COUNT:
             if(*rr) {
-                str = ldns_rr2str(rr);
+                str = ldns_rr2str(*rr);
                 len = strlen(str);
                 free(str);
             } else {
@@ -244,8 +246,8 @@ marshallldnsrr(marshall_handle h, void* member)
             break;
         case PRINT:
             if(*rr) {
-                str = ldns_rr2str(rr);
-                size = fprintf(h->fp, "\"%s\"", str);
+                str = ldns_rr2str(*rr);
+                size = fprintf(h->fp, "\"%*.*s\"\n", (int)strlen(str)-1, (int)strlen(str)-1, str);
                 free(str);
             } else {
                 size = fprintf(h->fp, "NULL");
@@ -253,6 +255,20 @@ marshallldnsrr(marshall_handle h, void* member)
             break;
         default:
             size = -1;
+    }
+    return size;
+}
+
+int
+marshallsigs(marshall_handle h, void* member)
+{
+    struct signatures_struct* signatures = *(struct signatures_struct**)member;
+    int i, size;
+    size += marshalling(h, "sigs", &(signatures->sigs), &(signatures->nsigs), sizeof(struct signatures_struct), marshallself);
+    for(i=0; i<signatures->nsigs; i++) {
+        size += marshalling(h, "rr", &(signatures->sigs[i].rr), NULL, 0, marshallldnsrr);
+        size += marshalling(h, "keylocator", &(signatures->sigs[i].keylocator), NULL, 0, marshallstring);
+        size += marshalling(h, "keyflags", &(signatures->sigs[i].keyflags), NULL, 0, marshallinteger);
     }
     return size;
 }
@@ -270,7 +286,7 @@ marshallfunc(int (*memberfunction)(marshall_handle,void*))
 }
 
 int
-marshalling(marshall_handle h, char* name, void* members, int *membercount, size_t membersize, int (*memberfunction)(marshall_handle,void*))
+marshalling(marshall_handle h, const char* name, void* members, int *membercount, size_t membersize, int (*memberfunction)(marshall_handle,void*))
 {
     char* array;
     char* dest;

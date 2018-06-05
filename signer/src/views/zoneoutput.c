@@ -1,6 +1,8 @@
 #define _LARGEFILE64_SOURCE
 #define _GNU_SOURCE
 
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -15,44 +17,55 @@
 
 #pragma GCC optimize ("O0")
 
-int
-writezone(names_view_type view, const char* filename, const char* apex, int* defaultttl)
+void
+writezonef(names_view_type view, FILE* fp)
 {
     char* s;
     const char* recordname;
     ldns_rr_type recordtype;
-    resourcerecord_t item;
     names_iterator domainiter;
     names_iterator rrsetiter;
     names_iterator rriter;
     dictionary domainitem;
-    ldns_rdf* origin;
-    FILE* fp;
-    ldns_rr* rr;
+    for (domainiter = names_viewiterator(view, NULL); names_iterate(&domainiter, &domainitem); names_advance(&domainiter, NULL)) {
+        getset(domainitem, "name", &recordname, NULL);
+        for (rrsetiter = names_recordalltypes(domainitem); names_iterate(&rrsetiter, &recordtype); names_advance(&rrsetiter, NULL)) {
+            for (rriter = names_recordallvaluestrings(domainitem,recordtype); names_iterate(&rriter, &s); names_advance(&rriter, NULL)) {
+                fprintf(fp, "%s", s);
+            }
+        }
+        for (rriter = names_recordallvaluestrings(domainitem,LDNS_RR_TYPE_NSEC); names_iterate(&rriter, &s); names_advance(&rriter, NULL)) {
+            fprintf(fp, "%s", s);
+        }
+    }
+}
 
-    origin = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, apex);
+int
+writezone(names_view_type view, const char* filename)
+{
+    char* s;
+    FILE* fp;
+    int defaultttl = 0;
+    ldns_rdf* origin = NULL;
+
     fp = fopen(filename,"w");
     if(!fp) {
         fprintf(stderr,"unable to open file \"%s\"\n",filename);
     }
 
-    s = ldns_rdf2str(origin);
-    fprintf(fp, "$ORIGIN %s\n", s);
-    free(s);
-    if(defaultttl)
-        fprintf(fp, "$TTL %d\n",*defaultttl);
-   
-    for (domainiter = names_viewiterator(view, 0); names_iterate(&domainiter, &domainitem); names_advance(&domainiter, NULL)) {
-        getset(domainitem, "name", &recordname, NULL);
-        for (rrsetiter = names_recordalltypes(domainitem); names_iterate(&rrsetiter, &recordtype); names_advance(&rrsetiter, NULL)) {
-            for (rriter = names_recordallvalues(domainitem,recordtype); names_iterate(&rriter, &item); names_advance(&rriter, NULL)) {
-                s = names_rr2str(domainitem, recordtype, item);
-                fprintf(fp, "%s\n", s);
-                free(s);
-            }
-        }
+    names_viewgetapex(view, &origin);
+    if(origin) {
+        s = ldns_rdf2str(origin);
+        fprintf(fp, "$ORIGIN %s\n", s);
+        free(s);
+        ldns_rdf_free(origin);
     }
+    if(names_viewgetdefaultttl(view, &defaultttl))
+        fprintf(fp, "$TTL %d\n",defaultttl);
+
+    names_viewreset(view);
+    writezonef(view, fp);
+
     fclose(fp);
-    ldns_rdf_free(origin);
     return 0;
 }

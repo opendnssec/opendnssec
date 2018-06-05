@@ -1,6 +1,8 @@
 #define _LARGEFILE64_SOURCE
 #define _GNU_SOURCE
 
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -28,78 +30,20 @@ struct removal_struct {
 };
 struct removal_struct* removals = NULL;
 
-void
-rr2data(ldns_rr* rr, char** recorddataptr, char** recordinfoptr)
-{
-    unsigned int i;
-    int len;
-    int recorddatalen;
-    char* recorddata;
-    char *s;
-    const char* recordclass;
-    uint32_t recordttl;
-
-    recordclass = ldns_rr_class2str(ldns_rr_get_class(rr));
-    recordttl = ldns_rr_ttl(rr);
-    len = snprintf(NULL,0,"%u %s",recordttl,recordclass);
-    *recordinfoptr = malloc(len+1);
-    snprintf(*recordinfoptr,len+1,"%u %s",recordttl,recordclass);
-    names_rr2data(rr, 0);
-    *recorddataptr = recorddata;
-}
-
-void
-rr2data_new(ldns_rr* rr, char** recorddataptr, char** recordinfoptr)
-{
-    int len;
-    unsigned int i, j;
-    int recorddatalen ;
-    char* recorddata;
-    ldns_rdf* rdata;
-    uint8_t* data;
-    const char* recordclass;
-    uint32_t recordttl;
-
-    recordclass = ldns_rr_class2str(ldns_rr_get_class(rr));
-    recordttl = ldns_rr_ttl(rr);
-    len = snprintf(NULL,0,"%u %s",recordttl,recordclass);
-    *recordinfoptr = malloc(len+1);
-    snprintf(*recordinfoptr,len+1,"%u %s",recordttl,recordclass);
-
-    recorddatalen = 0;
-    for (i = 0; i < ldns_rr_rd_count(rr); i++) {
-        recorddatalen += ldns_rdf_size(ldns_rr_rdf(rr, i));
-    }
-    recorddatalen += snprintf(NULL, 0, "\\# %d", recorddatalen);
-    recorddata = malloc(recorddatalen);
-    recorddata += snprintf(recorddata, recorddatalen, "\\# %d", recorddatalen);
-    for (i = 0; i < ldns_rr_rd_count(rr); i++) {
-        rdata = ldns_rr_rdf(rr, i);
-        data = ldns_rdf_data(rdata);
-        for (j = 0; j < ldns_rdf_size(rdata); j++) {
-            recorddata[0] = "0123456789abcdef"[data[j]>>8];
-            recorddata[1] = "0123456789abcdef"[data[j]&0xf];
-            recorddata += 2;
-        }
-    }
-    *recorddataptr = recorddata;
-}
-
 int
 readzone(names_view_type view, enum operation_enum operation, const char* filename, char** apexptr, int* defaultttlptr)
 {
     char* s;
     char* recordname;
     ldns_rr_type recordtype;
-    char* recordinfo;
     char* recorddata;
-    resourcerecord_t item;
+    char* recordtypestr;
+    void* item;
     names_iterator domainiter;
     names_iterator rrsetiter;
     names_iterator rriter;
     dictionary domainitem;
     int linenum;
-    int keylength;
     unsigned int defaultttl;
     ldns_status err;
     FILE* fp;
@@ -119,13 +63,13 @@ readzone(names_view_type view, enum operation_enum operation, const char* filena
     prevowner = NULL;
 
     if(operation == PLAIN) {
-        for (domainiter = names_viewiterator(view, 0); names_iterate(&domainiter, &domainitem); names_advance(&domainiter, NULL)) {
+        for (domainiter = names_viewiterator(view, NULL); names_iterate(&domainiter, &domainitem); names_advance(&domainiter, NULL)) {
             getset(domainitem, "name", (const char**) &recordname, NULL);
             for (rrsetiter = names_recordalltypes(domainitem); names_iterate(&rrsetiter, &recordtype); names_advance(&rrsetiter, NULL)) {
-                for (rriter = names_recordallvalues(domainitem,recordtype); names_iterate(&rriter, &item); names_advance(&rriter, NULL)) {
-                    removal = names_rr2ident(domainitem, recordtype, item, sizeof(struct removal_struct));
+                for (rriter = names_recordallvalueidents(domainitem,recordtype); names_iterate(&rriter, &s); names_advance(&rriter, NULL)) {
+                    removal = strdup(s);
                     removal->record = domainitem;
-                    HASH_ADD_OPAQUE(removals, key, removal, keylength);
+                    HASH_ADD_OPAQUE(removals, key, removal, strlen(removal->key));
                 }
             }
         }
@@ -171,7 +115,6 @@ readzone(names_view_type view, enum operation_enum operation, const char* filena
         } else {
             recordname = ldns_rdf2str(ldns_rr_owner(rr));
             recordtype = ldns_rr_get_type(rr);
-            rr2data(rr, &recorddata, &recordinfo);
             switch (operation) {
                 case PLAIN:
                     record = names_place(view, recordname);
@@ -180,8 +123,12 @@ readzone(names_view_type view, enum operation_enum operation, const char* filena
                         rrset_add_rr(record, rr);
                     } else {
                         s = NULL;
-                        composestring2(&s, recordname, recordtype, recorddata, NULL);
-                        HASH_FIND_OPAQUE(removals, s, keylength, removal);
+                        recorddata = names_rr2data(rr, 0);
+                        recordtypestr = ldns_rr_type2str(recordtype);
+                        composestring2(&s, recordname, recordtypestr, recorddata, NULL);
+                        free(recordtypestr);
+                        HASH_FIND_OPAQUE(removals, s, strlen(s), removal);
+                        free(recorddata);
                         if (removal)
                             HASH_DEL(removals, removal);
                         free(s);
@@ -203,9 +150,6 @@ readzone(names_view_type view, enum operation_enum operation, const char* filena
                     break;
             }
             free((void*)recordname);
-            free((void*)recordtype);
-            free((void*)recorddata);
-            free((void*)recordinfo);
         }
         ldns_rr_free(rr);
     }
@@ -219,7 +163,7 @@ readzone(names_view_type view, enum operation_enum operation, const char* filena
         for(removal=removals; removal!=NULL; removal=removal->hh.next) {
             recordname = (char*) removal->key;
             recordtype = ldns_get_rr_type_by_name(&recordname[strlen(recordname) + 1]);
-            recorddata = &recordname[strlen(strlen(&recordname[strlen(recordname) + 1])) + 1];
+            recorddata = &recordname[strlen(&recordname[strlen(recordname) + 1]) + 1];
             record = names_take(view, 0, recordname);
             names_own(view, &record);
             names_recorddeldata(record,recordtype,NULL); // FIXME should be recorddata iso NULL but ident stores data not

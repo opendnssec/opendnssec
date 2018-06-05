@@ -1,6 +1,8 @@
 #define _LARGEFILE64_SOURCE
 #define _GNU_SOURCE
 
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -61,7 +63,7 @@ deletedelegation(names_view_type view, struct rpc *rpc)
     /* delete everything below delegation point, inclusive */
     names_iterator iter;
     dictionary record;
-    for (iter = names_viewiterate(view, "allbelow", rpc->delegation_point); names_iterate(&iter, &record); names_advance(&iter, NULL)) {
+    for (iter = names_viewiterator(view, names_iteratordescendants, rpc->delegation_point); names_iterate(&iter, &record); names_advance(&iter, NULL)) {
         names_own(view, &record);
         names_recorddelall(record, 0);
     }
@@ -99,28 +101,31 @@ insertrecords(names_view_type view, struct rpc *rpc)
     return 0;
 }
 
-struct names_struct* getzone(char* apex);
-
 static int
 dispatch(struct httpd* httpd, struct rpc *rpc)
 {
     names_view_type view;
-    view = getzone(rpc->zone)->inputview;
-    names_viewreset(view);
-    switch (rpc->opc) {
-        case RPC_CHANGE_DELEGATION:
-            deletedelegation(view, rpc);
-            insertrecords(view, rpc);
-            names_viewcommit(view);
-            break;
-        case RPC_CHANGE_NAME:
-            deleterecordsets(view, rpc);
-            insertrecords(view, rpc);
-            names_viewcommit(view);
-            break;
-        default:
-            rpc->status = RPC_ERR;
-            return 0;
+    (void)httpd;
+
+    view = zonelist_obtainresource(httpd->zonelist, rpc->zone, offsetof(zone_type, inputview));
+    if (!view) {
+        rpc->status = RPC_RESOURCE_NOT_FOUND;
+    } else {
+        names_viewreset(view);
+        switch (rpc->opc) {
+            case RPC_CHANGE_DELEGATION:
+                deletedelegation(view, rpc);
+                insertrecords(view, rpc);
+                names_viewcommit(view);
+                break;
+            case RPC_CHANGE_NAME:
+                deleterecordsets(view, rpc);
+                insertrecords(view, rpc);
+                names_viewcommit(view);
+                break;
+            default:
+                rpc->status = RPC_ERR;
+        }
     }
     return 0;
 }
@@ -177,6 +182,7 @@ handle_connection(void *cls, struct MHD_Connection *connection,
     size_t *upload_data_size, void **con_cls)
 {
     struct httpd* httpd = (struct httpd*) cls;
+    (void)version;
     if(!*con_cls) {
         struct connection_info *con_info = malloc(sizeof(struct connection_info));
         if (!con_info) return MHD_NO;
@@ -228,6 +234,9 @@ handle_connection_done(void *cls, struct MHD_Connection *connection,
     void **con_cls, enum MHD_RequestTerminationCode toe)
 {
     struct connection_info *con_info = *con_cls;
+    (void)cls;
+    (void)connection;
+    (void)toe;
     if (con_info) {
         free(con_info->buf);
     }
@@ -236,10 +245,11 @@ handle_connection_done(void *cls, struct MHD_Connection *connection,
 }
 
 struct httpd *
-httpd_create(struct http_listener_struct* config)
+httpd_create(struct http_listener_struct* config, zonelist_type* zonelist)
 {
     struct httpd *httpd;
     CHECKALLOC(httpd = (struct httpd *) malloc(sizeof(struct httpd)));
+    httpd->zonelist = zonelist;
     httpd->if_count = config->count;
     httpd->ifs = NULL;
     CHECKALLOC(httpd->ifs = (struct sockaddr_storage *) malloc(httpd->if_count * sizeof(struct sockaddr_storage)));

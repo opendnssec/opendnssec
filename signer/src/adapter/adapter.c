@@ -194,7 +194,7 @@ adapter_write(zone_type* zone)
         case ADAPTER_FILE:
             ods_log_verbose("[%s] write zone %s serial %u to output file "
                 "adapter %s", adapter_str, zone->name,
-                names_getserial(view), zone->adoutbound->configstr);
+                (zone->outboundserial ? *(zone->outboundserial) : 0), zone->adoutbound->configstr);
             status = adfile_write(zone, view, zone->adoutbound->configstr);
             break;
         case ADAPTER_DNS:

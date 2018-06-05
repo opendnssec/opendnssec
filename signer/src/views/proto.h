@@ -1,6 +1,19 @@
 #ifndef PROTO_H
 #define PROTO_H
 
+#include "signer/nsec3params.h"
+
+struct signature_struct {
+    ldns_rr* rr;
+    const char* keylocator;
+    int keyflags;
+};
+struct signatures_struct {
+    int nsigs;
+    struct signature_struct* sigs;
+};
+void signaturedispose(struct signatures_struct* sigs);
+
 /*
  * Definitions relating to an iterator.  An iterator is a object handle that
  * allows you to loop over the elements contained in some abstract data
@@ -61,11 +74,11 @@ int names_iterate(names_iterator*iter, void* item);
 int names_advance(names_iterator*iter, void* item);
 int names_end(names_iterator*iter);
 
-names_iterator names_iterator_create(size_t size);
-void names_iterator_add(names_iterator i, void* ptr);
-void names_iterator_addall(names_iterator iter, int count, void* base, size_t memsize, ssize_t offset);
-names_iterator names_iterator_array(int count, void* base, size_t memsize, size_t offset);
-names_iterator names_iterator_array2(int count, void* base, size_t memsize);
+names_iterator names_iterator_createarray(int count, void* data, void (*indexfunc)(names_iterator iter,void*,int,void*));
+names_iterator names_iterator_createrefs(void);
+names_iterator names_iterator_createdata(size_t size);
+void names_iterator_addptr(names_iterator iter, void* ptr);
+void names_iterator_adddata(names_iterator iter, void* ptr);
 
 struct marshall_struct;
 typedef struct marshall_struct* marshall_handle;
@@ -78,8 +91,9 @@ int marshallbyte(marshall_handle h, void* member);
 int marshallinteger(marshall_handle h, void* member);
 int marshallstring(marshall_handle h, void* member);
 int marshallldnsrr(marshall_handle h, void* member);
+int marshallsigs(marshall_handle h, void* member);
 int marshallstringarray(marshall_handle h, void* member);
-int marshalling(marshall_handle h, char* name, void* members, int *membercount, size_t membersize, int (*memberfunction)(marshall_handle,void*));
+int marshalling(marshall_handle h, const char* name, void* members, int *membercount, size_t membersize, int (*memberfunction)(marshall_handle,void*));
 
 extern int* marshall_OPTIONAL;
 
@@ -91,11 +105,15 @@ extern int* marshall_OPTIONAL;
  * the domain structure, containing the denial, rrset, etcetera structures.
  */
 
-typedef struct item* resourcerecord_t;
 typedef struct dictionary_struct* dictionary;
 typedef struct names_index_struct* names_index_type;
 typedef struct names_table_struct* names_table_type;
 typedef struct names_view_struct* names_view_type;
+struct names_view_zone {
+    int* defaultttl;
+    const char* apex;
+    nsec3params_type* signconf;
+};
 
 void composestring(char* dst, const char* src, ...);
 int composestring2(char** ptr, const char* src, ...);
@@ -103,39 +121,43 @@ int composestringf(char** ptr, const char* fmt, ...);
 int getset(dictionary d, const char* name, const char** get, const char** set);
 
 dictionary names_recordcreate(char**name);
-void annotate(dictionary, const char* apex);
+dictionary names_recordcreatetemp(char*name);
+void names_recordannotate(dictionary d, struct names_view_zone* zone);
 void names_recorddestroy(dictionary);
 void names_recordsetmarker(dictionary dict);
 int names_recordhasmarker(dictionary dict);
-dictionary names_recordcopy(dictionary);
-void dispose(dictionary);
+dictionary names_recordcopy(dictionary, int increment);
+void names_recorddispose(dictionary);
 const char* names_recordgetid(dictionary dict, const char* name);
 int names_recordcompare_namerevision(dictionary a, dictionary b);
 int names_recordhasdata(dictionary record, ldns_rr_type recordtype, ldns_rr* rr, int exact);
 void names_recordadddata(dictionary, ldns_rr_type, char* data, char* info);
+void rrset_add_rr(dictionary d, ldns_rr* rr);
 void names_recorddeldata(dictionary d, ldns_rr_type rrtype, ldns_rr* rr);
 void names_recorddelall(dictionary, ldns_rr_type rrtype);
 names_iterator names_recordalltypes(dictionary);
-names_iterator names_recordalltypes2(dictionary);
 names_iterator names_recordallvalues(dictionary, ldns_rr_type rrtype);
+names_iterator names_recordallvaluestrings(dictionary d, ldns_rr_type rrtype);
 int names_recordhasvalidupto(dictionary);
 int names_recordgetvalidupto(dictionary);
 void names_recordsetvalidupto(dictionary, int value);
 int names_recordhasvalidfrom(dictionary);
 int names_recordgetvalidfrom(dictionary);
+void names_recordsetdenial(dictionary record, ldns_rr* denial);
 void names_recordsetvalidfrom(dictionary, int value);
 int names_recordhasexpiry(dictionary);
 int names_recordgetexpiry(dictionary);
 void names_recordsetexpiry(dictionary, int value);
-void names_recordaddsignature(dictionary record, ldns_rr_type rrtype, char* signature, const char* keylocator, int keyflags);
-void names_recordaddsignature2(dictionary record, ldns_rr_type name, ldns_rr* rrsig, const char* keylocator, int keyflags);
+void names_recordaddsignature(dictionary record, ldns_rr_type rrtype, ldns_rr* rrsig, const char* keylocator, int keyflags);
 int names_recordmarshall(dictionary*, marshall_handle);
-void names_recordindexfunction(const char* keyname, int (**acceptfunction)(dictionary newitem, dictionary currentitem, int* cmp), int (**comparefunction)(const void *, const void *));
-int names_rrcompare(const char* data, resourcerecord_t);
-int names_rrcompare2(resourcerecord_t, resourcerecord_t);
-void* names_rr2ident(dictionary record, ldns_rr_type rrtype, resourcerecord_t item, size_t header);
-char* names_rr2str(dictionary record, ldns_rr_type recordtype, resourcerecord_t);
-ldns_rr* names_rr2ldns(dictionary record, const char* recordname, ldns_rr_type recordtype, resourcerecord_t);
+int names_rrcompare(const char* data, void*);
+int names_rrcompare2(void*, void*);
+char* names_rr2str(dictionary record, ldns_rr_type recordtype, void*);
+ldns_rr* names_rr2ldns(dictionary record, const char* recordname, ldns_rr_type recordtype, void*);
+char* names_rr2data(ldns_rr* rr, size_t header);
+
+void names_recordlookupone(dictionary record, ldns_rr_type type, ldns_rr* template, ldns_rr** rr);
+void names_recordlookupall(dictionary record, ldns_rr_type type, ldns_rr* template, void** rrs, void** rrsigs);
 
 struct dual {
     dictionary src;
@@ -149,13 +171,7 @@ int names_indexremove(names_index_type, dictionary);
 int names_indexremovekey(names_index_type,const char* keyvalue);
 int names_indexinsert(names_index_type, dictionary);
 void names_indexdestroy(names_index_type, void (*userfunc)(void* arg, void* key, void* val), void* userarg);
-int names_indexaccept(names_index_type, dictionary);
 names_iterator names_indexiterator(names_index_type);
-names_iterator names_indexrange(names_index_type,char* selection,...);
-
-names_iterator noexpiry(names_view_type);
-names_iterator neighbors(names_view_type);
-names_iterator expiring(names_view_type);
 
 /* Table structures are used internally by views to record changes made in
  * the view.  A table is a set of changes, also dubbed a changelog.
@@ -186,21 +202,37 @@ void names_commitlogpersistappend(names_commitlog_type, void (*persistfn)(names_
 int names_commitlogpersistfull(names_commitlog_type, void (*persistfn)(names_table_type, marshall_handle), int viewid, marshall_handle store, marshall_handle* oldstore);
 
 void names_own(names_view_type view, dictionary* record);
+void names_update(names_view_type view, dictionary* record);
 void names_amend(names_view_type view, dictionary record);
 void* names_place(names_view_type store, const char* name);
 void* names_take(names_view_type view, int index, const char* name);
 void names_remove(names_view_type view, dictionary record);
 names_view_type names_viewcreate(names_view_type base, const char* name, const char** keynames);
 void names_viewdestroy(names_view_type view);
-names_iterator names_viewiterator(names_view_type view, int index);
-names_iterator names_viewiterate(names_view_type view, const char* name, ...);
+
+typedef names_iterator (*names_indexrange_func)();
+names_iterator names_viewiterator(names_view_type view, names_indexrange_func func, ...);
+void names_recordindexfunction(const char* keyname, int (**acceptfunction)(dictionary newitem, dictionary currentitem, int* cmp), int (**comparefunction)(const void *, const void *));
+void names_indexsearchfunction(names_index_type index, names_view_type view, const char* keyname);
+void names_viewaddsearchfunction(names_view_type, names_index_type, names_indexrange_func);
+void names_viewaddsearchfunction2(names_view_type, names_index_type, names_index_type, names_indexrange_func);
+names_iterator names_iteratorancestors(names_index_type index, va_list ap);
+names_iterator names_iteratordescendants(names_index_type index, va_list ap);
+names_iterator names_iteratordenialchainupdates(names_index_type primary, names_index_type secondary, va_list ap);
+names_iterator names_iteratorincoming(names_index_type primary, names_index_type secondary, va_list ap);
+names_iterator names_iteratorexpiring(names_index_type index, va_list ap);
+
 int names_viewcommit(names_view_type view);
 void names_viewreset(names_view_type view);
+int names_viewsync(names_view_type view);
 int names_viewpersist(names_view_type view, int basefd, char* filename);
 int names_viewrestore(names_view_type view, const char* apex, int basefd, const char* filename);
 
-int names_viewgetdefaultttl(names_view_type view);
-ldns_rr* names_viewgetapex(names_view_type view);
+void names_viewlookupall(names_view_type view, ldns_rdf* dname, ldns_rr_type type, ldns_rr_list** rrs, ldns_rr_list** rrsigs);
+void names_viewlookupone(names_view_type view, ldns_rdf* dname, ldns_rr_type type, ldns_rr* template, ldns_rr** rr);
+
+int names_viewgetdefaultttl(names_view_type view, int* defaultttl);
+int names_viewgetapex(names_view_type view, ldns_rdf** apexptr);
 
 void names_dumprecord(FILE*, dictionary record);
 void names_dumpviewinfo(names_view_type view);
@@ -215,21 +247,21 @@ void teardownsignconf(struct signconf* signconf);
 void signrecord(struct signconf* signconf, dictionary record, const char* apex);
 void sign(names_view_type view, const char* apex);
 void prepare(names_view_type view, int newserial);
-int writezone(names_view_type view, const char* filename, const char* apex, int* defaultttl);
+void writezonef(names_view_type view, FILE* fp);
+int writezone(names_view_type view, const char* filename);
 enum operation_enum { PLAIN, DELTAMINUS, DELTAPLUS };
 int readzone(names_view_type view, enum operation_enum operation, const char* filename, char** apexptr, int* defaultttlptr);
 void rr2data(ldns_rr* rr, char** recorddataptr, char** recordinfoptr);
 
-struct names_struct {
-    names_view_type baseview;
-    names_view_type inputview;
-    names_view_type prepareview;
-    names_view_type signview;
-    names_view_type outputview;
-    int basefd;
-    char* apex;
-    char* source;
-    char* persist;
-};
+#include "signer/zone.h"
+
+ldns_rr_type domain_is_occluded(names_view_type view, dictionary record);
+ldns_rr_type domain_is_delegpt(names_view_type view, dictionary record);
+void namedb_nsecify(zone_type* globalzone, names_view_type view, uint32_t* num_added);
+ldns_rr* denial_nsecify(signconf_type* signconf, names_view_type view, dictionary domain, ldns_rdf* nxt); // FIXME
+ods_status namedb_update_serial(zone_type* globalzone);
+ods_status rrset_sign(signconf_type* signconf, names_view_type view, dictionary domain, ldns_rr_type rrtype, hsm_ctx_t* ctx, time_t signtime);
+ods_status rrset_getliteralrr(ldns_rr** dnskey, const char *resourcerecord, uint32_t ttl, ldns_rdf* apex);
+ods_status namedb_domain_entize(names_view_type view, dictionary domain, ldns_rdf* dname, ldns_rdf* apex);
 
 #endif

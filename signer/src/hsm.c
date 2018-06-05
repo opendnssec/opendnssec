@@ -136,13 +136,13 @@ llibhsm_key_start:
  */
 ldns_rr*
 lhsm_sign(hsm_ctx_t* ctx, ldns_rr_list* rrset, key_type* key_id,
-    ldns_rdf* owner, time_t inception, time_t expiration)
+    time_t inception, time_t expiration)
 {
     char* error = NULL;
     ldns_rr* result = NULL;
     hsm_sign_params_t* params = NULL;
 
-    if (!owner || !key_id || !rrset || !inception || !expiration) {
+    if (!key_id || !rrset || !inception || !expiration) {
         ods_log_error("[%s] unable to sign: missing required elements",
             hsm_str);
         return NULL;

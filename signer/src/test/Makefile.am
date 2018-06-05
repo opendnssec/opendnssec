@@ -13,11 +13,11 @@ AM_CPPFLAGS = \
 	@CUNIT_INCLUDES@ \
 	@XML2_INCLUDES@
 
-# check_PROGRAMS = test
+check_PROGRAMS = signertest
 
-test_SOURCES = signertest.c ../../../contrib/testing-tools/nulllibrary.c
-test_LDFLAGS = -rdynamic
-test_LDADD = \
+signertest_SOURCES = signertest.c ../../../contrib/testing-tools/nulllibrary.c
+signertest_LDFLAGS = -rdynamic
+signertest_LDADD = \
 	../adapter/adapi.o \
 	../adapter/adapter.o \
 	../adapter/addns.o \
@@ -33,15 +33,9 @@ test_LDADD = \
 	../parser/confparser.o \
 	../parser/signconfparser.o \
 	../parser/zonelistparser.o \
-	../signer/backup.o \
 	../hsm.o \
-	../signer/denial.o \
-	../signer/domain.o \
-	../signer/ixfr.o \
 	../signer/keys.o \
-	../signer/namedb.o \
 	../signer/nsec3params.o \
-	../signer/rrset.o \
 	../signer/signconf.o \
 	../signer/stats.o \
 	../signer/tools.o \
@@ -60,15 +54,24 @@ test_LDADD = \
 	../wire/tsig.o \
 	../wire/tsig-openssl.o \
 	../wire/xfrd.o \
+	../views/commitlog.o \
 	../views/dictionary.o \
+	../views/functions.o \
+	../views/httpd.o \
 	../views/index.o \
 	../views/iterator.o \
-	../views/setup.o \
+	../views/iteratorgeneric.o \
+	../views/logging.o \
+	../views/marshalling.o \
+	../views/names.o \
+	../views/rpc.o \
 	../views/table.o \
+	../views/utilities.o \
 	../views/views.o \
+	../views/zoneoutput.o \
 	$(LIBHSM) $(LIBCOMPAT) \
 	@LDNS_LIBS@ @XML2_LIBS@ @PTHREAD_LIBS@ @RT_LIBS@ @SSL_LIBS@ @C_LIBS@ \
 	@CUNIT_LIBS@
 
-#check: unittest
-#	./unittest
+check: signertest
+	./signertest $(top_srcdir)/signer/src/test

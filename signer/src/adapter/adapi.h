@@ -34,6 +34,8 @@
 
 #include "config.h"
 #include "status.h"
+#include "hsm.h"
+#include "signer/signconf.h"
 #include "signer/zone.h"
 
 #include <ldns/ldns.h>

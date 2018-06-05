@@ -313,6 +313,7 @@ engine_setup_initialize(engine_type* engine, int* fdptr)
 
     ods_log_debug("[%s] setup signer engine", engine_str);
     if (!engine || !engine->config) {
+        ods_log_error("Failed to setup no configuration");
         return ODS_STATUS_ASSERT_ERR;
     }
     /* set edns */
@@ -321,15 +322,18 @@ engine_setup_initialize(engine_type* engine, int* fdptr)
     /* create command handler (before chowning socket file) */
     engine->cmdhandler = cmdhandler_create(engine->config->clisock_filename, signercommands, engine, NULL, NULL);
     if (!engine->cmdhandler) {
+        ods_log_error("Failed to setup command handler");
         return ODS_STATUS_CMDHANDLER_ERR;
     }
     engine->dnshandler = dnshandler_create(engine->config->interfaces);
     engine->xfrhandler = xfrhandler_create();
     if (!engine->xfrhandler) {
+        ods_log_error("Failed to setup transfer handler");
         return ODS_STATUS_XFRHANDLER_ERR;
     }
     if (engine->dnshandler) {
         if (socketpair(AF_UNIX, SOCK_DGRAM, 0, sockets) == -1) {
+            ods_log_error("Failed to setup dns handler");
             return ODS_STATUS_XFRHANDLER_ERR;
         }
         engine->xfrhandler->dnshandler.fd = sockets[0];
@@ -338,6 +342,7 @@ engine_setup_initialize(engine_type* engine, int* fdptr)
         if (status != ODS_STATUS_OK) {
             ods_log_error("[%s] setup: unable to listen to sockets (%s)",
                 engine_str, ods_status2str(status));
+            ods_log_error("Failed to setup sockets");
             return ODS_STATUS_XFRHANDLER_ERR;
         }
     }
@@ -842,7 +847,8 @@ engine_cleanup(engine_type* engine)
         }
         zonelist_cleanup(engine->zonelist);
         schedule_cleanup(engine->taskq);
-        cmdhandler_cleanup(engine->cmdhandler);
+        if(engine->cmdhandler)
+            cmdhandler_cleanup(engine->cmdhandler);
         dnshandler_cleanup(engine->dnshandler);
         xfrhandler_cleanup(engine->xfrhandler);
         engine_config_cleanup(engine->config);

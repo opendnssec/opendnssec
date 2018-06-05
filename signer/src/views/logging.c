@@ -4,8 +4,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <stdint.h>
 #include <string.h>
 #include <syslog.h>
+#include <unistd.h>
 #include <pthread.h>
 #include "logging.h"
 
@@ -13,9 +15,8 @@
 
 typedef logger_result_type (*logger_procedure)(const logger_cls_type*, const logger_ctx_type, const logger_lvl_type, const char*, va_list ap);
 
-
 struct logger_chain_struct {
-    char* name;
+    const char* name;
     logger_procedure logger;
 
 };
@@ -27,6 +28,7 @@ static logger_cls_type logger = LOGGER_INITIALIZE(__FILE__);
 logger_ctx_type logger_noctx = NULL;
 logger_ctx_type logger_ctx;
 logger_cls_type logger_cls = LOGGER_INITIALIZE("");
+logger_cls_type logger_cls_performance = LOGGER_INITIALIZE("performance");
 
 int
 logger_enabled(logger_cls_type* cls, logger_ctx_type ctx, logger_lvl_type lvl)
@@ -268,109 +270,24 @@ logger_putcontext(logger_ctx_type ctx, const char* key, const char* value)
     ctx->label = newdesc;
 }
 
-#ifndef DEPRECATE
 
-#ifdef HAVE_SYSLOG_H
-#include <strings.h> /* strncasecmp() */
-#include <syslog.h> /* openlog(), closelog(), syslog() */
-#else /* !HAVE_SYSLOG_H */
-#define LOG_EMERG   0 /* ods_fatal_exit */
-#define LOG_ALERT   1 /* ods_log_alert */
-#define LOG_CRIT    2 /* ods_log_crit */
-#define LOG_ERR     3 /* ods_log_error */
-#define LOG_WARNING 4 /* ods_log_warning */
-#define LOG_NOTICE  5 /* ods_log_info */
-#define LOG_INFO    6 /* ods_log_verbose */
-#define LOG_DEBUG   7 /* ods_log_debug */
-#endif /* HAVE_SYSLOG_H */
-#define LOG_DEEEBUG 8 /* ods_log_deeebug */
+static int markcount = 0;
+static int marktime;
+static intptr_t markbrk;
 
-void
-ods_log_deeebug(const char *format, ...)
+int
+logger_mark_performance(char* message)
 {
-    va_list ap;
-    va_start(ap, format);
-    logger_vmessage(&logger_cls, logger_noctx, logger_TRACE, format, ap);
-    va_end(ap);
+    time_t t;
+    intptr_t b;
+    if(markcount == 0) {
+        t = marktime = time(NULL);
+        b = markbrk = (intptr_t) sbrk(0);
+    } else {
+        t = time(NULL);
+        b = (intptr_t) sbrk(0);
+    }
+    logger_message(&logger_cls_performance, logger_ctx, logger_INFO, "MARK#%02d %2ld %4ld %s\n", markcount, t-marktime, (b-markbrk+1048576/2)/1048576, message);
+    ++markcount;
+    return 0;
 }
-
-void
-ods_log_debug(const char *format, ...)
-{
-    va_list ap;
-    va_start(ap, format);
-    logger_vmessage(&logger_cls, logger_noctx, logger_DEBUG, format, ap);
-    va_end(ap);
-}
-
-void
-ods_log_verbose(const char *format, ...)
-{
-    va_list ap;
-    va_start(ap, format);
-    logger_vmessage(&logger_cls, logger_noctx, logger_DEBUG, format, ap);
-    va_end(ap);
-}
-
-void
-ods_log_info(const char *format, ...)
-{
-    va_list ap;
-    va_start(ap, format);
-    logger_vmessage(&logger_cls, logger_noctx, logger_INFO, format, ap);
-    va_end(ap);
-}
-
-void
-ods_log_warning(const char *format, ...)
-{
-    va_list ap;
-    va_start(ap, format);
-    logger_vmessage(&logger_cls, logger_noctx, logger_WARN, format, ap);
-    va_end(ap);
-}
-
-void
-ods_log_error(const char *format, ...)
-{
-    va_list ap;
-    va_start(ap, format);
-    logger_vmessage(&logger_cls, logger_noctx, logger_ERROR, format, ap);
-    va_end(ap);
-}
-
-void
-ods_log_verror(const char *format, va_list ap)
-{
-    logger_vmessage(&logger_cls, logger_noctx, logger_ERROR, format, ap);
-}
-
-void
-ods_log_crit(const char *format, ...)
-{
-    va_list ap;
-    va_start(ap, format);
-    logger_vmessage(&logger_cls, logger_noctx, logger_FATAL, format, ap);
-    va_end(ap);
-}
-
-void
-ods_log_alert(const char *format, ...)
-{
-    va_list ap;
-    va_start(ap, format);
-    logger_vmessage(&logger_cls, logger_noctx, logger_ERROR, format, ap);
-    va_end(ap);
-}
-
-void
-ods_fatal_exit(const char *format, ...)
-{
-    va_list ap;
-    va_start(ap, format);
-    logger_vmessage(&logger_cls, logger_noctx, logger_FATAL, format, ap);
-    va_end(ap);
-    abort();
-}
-
-#endif

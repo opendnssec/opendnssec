@@ -36,7 +36,7 @@
  *
  */
 worker_type*
-worker_create(char* name, schedule_type* taskq)
+worker_create(const char* name, schedule_type* taskq)
 {
     worker_type* worker;
     CHECKALLOC(worker = (worker_type*) malloc(sizeof(worker_type)));
@@ -82,6 +82,6 @@ worker_start(worker_type* worker)
 void
 worker_cleanup(worker_type* worker)
 {
-    free(worker->name);
+    free((void*)worker->name);
     free(worker);
 }

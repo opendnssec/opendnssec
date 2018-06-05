@@ -37,7 +37,7 @@
 #include "wire/acl.h"
 #include "wire/tsig.h"
 #include "signer/zone.h"
-#include "signer/names.h"
+#include "views/proto.h"
 #include <ldns/ldns.h>
 #include <stdio.h>
 #include <time.h>

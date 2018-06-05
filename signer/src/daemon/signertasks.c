@@ -58,7 +58,7 @@ worker_queue_domain(struct worker_context* context, fifoq_type* q, void* item, l
             tries++;
             if (context->worker->need_to_exit) {
                 pthread_mutex_unlock(&q->q_lock);
-                return; /* BERRY */
+                return; /* FIXME should indicate some fundamental problem */
             }
             /**
              * Apparently the queue is full. Lets take a small break to not hog CPU.
@@ -84,9 +84,9 @@ static void
 worker_queue_zone(struct worker_context* context, fifoq_type* q, names_view_type view, long* nsubtasks)
 {
     names_iterator iter;
-    domain_type* domain;
-    for(iter=expiring(view); names_iterate(&iter,&domain); names_advance(&iter,NULL)) {
-        worker_queue_domain(context, q, domain, nsubtasks);
+    dictionary record;
+    for(iter=names_viewiterator(view, names_iteratorexpiring); names_iterate(&iter,&record); names_advance(&iter,NULL)) {
+        worker_queue_domain(context, q, record, nsubtasks);
     }
 }
 
@@ -113,19 +113,17 @@ worker_check_jobs(worker_type* worker, task_type* task, int ntasks, long ntasksf
 }
 
 static ods_status
-signdomain(struct worker_context* superior, hsm_ctx_t* ctx, domain_type* domain)
+signdomain(struct worker_context* superior, hsm_ctx_t* ctx, dictionary record)
 {
     ods_status status;
-    rrset_type* rrset = NULL;
-    denial_type* denial = NULL;
-    ods_log_assert(domain);
-    while(eachdomainset(&rrset, domain)) {
-        if((status = rrset_sign(superior->zone, superior->view, domain, ctx, rrset, superior->clock_in)) != ODS_STATUS_OK)
+    names_iterator iter;
+    ldns_rr_type rrtype;
+    for (iter=names_recordalltypes(record); names_iterate(&iter,&rrtype); names_advance(&iter,NULL)) {
+        if ((status = rrset_sign(superior->zone->signconf, superior->view, record, rrtype, ctx, superior->clock_in)) != ODS_STATUS_OK)
             return status;
     }
-    denialset(&rrset, domain);
-    if (rrset) {
-        if((status = rrset_sign(superior->zone, superior->view, domain, ctx, rrset, superior->clock_in)) != ODS_STATUS_OK)
+    if(names_recordgetid(record,"denialname")) {
+        if((status = rrset_sign(superior->zone->signconf, superior->view, record, LDNS_RR_TYPE_NSEC, ctx, superior->clock_in)) != ODS_STATUS_OK)
             return status;
     }
     return ODS_STATUS_OK;
@@ -134,7 +132,7 @@ signdomain(struct worker_context* superior, hsm_ctx_t* ctx, domain_type* domain)
 void
 drudge(worker_type* worker)
 {
-    domain_type* rrset;
+    dictionary record;
     ods_status status;
     struct worker_context* superior;
     hsm_ctx_t* ctx = NULL;
@@ -149,8 +147,8 @@ drudge(worker_type* worker)
             break;
         }
         superior = NULL;
-        rrset = (domain_type*) fifoq_pop(signq, (void**)&superior);
-        if (!rrset) {
+        record = (dictionary) fifoq_pop(signq, (void**)&superior);
+        if (!record) {
             ods_log_deeebug("[%s] nothing to do, wait", worker->name);
             /**
              * Apparently the queue is empty. Wait until new work is queued.
@@ -160,11 +158,11 @@ drudge(worker_type* worker)
              */
             pthread_cond_wait(&signq->q_threshold, &signq->q_lock);
             if(worker->need_to_exit == 0)
-                rrset = (domain_type*) fifoq_pop(signq, (void**)&superior);
+                record = (dictionary) fifoq_pop(signq, (void**)&superior);
         }
         pthread_mutex_unlock(&signq->q_lock);
         /* do some work */
-        if (rrset) {
+        if (record) {
             ods_log_assert(superior);
             if (!ctx) {
                 ods_log_debug("[%s] create hsm context", worker->name);
@@ -180,7 +178,7 @@ drudge(worker_type* worker)
                 ods_log_error("signer instructed to reload due to hsm reset while signing");
                 status = ODS_STATUS_HSM_ERR;
             } else {
-                status = signdomain(superior, ctx, rrset);
+                status = signdomain(superior, ctx, record);
             }
             fifoq_report(signq, superior->worker, status);
         }
@@ -263,11 +261,47 @@ do_signzone(task_type* task, const char* zonename, void* zonearg, void *contexta
     time_t end = 0;
     long nsubtasks = 0;
     long nsubtasksfailed = 0;
-    
+    int newserial;
+    int conflict;
+
     context->clock_in = time_now();
     context->zone = zone;
     context->view = zone->signview;
-
+    if (!zone->nextserial) {
+        namedb_update_serial(zone);
+    }
+    newserial = *(zone->nextserial);
+    names_viewreset(zone->prepareview);
+    dictionary record;
+    struct dual change;
+    names_iterator iter;
+    names_view_type prepareview = zone->prepareview;
+    /* The purpose of the next iteration is to go over all new or modified records and fix the SOA serial number from
+     * which these records are valid.  If the records is a modified record, the records that it superceeds, will be
+     * marked with the same serial indicating that it is no longer valid from this moment on.
+     */
+    for (iter=names_viewiterator(prepareview,names_iteratorincoming); names_iterate(&iter,&change); names_advance(&iter,NULL)) {
+        assert(change.dst != change.src);
+        if(names_recordhasexpiry(change.src)) {
+            names_recordsetvalidupto(change.src, newserial);
+            names_own(prepareview, &change.src);
+            names_recordsetvalidfrom(change.src, newserial);
+        }
+    }
+    for (iter=names_viewiterator(prepareview,names_iteratorincoming); names_iterate(&iter,&change); names_advance(&iter,NULL)) {
+        if(change.dst && !names_recordhasvalidupto(change.dst)) {
+            names_amend(prepareview, change.dst);
+            names_recordsetvalidupto(change.dst, newserial);
+        }
+        if(!names_recordhasvalidfrom(change.src)) {
+            if(names_recordhasdata(change.src, 0, NULL, 0)) {
+                names_amend(prepareview, change.src);
+                names_recordsetvalidfrom(change.src, newserial);
+            } else {
+                names_remove(prepareview, change.src);
+            }
+        }
+    }
     status = zone_update_serial(zone, zone->prepareview);
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] unable to sign zone %s: failed to increment serial", worker->name, task->owner);
@@ -275,6 +309,39 @@ do_signzone(task_type* task, const char* zonename, void* zonearg, void *contexta
                 worker->name, task->owner, ods_status2str(status));
         return schedule_DEFER; /* backoff */
     }
+    conflict = names_viewcommit(zone->prepareview);
+    assert(!conflict);
+
+    names_viewreset(zone->signview);
+    names_viewreset(zone->neighview);
+    for (iter=names_viewiterator(zone->neighview,names_iteratordenialchainupdates); names_iterate(&iter,&change); names_advance(&iter,NULL)) {
+        if(domain_is_occluded(zone->neighview, change.src) != LDNS_RR_TYPE_SOA) {
+            dictionary record = change.src;
+            names_update(zone->neighview, &record);
+            names_recordannotate(record, NULL);
+fprintf(stderr,"BERRY DENIAL CLEAR %s (%s) --- %p %p %p\n",names_recordgetid(record, "namerevision"),names_recordgetid(record, "denialname"),names_recordgetid(record, "validupto"),names_recordgetid(record, "validfrom"),names_recordgetid(record, "expiry"));
+        }
+    }
+    conflict = names_viewcommit(zone->neighview);
+    assert(!conflict);
+
+    names_viewsync(zone->signview);
+    for (iter=names_viewiterator(zone->signview,names_iteratordenialchainupdates); names_iterate(&iter,&change); names_advance(&iter,NULL)) {
+        const char* nextnamestr;
+        ldns_rdf* nextnamerdf;
+        if(zone->signconf->nsec3params)
+            nextnamestr = names_recordgetid(change.dst, "denialname");
+        else
+            nextnamestr = names_recordgetid(change.dst, "name");
+        nextnamerdf = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, nextnamestr);
+        names_amend(zone->signview, change.src);
+fprintf(stderr,"BERRY DENIAL %s (%s) -> %s (%s)\n",names_recordgetid(change.src, "namerevision"),names_recordgetid(change.src, "namerevision"),names_recordgetid(change.dst, "name"),names_recordgetid(change.dst, "denialname"));
+        names_recordsetdenial(change.src, denial_nsecify(zone->signconf, zone->signview, change.src, nextnamerdf));
+        ldns_rdf_free(nextnamerdf);
+    }
+    conflict = names_viewcommit(zone->signview);
+    assert(!conflict);
+
     /* start timer */
     start = time(NULL);
     if (zone->stats) {
@@ -302,12 +369,25 @@ do_signzone(task_type* task, const char* zonename, void* zonearg, void *contexta
     /* prepare keys */
     status = zone_prepare_keys(zone);
     if (status == ODS_STATUS_OK) {
+        names_viewreset(zone->signview);
         /* queue menial, hard signing work */
-        worker_queue_zone(context, worker->taskq->signq, zone->signview, &nsubtasks);
-        ods_log_deeebug("[%s] wait until drudgers are finished "
-                "signing zone %s", worker->name, task->owner);
-        /* sleep until work is done */
-        fifoq_waitfor(context->signq, worker, nsubtasks, &nsubtasksfailed);
+        if(context->signq) {
+            worker_queue_zone(context, worker->taskq->signq, zone->signview, &nsubtasks);
+            ods_log_deeebug("[%s] wait until drudgers are finished "
+                    "signing zone %s", worker->name, task->owner);
+            /* sleep until work is done */
+            fifoq_waitfor(context->signq, worker, nsubtasks, &nsubtasksfailed);
+        } else {
+            names_iterator iter;
+            hsm_ctx_t* ctx;
+            dictionary record;
+            ctx = hsm_create_context();
+            for(iter=names_viewiterator(zone->signview,names_iteratorexpiring); names_iterate(&iter,&record); names_advance(&iter,NULL)) {
+                signdomain(context, ctx, record);
+                names_recordsetexpiry(record, 1); // FIXME set expiry to expiration time of signature
+            }
+            hsm_destroy_context(ctx);
+        }
     }
     /* stop timer */
     end = time(NULL);
@@ -334,12 +414,11 @@ do_signzone(task_type* task, const char* zonename, void* zonearg, void *contexta
                 (unsigned int)*zone->inboundserial);
             stats_clear(zone->stats);
             pthread_mutex_unlock(&zone->stats->stats_lock);
-            names_viewreset(zone->prepareview);
             return schedule_SUCCESS;
         }
         pthread_mutex_unlock(&zone->stats->stats_lock);
     }
-    names_viewcommit(zone->prepareview);
+    names_viewcommit(zone->signview);
     schedule_scheduletask(engine->taskq, TASK_WRITE, zone->name, zone, &zone->zone_lock, schedule_PROMPTLY);
     return schedule_SUCCESS;
 }

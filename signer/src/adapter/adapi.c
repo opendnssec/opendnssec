@@ -30,6 +30,8 @@
  */
 
 #include "config.h"
+#include "hsm.h"
+#include "signer/signconf.h"
 #include "adapter/adapi.h"
 #include "duration.h"
 #include "log.h"
@@ -67,147 +69,6 @@ adapi_get_ttl(zone_type* zone)
         return 0;
     }
     return zone->default_ttl;
-}
-
-
-/*
- * Do full zone transaction.
- *
- */
-void
-adapi_trans_full(zone_type* zone, names_view_type view, unsigned more_coming)
-{
-    time_t start = 0;
-    time_t end = 0;
-    uint32_t num_added = 0;
-
-    if (zone->stats) {
-        pthread_mutex_lock(&zone->stats->stats_lock);
-        zone->stats->nsec_time = 0;
-        zone->stats->nsec_count = 0;
-        pthread_mutex_unlock(&zone->stats->stats_lock);
-    }
-    start = time(NULL);
-    /* nsecify(3) */
-    namedb_nsecify(zone, view, &num_added);
-    end = time(NULL);
-    if (zone->stats) {
-        pthread_mutex_lock(&zone->stats->stats_lock);
-        if (!zone->stats->start_time) {
-            zone->stats->start_time = start;
-        }
-        zone->stats->nsec_time = (end-start);
-        zone->stats->nsec_count = num_added;
-        pthread_mutex_unlock(&zone->stats->stats_lock);
-    }
-}
-
-
-/*
- * Do incremental zone transaction.
- *
- */
-void
-adapi_trans_diff(zone_type* zone, names_view_type view, unsigned more_coming)
-{
-    time_t start = 0;
-    time_t end = 0;
-    uint32_t num_added = 0;
-
-   if (zone->stats) {
-        pthread_mutex_lock(&zone->stats->stats_lock);
-        zone->stats->nsec_time = 0;
-        zone->stats->nsec_count = 0;
-        pthread_mutex_unlock(&zone->stats->stats_lock);
-    }
-    start = time(NULL);
-    /* nsecify(3) */
-    namedb_nsecify(zone, view, &num_added);
-    end = time(NULL);
-    if (zone->stats) {
-        pthread_mutex_lock(&zone->stats->stats_lock);
-        if (!zone->stats->start_time) {
-            zone->stats->start_time = start;
-        }
-        zone->stats->nsec_time = (end-start);
-        zone->stats->nsec_count = num_added;
-        pthread_mutex_unlock(&zone->stats->stats_lock);
-    }
-}
-
-
-/**
- * Process SOA.
- *
- */
-static ods_status
-adapi_process_soa(zone_type* zone, ldns_rr* rr, int add, int backup)
-{
-    uint32_t tmp = 0;
-    ldns_rdf* soa_rdata = NULL;
-    ods_status status = ODS_STATUS_OK;
-
-    ods_log_assert(rr);
-    ods_log_assert(zone);
-    ods_log_assert(zone->name);
-    ods_log_assert(zone->signconf);
-
-    if (backup) {
-        /* no need to do processing */
-        return ODS_STATUS_OK;
-    }
-    if (zone->signconf->soa_ttl) {
-        tmp = (uint32_t) duration2time(zone->signconf->soa_ttl);
-        ods_log_verbose("[%s] zone %s set soa ttl to %u",
-            adapi_str, zone->name, tmp);
-        ldns_rr_set_ttl(rr, tmp);
-    }
-    if (zone->signconf->soa_min) {
-        tmp = (uint32_t) duration2time(zone->signconf->soa_min);
-        ods_log_verbose("[%s] zone %s set soa minimum to %u",
-            adapi_str, zone->name, tmp);
-        soa_rdata = ldns_rr_set_rdf(rr,
-            ldns_native2rdf_int32(LDNS_RDF_TYPE_INT32, tmp),
-            SE_SOA_RDATA_MINIMUM);
-        if (soa_rdata) {
-            ldns_rdf_deep_free(soa_rdata);
-            soa_rdata = NULL;
-        } else {
-            ods_log_error("[%s] unable to %s soa to zone %s: failed to replace "
-                "soa minimum rdata", adapi_str, add?"add":"delete",
-                zone->name);
-            return ODS_STATUS_ASSERT_ERR;
-        }
-    }
-    if (!add) {
-        /* we are done */
-        return ODS_STATUS_OK;
-    }
-    tmp = ldns_rdf2native_int32(ldns_rr_rdf(rr, SE_SOA_RDATA_SERIAL));
-    status = namedb_update_serial(zone, zone->name,
-        zone->signconf->soa_serial, tmp);
-    if (status != ODS_STATUS_OK) {
-        ods_log_error("[%s] unable to add soa to zone %s: failed to replace "
-            "soa serial rdata (%s)", adapi_str, zone->name,
-            ods_status2str(status));
-        if (status == ODS_STATUS_CONFLICT_ERR) {
-            ods_log_error("[%s] If this is the result of a key rollover, "
-                "please increment the serial in the unsigned zone %s",
-                adapi_str, zone->name);
-        }
-        return status;
-    }
-    soa_rdata = ldns_rr_set_rdf(rr, ldns_native2rdf_int32(LDNS_RDF_TYPE_INT32,
-        *zone->outboundserial), SE_SOA_RDATA_SERIAL);
-    if (soa_rdata) {
-        ldns_rdf_deep_free(soa_rdata);
-        soa_rdata = NULL;
-    } else {
-        ods_log_error("[%s] unable to add soa to zone %s: failed to replace "
-            "soa serial rdata", adapi_str, zone->name);
-        return ODS_STATUS_ERR;
-    }
-    return ODS_STATUS_OK;
 }
 
 
@@ -256,12 +117,6 @@ adapi_process_rr(zone_type* zone, names_view_type view, ldns_rr* rr, int add, in
                 "invalid owner name", adapi_str, add?"add":"delete");
             return ODS_STATUS_ERR;
         }
-        status = adapi_process_soa(zone, rr, add, backup);
-        if (status != ODS_STATUS_OK) {
-            ods_log_error("[%s] unable to %s rr: failed to process soa "
-                "record", adapi_str, add?"add":"delete");
-            return status;
-        }
     } else {
         if (ldns_dname_compare(ldns_rr_owner(rr), zone->apex) &&
             !ldns_dname_is_subdomain(ldns_rr_owner(rr), zone->apex)) {
@@ -282,20 +137,7 @@ adapi_process_rr(zone_type* zone, names_view_type view, ldns_rr* rr, int add, in
     }
     /* //MaxZoneTTL. Only set for RRtype != SOA && RRtype != DNSKEY */
     if (tmp && tmp < ldns_rr_ttl(rr)) {
-        char* str = ldns_rdf2str(ldns_rr_owner(rr));
-        if (str) {
-            size_t i = 0;
-            str[(strlen(str))-1] = '\0';
-            /* replace tabs with white space */
-            for (i=0; i < strlen(str); i++) {
-                if (str[i] == '\t') {
-                    str[i] = ' ';
-                }
-            }
-            ods_log_debug("[%s] capping ttl %u to MaxZoneTTL %u for rrset "
-                "<%s,%s>", adapi_str, ldns_rr_ttl(rr), tmp, str,
-                rrset_type2str(ldns_rr_get_type(rr)));
-        }
+        /* capping ttl to MaxZoneTTL */
         ldns_rr_set_ttl(rr, tmp);
     }
 
@@ -333,26 +175,16 @@ adapi_del_rr(zone_type* zone, names_view_type view, ldns_rr* rr, int backup)
     return adapi_process_rr(zone, view, rr, 0, backup);
 }
 
-
-/**
- * Print axfr.
- *
- */
 ods_status
 adapi_printaxfr(FILE* fd, zone_type* zone, names_view_type view)
 {
-    rrset_type* rrset = NULL;
-    ods_status status = ODS_STATUS_OK;
     if (!fd || !zone) {
-        ods_log_error("[%s] unable to print axfr: file descriptor, zone or "
-            "name database missing", adapi_str);
-        return ODS_STATUS_ASSERT_ERR;
-    }
-    namedb_export(fd, view, &status);
-    if (status == ODS_STATUS_OK) {
-        rrset = zone_lookup_apex_rrset(view, LDNS_RR_TYPE_SOA, NULL);
-        ods_log_assert(rrset);
-        rrset_print(fd, rrset, 1, &status);
-    }
-    return status;
+            ods_log_error("[%s] unable to print axfr: file descriptor, zone or name database missing", adapi_str);
+            return ODS_STATUS_ASSERT_ERR;
+     }
+     /* FIXME force SOA to be written first */
+     writezonef(view, fd);
+     /* lookupone(); */
+     /* FIXME print SOA serial record last again */
+     return ODS_STATUS_OK;
 }

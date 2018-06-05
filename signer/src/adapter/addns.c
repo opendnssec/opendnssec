@@ -242,7 +242,7 @@ addns_read_pkt(FILE* fd, zone_type* zone, names_view_type view)
 
             tmp_serial =
                 ldns_rdf2native_int32(ldns_rr_rdf(rr, SE_SOA_RDATA_SERIAL));
-            old_serial = names_getserial(view);
+            old_serial = *(zone->inboundserial);
 
 /**
  * Do we need to make this check? It is already done by xfrd.
@@ -403,16 +403,12 @@ addns_read_pkt(FILE* fd, zone_type* zone, names_view_type view)
     }
     /* input zone ok, set inbound serial and apply differences */
     if (result == ODS_STATUS_OK) {
-        names_setserial(view, new_serial);
-        if (is_axfr) {
-            adapi_trans_full(zone, view, 1);
-        } else {
-            adapi_trans_diff(zone, view, 1);
-        }
+        free(zone->inboundserial); /* FIXME handle if inboundserial is same mem location as nextserial */
+        zone->inboundserial = malloc(sizeof(uint32_t));
+        *(zone->inboundserial) = new_serial;
     }
     if (result == ODS_STATUS_UPTODATE) {
         /* do a transaction for DNSKEY and NSEC3PARAM */
-        adapi_trans_diff(zone, view, 1);
         result = ODS_STATUS_OK;
     }
     if (result == ODS_STATUS_XFRINCOMPLETE) {
@@ -473,7 +469,7 @@ addns_read_file(FILE* fd, zone_type* zone, names_view_type view)
         status = addns_read_pkt(fd, zone, view);
         if (status == ODS_STATUS_OK) {
             pthread_mutex_lock(&zone->xfrd->serial_lock);
-            zone->xfrd->serial_xfr = names_getserial(view);
+            zone->xfrd->serial_xfr = *(zone->inboundserial);
             zone->xfrd->serial_xfr_acquired = zone->xfrd->serial_disk_acquired;
             pthread_mutex_unlock(&zone->xfrd->serial_lock);
         }
@@ -646,7 +642,6 @@ dnsout_update(dnsout_type** addns, const char* filename, time_t* last_mod)
 static void
 dnsout_send_notify(zone_type* z, names_view_type view)
 {
-    rrset_type* rrset = NULL;
     ldns_rr* soa = NULL;
     if (!z->notify) {
         ods_log_error("[%s] unable to send notify for zone %s: no notify "
@@ -657,9 +652,9 @@ dnsout_send_notify(zone_type* z, names_view_type view)
     ods_log_assert(z->adoutbound->config);
     ods_log_assert(z->adoutbound->type == ADAPTER_DNS);
     ods_log_assert(z->name);
-    rrset = zone_lookup_apex_rrset(view, LDNS_RR_TYPE_SOA, NULL);
-    ods_log_assert(rrset);
-    soa = ldns_rr_clone(getsoa(rrset));
+    names_viewlookupone(view, NULL, LDNS_RR_TYPE_SOA, NULL, &soa);
+    ods_log_assert(soa);
+    soa = ldns_rr_clone(soa);
     notify_enable(z->notify, soa);
 }
 
@@ -694,7 +689,6 @@ addns_read(zone_type* z, names_view_type v)
         pthread_mutex_unlock(&z->xfrd->serial_lock);
         pthread_mutex_unlock(&z->xfrd->rw_lock);
         /* do a transaction for DNSKEY and NSEC3PARAM */
-        adapi_trans_diff(z, v, 0);
         ods_log_verbose("[%s] no new xfr ready for zone %s", adapter_str,
             z->name);
         return ODS_STATUS_UNCHANGED;

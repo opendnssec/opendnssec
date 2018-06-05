@@ -1,4 +1,4 @@
-$ORIGIN example.com
+$ORIGIN example.com.
 $TTL    86400
 example.com.	86400	IN	SOA	ns1.example.com. postmaster.example.com. 2009060301 10800 3600 604800 86400
 example.com.	86400	IN	NS	ns1.example.com.
@@ -35,6 +35,8 @@ test2.example.com.	86400	IN	A	192.0.2.1
 xbox.example.com.	86400	IN	A	192.0.2.1
 tomatos.example.com.	86400	IN	A	192.0.2.1
 tomato.example.com.	86400	IN	A	192.0.2.1
+_sip._tcp.example.com.	86400	IN	SRV	0 0 5060 not.in.zone.
+_sip._udp.example.com.	86400	IN	SRV	0 0 5060 not.in.zone.
 example.com.	86400	IN	NAPTR	10 0 "s" "SIP+D2T" "" _sip._tcp.example.com.
 example.com.	86400	IN	NAPTR	20 0 "s" "SIP+D2U" "" _sip._udp.example.com.
 _jabber._tcp.example.com.	86400	IN	SRV	5 0 5269 ns1.example.com.

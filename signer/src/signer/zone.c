@@ -36,7 +36,6 @@
 #include "log.h"
 #include "status.h"
 #include "util.h"
-#include "signer/backup.h"
 #include "signer/zone.h"
 #include "wire/netio.h"
 #include "compat.h"
@@ -107,8 +106,6 @@ zone_create(char* name, ldns_rr_class klass)
         return NULL;
     }
     zone->stats = stats_create();
-    zone->rrstore = rrset_store_initialize();
-    names_docreate(zone, "storage"); // FIXME storage name per zone and missing dir
     return zone;
 }
 
@@ -232,7 +229,7 @@ zone_publish_dnskeys(zone_type* zone, names_view_type view, int skip_hsm_access)
             status = zone_add_rr(zone, view, zone->signconf->keys->keys[i].dnskey, 0);
             if (status == ODS_STATUS_UNCHANGED) {
                 /* rr already exists, adjust pointer */
-                dnskey = zone_lookup_apex_rrset(view, LDNS_RR_TYPE_DNSKEY,zone->signconf->keys->keys[i].dnskey);
+                names_viewlookupone(view, NULL, LDNS_RR_TYPE_DNSKEY, zone->signconf->keys->keys[i].dnskey, &dnskey);
                 ods_log_assert(dnskey);
                 if (dnskey != zone->signconf->keys->keys[i].dnskey) {
                     ldns_rr_free(zone->signconf->keys->keys[i].dnskey);
@@ -261,8 +258,6 @@ zone_publish_dnskeys(zone_type* zone, names_view_type view, int skip_hsm_access)
 ods_status
 zone_publish_nsec3param(zone_type* zone, names_view_type view)
 {
-    rrset_type* rrset = NULL;
-    rr_type* n3prr = NULL;
     ldns_rr* rr = NULL;
     ods_status status = ODS_STATUS_OK;
 
@@ -364,9 +359,12 @@ zone_add_rr(zone_type* zone, names_view_type view, ldns_rr* rr, int do_stats)
 {
     dictionary record;
     ods_status status;
-    record = names_place(view, ldns_rdf2str(ldns_rr_owner(rr)));
-    /* We only ought to entize the domain when newly added, but cannot detect this properly */
-    status = namedb_domain_entize(view, record, zone->apex);
+    char* name;
+    name = ldns_rdf2str(ldns_rr_owner(rr));
+    record = names_place(view, name);
+    free(name);
+    /* FIXME We only ought to entize the domain when newly added, but cannot detect this properly */
+    status = namedb_domain_entize(view, record, ldns_rr_owner(rr), zone->apex);
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] unable to add RR to zone %s: failed to entize domain", zone_str, zone->name);
         return ODS_STATUS_ERR;
@@ -375,99 +373,26 @@ zone_add_rr(zone_type* zone, names_view_type view, ldns_rr* rr, int do_stats)
     if(!names_recordhasdata(record, ldns_rr_get_type(rr), rr, 0)) {
         rrset_add_rr(record, rr);
     }
+    return status;
 }
 
-
-/**
- * Lookup RRset.
- *
- */
-ldns_rr*
-zone_lookup_apex_rrset(names_view_type view, ldns_rr_type type, ldns_rr* template)
-{
-    domain_type* domain = NULL;
-    if (!type) {
-        return NULL;
-    }
-    domain = names_lookupapex(view);
-    if (domain == NULL) {
-        return NULL;
-    }
-    return domain_lookup_rrset(domain, type);
-}
-
-
-/**
- * Delete RR.
- *
- */
 ods_status
 zone_del_rr(zone_type* zone, names_view_type view, ldns_rr* rr, int do_stats)
 {
-    domain_type* domain = NULL;
-    rrset_type* rrset = NULL;
-    rr_type* record = NULL;
-    ods_log_assert(rr);
-    ods_log_assert(zone);
-    ods_log_assert(zone->name);
-    ods_log_assert(zone->signconf);
-    domain = names_lookupname(view, ldns_rr_owner(rr));
-    if (!domain) {
-        ods_log_warning("[%s] unable to delete RR from zone %s: "
-            "domain not found", zone_str, zone->name);
-        return ODS_STATUS_UNCHANGED;
+    dictionary record;
+    const char* name;
+    name = ldns_rdf2str(ldns_rr_owner(rr));
+    record = names_take(view, 0, name);
+    free((void*)name);
+    if(record) {
+        if(names_recordhasdata(record, ldns_rr_get_type(rr), rr, 0)) {
+            names_recorddeldata(record, ldns_rr_get_type(rr), rr);
+        }
     }
-    rrset = domain_lookup_rrset(domain, ldns_rr_get_type(rr));
-    if (!rrset) {
-        ods_log_warning("[%s] unable to delete RR from zone %s: "
-            "RRset not found", zone_str, zone->name);
-        return ODS_STATUS_UNCHANGED;
-    }
-    record = rrset_lookup_rr(rrset, rr);
-    if (!record) {
-        ods_log_error("[%s] unable to delete RR from zone %s: "
-            "RR not found", zone_str, zone->name);
-        return ODS_STATUS_UNCHANGED;
-    }
-
-    /* update stats */
-    if (do_stats && zone->stats) {
-        zone->stats->sort_count -= 1;
-    }
-    return ODS_STATUS_OK;
+    return 0;
 }
 
-/**
- * Delete NSEC3PARAM RRs.
- *
- * Marks all NSEC3PARAM records as removed.
- */
-ods_status
-zone_del_nsec3params(zone_type* zone, names_view_type view)
-{
-    domain_type* domain = NULL;
-    rrset_type* rrset = NULL;
-    int i;
 
-    ods_log_assert(zone);
-    ods_log_assert(zone->name);
-
-    domain = names_lookupname(view, zone->apex);
-    if (!domain) {
-        ods_log_verbose("[%s] unable to delete RR from zone %s: "
-            "domain not found", zone_str, zone->name);
-        return ODS_STATUS_UNCHANGED;
-    }
-
-    rrset = domain_lookup_rrset(domain, LDNS_RR_TYPE_NSEC3PARAMS);
-    if (!rrset) {
-        ods_log_verbose("[%s] NSEC3PARAM in zone %s not found: "
-            "skipping delete", zone_str, zone->name);
-        return ODS_STATUS_UNCHANGED;
-    }
-
-    return ODS_STATUS_OK;
-}
 
 /**
  * Merge zones.
@@ -558,7 +483,6 @@ zone_cleanup(zone_type* zone)
     free((void*)zone->policy_name);
     free((void*)zone->signconf_filename);
     free((void*)zone->name);
-    collection_class_destroy(&zone->rrstore);
     pthread_mutex_destroy(&zone->xfr_lock);
     pthread_mutex_destroy(&zone->zone_lock);
     free(zone);

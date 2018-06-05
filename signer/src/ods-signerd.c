@@ -38,6 +38,7 @@
 #include <stdlib.h>
 #include <libxml/parser.h>
 #include "parser/confparser.h"
+#include "views/logging.h"
 
 
 #define AUTHOR_NAME "Matthijs Mekking"
@@ -139,7 +140,7 @@ main(int argc, char* argv[])
 
     if(argv[0][0] != '/') {
         char *path = getcwd(NULL,0);
-        asprintf(&argv0, "%s/%s", path, argv[0]);
+        asprintf(&argv0, "%s/%s", path, argv[0]); /* FIXME this won't work when ods-signer is in path, the result is that stacktraces won't work. */
         free(path);
     } else {
         argv0 = strdup(argv[0]);
@@ -196,14 +197,26 @@ main(int argc, char* argv[])
     program_setup(cfgfile, cmdline_verbosity);
 
     engine = engine_create();
-    if((status = engine_setup_preconfig(engine, cfgfile)) != ODS_STATUS_OK ||
-       (status = engine_setup_config(engine, cfgfile, cmdline_verbosity, daemonize)) != ODS_STATUS_OK ||
-       (status = engine_setup_initialize(engine, &linkfd)) != ODS_STATUS_OK ||
-       (status = engine_setup_signals(engine)) != ODS_STATUS_OK ||
-       (status = engine_setup_workstart(engine)) != ODS_STATUS_OK ||
-       (status = engine_setup_netwstart(engine)) != ODS_STATUS_OK ||
-       (status = engine_setup_finish(engine, linkfd)) != ODS_STATUS_OK) {
-        ods_log_error("Unable to start signer daemon: %s", ods_status2str(status));
+    if((status = engine_setup_preconfig(engine, cfgfile)) != ODS_STATUS_OK) {
+        ods_fatal_exit("Unable to start signer daemon: %s", ods_status2str(status));
+    }
+    if((status = engine_setup_config(engine, cfgfile, cmdline_verbosity, daemonize)) != ODS_STATUS_OK) {
+        ods_fatal_exit("Unable to start signer daemon: %s", ods_status2str(status));
+    }
+    if((status = engine_setup_initialize(engine, &linkfd)) != ODS_STATUS_OK) {
+        ods_fatal_exit("Unable to start signer daemon: %s", ods_status2str(status));
+    }
+    if((status = engine_setup_signals(engine)) != ODS_STATUS_OK) {
+        ods_fatal_exit("Unable to start signer daemon: %s", ods_status2str(status));
+    }
+    if((status = engine_setup_workstart(engine)) != ODS_STATUS_OK) {
+        ods_fatal_exit("Unable to start signer daemon: %s", ods_status2str(status));
+    }
+    if((status = engine_setup_netwstart(engine)) != ODS_STATUS_OK) {
+        ods_fatal_exit("Unable to start signer daemon: %s", ods_status2str(status));
+    }
+    if((status = engine_setup_finish(engine, linkfd)) != ODS_STATUS_OK) {
+        ods_fatal_exit("Unable to start signer daemon: %s", ods_status2str(status));
     }
     returncode = engine_start(engine);
     engine_cleanup(engine);

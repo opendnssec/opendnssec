@@ -1,6 +1,8 @@
 #define _LARGEFILE64_SOURCE
 #define _GNU_SOURCE
 
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -161,16 +163,6 @@ names_tableput(names_table_type table, const char* name)
         ldns_rbtree_insert(table->tree, node);
     }
     return (void**) &(node->data);
-}
-
-void
-names_tableconcat(names_table_type* list, names_table_type item)
-{
-    assert(item->next == NULL);
-    while(*list != NULL) {
-        list = &(*list)->next;
-    }
-    *list = item;
 }
 
 names_iterator
