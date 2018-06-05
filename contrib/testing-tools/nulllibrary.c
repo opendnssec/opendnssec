@@ -146,7 +146,7 @@ CloseSession(CK_SESSION_HANDLE session)
     if (sessionImpl->prev) {
         sessionImpl->prev->next = sessionImpl->next;
     } else {
-        sessionImpl->connection.sessions = sessionImpl->next;
+        connection.sessions = sessionImpl->next;
     }
     pthread_mutex_unlock(&lock);
     free(sessionImpl);
