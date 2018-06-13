@@ -1,7 +1,15 @@
 #ifndef PROTO_H
 #define PROTO_H
 
-#include "signer/nsec3params.h"
+typedef struct names_iterator_struct* names_iterator;
+typedef struct marshall_struct* marshall_handle;
+typedef struct dictionary_struct* dictionary;
+typedef struct names_index_struct* names_index_type;
+typedef struct names_table_struct* names_table_type;
+typedef struct names_view_struct* names_view_type;
+
+#include "signer/signconf.h"
+#include "signer/zone.h"
 
 struct signature_struct {
     ldns_rr* rr;
@@ -68,7 +76,6 @@ void signaturedispose(struct signatures_struct* sigs);
  * memory or locks implied by the iterator.  If will always return
  * successful.
  */
-typedef struct names_iterator_struct* names_iterator;
 
 int names_iterate(names_iterator*iter, void* item);
 int names_advance(names_iterator*iter, void* item);
@@ -79,9 +86,6 @@ names_iterator names_iterator_createrefs(void);
 names_iterator names_iterator_createdata(size_t size);
 void names_iterator_addptr(names_iterator iter, void* ptr);
 void names_iterator_adddata(names_iterator iter, void* ptr);
-
-struct marshall_struct;
-typedef struct marshall_struct* marshall_handle;
 
 enum marshall_method { marshall_INPUT, marshall_OUTPUT, marshall_APPEND, marshall_PRINT };
 marshall_handle marshallcreate(enum marshall_method method, ...);
@@ -105,14 +109,10 @@ extern int* marshall_OPTIONAL;
  * the domain structure, containing the denial, rrset, etcetera structures.
  */
 
-typedef struct dictionary_struct* dictionary;
-typedef struct names_index_struct* names_index_type;
-typedef struct names_table_struct* names_table_type;
-typedef struct names_view_struct* names_view_type;
 struct names_view_zone {
     int* defaultttl;
     const char* apex;
-    nsec3params_type* signconf;
+    signconf_type** signconf;
 };
 
 void composestring(char* dst, const char* src, ...);
@@ -121,7 +121,7 @@ int composestringf(char** ptr, const char* fmt, ...);
 int getset(dictionary d, const char* name, const char** get, const char** set);
 
 dictionary names_recordcreate(char**name);
-dictionary names_recordcreatetemp(char*name);
+dictionary names_recordcreatetemp(const char*name);
 void names_recordannotate(dictionary d, struct names_view_zone* zone);
 void names_recorddestroy(dictionary);
 void names_recordsetmarker(dictionary dict);
@@ -157,7 +157,7 @@ ldns_rr* names_rr2ldns(dictionary record, const char* recordname, ldns_rr_type r
 char* names_rr2data(ldns_rr* rr, size_t header);
 
 void names_recordlookupone(dictionary record, ldns_rr_type type, ldns_rr* template, ldns_rr** rr);
-void names_recordlookupall(dictionary record, ldns_rr_type type, ldns_rr* template, void** rrs, void** rrsigs);
+void names_recordlookupall(dictionary record, ldns_rr_type type, ldns_rr* template, ldns_rr_list** rrs, ldns_rr_list** rrsigs);
 
 struct dual {
     dictionary src;
@@ -169,7 +169,7 @@ dictionary names_indexlookup(names_index_type, dictionary);
 dictionary names_indexlookupkey(names_index_type, const char* keyvalue);
 int names_indexremove(names_index_type, dictionary);
 int names_indexremovekey(names_index_type,const char* keyvalue);
-int names_indexinsert(names_index_type, dictionary);
+int names_indexinsert(names_index_type index, dictionary d, dictionary* existing);
 void names_indexdestroy(names_index_type, void (*userfunc)(void* arg, void* key, void* val), void* userarg);
 names_iterator names_indexiterator(names_index_type);
 
@@ -226,6 +226,7 @@ int names_viewcommit(names_view_type view);
 void names_viewreset(names_view_type view);
 int names_viewsync(names_view_type view);
 int names_viewpersist(names_view_type view, int basefd, char* filename);
+int names_viewconfig(names_view_type view, signconf_type** signconf);
 int names_viewrestore(names_view_type view, const char* apex, int basefd, const char* filename);
 
 void names_viewlookupall(names_view_type view, ldns_rdf* dname, ldns_rr_type type, ldns_rr_list** rrs, ldns_rr_list** rrsigs);
@@ -238,22 +239,10 @@ void names_dumprecord(FILE*, dictionary record);
 void names_dumpviewinfo(names_view_type view);
 void names_dumpviewfull(FILE*, names_view_type view);
 
-struct signconf;
-struct signconf* createsignconf(int nkeys);
-void locatekeysignconf(struct signconf* signconf, int index, const char* locator, int flags);
-void destroysignconf(struct signconf* signconf);
-void setupsignconf(struct signconf* signconf);
-void teardownsignconf(struct signconf* signconf);
-void signrecord(struct signconf* signconf, dictionary record, const char* apex);
-void sign(names_view_type view, const char* apex);
-void prepare(names_view_type view, int newserial);
 void writezonef(names_view_type view, FILE* fp);
 int writezone(names_view_type view, const char* filename);
 enum operation_enum { PLAIN, DELTAMINUS, DELTAPLUS };
 int readzone(names_view_type view, enum operation_enum operation, const char* filename, char** apexptr, int* defaultttlptr);
-void rr2data(ldns_rr* rr, char** recorddataptr, char** recordinfoptr);
-
-#include "signer/zone.h"
 
 ldns_rr_type domain_is_occluded(names_view_type view, dictionary record);
 ldns_rr_type domain_is_delegpt(names_view_type view, dictionary record);

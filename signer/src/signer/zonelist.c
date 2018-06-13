@@ -284,8 +284,9 @@ zonelist_add_zone(zonelist_type* zlist, zone_type* zone)
 
     zoneapex = ldns_rdf2str(zone->apex);
     /*if(zoneapex[strlen(zoneapex)-1] == '.')
-        zoneapex[strlen(zoneapex)-1] = '\0';*/
+        zoneapex[strlen(zoneapex)-1] = '\0'; FIXME */
     zone->baseview = names_viewcreate(NULL, "  base    ", baseviewkeys);
+    names_viewconfig(zone->baseview, &(zone->signconf));
     names_viewrestore(zone->baseview, zoneapex, -1, NULL); // FIXME proper restore filename
     zone->inputview = names_viewcreate(zone->baseview,   "  input   ", inputviewkeys);
     zone->prepareview = names_viewcreate(zone->baseview, "  prepare ", prepareviewkeys);

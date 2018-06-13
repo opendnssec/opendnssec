@@ -69,7 +69,7 @@ names_indexdestroy(names_index_type index, void (*userfunc)(void* arg, void* key
 }
 
 int
-names_indexinsert(names_index_type index, dictionary d)
+names_indexinsert(names_index_type index, dictionary d, dictionary* existing)
 {
     int cmp;
     ldns_rbnode_t* node;
@@ -82,6 +82,9 @@ names_indexinsert(names_index_type index, dictionary d)
             free(node);
             node = ldns_rbtree_search(index->tree, d);
             assert(node);
+            if(existing && *existing == NULL) {
+                *existing = node->data;
+            }
             switch(index->acceptfunc(d, (dictionary)node->data, &cmp)) {
                 case 0:
                     return 0;
@@ -109,6 +112,16 @@ names_indexinsert(names_index_type index, dictionary d)
                index->acceptfunc(d, (dictionary)node->data, &cmp) == 0 ||
                (cmp == 0 && node->key == d)) {
                 ldns_rbtree_delete(index->tree, node->key);
+            }
+        }
+        if(existing && *existing) {
+            node = ldns_rbtree_search(index->tree, *existing);
+            if(node != NULL) {
+                if(node->key == *existing) {
+                    node = ldns_rbtree_delete(index->tree, node->key);
+                    assert(node);
+                    ldns_rbtree_free(node);
+                }
             }
         }
         return 0;

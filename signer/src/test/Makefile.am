@@ -15,7 +15,8 @@ AM_CPPFLAGS = \
 
 check_PROGRAMS = signertest
 
-signertest_SOURCES = signertest.c ../../../contrib/testing-tools/nulllibrary.c
+#signertest_SOURCES = signertest.c ../../../contrib/testing-tools/nulllibrary.c
+signertest_SOURCES = signertest.c comparezone.c
 signertest_LDFLAGS = -rdynamic
 signertest_LDADD = \
 	../adapter/adapi.o \
@@ -63,7 +64,6 @@ signertest_LDADD = \
 	../views/iteratorgeneric.o \
 	../views/logging.o \
 	../views/marshalling.o \
-	../views/names.o \
 	../views/rpc.o \
 	../views/table.o \
 	../views/utilities.o \
@@ -74,4 +74,4 @@ signertest_LDADD = \
 	@CUNIT_LIBS@
 
 check: signertest
-	./signertest $(top_srcdir)/signer/src/test
+	./signertest $(top_srcdir)/signer/src/test testSignNL

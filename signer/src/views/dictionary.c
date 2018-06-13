@@ -149,10 +149,10 @@ names_recordcreate(char** name)
 }
 
 dictionary
-names_recordcreatetemp(char* name)
+names_recordcreatetemp(const char* name)
 {
     dictionary dict;
-    dict = recordcreate(&name);
+    dict = recordcreate((char**)&name);
     dict->revision = 0;
     return dict;
 }
@@ -191,9 +191,25 @@ void
 names_recordannotate(dictionary d, struct names_view_zone* zone)
 {
     if(zone) {
-        assert(!zone->signconf);
-        if(zone->signconf) {
-            d->spanhash = dname_hash(d->name, zone->apex);
+        if(zone->signconf && *(zone->signconf) && (*(zone->signconf))->nsec3params) {
+            nsec3params_type* n3p = (*zone->signconf)->nsec3params;
+            ldns_rdf* dname;
+            ldns_rdf* apex;
+            ldns_rdf* hashed_label;
+            ldns_rdf* hashed_ownername;
+            dname = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, d->name);
+            apex = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, zone->apex);
+            /*
+             * The owner name of the NSEC3 RR is the hash of the original owner
+             * name, prepended as a single label to the zone name.
+             */
+            hashed_label = ldns_nsec3_hash_name(dname, n3p->algorithm, n3p->iterations, n3p->salt_len, n3p->salt_data);
+            hashed_ownername = ldns_dname_cat_clone(hashed_label, apex);
+            d->spanhash = ldns_rdf2str(hashed_ownername);
+            ldns_rdf_free(hashed_ownername);
+            ldns_rdf_free(hashed_label);
+            ldns_rdf_free(apex);
+            ldns_rdf_free(dname);
         } else {
             /* ldns_rdf* rdf;
              * ldns_rdf* revrdf;
@@ -647,7 +663,7 @@ marshall(marshall_handle h, void* ptr)
     size += marshalling(h, "revision", &(d->revision), NULL, 0, marshallinteger);
     size += marshalling(h, "marker", &(d->marker), NULL, 0, marshallinteger);
     size += marshalling(h, "spanhash", &(d->spanhash), NULL, 0, marshallstring);
-    size += marshalling(h, "spansignatures", &(d->spansignatures), marshall_OPTIONAL, sizeof(struct signatures_struct), marshallsigs);
+    //FIXME size += marshalling(h, "spansignatures", &(d->spansignatures), marshall_OPTIONAL, sizeof(struct signatures_struct), marshallsigs); FIXME bugs?
     size += marshalling(h, "spanhashrr", &(d->spanhashrr), NULL, 0, marshallldnsrr);
     size += marshalling(h, "validupto", &(d->validupto), marshall_OPTIONAL, sizeof(int), marshallinteger);
     size += marshalling(h, "validfrom", &(d->validfrom), marshall_OPTIONAL, sizeof(int), marshallinteger);
@@ -1235,7 +1251,7 @@ names_recordlookupone(dictionary record, ldns_rr_type recordtype, ldns_rr* templ
 }
 
 void
-names_recordlookupall(dictionary record, ldns_rr_type rrtype, ldns_rr* template, void** rrs, void** rrsigs)
+names_recordlookupall(dictionary record, ldns_rr_type rrtype, ldns_rr* template, ldns_rr_list** rrs, ldns_rr_list** rrsigs)
 {
     int i, j;
     assert(record);

@@ -112,7 +112,7 @@ names_own(names_view_type view, dictionary* record)
     if(dict && *dict == NULL) {
         names_indexremove(view->indices[0], *record);
         *dict = names_recordcopy(*record, 1);
-        names_indexinsert(view->indices[0], *dict);
+        names_indexinsert(view->indices[0], *dict, NULL);
     }
     *record = *dict;
 }
@@ -125,7 +125,7 @@ names_update(names_view_type view, dictionary* record)
     if(dict && *dict == NULL) {
         names_indexremove(view->indices[0], *record);
         *dict = names_recordcopy(*record, 0);
-        names_indexinsert(view->indices[0], *dict);
+        names_indexinsert(view->indices[0], *dict, NULL);
     }
     *record = *dict;
 }
@@ -146,7 +146,7 @@ names_place(names_view_type view, const char* name)
         newname = (char*)name;
         content = names_recordcreate(&newname);
         names_recordannotate(content, &view->zonedata);
-        names_indexinsert(view->indices[0], content);
+        names_indexinsert(view->indices[0], content, NULL);
         changed(view, content, ADD, NULL);
     }
     return content;
@@ -184,7 +184,7 @@ names_viewcreate(names_view_type base, const char* viewname, const char** keynam
     view->base = base;
     view->zonedata.apex = (base ? base->zonedata.apex : NULL);
     view->zonedata.defaultttl = NULL;
-    view->zonedata.signconf = NULL;
+    view->zonedata.signconf = (base ? base->zonedata.signconf : NULL);
     view->changelog = names_tablecreate();
     view->nsearchfuncs = 0;
     view->searchfuncs = NULL;
@@ -205,9 +205,10 @@ names_viewcreate(names_view_type base, const char* viewname, const char** keynam
     if(base != NULL) {
         /* swapping next two loops might get better performance */
         for(iter=names_indexiterator(base->indices[0]); names_iterate(&iter, &content); names_advance(&iter, NULL)) {
-            if(names_indexinsert(view->indices[0], content)) {
+            dictionary existing = NULL;
+            if(names_indexinsert(view->indices[0], content, &existing)) {
                 for(i=1; i<nindices; i++) {
-                    names_indexinsert(view->indices[i], content);
+                    names_indexinsert(view->indices[i], content, &existing);
                 }
             }
         }
@@ -358,7 +359,7 @@ resetchangelog(names_view_type view)
             names_indexremove(view->indices[0], change->record);
         }
         if(change->oldrecord != NULL) {
-            names_indexinsert(view->indices[0], change->oldrecord);
+            names_indexinsert(view->indices[0], change->oldrecord, NULL);
         }
     }
     names_commitlogdestroy(view->changelog);
@@ -385,21 +386,23 @@ updateview(names_view_type view, names_table_type* mychangelog)
                 mychangelog = NULL;
             }
             if(change->record != NULL) {
-                names_indexinsert(view->indices[0], change->record);
+                dictionary existing = NULL;
+                names_indexinsert(view->indices[0], change->record, &existing);
                 for(i=1; i<view->nindices; i++)
-                    names_indexinsert(view->indices[i], change->record);
+                    names_indexinsert(view->indices[i], change->record, &existing);
             }
         }
     }
     if(!conflict && mychangelog) {
         for(iter=names_tableitems(changelog); names_iterate(&iter, &change); names_advance(&iter, NULL)) {
-            for(i=0; i<view->nindices; i++) {
+            dictionary existing = change->oldrecord;
+            for(i=1; i<view->nindices; i++) {
                 if(change->record == NULL) {
                     change->record = change->oldrecord;
                     change->oldrecord = NULL;
                     names_recordsetmarker(change->record);
                 }
-                names_indexinsert(view->indices[i], change->record);
+                names_indexinsert(view->indices[i], change->record, &existing); // FIXME how does this one handle deletion
             }
         }
         names_commitlogpoppush(view->commitlog, view->viewid, &changelog, mychangelog);
@@ -410,7 +413,10 @@ updateview(names_view_type view, names_table_type* mychangelog)
 int
 names_viewcommit(names_view_type view)
 {
-    return updateview(view, &view->changelog);
+    int conflict;
+    conflict = updateview(view, &view->changelog);
+    assert(!conflict);
+    return conflict;
 }
 
 void
@@ -434,9 +440,10 @@ names_viewsync(names_view_type view)
         for(iter = names_tableitems(changelog); names_iterate(&iter, &change); names_advance(&iter, NULL)) {
             name = names_recordgetid(change->record, NULL);
             if(change->record != NULL) {
-                names_indexinsert(view->indices[0], change->record);
+                dictionary existing = NULL;
+                names_indexinsert(view->indices[0], change->record, &existing);
                 for(i=1; i<view->nindices; i++)
-                    names_indexinsert(view->indices[i], change->record);
+                    names_indexinsert(view->indices[i], change->record, &existing);
             }
         }
     }
@@ -453,6 +460,13 @@ persistfn(names_table_type table, marshall_handle store)
             names_recordmarshall(&(change->record), store);
     }
     names_recordmarshall(NULL, store);
+}
+
+int
+names_viewconfig(names_view_type view, signconf_type** signconf)
+{
+    view->zonedata.signconf = signconf;
+    return 0;
 }
 
 int
@@ -475,7 +489,7 @@ names_viewrestore(names_view_type view, const char* apex, int basefd, const char
             do {
                 names_recordmarshall(&record, input);
                 if(record) {
-                    names_indexinsert(view->indices[0], record);
+                    names_indexinsert(view->indices[0], record, NULL);
                 }
             } while(record);
             output = marshallcreate(marshall_APPEND, input);

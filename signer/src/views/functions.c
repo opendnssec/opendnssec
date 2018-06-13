@@ -29,6 +29,76 @@ rrset_getliteralrr(ldns_rr** dnskey, const char *resourcerecord, uint32_t ttl, l
     return 0;
 }
 
+#ifdef NOTDEFINED
+static uint32_t
+rrset_recycle(signconf_type* signconf, dictionary domain, ldns_rr_type rrtype, ldns_rr_list* rrset, ldns_rr_list* rrsigs, time_t signtime, ldns_rr_type dstatus, ldns_rr_type delegpt)
+{
+    uint32_t refresh = 0;
+    uint32_t expiration = 0;
+    uint32_t inception = 0;
+    uint32_t reusedsigs = 0;
+    unsigned drop_sig = 0;
+    key_type* key = NULL;
+    ldns_rr* rrsig;
+    names_iterator iter;
+    ldns_rr_list* newrrsigs;
+    newrrsigs = ldns_rr_list_new();
+
+    /* Calculate the Refresh Window = Signing time + Refresh */
+    if (signconf && signconf->sig_refresh_interval) {
+        refresh = (uint32_t) (signtime + duration2time(signconf->sig_refresh_interval));
+    }
+    /* Check every signature if it matches the recycling logic. */
+    while((rrsig = ldns_rr_list_pop_rr(rrsigs))) {
+        drop_sig = 0;
+        /* 0. Skip delegation, glue and occluded RRsets */
+        if (dstatus != LDNS_RR_TYPE_SOA || (delegpt != LDNS_RR_TYPE_SOA && rrtype != LDNS_RR_TYPE_DS)) {
+            drop_sig = 1;
+        } else {
+            ods_log_assert(dstatus == LDNS_RR_TYPE_SOA || (delegpt == LDNS_RR_TYPE_SOA || rrtype == LDNS_RR_TYPE_DS));
+        }
+        /* 1. If the RRset has changed, drop all signatures */
+        /* 2. If Refresh is disabled, drop all signatures */
+        if(!drop_sig) {
+            if (refresh <= (uint32_t) signtime) {
+                drop_sig = 1;
+            }
+        }
+        /* 3. Expiration - Refresh has passed */
+        if(!drop_sig) {
+            expiration = ldns_rdf2native_int32(ldns_rr_rrsig_expiration(rrsig));
+            if (expiration < refresh) {
+                drop_sig = 1;
+            }
+        }
+        /* 4. Inception has not yet passed */
+        if(!drop_sig) {
+            inception = ldns_rdf2native_int32(ldns_rr_rrsig_inception(rrsig));
+            if (inception > (uint32_t) signtime) {
+                drop_sig = 1;
+            }
+        }
+        /* 5. Corresponding key is dead (key is locator+flags) */
+        if(!drop_sig) {
+            key = keylist_lookup_by_locator(signconf->keys, rrsig->keylocator);
+            if (!key || key->flags != rrsig->keyflags) {
+                drop_sig = 1;
+            }
+        }
+
+        if (drop_sig) {
+            // FIXME clear expiry to force resign
+        } else {
+            /* All rules ok, recycle signature */
+            reusedsigs += 1;
+        }
+    }
+    ldns_rr_list_push_rr_list(rrsigs, newrrsigs);
+    ldns_rr_list_free(newrrsigs);
+    return reusedsigs;
+}
+#endif
+
 /**
  * Calculate the signature validation period.
  *
@@ -108,6 +178,40 @@ domain_is_occluded(names_view_type view, dictionary record)
     /* Authoritative or delegation */
     return LDNS_RR_TYPE_SOA;
 }
+
+#ifdef NOTDEFINED
+static int
+rrset_siglocator(struct itemset* rrset, const char* locator)
+{
+    int match = 0;
+    for(int i=0; i<rrset->nsignatures; i++) {
+        if (!strcmp(locator, rrset->signatures[i].keylocator)) {
+            match += 1;
+        }
+    }
+    return match;
+}
+
+static int
+rrset_sigalgo_count(struct itemset* rrset, uint8_t algorithm)
+{
+    int match = 0;
+    for(int i=0; i<rrset->nsignatures; i++) {
+        if (algorithm == ldns_rdf2native_int8(ldns_rr_rrsig_algorithm(rrset->signatures[i].rr))) {
+            match += 1;
+        }
+    }
+    return match;
+}
+    reusedsigs = rrset_recycle(signconf, domain, rrtype, rrset, rrsigs, signtime, dstatus, delegpt);
+        /* Additional rules for signatures */
+        if (rrset_siglocator(rrset, signconf->keys->keys[i].locator)) {
+            continue;
+        }
+        sigcount = rrset_sigalgo_count(rrset, algorithm);
+        if (rrtype != LDNS_RR_TYPE_DNSKEY && sigcount >= keycount)
+            continue;
+#endif
 
 ods_status
 rrset_sign(signconf_type* signconf, names_view_type view, dictionary record, ldns_rr_type rrtype, hsm_ctx_t* ctx, time_t signtime)
@@ -225,6 +329,15 @@ rrset_sign(signconf_type* signconf, names_view_type view, dictionary record, ldn
     /* RRset signing completed */
     ldns_rr_list_free(rrset);
 
+#ifdef FIXME
+    pthread_mutex_lock(&globalzone->stats->stats_lock);
+    if (rrset->rrtype == LDNS_RR_TYPE_SOA) {
+        globalzone->stats->sig_soa_count += newsigs;
+    }
+    globalzone->stats->sig_count += newsigs;
+    globalzone->stats->sig_reuse += reusedsigs;
+    pthread_mutex_unlock(&globalzone->stats->stats_lock);
+#endif
     return 0;
 }
 
@@ -235,6 +348,7 @@ denial_create_bitmap(names_view_type view, dictionary record, ldns_rr_type nsect
     ldns_rr_type rrtype;
     ldns_rr_type occludedstatus = domain_is_occluded(view, record);
     ldns_rr_type delegptstatus = domain_is_delegpt(view, record);
+    *types = NULL;
     /* Type Bit Maps */
     switch(nsectype) {
         case LDNS_RR_TYPE_NSEC3:
@@ -300,6 +414,7 @@ static ldns_rr*
 denial_create_nsec(names_view_type view, dictionary domain, ldns_rdf* nxt, uint32_t ttl,
     ldns_rr_class klass, nsec3params_type* n3p)
 {
+    const char* denialname;
     ldns_rr* nsec_rr;
     ldns_rr_type rrtype;
     ldns_rr_type dstatus = LDNS_RR_TYPE_FIRST;
@@ -312,13 +427,17 @@ denial_create_nsec(names_view_type view, dictionary domain, ldns_rdf* nxt, uint3
     /* RRtype */
     if (n3p) {
         rrtype = LDNS_RR_TYPE_NSEC3;
-        rdf = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, names_recordgetid(domain, "denialname"));
     } else {
         rrtype = LDNS_RR_TYPE_NSEC;
-        rdf = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, names_recordgetid(domain, "name"));
     }
     ldns_rr_set_type(nsec_rr, rrtype);
     /* owner */
+    if(n3p) {
+        denialname = names_recordgetid(domain, "denialname");
+    } else {
+        denialname = names_recordgetid(domain, "name");
+    }
+    rdf = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, denialname); // FIXME denial name for NSEC3, NSEC for uses name
     if (!rdf) {
         ods_log_alert("unable to create NSEC(3) RR: ldns_rdf_clone(owner) failed");
         ldns_rr_free(nsec_rr);
@@ -376,6 +495,11 @@ denial_nsecify(signconf_type* signconf, names_view_type view, dictionary domain,
     return nsec_rr;
 }
 
+/**
+ * Delete NSEC3PARAM RRs.
+ *
+ * Marks all NSEC3PARAM records as removed.
+ */
 ods_status
 zone_del_nsec3params(zone_type* zone, names_view_type view)
 {
@@ -432,6 +556,34 @@ namedb_domain_entize(names_view_type view, dictionary domain, ldns_rdf* dname, l
     }
     return ODS_STATUS_OK;
 }
+
+#ifdef NOTDEFINED
+void
+namedb_nsecify(zone_type* globalzone, names_view_type view, uint32_t* num_added)
+{
+    dictionary domain;
+    names_iterator iter;
+    ldns_rdf* firstname;
+    ldns_rdf* nextname;
+    uint32_t nsec_added = 0;
+
+    names_firstdenials(view,&iter);
+    if (names_iterate(&iter,&domain)) {
+        nextname = firstname = namedb_denialname(globalzone, domain->dname);
+        names_end(&iter);
+        for (names_reversedenials(view,&iter); names_iterate(&iter,&domain); names_advance(&iter, NULL)) {
+            denial_nsecify(globalzone, view, domain, nextname, &nsec_added);
+            nextname = domain->denial->dname;
+        }
+        ldns_rdf_free(firstname);
+    } else {
+        names_end(&iter);
+    }
+    if (num_added) {
+        *num_added = nsec_added;
+    }
+}
+#endif
 
 ods_status
 namedb_update_serial(zone_type* zone)

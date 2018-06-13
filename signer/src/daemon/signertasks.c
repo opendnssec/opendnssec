@@ -24,7 +24,7 @@
  *
  */
 
-#include <time.h> /* time() */
+#include <time.h>
 
 #include "daemon/engine.h"
 #include "scheduler/worker.h"
@@ -319,7 +319,6 @@ do_signzone(task_type* task, const char* zonename, void* zonearg, void *contexta
             dictionary record = change.src;
             names_update(zone->neighview, &record);
             names_recordannotate(record, NULL);
-fprintf(stderr,"BERRY DENIAL CLEAR %s (%s) --- %p %p %p\n",names_recordgetid(record, "namerevision"),names_recordgetid(record, "denialname"),names_recordgetid(record, "validupto"),names_recordgetid(record, "validfrom"),names_recordgetid(record, "expiry"));
         }
     }
     conflict = names_viewcommit(zone->neighview);
@@ -335,7 +334,6 @@ fprintf(stderr,"BERRY DENIAL CLEAR %s (%s) --- %p %p %p\n",names_recordgetid(rec
             nextnamestr = names_recordgetid(change.dst, "name");
         nextnamerdf = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, nextnamestr);
         names_amend(zone->signview, change.src);
-fprintf(stderr,"BERRY DENIAL %s (%s) -> %s (%s)\n",names_recordgetid(change.src, "namerevision"),names_recordgetid(change.src, "namerevision"),names_recordgetid(change.dst, "name"),names_recordgetid(change.dst, "denialname"));
         names_recordsetdenial(change.src, denial_nsecify(zone->signconf, zone->signview, change.src, nextnamerdf));
         ldns_rdf_free(nextnamerdf);
     }
