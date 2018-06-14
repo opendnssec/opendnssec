@@ -38,7 +38,7 @@
 #include <stdlib.h>
 #include <libxml/parser.h>
 #include "parser/confparser.h"
-#include "views/logging.h"
+#include "logging.h"
 
 
 #define AUTHOR_NAME "Matthijs Mekking"

@@ -62,7 +62,6 @@ signertest_LDADD = \
 	../views/index.o \
 	../views/iterator.o \
 	../views/iteratorgeneric.o \
-	../views/logging.o \
 	../views/marshalling.o \
 	../views/rpc.o \
 	../views/table.o \
@@ -74,4 +73,4 @@ signertest_LDADD = \
 	@CUNIT_LIBS@
 
 check: signertest
-	./signertest $(top_srcdir)/signer/src/test testSignNL
+	./signertest $(top_srcdir)/signer/src/test

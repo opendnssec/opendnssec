@@ -56,12 +56,11 @@ ods_signerd_SOURCES=		ods-signerd.c \
 				wire/tsig.c wire/tsig.h \
 				wire/tsig-openssl.c wire/tsig-openssl.h \
 				wire/xfrd.c wire/xfrd.h \
-				views/dictionary.c \
+				views/recordset.c \
 				views/functions.c \
 				views/index.c \
 				views/iterator.c \
 				views/iteratorgeneric.c \
-				views/logging.c \
 				views/table.c \
 				views/views.c \
 				views/marshalling.c \
