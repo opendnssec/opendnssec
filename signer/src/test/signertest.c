@@ -92,6 +92,38 @@ enginerunner(void* engine)
 }
 
 static void
+enginethreadingstart(void)
+{
+    int i;
+    char*name = NULL;
+    CHECKALLOC(engine->workers = (worker_type**) malloc(engine->config->num_signer_threads * sizeof(worker_type*)));
+    for (i=0; i < engine->config->num_signer_threads; i++) {
+        asprintf(&name, "drudger[%d]", i+1);
+        engine->workers[i] = worker_create(name, engine->taskq);
+    }
+    for (i=0; i < engine->config->num_signer_threads; i++) {
+        engine->workers[i]->need_to_exit = 0;
+        janitor_thread_create(&engine->workers[i]->thread_id, workerthreadclass, (janitor_runfn_t)drudge, engine->workers[i]);
+    }
+}
+
+static void
+enginethreadingstop(void)
+{
+    int i;
+    for (i=0; i < engine->config->num_signer_threads; i++) {
+        engine->workers[i]->need_to_exit = 1;
+    }
+    schedule_release_all(engine->taskq);
+    for (i=0; i < engine->config->num_signer_threads; i++) {
+        janitor_thread_join(engine->workers[i]->thread_id);
+        free(engine->workers[i]->context);
+    }
+    free(engine->workers);
+    engine->workers = NULL;
+}
+
+static void
 setUp(void)
 {
     int linkfd, status;
@@ -109,6 +141,7 @@ setUp(void)
        (status = engine_setup_finish(engine, linkfd)) != ODS_STATUS_OK) {
         ods_log_error("Unable to start signer daemon: %s", ods_status2str(status));
     }
+    enginethreadingstart();
     hsm_open2(engine->config->repositories, hsm_check_pin);
     //janitor_thread_create(&debugthread, debugthreadclass, enginerunner, engine);
 }
@@ -118,6 +151,7 @@ tearDown(void)
 {
     //command_stop(engine);
     //janitor_thread_join(debugthread);
+    enginethreadingstop();
     engine_cleanup(engine);
     engine = NULL;
 
@@ -149,7 +183,7 @@ producefile(const char* inputfile, const char* outputfile, const char* program, 
     if(!(child = fork())) {
         setpgid(0, group);
         input = open(inputfile,O_RDONLY);
-        if(output < 0) {
+        if(input < 0) {
             fprintf(stderr,"%s: failed to open input file \"%s\": %s (%d)\n",argv0,inputfile,strerror(errno),errno);
             exit(1);
         } else if(input != 0) {
@@ -334,11 +368,14 @@ testSignNL(void)
 {
     int c;
     zone_type* zone;
+    logger_mark_performance("setup files");
     usefile("zones.xml", "zones.xml.nl");
     usefile("unsigned.zone", "unsigned.zone.nl.gz");
     usefile("signconf.xml", "signconf.xml.nl");
+    logger_mark_performance("setup zone");
     zonelist_update(engine->zonelist, engine->config->zonelist_filename);
     zone = zonelist_lookup_zone_by_name(engine->zonelist, "nl", LDNS_RR_CLASS_IN);
+    logger_mark_performance("sign");
     signzone(zone);
     CU_ASSERT_EQUAL((c = comparezone("unsigned.zone","signed.zone")), 0);
     CU_ASSERT_EQUAL((c = system("ldns-verify-zone signed.zone")), 0);
@@ -380,7 +417,7 @@ struct test_struct {
     { "signer", "testBasic",      "test of start stop" },
     { "signer", "testSignNSEC",   "test NSEC signing" },
     { "signer", "testSignNSEC3",  "test NSEC3 signing" },
-    { "signer", "testSignNL",     "test NL signing" },
+    { "signer", "-testSignNL",    "test NL signing" },
     { NULL, NULL, NULL }
 };
 
@@ -389,7 +426,6 @@ main(int argc, char* argv[])
 {
     int i, j, status = 0;
     CU_pSuite pSuite = NULL;
-    CU_TestFunc pTestFunc;
 
     if (CUE_SUCCESS != CU_initialize_registry())
         return CU_get_error();
@@ -405,16 +441,20 @@ main(int argc, char* argv[])
         }
     }
     for(i=0; tests[i].name; i++) {
-        pTestFunc = dlsym(NULL, tests[i].name);
-            fprintf(stderr,"register test %s.%s %p %s %p\n",tests[i].suite,tests[i].name,tests[i].pSuite,tests[i].description,pTestFunc);
-        if(pTestFunc != NULL) {
-            tests[i].pTest = CU_add_test(tests[i].pSuite, tests[i].description, pTestFunc);
-            if(!tests[i].pTest) {
-                CU_cleanup_registry();
-                return CU_get_error();
+        tests[i].pTestFunc = functioncast(dlsym(NULL, (tests[i].name[0]=='-' ? &tests[i].name[1] : tests[i].name)));
+        if(tests[i].name[0]!='-') {
+            if(tests[i].pTestFunc != NULL) {
+                tests[i].pTest = CU_add_test(tests[i].pSuite, tests[i].description, tests[i].pTestFunc);
+                if(!tests[i].pTest) {
+                    CU_cleanup_registry();
+                    return CU_get_error();
+                }
+            } else {
+                fprintf(stderr,"%s: unable to register test %s.%s %p\n",argv0,tests[i].suite,tests[i].name,tests[i].pSuite);
             }
         } else {
-            fprintf(stderr,"%s: unable to register test %s.%s %p\n",argv0,tests[i].suite,tests[i].name,tests[i].pSuite);
+            tests[i].name = &(tests[i].name[1]);
+            tests[i].pTest = NULL;
         }
     }
 
@@ -447,6 +487,8 @@ main(int argc, char* argv[])
                 }
             }
             if(tests[j].name != NULL) {
+                if(tests[j].pTest == NULL)
+                    tests[j].pTest = CU_add_test(tests[j].pSuite, tests[j].description, tests[j].pTestFunc);
                 CU_basic_run_test(tests[j].pSuite, tests[j].pTest);
             } else {
                 fprintf(stderr,"%s: test %s not found\n",argv0,argv[i]);
