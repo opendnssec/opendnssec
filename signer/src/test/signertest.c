@@ -260,7 +260,7 @@ testIterator(void)
     uint32_t ttl;
     ldns_rdf* origin;
     const char* name;
-    dictionary record;
+    recordset_type record;
     prev = NULL;
     ttl = 60;
     name = "example.com";
@@ -277,7 +277,7 @@ void
 testAnnotateItem(const char* name, const char* expected)
 {
     struct names_view_zone zonedata = { NULL, "example.com", NULL };
-    dictionary record;
+    recordset_type record;
     const char* denial;
     record = names_recordcreatetemp(name);
     names_recordannotate(record, &zonedata);
@@ -450,7 +450,7 @@ main(int argc, char* argv[])
                     return CU_get_error();
                 }
             } else {
-                fprintf(stderr,"%s: unable to register test %s.%s %p\n",argv0,tests[i].suite,tests[i].name,tests[i].pSuite);
+                fprintf(stderr,"%s: unable to register test %s.%s\n",argv0,tests[i].suite,tests[i].name);
             }
         } else {
             tests[i].name = &(tests[i].name[1]);

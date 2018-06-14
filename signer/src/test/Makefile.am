@@ -56,7 +56,7 @@ signertest_LDADD = \
 	../wire/tsig-openssl.o \
 	../wire/xfrd.o \
 	../views/commitlog.o \
-	../views/dictionary.o \
+	../views/recordset.o \
 	../views/functions.o \
 	../views/httpd.o \
 	../views/index.o \

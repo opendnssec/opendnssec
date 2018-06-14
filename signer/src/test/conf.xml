@@ -3,8 +3,9 @@
 <Configuration>
 	<RepositoryList>
 		<Repository name="SoftHSM">
+			<Module>/usr/local/lib/softhsm/libsofthsm2.so</Module>
 			<TokenLabel>OpenDNSSEC</TokenLabel>
-			<PIN>0000</PIN>
+			<PIN>1234</PIN>
 			<SkipPublicKey/>
 		</Repository>
 	</RepositoryList>
@@ -26,5 +27,6 @@
 		<SocketFile>signer.sock</SocketFile>
 		<WorkingDirectory>.</WorkingDirectory>
 		<WorkerThreads>4</WorkerThreads>
+		<SignerThreads>4</SignerThreads>
 	</Signer>
 </Configuration>
