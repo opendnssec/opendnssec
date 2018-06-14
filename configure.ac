@@ -233,7 +233,6 @@ AC_CONFIG_FILES([
 	conf/Makefile
 	conf/addns.xml
 	conf/conf.xml
-	conf/enforcerstate.xml
 	conf/kasp.xml
 	conf/signconf.xml
 	conf/zonelist.xml

@@ -18,7 +18,6 @@ Makefile.in
 .dirstamp
 *.pb.cc
 *.pb.h
-*.rng
 *.deps/
 /aclocal.m4
 /autom4te.cache/
@@ -40,7 +39,6 @@ Makefile.in
 /missing
 conf/addns.xml
 conf/conf.xml
-conf/enforcerstate.xml
 conf/kasp.xml
 conf/signconf.xml
 conf/zonelist.xml
