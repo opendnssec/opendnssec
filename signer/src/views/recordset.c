@@ -23,7 +23,7 @@ struct itemset {
     struct signatures_struct* signatures;
 };
 
-struct dictionary_struct {
+struct recordset_struct {
     char* name;
     int revision;
     int marker;
@@ -56,7 +56,7 @@ names_signaturedispose(struct signatures_struct* signatures)
 }
 
 void
-names_recordaddsignature(dictionary d, ldns_rr_type rrtype, ldns_rr* rrsig, const char* keylocator, int keyflags)
+names_recordaddsignature(recordset_type d, ldns_rr_type rrtype, ldns_rr* rrsig, const char* keylocator, int keyflags)
 {
     int i, j;
     for(i=0; i<d->nitemsets; i++)
@@ -88,7 +88,7 @@ names_recordaddsignature(dictionary d, ldns_rr_type rrtype, ldns_rr* rrsig, cons
 }
 
 int
-names_recordcompare_namerevision(dictionary a, dictionary b)
+names_recordcompare_namerevision(recordset_type a, recordset_type b)
 {
     int rc;
     const char* left;
@@ -107,11 +107,11 @@ names_recordcompare_namerevision(dictionary a, dictionary b)
     return rc;
 }
 
-static dictionary
+static recordset_type
 recordcreate(char** name)
 {
-    struct dictionary_struct* dict;
-    dict = malloc(sizeof(struct dictionary_struct));
+    struct recordset_struct* dict;
+    dict = malloc(sizeof(struct recordset_struct));
     if (name) {
         dict->name = *name = ((*name) ? strdup(*name) : NULL);
     } else {
@@ -134,10 +134,10 @@ recordcreate(char** name)
     return dict;
 }
 
-dictionary
+recordset_type
 names_recordcreate(char** name)
 {
-    struct dictionary_struct* dict;
+    struct recordset_struct* dict;
     dict = recordcreate(name);
     if (name) {
         dict->name = *name = ((*name) ? strdup(*name) : NULL);
@@ -148,10 +148,10 @@ names_recordcreate(char** name)
     return dict;
 }
 
-dictionary
+recordset_type
 names_recordcreatetemp(const char* name)
 {
-    dictionary dict;
+    recordset_type dict;
     dict = recordcreate((char**)&name);
     dict->revision = 0;
     return dict;
@@ -188,7 +188,7 @@ dname_hash(char* name, const char* zone) // FIXME salt, waht?
 }
 
 void
-names_recordannotate(dictionary d, struct names_view_zone* zone)
+names_recordannotate(recordset_type d, struct names_view_zone* zone)
 {
     if(zone) {
         if(zone->signconf && *(zone->signconf) && (*(zone->signconf))->nsec3params) {
@@ -247,7 +247,7 @@ names_recordannotate(dictionary d, struct names_view_zone* zone)
 }
         
 void
-names_recorddestroy(dictionary dict)
+names_recorddestroy(recordset_type dict)
 {
     int i, j;
     for(i=0; i<dict->nitemsets; i++) {
@@ -263,24 +263,24 @@ names_recorddestroy(dictionary dict)
 
 /* deletion marker */
 void
-names_recordsetmarker(dictionary dict)
+names_recordsetmarker(recordset_type dict)
 {
     dict->marker = 1;
 }
 
 int
-names_recordhasmarker(dictionary dict)
+names_recordhasmarker(recordset_type dict)
 {
     return dict->marker;
 }
 
-dictionary
-names_recordcopy(dictionary dict, int increment)
+recordset_type
+names_recordcopy(recordset_type dict, int increment)
 {
     int i, j;
-    struct dictionary_struct* target;
+    struct recordset_struct* target;
     char* name = dict->name;
-    target = (struct dictionary_struct*) names_recordcreate(&name);
+    target = (struct recordset_struct*) names_recordcreate(&name);
     target->revision = dict->revision + (increment ? 1 : 1);
     target->nitemsets = dict->nitemsets;
     CHECKALLOC(target->itemsets = malloc(sizeof(struct itemset) * target->nitemsets));
@@ -317,7 +317,7 @@ names_recordcopy(dictionary dict, int increment)
 }
 
 int
-names_recordhasdata(dictionary record, ldns_rr_type recordtype, ldns_rr* rr, int exact)
+names_recordhasdata(recordset_type record, ldns_rr_type recordtype, ldns_rr* rr, int exact)
 {
     int i, j;
     if(!record)
@@ -351,7 +351,7 @@ names_recordhasdata(dictionary record, ldns_rr_type recordtype, ldns_rr* rr, int
 
 /* FIXME to be renamed to names_recordadddata */
 void
-rrset_add_rr(dictionary d, ldns_rr* rr)
+rrset_add_rr(recordset_type d, ldns_rr* rr)
 {
     int i, j;
     ldns_rr_type rrtype;
@@ -378,7 +378,7 @@ rrset_add_rr(dictionary d, ldns_rr* rr)
 }
 
 void
-names_recorddeldata(dictionary d, ldns_rr_type rrtype, ldns_rr* rr)
+names_recorddeldata(recordset_type d, ldns_rr_type rrtype, ldns_rr* rr)
 {
     int i, j;
     for(i=0; i<d->nitemsets; i++)
@@ -431,7 +431,7 @@ names_recorddeldata(dictionary d, ldns_rr_type rrtype, ldns_rr* rr)
 }
 
 void
-names_recorddelall(dictionary d, ldns_rr_type rrtype)
+names_recorddelall(recordset_type d, ldns_rr_type rrtype)
 {
     int i, j;
     for(i=0; i<d->nitemsets; i++) {
@@ -464,13 +464,13 @@ names_recorddelall(dictionary d, ldns_rr_type rrtype)
     }
 }
 
-static void names_recordalltypes_func(names_iterator iter, dictionary d, int index, ldns_rr_type* ptr)
+static void names_recordalltypes_func(names_iterator iter, recordset_type d, int index, ldns_rr_type* ptr)
 {
     if(index >= 0)
         memcpy(ptr, &(d->itemsets[index].rrtype), sizeof(ldns_rr_type));
 }
 names_iterator
-names_recordalltypes(dictionary d)
+names_recordalltypes(recordset_type d)
 {
     names_iterator iter;
     iter = names_iterator_createarray(d->nitemsets, d, names_recordalltypes_func);
@@ -486,7 +486,7 @@ static void names_recordallvaluestrings_func(names_iterator iter, struct item* i
         *ptr = NULL;
 }
 names_iterator
-names_recordallvaluestrings(dictionary d, ldns_rr_type rrtype)
+names_recordallvaluestrings(recordset_type d, ldns_rr_type rrtype)
 {
     int i;
     for(i=0; i<d->nitemsets; i++) {
@@ -539,7 +539,7 @@ static void names_recordallvalueidents_func(names_iterator iter, struct itemset*
         ;
 }
 names_iterator
-names_recordallvalueidents(dictionary d, ldns_rr_type rrtype)
+names_recordallvalueidents(recordset_type d, ldns_rr_type rrtype)
 {
     int i;
     for(i=0; i<d->nitemsets; i++) {
@@ -561,7 +561,7 @@ record->name
 #endif
 
 void
-names_recorddispose(dictionary dict)
+names_recorddispose(recordset_type dict)
 {
     int i, j;
     for(i=0; i<dict->nitemsets; i++) {
@@ -589,7 +589,7 @@ names_recorddispose(dictionary dict)
 }
 
 const char*
-names_recordgetid(dictionary record, const char* name)
+names_recordgetid(recordset_type record, const char* name)
 {
     const char* id;
     if(name == NULL) {
@@ -600,13 +600,13 @@ names_recordgetid(dictionary record, const char* name)
 }
 
 int
-names_recordhasvalidupto(dictionary record)
+names_recordhasvalidupto(recordset_type record)
 {
     return record->validupto != NULL;
 }
 
 void
-names_recordsetvalidupto(dictionary record, int value)
+names_recordsetvalidupto(recordset_type record, int value)
 {
     assert(record->validupto == NULL);
     record->validupto = malloc(sizeof(int));
@@ -614,13 +614,13 @@ names_recordsetvalidupto(dictionary record, int value)
 }
 
 int
-names_recordhasvalidfrom(dictionary record)
+names_recordhasvalidfrom(recordset_type record)
 {
     return record->validfrom != NULL;
 }
 
 void
-names_recordsetvalidfrom(dictionary record, int value)
+names_recordsetvalidfrom(recordset_type record, int value)
 {
     assert(record->validfrom == NULL);
     record->validfrom = malloc(sizeof(int));
@@ -628,25 +628,25 @@ names_recordsetvalidfrom(dictionary record, int value)
 }
 
 void
-names_recordsetdenial(dictionary record, ldns_rr* denial)
+names_recordsetdenial(recordset_type record, ldns_rr* denial)
 {
     record->spanhashrr = ldns_rr_clone(denial); // FIXME
 }
 
 int
-names_recordhasexpiry(dictionary record)
+names_recordhasexpiry(recordset_type record)
 {
     return record->expiry != NULL;
 }
 
 int
-names_recordgetexpiry(dictionary record)
+names_recordgetexpiry(recordset_type record)
 {
     return *(record->expiry);
 }
 
 void
-names_recordsetexpiry(dictionary record, int value)
+names_recordsetexpiry(recordset_type record, int value)
 {
     assert(record->expiry == NULL);
     record->expiry = malloc(sizeof(int));
@@ -656,7 +656,7 @@ names_recordsetexpiry(dictionary record, int value)
 int
 marshall(marshall_handle h, void* ptr)
 {
-    dictionary d = ptr;
+    recordset_type d = ptr;
     int size = 0;
     int i, j;
     size += marshalling(h, "name", &(d->name), NULL, 0, marshallstring);
@@ -687,13 +687,13 @@ marshall(marshall_handle h, void* ptr)
 }
 
 int
-names_recordmarshall(dictionary* record, marshall_handle h)
+names_recordmarshall(recordset_type* record, marshall_handle h)
 {
     int rc;
-    dictionary dummy = NULL;
+    recordset_type dummy = NULL;
     if(record == NULL)
         record = &dummy;
-    rc = marshalling(h, "domain", record, marshall_OPTIONAL, sizeof(struct dictionary_struct), marshall);
+    rc = marshalling(h, "domain", record, marshall_OPTIONAL, sizeof(struct recordset_struct), marshall);
     return rc;
 }
 
@@ -805,7 +805,7 @@ decomposestringf(const char* ptr, const char* fmt,...)
 
 //FIXME
 int
-getset(dictionary d, const char* name, const char** get, const char** set)
+getset(recordset_type d, const char* name, const char** get, const char** set)
 {
     int rc = 1;
     if (get)
@@ -891,9 +891,9 @@ getset(dictionary d, const char* name, const char** get, const char** set)
 }
 
 #define DEFINECOMPARISON(N) \
-    int N(dictionary, dictionary, int*); \
+    int N(recordset_type, recordset_type, int*); \
     int N ## _ldns(const void* a, const void* b) { \
-    int rc; N((dictionary)a, (dictionary)b, &rc); return rc; }
+    int rc; N((recordset_type)a, (recordset_type)b, &rc); return rc; }
 
 DEFINECOMPARISON(compareready)
 DEFINECOMPARISON(comparenamerevision)
@@ -909,7 +909,7 @@ DEFINECOMPARISON(comparerelevantset)
 DEFINECOMPARISON(comparesignedset)
 
 int
-comparenamerevision(dictionary newitem, dictionary curitem, int* cmp)
+comparenamerevision(recordset_type newitem, recordset_type curitem, int* cmp)
 {
     const char* left;
     const char* right;
@@ -926,7 +926,7 @@ comparenamerevision(dictionary newitem, dictionary curitem, int* cmp)
 }
 
 int
-comparenamehierarchy(dictionary newitem, dictionary curitem, int* cmp)
+comparenamehierarchy(recordset_type newitem, recordset_type curitem, int* cmp)
 {
     const char* left;
     const char* right;
@@ -944,7 +944,7 @@ comparenamehierarchy(dictionary newitem, dictionary curitem, int* cmp)
 }
 
 int
-compareexpiry(dictionary newitem, dictionary curitem, int* cmp)
+compareexpiry(recordset_type newitem, recordset_type curitem, int* cmp)
 {
     const char* left;
     const char* right;
@@ -966,7 +966,7 @@ compareexpiry(dictionary newitem, dictionary curitem, int* cmp)
 /* rule: you cannot ammend a field when that field is in use for to store a record in an index */
 
 int
-comparedenialname(dictionary newitem, dictionary curitem, int* cmp)
+comparedenialname(recordset_type newitem, recordset_type curitem, int* cmp)
 {
     const char* left;
     const char* right;
@@ -990,7 +990,7 @@ comparedenialname(dictionary newitem, dictionary curitem, int* cmp)
 }
 
 int
-compareupcomingset(dictionary newitem, dictionary curitem, int* cmp)
+compareupcomingset(recordset_type newitem, recordset_type curitem, int* cmp)
 {
     int c;
     const char* left;
@@ -1014,7 +1014,7 @@ compareupcomingset(dictionary newitem, dictionary curitem, int* cmp)
 }
 
 int
-compareincomingset(dictionary newitem, dictionary curitem, int* cmp)
+compareincomingset(recordset_type newitem, recordset_type curitem, int* cmp)
 {
     int rc = 1;
     int compare;
@@ -1045,7 +1045,7 @@ compareincomingset(dictionary newitem, dictionary curitem, int* cmp)
 }
 
 int
-compareready(dictionary newitem, dictionary curitem, int* cmp)
+compareready(recordset_type newitem, recordset_type curitem, int* cmp)
 {
     int c;
     const char* left;
@@ -1075,7 +1075,7 @@ compareready(dictionary newitem, dictionary curitem, int* cmp)
 
 
 int
-comparecurrentset(dictionary newitem, dictionary curitem, int* cmp)
+comparecurrentset(recordset_type newitem, recordset_type curitem, int* cmp)
 {
     const char* left;
     const char* right;
@@ -1096,7 +1096,7 @@ comparecurrentset(dictionary newitem, dictionary curitem, int* cmp)
 
 #ifdef NOTDEFINED
 int
-comparerelevantset(dictionary newitem, dictionary curitem, int* cmp)
+comparerelevantset(recordset_type newitem, recordset_type curitem, int* cmp)
 {
     int c;
     const char* left;
@@ -1122,7 +1122,7 @@ comparerelevantset(dictionary newitem, dictionary curitem, int* cmp)
 #endif
 
 int
-comparesignedset(dictionary newitem, dictionary curitem, int* cmp)
+comparesignedset(recordset_type newitem, recordset_type curitem, int* cmp)
 {
     const char* left;
     const char* right;
@@ -1147,7 +1147,7 @@ comparesignedset(dictionary newitem, dictionary curitem, int* cmp)
 }
 
 void
-names_recordindexfunction(const char* keyname, int (**acceptfunc)(dictionary newitem, dictionary currentitem, int* cmp), int (**comparfunc)(const void *, const void *))
+names_recordindexfunction(const char* keyname, int (**acceptfunc)(recordset_type newitem, recordset_type currentitem, int* cmp), int (**comparfunc)(const void *, const void *))
 {
 #define REFERCOMPARISON(F,N) do { *comparfunc = N ## _ldns; *acceptfunc = N; } while(0)
     if(!strcmp(keyname,"nameready")) {
@@ -1200,7 +1200,7 @@ names_rr2data(ldns_rr* rr, size_t header)
 
 #ifdef NOTDEFINED
 void*
-names_rr2ident(dictionary record, ldns_rr_type rrtype, resourcerecord_t item, size_t header)
+names_rr2ident(recordset_type record, ldns_rr_type rrtype, resourcerecord_t item, size_t header)
 {
     char* rrtypestr;
     char* buffer;
@@ -1215,7 +1215,7 @@ names_rr2ident(dictionary record, ldns_rr_type rrtype, resourcerecord_t item, si
 }
 
 ldns_rr*
-names_rr2ldns(dictionary record, const char* recordname, ldns_rr_type recordtype, resourcerecord_t item)
+names_rr2ldns(recordset_type record, const char* recordname, ldns_rr_type recordtype, resourcerecord_t item)
 {
     (void)record;
     (void)recordname;
@@ -1225,7 +1225,7 @@ names_rr2ldns(dictionary record, const char* recordname, ldns_rr_type recordtype
 #endif
 
 void
-names_recordlookupone(dictionary record, ldns_rr_type recordtype, ldns_rr* template, ldns_rr** rr)
+names_recordlookupone(recordset_type record, ldns_rr_type recordtype, ldns_rr* template, ldns_rr** rr)
 {
     int i, j;
     assert(record);
@@ -1251,7 +1251,7 @@ names_recordlookupone(dictionary record, ldns_rr_type recordtype, ldns_rr* templ
 }
 
 void
-names_recordlookupall(dictionary record, ldns_rr_type rrtype, ldns_rr* template, ldns_rr_list** rrs, ldns_rr_list** rrsigs)
+names_recordlookupall(recordset_type record, ldns_rr_type rrtype, ldns_rr* template, ldns_rr_list** rrs, ldns_rr_list** rrsigs)
 {
     int i, j;
     assert(record);

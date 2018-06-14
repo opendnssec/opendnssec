@@ -84,7 +84,7 @@ static void
 worker_queue_zone(struct worker_context* context, fifoq_type* q, names_view_type view, long* nsubtasks)
 {
     names_iterator iter;
-    dictionary record;
+    recordset_type record;
     for(iter=names_viewiterator(view, names_iteratorexpiring); names_iterate(&iter,&record); names_advance(&iter,NULL)) {
         worker_queue_domain(context, q, record, nsubtasks);
     }
@@ -113,7 +113,7 @@ worker_check_jobs(worker_type* worker, task_type* task, int ntasks, long ntasksf
 }
 
 static ods_status
-signdomain(struct worker_context* superior, hsm_ctx_t* ctx, dictionary record)
+signdomain(struct worker_context* superior, hsm_ctx_t* ctx, recordset_type record)
 {
     ods_status status;
     names_iterator iter;
@@ -132,7 +132,7 @@ signdomain(struct worker_context* superior, hsm_ctx_t* ctx, dictionary record)
 void
 drudge(worker_type* worker)
 {
-    dictionary record;
+    recordset_type record;
     ods_status status;
     struct worker_context* superior;
     hsm_ctx_t* ctx = NULL;
@@ -147,7 +147,7 @@ drudge(worker_type* worker)
             break;
         }
         superior = NULL;
-        record = (dictionary) fifoq_pop(signq, (void**)&superior);
+        record = (recordset_type) fifoq_pop(signq, (void**)&superior);
         if (!record) {
             ods_log_deeebug("[%s] nothing to do, wait", worker->name);
             /**
@@ -158,7 +158,7 @@ drudge(worker_type* worker)
              */
             pthread_cond_wait(&signq->q_threshold, &signq->q_lock);
             if(worker->need_to_exit == 0)
-                record = (dictionary) fifoq_pop(signq, (void**)&superior);
+                record = (recordset_type) fifoq_pop(signq, (void**)&superior);
         }
         pthread_mutex_unlock(&signq->q_lock);
         /* do some work */
@@ -272,7 +272,7 @@ do_signzone(task_type* task, const char* zonename, void* zonearg, void *contexta
     }
     newserial = *(zone->nextserial);
     names_viewreset(zone->prepareview);
-    dictionary record;
+    recordset_type record;
     struct dual change;
     names_iterator iter;
     names_view_type prepareview = zone->prepareview;
@@ -316,7 +316,7 @@ do_signzone(task_type* task, const char* zonename, void* zonearg, void *contexta
     names_viewreset(zone->neighview);
     for (iter=names_viewiterator(zone->neighview,names_iteratordenialchainupdates); names_iterate(&iter,&change); names_advance(&iter,NULL)) {
         if(domain_is_occluded(zone->neighview, change.src) != LDNS_RR_TYPE_SOA) {
-            dictionary record = change.src;
+            recordset_type record = change.src;
             names_update(zone->neighview, &record);
             names_recordannotate(record, NULL);
         }
@@ -378,7 +378,7 @@ do_signzone(task_type* task, const char* zonename, void* zonearg, void *contexta
         } else {
             names_iterator iter;
             hsm_ctx_t* ctx;
-            dictionary record;
+            recordset_type record;
             ctx = hsm_create_context();
             for(iter=names_viewiterator(zone->signview,names_iteratorexpiring); names_iterate(&iter,&record); names_advance(&iter,NULL)) {
                 signdomain(context, ctx, record);

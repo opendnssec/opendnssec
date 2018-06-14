@@ -3,7 +3,7 @@
 
 typedef struct names_iterator_struct* names_iterator;
 typedef struct marshall_struct* marshall_handle;
-typedef struct dictionary_struct* dictionary;
+typedef struct recordset_struct* recordset_type;
 typedef struct names_index_struct* names_index_type;
 typedef struct names_table_struct* names_table_type;
 typedef struct names_view_struct* names_view_type;
@@ -118,58 +118,58 @@ struct names_view_zone {
 void composestring(char* dst, const char* src, ...);
 int composestring2(char** ptr, const char* src, ...);
 int composestringf(char** ptr, const char* fmt, ...);
-int getset(dictionary d, const char* name, const char** get, const char** set);
+int getset(recordset_type d, const char* name, const char** get, const char** set);
 
-dictionary names_recordcreate(char**name);
-dictionary names_recordcreatetemp(const char*name);
-void names_recordannotate(dictionary d, struct names_view_zone* zone);
-void names_recorddestroy(dictionary);
-void names_recordsetmarker(dictionary dict);
-int names_recordhasmarker(dictionary dict);
-dictionary names_recordcopy(dictionary, int increment);
-void names_recorddispose(dictionary);
-const char* names_recordgetid(dictionary dict, const char* name);
-int names_recordcompare_namerevision(dictionary a, dictionary b);
-int names_recordhasdata(dictionary record, ldns_rr_type recordtype, ldns_rr* rr, int exact);
-void names_recordadddata(dictionary, ldns_rr_type, char* data, char* info);
-void rrset_add_rr(dictionary d, ldns_rr* rr);
-void names_recorddeldata(dictionary d, ldns_rr_type rrtype, ldns_rr* rr);
-void names_recorddelall(dictionary, ldns_rr_type rrtype);
-names_iterator names_recordalltypes(dictionary);
-names_iterator names_recordallvalues(dictionary, ldns_rr_type rrtype);
-names_iterator names_recordallvaluestrings(dictionary d, ldns_rr_type rrtype);
-int names_recordhasvalidupto(dictionary);
-int names_recordgetvalidupto(dictionary);
-void names_recordsetvalidupto(dictionary, int value);
-int names_recordhasvalidfrom(dictionary);
-int names_recordgetvalidfrom(dictionary);
-void names_recordsetdenial(dictionary record, ldns_rr* denial);
-void names_recordsetvalidfrom(dictionary, int value);
-int names_recordhasexpiry(dictionary);
-int names_recordgetexpiry(dictionary);
-void names_recordsetexpiry(dictionary, int value);
-void names_recordaddsignature(dictionary record, ldns_rr_type rrtype, ldns_rr* rrsig, const char* keylocator, int keyflags);
-int names_recordmarshall(dictionary*, marshall_handle);
+recordset_type names_recordcreate(char**name);
+recordset_type names_recordcreatetemp(const char*name);
+void names_recordannotate(recordset_type d, struct names_view_zone* zone);
+void names_recorddestroy(recordset_type);
+void names_recordsetmarker(recordset_type dict);
+int names_recordhasmarker(recordset_type dict);
+recordset_type names_recordcopy(recordset_type, int increment);
+void names_recorddispose(recordset_type);
+const char* names_recordgetid(recordset_type dict, const char* name);
+int names_recordcompare_namerevision(recordset_type a, recordset_type b);
+int names_recordhasdata(recordset_type record, ldns_rr_type recordtype, ldns_rr* rr, int exact);
+void names_recordadddata(recordset_type, ldns_rr_type, char* data, char* info);
+void rrset_add_rr(recordset_type d, ldns_rr* rr);
+void names_recorddeldata(recordset_type d, ldns_rr_type rrtype, ldns_rr* rr);
+void names_recorddelall(recordset_type, ldns_rr_type rrtype);
+names_iterator names_recordalltypes(recordset_type);
+names_iterator names_recordallvalues(recordset_type, ldns_rr_type rrtype);
+names_iterator names_recordallvaluestrings(recordset_type d, ldns_rr_type rrtype);
+int names_recordhasvalidupto(recordset_type);
+int names_recordgetvalidupto(recordset_type);
+void names_recordsetvalidupto(recordset_type, int value);
+int names_recordhasvalidfrom(recordset_type);
+int names_recordgetvalidfrom(recordset_type);
+void names_recordsetdenial(recordset_type record, ldns_rr* denial);
+void names_recordsetvalidfrom(recordset_type, int value);
+int names_recordhasexpiry(recordset_type);
+int names_recordgetexpiry(recordset_type);
+void names_recordsetexpiry(recordset_type, int value);
+void names_recordaddsignature(recordset_type record, ldns_rr_type rrtype, ldns_rr* rrsig, const char* keylocator, int keyflags);
+int names_recordmarshall(recordset_type*, marshall_handle);
 int names_rrcompare(const char* data, void*);
 int names_rrcompare2(void*, void*);
-char* names_rr2str(dictionary record, ldns_rr_type recordtype, void*);
-ldns_rr* names_rr2ldns(dictionary record, const char* recordname, ldns_rr_type recordtype, void*);
+char* names_rr2str(recordset_type record, ldns_rr_type recordtype, void*);
+ldns_rr* names_rr2ldns(recordset_type record, const char* recordname, ldns_rr_type recordtype, void*);
 char* names_rr2data(ldns_rr* rr, size_t header);
 
-void names_recordlookupone(dictionary record, ldns_rr_type type, ldns_rr* template, ldns_rr** rr);
-void names_recordlookupall(dictionary record, ldns_rr_type type, ldns_rr* template, ldns_rr_list** rrs, ldns_rr_list** rrsigs);
+void names_recordlookupone(recordset_type record, ldns_rr_type type, ldns_rr* template, ldns_rr** rr);
+void names_recordlookupall(recordset_type record, ldns_rr_type type, ldns_rr* template, ldns_rr_list** rrs, ldns_rr_list** rrsigs);
 
 struct dual {
-    dictionary src;
-    dictionary dst;
+    recordset_type src;
+    recordset_type dst;
 };
 
 int names_indexcreate(names_index_type*, const char* keyname);
-dictionary names_indexlookup(names_index_type, dictionary);
-dictionary names_indexlookupkey(names_index_type, const char* keyvalue);
-int names_indexremove(names_index_type, dictionary);
+recordset_type names_indexlookup(names_index_type, recordset_type);
+recordset_type names_indexlookupkey(names_index_type, const char* keyvalue);
+int names_indexremove(names_index_type, recordset_type);
 int names_indexremovekey(names_index_type,const char* keyvalue);
-int names_indexinsert(names_index_type index, dictionary d, dictionary* existing);
+int names_indexinsert(names_index_type index, recordset_type d, recordset_type* existing);
 void names_indexdestroy(names_index_type, void (*userfunc)(void* arg, void* key, void* val), void* userarg);
 names_iterator names_indexiterator(names_index_type);
 
@@ -201,18 +201,18 @@ void names_commitlogpersistincr(names_commitlog_type, names_table_type changelog
 void names_commitlogpersistappend(names_commitlog_type, void (*persistfn)(names_table_type, marshall_handle), marshall_handle store);
 int names_commitlogpersistfull(names_commitlog_type, void (*persistfn)(names_table_type, marshall_handle), int viewid, marshall_handle store, marshall_handle* oldstore);
 
-void names_own(names_view_type view, dictionary* record);
-void names_update(names_view_type view, dictionary* record);
-void names_amend(names_view_type view, dictionary record);
+void names_own(names_view_type view, recordset_type* record);
+void names_update(names_view_type view, recordset_type* record);
+void names_amend(names_view_type view, recordset_type record);
 void* names_place(names_view_type store, const char* name);
 void* names_take(names_view_type view, int index, const char* name);
-void names_remove(names_view_type view, dictionary record);
+void names_remove(names_view_type view, recordset_type record);
 names_view_type names_viewcreate(names_view_type base, const char* name, const char** keynames);
 void names_viewdestroy(names_view_type view);
 
 typedef names_iterator (*names_indexrange_func)();
 names_iterator names_viewiterator(names_view_type view, names_indexrange_func func, ...);
-void names_recordindexfunction(const char* keyname, int (**acceptfunction)(dictionary newitem, dictionary currentitem, int* cmp), int (**comparefunction)(const void *, const void *));
+void names_recordindexfunction(const char* keyname, int (**acceptfunction)(recordset_type newitem, recordset_type currentitem, int* cmp), int (**comparefunction)(const void *, const void *));
 void names_indexsearchfunction(names_index_type index, names_view_type view, const char* keyname);
 void names_viewaddsearchfunction(names_view_type, names_index_type, names_indexrange_func);
 void names_viewaddsearchfunction2(names_view_type, names_index_type, names_index_type, names_indexrange_func);
@@ -235,7 +235,7 @@ void names_viewlookupone(names_view_type view, ldns_rdf* dname, ldns_rr_type typ
 int names_viewgetdefaultttl(names_view_type view, int* defaultttl);
 int names_viewgetapex(names_view_type view, ldns_rdf** apexptr);
 
-void names_dumprecord(FILE*, dictionary record);
+void names_dumprecord(FILE*, recordset_type record);
 void names_dumpviewinfo(names_view_type view);
 void names_dumpviewfull(FILE*, names_view_type view);
 
@@ -244,13 +244,13 @@ int writezone(names_view_type view, const char* filename);
 enum operation_enum { PLAIN, DELTAMINUS, DELTAPLUS };
 int readzone(names_view_type view, enum operation_enum operation, const char* filename, char** apexptr, int* defaultttlptr);
 
-ldns_rr_type domain_is_occluded(names_view_type view, dictionary record);
-ldns_rr_type domain_is_delegpt(names_view_type view, dictionary record);
+ldns_rr_type domain_is_occluded(names_view_type view, recordset_type record);
+ldns_rr_type domain_is_delegpt(names_view_type view, recordset_type record);
 void namedb_nsecify(zone_type* globalzone, names_view_type view, uint32_t* num_added);
-ldns_rr* denial_nsecify(signconf_type* signconf, names_view_type view, dictionary domain, ldns_rdf* nxt); // FIXME
+ldns_rr* denial_nsecify(signconf_type* signconf, names_view_type view, recordset_type domain, ldns_rdf* nxt); // FIXME
 ods_status namedb_update_serial(zone_type* globalzone);
-ods_status rrset_sign(signconf_type* signconf, names_view_type view, dictionary domain, ldns_rr_type rrtype, hsm_ctx_t* ctx, time_t signtime);
+ods_status rrset_sign(signconf_type* signconf, names_view_type view, recordset_type domain, ldns_rr_type rrtype, hsm_ctx_t* ctx, time_t signtime);
 ods_status rrset_getliteralrr(ldns_rr** dnskey, const char *resourcerecord, uint32_t ttl, ldns_rdf* apex);
-ods_status namedb_domain_entize(names_view_type view, dictionary domain, ldns_rdf* dname, ldns_rdf* apex);
+ods_status namedb_domain_entize(names_view_type view, recordset_type domain, ldns_rdf* dname, ldns_rdf* apex);
 
 #endif

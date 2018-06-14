@@ -357,7 +357,7 @@ zone_prepare_keys(zone_type* zone)
 ods_status
 zone_add_rr(zone_type* zone, names_view_type view, ldns_rr* rr, int do_stats)
 {
-    dictionary record;
+    recordset_type record;
     ods_status status;
     char* name;
     name = ldns_rdf2str(ldns_rr_owner(rr));
@@ -379,7 +379,7 @@ zone_add_rr(zone_type* zone, names_view_type view, ldns_rr* rr, int do_stats)
 ods_status
 zone_del_rr(zone_type* zone, names_view_type view, ldns_rr* rr, int do_stats)
 {
-    dictionary record;
+    recordset_type record;
     const char* name;
     name = ldns_rdf2str(ldns_rr_owner(rr));
     record = names_take(view, 0, name);

@@ -36,14 +36,14 @@ struct names_view_struct {
 };
 
 struct names_change_struct {
-    dictionary record;
-    dictionary oldrecord;
+    recordset_type record;
+    recordset_type oldrecord;
 };
 typedef struct names_change_struct* names_change_type;
 enum changetype { ADD, DEL, MOD, UPD };
 
 static void
-changed(names_view_type view, dictionary record, enum changetype type, dictionary** target)
+changed(names_view_type view, recordset_type record, enum changetype type, recordset_type** target)
 {
     const char* name;
     names_change_type change;
@@ -105,9 +105,9 @@ changed(names_view_type view, dictionary record, enum changetype type, dictionar
 }
 
 void
-names_own(names_view_type view, dictionary* record)
+names_own(names_view_type view, recordset_type* record)
 {
-    dictionary* dict;
+    recordset_type* dict;
     changed(view, *record, MOD, &dict);
     if(dict && *dict == NULL) {
         names_indexremove(view->indices[0], *record);
@@ -118,9 +118,9 @@ names_own(names_view_type view, dictionary* record)
 }
 
 void
-names_update(names_view_type view, dictionary* record)
+names_update(names_view_type view, recordset_type* record)
 {
-    dictionary* dict;
+    recordset_type* dict;
     changed(view, *record, UPD, &dict);
     if(dict && *dict == NULL) {
         names_indexremove(view->indices[0], *record);
@@ -131,7 +131,7 @@ names_update(names_view_type view, dictionary* record)
 }
 
 void
-names_amend(names_view_type view, dictionary record)
+names_amend(names_view_type view, recordset_type record)
 {
     changed(view, record, UPD, NULL);
 }
@@ -139,7 +139,7 @@ names_amend(names_view_type view, dictionary record)
 void*
 names_place(names_view_type view, const char* name)
 {
-    dictionary content;
+    recordset_type content;
     char* newname;
     content = names_indexlookupkey(view->indices[0], name);
     if(content == NULL) {
@@ -155,7 +155,7 @@ names_place(names_view_type view, const char* name)
 void*
 names_take(names_view_type view, int index, const char* name)
 {
-    dictionary found;
+    recordset_type found;
     if(name == NULL)
         name = view->zonedata.apex;
     found = names_indexlookupkey(view->indices[index], name);
@@ -163,7 +163,7 @@ names_take(names_view_type view, int index, const char* name)
 }
 
 void
-names_remove(names_view_type view, dictionary record)
+names_remove(names_view_type view, recordset_type record)
 {
     names_indexremove(view->indices[0], record);
     changed(view, record, DEL, NULL);
@@ -175,7 +175,7 @@ names_viewcreate(names_view_type base, const char* viewname, const char** keynam
     names_view_type view;
     int i, nindices;
     names_iterator iter;
-    dictionary content;
+    recordset_type content;
     for(i=nindices=0; keynames[i]; i++)
         ++nindices;
     assert(nindices > 0);
@@ -205,7 +205,7 @@ names_viewcreate(names_view_type base, const char* viewname, const char** keynam
     if(base != NULL) {
         /* swapping next two loops might get better performance */
         for(iter=names_indexiterator(base->indices[0]); names_iterate(&iter, &content); names_advance(&iter, NULL)) {
-            dictionary existing = NULL;
+            recordset_type existing = NULL;
             if(names_indexinsert(view->indices[0], content, &existing)) {
                 for(i=1; i<nindices; i++) {
                     names_indexinsert(view->indices[i], content, &existing);
@@ -223,7 +223,7 @@ names_viewcreate(names_view_type base, const char* viewname, const char** keynam
 void
 disposedict(void* arg, void* key, void* val)
 {
-    dictionary d = (dictionary) val;
+    recordset_type d = (recordset_type) val;
     (void)arg;
     (void)key;
     names_recorddestroy(d);
@@ -303,7 +303,7 @@ names_iterator
 names_iteratorincoming(names_index_type primary, names_index_type secondary, va_list ap)
 {
     struct dual entry;
-    dictionary record;
+    recordset_type record;
     names_iterator iter;
     names_iterator result;
     result = names_iterator_createdata(sizeof(struct dual));
@@ -318,7 +318,7 @@ names_iteratorincoming(names_index_type primary, names_index_type secondary, va_
 names_iterator
 names_iteratorexpiring(names_index_type index, va_list ap)
 {
-    dictionary record;
+    recordset_type record;
     names_iterator iter;
     names_iterator result;
     result = names_iterator_createrefs();
@@ -332,7 +332,7 @@ names_iterator
 names_iteratordenialchainupdates(names_index_type primary, names_index_type secondary, va_list ap)
 {
     struct dual entry;
-    dictionary record;
+    recordset_type record;
     names_iterator iter;
     names_iterator result;
     result = names_iterator_createdata(sizeof(struct dual));
@@ -386,7 +386,7 @@ updateview(names_view_type view, names_table_type* mychangelog)
                 mychangelog = NULL;
             }
             if(change->record != NULL) {
-                dictionary existing = NULL;
+                recordset_type existing = NULL;
                 names_indexinsert(view->indices[0], change->record, &existing);
                 for(i=1; i<view->nindices; i++)
                     names_indexinsert(view->indices[i], change->record, &existing);
@@ -395,7 +395,7 @@ updateview(names_view_type view, names_table_type* mychangelog)
     }
     if(!conflict && mychangelog) {
         for(iter=names_tableitems(changelog); names_iterate(&iter, &change); names_advance(&iter, NULL)) {
-            dictionary existing = change->oldrecord;
+            recordset_type existing = change->oldrecord;
             for(i=1; i<view->nindices; i++) {
                 if(change->record == NULL) {
                     change->record = change->oldrecord;
@@ -440,7 +440,7 @@ names_viewsync(names_view_type view)
         for(iter = names_tableitems(changelog); names_iterate(&iter, &change); names_advance(&iter, NULL)) {
             name = names_recordgetid(change->record, NULL);
             if(change->record != NULL) {
-                dictionary existing = NULL;
+                recordset_type existing = NULL;
                 names_indexinsert(view->indices[0], change->record, &existing);
                 for(i=1; i<view->nindices; i++)
                     names_indexinsert(view->indices[i], change->record, &existing);
@@ -473,7 +473,7 @@ int
 names_viewrestore(names_view_type view, const char* apex, int basefd, const char* filename)
 {
     int fd;
-    dictionary record;
+    recordset_type record;
     marshall_handle input;
     marshall_handle output;
 
@@ -513,7 +513,7 @@ names_viewpersist(names_view_type view, int basefd, char* filename)
     marshall_handle marsh;
     marshall_handle oldmarsh;
     names_iterator iter;
-    dictionary record;
+    recordset_type record;
 
     tmpfilenamelen = snprintf(tmpfilename,0,"%s.tmp",filename);
     tmpfilename = malloc(tmpfilenamelen+1);
@@ -565,7 +565,7 @@ void
 names_dumpviewfull(FILE* fp, names_view_type view)
 {
     names_iterator iter;
-    dictionary record;
+    recordset_type record;
     marshall_handle marsh;
     marsh = marshallcreate(marshall_PRINT, fp);
     for(iter = names_viewiterator(view, NULL); names_iterate(&iter,&record); names_advance(&iter,NULL))
@@ -574,7 +574,7 @@ names_dumpviewfull(FILE* fp, names_view_type view)
 }
 
 void
-names_dumprecord(FILE* fp, dictionary record)
+names_dumprecord(FILE* fp, recordset_type record)
 {
     marshall_handle marsh;
     marsh = marshallcreate(marshall_PRINT, fp);
@@ -586,7 +586,7 @@ names_dumprecord(FILE* fp, dictionary record)
 void
 names_viewlookupall(names_view_type view, ldns_rdf* dname, ldns_rr_type type, ldns_rr_list** rrs, ldns_rr_list** rrsigs)
 {
-    dictionary record;
+    recordset_type record;
     char* name;
     name = (dname ? ldns_rdf2str(dname) : NULL);
     record = names_take(view, 0, name);
@@ -603,7 +603,7 @@ names_viewlookupall(names_view_type view, ldns_rdf* dname, ldns_rr_type type, ld
 void
 names_viewlookupone(names_view_type view, ldns_rdf* dname, ldns_rr_type type, ldns_rr* template, ldns_rr** rr)
 {
-    dictionary record;
+    recordset_type record;
     char* name;
     name = (dname ? ldns_rdf2str(dname) : NULL);
     record = names_take(view, 0, name);

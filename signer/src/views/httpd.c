@@ -40,7 +40,7 @@ deleterecordsets(names_view_type view, struct rpc *rpc)
 {
     int i;
     char* owner;
-    dictionary record;
+    recordset_type record;
     /* Not a delegation. Remove any rrsets mentioned in the request. */
     for(i=0; i<rpc->rr_count; i++) {
         ldns_rr *rr = rpc->rr[i];
@@ -62,7 +62,7 @@ deletedelegation(names_view_type view, struct rpc *rpc)
 {
     /* delete everything below delegation point, inclusive */
     names_iterator iter;
-    dictionary record;
+    recordset_type record;
     for (iter = names_viewiterator(view, names_iteratordescendants, rpc->delegation_point); names_iterate(&iter, &record); names_advance(&iter, NULL)) {
         names_own(view, &record);
         names_recorddelall(record, 0);
@@ -85,7 +85,7 @@ insertrecords(names_view_type view, struct rpc *rpc)
         }
         char* owner = ldns_rdf2str(ldns_rr_owner(rr));
         /* this shouldn't be in the database anymore so we get a new object */
-        dictionary record = names_place(view, owner);
+        recordset_type record = names_place(view, owner);
         free(owner);
         if (!record) {
             names_viewreset(view);

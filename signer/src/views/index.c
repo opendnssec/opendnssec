@@ -11,7 +11,7 @@
 #pragma GCC optimize ("O0")
 
 typedef int (*comparefunction)(const void *, const void *);
-typedef int (*acceptfunction)(dictionary newitem, dictionary currentitem, int* cmp);
+typedef int (*acceptfunction)(recordset_type newitem, recordset_type currentitem, int* cmp);
 
 struct names_index_struct {
     const char* keyname;
@@ -69,7 +69,7 @@ names_indexdestroy(names_index_type index, void (*userfunc)(void* arg, void* key
 }
 
 int
-names_indexinsert(names_index_type index, dictionary d, dictionary* existing)
+names_indexinsert(names_index_type index, recordset_type d, recordset_type* existing)
 {
     int cmp;
     ldns_rbnode_t* node;
@@ -85,7 +85,7 @@ names_indexinsert(names_index_type index, dictionary d, dictionary* existing)
             if(existing && *existing == NULL) {
                 *existing = node->data;
             }
-            switch(index->acceptfunc(d, (dictionary)node->data, &cmp)) {
+            switch(index->acceptfunc(d, (recordset_type)node->data, &cmp)) {
                 case 0:
                     return 0;
                 case 1:
@@ -109,7 +109,7 @@ names_indexinsert(names_index_type index, dictionary d, dictionary* existing)
         node = ldns_rbtree_search(index->tree, d);
         if(node != NULL) {
             if(names_recordhasmarker(d) ||
-               index->acceptfunc(d, (dictionary)node->data, &cmp) == 0 ||
+               index->acceptfunc(d, (recordset_type)node->data, &cmp) == 0 ||
                (cmp == 0 && node->key == d)) {
                 ldns_rbtree_delete(index->tree, node->key);
             }
@@ -128,11 +128,11 @@ names_indexinsert(names_index_type index, dictionary d, dictionary* existing)
     }
 }
 
-dictionary
+recordset_type
 names_indexlookupkey(names_index_type index, const char* keyvalue)
 {
-    dictionary find;
-    dictionary found;
+    recordset_type find;
+    recordset_type found;
     /* FIXME, we will only call this function to perform lookups by name (without revision), but
      * fundamentally we should use the index key
      */
@@ -142,16 +142,16 @@ names_indexlookupkey(names_index_type index, const char* keyvalue)
     return found;
 }
 
-dictionary
-names_indexlookup(names_index_type index, dictionary find)
+recordset_type
+names_indexlookup(names_index_type index, recordset_type find)
 {
     ldns_rbnode_t* node;
     node = ldns_rbtree_search(index->tree, find);
-    return node ? (dictionary) node->data : NULL;
+    return node ? (recordset_type) node->data : NULL;
 }
 
-dictionary
-names_indexlookupnext(names_index_type index, dictionary find)
+recordset_type
+names_indexlookupnext(names_index_type index, recordset_type find)
 {
     ldns_rbnode_t* node;
     node = ldns_rbtree_search(index->tree, find);
@@ -161,11 +161,11 @@ names_indexlookupnext(names_index_type index, dictionary find)
             node = ldns_rbtree_first(index->tree);
         }
     }
-    return (node != NULL && node != LDNS_RBTREE_NULL) ? (dictionary) node->data : NULL;
+    return (node != NULL && node != LDNS_RBTREE_NULL) ? (recordset_type) node->data : NULL;
 }
 
 int
-names_indexremove(names_index_type index, dictionary d)
+names_indexremove(names_index_type index, recordset_type d)
 {
     const char *value;
     if(getset(d, index->keyname, &value, NULL)) {
@@ -177,7 +177,7 @@ names_indexremove(names_index_type index, dictionary d)
 int
 names_indexremovekey(names_index_type index, const char* keyvalue)
 {
-    dictionary find;
+    recordset_type find;
     ldns_rbnode_t* node;
     find = names_recordcreatetemp(NULL);
     getset(find, index->keyname, NULL, &keyvalue);
@@ -257,7 +257,7 @@ names_indexrange(names_index_type index, const char* selection, ...)
     const char* find;
     const char* found;
     int findlen;
-    dictionary record;
+    recordset_type record;
     ldns_rbnode_t* node;
     names_iterator iter;
     va_start(ap, selection);
@@ -271,7 +271,7 @@ names_indexrange(names_index_type index, const char* selection, ...)
             (void)ldns_rbtree_find_less_equal(index->tree, record, &node);
             names_recorddestroy(record);
             while(node && node != LDNS_RBTREE_NULL) {
-                record = (dictionary)node->key;
+                record = (recordset_type)node->key;
                 getset(record,"name",&found,NULL);
                 if(!strncmp(find,found,findlen) && (found[findlen-1]=='\0' || found[findlen-1]=='.')) {
                     names_iterator_addptr(iter, record);
@@ -313,7 +313,7 @@ names_iteratordescendants(names_index_type index, va_list ap)
     const char* find;
     const char* found;
     int findlen;
-    dictionary record;
+    recordset_type record;
     ldns_rbnode_t* node;
     names_iterator iter;
     iter = names_iterator_createrefs();
@@ -324,7 +324,7 @@ names_iteratordescendants(names_index_type index, va_list ap)
     (void) ldns_rbtree_find_less_equal(index->tree, record, &node);
     names_recorddestroy(record);
     while (node && node != LDNS_RBTREE_NULL) {
-        record = (dictionary) node->key;
+        record = (recordset_type) node->key;
         getset(record, "name", &found, NULL);
         if (!strncmp(find, found, findlen) && (found[findlen - 1] == '\0' || found[findlen - 1] == '.')) {
             names_iterator_addptr(iter, record);
@@ -339,7 +339,7 @@ names_iteratordescendants(names_index_type index, va_list ap)
 names_iterator
 names_iteratorancestors(names_index_type index, va_list ap)
 {
-    dictionary record;
+    recordset_type record;
     ldns_rbnode_t* node;
     names_iterator iter;
     char* name;

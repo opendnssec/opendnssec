@@ -26,7 +26,7 @@ writezonef(names_view_type view, FILE* fp)
     names_iterator domainiter;
     names_iterator rrsetiter;
     names_iterator rriter;
-    dictionary domainitem;
+    recordset_type domainitem;
     for (domainiter = names_viewiterator(view, NULL); names_iterate(&domainiter, &domainitem); names_advance(&domainiter, NULL)) {
         getset(domainitem, "name", &recordname, NULL);
         for (rrsetiter = names_recordalltypes(domainitem); names_iterate(&rrsetiter, &recordtype); names_advance(&rrsetiter, NULL)) {

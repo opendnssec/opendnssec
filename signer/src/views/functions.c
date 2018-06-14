@@ -31,7 +31,7 @@ rrset_getliteralrr(ldns_rr** dnskey, const char *resourcerecord, uint32_t ttl, l
 
 #ifdef NOTDEFINED
 static uint32_t
-rrset_recycle(signconf_type* signconf, dictionary domain, ldns_rr_type rrtype, ldns_rr_list* rrset, ldns_rr_list* rrsigs, time_t signtime, ldns_rr_type dstatus, ldns_rr_type delegpt)
+rrset_recycle(signconf_type* signconf, recordset_type domain, ldns_rr_type rrtype, ldns_rr_list* rrset, ldns_rr_list* rrsigs, time_t signtime, ldns_rr_type dstatus, ldns_rr_type delegpt)
 {
     uint32_t refresh = 0;
     uint32_t expiration = 0;
@@ -139,7 +139,7 @@ rrset_sigvalid_period(signconf_type* sc, ldns_rr_type rrtype, time_t signtime,
 }
 
 ldns_rr_type
-domain_is_delegpt(names_view_type view, dictionary record)
+domain_is_delegpt(names_view_type view, recordset_type record)
 {
     if(names_recordhasdata(record, LDNS_RR_TYPE_SOA, NULL, 0)) {
         return LDNS_RR_TYPE_SOA;
@@ -153,10 +153,10 @@ domain_is_delegpt(names_view_type view, dictionary record)
 }
 
 ldns_rr_type
-domain_is_occluded(names_view_type view, dictionary record)
+domain_is_occluded(names_view_type view, recordset_type record)
 {
     names_iterator iter;
-    dictionary parent = NULL;
+    recordset_type parent = NULL;
     if(names_recordhasdata(record, LDNS_RR_TYPE_SOA, NULL, 0))
         return LDNS_RR_TYPE_SOA;
     for(iter=names_viewiterator(view,names_iteratorancestors,names_recordgetid(record,"name")); names_iterate(&iter,&parent); names_advance(&iter,NULL)) {
@@ -214,7 +214,7 @@ rrset_sigalgo_count(struct itemset* rrset, uint8_t algorithm)
 #endif
 
 ods_status
-rrset_sign(signconf_type* signconf, names_view_type view, dictionary record, ldns_rr_type rrtype, hsm_ctx_t* ctx, time_t signtime)
+rrset_sign(signconf_type* signconf, names_view_type view, recordset_type record, ldns_rr_type rrtype, hsm_ctx_t* ctx, time_t signtime)
 {
     ods_status status;
     uint32_t newsigs = 0;
@@ -342,7 +342,7 @@ rrset_sign(signconf_type* signconf, names_view_type view, dictionary record, ldn
 }
 
 static void
-denial_create_bitmap(names_view_type view, dictionary record, ldns_rr_type nsectype, ldns_rr_type** types, size_t* types_count)
+denial_create_bitmap(names_view_type view, recordset_type record, ldns_rr_type nsectype, ldns_rr_type** types, size_t* types_count)
 {
     names_iterator iter;
     ldns_rr_type rrtype;
@@ -411,7 +411,7 @@ denial_create_nsec3_nxt(ldns_rdf* nxt)
 }
 
 static ldns_rr*
-denial_create_nsec(names_view_type view, dictionary domain, ldns_rdf* nxt, uint32_t ttl,
+denial_create_nsec(names_view_type view, recordset_type domain, ldns_rdf* nxt, uint32_t ttl,
     ldns_rr_class klass, nsec3params_type* n3p)
 {
     const char* denialname;
@@ -481,7 +481,7 @@ denial_create_nsec(names_view_type view, dictionary domain, ldns_rdf* nxt, uint3
 }
 
 ldns_rr*
-denial_nsecify(signconf_type* signconf, names_view_type view, dictionary domain, ldns_rdf* nxt)
+denial_nsecify(signconf_type* signconf, names_view_type view, recordset_type domain, ldns_rdf* nxt)
 {
     ldns_rr* nsec_rr = NULL;
     uint32_t ttl = 0;
@@ -503,7 +503,7 @@ denial_nsecify(signconf_type* signconf, names_view_type view, dictionary domain,
 ods_status
 zone_del_nsec3params(zone_type* zone, names_view_type view)
 {
-    dictionary record = names_take(view, 0, NULL);
+    recordset_type record = names_take(view, 0, NULL);
     if(record) {
         names_amend(view, record);
         names_recorddeldata(record, LDNS_RR_TYPE_NSEC3PARAMS, NULL);
@@ -513,11 +513,11 @@ zone_del_nsec3params(zone_type* zone, names_view_type view)
 }
 
 ods_status
-namedb_domain_entize(names_view_type view, dictionary domain, ldns_rdf* dname, ldns_rdf* apex)
+namedb_domain_entize(names_view_type view, recordset_type domain, ldns_rdf* dname, ldns_rdf* apex)
 {
     char* parent_name;
     ldns_rdf* parent_rdf = NULL;
-    dictionary parent_domain;
+    recordset_type parent_domain;
     ods_log_assert(apex);
     ods_log_assert(domain);
 
@@ -561,7 +561,7 @@ namedb_domain_entize(names_view_type view, dictionary domain, ldns_rdf* dname, l
 void
 namedb_nsecify(zone_type* globalzone, names_view_type view, uint32_t* num_added)
 {
-    dictionary domain;
+    recordset_type domain;
     names_iterator iter;
     ldns_rdf* firstname;
     ldns_rdf* nextname;
@@ -630,7 +630,7 @@ zone_update_serial(zone_type* zone, names_view_type view)
     ods_log_assert(zone->name);
     ods_log_assert(zone->signconf);
 
-    dictionary d = names_take(view, 0, NULL);
+    recordset_type d = names_take(view, 0, NULL);
     assert(d);
 
     if(!zone->inboundserial) {
