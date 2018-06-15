@@ -21,14 +21,12 @@ void
 writezonef(names_view_type view, FILE* fp)
 {
     char* s;
-    const char* recordname;
     ldns_rr_type recordtype;
     names_iterator domainiter;
     names_iterator rrsetiter;
     names_iterator rriter;
     recordset_type domainitem;
     for (domainiter = names_viewiterator(view, NULL); names_iterate(&domainiter, &domainitem); names_advance(&domainiter, NULL)) {
-        getset(domainitem, "name", &recordname, NULL);
         for (rrsetiter = names_recordalltypes(domainitem); names_iterate(&rrsetiter, &recordtype); names_advance(&rrsetiter, NULL)) {
             for (rriter = names_recordallvaluestrings(domainitem,recordtype); names_iterate(&rriter, &s); names_advance(&rriter, NULL)) {
                 fprintf(fp, "%s", s);

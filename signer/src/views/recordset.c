@@ -464,8 +464,10 @@ names_recorddelall(recordset_type d, ldns_rr_type rrtype)
     }
 }
 
-static void names_recordalltypes_func(names_iterator iter, recordset_type d, int index, ldns_rr_type* ptr)
+static void names_recordalltypes_func(names_iterator iter, void* base, int index, void* dst)
 {
+    recordset_type d = (recordset_type)base;
+    ldns_rr_type* ptr = (ldns_rr_type*)dst;
     if(index >= 0)
         memcpy(ptr, &(d->itemsets[index].rrtype), sizeof(ldns_rr_type));
 }
@@ -477,8 +479,10 @@ names_recordalltypes(recordset_type d)
     return iter;
 }
 
-static void names_recordallvaluestrings_func(names_iterator iter, struct item* items, int index, char** ptr)
+static void names_recordallvaluestrings_func(names_iterator iter, void* base, int index, void* dst)
 {
+    struct item* items = (struct item*) base;
+    char** ptr = (char**)dst;
     free(*ptr);
     if (index >= 0)
         *ptr = ldns_rr2str(items[index].rr);

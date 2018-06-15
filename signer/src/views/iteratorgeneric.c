@@ -108,7 +108,7 @@ names_iterator_createdata(size_t size)
 }
 
 void
-names_iterator_addptr(names_iterator iter, void* ptr)
+names_iterator_addptr(names_iterator iter, const void* ptr)
 {
     iter->itemcnt += 1;
     iter->itemdata = realloc(iter->itemdata, iter->itemsiz * iter->itemcnt);
@@ -116,7 +116,7 @@ names_iterator_addptr(names_iterator iter, void* ptr)
 }
 
 void
-names_iterator_adddata(names_iterator iter, void* ptr)
+names_iterator_adddata(names_iterator iter, const void* ptr)
 {
     iter->itemcnt += 1;
     iter->itemdata = realloc(iter->itemdata, iter->itemsiz * iter->itemcnt);

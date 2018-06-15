@@ -147,7 +147,7 @@ names_indexlookup(names_index_type index, recordset_type find)
 {
     ldns_rbnode_t* node;
     node = ldns_rbtree_search(index->tree, find);
-    return node ? (recordset_type) node->data : NULL;
+    return (node != NULL && node != LDNS_RBTREE_NULL) ? (recordset_type) node->data : NULL;
 }
 
 recordset_type
@@ -336,6 +336,26 @@ names_iteratordescendants(names_index_type index, va_list ap)
     return iter;
 }
 
+static char*
+names_parent(const char* child)
+{
+    char* name = NULL;
+    ldns_rdf* parent;
+    ldns_rdf* dname;
+    dname = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, child);
+    parent = ldns_dname_left_chop(dname);
+    if (parent) {
+        name = ldns_rdf2str(parent);
+        ldns_rdf_free(parent);
+        if(!strcmp(name,".") || !strcmp(name,"")) {
+            free(name);
+            name = NULL;
+        }
+    }
+    ldns_rdf_free(dname);
+    return name;
+}
+
 names_iterator
 names_iteratorancestors(names_index_type index, va_list ap)
 {
@@ -343,27 +363,26 @@ names_iteratorancestors(names_index_type index, va_list ap)
     ldns_rbnode_t* node;
     names_iterator iter;
     char* name;
-    ldns_rdf* dname;
-    ldns_rdf* parent;
+    char* parent = NULL;
 
     name = va_arg(ap, char*);
     iter = names_iterator_createrefs();
     do {
-        dname = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, name);
-        parent = ldns_dname_left_chop(dname);
+        if(parent) {
+            name = parent;
+            parent = names_parent(name);
+            free(name);
+        } else
+            parent = names_parent(name);
         if (parent) {
-            name = ldns_rdf2str(parent);
-            ldns_rdf_free(parent);
-            record = names_recordcreatetemp(NULL);
-            getset(record, "name", NULL, &name);
+            record = names_recordcreatetemp(parent);
             node = ldns_rbtree_search(index->tree, record);
             names_recorddestroy(record);
             if (node && node != LDNS_RBTREE_NULL) {
                 names_iterator_addptr(iter, node->data);
             }
         }
-        ldns_rdf_free(dname);
-    } while (name && strcmp(name, ".") && strcmp(name, ""));
+    } while(parent);
     return iter;
 }
 
