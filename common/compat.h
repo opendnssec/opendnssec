@@ -42,12 +42,11 @@ size_t strlcat(char *dst, const char *src, size_t siz);
 size_t strlcpy(char *dst, const char *src, size_t siz);
 #endif
 
-#ifndef B64_PTON
+#ifndef B64_NTOP
 int b64_ntop(uint8_t const *src, size_t srclength, char *target,
     size_t targsize);
 #endif
 
-#ifndef B64_NTOP
+#ifndef B64_PTON
 int b64_pton(char const *src, uint8_t *target, size_t targsize);
 #endif
-

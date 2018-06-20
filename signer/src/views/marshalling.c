@@ -264,7 +264,7 @@ marshallsigs(marshall_handle h, void* member)
 {
     struct signatures_struct* signatures = *(struct signatures_struct**)member;
     int i, size;
-    size += marshalling(h, "sigs", &(signatures->sigs), &(signatures->nsigs), sizeof(struct signatures_struct), marshallself);
+    size = marshalling(h, "sigs", &(signatures->sigs), &(signatures->nsigs), sizeof(struct signatures_struct), marshallself);
     for(i=0; i<signatures->nsigs; i++) {
         size += marshalling(h, "rr", &(signatures->sigs[i].rr), NULL, 0, marshallldnsrr);
         size += marshalling(h, "keylocator", &(signatures->sigs[i].keylocator), NULL, 0, marshallstring);

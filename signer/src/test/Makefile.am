@@ -65,7 +65,6 @@ signertest_LDADD = \
 	../views/marshalling.o \
 	../views/rpc.o \
 	../views/table.o \
-	../views/utilities.o \
 	../views/views.o \
 	../views/zoneoutput.o \
 	$(LIBHSM) $(LIBCOMPAT) \

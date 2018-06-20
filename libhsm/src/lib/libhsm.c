@@ -46,6 +46,7 @@
 #include "compat.h"
 #include "duration.h"
 #include "status.h"
+#include "utilities.h"
 
 #include <pkcs11.h>
 #include <pthread.h>
@@ -290,7 +291,7 @@ hsm_pkcs11_load_functions(hsm_module_t *module)
         }
 
         /* Retrieve the entry point for C_GetFunctionList */
-        pGetFunctionList = (CK_C_GetFunctionList) dlsym(pDynLib, "C_GetFunctionList");
+        pGetFunctionList = (CK_C_GetFunctionList) functioncast(dlsym(pDynLib, "C_GetFunctionList"));
         /* Store the handle so we can dlclose it later */
         module->handle = pDynLib;
 
@@ -303,7 +304,7 @@ hsm_pkcs11_load_functions(hsm_module_t *module)
         return C_GetFunctionList(pkcs11_functions);
 #elif defined(HAVE_DLOPEN)
         module->handle = dlopen(NULL, RTLD_GLOBAL|RTLD_LAZY);
-	pGetFunctionList = dlsym(module->handle, "C_GetFunctionList");
+	pGetFunctionList = (CK_C_GetFunctionList) functioncast(dlsym(module->handle, "C_GetFunctionList"));
         (pGetFunctionList)((CK_FUNCTION_LIST_PTR_PTR)(&module->sym));
 #else
         return CKR_FUNCTION_FAILED;

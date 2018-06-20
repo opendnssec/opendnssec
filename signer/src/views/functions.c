@@ -10,6 +10,8 @@
 #include "logging.h"
 #include "proto.h"
 #include "duration.h"
+#include "util.h"
+#include "compat.h"
 
 #pragma GCC optimize ("O0")
 
@@ -306,7 +308,7 @@ rrset_sign(signconf_type* signconf, names_view_type view, recordset_type record,
             ods_log_crit("unable to sign RRset[%i]: lhsm_sign() failed", rrtype);
             if(rrset) ldns_rr_list_free(rrset);
             if(rrsigs) ldns_rr_list_free(rrsigs);
-            return status;
+            return ODS_STATUS_HSM_ERR;
         }
         /* Add signature */
         locator = strdup(signconf->keys->keys[i].locator);
@@ -494,11 +496,11 @@ ldns_rr*
 denial_nsecify(signconf_type* signconf, names_view_type view, recordset_type domain, ldns_rdf* nxt)
 {
     ldns_rr* nsec_rr = NULL;
-    uint32_t ttl = 0;
+    int ttl = 0;
     /* SOA MINIMUM */
     names_viewgetdefaultttl(view, &ttl);
     if (signconf->soa_min) {
-        ttl = (uint32_t) duration2time(signconf->soa_min);
+        ttl = duration2time(signconf->soa_min);
     }
     /* create new NSEC(3) rr */
     nsec_rr = denial_create_nsec(view, domain, nxt, ttl, LDNS_RR_CLASS_IN, signconf->nsec3params);

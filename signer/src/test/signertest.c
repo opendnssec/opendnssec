@@ -47,7 +47,7 @@
 #include "parser/confparser.h"
 #include "daemon/engine.h"
 #include "daemon/signercommands.h"
-#include "views/utilities.h"
+#include "utilities.h"
 #include "daemon/signertasks.h"
 
 int comparezone(const char* fname1, const char* fname2);

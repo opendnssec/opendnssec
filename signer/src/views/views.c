@@ -434,12 +434,10 @@ names_viewsync(names_view_type view)
     names_iterator iter;
     names_change_type change;
     names_table_type changelog;
-    const char* name;
 
     changelog = NULL;
     while((names_commitlogpoppush(view->commitlog, view->viewid, &changelog, NULL))) {
         for(iter = names_tableitems(changelog); names_iterate(&iter, &change); names_advance(&iter, NULL)) {
-            name = names_recordgetid(change->record, NULL);
             if(change->record != NULL) {
                 recordset_type existing = NULL;
                 names_indexinsert(view->indices[0], change->record, &existing);
@@ -546,7 +544,7 @@ int
 names_viewgetdefaultttl(names_view_type view, int* defaultttl)
 {
     if(view->zonedata.defaultttl) {
-        *defaultttl = view->zonedata.defaultttl;
+        *defaultttl = *view->zonedata.defaultttl;
         return 1;
     } else
         return 0;
