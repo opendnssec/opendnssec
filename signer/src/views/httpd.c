@@ -105,7 +105,6 @@ static int
 dispatch(struct httpd* httpd, struct rpc *rpc)
 {
     names_view_type view;
-    (void)httpd;
 
     view = zonelist_obtainresource(httpd->zonelist, rpc->zone, offsetof(zone_type, inputview));
     if (!view) {

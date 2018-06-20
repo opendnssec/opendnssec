@@ -241,13 +241,6 @@ zonelist_lookup_zone_by_dname(zonelist_type* zonelist, ldns_rdf* dname,
 }
 
 
-static const char* baseviewkeys[] = { "namerevision", NULL};
-static const char* inputviewkeys[] = { "nameupcoming", "namehierarchy", NULL};
-static const char* prepareviewkeys[] = { "namerevision", "namenoserial", "namenewserial", NULL};
-static const char* neighviewkeys[] = { "nameready", "denialname", NULL};
-static const char* signviewkeys[] = { "nameready", "expiry", "denialname", NULL};
-static const char* outputviewkeys[] = { "validnow", NULL};
-
 /**
  * Add zone.
  *
@@ -256,7 +249,6 @@ zone_type*
 zonelist_add_zone(zonelist_type* zlist, zone_type* zone)
 {
     ldns_rbnode_t* new_node = NULL;
-    char* zoneapex;
     if (!zone) {
         return NULL;
     }
@@ -281,19 +273,6 @@ zonelist_add_zone(zonelist_type* zlist, zone_type* zone)
         return NULL;
     }
     zone->zl_status = ZONE_ZL_ADDED;
-
-    zoneapex = ldns_rdf2str(zone->apex);
-    /*if(zoneapex[strlen(zoneapex)-1] == '.')
-        zoneapex[strlen(zoneapex)-1] = '\0'; FIXME */
-    zone->baseview = names_viewcreate(NULL, "  base    ", baseviewkeys);
-    names_viewconfig(zone->baseview, &(zone->signconf));
-    names_viewrestore(zone->baseview, zoneapex, -1, NULL); // FIXME proper restore filename
-    zone->inputview = names_viewcreate(zone->baseview,   "  input   ", inputviewkeys);
-    zone->prepareview = names_viewcreate(zone->baseview, "  prepare ", prepareviewkeys);
-    zone->neighview = names_viewcreate(zone->baseview, "  neighbr ", neighviewkeys);
-    zone->signview = names_viewcreate(zone->baseview,    "  sign    ", signviewkeys);
-    zone->outputview = names_viewcreate(zone->baseview,  "  output  ", outputviewkeys);
-    free(zoneapex);
 
     zlist->just_added++;
     return zone;
@@ -363,6 +342,7 @@ zonelist_merge(zonelist_type* zl1, zonelist_type* zl2)
                 ods_log_crit("[%s] merge failed: z2 not added", zl_str);
                 return;
             }
+            zone_start(z2);
             n2 = ldns_rbtree_next(n2);
         } else {
             /* compare the zones z1 and z2 */
@@ -379,6 +359,7 @@ zonelist_merge(zonelist_type* zl1, zonelist_type* zl2)
                     ods_log_crit("[%s] merge failed: z2 not added", zl_str);
                     return;
                 }
+                zone_start(z2);
                 n2 = ldns_rbtree_next(n2);
             } else {
                 /* just update zone z1 */

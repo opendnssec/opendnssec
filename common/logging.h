@@ -63,6 +63,8 @@ logger_message(logger_cls_type* cls, logger_ctx_type ctx, logger_lvl_type lvl, c
 #endif
 ;
 
+int logger_mark_performance(const char* message);
+
 #define logger_message(CLS,TXT,LVL,FMT,...) \
     do { \
         logger_cls_type* logger_cls_var = (CLS); \

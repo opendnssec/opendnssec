@@ -222,4 +222,12 @@ void zone_merge(zone_type* z1, zone_type* z2);
  */
 void zone_cleanup(zone_type* zone);
 
+/**
+ * Mark the zone ready to be used.
+ *
+ * \param[in] zone zone
+ *
+ */
+void zone_start(zone_type* zone);
+
 #endif /* SIGNER_ZONE_H */

@@ -483,7 +483,38 @@ zone_cleanup(zone_type* zone)
     free((void*)zone->policy_name);
     free((void*)zone->signconf_filename);
     free((void*)zone->name);
+    free((void*)zone->nextserial);
+    free((void*)zone->inboundserial);
+    free((void*)zone->outboundserial);
+    zone->nextserial = NULL;
+    zone->inboundserial = NULL;
+    zone->outboundserial = NULL;
     pthread_mutex_destroy(&zone->xfr_lock);
     pthread_mutex_destroy(&zone->zone_lock);
     free(zone);
+}
+
+static const char* baseviewkeys[] = { "namerevision", NULL};
+static const char* inputviewkeys[] = { "nameupcoming", "namehierarchy", NULL};
+static const char* prepareviewkeys[] = { "namerevision", "namenoserial", "namenewserial", NULL};
+static const char* neighviewkeys[] = { "nameready", "denialname", NULL};
+static const char* signviewkeys[] = { "nameready", "expiry", "denialname", NULL};
+static const char* outputviewkeys[] = { "validnow", NULL};
+
+void
+zone_start(zone_type* zone)
+{
+    char* zoneapex;
+    zoneapex = ldns_rdf2str(zone->apex);
+    /*if(zoneapex[strlen(zoneapex)-1] == '.')
+        zoneapex[strlen(zoneapex)-1] = '\0'; FIXME */
+    zone->baseview = names_viewcreate(NULL, "  base    ", baseviewkeys);
+    names_viewconfig(zone->baseview, &(zone->signconf));
+    names_viewrestore(zone->baseview, zoneapex, -1, NULL); // FIXME proper restore filename
+    zone->inputview = names_viewcreate(zone->baseview,   "  input   ", inputviewkeys);
+    zone->prepareview = names_viewcreate(zone->baseview, "  prepare ", prepareviewkeys);
+    zone->neighview = names_viewcreate(zone->baseview, "  neighbr ", neighviewkeys);
+    zone->signview = names_viewcreate(zone->baseview,    "  sign    ", signviewkeys);
+    zone->outputview = names_viewcreate(zone->baseview,  "  output  ", outputviewkeys);
+    free(zoneapex);
 }

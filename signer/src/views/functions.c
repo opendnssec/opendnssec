@@ -246,14 +246,20 @@ rrset_sign(signconf_type* signconf, names_view_type view, recordset_type record,
 
     /* Skip delegation, glue and occluded RRsets */
     if (dstatus != LDNS_RR_TYPE_SOA) {
+        if(rrset) ldns_rr_list_free(rrset);
+        if(rrsigs) ldns_rr_list_free(rrsigs);
         return 0;
     }
     if (delegpt != LDNS_RR_TYPE_SOA && rrtype != LDNS_RR_TYPE_DS) {
+        if(rrset) ldns_rr_list_free(rrset);
+        if(rrsigs) ldns_rr_list_free(rrsigs);
         return 0;
     }
 
     /* Transmogrify rrset */
     if (ldns_rr_list_rr_count(rrset) <= 0) {
+        if(rrset) ldns_rr_list_free(rrset);
+        if(rrsigs) ldns_rr_list_free(rrsigs);
         /* Empty RRset, no signatures needed */
         return 0;
     }
@@ -298,7 +304,8 @@ rrset_sign(signconf_type* signconf, names_view_type view, recordset_type record,
         rrsig = lhsm_sign(ctx, rrset, &signconf->keys->keys[i], inception, expiration);
         if (rrsig == NULL) {
             ods_log_crit("unable to sign RRset[%i]: lhsm_sign() failed", rrtype);
-            ldns_rr_list_free(rrset);
+            if(rrset) ldns_rr_list_free(rrset);
+            if(rrsigs) ldns_rr_list_free(rrsigs);
             return status;
         }
         /* Add signature */
@@ -307,15 +314,16 @@ rrset_sign(signconf_type* signconf, names_view_type view, recordset_type record,
         newsigs++;
     }
     if(rrtype == LDNS_RR_TYPE_DNSKEY && signconf->dnskey_signature) {
-        ldns_rdf* apex = NULL;;
+        ldns_rdf* apex = NULL;
+        names_viewgetapex(view, &apex);
         for(i=0; signconf->dnskey_signature[i]; i++) {
             rrsig = NULL;
-            names_viewgetapex(view, &apex);
             if ((status = rrset_getliteralrr(&rrsig, signconf->dnskey_signature[i], duration2time(signconf->dnskey_ttl), apex))) {
                 ods_log_error("unable to publish dnskeys for zone %s: error decoding literal dnskey", signconf->name);
                 if(apex)
                     ldns_rdf_free(apex);
-                ldns_rr_list_free(rrset);
+                if(rrset) ldns_rr_list_free(rrset);
+                if(rrsigs) ldns_rr_list_free(rrsigs);
                 return status;
             }
             /* Add signature */
@@ -327,7 +335,8 @@ rrset_sign(signconf_type* signconf, names_view_type view, recordset_type record,
             ldns_rdf_free(apex);
     }
     /* RRset signing completed */
-    ldns_rr_list_free(rrset);
+    if(rrset) ldns_rr_list_free(rrset);
+    if(rrsigs) ldns_rr_list_free(rrsigs);
 
 #ifdef FIXME
     pthread_mutex_lock(&globalzone->stats->stats_lock);
@@ -469,6 +478,7 @@ denial_create_nsec(names_view_type view, recordset_type domain, ldns_rdf* nxt, u
     ldns_rr_push_rdf(nsec_rr, rdf);
     denial_create_bitmap(view, domain, (n3p?LDNS_RR_TYPE_NSEC3:LDNS_RR_TYPE_NSEC), &types, &types_count);
     rdf = ldns_dnssec_create_nsec_bitmap(types, types_count, rrtype);
+    free(types);
     if (!rdf) {
         ods_log_alert("unable to create NSEC(3) RR: ldns_dnssec_create_nsec_bitmap() failed");
         ldns_rr_free(nsec_rr);
@@ -611,6 +621,7 @@ namedb_update_serial(zone_type* zone)
     }
     if(zone->nextserial) {
         free(zone->nextserial);
+        zone->nextserial = NULL;
     }
     zone->nextserial = malloc(sizeof(uint32_t));
     *zone->nextserial = serial;
@@ -645,12 +656,15 @@ zone_update_serial(zone_type* zone, names_view_type view)
     
     serial = *(zone->nextserial);
     free(zone->nextserial);
+    zone->nextserial = NULL;
     /* FIXME we should also disallow a forced serial lower then this discarded nextserial */
 
     names_own(view, &d);
     names_recordlookupone(d, LDNS_RR_TYPE_SOA, NULL, &rr);
     rr = ldns_rr_clone(rr);;
     names_recorddelall(d, LDNS_RR_TYPE_SOA);
+    if(zone->outboundserial)
+        free(zone->outboundserial);
     zone->outboundserial = malloc(sizeof(uint32_t));
     *(zone->outboundserial) = serial;
     soa_rdata = ldns_rr_set_rdf(rr, ldns_native2rdf_int32(LDNS_RDF_TYPE_INT32, serial), 2);
@@ -675,5 +689,6 @@ zone_update_serial(zone_type* zone, names_view_type view)
         }
     }
     rrset_add_rr(d, rr);
+    ldns_rr_free(rr);
     return ODS_STATUS_OK;
 }

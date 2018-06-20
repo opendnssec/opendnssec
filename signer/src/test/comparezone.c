@@ -12,7 +12,8 @@ inputzone(char* fname, ldns_zone** zoneptr, ldns_rr*** records, int* count)
 {
     FILE* fp;
     ldns_rr_list* wsoa;
-    ldns_rr_list* rrl = NULL;
+    ldns_rr_list* rrl1 = NULL;
+    ldns_rr_list* rrl2 = NULL;
     ldns_zone* zone = NULL;
     ldns_status status;
     ldns_rr** rrs;
@@ -20,7 +21,6 @@ inputzone(char* fname, ldns_zone** zoneptr, ldns_rr*** records, int* count)
     int linenum;
     int failure = 0;
     size_t i;
-    size_t rrc;
 
     fp = fopen(fname, "r");
     if (fp) {
@@ -37,23 +37,23 @@ inputzone(char* fname, ldns_zone** zoneptr, ldns_rr*** records, int* count)
         ldns_rr2canonical(ldns_rr_list_rr(ldns_zone_rrs(zone), i));
     }
     ldns_zone_sort(zone);
-    rrl = ldns_zone_rrs(zone);
-    rrc = ldns_rr_list_rr_count(rrl);
+    rrl1 = ldns_zone_rrs(zone);
 
-    rrl = ldns_rr_list_clone(rrl);
-    ldns_rr_list_push_rr(rrl, ldns_zone_soa(zone));
-    ldns_rr_list_sort(rrl);
+    rrl2 = ldns_rr_list_clone(rrl1);
+    ldns_rr_list_push_rr(rrl2, ldns_rr_clone(ldns_zone_soa(zone)));
+    ldns_rr_list_sort(rrl2);
+    *count = ldns_rr_list_rr_count(rrl2);
 
-    rrs = malloc(sizeof(ldns_rr*) * ldns_rr_list_rr_count(rrl));
+    rrs = malloc(sizeof(ldns_rr*) * ldns_rr_list_rr_count(rrl2));
     i = 0;
     do {
-        rr = ldns_rr_list_pop_rr(rrl);
+        rr = ldns_rr_list_pop_rr(rrl2);
         if(rr)
             rrs[i++] = rr;
     } while(rr);
-    ldns_rr_list_free(rrl);
+    ldns_rr_list_free(rrl2);
+    //ldns_rr_list_free(rrl1);
 
-    *count = rrc;
     *records = rrs;
     *zoneptr = zone;
     return failure;
@@ -164,10 +164,16 @@ comparezone(char* fname1, char* fname2)
     if(differences != 0) {
         failure |= 1;
     }
-    if(array1)
+    if(array1) {
+        for(i=0; i<count1; i++)
+            ldns_rr_free(array1[i]);
         free(array1);
-    if(array2)
+    }
+    if(array2) {
+        for(i=0; i<count2; i++)
+            ldns_rr_free(array2[i]);
         free(array2);
+    }
     if(z1)
         ldns_zone_deep_free(z1);
     if(z2)

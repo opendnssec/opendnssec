@@ -260,6 +260,9 @@ adfile_read_file(FILE* fd, zone_type* zone, names_view_type view)
             rr = NULL;
             break;
         }
+        if(rr) {
+            ldns_rr_free(rr);
+        }
     }
     /* and done */
     if (orig) {

@@ -46,10 +46,11 @@ void
 logger_message(logger_cls_type* cls, logger_ctx_type ctx, logger_lvl_type lvl, const char* fmt, ...)
 {
     va_list ap;
-    va_start(ap, fmt);
     if(!logger_enabled(cls, ctx, lvl))
         return;
-    logger_messageinternal(cls,ctx,lvl,fmt,ap);
+    va_start(ap, fmt);
+    if(cls && cls->chain && cls->chain->logger)
+        cls->chain->logger(cls,ctx,lvl,fmt,ap);
     va_end(ap);
 }
 
@@ -58,16 +59,17 @@ logger_vmessage(logger_cls_type* cls, logger_ctx_type ctx, logger_lvl_type lvl, 
 {
     if(!logger_enabled(cls, ctx, lvl))
         return;
-    logger_messageinternal(cls,ctx,lvl,fmt,ap);
+    if(cls && cls->chain && cls->chain->logger)
+        cls->chain->logger(cls,ctx,lvl,fmt,ap);
 }
 
 void
 logger_messageinternal(logger_cls_type* cls, logger_ctx_type ctx, logger_lvl_type lvl, const char* fmt, ...)
 {
     va_list ap;
-    if(!logger_enabled(cls, ctx, lvl))
-        return;
     va_start(ap,fmt);
+    if(cls && cls->chain && cls->chain->logger)
+        cls->chain->logger(cls,ctx,lvl,fmt,ap);
     vfprintf(stderr,fmt,ap);
     va_end(ap);
 }
@@ -134,6 +136,7 @@ logger_log_stderr(const logger_cls_type* cls, const logger_ctx_type ctx, const l
     vasprintf(&message, format, ap);
     fprintf(stderr,"%s%s%s%s%s%s%s%s\n",priority,(location?"[":""),(location?location:""),(location?"] ":""), message, (context?" (":""), (context), (context?")":""));
     fprintf(stderr,"%s",message);
+    free(message);
     return logger_CONT;
 }
 
@@ -276,7 +279,7 @@ static int marktime;
 static intptr_t markbrk;
 
 int
-logger_mark_performance(char* message)
+logger_mark_performance(const char* message)
 {
     time_t t;
     intptr_t b;
@@ -287,7 +290,7 @@ logger_mark_performance(char* message)
         t = time(NULL);
         b = (intptr_t) sbrk(0);
     }
-    logger_message(&logger_cls_performance, logger_ctx, logger_INFO, "MARK#%02d %2ld %4ld %s\n", markcount, t-marktime, (b-markbrk+1048576/2)/1048576, message);
+    logger_message(&logger_cls_performance, logger_ctx, logger_ERROR, "MARK#%02d %2ld %4ld %s\n", markcount, t-marktime, (b-markbrk+1048576/2)/1048576, message);
     ++markcount;
     return 0;
 }

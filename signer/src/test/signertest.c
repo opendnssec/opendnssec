@@ -42,6 +42,7 @@
 #include <fcntl.h>
 
 #include "janitor.h"
+#include "logging.h"
 #include "locks.h"
 #include "parser/confparser.h"
 #include "daemon/engine.h"
@@ -118,6 +119,7 @@ enginethreadingstop(void)
     for (i=0; i < engine->config->num_signer_threads; i++) {
         janitor_thread_join(engine->workers[i]->thread_id);
         free(engine->workers[i]->context);
+        worker_cleanup(engine->workers[i]);
     }
     free(engine->workers);
     engine->workers = NULL;
@@ -128,7 +130,8 @@ setUp(void)
 {
     int linkfd, status;
 
-    ods_log_init("test", 0, NULL, 3);
+    ods_log_init(argv0, 0, NULL, 3);
+    logger_initialize(argv0);
 
     if (workdir != NULL)
         chdir(workdir);
@@ -282,8 +285,8 @@ testAnnotateItem(const char* name, const char* expected)
     record = names_recordcreatetemp(name);
     names_recordannotate(record, &zonedata);
     denial = names_recordgetid(record, "denialname");
-    names_recorddestroy(record);
     CU_ASSERT_STRING_EQUAL(expected, denial);
+    names_recorddispose(record);
 }
 void
 testAnnotate(void)
@@ -306,7 +309,7 @@ signzone(zone_type* zone)
     task_type* task;
     struct worker_context context;
     context.engine = engine;
-    context.worker = worker_create("mock", NULL);
+    context.worker = worker_create(strdup("mock"), NULL);
     context.signq = NULL;
     context.zone = zone;
     context.clock_in = time_now();
@@ -329,6 +332,7 @@ signzone(zone_type* zone)
     task = task_create(strdup(zone->name), TASK_CLASS_SIGNER, TASK_WRITE, do_writezone, zone, NULL, 0);
     task->callback(task, zone->name, zone, &context);
     task_destroy(task);
+    worker_cleanup(context.worker);
 }
 
 void
@@ -342,6 +346,15 @@ testSignNSEC(void)
     zonelist_update(engine->zonelist, engine->config->zonelist_filename);
     zone = zonelist_lookup_zone_by_name(engine->zonelist, "example.com", LDNS_RR_CLASS_IN);
     signzone(zone);
+    zonelist_del_zone(engine->zonelist, zone);
+    names_viewreset(zone->baseview);
+    names_viewdestroy(zone->inputview);
+    names_viewdestroy(zone->prepareview);
+    names_viewdestroy(zone->neighview);
+    names_viewdestroy(zone->signview);
+    names_viewdestroy(zone->outputview);
+    names_viewdestroy(zone->baseview);
+    zone_cleanup(zone);
     CU_ASSERT_EQUAL((c = comparezone("unsigned.zone","signed.zone")), 0);
     CU_ASSERT_EQUAL((c = system("ldns-verify-zone signed.zone")), 0);
     // TODO: test contains NSEC
@@ -352,12 +365,24 @@ testSignNSEC3(void)
 {
     int c;
     zone_type* zone;
+    logger_mark_performance("setup files");
     usefile("zones.xml", "zones.xml.example");
     usefile("unsigned.zone", "unsigned.zone.example");
     usefile("signconf.xml", "signconf.xml.nsec3");
+    logger_mark_performance("setup zone");
     zonelist_update(engine->zonelist, engine->config->zonelist_filename);
     zone = zonelist_lookup_zone_by_name(engine->zonelist, "example.com", LDNS_RR_CLASS_IN);
+    logger_mark_performance("sign");
     signzone(zone);
+    zonelist_del_zone(engine->zonelist, zone);
+    names_viewreset(zone->baseview);
+    names_viewdestroy(zone->inputview);
+    names_viewdestroy(zone->prepareview);
+    names_viewdestroy(zone->neighview);
+    names_viewdestroy(zone->signview);
+    names_viewdestroy(zone->outputview);
+    names_viewdestroy(zone->baseview);
+    zone_cleanup(zone);
     CU_ASSERT_EQUAL((c = comparezone("unsigned.zone","signed.zone")), 0);
     CU_ASSERT_EQUAL((c = system("ldns-verify-zone signed.zone")), 0);
     // TODO: test contains NSEC3

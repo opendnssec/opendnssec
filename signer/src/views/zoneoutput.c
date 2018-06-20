@@ -28,10 +28,12 @@ writezonef(names_view_type view, FILE* fp)
     recordset_type domainitem;
     for (domainiter = names_viewiterator(view, NULL); names_iterate(&domainiter, &domainitem); names_advance(&domainiter, NULL)) {
         for (rrsetiter = names_recordalltypes(domainitem); names_iterate(&rrsetiter, &recordtype); names_advance(&rrsetiter, NULL)) {
+            s = NULL;
             for (rriter = names_recordallvaluestrings(domainitem,recordtype); names_iterate(&rriter, &s); names_advance(&rriter, NULL)) {
                 fprintf(fp, "%s", s);
             }
         }
+        s = NULL;
         for (rriter = names_recordallvaluestrings(domainitem,LDNS_RR_TYPE_NSEC); names_iterate(&rriter, &s); names_advance(&rriter, NULL)) {
             fprintf(fp, "%s", s);
         }
@@ -56,7 +58,7 @@ writezone(names_view_type view, const char* filename)
         s = ldns_rdf2str(origin);
         fprintf(fp, "$ORIGIN %s\n", s);
         free(s);
-        ldns_rdf_free(origin);
+        ldns_rdf_deep_free(origin);
     }
     if(names_viewgetdefaultttl(view, &defaultttl))
         fprintf(fp, "$TTL %d\n",defaultttl);

@@ -283,8 +283,8 @@ do_signzone(task_type* task, const char* zonename, void* zonearg, void *contexta
     for (iter=names_viewiterator(prepareview,names_iteratorincoming); names_iterate(&iter,&change); names_advance(&iter,NULL)) {
         assert(change.dst != change.src);
         if(names_recordhasexpiry(change.src)) {
-            names_recordsetvalidupto(change.src, newserial);
-            names_own(prepareview, &change.src);
+            names_recordsetvalidupto(change.dst, newserial);
+            names_own(prepareview, &change.src); // FIXME amend
             names_recordsetvalidfrom(change.src, newserial);
         }
     }
@@ -335,7 +335,7 @@ do_signzone(task_type* task, const char* zonename, void* zonearg, void *contexta
         nextnamerdf = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, nextnamestr);
         names_amend(zone->signview, change.src);
         names_recordsetdenial(change.src, denial_nsecify(zone->signconf, zone->signview, change.src, nextnamerdf));
-        ldns_rdf_free(nextnamerdf);
+        ldns_rdf_deep_free(nextnamerdf);
     }
     conflict = names_viewcommit(zone->signview);
     assert(!conflict);

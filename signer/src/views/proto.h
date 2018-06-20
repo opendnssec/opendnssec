@@ -82,7 +82,7 @@ int names_advance(names_iterator*iter, void* item);
 int names_end(names_iterator*iter);
 
 names_iterator names_iterator_createarray(int count, void* data, void (*indexfunc)(names_iterator iter,void*,int,void*));
-names_iterator names_iterator_createrefs(void);
+names_iterator names_iterator_createrefs(void (*freefunc)(void*));
 names_iterator names_iterator_createdata(size_t size);
 void names_iterator_addptr(names_iterator iter, const void* ptr);
 void names_iterator_adddata(names_iterator iter, const void* ptr);
@@ -171,6 +171,7 @@ recordset_type names_indexlookupkey(names_index_type, const char* keyvalue);
 int names_indexremove(names_index_type, recordset_type);
 int names_indexremovekey(names_index_type,const char* keyvalue);
 int names_indexinsert(names_index_type index, recordset_type d, recordset_type* existing);
+int names_indexinsert2(names_index_type index, recordset_type d, recordset_type* existing);
 void names_indexdestroy(names_index_type, void (*userfunc)(void* arg, void* key, void* val), void* userarg);
 names_iterator names_indexiterator(names_index_type);
 

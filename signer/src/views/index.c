@@ -90,14 +90,16 @@ names_indexinsert(names_index_type index, recordset_type d, recordset_type* exis
                     return 0;
                 case 1:
                     if(names_recordhasmarker(d)) {
-                        ldns_rbtree_delete(index->tree, node->key);
+                        node = ldns_rbtree_delete(index->tree, node->key);
+                        free(node);
                     } else {
                         node->key = d;
                         node->data = d;
                     }
                     return 1;
                 case 2:
-                    ldns_rbtree_delete(index->tree, node->key);
+                    node = ldns_rbtree_delete(index->tree, node->key);
+                    free(node);
                     return 0;
                 default:
                     abort(); // FIXME
@@ -111,7 +113,8 @@ names_indexinsert(names_index_type index, recordset_type d, recordset_type* exis
             if(names_recordhasmarker(d) ||
                index->acceptfunc(d, (recordset_type)node->data, &cmp) == 0 ||
                (cmp == 0 && node->key == d)) {
-                ldns_rbtree_delete(index->tree, node->key);
+                node = ldns_rbtree_delete(index->tree, node->key);
+                free(node);
             }
         }
         if(existing && *existing) {
@@ -119,8 +122,7 @@ names_indexinsert(names_index_type index, recordset_type d, recordset_type* exis
             if(node != NULL) {
                 if(node->key == *existing) {
                     node = ldns_rbtree_delete(index->tree, node->key);
-                    assert(node);
-                    ldns_rbtree_free(node);
+                    free(node);
                 }
             }
         }
@@ -251,63 +253,6 @@ names_indexiterator(names_index_type index)
 }
 
 names_iterator
-names_indexrange(names_index_type index, const char* selection, ...)
-{
-    va_list ap;
-    const char* find;
-    const char* found;
-    int findlen;
-    recordset_type record;
-    ldns_rbnode_t* node;
-    names_iterator iter;
-    va_start(ap, selection);
-    iter = names_iterator_createrefs();
-    if (index->tree) {
-        if(!strcmp(selection, "descendants")) {
-            find = va_arg(ap, char*);
-            findlen = strlen(find);
-            record = names_recordcreatetemp(NULL);
-            getset(record, "name", NULL, &find);
-            (void)ldns_rbtree_find_less_equal(index->tree, record, &node);
-            names_recorddestroy(record);
-            while(node && node != LDNS_RBTREE_NULL) {
-                record = (recordset_type)node->key;
-                getset(record,"name",&found,NULL);
-                if(!strncmp(find,found,findlen) && (found[findlen-1]=='\0' || found[findlen-1]=='.')) {
-                    names_iterator_addptr(iter, record);
-                } else {
-                    break;
-                }
-                node = ldns_rbtree_previous(node);
-            }
-        } else if(!strcmp(selection, "ancestors")) {
-            char* name;
-            ldns_rdf* dname;
-            ldns_rdf* parent;
-            name = va_arg(ap, char*);
-            do {
-                dname = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, name);
-                parent = ldns_dname_left_chop(dname);
-                if(parent) {
-                    name = ldns_rdf2str(parent);
-                    ldns_rdf_free(parent);
-                    record = names_recordcreatetemp(NULL);
-                    getset(record, "name", NULL, &name);
-                    node = ldns_rbtree_search(index->tree, record);
-                    names_recorddestroy(record);
-                    if(node && node != LDNS_RBTREE_NULL) {
-                        names_iterator_addptr(iter, record);
-                    }
-                }
-                ldns_rdf_free(dname);
-            } while(name && strcmp(name,".") && strcmp(name,""));
-        }
-    }
-    va_end(ap);
-    return iter;
-}
-
-names_iterator
 names_iteratordescendants(names_index_type index, va_list ap)
 {
     const char* find;
@@ -316,13 +261,13 @@ names_iteratordescendants(names_index_type index, va_list ap)
     recordset_type record;
     ldns_rbnode_t* node;
     names_iterator iter;
-    iter = names_iterator_createrefs();
+    iter = names_iterator_createrefs(NULL);
     find = va_arg(ap, char*);
     findlen = strlen(find);
     record = names_recordcreatetemp(NULL);
     getset(record, "name", NULL, &find);
     (void) ldns_rbtree_find_less_equal(index->tree, record, &node);
-    names_recorddestroy(record);
+    names_recorddispose(record);
     while (node && node != LDNS_RBTREE_NULL) {
         record = (recordset_type) node->key;
         getset(record, "name", &found, NULL);
@@ -346,13 +291,13 @@ names_parent(const char* child)
     parent = ldns_dname_left_chop(dname);
     if (parent) {
         name = ldns_rdf2str(parent);
-        ldns_rdf_free(parent);
+        ldns_rdf_deep_free(parent);
         if(!strcmp(name,".") || !strcmp(name,"")) {
             free(name);
             name = NULL;
         }
     }
-    ldns_rdf_free(dname);
+    ldns_rdf_deep_free(dname);
     return name;
 }
 
@@ -366,7 +311,7 @@ names_iteratorancestors(names_index_type index, va_list ap)
     char* parent = NULL;
 
     name = va_arg(ap, char*);
-    iter = names_iterator_createrefs();
+    iter = names_iterator_createrefs(NULL);
     do {
         if(parent) {
             name = parent;
@@ -377,12 +322,14 @@ names_iteratorancestors(names_index_type index, va_list ap)
         if (parent) {
             record = names_recordcreatetemp(parent);
             node = ldns_rbtree_search(index->tree, record);
-            names_recorddestroy(record);
+            names_recorddispose(record);
             if (node && node != LDNS_RBTREE_NULL) {
                 names_iterator_addptr(iter, node->data);
             }
         }
     } while(parent);
+    if(parent)
+        free(parent);
     return iter;
 }
 

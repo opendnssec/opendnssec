@@ -279,6 +279,10 @@ forceread(engine_type* engine, zone_type *zone, int force_serial, uint32_t seria
 	ods_status status = ODS_STATUS_OK;
         pthread_mutex_lock(&zone->zone_lock);
         if (force_serial) {
+            if(zone->nextserial) {
+                free(zone->nextserial);
+                zone->nextserial = NULL;
+            }
 	    zone->nextserial = malloc(sizeof(uint32_t));
 	    *zone->nextserial = serial;
         }

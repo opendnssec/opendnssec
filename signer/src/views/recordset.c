@@ -51,6 +51,7 @@ names_signaturedispose(struct signatures_struct* signatures)
             free((void*)signatures->sigs[i].keylocator);
             ldns_rr_free(signatures->sigs[i].rr);
         }
+        free(signatures->sigs);
         free(signatures);
     }
 }
@@ -108,15 +109,10 @@ names_recordcompare_namerevision(recordset_type a, recordset_type b)
 }
 
 static recordset_type
-recordcreate(char** name)
+recordcreate()
 {
     struct recordset_struct* dict;
     dict = malloc(sizeof(struct recordset_struct));
-    if (name) {
-        dict->name = *name = ((*name) ? strdup(*name) : NULL);
-    } else {
-        dict->name = NULL;
-    }
     dict->marker = 0;
     dict->nitemsets = 0;
     dict->itemsets = NULL;
@@ -138,7 +134,7 @@ recordset_type
 names_recordcreate(char** name)
 {
     struct recordset_struct* dict;
-    dict = recordcreate(name);
+    dict = recordcreate();
     if (name) {
         dict->name = *name = ((*name) ? strdup(*name) : NULL);
     } else {
@@ -152,7 +148,8 @@ recordset_type
 names_recordcreatetemp(const char* name)
 {
     recordset_type dict;
-    dict = recordcreate((char**)&name);
+    dict = recordcreate();
+    dict->name = (name ? strdup(name) : NULL);
     dict->revision = 0;
     return dict;
 }
@@ -206,10 +203,10 @@ names_recordannotate(recordset_type d, struct names_view_zone* zone)
             hashed_label = ldns_nsec3_hash_name(dname, n3p->algorithm, n3p->iterations, n3p->salt_len, n3p->salt_data);
             hashed_ownername = ldns_dname_cat_clone(hashed_label, apex);
             d->spanhash = ldns_rdf2str(hashed_ownername);
-            ldns_rdf_free(hashed_ownername);
-            ldns_rdf_free(hashed_label);
-            ldns_rdf_free(apex);
-            ldns_rdf_free(dname);
+            ldns_rdf_deep_free(hashed_ownername);
+            ldns_rdf_deep_free(hashed_label);
+            ldns_rdf_deep_free(apex);
+            ldns_rdf_deep_free(dname);
         } else {
             /* ldns_rdf* rdf;
              * ldns_rdf* revrdf;
@@ -241,26 +238,15 @@ names_recordannotate(recordset_type d, struct names_view_zone* zone)
             }
         }
     } else {
+        if(d->spanhash)
+            free(d->spanhash);
+        if(d->spanhashrr)
+            ldns_rr_free(d->spanhashrr);
         d->spanhash = NULL;
         d->spanhashrr = NULL;
     }
 }
         
-void
-names_recorddestroy(recordset_type dict)
-{
-    int i, j;
-    for(i=0; i<dict->nitemsets; i++) {
-        for(j=0; j<dict->itemsets[i].nitems; j++) {
-            ldns_rr_free(dict->itemsets[i].items[j].rr);
-        }
-        free(dict->itemsets[i].items);
-    }
-    free(dict->itemsets);
-    free(dict->name);
-    free(dict);
-}
-
 /* deletion marker */
 void
 names_recordsetmarker(recordset_type dict)
@@ -499,7 +485,7 @@ names_recordallvaluestrings(recordset_type d, ldns_rr_type rrtype)
     }
     if(i<d->nitemsets) {
         int j;
-        names_iterator iter = names_iterator_createrefs();
+        names_iterator iter = names_iterator_createrefs(free);
         for(j=0; j<d->itemsets[i].nitems; j++) {
             names_iterator_addptr(iter, ldns_rr2str(d->itemsets[i].items[j].rr));
         }
@@ -512,7 +498,7 @@ names_recordallvaluestrings(recordset_type d, ldns_rr_type rrtype)
     } else {
         if(rrtype == LDNS_RR_TYPE_NSEC || rrtype == LDNS_RR_TYPE_NSEC3) {
             int j;
-            names_iterator iter = names_iterator_createrefs();
+            names_iterator iter = names_iterator_createrefs(free);
             names_iterator_addptr(iter, ldns_rr2str(d->spanhashrr));
             if(d->spansignatures) {
                 for(j=0; j<d->spansignatures->nsigs; j++) {
@@ -573,14 +559,15 @@ names_recorddispose(recordset_type dict)
             ldns_rr_free(dict->itemsets[i].items[j].rr);
         }
         names_signaturedispose(dict->itemsets[i].signatures);
-        free(dict->itemsets[i].signatures);
         free(dict->itemsets[i].items);
     }
     free(dict->itemsets);
     free(dict->name);
     free(dict->spanhash);
+    if(dict->spanhashrr) {
+        ldns_rr_free(dict->spanhashrr);
+    }
     names_signaturedispose(dict->spansignatures);
-    free(dict->spansignatures);
     free(dict->validupto);
     free(dict->validfrom);
     free(dict->expiry);
@@ -634,7 +621,7 @@ names_recordsetvalidfrom(recordset_type record, int value)
 void
 names_recordsetdenial(recordset_type record, ldns_rr* denial)
 {
-    record->spanhashrr = ldns_rr_clone(denial); // FIXME
+    record->spanhashrr = denial;
 }
 
 int

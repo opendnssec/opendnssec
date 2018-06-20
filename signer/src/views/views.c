@@ -226,7 +226,7 @@ disposedict(void* arg, void* key, void* val)
     recordset_type d = (recordset_type) val;
     (void)arg;
     (void)key;
-    names_recorddestroy(d);
+    names_recorddispose(d);
 }
 
 void
@@ -238,7 +238,7 @@ names_viewdestroy(names_view_type view)
     for(i=1; i<view->nindices; i++) {
         names_indexdestroy(view->indices[i], NULL, NULL);
     }
-    if(view->base == NULL) {
+    if(view->base == NULL || view->base == view) {
         names_commitlogdestroyall(view->commitlog, &store);
         names_indexdestroy(view->indices[0], disposedict, NULL);
     } else {
@@ -250,6 +250,7 @@ names_viewdestroy(names_view_type view)
         free((void*)view->zonedata.defaultttl);
     if(view->viewid == 0)
         free((void*)view->zonedata.apex);
+    free(view->searchfuncs);
     free(view);
 }
 
@@ -321,7 +322,7 @@ names_iteratorexpiring(names_index_type index, va_list ap)
     recordset_type record;
     names_iterator iter;
     names_iterator result;
-    result = names_iterator_createrefs();
+    result = names_iterator_createrefs(NULL);
     for (iter=names_indexiterator(index); names_iterate(&iter,&record); names_advance(&iter,NULL)) {
         names_iterator_addptr(result, record);
     }
