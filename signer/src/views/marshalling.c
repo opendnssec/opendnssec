@@ -262,7 +262,7 @@ marshallldnsrr(marshall_handle h, void* member)
 int
 marshallsigs(marshall_handle h, void* member)
 {
-    struct signatures_struct* signatures = *(struct signatures_struct**)member;
+    struct signatures_struct* signatures = (struct signatures_struct*)member;
     int i, size;
     size = marshalling(h, "sigs", &(signatures->sigs), &(signatures->nsigs), sizeof(struct signatures_struct), marshallself);
     for(i=0; i<signatures->nsigs; i++) {
@@ -278,7 +278,7 @@ marshallfunc(int (*memberfunction)(marshall_handle,void*))
 {
     if(memberfunction == NULL || memberfunction == marshallself) {
         return SELF;
-    } else if(memberfunction == marshallinteger || memberfunction == marshallstring || memberfunction == marshallstringarray) {
+    } else if(memberfunction == marshallinteger || memberfunction == marshallstring || memberfunction == marshallstringarray || memberfunction == marshallldnsrr) {
         return BASIC;
     } else {
         return OBJECT;
@@ -364,8 +364,11 @@ marshalling(marshall_handle h, const char* name, void* members, int *membercount
                         size = fprintf(h->fp, "%*.*s} , {\n", h->indentlvl, h->indentlvl, "");
                         h->indentlvl += h->indentincr;
                     } else {
-                         size = fprintf(h->fp, "%*.*s} ],\n", h->indentlvl, h->indentlvl, "");
-                        h->indentlvl -= h->indentincr;
+                        size = fprintf(h->fp, "%*.*s} ],\n", h->indentlvl, h->indentlvl, "");
+                        if(marshallfunc(memberfunction) == SELF)
+                            h->indentlvl -= 2 * h->indentincr;
+                        else
+                            h->indentlvl -= h->indentincr;
                     }
                 } else {
                     size = fprintf(h->fp, "%*.*s}\n", h->indentlvl, h->indentlvl, "");

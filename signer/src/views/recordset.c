@@ -654,7 +654,7 @@ marshall(marshall_handle h, void* ptr)
     size += marshalling(h, "revision", &(d->revision), NULL, 0, marshallinteger);
     size += marshalling(h, "marker", &(d->marker), NULL, 0, marshallinteger);
     size += marshalling(h, "spanhash", &(d->spanhash), NULL, 0, marshallstring);
-    //FIXME size += marshalling(h, "spansignatures", &(d->spansignatures), marshall_OPTIONAL, sizeof(struct signatures_struct), marshallsigs); FIXME bugs?
+    size += marshalling(h, "spansignatures", &(d->spansignatures), marshall_OPTIONAL, sizeof(struct signatures_struct), marshallsigs);
     size += marshalling(h, "spanhashrr", &(d->spanhashrr), NULL, 0, marshallldnsrr);
     size += marshalling(h, "validupto", &(d->validupto), marshall_OPTIONAL, sizeof(int), marshallinteger);
     size += marshalling(h, "validfrom", &(d->validfrom), marshall_OPTIONAL, sizeof(int), marshallinteger);
@@ -667,6 +667,7 @@ marshall(marshall_handle h, void* ptr)
             size += marshalling(h, "rr", &(d->itemsets[i].items[j].rr), NULL, 0, marshallldnsrr);
             size += marshalling(h, NULL, NULL, &(d->itemsets[i].nitems), j, marshallself);
         }
+        size += marshalling(h, "signatures", &(d->itemsets[i].signatures), marshall_OPTIONAL, sizeof(struct signatures_struct), marshallsigs);
         size += marshalling(h, NULL, NULL, &(d->nitemsets), i, marshallself);
     }
     d->tmpNameSerial = NULL;
@@ -1246,9 +1247,26 @@ names_recordlookupall(recordset_type record, ldns_rr_type rrtype, ldns_rr* templ
 {
     int i, j;
     assert(record);
-    assert(rrtype != 0);
-    *rrs = NULL;
-    *rrsigs = NULL;
+    if(rrs)
+        *rrs = NULL;
+    if(rrsigs)
+        *rrsigs = NULL;
+    if(rrtype==LDNS_RR_TYPE_RRSIG) {
+        if(rrsigs)
+            *rrsigs = ldns_rr_list_new();
+        for(i=0; i<record->nitemsets; i++) {
+            if(record->itemsets[i].signatures > 0) {
+                for(j=0; j<record->itemsets[i].signatures->nsigs; j++) {
+                    ldns_rr_list_push_rr(*rrsigs, record->itemsets[i].signatures->sigs[j].rr);
+                }
+            }
+        }
+        if(record->spansignatures)
+            for(j=0; j<record->spansignatures->nsigs; j++) {
+                if(rrsigs)
+                    ldns_rr_list_push_rr(*rrsigs, record->spansignatures->sigs[j].rr);
+            }
+  } else {
     for(i=0; i<record->nitemsets; i++)
         if(record->itemsets[i].rrtype == rrtype)
             break;
@@ -1258,7 +1276,8 @@ names_recordlookupall(recordset_type record, ldns_rr_type rrtype, ldns_rr* templ
         if(template == NULL) {
             if(record->itemsets[i].nitems > 0) {
                 for(j=0; j<record->itemsets[i].nitems; j++) {
-                    ldns_rr_list_push_rr(*rrs, record->itemsets[i].items[j].rr);
+                    if(rrs)
+                        ldns_rr_list_push_rr(*rrs, record->itemsets[i].items[j].rr);
                     // FIXME also push rrsigs
                 }
             }
@@ -1267,14 +1286,18 @@ names_recordlookupall(recordset_type record, ldns_rr_type rrtype, ldns_rr* templ
                 if(!ldns_rr_compare(template, record->itemsets[i].items[j].rr))
                     break;
             if (j<record->itemsets[i].nitems) {
-                ldns_rr_list_push_rr(*rrs, record->itemsets[i].items[j].rr);
+                if(rrs)
+                    ldns_rr_list_push_rr(*rrs, record->itemsets[i].items[j].rr);
             }
         }
     } else {
         if(rrtype == LDNS_RR_TYPE_NSEC || rrtype == LDNS_RR_TYPE_NSEC3) {
-            *rrs = ldns_rr_list_new();
-            *rrsigs = ldns_rr_list_new();
-            ldns_rr_list_push_rr(*rrs, record->spanhashrr);
+            if(rrs)
+                *rrs = ldns_rr_list_new();
+            if(rrsigs)
+                *rrsigs = ldns_rr_list_new();
+            if(rrs)
+                ldns_rr_list_push_rr(*rrs, record->spanhashrr);
             if(record->spansignatures)
                 for(j=0; j<record->spansignatures->nsigs; j++) {
                     ldns_rr_list_push_rr(*rrsigs, record->spansignatures->sigs[j].rr);
@@ -1282,4 +1305,5 @@ names_recordlookupall(recordset_type record, ldns_rr_type rrtype, ldns_rr* templ
                 }
         }
     }
+  }
 }

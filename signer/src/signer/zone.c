@@ -504,17 +504,30 @@ static const char* outputviewkeys[] = { "validnow", NULL};
 void
 zone_start(zone_type* zone)
 {
+    char* filename;
     char* zoneapex;
+    uint32_t serial;
+    ldns_rr* rr;
+
     zoneapex = ldns_rdf2str(zone->apex);
-    /*if(zoneapex[strlen(zoneapex)-1] == '.')
-        zoneapex[strlen(zoneapex)-1] = '\0'; FIXME */
     zone->baseview = names_viewcreate(NULL, "  base    ", baseviewkeys);
     names_viewconfig(zone->baseview, &(zone->signconf));
-    names_viewrestore(zone->baseview, zoneapex, -1, NULL); // FIXME proper restore filename
+    filename = ods_build_path(zone->name, ".state", 0, 1);
+    names_viewrestore(zone->baseview, zoneapex, -1, filename);
+    free(filename);
+    free(zoneapex);
     zone->inputview = names_viewcreate(zone->baseview,   "  input   ", inputviewkeys);
     zone->prepareview = names_viewcreate(zone->baseview, "  prepare ", prepareviewkeys);
     zone->neighview = names_viewcreate(zone->baseview, "  neighbr ", neighviewkeys);
     zone->signview = names_viewcreate(zone->baseview,    "  sign    ", signviewkeys);
     zone->outputview = names_viewcreate(zone->baseview,  "  output  ", outputviewkeys);
-    free(zoneapex);
+
+    names_viewlookupone(zone->baseview, zone->apex, LDNS_RR_TYPE_SOA, NULL, &rr);
+    if(rr) {
+        serial = ldns_rdf2native_int32(ldns_rr_rdf(rr, SE_SOA_RDATA_SERIAL));
+        if(zone->inboundserial)
+            free(zone->inboundserial);
+        zone->inboundserial = malloc(sizeof(uint32_t));
+        *zone->inboundserial = serial;
+    }
 }

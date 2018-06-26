@@ -226,84 +226,65 @@ usefile(const char* basename, const char* specific)
     struct timespec newtime[2];
     struct stat filestat;
     int basefd = AT_FDCWD;
-    unlinkat(basefd, basename, 0);
-    
-    if(strlen(specific)>strlen(".gz") && !strcmp(&specific[strlen(specific)-strlen(".gz")],".gz")) {
-        producefile(specific,basename,"gzip","-c","-d",NULL);
-    } else {
-        linkat(basefd, specific, basefd, basename, 0);
+
+    unlinkat(basefd, basename, 0);    
+    if (specific != NULL) {
+        if (strlen(specific)>strlen(".gz") && !strcmp(&specific[strlen(specific)-strlen(".gz")],".gz")) {
+            producefile(specific,basename,"gzip","-c","-d",NULL);
+        } else {
+            linkat(basefd, specific, basefd, basename, 0);
+        }
+        fstatat(basefd, basename, &filestat, 0);
+        clock_gettime(CLOCK_REALTIME_COARSE, &curtime);
+        newtime[0] = filestat.st_atim;
+        newtime[1] = curtime;
+        utimensat(basefd, basename, newtime, 0);
     }
-    fstatat(basefd, basename, &filestat, 0);
-    clock_gettime(CLOCK_REALTIME_COARSE, &curtime);
-    newtime[0] = filestat.st_atim;
-    newtime[1] = curtime;
-    utimensat(basefd, basename, newtime, 0);
 }
 
-extern void testNothing(void);
-extern void testIterator(void);
-extern void testAnnotate(void);
-extern void testBasic(void);
-extern void testSignNSEC(void);
-extern void testSignNSEC3(void);
-extern void testSignNSECNL(void);
-
-void
-testNothing(void)
+static void
+validatezone(zone_type* zone)
 {
+    names_viewvalidate(zone->baseview);
+    names_viewvalidate(zone->inputview);
+    names_viewvalidate(zone->prepareview);
+    names_viewvalidate(zone->neighview);
+    names_viewvalidate(zone->signview);
+    names_viewvalidate(zone->outputview);
 }
 
-void
-testIterator(void)
+static void
+disposezone(zone_type* zone)
 {
-    names_iterator iter;
-    ldns_rr_type rrtype;
-    ldns_rr* rr;
-    ldns_rdf* prev;
-    uint32_t ttl;
-    ldns_rdf* origin;
-    const char* name;
-    recordset_type record;
-    prev = NULL;
-    ttl = 60;
-    name = "example.com";
-    record = names_recordcreate((char**)&name);
-    origin = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, "example.com.");
-    ldns_rr_new_frm_str(&rr, "example.com. 86400 IN SOA ns1.example.com. postmaster.example.com. 2009060301 10800 3600 604800 86400", ttl, origin, &prev);
-    rrset_add_rr(record, rr);
-    iter = names_recordalltypes(record);
-    if(names_iterate(&iter,&rrtype))
-        names_end(&iter);
+    zonelist_del_zone(engine->zonelist, zone);
+    names_viewreset(zone->baseview);
+    names_viewdestroy(zone->inputview);
+    names_viewdestroy(zone->prepareview);
+    names_viewdestroy(zone->neighview);
+    names_viewdestroy(zone->signview);
+    names_viewdestroy(zone->outputview);
+    names_viewdestroy(zone->baseview);
+    zone_cleanup(zone);
 }
 
-void
-testAnnotateItem(const char* name, const char* expected)
+static void
+outputzone(zone_type* zone)
 {
-    struct names_view_zone zonedata = { NULL, "example.com", NULL };
-    recordset_type record;
-    const char* denial;
-    record = names_recordcreatetemp(name);
-    names_recordannotate(record, &zonedata);
-    denial = names_recordgetid(record, "denialname");
-    CU_ASSERT_STRING_EQUAL(expected, denial);
-    names_recorddispose(record);
-}
-void
-testAnnotate(void)
-{
-    testAnnotateItem("www.test.example.com", "com~example~test~www");
-    testAnnotateItem("www.example.com", "com~example~www");
-    testAnnotateItem("example.com", "com~example");
-    testAnnotateItem("com", "com");
+    task_type* task;
+    struct worker_context context;
+    context.engine = engine;
+    context.worker = worker_create(strdup("mock"), NULL);
+    context.signq = NULL;
+    context.zone = zone;
+    context.clock_in = time_now();
+    context.view = zone->outputview;
+    task = task_create(strdup(zone->name), TASK_CLASS_SIGNER, TASK_WRITE, do_writezone, zone, NULL, 0);
+    task->callback(task, zone->name, zone, &context);
+    task_destroy(task);
+    worker_cleanup(context.worker);
 }
 
-void
-testBasic(void)
-{
-    command_update(engine, NULL, NULL, NULL, NULL);
-}
-
-void
+static void
 signzone(zone_type* zone)
 {
     task_type* task;
@@ -335,37 +316,195 @@ signzone(zone_type* zone)
     worker_cleanup(context.worker);
 }
 
+static void
+resignzone(zone_type* zone)
+{
+    task_type* task;
+    struct worker_context context;
+    context.engine = engine;
+    context.worker = worker_create(strdup("mock"), NULL);
+    context.signq = NULL;
+    context.zone = zone;
+    context.clock_in = time_now();
+    context.view = zone->inputview;
+    task = task_create(strdup(zone->name), TASK_CLASS_SIGNER, TASK_SIGNCONF, do_readsignconf, zone, NULL, 0);
+    task->callback(task, zone->name, zone, &context);
+    task_destroy(task);
+    context.clock_in = time_now();
+    context.view = zone->signview;
+    task = task_create(strdup(zone->name), TASK_CLASS_SIGNER, TASK_SIGN, do_signzone, zone, NULL, 0);
+    task->callback(task, zone->name, zone, &context);
+    task_destroy(task);
+    context.clock_in = time_now();
+    context.view = zone->outputview;
+    task = task_create(strdup(zone->name), TASK_CLASS_SIGNER, TASK_WRITE, do_writezone, zone, NULL, 0);
+    task->callback(task, zone->name, zone, &context);
+    task_destroy(task);
+    worker_cleanup(context.worker);
+}
+
+static void
+reresignzone(zone_type* zone)
+{
+    task_type* task;
+    struct worker_context context;
+    context.engine = engine;
+    context.worker = worker_create(strdup("mock"), NULL);
+    context.signq = NULL;
+    context.zone = zone;
+    context.clock_in = time_now();
+    context.view = zone->signview;
+    task = task_create(strdup(zone->name), TASK_CLASS_SIGNER, TASK_SIGN, do_signzone, zone, NULL, 0);
+    task->callback(task, zone->name, zone, &context);
+    task_destroy(task);
+    worker_cleanup(context.worker);
+}
+
+
+extern void testNothing(void);
+extern void testIterator(void);
+extern void testAnnotate(void);
+extern void testBasic(void);
+extern void testSignNSEC(void);
+extern void testSignNSEC3(void);
+extern void testSignNSECNL(void);
+extern void testSignFast(void);
+
+
+void
+testNothing(void)
+{
+}
+
+
+void
+testIterator(void)
+{
+    names_iterator iter;
+    ldns_rr_type rrtype;
+    ldns_rr* rr;
+    ldns_rdf* prev;
+    uint32_t ttl;
+    ldns_rdf* origin;
+    const char* name;
+    recordset_type record;
+    prev = NULL;
+    ttl = 60;
+    name = "example.com";
+    record = names_recordcreate((char**)&name);
+    origin = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, "example.com.");
+    ldns_rr_new_frm_str(&rr, "example.com. 86400 IN SOA ns1.example.com. postmaster.example.com. 2009060301 10800 3600 604800 86400", ttl, origin, &prev);
+    rrset_add_rr(record, rr);
+    iter = names_recordalltypes(record);
+    if(names_iterate(&iter,&rrtype))
+        names_end(&iter);
+}
+
+
+static void
+testAnnotateItem(const char* name, const char* expected)
+{
+    struct names_view_zone zonedata = { NULL, "example.com", NULL };
+    recordset_type record;
+    const char* denial;
+    record = names_recordcreatetemp(name);
+    names_recordannotate(record, &zonedata);
+    denial = names_recordgetid(record, "denialname");
+    CU_ASSERT_STRING_EQUAL(expected, denial);
+    names_recorddispose(record);
+}
+
+void
+testAnnotate(void)
+{
+    testAnnotateItem("www.test.example.com", "com~example~test~www");
+    testAnnotateItem("www.example.com", "com~example~www");
+    testAnnotateItem("example.com", "com~example");
+    testAnnotateItem("com", "com");
+}
+
+
+void
+testMarshalling(void)
+{
+    int fd;
+    marshall_handle h;
+    ldns_rdf* origin;
+    ldns_rr* rr1;
+    ldns_rr* rr2;
+    ldns_rr* rr3;
+    ldns_rr* rrsig;
+    ldns_rdf* rrprev = NULL;
+    recordset_type record;
+    signconf_type* signconf = NULL;
+    struct names_view_zone zone = { NULL, "example.com.", &signconf };
+
+    zone.signconf = NULL;
+    record = names_recordcreatetemp("testrecord");
+    names_recordannotate(record, &zone);
+    origin = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, "example.com.");
+    assert(origin);
+    ldns_rr_new_frm_str(&rr1, "domain.example.com. A 127.0.0.1", 60, origin, &rrprev);
+    ldns_rr_new_frm_str(&rr2, "domain.example.com. A 172.0.0.1", 60, origin, &rrprev);
+    ldns_rr_new_frm_str(&rr3, "domain.example.com. NS domain.example.com.", 60, origin, &rrprev);
+    assert(rr1);
+    assert(rr2);
+    assert(rr3);
+    rrset_add_rr(record, rr1);
+    rrset_add_rr(record, rr2);
+    rrset_add_rr(record, rr3);
+    ldns_rr_new_frm_str(&rrsig, "domain.example.com. RRSIG A 7 3 86400 20180525135557 20180525125459 55490 example.com. FV0gZ8FAaqlFnJ6jFuBj4DSImeftLaRdOXhjGxUZuZe29PkkuZP9u2cb9n4SSXRSn88rEHoSff8nPKwYKCOzOxlgHx7q4FZwmGrLrmV7Sfjp41O7DI4P8F/APVwfuc4d63uQq3C2opXgFv76L0CQ/+9mIOxthjL7hVy00UDPzWM=", 60, origin, &rrprev);
+    names_recordaddsignature(record,LDNS_RR_TYPE_A, rrsig, "locateme", 0);
+    names_recordsetexpiry(record, 111);
+    names_recordsetvalidfrom(record, 222);
+    names_recordsetvalidupto(record, 333);
+
+    fd = open("test.dmp", O_WRONLY|O_TRUNC|O_CREAT,0666);
+    h = marshallcreate(marshall_OUTPUT, fd);
+    names_recordmarshall(&record,h);
+    marshallclose(h);
+    close(fd);
+
+    record = NULL;
+    fd = open("test.dmp", O_RDONLY, 0666);
+    h = marshallcreate(marshall_INPUT, fd);
+    names_recordmarshall(&record,h);
+    names_dumprecord(stderr,record);
+    marshallclose(h);
+    close(fd);
+}
+
+
+void
+testBasic(void)
+{
+    command_update(engine, NULL, NULL, NULL, NULL);
+}
+
+
 void
 testSignNSEC(void)
 {
-    int c;
     zone_type* zone;
+    usefile("example.com.state", NULL);
     usefile("zones.xml", "zones.xml.example");
     usefile("unsigned.zone", "unsigned.zone.example");
     usefile("signconf.xml", "signconf.xml.nsec");
     zonelist_update(engine->zonelist, engine->config->zonelist_filename);
     zone = zonelist_lookup_zone_by_name(engine->zonelist, "example.com", LDNS_RR_CLASS_IN);
     signzone(zone);
-    zonelist_del_zone(engine->zonelist, zone);
-    names_viewreset(zone->baseview);
-    names_viewdestroy(zone->inputview);
-    names_viewdestroy(zone->prepareview);
-    names_viewdestroy(zone->neighview);
-    names_viewdestroy(zone->signview);
-    names_viewdestroy(zone->outputview);
-    names_viewdestroy(zone->baseview);
-    zone_cleanup(zone);
-    CU_ASSERT_EQUAL((c = comparezone("unsigned.zone","signed.zone")), 0);
-    CU_ASSERT_EQUAL((c = system("ldns-verify-zone signed.zone")), 0);
-    // TODO: test contains NSEC
+    disposezone(zone);
+    CU_ASSERT_EQUAL((comparezone("unsigned.zone","signed.zone")), 0);
+    CU_ASSERT_EQUAL((system("ldns-verify-zone signed.zone")), 0);
 }
+
 
 void
 testSignNSEC3(void)
 {
-    int c;
     zone_type* zone;
     logger_mark_performance("setup files");
+    usefile("example.com.state", NULL);
     usefile("zones.xml", "zones.xml.example");
     usefile("unsigned.zone", "unsigned.zone.example");
     usefile("signconf.xml", "signconf.xml.nsec3");
@@ -374,26 +513,54 @@ testSignNSEC3(void)
     zone = zonelist_lookup_zone_by_name(engine->zonelist, "example.com", LDNS_RR_CLASS_IN);
     logger_mark_performance("sign");
     signzone(zone);
-    zonelist_del_zone(engine->zonelist, zone);
-    names_viewreset(zone->baseview);
-    names_viewdestroy(zone->inputview);
-    names_viewdestroy(zone->prepareview);
-    names_viewdestroy(zone->neighview);
-    names_viewdestroy(zone->signview);
-    names_viewdestroy(zone->outputview);
-    names_viewdestroy(zone->baseview);
-    zone_cleanup(zone);
-    CU_ASSERT_EQUAL((c = comparezone("unsigned.zone","signed.zone")), 0);
-    CU_ASSERT_EQUAL((c = system("ldns-verify-zone signed.zone")), 0);
-    // TODO: test contains NSEC3
+    disposezone(zone);
+    CU_ASSERT_EQUAL((comparezone("unsigned.zone","signed.zone")), 0);
+    CU_ASSERT_EQUAL((system("ldns-verify-zone signed.zone")), 0);
 }
+
+
+void
+testSignResign(void)
+{
+    int basefd;
+    int c;
+    zone_type* zone;
+    basefd = open(".", O_PATH, 07777);
+    logger_mark_performance("setup files");
+    usefile("example.com.state", NULL);
+    usefile("zones.xml", "zones.xml.example");
+    usefile("unsigned.zone", "unsigned.zone.testing");
+    usefile("signconf.xml", "signconf.xml.nsec");
+    logger_mark_performance("setup zone");
+    zonelist_update(engine->zonelist, engine->config->zonelist_filename);
+    zone = zonelist_lookup_zone_by_name(engine->zonelist, "example.com", LDNS_RR_CLASS_IN);
+    logger_mark_performance("sign");
+    signzone(zone);
+    validatezone(zone);
+    resignzone(zone);
+
+    char* filename = ods_build_path(zone->name, ".state", 0, 1);
+    names_viewpersist(zone->baseview, basefd, filename);
+    free(filename);
+    
+    disposezone(zone);
+    engine->zonelist->last_modified = 0; /* force update */
+    zonelist_update(engine->zonelist, engine->config->zonelist_filename);
+    zone = zonelist_lookup_zone_by_name(engine->zonelist, "example.com", LDNS_RR_CLASS_IN);
+    resignzone(zone);
+    reresignzone(zone);
+    reresignzone(zone);
+    outputzone(zone);
+    disposezone(zone);
+}
+
 
 void
 testSignNL(void)
 {
-    int c;
     zone_type* zone;
     logger_mark_performance("setup files");
+    usefile("nl.state", NULL);
     usefile("zones.xml", "zones.xml.nl");
     usefile("unsigned.zone", "unsigned.zone.nl.gz");
     usefile("signconf.xml", "signconf.xml.nl");
@@ -402,29 +569,68 @@ testSignNL(void)
     zone = zonelist_lookup_zone_by_name(engine->zonelist, "nl", LDNS_RR_CLASS_IN);
     logger_mark_performance("sign");
     signzone(zone);
-    CU_ASSERT_EQUAL((c = comparezone("unsigned.zone","signed.zone")), 0);
-    CU_ASSERT_EQUAL((c = system("ldns-verify-zone signed.zone")), 0);
-    // TODO: test contains NSEC3
+    disposezone(zone);
+    //CU_ASSERT_EQUAL((c = comparezone("unsigned.zone","signed.zone")), 0);
 }
 
-void
-testSignOld(void)
-{
-    usefile("zones.xml", "zones.xml.1");
-    command_update(engine, NULL, NULL, NULL, NULL);
-    pthread_mutex_lock(&engine->zonelist->zl_lock);
-    CU_ASSERT_EQUAL(engine->zonelist->zones->count, 0);
-    ods_log_error("checking %lu",engine->zonelist->zones->count);
-    pthread_mutex_unlock(&engine->zonelist->zl_lock);
-    sleep(1);
+#include "views/httpd.h"
 
-    usefile("zones.xml", "zones.xml.2");
-    command_update(engine, NULL, NULL, NULL, NULL);
-    pthread_mutex_lock(&engine->zonelist->zl_lock);
-    CU_ASSERT_EQUAL(engine->zonelist->zones->count, 1);
-    ods_log_error("checking %lu",engine->zonelist->zones->count);
-    pthread_mutex_unlock(&engine->zonelist->zl_lock);
-    sleep(10);
+struct rpc*
+makecall(char* zone, const char* delegation, ...)
+{
+    va_list ap;
+    const char* str;
+    int i, count;
+    ldns_rdf* origin = NULL;
+    struct rpc* rpc = malloc(sizeof(struct rpc));
+    rpc->opc = RPC_CHANGE_DELEGATION;
+    rpc->zone = strdup(zone);
+    rpc->version = strdup("1");
+    rpc->detail_version = strdup("20170620");
+    rpc->correlation = NULL;
+    rpc->delegation_point = strdup(delegation);
+    va_start(ap,delegation);
+    count = 0;
+    while((str=va_arg(ap,const char*))!=NULL)
+        ++count;
+    va_end(ap);
+    rpc->rr_count = count;
+    rpc->rr = malloc(sizeof(ldns_rr*)*count);
+    va_start(ap,delegation);
+    for(i=0; i<count; i++) {
+        str = va_arg(ap,const char*);
+        ldns_rr_new_frm_str(&rpc->rr[i], str, 0, origin, NULL);
+    }
+    va_end(ap);
+    rpc->rr_count = count;
+    rpc->status = RPC_OK;
+    return rpc;
+}
+
+
+void
+testSignFast(void)
+{
+    int basefd;
+    int c;
+    zone_type* zone;
+    basefd = open(".", O_PATH, 07777);
+    logger_mark_performance("setup files");
+    usefile("example.com.state", NULL);
+    usefile("zones.xml", "zones.xml.example");
+    usefile("unsigned.zone", "unsigned.zone.testing");
+    usefile("signconf.xml", "signconf.xml.nsec");
+    zonelist_update(engine->zonelist, engine->config->zonelist_filename);
+    zone = zonelist_lookup_zone_by_name(engine->zonelist, "example.com", LDNS_RR_CLASS_IN);
+    signzone(zone);
+    //makecall(zone->name, "domain.example.com", NULL);
+    reresignzone(zone);
+//names_viewreset(zone->outputview);
+//writezonef(zone->outputview, stderr);
+names_dumpviewfull(stderr,zone->prepareview);
+    outputzone(zone);
+    disposezone(zone);
+    //system("cat signed.zone");
 }
 
 
@@ -439,9 +645,12 @@ struct test_struct {
     { "signer", "testNothing",    "test nothing" },
     { "signer", "testIterator",   "test of iterator" },
     { "signer", "testAnnotate",   "test of denial annotation" },
+    { "signer", "testMarshalling","test marshalling" },
     { "signer", "testBasic",      "test of start stop" },
     { "signer", "testSignNSEC",   "test NSEC signing" },
     { "signer", "testSignNSEC3",  "test NSEC3 signing" },
+    { "signer", "testSignResign", "test resigning restart" },
+    { "signer", "testSignFast",   "test fast updates" },
     { "signer", "-testSignNL",    "test NL signing" },
     { NULL, NULL, NULL }
 };

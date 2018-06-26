@@ -131,8 +131,7 @@ void names_recorddispose(recordset_type);
 const char* names_recordgetid(recordset_type dict, const char* name);
 int names_recordcompare_namerevision(recordset_type a, recordset_type b);
 int names_recordhasdata(recordset_type record, ldns_rr_type recordtype, ldns_rr* rr, int exact);
-void names_recordadddata(recordset_type, ldns_rr_type, char* data, char* info);
-void rrset_add_rr(recordset_type d, ldns_rr* rr);
+void rrset_add_rr(recordset_type d, ldns_rr* rr); // FIXME rename to names_recordadddata()
 void names_recorddeldata(recordset_type d, ldns_rr_type rrtype, ldns_rr* rr);
 void names_recorddelall(recordset_type, ldns_rr_type rrtype);
 names_iterator names_recordalltypes(recordset_type);
@@ -211,6 +210,7 @@ void* names_take(names_view_type view, int index, const char* name);
 void names_remove(names_view_type view, recordset_type record);
 names_view_type names_viewcreate(names_view_type base, const char* name, const char** keynames);
 void names_viewdestroy(names_view_type view);
+void names_viewvalidate(names_view_type view);
 
 typedef names_iterator (*names_indexrange_func)();
 names_iterator names_viewiterator(names_view_type view, names_indexrange_func func, ...);

@@ -203,13 +203,12 @@ names_viewcreate(names_view_type base, const char* viewname, const char** keynam
     } else if(!strcmp(viewname,"  output  ")) {
     }
     if(base != NULL) {
-        /* swapping next two loops might get better performance */
         for(iter=names_indexiterator(base->indices[0]); names_iterate(&iter, &content); names_advance(&iter, NULL)) {
-            recordset_type existing = NULL;
-            if(names_indexinsert(view->indices[0], content, &existing)) {
-                for(i=1; i<nindices; i++) {
-                    names_indexinsert(view->indices[i], content, &existing);
-                }
+            names_indexinsert(view->indices[0], content, NULL);
+        }
+        for(iter=names_indexiterator(view->indices[0]); names_iterate(&iter, &content); names_advance(&iter, NULL)) {
+            for(i=1; i<nindices; i++) {
+                names_indexinsert(view->indices[i], content, NULL);
             }
         }
         view->commitlog = base->commitlog;
@@ -252,6 +251,40 @@ names_viewdestroy(names_view_type view)
         free((void*)view->zonedata.apex);
     free(view->searchfuncs);
     free(view);
+}
+
+typedef int (*acceptfunction)(recordset_type newitem, recordset_type currentitem, int* cmp);
+struct names_index_struct {
+    const char* keyname;
+    ldns_rbtree_t* tree;
+    acceptfunction acceptfunc;
+};
+
+void
+names_viewvalidate(names_view_type view)
+{
+    int i;
+    names_iterator iter;
+    recordset_type record;
+    recordset_type compare;
+    for(i=1; i<view->nindices; i++) {
+        for(iter=names_indexiterator(view->indices[i]); names_iterate(&iter,&record); names_advance(&iter,NULL)) {
+            compare = names_indexlookup(view->indices[0], record);
+            if(compare == NULL) {
+                names_dumprecord(stderr,record);
+                assert(compare != NULL);
+            }
+            if(compare != record) {
+                names_dumprecord(stderr,record);
+                names_dumprecord(stderr,compare);
+                assert(compare == record);
+            }
+            if(view->indices[i]->acceptfunc(record,NULL,NULL) != 1) {
+                names_dumprecord(stderr,record);
+                assert(view->indices[i]->acceptfunc(record,NULL,NULL) == 1);
+            }
+        }
+    }
 }
 
 void
@@ -520,7 +553,10 @@ names_viewpersist(names_view_type view, int basefd, char* filename)
 
     updateview(view, NULL);
 
-    CHECK((fd = openat(basefd, tmpfilename, O_CREAT|O_WRONLY|O_LARGEFILE|O_TRUNC,0666)) < 0);
+    if(basefd >= 0)
+        CHECK((fd = openat(basefd, tmpfilename, O_CREAT|O_WRONLY|O_LARGEFILE|O_TRUNC,0666)) < 0);
+    else
+        CHECK((fd = open(tmpfilename, O_CREAT|O_WRONLY|O_LARGEFILE|O_TRUNC,0666)) < 0);
     marsh = marshallcreate(marshall_OUTPUT, fd);
 
     iter = names_indexiterator(view->indices[0]);

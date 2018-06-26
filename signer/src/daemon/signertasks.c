@@ -126,6 +126,22 @@ signdomain(struct worker_context* superior, hsm_ctx_t* ctx, recordset_type recor
         if((status = rrset_sign(superior->zone->signconf, superior->view, record, LDNS_RR_TYPE_NSEC, ctx, superior->clock_in)) != ODS_STATUS_OK)
             return status;
     }
+
+    time_t expiration = LONG_MAX;
+    time_t rrsigexpirationtime;
+    ldns_rr* rrsig;
+    ldns_rr_list*rrsigs;
+    ldns_rdf*rrsigexpiration;
+    names_recordlookupall(record, LDNS_RR_TYPE_RRSIG, NULL, NULL, &rrsigs);
+    while((rrsig=ldns_rr_list_pop_rr(rrsigs))) {
+        rrsigexpiration = ldns_rr_rrsig_expiration(rrsig);
+        rrsigexpirationtime = ldns_rdf2native_time_t(rrsigexpiration);
+        if(rrsigexpirationtime < expiration)
+            expiration = rrsigexpirationtime;
+    }
+    ldns_rr_list_free(rrsigs);
+    names_recordsetexpiry(record, expiration);
+
     return ODS_STATUS_OK;
 }
 
@@ -284,7 +300,7 @@ do_signzone(task_type* task, const char* zonename, void* zonearg, void *contexta
         assert(change.dst != change.src);
         if(names_recordhasexpiry(change.src)) {
             names_recordsetvalidupto(change.dst, newserial);
-            names_own(prepareview, &change.src); // FIXME amend
+            names_own(prepareview, &change.src);
             names_recordsetvalidfrom(change.src, newserial);
         }
     }
@@ -381,8 +397,13 @@ do_signzone(task_type* task, const char* zonename, void* zonearg, void *contexta
             recordset_type record;
             ctx = hsm_create_context();
             for(iter=names_viewiterator(zone->signview,names_iteratorexpiring); names_iterate(&iter,&record); names_advance(&iter,NULL)) {
+                if(names_recordhasexpiry(record) &&
+                   names_recordgetexpiry(record) >= context->clock_in +
+                                                    duration2time(zone->signconf->sig_refresh_interval)) { // FIXME should be part of iterator
+                    names_end(&iter);
+                    break;
+                }
                 signdomain(context, ctx, record);
-                names_recordsetexpiry(record, 1); // FIXME set expiry to expiration time of signature
             }
             hsm_destroy_context(ctx);
         }
