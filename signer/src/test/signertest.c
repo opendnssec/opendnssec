@@ -50,7 +50,7 @@
 #include "utilities.h"
 #include "daemon/signertasks.h"
 
-int comparezone(const char* fname1, const char* fname2);
+#include "comparezone.h"
 
 char* argv0;
 static char* workdir;
@@ -494,7 +494,7 @@ testSignNSEC(void)
     zone = zonelist_lookup_zone_by_name(engine->zonelist, "example.com", LDNS_RR_CLASS_IN);
     signzone(zone);
     disposezone(zone);
-    CU_ASSERT_EQUAL((comparezone("unsigned.zone","signed.zone")), 0);
+    CU_ASSERT_EQUAL((comparezone("unsigned.zone","signed.zone",0)), 0);
     CU_ASSERT_EQUAL((system("ldns-verify-zone signed.zone")), 0);
 }
 
@@ -514,7 +514,7 @@ testSignNSEC3(void)
     logger_mark_performance("sign");
     signzone(zone);
     disposezone(zone);
-    CU_ASSERT_EQUAL((comparezone("unsigned.zone","signed.zone")), 0);
+    CU_ASSERT_EQUAL((comparezone("unsigned.zone","signed.zone",0)), 0);
     CU_ASSERT_EQUAL((system("ldns-verify-zone signed.zone")), 0);
 }
 
@@ -522,10 +522,8 @@ testSignNSEC3(void)
 void
 testSignResign(void)
 {
-    int basefd;
-    int c;
+    int basefd = AT_FDCWD;
     zone_type* zone;
-    basefd = open(".", O_PATH, 07777);
     logger_mark_performance("setup files");
     usefile("example.com.state", NULL);
     usefile("zones.xml", "zones.xml.example");
@@ -611,10 +609,8 @@ makecall(char* zone, const char* delegation, ...)
 void
 testSignFast(void)
 {
-    int basefd;
-    int c;
+    int status;
     zone_type* zone;
-    basefd = open(".", O_PATH, 07777);
     logger_mark_performance("setup files");
     usefile("example.com.state", NULL);
     usefile("zones.xml", "zones.xml.example");
@@ -623,14 +619,17 @@ testSignFast(void)
     zonelist_update(engine->zonelist, engine->config->zonelist_filename);
     zone = zonelist_lookup_zone_by_name(engine->zonelist, "example.com", LDNS_RR_CLASS_IN);
     signzone(zone);
-    //makecall(zone->name, "domain.example.com", NULL);
+    status = names_viewcommit(zone->signview);
+    CU_ASSERT_EQUAL(status,0);
+    names_viewreset(zone->inputview);
+    status = httpd_dispatch(zone->inputview, makecall(zone->name, "domain.example.com.", NULL));
+    CU_ASSERT_EQUAL(status, 0);
+    status = names_viewcommit(zone->inputview);
+    CU_ASSERT_EQUAL(status,0);
     reresignzone(zone);
-//names_viewreset(zone->outputview);
-//writezonef(zone->outputview, stderr);
-names_dumpviewfull(stderr,zone->prepareview);
     outputzone(zone);
     disposezone(zone);
-    //system("cat signed.zone");
+    CU_ASSERT_EQUAL((status = comparezone("gold.zone","signed.zone",comparezone_INCL_SOA)), 0);
 }
 
 

@@ -240,6 +240,7 @@ int names_viewgetapex(names_view_type view, ldns_rdf** apexptr);
 void names_dumprecord(FILE*, recordset_type record);
 void names_dumpviewinfo(names_view_type view);
 void names_dumpviewfull(FILE*, names_view_type view);
+void names_dumpindex(FILE* fp, names_view_type view, int index);
 
 void writezonef(names_view_type view, FILE* fp);
 int writezone(names_view_type view, const char* filename);

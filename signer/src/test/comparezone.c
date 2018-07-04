@@ -7,6 +7,8 @@
 #include <errno.h>
 #include <ldns/ldns.h>
 
+#include "comparezone.h"
+
 static int
 inputzone(char* fname, ldns_zone** zoneptr, ldns_rr*** records, int* count)
 {
@@ -60,7 +62,7 @@ inputzone(char* fname, ldns_zone** zoneptr, ldns_rr*** records, int* count)
 }
 
 static int
-skiprr(ldns_rr* rr)
+skiprr(ldns_rr* rr, int flags)
 {
     if(rr == 0)
             return 0;
@@ -70,8 +72,12 @@ skiprr(ldns_rr* rr)
         case LDNS_RR_TYPE_NSEC3:
         case LDNS_RR_TYPE_NSEC3PARAM:
         case LDNS_RR_TYPE_DNSKEY:
-        case LDNS_RR_TYPE_SOA:
             return 1;
+        case LDNS_RR_TYPE_SOA:
+            if(flags & comparezone_INCL_SOA)
+                return 0;
+            else
+                return 1;
         default:
             return 0;
     }
@@ -99,7 +105,7 @@ comparerr(ldns_rr* rr1, ldns_rr* rr2)
 }
 
 int
-comparezone(char* fname1, char* fname2)
+comparezone(const char* fname1, const char* fname2, int flags)
 {
     FILE* fp;
     char* s;
@@ -141,9 +147,9 @@ comparezone(char* fname1, char* fname2)
                 i += 1;
             } else if (j>0 && !comparerr(rr2,array2[j-1])) {
                 j += 1;
-            } else if(skiprr(rr1)) {
+            } else if(skiprr(rr1,flags)) {
                 i += 1;
-            } else if(skiprr(rr2)) {
+            } else if(skiprr(rr2,flags)) {
                 j += 1;
             } else if (cmp < 0) {
                 s = ldns_rr2str(rr1);

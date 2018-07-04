@@ -64,7 +64,6 @@ readzone(names_view_type view, enum operation_enum operation, const char* filena
 
     if(operation == PLAIN) {
         for (domainiter = names_viewiterator(view, NULL); names_iterate(&domainiter, &domainitem); names_advance(&domainiter, NULL)) {
-            getset(domainitem, "name", (const char**) &recordname, NULL);
             for (rrsetiter = names_recordalltypes(domainitem); names_iterate(&rrsetiter, &recordtype); names_advance(&rrsetiter, NULL)) {
                 for (rriter = names_recordallvalueidents(domainitem,recordtype); names_iterate(&rriter, &s); names_advance(&rriter, NULL)) {
                     removal = strdup(s);

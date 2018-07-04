@@ -101,14 +101,12 @@ insertrecords(names_view_type view, struct rpc *rpc)
     return 0;
 }
 
-static int
-dispatch(struct httpd* httpd, struct rpc *rpc)
+int
+httpd_dispatch(names_view_type view, struct rpc *rpc)
 {
-    names_view_type view;
-
-    view = zonelist_obtainresource(httpd->zonelist, rpc->zone, offsetof(zone_type, inputview));
     if (!view) {
         rpc->status = RPC_RESOURCE_NOT_FOUND;
+        return 1;
     } else {
         names_viewreset(view);
         switch (rpc->opc) {
@@ -116,17 +114,17 @@ dispatch(struct httpd* httpd, struct rpc *rpc)
                 deletedelegation(view, rpc);
                 insertrecords(view, rpc);
                 names_viewcommit(view);
-                break;
+                return 0;
             case RPC_CHANGE_NAME:
                 deleterecordsets(view, rpc);
                 insertrecords(view, rpc);
                 names_viewcommit(view);
-                break;
+                return 0;
             default:
                 rpc->status = RPC_ERR;
+                return 1;
         }
     }
-    return 0;
 }
 
 static int
@@ -134,6 +132,8 @@ handle_content(struct httpd* httpd, const char *url, const char *buf, size_t buf
     struct MHD_Response **response, int *http_code)
 {
     /* DECODE (url, buf) HERE */
+    int ret;
+    names_view_type view;
     struct rpc *rpc = rpc_decode_json(url, buf, buflen);
     if (!rpc) {
         char *body = strdup("Can't parse\n");
@@ -144,7 +144,8 @@ handle_content(struct httpd* httpd, const char *url, const char *buf, size_t buf
     }
 
     /* PROCESS DB STUFF HERE */
-    int ret = dispatch(httpd, rpc);
+    view = zonelist_obtainresource(httpd->zonelist, rpc->zone, offsetof(zone_type, inputview));
+    ret = httpd_dispatch(view, rpc);
     if (ret) {
         /* Failed to apply to database, status is set by rpcproc_apply */
         /* PASS */

@@ -496,7 +496,7 @@ zone_cleanup(zone_type* zone)
 
 static const char* baseviewkeys[] = { "namerevision", NULL};
 static const char* inputviewkeys[] = { "nameupcoming", "namehierarchy", NULL};
-static const char* prepareviewkeys[] = { "namerevision", "namenoserial", "namenewserial", NULL};
+static const char* prepareviewkeys[] = { "namerevision", "namenoserial", "namenewserial", "relevantset", NULL};
 static const char* neighviewkeys[] = { "nameready", "denialname", NULL};
 static const char* signviewkeys[] = { "nameready", "expiry", "denialname", NULL};
 static const char* outputviewkeys[] = { "validnow", NULL};

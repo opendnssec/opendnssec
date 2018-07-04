@@ -85,7 +85,8 @@ worker_queue_zone(struct worker_context* context, fifoq_type* q, names_view_type
 {
     names_iterator iter;
     recordset_type record;
-    for(iter=names_viewiterator(view, names_iteratorexpiring); names_iterate(&iter,&record); names_advance(&iter,NULL)) {
+    time_t refreshtime = context->clock_in + duration2time(context->zone->signconf->sig_refresh_interval);
+    for(iter=names_viewiterator(view,names_iteratorexpiring,refreshtime); names_iterate(&iter,&record); names_advance(&iter,NULL)) {
         worker_queue_domain(context, q, record, nsubtasks);
     }
 }
@@ -280,6 +281,7 @@ do_signzone(task_type* task, const char* zonename, void* zonearg, void *contexta
     int newserial;
     int conflict;
 
+    names_viewreset(zone->prepareview);
     context->clock_in = time_now();
     context->zone = zone;
     context->view = zone->signview;
@@ -287,7 +289,6 @@ do_signzone(task_type* task, const char* zonename, void* zonearg, void *contexta
         namedb_update_serial(zone);
     }
     newserial = *(zone->nextserial);
-    names_viewreset(zone->prepareview);
     recordset_type record;
     struct dual change;
     names_iterator iter;
@@ -299,8 +300,9 @@ do_signzone(task_type* task, const char* zonename, void* zonearg, void *contexta
     for (iter=names_viewiterator(prepareview,names_iteratorincoming); names_iterate(&iter,&change); names_advance(&iter,NULL)) {
         assert(change.dst != change.src);
         if(names_recordhasexpiry(change.src)) {
+            names_amend(prepareview, change.dst);
             names_recordsetvalidupto(change.dst, newserial);
-            names_own(prepareview, &change.src);
+            names_amend(prepareview, change.src);
             names_recordsetvalidfrom(change.src, newserial);
         }
     }
@@ -395,14 +397,9 @@ do_signzone(task_type* task, const char* zonename, void* zonearg, void *contexta
             names_iterator iter;
             hsm_ctx_t* ctx;
             recordset_type record;
+            time_t refreshtime = context->clock_in + duration2time(zone->signconf->sig_refresh_interval);
             ctx = hsm_create_context();
-            for(iter=names_viewiterator(zone->signview,names_iteratorexpiring); names_iterate(&iter,&record); names_advance(&iter,NULL)) {
-                if(names_recordhasexpiry(record) &&
-                   names_recordgetexpiry(record) >= context->clock_in +
-                                                    duration2time(zone->signconf->sig_refresh_interval)) { // FIXME should be part of iterator
-                    names_end(&iter);
-                    break;
-                }
+            for(iter=names_viewiterator(zone->signview,names_iteratorexpiring,refreshtime); names_iterate(&iter,&record); names_advance(&iter,NULL)) {
                 signdomain(context, ctx, record);
             }
             hsm_destroy_context(ctx);

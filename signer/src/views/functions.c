@@ -643,7 +643,7 @@ zone_update_serial(zone_type* zone, names_view_type view)
     ods_log_assert(zone->name);
     ods_log_assert(zone->signconf);
 
-    recordset_type d = names_take(view, 0, NULL);
+    recordset_type d = names_take(view, 3, NULL);
     assert(d);
 
     if(!zone->inboundserial) {
@@ -661,7 +661,15 @@ zone_update_serial(zone_type* zone, names_view_type view)
     zone->nextserial = NULL;
     /* FIXME we should also disallow a forced serial lower then this discarded nextserial */
 
-    names_own(view, &d);
+    if(names_recordhasexpiry(d)) {
+        names_amend(view, d);
+        names_recordsetvalidupto(d, serial);
+        names_own(view, &d);
+        names_recordsetvalidfrom(d, serial);
+    } else {
+        names_own(view, &d);
+        names_recordsetvalidfrom(d, serial);
+    }
     names_recordlookupone(d, LDNS_RR_TYPE_SOA, NULL, &rr);
     rr = ldns_rr_clone(rr);;
     names_recorddelall(d, LDNS_RR_TYPE_SOA);

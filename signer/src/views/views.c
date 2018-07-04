@@ -92,9 +92,17 @@ changed(names_view_type view, recordset_type record, enum changetype type, recor
                 change->record = NULL;
                 break;
             case MOD:
-                change->record = record;
-                if(target)
-                    *target = &change->record;
+                if(change->record != change->oldrecord) {
+                    change->record = record;
+                    if(target)
+                        *target = &change->record;
+                } else {
+                    if(target) {
+                        *target = &change->record;
+                        change->record = NULL;
+                    } else
+                        change->record = record;
+                }
                 break;
             case UPD:
                 if(target)
@@ -355,9 +363,16 @@ names_iteratorexpiring(names_index_type index, va_list ap)
     recordset_type record;
     names_iterator iter;
     names_iterator result;
+    time_t refreshtime;
+    refreshtime = va_arg(ap,time_t);
     result = names_iterator_createrefs(NULL);
     for (iter=names_indexiterator(index); names_iterate(&iter,&record); names_advance(&iter,NULL)) {
-        names_iterator_addptr(result, record);
+        if(names_recordhasexpiry(record) && names_recordgetexpiry(record) >= refreshtime) {
+            names_end(&iter);
+            break;
+        } else {
+            names_iterator_addptr(result, record);
+        }
     }
     return result;
 }
@@ -604,6 +619,18 @@ names_dumpviewfull(FILE* fp, names_view_type view)
     marshall_handle marsh;
     marsh = marshallcreate(marshall_PRINT, fp);
     for(iter = names_viewiterator(view, NULL); names_iterate(&iter,&record); names_advance(&iter,NULL))
+        names_recordmarshall(&record, marsh);
+    marshallclose(marsh);
+}
+
+void
+names_dumpindex(FILE* fp, names_view_type view, int index)
+{
+    names_iterator iter;
+    recordset_type record;
+    marshall_handle marsh;
+    marsh = marshallcreate(marshall_PRINT, fp);
+    for(iter = names_indexiterator(view->indices[index]); names_iterate(&iter,&record); names_advance(&iter,NULL))
         names_recordmarshall(&record, marsh);
     marshallclose(marsh);
 }

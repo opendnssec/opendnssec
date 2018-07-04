@@ -340,6 +340,7 @@ names_indexsearchfunction(names_index_type index, names_view_type view, const ch
         names_viewaddsearchfunction(view, index, names_iteratordescendants);
     } else if(!strcmp(keyname,"nameready")) {
         names_viewaddsearchfunction(view, index, names_iteratorancestors);
+    } else if(!strcmp(keyname,"expiry")) {
         names_viewaddsearchfunction(view, index, names_iteratorexpiring);
-    }    
+    }
 }
