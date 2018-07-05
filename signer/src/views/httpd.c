@@ -94,7 +94,7 @@ insertrecords(names_view_type view, struct rpc *rpc)
         }
 
         names_own(view, &record);
-        rrset_add_rr(record, rr);
+        names_recordadddata(record, rr);
     }
 
     rpc->status = RPC_OK;

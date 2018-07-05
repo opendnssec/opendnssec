@@ -161,7 +161,7 @@ domain_is_occluded(names_view_type view, recordset_type record)
     recordset_type parent = NULL;
     if(names_recordhasdata(record, LDNS_RR_TYPE_SOA, NULL, 0))
         return LDNS_RR_TYPE_SOA;
-    for(iter=names_viewiterator(view,names_iteratorancestors,names_recordgetid(record,"name")); names_iterate(&iter,&parent); names_advance(&iter,NULL)) {
+    for(iter=names_viewiterator(view,names_iteratorancestors,names_recordgetname(record)); names_iterate(&iter,&parent); names_advance(&iter,NULL)) {
         if (names_recordhasdata(parent, LDNS_RR_TYPE_SOA, NULL, 0)) {
             names_end(&iter);
             return LDNS_RR_TYPE_SOA;
@@ -444,9 +444,9 @@ denial_create_nsec(names_view_type view, recordset_type domain, ldns_rdf* nxt, u
     ldns_rr_set_type(nsec_rr, rrtype);
     /* owner */
     if(n3p) {
-        denialname = names_recordgetid(domain, "denialname");
+        denialname = names_recordgetdenial(domain);
     } else {
-        denialname = names_recordgetid(domain, "name");
+        denialname = names_recordgetname(domain);
     }
     rdf = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, denialname); // FIXME denial name for NSEC3, NSEC for uses name
     if (!rdf) {
@@ -698,7 +698,7 @@ zone_update_serial(zone_type* zone, names_view_type view)
             return ODS_STATUS_ASSERT_ERR;
         }
     }
-    rrset_add_rr(d, rr);
+    names_recordadddata(d, rr);
     ldns_rr_free(rr);
     return ODS_STATUS_OK;
 }

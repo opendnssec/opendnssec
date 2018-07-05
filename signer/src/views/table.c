@@ -78,22 +78,12 @@ endimpl(names_iterator*iter)
     return 0;
 }
 
-static int
-cmp(const void *a, const void *b)
-{
-    const char* x;
-    const char* y;
-    x = (const char*) a;
-    y = (const char*) b;
-    return strcmp(x, y);
-}
-
 names_table_type
 names_tablecreate(void)
 {
     struct names_table_struct* table;
     table = malloc(sizeof(struct names_table_struct));
-    table->tree = ldns_rbtree_create(cmp);
+    table->tree = ldns_rbtree_create(names_recordcompare_namerevision);
     table->next = NULL;
     return table;
 }
@@ -125,10 +115,10 @@ names_tabledispose(names_table_type table, void (*userfunc)(void* arg, void* key
 }
 
 void*
-names_tableget(names_table_type table, const char* name)
+names_tableget(names_table_type table, void* key)
 {
     struct ldns_rbnode_t* node;
-    node = ldns_rbtree_search(table->tree, name);
+    node = ldns_rbtree_search(table->tree, key);
     if (node == NULL || node == LDNS_RBTREE_NULL) {
         return NULL;
     } else {
@@ -136,29 +126,15 @@ names_tableget(names_table_type table, const char* name)
     }
 }
 
-int
-names_tabledel(names_table_type table, char* name)
-{
-    struct ldns_rbnode_t* node;
-    node = ldns_rbtree_delete(table->tree, name);
-    if (node != NULL && node != LDNS_RBTREE_NULL) {
-        free((void*)node->data);
-        free(node);
-        return 1;
-    } else {
-        return 0;
-    }
-}
-
 void**
-names_tableput(names_table_type table, const char* name)
+names_tableput(names_table_type table, void* key)
 {
     struct ldns_rbnode_t* node;
 
-    node = ldns_rbtree_search(table->tree, name);
+    node = ldns_rbtree_search(table->tree, key);
     if (node == NULL || node == LDNS_RBTREE_NULL) {
         node = malloc(sizeof (struct ldns_rbnode_t));
-        node->key = name;
+        node->key = key;
         node->data = NULL;
         ldns_rbtree_insert(table->tree, node);
     }

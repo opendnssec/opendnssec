@@ -48,8 +48,7 @@ changed(names_view_type view, recordset_type record, enum changetype type, recor
     const char* name;
     names_change_type change;
     names_change_type* changeptr;
-    name = names_recordgetid(record, NULL);
-    changeptr = (names_change_type*) names_tableput(view->changelog, name);
+    changeptr = (names_change_type*) names_tableput(view->changelog, record);
     if(target)
         *target = NULL;
     if(*changeptr == NULL) {
@@ -386,7 +385,7 @@ names_iteratordenialchainupdates(names_index_type primary, names_index_type seco
     names_iterator result;
     result = names_iterator_createdata(sizeof(struct dual));
     for (iter=names_indexiterator(primary); names_iterate(&iter,&record); names_advance(&iter,NULL)) {
-        if(names_recordgetid(record,"denialname")) {
+        if(names_recordgetdenial(record)) {
             entry.src = record;
             entry.dst = names_indexlookupnext(secondary, record);
             assert(entry.src);
@@ -422,13 +421,11 @@ updateview(names_view_type view, names_table_type* mychangelog)
     names_iterator iter;
     names_change_type change;
     names_table_type changelog;
-    const char* name;
 
     changelog = NULL;
     while((names_commitlogpoppush(view->commitlog, view->viewid, &changelog, mychangelog))) {
         for(iter = names_tableitems(changelog); names_iterate(&iter, &change); names_advance(&iter, NULL)) {
-            name = names_recordgetid(change->record, NULL);
-            if(names_tableget(view->changelog, name)) {
+            if(names_tableget(view->changelog, change->record)) {
                 if (conflict == 0)
                     resetchangelog(view);
                 conflict = 1;

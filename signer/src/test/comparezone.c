@@ -10,7 +10,7 @@
 #include "comparezone.h"
 
 static int
-inputzone(char* fname, ldns_zone** zoneptr, ldns_rr*** records, int* count)
+inputzone(const char* fname, ldns_zone** zoneptr, ldns_rr*** records, int* count)
 {
     FILE* fp;
     ldns_rr_list* wsoa;

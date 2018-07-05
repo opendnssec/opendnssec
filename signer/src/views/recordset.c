@@ -35,11 +35,6 @@ struct recordset_struct {
     int* expiry;
     int nitemsets;
     struct itemset* itemsets;
-    char* tmpRevision;
-    char* tmpNameSerial;
-    char* tmpValidFrom;
-    char* tmpValidUpto;
-    char* tmpExpiry;
 };
 
 static void
@@ -93,13 +88,6 @@ int
 names_recordcompare_namerevision(recordset_type a, recordset_type b)
 {
     int rc;
-    const char* left;
-    const char* right;
-    getset(a, "name", &left, NULL);
-    getset(b, "name", &right, NULL);
-    assert(left);
-    assert(right);
-
     rc = strcmp(a->name, b->name);
     if(rc == 0) {
         if(a->revision != 0 && b->revision != 0) {
@@ -123,11 +111,6 @@ recordcreate()
     dict->validupto = NULL;
     dict->validfrom = NULL;
     dict->expiry = NULL;
-    dict->tmpNameSerial = NULL;
-    dict->tmpRevision = NULL;
-    dict->tmpValidFrom = NULL;
-    dict->tmpValidUpto = NULL;
-    dict->tmpExpiry = NULL;
     return dict;
 }
 
@@ -336,9 +319,8 @@ names_recordhasdata(recordset_type record, ldns_rr_type recordtype, ldns_rr* rr,
     return 0;
 }
 
-/* FIXME to be renamed to names_recordadddata */
 void
-rrset_add_rr(recordset_type d, ldns_rr* rr)
+names_recordadddata(recordset_type d, ldns_rr* rr)
 {
     int i, j;
     ldns_rr_type rrtype;
@@ -511,45 +493,6 @@ names_recordallvaluestrings(recordset_type d, ldns_rr_type rrtype)
     }
 }
 
-#ifdef NOTDEFINED
-static void names_recordallvalueidents_func(names_iterator iter, struct itemset* itemset, int index, ldns_rr_type* ptr)
-{
-    if (index >= 0) {
-        rrtypestr = ldns_rr_type2str(rrtype);
-        size = header + strlen(record->name) + 1 + strlen(rrtypestr) + 1;
-        sprintf(&buffer[header],"%s %s",record->name,rrtypestr);
-        buffer[header + strlen(&buffer[header])] = ' ';
-
- names_rr2ident(domainitem, recordtype, item, sizeof(struct removal_struct));
-    char* rrtypestr;
-    char* buffer;
-    size_t size;
-
-    return buffer;
-        ;
-}
-names_iterator
-names_recordallvalueidents(recordset_type d, ldns_rr_type rrtype)
-{
-    int i;
-    for(i=0; i<d->nitemsets; i++) {
-        if(rrtype == d->itemsets[i].rrtype)
-            break;
-    }
-    if(i<d->nitemsets) {
-
-        char* rrtypestr = ldns_rr_type2str(rrtype);
-        buffer = names_rr2data(item->rr, size);
-record->name
-
-
-        return names_iterator_createarray(d->itemsets[i].nitems, d->nitemsets, names_recordallvalueidents_func);
-    } else {
-        return NULL;
-    }
-}
-#endif
-
 void
 names_recorddispose(recordset_type dict)
 {
@@ -571,23 +514,19 @@ names_recorddispose(recordset_type dict)
     free(dict->validupto);
     free(dict->validfrom);
     free(dict->expiry);
-    free(dict->tmpNameSerial);
-    free(dict->tmpRevision);
-    free(dict->tmpValidFrom);
-    free(dict->tmpValidUpto);
-    free(dict->tmpExpiry);
     free(dict);
 }
 
 const char*
-names_recordgetid(recordset_type record, const char* name)
+names_recordgetname(recordset_type record)
 {
-    const char* id;
-    if(name == NULL) {
-        name = "namerevision";
-    }
-    getset(record, name, &id, NULL);
-    return id;
+    return record->name;
+}
+
+const char*
+names_recordgetdenial(recordset_type record)
+{
+    return record->spanhash;
 }
 
 int
@@ -671,11 +610,6 @@ marshall(marshall_handle h, void* ptr)
         size += marshalling(h, "signatures", &(d->itemsets[i].signatures), marshall_OPTIONAL, sizeof(struct signatures_struct), marshallsigs);
         size += marshalling(h, NULL, NULL, &(d->nitemsets), i, marshallself);
     }
-    d->tmpNameSerial = NULL;
-    d->tmpRevision = NULL;
-    d->tmpValidFrom = NULL;
-    d->tmpValidUpto = NULL;
-    d->tmpExpiry = NULL;
     return size;
 }
 
@@ -687,199 +621,6 @@ names_recordmarshall(recordset_type* record, marshall_handle h)
     if(record == NULL)
         record = &dummy;
     rc = marshalling(h, "domain", record, marshall_OPTIONAL, sizeof(struct recordset_struct), marshall);
-    return rc;
-}
-
-void
-composestring(char* dst, const char* src, ...)
-{
-    va_list ap;
-    int len;
-    va_start(ap, src);
-    while (src != NULL) {
-        len = strlen(src);
-        memcpy(dst, src, len);
-        dst += len;
-        src = va_arg(ap, char*);
-        *dst = (src == NULL ? '\0' : ' ');
-        dst += 1;
-    }
-    va_end(ap);
-}
-
-int
-composestring2(char** ptr, const char* src, ...)
-{
-    va_list ap;
-    int size, len, nomatch;
-    char* dst;
-    if(ptr != NULL) {
-        dst = NULL;
-        nomatch = 1;
-    } else {
-        dst = *ptr;
-        if(dst == NULL) {
-            nomatch = 1;
-        } else {
-            nomatch = 0;
-        }
-    }
-    size = 0;
-    va_start(ap, src);
-    while (src != NULL) {
-        len = strlen(src);
-        if(nomatch || strcmp(dst, src)) {
-            nomatch = 1;
-        } else {
-            dst += len;
-        }
-        src = va_arg(ap, char*);
-        if(nomatch || (src == NULL ? *dst != '\0' : *dst != ' ')) {
-            nomatch = 1;
-        } else {
-            dst += 1;
-        }
-        size += len + 1;
-    }
-    va_end(ap);
-    if(ptr == NULL) {
-        return len;
-    } else if(nomatch == 0) {
-        return 0;
-    } else {
-        if(*ptr)
-            free(*ptr);
-        dst = *ptr = malloc(size);
-        va_start(ap, src);
-        while (src != NULL) {
-            len = strlen(src);
-            memcpy(dst, src, len);
-            dst += len;
-            src = va_arg(ap, char*);
-            *dst = (src == NULL ? '\0' : ' ');
-            dst += 1;
-        }
-        va_end(ap);
-        return 1;
-    }
-}
-
-int
-composestringf(char** ptr, const char* fmt,...)
-{
-    va_list ap;
-    int size;
-    char* dst;
-    va_start(ap,fmt);
-    size = vsnprintf(NULL, 0, fmt, ap);
-    va_end(ap);
-    dst = alloca(size+1);
-    va_start(ap,fmt);
-    vsnprintf(dst, size+1, fmt, ap);
-    va_end(ap);
-    if (!*ptr || strcmp(*ptr,dst)) {
-        free(*ptr);
-        *ptr = malloc(size+1);
-        memcpy(*ptr, dst, size+1);
-        return 1;
-    } else {
-        return 0;
-    }
-}
-
-void
-decomposestringf(const char* ptr, const char* fmt,...)
-{
-    va_list ap;
-    va_start(ap,fmt);
-    vsscanf(ptr,fmt,ap);
-    va_end(ap);
-}
-
-//FIXME
-int
-getset(recordset_type d, const char* name, const char** get, const char** set)
-{
-    int rc = 1;
-    if (get)
-        *get = NULL;
-    if (!strcmp(name,"name") || !strcmp(name,"nameupcoming") || !strcmp(name,"nameready")) {
-        rc = (d->name == NULL);
-        if (get) {
-            *get = d->name;
-        }
-        if (set) {
-            d->name = strdup(*set);
-        }
-    } else if(!strcmp(name,"revision")) {
-        if (get) {
-            composestringf(&(d->tmpRevision), "%d", d->revision);
-            *get = d->tmpRevision;
-        }
-        if (set) {
-            decomposestringf(name,"%d",&(d->revision));
-        }
-    } else if(!strcmp(name,"namerevision")) {
-        if (get) {
-            composestringf(&(d->tmpNameSerial), "%s %d", d->name, d->revision);
-            *get = d->tmpNameSerial;
-        }
-        if (set) {
-            decomposestringf(name,"%ms %d",&d->name,&d->revision);
-        }
-    } else if(!strcmp(name,"validfrom")) {
-        rc = (d->validfrom != NULL);
-        if (get) {
-            if(d->validfrom) {
-                composestringf(&(d->tmpValidFrom), "%d", *(d->validfrom));
-                *get = d->tmpValidFrom;
-            } else
-                *get = NULL;
-        }
-        if (set) {
-            if(!d->validfrom)
-                d->validfrom = malloc(sizeof(int));
-            decomposestringf(*set,"%d",d->validfrom);
-        }
-    } else if(!strcmp(name,"validupto")) {
-        rc = (d->validupto != NULL);
-        if (get) {
-            if(d->validupto) {
-                composestringf(&(d->tmpValidUpto), "%d", *(d->validupto));
-                *get = d->tmpValidUpto;
-            } else
-                *get = NULL;
-        }
-        if (set) {
-            if(!d->validupto)
-                d->validupto = malloc(sizeof(int));
-            decomposestringf(*set,"%d",d->validupto);
-        }
-    } else if(!strcmp(name,"expiry")) {
-        rc = (d->expiry != NULL);
-        if (get) {
-            if(d->expiry) {
-                composestringf(&(d->tmpExpiry), "%d", *(d->expiry));
-                *get = d->tmpExpiry;
-            } else
-                *get = NULL;
-        }
-        if (set) {
-            if(!d->expiry)
-                d->expiry = malloc(sizeof(int));
-            decomposestringf(*set,"%d",d->expiry);
-        }
-    } else if(!strcmp(name,"denialname")) {
-        rc = (d->spanhash != NULL);
-        if (get) {
-            *get = d->spanhash;
-        }
-        if (set) {
-            d->spanhash = strdup(*set);
-        }
-    } else {
-        abort(); // FIXME
-    }
     return rc;
 }
 
@@ -1068,7 +809,7 @@ comparerelevantset(recordset_type newitem, recordset_type curitem, int* cmp)
                 return 0;
         }
     }
-    if (getset(newitem, "validupto", NULL, NULL))
+    if (newitem->validupto)
         return 0;
     return 1;
 }
@@ -1124,57 +865,6 @@ names_recordindexfunction(const char* keyname, int (**acceptfunc)(recordset_type
     }    
 }
 
-#ifdef NOTDEFINED
-char*
-names_rr2data(ldns_rr* rr, size_t header)
-{
-    unsigned int i;
-    char* s;
-    int recorddatalen;
-    char* recorddata;
-    recorddatalen = header;
-    for (i = 0; i < ldns_rr_rd_count(rr); i++) {
-        s = ldns_rdf2str(ldns_rr_rdf(rr, i));
-        recorddatalen += strlen(s) + 1;
-        free(s);
-    }
-    recorddata = malloc(recorddatalen);
-    recorddata[header] = '\0';
-    for (i = 0; i < ldns_rr_rd_count(rr); i++) {
-        s = ldns_rdf2str(ldns_rr_rdf(rr, i));
-        if (i > 0)
-            strcat(&recorddata[header], " ");
-        strcat(&recorddata[header], s);
-        free(s);
-    }
-    return recorddata;
-}
-
-void*
-names_rr2ident(recordset_type record, ldns_rr_type rrtype, resourcerecord_t item, size_t header)
-{
-    char* rrtypestr;
-    char* buffer;
-    size_t size;
-    
-    rrtypestr = ldns_rr_type2str(rrtype);
-    size = header + strlen(record->name) + 1 + strlen(rrtypestr) + 1;
-    buffer = names_rr2data(item->rr, size);
-    sprintf(&buffer[header],"%s %s",record->name,rrtypestr);
-    buffer[header + strlen(&buffer[header])] = ' ';
-    return buffer;
-}
-
-ldns_rr*
-names_rr2ldns(recordset_type record, const char* recordname, ldns_rr_type recordtype, resourcerecord_t item)
-{
-    (void)record;
-    (void)recordname;
-    (void)recordtype;
-    return ldns_rr_clone(item->rr);
-}
-#endif
-
 void
 names_recordlookupone(recordset_type record, ldns_rr_type recordtype, ldns_rr* template, ldns_rr** rr)
 {
@@ -1214,7 +904,7 @@ names_recordlookupall(recordset_type record, ldns_rr_type rrtype, ldns_rr* templ
         if(rrsigs)
             *rrsigs = ldns_rr_list_new();
         for(i=0; i<record->nitemsets; i++) {
-            if(record->itemsets[i].signatures > 0) {
+            if(record->itemsets[i].signatures) {
                 for(j=0; j<record->itemsets[i].signatures->nsigs; j++) {
                     ldns_rr_list_push_rr(*rrsigs, record->itemsets[i].signatures->sigs[j].rr);
                 }

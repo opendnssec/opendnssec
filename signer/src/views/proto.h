@@ -115,11 +115,6 @@ struct names_view_zone {
     signconf_type** signconf;
 };
 
-void composestring(char* dst, const char* src, ...);
-int composestring2(char** ptr, const char* src, ...);
-int composestringf(char** ptr, const char* fmt, ...);
-int getset(recordset_type d, const char* name, const char** get, const char** set);
-
 recordset_type names_recordcreate(char**name);
 recordset_type names_recordcreatetemp(const char*name);
 void names_recordannotate(recordset_type d, struct names_view_zone* zone);
@@ -128,10 +123,11 @@ void names_recordsetmarker(recordset_type dict);
 int names_recordhasmarker(recordset_type dict);
 recordset_type names_recordcopy(recordset_type, int increment);
 void names_recorddispose(recordset_type);
-const char* names_recordgetid(recordset_type dict, const char* name);
+const char* names_recordgetname(recordset_type dict);
+const char* names_recordgetdenial(recordset_type dict);
 int names_recordcompare_namerevision(recordset_type a, recordset_type b);
 int names_recordhasdata(recordset_type record, ldns_rr_type recordtype, ldns_rr* rr, int exact);
-void rrset_add_rr(recordset_type d, ldns_rr* rr); // FIXME rename to names_recordadddata()
+void names_recordadddata(recordset_type d, ldns_rr* rr); // FIXME rename to names_recordadddata()
 void names_recorddeldata(recordset_type d, ldns_rr_type rrtype, ldns_rr* rr);
 void names_recorddelall(recordset_type, ldns_rr_type rrtype);
 names_iterator names_recordalltypes(recordset_type);
@@ -182,9 +178,9 @@ names_iterator names_indexiterator(names_index_type);
 
 names_table_type names_tablecreate(void);
 void names_tabledispose(names_table_type table, void (*userfunc)(void* arg, void* key, void* val), void* userarg);
-void* names_tableget(names_table_type table, const char* name);
+void* names_tableget(names_table_type table, void* name);
 int names_tabledel(names_table_type table, char* name);
-void** names_tableput(names_table_type table, const char* name);
+void** names_tableput(names_table_type table, void* name);
 void names_tableconcat(names_table_type* list, names_table_type item);
 names_iterator names_tableitems(names_table_type table);
 

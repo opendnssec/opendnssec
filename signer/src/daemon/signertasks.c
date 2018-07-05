@@ -123,7 +123,7 @@ signdomain(struct worker_context* superior, hsm_ctx_t* ctx, recordset_type recor
         if ((status = rrset_sign(superior->zone->signconf, superior->view, record, rrtype, ctx, superior->clock_in)) != ODS_STATUS_OK)
             return status;
     }
-    if(names_recordgetid(record,"denialname")) {
+    if(names_recordgetdenial(record)) {
         if((status = rrset_sign(superior->zone->signconf, superior->view, record, LDNS_RR_TYPE_NSEC, ctx, superior->clock_in)) != ODS_STATUS_OK)
             return status;
     }
@@ -347,9 +347,9 @@ do_signzone(task_type* task, const char* zonename, void* zonearg, void *contexta
         const char* nextnamestr;
         ldns_rdf* nextnamerdf;
         if(zone->signconf->nsec3params)
-            nextnamestr = names_recordgetid(change.dst, "denialname");
+            nextnamestr = names_recordgetdenial(change.dst);
         else
-            nextnamestr = names_recordgetid(change.dst, "name");
+            nextnamestr = names_recordgetname(change.dst);
         nextnamerdf = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, nextnamestr);
         names_amend(zone->signview, change.src);
         names_recordsetdenial(change.src, denial_nsecify(zone->signconf, zone->signview, change.src, nextnamerdf));

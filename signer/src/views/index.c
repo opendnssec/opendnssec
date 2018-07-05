@@ -169,22 +169,8 @@ names_indexlookupnext(names_index_type index, recordset_type find)
 int
 names_indexremove(names_index_type index, recordset_type d)
 {
-    const char *value;
-    if(getset(d, index->keyname, &value, NULL)) {
-        return names_indexremovekey(index, value);
-    } else
-        return 0;
-}
-
-int
-names_indexremovekey(names_index_type index, const char* keyvalue)
-{
-    recordset_type find;
     ldns_rbnode_t* node;
-    find = names_recordcreatetemp(NULL);
-    getset(find, index->keyname, NULL, &keyvalue);
-    node = ldns_rbtree_delete(index->tree, find);
-    names_recorddispose(find);
+    node = ldns_rbtree_delete(index->tree, d);
     if(node) {
         free(node);
         return 1;
@@ -264,13 +250,12 @@ names_iteratordescendants(names_index_type index, va_list ap)
     iter = names_iterator_createrefs(NULL);
     find = va_arg(ap, char*);
     findlen = strlen(find);
-    record = names_recordcreatetemp(NULL);
-    getset(record, "name", NULL, &find);
+    record = names_recordcreatetemp(find);
     (void) ldns_rbtree_find_less_equal(index->tree, record, &node);
     names_recorddispose(record);
     while (node && node != LDNS_RBTREE_NULL) {
         record = (recordset_type) node->key;
-        getset(record, "name", &found, NULL);
+        found = names_recordgetname(record);
         if (!strncmp(find, found, findlen) && (found[findlen - 1] == '\0' || found[findlen - 1] == '.')) {
             names_iterator_addptr(iter, record);
         } else {

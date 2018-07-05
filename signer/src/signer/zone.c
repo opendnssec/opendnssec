@@ -371,7 +371,7 @@ zone_add_rr(zone_type* zone, names_view_type view, ldns_rr* rr, int do_stats)
     }
     /* FIXME we should check the TTL of the rr conforms to the other rr already present */
     if(!names_recordhasdata(record, ldns_rr_get_type(rr), rr, 0)) {
-        rrset_add_rr(record, rr);
+        names_recordadddata(record, rr);
     }
     return status;
 }

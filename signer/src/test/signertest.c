@@ -394,7 +394,7 @@ testIterator(void)
     record = names_recordcreate((char**)&name);
     origin = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, "example.com.");
     ldns_rr_new_frm_str(&rr, "example.com. 86400 IN SOA ns1.example.com. postmaster.example.com. 2009060301 10800 3600 604800 86400", ttl, origin, &prev);
-    rrset_add_rr(record, rr);
+    names_recordadddata(record, rr);
     iter = names_recordalltypes(record);
     if(names_iterate(&iter,&rrtype))
         names_end(&iter);
@@ -409,7 +409,7 @@ testAnnotateItem(const char* name, const char* expected)
     const char* denial;
     record = names_recordcreatetemp(name);
     names_recordannotate(record, &zonedata);
-    denial = names_recordgetid(record, "denialname");
+    denial = names_recordgetdenial(record);
     CU_ASSERT_STRING_EQUAL(expected, denial);
     names_recorddispose(record);
 }
@@ -450,9 +450,9 @@ testMarshalling(void)
     assert(rr1);
     assert(rr2);
     assert(rr3);
-    rrset_add_rr(record, rr1);
-    rrset_add_rr(record, rr2);
-    rrset_add_rr(record, rr3);
+    names_recordadddata(record, rr1);
+    names_recordadddata(record, rr2);
+    names_recordadddata(record, rr3);
     ldns_rr_new_frm_str(&rrsig, "domain.example.com. RRSIG A 7 3 86400 20180525135557 20180525125459 55490 example.com. FV0gZ8FAaqlFnJ6jFuBj4DSImeftLaRdOXhjGxUZuZe29PkkuZP9u2cb9n4SSXRSn88rEHoSff8nPKwYKCOzOxlgHx7q4FZwmGrLrmV7Sfjp41O7DI4P8F/APVwfuc4d63uQq3C2opXgFv76L0CQ/+9mIOxthjL7hVy00UDPzWM=", 60, origin, &rrprev);
     names_recordaddsignature(record,LDNS_RR_TYPE_A, rrsig, "locateme", 0);
     names_recordsetexpiry(record, 111);
@@ -469,7 +469,7 @@ testMarshalling(void)
     fd = open("test.dmp", O_RDONLY, 0666);
     h = marshallcreate(marshall_INPUT, fd);
     names_recordmarshall(&record,h);
-    names_dumprecord(stderr,record);
+    // names_dumprecord(stderr,record); In case this test fails enable this to investigate
     marshallclose(h);
     close(fd);
 }
