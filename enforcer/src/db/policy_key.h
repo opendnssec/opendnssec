@@ -369,6 +369,9 @@ void policy_key_list_free(policy_key_list_t* policy_key_list);
  */
 int policy_key_list_copy(policy_key_list_t* policy_key_list, const policy_key_list_t* from_policy_key_list);
 
+policy_key_list_t*
+policy_key_list_new_get(const db_connection_t* connection);
+
 /**
  * Get policy key objects from the database by a clause list.
  * \param[in] policy_key_list a policy_key_list_t pointer.

@@ -30,7 +30,7 @@
  */
 
 #include "config.h"
-#include "daemon/cfg.h"
+#include "cfg.h"
 #include "daemon/engine.h"
 #include "duration.h"
 #include "file.h"
@@ -46,7 +46,7 @@
 #include "libhsm.h"
 #include "signertasks.h"
 #include "signercommands.h"
-#include "parser/confparser.h"
+#include "confparser.h"
 
 #include <errno.h>
 #include <libxml/parser.h>
@@ -187,25 +187,25 @@ engine_privdrop(engine_type* engine)
     ods_log_assert(engine);
     ods_log_assert(engine->config);
     ods_log_debug("[%s] drop privileges", engine_str);
-    if (engine->config->username && engine->config->group) {
+    if (engine->config->username_signer && engine->config->group_signer) {
         ods_log_verbose("[%s] drop privileges to user %s, group %s",
-           engine_str, engine->config->username, engine->config->group);
-    } else if (engine->config->username) {
+           engine_str, engine->config->username_signer, engine->config->group_signer);
+    } else if (engine->config->username_signer) {
         ods_log_verbose("[%s] drop privileges to user %s", engine_str,
-           engine->config->username);
-    } else if (engine->config->group) {
+           engine->config->username_signer);
+    } else if (engine->config->group_signer) {
         ods_log_verbose("[%s] drop privileges to group %s", engine_str,
-           engine->config->group);
+           engine->config->group_signer);
     }
-    if (engine->config->chroot) {
+    if (engine->config->chroot_signer) {
         ods_log_verbose("[%s] chroot to %s", engine_str,
-            engine->config->chroot);
+            engine->config->chroot_signer);
     }
-    status = privdrop(engine->config->username, engine->config->group,
-        engine->config->chroot, &uid, &gid);
+    status = privdrop(engine->config->username_signer, engine->config->group_signer,
+        engine->config->chroot_signer, &uid, &gid);
     engine->uid = uid;
     engine->gid = gid;
-    privclose(engine->config->username, engine->config->group);
+    privclose(engine->config->username_signer, engine->config->group_signer);
     return status;
 }
 
@@ -223,9 +223,9 @@ engine_create_workers(engine_type* engine)
     int threadCount = 0;
     ods_log_assert(engine);
     ods_log_assert(engine->config);
-    numTotalWorkers = engine->config->num_worker_threads + engine->config->num_signer_threads;
+    numTotalWorkers = engine->config->num_worker_threads_signer + engine->config->num_signer_threads;
     CHECKALLOC(engine->workers = (worker_type**) malloc(numTotalWorkers * sizeof(worker_type*)));
-    for (i=0; i < engine->config->num_worker_threads; i++) {
+    for (i=0; i < engine->config->num_worker_threads_signer; i++) {
         asprintf(&name, "worker[%d]", i+1);
         engine->workers[threadCount++] = worker_create(name, engine->taskq);
     }
@@ -244,7 +244,7 @@ engine_start_workers(engine_type* engine)
     ods_log_assert(engine);
     ods_log_assert(engine->config);
     ods_log_debug("[%s] start workers", engine_str);
-    for (i=0; i < engine->config->num_worker_threads; i++,threadCount++) {
+    for (i=0; i < engine->config->num_worker_threads_signer; i++,threadCount++) {
         CHECKALLOC(context = malloc(sizeof(struct worker_context)));
         context->engine = engine;
         context->worker = engine->workers[threadCount];
@@ -267,14 +267,14 @@ engine_stop_threads(engine_type* engine)
     ods_log_assert(engine);
     ods_log_assert(engine->config);
     ods_log_debug("[%s] stop workers and drudgers", engine_str);
-    numTotalWorkers = engine->config->num_worker_threads + engine->config->num_signer_threads;
+    numTotalWorkers = engine->config->num_worker_threads_signer + engine->config->num_signer_threads;
     for (i=0; i < numTotalWorkers; i++) {
         engine->workers[i]->need_to_exit = 1;
     }
     ods_log_debug("[%s] notify workers and drudgers", engine_str);
     schedule_release_all(engine->taskq);
 
-    for (i=0; i < numTotalWorkers; i++) {
+    for (i=numTotalWorkers-1; i >= 0; i--) {
         ods_log_debug("[%s] join worker %d", engine_str, i+1);
         janitor_thread_join(engine->workers[i]->thread_id);
         free(engine->workers[i]->context);
@@ -320,12 +320,12 @@ engine_setup_initialize(engine_type* engine, int* fdptr)
     edns_init(&engine->edns, EDNS_MAX_MESSAGE_LEN);
 
     /* create command handler (before chowning socket file) */
-    engine->cmdhandler = cmdhandler_create(engine->config->clisock_filename, signercommands, engine, NULL, NULL);
+    engine->cmdhandler = cmdhandler_create(engine->config->clisock_filename_signer, signercommands, engine, NULL, NULL);
     if (!engine->cmdhandler) {
         ods_log_error("Failed to setup command handler");
         return ODS_STATUS_CMDHANDLER_ERR;
     }
-    engine->dnshandler = dnshandler_create(engine->config->interfaces);
+    engine->dnshandler = dnshandler_create(create_listener(engine->config->interfaces));
     engine->xfrhandler = xfrhandler_create();
     if (!engine->xfrhandler) {
         ods_log_error("Failed to setup transfer handler");
@@ -347,20 +347,20 @@ engine_setup_initialize(engine_type* engine, int* fdptr)
         }
     }
     /* privdrop */
-    engine->uid = privuid(engine->config->username);
-    engine->gid = privgid(engine->config->group);
+    engine->uid = privuid(engine->config->username_signer);
+    engine->gid = privgid(engine->config->group_signer);
     /* TODO: does piddir exists? */
     /* remove the chown stuff: piddir? */
-    ods_chown(engine->config->pid_filename, engine->uid, engine->gid, 1);
-    ods_chown(engine->config->clisock_filename, engine->uid, engine->gid, 0);
-    ods_chown(engine->config->working_dir, engine->uid, engine->gid, 0);
+    ods_chown(engine->config->pid_filename_signer, engine->uid, engine->gid, 1);
+    ods_chown(engine->config->clisock_filename_signer, engine->uid, engine->gid, 0);
+    ods_chown(engine->config->working_dir_signer, engine->uid, engine->gid, 0);
     if (engine->config->log_filename && !engine->config->use_syslog) {
         ods_chown(engine->config->log_filename, engine->uid, engine->gid, 0);
     }
-    if (engine->config->working_dir &&
-        chdir(engine->config->working_dir) != 0) {
+    if (engine->config->working_dir_signer &&
+        chdir(engine->config->working_dir_signer) != 0) {
         ods_log_error("[%s] setup: unable to chdir to %s (%s)", engine_str,
-            engine->config->working_dir, strerror(errno));
+            engine->config->working_dir_signer, strerror(errno));
         return ODS_STATUS_CHDIR_ERR;
     }
     if (engine_privdrop(engine) != ODS_STATUS_OK) {
@@ -413,7 +413,7 @@ engine_setup_initialize(engine_type* engine, int* fdptr)
     }
     engine->pid = getpid();
     /* write pidfile */
-    if (util_write_pidfile(engine->config->pid_filename, engine->pid) == -1) {
+    if (util_write_pidfile(engine->config->pid_filename_signer, engine->pid) == -1) {
         if (engine->daemonize) {
             ods_writeln(pipefd[1], "Unable to write pid file");
             write(pipefd[1], "\0", 1);
@@ -421,6 +421,26 @@ engine_setup_initialize(engine_type* engine, int* fdptr)
         }
         return ODS_STATUS_WRITE_PIDFILE_ERR;
     }
+
+    /* check hsm */
+    if (hsm_open2(engine->config->repositories, hsm_check_pin) != HSM_OK) {
+        char* errorstr =  hsm_get_error(NULL);
+        if (errorstr)
+            ods_log_error("[%s] %s", "hsm", errorstr);
+
+        ods_log_error("[%s] opening hsm failed", engine_str);
+        if (engine->daemonize) {
+            if (errorstr)
+                ods_writeln(pipefd[1], errorstr);
+            write(pipefd[1], "\0", 1);
+            close(pipefd[1]);
+       }
+       free(errorstr);
+       return ODS_STATUS_HSM_ERR;
+    }
+    hsm_close();
+
+
     /* setup done */
     ods_log_verbose("[%s] running as pid %lu", engine_str,
         (unsigned long) engine->pid);
@@ -626,6 +646,8 @@ engine_update_zones(engine_type* engine, ods_status zl_changed)
             pthread_mutex_unlock(&zone->zone_lock);
             netio_remove_handler(engine->xfrhandler->netio,
                 &zone->xfrd->handler);
+            netio_remove_handler(engine->xfrhandler->netio,
+                &zone->notify->handler);
             zone_cleanup(zone);
             zone = NULL;
             continue;
@@ -743,15 +765,16 @@ engine_setup_config(engine_type* engine, const char* cfgfile, int cmdline_verbos
     ods_status status;
     engine->daemonize = daemonize;
 
-    engine->config = engine_config(cfgfile, cmdline_verbosity);
+    /* config */
+    engine->config = engine_config(cfgfile, cmdline_verbosity, NULL);
     status = engine_config_check(engine->config);
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] cfgfile %s has errors", engine_str, cfgfile);
         return ODS_STATUS_PARSE_ERR;
     }
     /* check pidfile */
-    if (!util_check_pidfile(engine->config->pid_filename)) {
-        return ODS_STATUS_CONFLICT_ERR;
+    if (!util_check_pidfile(engine->config->pid_filename_signer)) {
+        exit(1);
     }
     return ODS_STATUS_OK;
 }
@@ -768,7 +791,7 @@ engine_start(engine_type* engine)
         /* update zone list */
         pthread_mutex_lock(&engine->zonelist->zl_lock);
         zl_changed = zonelist_update(engine->zonelist,
-            engine->config->zonelist_filename);
+            engine->config->zonelist_filename_signer);
         engine->zonelist->just_removed = 0;
         engine->zonelist->just_added = 0;
         engine->zonelist->just_updated = 0;
@@ -777,6 +800,9 @@ engine_start(engine_type* engine)
         if (engine->need_to_reload) {
             ods_log_info("[%s] signer reloading", engine_str);
             engine->need_to_reload = 0;
+            /* Clean out sign queue as the items reference to the old workers.
+             * No need to free the items. They are not owned by the queue. */
+            fifoq_wipe(engine->taskq->signq);
         } else {
             ods_log_info("[%s] signer started (version %s), pid %u",
                 engine_str, PACKAGE_VERSION, engine->pid);
@@ -811,11 +837,11 @@ engine_start(engine_type* engine)
     engine_stop_dnshandler(engine);
 
     if (engine && engine->config) {
-        if (engine->config->pid_filename) {
-            (void)unlink(engine->config->pid_filename);
+        if (engine->config->pid_filename_signer) {
+            (void)unlink(engine->config->pid_filename_signer);
         }
-        if (engine->config->clisock_filename) {
-            (void)unlink(engine->config->clisock_filename);
+        if (engine->config->clisock_filename_signer) {
+            (void)unlink(engine->config->clisock_filename_signer);
         }
     }
     tsig_handler_cleanup();
@@ -838,7 +864,7 @@ engine_cleanup(engine_type* engine)
         return;
     }
     if (engine->config) {
-        numTotalWorkers = engine->config->num_worker_threads + engine->config->num_signer_threads;
+        numTotalWorkers = engine->config->num_worker_threads_signer + engine->config->num_signer_threads;
         if (engine->workers) {
             for (i=0; i < (size_t) numTotalWorkers; i++) {
                 worker_cleanup(engine->workers[i]);
@@ -856,4 +882,54 @@ engine_cleanup(engine_type* engine)
         pthread_cond_destroy(&engine->signal_cond);
     }
     free(engine);
+}
+
+listener_type*
+create_listener(struct engineconfig_listener* list)
+{
+    listener_type* listener = NULL;
+    interface_type* interface = NULL;
+    int i = 0;
+    const char* defport = strdup("15354");
+
+
+    listener = listener_create();
+    ods_log_assert(listener);
+
+    if (!list) {
+        interface = listener_push(listener, (char *)"", AF_INET, defport);
+        if (interface) {
+            interface = listener_push(listener, (char *)"", AF_INET6, defport);
+        }
+        if (!interface) {
+           ods_log_error("[%s] unable to add %s:%s interface: "
+               "listener_push() failed", engine_str, "", defport);
+        } else {
+               ods_log_debug("[%s] added %s:%s interface to listener",
+                   engine_str, "", defport);
+        }
+    } else {
+        while (list) {
+            if (list->address) {
+                interface = listener_push(listener, list->address,
+                    acl_parse_family(list->address), list->port ? list->port : defport);
+            } else {
+                interface = listener_push(listener, (char *)"", AF_INET, list->port ? list->port : defport);
+                if (interface) {
+                    interface = listener_push(listener, (char *)"", AF_INET6, list->port ? list->port : defport);
+                }
+            }
+            if (!interface) {
+                ods_log_error("[%s] unable to add %s:%s interface: "
+                   "listener_push() failed", engine_str, list->address ? list->address : "",
+                   list->port ? list->port : defport);
+            } else {
+                ods_log_debug("[%s] added %s:%s interface to listener",
+                   engine_str, list->address ? list->address : "", list->port ? list->port : defport);
+            }
+            list = list->next;
+        }
+    }
+    free((void*)defport);
+    return listener;
 }

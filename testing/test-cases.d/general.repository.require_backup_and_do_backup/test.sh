@@ -34,7 +34,8 @@ test -f "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
 #sleep 60 &&
 
 log_this ods-hsmutil-list ods-hsmutil list &&
-log_grep ods-hsmutil-list stdout '15 keys found.' &&
+# Number of keys is not always the same
+#log_grep ods-hsmutil-list stdout '15 keys found.' &&
 log_grep ods-hsmutil-list stdout 'Repository.*ID.*Type' &&
 log_grep ods-hsmutil-list stdout 'SoftHSM.*RSA/1024' &&
 

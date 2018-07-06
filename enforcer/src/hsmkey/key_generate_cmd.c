@@ -26,6 +26,7 @@
  *
  */
 #include <getopt.h>
+#include <math.h>
 
 #include "daemon/engine.h"
 #include "cmdhandler.h"
@@ -34,7 +35,6 @@
 #include "str.h"
 #include "clientpipe.h"
 #include "hsmkey/hsm_key_factory.h"
-#include "db/policy.h"
 #include "duration.h"
 
 #include "hsmkey/key_generate_cmd.h"
@@ -46,8 +46,9 @@ usage(int sockfd)
 {
     client_printf(sockfd,
         "key generate\n"
-        "	--duration <duration>			aka -d\n"
-        "	--policy <policy>			aka -p \n"
+        "	--duration <DURATION>			aka -d\n"
+        "	--count <NUMBER				aka -c\n"
+        "	--policy <NAME>				aka -p\n"
         "	--all					aka -a\n"
     );
 }
@@ -59,15 +60,34 @@ help(int sockfd)
         "Pre-generate keys for all or a given policy, the duration to pre-generate for\n"
         "can be specified or otherwise its taken from the conf.xml.\n"
 	"\nOptions:\n"
-	"duration	duration to generate keys for\n"
-	"policy|all	generate keys for a specified policy or for all of them \n\n");
+
+	"duration	duration to generate keys for. For example: P6M, P1Y2M\n"
+	"		for respectively half a year, and 1 year 2 months.\n"
+	"count		Number of keys to generate.\n"
+	"policy|all	generate keys for a specified policy or for all of them.\n\n");
 }
 
 static int
-run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+unassigned_key_count(struct dbw_policykey *pkey)
+{
+    int count = 0;
+    for (size_t hk = 0; hk < pkey->policy->hsmkey_count; hk++) {
+        struct dbw_hsmkey *hkey = pkey->policy->hsmkey[hk];
+        if (hkey->algorithm != pkey->algorithm) continue;
+        if (hkey->state != DBW_HSMKEY_UNUSED) continue;
+        if (hkey->bits != pkey->bits) continue;
+        if (hkey->role != pkey->role) continue;
+        if (hkey->is_revoked) continue;
+        if (strcasecmp(hkey->repository, pkey->repository)) continue;
+        count++;
+    }
+    return count;
+}
+
+static int
+run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 {
     #define NARGV 6
-    char* buf;
     const char* argv[NARGV];
     int argc = 0, long_index =0, opt = 0;
     const char* policy_name = NULL;
@@ -75,7 +95,7 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
     time_t duration_time = 0;
     duration_type* duration = NULL;
     int all = 0;
-    policy_t* policy;
+    int count = 0;
     db_connection_t* dbconn = getconnectioncontext(context);
     engine_type* engine = getglobalcontext(context);
 
@@ -83,33 +103,40 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
         {"policy", required_argument, 0, 'p'},
         {"all", no_argument, 0, 'a'},
         {"duration", required_argument, 0, 'd'},
+        {"count", required_argument, 0, 'c'},
         {0, 0, 0, 0}
     };
 
     ods_log_debug("[%s] %s command", module_str, key_generate_funcblock.cmdname);
 
-    if (!(buf = strdup(cmd))) {
-        client_printf_err(sockfd, "memory error\n");
-        return -1;
-    }
-
-    argc = ods_str_explode(buf, NARGV, argv);
+    argc = ods_str_explode(cmd, NARGV, argv);
     if (argc == -1) {
         client_printf_err(sockfd, "too many arguments\n");
         ods_log_error("[%s] too many arguments for %s command",
                       module_str, key_generate_funcblock.cmdname);
-        free(buf);
         return -1;
     }
 
     optind = 0;
-    while ((opt = getopt_long(argc, (char* const*)argv, "p:ad:", long_options, &long_index)) != -1) {
+    while ((opt = getopt_long(argc, (char* const*)argv, "p:ad:c:", long_options, &long_index)) != -1) {
         switch (opt) {
             case 'd':
                 duration_text = optarg;
                 break;
             case 'p':
                 policy_name = optarg;
+                break;
+            case 'c':
+                errno = 0;
+                count = strtol(optarg, NULL, 10);
+                if (errno) {
+                    client_printf_err(sockfd, "Unable to parse number.\n");
+                    return 1;
+                } else if (!count) {
+                    /* abort if count == 0, otherwise we would fall back to duration */
+                    client_printf_err(sockfd, "count must be > 1.\n");
+                    return 1;
+                }
                 break;
             case 'a':
                 all = 1;
@@ -118,43 +145,49 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
                 client_printf_err(sockfd, "unknown arguments\n");
                 ods_log_error("[%s] unknown arguments for %s command",
                                 module_str, key_generate_funcblock.cmdname);
-                free(buf);
                 return -1;
         }
     }
-
     if (duration_text) {
         if (!(duration = duration_create_from_string(duration_text))
             || !(duration_time = duration2time(duration)))
         {
             client_printf_err(sockfd, "Error parsing the specified duration!\n");
             duration_cleanup(duration);
-            free(buf);
             return 1;
         }
         duration_cleanup(duration);
     }
-
-    if (all) {
-        hsm_key_factory_schedule_generate_all(engine, duration_time);
-    }
-    else if (policy_name) {
-        if (!(policy = policy_new_get_by_name(dbconn, policy_name))) {
-            client_printf_err(sockfd, "Unable to find policy %s!\n", policy_name);
-            free(buf);
-            return 1;
-        }
-        hsm_key_factory_schedule_generate_policy(engine, policy, duration_time);
-        policy_free(policy);
-    }
-    else {
+    if (!all && !policy_name) {
         client_printf_err(sockfd, "Either --all or --policy needs to be given!\n");
-        free(buf);
         return 1;
     }
+    struct dbw_db *db = dbw_fetch(dbconn);
+    if (!db) return 1;
 
-    client_printf(sockfd, "Key generation task scheduled.\n");
-    free(buf);
+    for (size_t pk = 0; pk < db->policykeys->n; pk++) {
+        int nr_keys = count;
+        struct dbw_policykey *pkey = (struct dbw_policykey *)db->policykeys->set[pk];
+        if (policy_name && strcasecmp(policy_name, pkey->policy->name)) continue;
+        if (!duration_time && !count) {
+            /* use default duration, factory will figure out amount of keys */
+            hsm_key_factory_schedule(engine, pkey->id, -1);
+            continue;
+        }
+        if (!duration_time)
+            duration_time = engine->config->automatic_keygen_duration;
+        if (!nr_keys) {
+            int multiplier = pkey->policy->keys_shared? 1 : pkey->policy->zone_count;
+            nr_keys = ceil(duration_time / (double)pkey->lifetime);
+            nr_keys *= multiplier;
+            nr_keys -= unassigned_key_count(pkey);
+        }
+        if (nr_keys <= 0) continue;
+        client_printf(sockfd, "Scheduled generation of %d %s's for policy %s.\n",
+            nr_keys, dbw_enum2txt(dbw_key_role_txt, pkey->role), pkey->policy->name);
+        hsm_key_factory_schedule(engine, pkey->id, nr_keys);
+    }
+    dbw_free(db);
     return 0;
 }
 

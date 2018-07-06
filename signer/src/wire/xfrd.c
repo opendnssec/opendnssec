@@ -1325,6 +1325,7 @@ xfrd_tcp_read(xfrd_type* xfrd, tcp_set_type* set)
             ods_log_verbose("[%s] disable ixfr requests for %s from now (%lu)",
                 xfrd_str, xfrd->master->address, (unsigned long)xfrd->master->ixfr_disabled);
             /* break; */
+            __attribute__ ((fallthrough)); /* squelch compiler warning */
         case XFRD_PKT_BAD:
         default:
             ods_log_debug("[%s] tcp read %s: release connection", xfrd_str,
@@ -1609,6 +1610,7 @@ xfrd_udp_read(xfrd_type* xfrd)
             ods_log_verbose("[%s] disable ixfr requests for %s from now (%lu)",
                 xfrd_str, xfrd->master->address, (unsigned long)xfrd->master->ixfr_disabled);
             /* break; */
+            __attribute__ ((fallthrough)); /* squelch compiler warning */
         case XFRD_PKT_BAD:
         default:
             ods_log_debug("[%s] bad ixfr packet from %s",

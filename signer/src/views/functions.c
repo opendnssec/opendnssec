@@ -655,7 +655,7 @@ zone_update_serial(zone_type* zone, names_view_type view)
         rr = NULL;
     }
     /* FIXME set min TTL from signconf */
-    
+
     serial = *(zone->nextserial);
     free(zone->nextserial);
     zone->nextserial = NULL;

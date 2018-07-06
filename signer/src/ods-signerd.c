@@ -37,7 +37,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <libxml/parser.h>
-#include "parser/confparser.h"
+#include "confparser.h"
 #include "logging.h"
 
 

@@ -24,14 +24,12 @@ signertest_LDADD = \
 	../adapter/addns.o \
 	../adapter/adfile.o \
 	../adapter/adutil.o \
-	../daemon/cfg.o \
 	../daemon/signercommands.o \
 	../daemon/dnshandler.o \
 	../daemon/xfrhandler.o \
 	../daemon/engine.o \
 	../daemon/signertasks.o \
 	../parser/addnsparser.o \
-	../parser/confparser.o \
 	../parser/signconfparser.o \
 	../parser/zonelistparser.o \
 	../hsm.o \

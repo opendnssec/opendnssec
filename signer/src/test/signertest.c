@@ -44,7 +44,7 @@
 #include "janitor.h"
 #include "logging.h"
 #include "locks.h"
-#include "parser/confparser.h"
+#include "confparser.h"
 #include "daemon/engine.h"
 #include "daemon/signercommands.h"
 #include "utilities.h"
@@ -490,7 +490,7 @@ testSignNSEC(void)
     usefile("zones.xml", "zones.xml.example");
     usefile("unsigned.zone", "unsigned.zone.example");
     usefile("signconf.xml", "signconf.xml.nsec");
-    zonelist_update(engine->zonelist, engine->config->zonelist_filename);
+    zonelist_update(engine->zonelist, engine->config->zonelist_filename_signer);
     zone = zonelist_lookup_zone_by_name(engine->zonelist, "example.com", LDNS_RR_CLASS_IN);
     signzone(zone);
     disposezone(zone);
@@ -509,7 +509,7 @@ testSignNSEC3(void)
     usefile("unsigned.zone", "unsigned.zone.example");
     usefile("signconf.xml", "signconf.xml.nsec3");
     logger_mark_performance("setup zone");
-    zonelist_update(engine->zonelist, engine->config->zonelist_filename);
+    zonelist_update(engine->zonelist, engine->config->zonelist_filename_signer);
     zone = zonelist_lookup_zone_by_name(engine->zonelist, "example.com", LDNS_RR_CLASS_IN);
     logger_mark_performance("sign");
     signzone(zone);
@@ -530,7 +530,7 @@ testSignResign(void)
     usefile("unsigned.zone", "unsigned.zone.testing");
     usefile("signconf.xml", "signconf.xml.nsec");
     logger_mark_performance("setup zone");
-    zonelist_update(engine->zonelist, engine->config->zonelist_filename);
+    zonelist_update(engine->zonelist, engine->config->zonelist_filename_signer);
     zone = zonelist_lookup_zone_by_name(engine->zonelist, "example.com", LDNS_RR_CLASS_IN);
     logger_mark_performance("sign");
     signzone(zone);
@@ -543,7 +543,7 @@ testSignResign(void)
     
     disposezone(zone);
     engine->zonelist->last_modified = 0; /* force update */
-    zonelist_update(engine->zonelist, engine->config->zonelist_filename);
+    zonelist_update(engine->zonelist, engine->config->zonelist_filename_signer);
     zone = zonelist_lookup_zone_by_name(engine->zonelist, "example.com", LDNS_RR_CLASS_IN);
     resignzone(zone);
     reresignzone(zone);
@@ -563,7 +563,7 @@ testSignNL(void)
     usefile("unsigned.zone", "unsigned.zone.nl.gz");
     usefile("signconf.xml", "signconf.xml.nl");
     logger_mark_performance("setup zone");
-    zonelist_update(engine->zonelist, engine->config->zonelist_filename);
+    zonelist_update(engine->zonelist, engine->config->zonelist_filename_signer);
     zone = zonelist_lookup_zone_by_name(engine->zonelist, "nl", LDNS_RR_CLASS_IN);
     logger_mark_performance("sign");
     signzone(zone);
@@ -616,7 +616,7 @@ testSignFast(void)
     usefile("zones.xml", "zones.xml.example");
     usefile("unsigned.zone", "unsigned.zone.testing");
     usefile("signconf.xml", "signconf.xml.nsec");
-    zonelist_update(engine->zonelist, engine->config->zonelist_filename);
+    zonelist_update(engine->zonelist, engine->config->zonelist_filename_signer);
     zone = zonelist_lookup_zone_by_name(engine->zonelist, "example.com", LDNS_RR_CLASS_IN);
     signzone(zone);
     status = names_viewcommit(zone->signview);

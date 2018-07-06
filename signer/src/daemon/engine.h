@@ -37,7 +37,7 @@
 
 typedef struct engine_struct engine_type;
 
-#include "daemon/cfg.h"
+#include "cfg.h"
 #include "cmdhandler.h"
 #include "daemon/dnshandler.h"
 #include "daemon/xfrhandler.h"
@@ -104,5 +104,7 @@ void engine_update_zones(engine_type* engine, ods_status zl_changed);
  *
  */
 void engine_cleanup(engine_type* engine);
+
+listener_type* create_listener(struct engineconfig_listener* list);
 
 #endif /* DAEMON_ENGINE_H */

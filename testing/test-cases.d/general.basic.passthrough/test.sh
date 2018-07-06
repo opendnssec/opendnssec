@@ -18,7 +18,7 @@ echo -n "LINE: ${LINENO} " && syslog_waitfor 10 'ods-signerd: .*\[STATS\] exampl
 echo -n "LINE: ${LINENO} " && test -f "$INSTALL_ROOT/var/opendnssec/signed/example.com" &&
 
 ## test absence of signatures
-echo -n "LINE: ${LINENO} " && grep RRSIG "$INSTALL_ROOT/var/opendnssec/signed/example.com" &&
+echo -n "LINE: ${LINENO} " && if grep -q RRSIG "$INSTALL_ROOT/var/opendnssec/signed/example.com" ; then false ; fi &&
 
 ## test serial bump
 echo -n "LINE: ${LINENO} " && SOA1=`grep SOA "$INSTALL_ROOT/var/opendnssec/unsigned/example.com" | cut -f5 | cut -f3 -d" "` &&

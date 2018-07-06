@@ -40,10 +40,26 @@ echo -n "LINE: ${LINENO} " && log_this ods-enforcer-output echo "---------------
 echo -n "LINE: ${LINENO} " && log_this ods-enforcer-output 'ods-enforcer time leap --attach' &&
 echo -n "LINE: ${LINENO} " && log_this ods-enforcer-output echo "--------------------------------------------" &&
 
-echo -n "LINE: ${LINENO} " && #### TIME 2: Keys are Ready/Active -> do ds-seen
+echo -n "LINE: ${LINENO} " && #### TIME 2: Keys are Ready/Active -> do ds-submit/ds-seen
 echo -n "LINE: ${LINENO} " && log_this ods-enforcer-output echo "--------------- TIME LEAP 3 -----------------" &&
 echo -n "LINE: ${LINENO} " && log_this ods-enforcer-output 'ods-enforcer time leap --attach' &&
 echo -n "LINE: ${LINENO} " && log_this ods-enforcer-output echo "--------------------------------------------" &&
+
+echo -n "LINE: ${LINENO} " && log_this ods-enforcer-output echo "----- Expect ready(ds-submit)/active" &&
+echo -n "LINE: ${LINENO} " && log_this ods-enforcer-output ods-enforcer key list  --verbose &&
+echo -n "LINE: ${LINENO} " && log_this ods-enforcer-output ods-enforcer key list --debug &&
+echo -n "LINE: ${LINENO} " && log_this ods-enforcer-output ods-enforcer rollover list &&
+
+echo -n "LINE: ${LINENO} " && log_this ods-enforcer-temp ods-enforcer key list  --verbose &&
+echo -n "LINE: ${LINENO} " && log_grep ods-enforcer-temp stdout "ods1[[:space:]]*KSK[[:space:]]*ready.*$KSK1_CKA" &&
+echo -n "LINE: ${LINENO} " && log_grep ods-enforcer-temp stdout "ods1[[:space:]]*ZSK[[:space:]]*active.*$ZSK1_CKA" &&
+echo -n "LINE: ${LINENO} " && rm -f _log.$BUILD_TAG.ods-enforcer-temp.stdout &&
+
+echo -n "LINE: ${LINENO} " && log_this ods-enforcer-output echo "----- Do ds-submit" &&
+echo -n "LINE: ${LINENO} " && log_this ods-enforcer-output ods-enforcer key ds-submit --zone ods1 --cka_id $KSK1_CKA &&
+echo -n "LINE: ${LINENO} " && log_this ods-enforcer-output ods-enforcer key list  --verbose &&
+echo -n "LINE: ${LINENO} " && log_this ods-enforcer-output ods-enforcer key list --debug &&
+echo -n "LINE: ${LINENO} " && log_this ods-enforcer-output ods-enforcer rollover list &&
 
 echo -n "LINE: ${LINENO} " && log_this ods-enforcer-output echo "----- Expect ready(ds-seen)/active" &&
 echo -n "LINE: ${LINENO} " && log_this ods-enforcer-output ods-enforcer key list  --verbose &&
@@ -270,6 +286,8 @@ echo -n "LINE: ${LINENO} " && log_grep ods-enforcer-temp stdout "ods1[[:space:]]
 echo -n "LINE: ${LINENO} " && log_grep ods-enforcer-temp stdout "ods1[[:space:]]*KSK[[:space:]]*ready.*$KSK2_CKA" &&
 echo -n "LINE: ${LINENO} " && rm _log.$BUILD_TAG.ods-enforcer-temp.stdout &&
 
+echo -n "LINE: ${LINENO} " && log_this ods-enforcer-output_manual echo "----- Do ds-submit" &&
+echo -n "LINE: ${LINENO} " && log_this ods-enforcer-output_manual ods-enforcer key ds-submit --zone ods1 --cka_id $KSK2_CKA &&
 
 echo -n "LINE: ${LINENO} " && log_this ods-enforcer-output_manual echo "----- Do ds-seen" &&
 echo -n "LINE: ${LINENO} " && log_this ods-enforcer-output_manual ods-enforcer key ds-seen --zone ods1 --cka_id $KSK2_CKA &&
@@ -307,6 +325,12 @@ echo -n "LINE: ${LINENO} " && log_grep ods-enforcer-temp stdout "ods1[[:space:]]
 echo -n "LINE: ${LINENO} " && rm _log.$BUILD_TAG.ods-enforcer-temp.stdout &&
 
 echo -n "LINE: ${LINENO} " && log_this ods-enforcer-output_manual echo "----- Do ds-retract" &&
+echo -n "LINE: ${LINENO} " && log_this ods-enforcer-output_manual ods-enforcer key ds-retract --zone ods1 --cka_id $KSK1_CKA &&
+echo -n "LINE: ${LINENO} " && log_this ods-enforcer-output_manual ods-enforcer key list  --verbose &&
+echo -n "LINE: ${LINENO} " && log_this ods-enforcer-output_manual ods-enforcer key list --debug &&
+echo -n "LINE: ${LINENO} " && log_this ods-enforcer-output_manual ods-enforcer rollover list &&
+
+echo -n "LINE: ${LINENO} " && log_this ods-enforcer-output_manual echo "----- Do ds-gone" &&
 echo -n "LINE: ${LINENO} " && log_this ods-enforcer-output_manual ods-enforcer key ds-gone --zone ods1 --cka_id $KSK1_CKA &&
 echo -n "LINE: ${LINENO} " && log_this ods-enforcer-output_manual ods-enforcer key list  --verbose &&
 echo -n "LINE: ${LINENO} " && log_this ods-enforcer-output_manual ods-enforcer key list --debug &&

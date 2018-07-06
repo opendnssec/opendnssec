@@ -373,46 +373,6 @@ hsm_pkcs11_check_token_name(hsm_ctx_t *ctx,
     return result;
 }
 
-hsm_repository_t *
-hsm_repository_new(char* name, char* module, char* tokenlabel, char* pin,
-    uint8_t use_pubkey, uint8_t require_backup)
-{
-    hsm_repository_t* r;
-
-    if (!name || !tokenlabel) return NULL;
-
-    CHECKALLOC(r = malloc(sizeof(hsm_repository_t)));
-
-    r->next = NULL;
-    r->pin = NULL;
-    r->name = strdup(name);
-    r->module = (module ? strdup(module) : NULL);
-    r->tokenlabel = strdup(tokenlabel);
-    if (pin) {
-        r->pin = strdup(pin);
-        if (!r->pin) {
-            hsm_repository_free(r);
-            return NULL;
-        }
-    }
-    r->use_pubkey = use_pubkey;
-    r->require_backup = require_backup;
-    return r;
-}
-
-void
-hsm_repository_free(hsm_repository_t *r)
-{
-    if (r) {
-        if (r->next) hsm_repository_free(r->next);
-        if (r->name) free(r->name);
-        if (r->module) free(r->module);
-        if (r->tokenlabel) free(r->tokenlabel);
-        if (r->pin) free(r->pin);
-    }
-    free(r);
-}
-
 static int
 hsm_get_slot_id(hsm_ctx_t *ctx,
                 CK_FUNCTION_LIST_PTR pkcs11_functions,
@@ -534,6 +494,7 @@ static void
 hsm_config_default(hsm_config_t *config)
 {
     config->use_pubkey = 1;
+    config->allow_extract = 0;
 }
 
 /* creates a session_t structure, and automatically adds and initializes
@@ -2093,13 +2054,22 @@ hsm_create_empty_rrsig(const ldns_rr_list *rrset,
 /*
  *  API functions
  */
+struct engineconfig_repository *
+hsm_find_repository(struct engineconfig_repository *rlist, char const *name)
+{
+    while (rlist) {
+        if (!strcmp(name, rlist->name)) return rlist;
+        rlist = rlist->next;
+    }
+    return NULL;
+}
 
 int
-hsm_open2(hsm_repository_t* rlist,
+hsm_open2(struct engineconfig_repository* rlist,
          char *(pin_callback)(unsigned int, const char *, unsigned int))
 {
     hsm_config_t module_config;
-    hsm_repository_t* repo = NULL;
+    struct engineconfig_repository* repo = NULL;
     char* module_pin = NULL;
     int result = HSM_OK;
     int tries;
@@ -2115,6 +2085,8 @@ hsm_open2(hsm_repository_t* rlist,
     repo = rlist;
     while (repo) {
         hsm_config_default(&module_config);
+        module_config.use_pubkey = repo->use_pubkey;
+        module_config.allow_extract = repo->allow_extract;
         if (repo->name && repo->tokenlabel) {
             if (repo->pin) {
                 result = hsm_attach(repo->name, repo->tokenlabel,
@@ -2366,9 +2338,11 @@ hsm_generate_rsa_key(hsm_ctx_t *ctx,
     CK_BBOOL ctrue = CK_TRUE;
     CK_BBOOL cfalse = CK_FALSE;
     CK_BBOOL ctoken = CK_TRUE;
+    CK_BBOOL cextractable = CK_FALSE;
 
     session = hsm_find_repository_session(ctx, repository);
     if (!session) return NULL;
+    cextractable = session->module->config->allow_extract ? CK_TRUE : CK_FALSE;
 
     generate_unique_id(ctx, id, 16);
 
@@ -2402,7 +2376,7 @@ hsm_generate_rsa_key(hsm_ctx_t *ctx,
         { CKA_SENSITIVE,   &ctrue,   sizeof (ctrue) },
         { CKA_TOKEN,       &ctrue,   sizeof (ctrue)  },
         { CKA_PRIVATE,     &ctrue,   sizeof (ctrue)  },
-        { CKA_EXTRACTABLE, &cfalse,  sizeof (cfalse) }
+        { CKA_EXTRACTABLE, &cextractable,  sizeof (cextractable) }
     };
 
     rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_GenerateKeyPair(session->session,
@@ -2442,6 +2416,7 @@ hsm_generate_dsa_key(hsm_ctx_t *ctx,
     CK_OBJECT_HANDLE domainPar, publicKey, privateKey;
     CK_BBOOL ctrue = CK_TRUE;
     CK_BBOOL cfalse = CK_FALSE;
+    CK_BBOOL cextractable = CK_FALSE;
 
     /* ids we create are 16 bytes of data */
     unsigned char id[16];
@@ -2450,6 +2425,7 @@ hsm_generate_dsa_key(hsm_ctx_t *ctx,
 
     session = hsm_find_repository_session(ctx, repository);
     if (!session) return NULL;
+    cextractable = session->module->config->allow_extract ? CK_TRUE : CK_FALSE;
 
     generate_unique_id(ctx, id, 16);
 
@@ -2497,8 +2473,10 @@ hsm_generate_dsa_key(hsm_ctx_t *ctx,
         { CKA_SENSITIVE,           &ctrue,   sizeof(ctrue)   },
         { CKA_TOKEN,               &ctrue,   sizeof(ctrue)   },
         { CKA_PRIVATE,             &ctrue,   sizeof(ctrue)   },
-        { CKA_EXTRACTABLE,         &cfalse,  sizeof(cfalse)  }
+        { CKA_EXTRACTABLE, &cextractable,  sizeof (cextractable) }
     };
+
+    cextractable = session->module->config->allow_extract ? CK_TRUE : CK_FALSE;
 
     /* Generate the domain parameters */
 
@@ -2551,6 +2529,7 @@ hsm_generate_gost_key(hsm_ctx_t *ctx,
     CK_OBJECT_HANDLE publicKey, privateKey;
     CK_BBOOL ctrue = CK_TRUE;
     CK_BBOOL cfalse = CK_FALSE;
+    CK_BBOOL cextractable = CK_FALSE;
 
     /* ids we create are 16 bytes of data */
     unsigned char id[16];
@@ -2559,6 +2538,7 @@ hsm_generate_gost_key(hsm_ctx_t *ctx,
 
     session = hsm_find_repository_session(ctx, repository);
     if (!session) return NULL;
+    cextractable = session->module->config->allow_extract ? CK_TRUE : CK_FALSE;
 
     generate_unique_id(ctx, id, 16);
 
@@ -2596,7 +2576,7 @@ hsm_generate_gost_key(hsm_ctx_t *ctx,
         { CKA_SENSITIVE,           &ctrue,   sizeof(ctrue)   },
         { CKA_TOKEN,               &ctrue,   sizeof(ctrue)   },
         { CKA_PRIVATE,             &ctrue,   sizeof(ctrue)   },
-        { CKA_EXTRACTABLE,         &cfalse,  sizeof(cfalse)  }
+        { CKA_EXTRACTABLE,         &cextractable,  sizeof (cextractable) }
     };
 
     /* Generate key pair */
@@ -2630,6 +2610,7 @@ hsm_generate_ecdsa_key(hsm_ctx_t *ctx,
     CK_OBJECT_HANDLE publicKey, privateKey;
     CK_BBOOL ctrue = CK_TRUE;
     CK_BBOOL cfalse = CK_FALSE;
+    CK_BBOOL cextractable = CK_FALSE;
 
     /* ids we create are 16 bytes of data */
     unsigned char id[16];
@@ -2638,6 +2619,7 @@ hsm_generate_ecdsa_key(hsm_ctx_t *ctx,
 
     session = hsm_find_repository_session(ctx, repository);
     if (!session) return NULL;
+    cextractable = session->module->config->allow_extract ? CK_TRUE : CK_FALSE;
 
     generate_unique_id(ctx, id, 16);
 
@@ -2674,7 +2656,7 @@ hsm_generate_ecdsa_key(hsm_ctx_t *ctx,
         { CKA_SENSITIVE,           &ctrue,   sizeof(ctrue)   },
         { CKA_TOKEN,               &ctrue,   sizeof(ctrue)   },
         { CKA_PRIVATE,             &ctrue,   sizeof(ctrue)   },
-        { CKA_EXTRACTABLE,         &cfalse,  sizeof(cfalse)  }
+        { CKA_EXTRACTABLE,         &cextractable,  sizeof (cextractable) }
     };
 
     /* Select the curve */

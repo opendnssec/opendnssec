@@ -30,7 +30,7 @@
  */
 
 #include "config.h"
-#include "parser/confparser.h"
+#include "confparser.h"
 #include "parser/zonelistparser.h"
 #include "duration.h"
 #include "file.h"

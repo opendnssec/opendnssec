@@ -1296,6 +1296,14 @@ static db_result_t* db_backend_mysql_next(void* data, int finish) {
     return result;
 }
 
+static int
+db_backend_mysql_last_id(void *data, int *last_id)
+{
+    db_backend_mysql_t* backend_mysql = (db_backend_mysql_t*)data;
+    *last_id = mysql_insert_id(backend_mysql->db);
+    return (*last_id) ?  DB_OK : DB_ERROR_UNKNOWN;
+}
+
 static int db_backend_mysql_create(void* data, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set) {
     db_backend_mysql_t* backend_mysql = (db_backend_mysql_t*)data;
     const db_object_field_t* object_field;
@@ -2218,6 +2226,7 @@ db_backend_handle_t* db_backend_mysql_new_handle(void) {
             || db_backend_handle_set_shutdown(backend_handle, db_backend_mysql_shutdown)
             || db_backend_handle_set_connect(backend_handle, db_backend_mysql_connect)
             || db_backend_handle_set_disconnect(backend_handle, db_backend_mysql_disconnect)
+            || db_backend_handle_set_last_id(backend_handle, db_backend_mysql_last_id)
             || db_backend_handle_set_create(backend_handle, db_backend_mysql_create)
             || db_backend_handle_set_read(backend_handle, db_backend_mysql_read)
             || db_backend_handle_set_update(backend_handle, db_backend_mysql_update)

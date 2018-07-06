@@ -7,7 +7,7 @@ if [ -n "$INSTALL_TAG" -a -z "$INSTALL_ROOT" ]; then
 fi
 
 if [ \! -f $INSTALL_ROOT/.softhsm2.ok ] ; then
-  rm -f softhsm-2.3.0.tar.gz
+  rm -f softhsm-2.*.tar.gz
   wget 'https://dist.opendnssec.org/source/softhsm-2.3.0.tar.gz'
   gzip -d < softhsm-2.3.0.tar.gz | tar xf -
   cd softhsm-2.3.0

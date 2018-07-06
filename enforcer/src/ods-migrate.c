@@ -39,9 +39,10 @@
 
 #include "log.h"
 #include "libhsm.h"
-#include "daemon/cfg.h"
+#include "confparser.h"
 #include "libhsmdns.h"
-extern hsm_repository_t* parse_conf_repositories(const char* cfgfile);
+#include "daemon/engine.h"
+
 
 int verbosity;
 char* argv0;
@@ -334,6 +335,8 @@ main(int argc, char* argv[])
     };
 
     argv0 = argv[0];
+    verbosity = parse_conf_verbosity(cfgfile);
+
 
     /* parse the commandline */
     while ((c=getopt_long(argc, argv, "c:hv", long_options, &options_index)) != -1) {
@@ -359,7 +362,7 @@ main(int argc, char* argv[])
         exit(1);
     }
 
-    ods_log_init("ods-migrate", 0, NULL, verbosity);
+    ods_log_init("ods-migrate", parse_conf_use_syslog(cfgfile), parse_conf_log_filename(cfgfile), verbosity);
 
     xmlInitGlobals();
     xmlInitParser();
@@ -369,6 +372,10 @@ main(int argc, char* argv[])
 
     /* Parse config file */
     cfg = engine_config(cfgfile, verbosity, NULL);
+    if (!cfg) {
+        return 1;
+    }
+
     cfg->verbosity = verbosity;
     /* does it make sense? */
     if (engine_config_check(cfg) != ODS_STATUS_OK) {

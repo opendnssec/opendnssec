@@ -34,6 +34,7 @@
 #include "str.h"
 #include "clientpipe.h"
 #include "policy/policy_export.h"
+#include "db/dbw.h"
 
 #include "policy/policy_export_cmd.h"
 
@@ -61,16 +62,14 @@ help(int sockfd)
 }
 
 static int
-run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 {
     #define NARGV 4
-    char* buf;
     const char* argv[NARGV];
     int returnCode;
     int argc = 0, long_index = 0, opt = 0;
     const char* policy_name = NULL;
     int all = 0;
-    policy_t* policy;
     db_connection_t* dbconn = getconnectioncontext(context);;
     engine_type* engine = getglobalcontext(context);
 
@@ -82,17 +81,11 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 
     ods_log_debug("[%s] %s command", module_str, policy_export_funcblock.cmdname);
 
-    if (!cmd || !(buf = strdup(cmd))) {
-        client_printf_err(sockfd, "memory error\n");
-        return -1;
-    }
-
-    argc = ods_str_explode(buf, NARGV, argv);
+    argc = ods_str_explode(cmd, NARGV, argv);
     if (argc == -1) {
         client_printf_err(sockfd, "too many arguments\n");
         ods_log_error("[%s] too many arguments for %s command",
                       module_str, policy_export_funcblock.cmdname);
-        free(buf);
         return -1;
     }
 
@@ -109,42 +102,40 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
                 client_printf_err(sockfd, "unknown arguments\n");
                 ods_log_error("[%s] unknown arguments for %s command",
                                 module_str, policy_export_funcblock.cmdname);
-                free(buf);
                 return -1;
         }
     }
 
     if (!dbconn) {
-        free(buf);
         return 1;
     }
 
     if (all) {
         if (policy_export_all(sockfd, dbconn, NULL) != POLICY_EXPORT_OK) {
-            free(buf);
             return 1;
         }
-    }
-    else if (policy_name) {
-        if (!(policy = policy_new_get_by_name(dbconn, policy_name))) {
+    } else if (policy_name) {
+        struct dbw_db *db = dbw_fetch(dbconn);
+        if (!db) {
+            client_printf_err(sockfd, "Unable to read from database!\n");
+            return 1;
+        }
+        struct dbw_policy *policy = dbw_get_policy(db, policy_name);
+        if (!policy) {
             client_printf_err(sockfd, "Unable to find policy %s!\n", policy_name);
-            free(buf);
+            dbw_free(db);
             return 1;
         }
         if (policy_export(sockfd, policy, NULL) != POLICY_EXPORT_OK) {
-            policy_free(policy);
-            free(buf);
+            dbw_free(db);
             return 1;
         }
-        policy_free(policy);
-    }
-    else {
+        dbw_free(db);
+    } else {
         client_printf_err(sockfd, "Either --all or --policy needs to be given!\n");
-        free(buf);
         return 1;
     }
 
-    free(buf);
     return 0;
 }
 

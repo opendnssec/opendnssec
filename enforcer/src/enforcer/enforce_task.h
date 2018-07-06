@@ -30,10 +30,10 @@
 #ifndef _ENFORCER_ENFORCE_TASK_H_
 #define _ENFORCER_ENFORCE_TASK_H_
 
-#include "daemon/cfg.h"
+#include "cfg.h"
 #include "daemon/engine.h"
 #include "scheduler/task.h"
-#include "db/policy.h"
+#include "db/dbw.h"
 
 task_type *enforce_task(engine_type *engine, char const *owner);
 
@@ -44,8 +44,7 @@ time_t enforce_task_perform(task_type* task, char const *owner, void *context,
 void enforce_task_flush_zone(engine_type *engine, char const *zonename);
 
 /* Schedule enforce tasks for *now* for ALL zones of policy. */
-void enforce_task_flush_policy(engine_type *engine, db_connection_t *dbconn,
-    policy_t const *policy);
+void enforce_task_flush_policy(engine_type *engine, struct dbw_policy *policy);
 
 /* Schedule enforce tasks for *now* for ALL zones. */
 void enforce_task_flush_all(engine_type *engine, db_connection_t *dbconn);

@@ -117,7 +117,6 @@ static int
 cmdhandler_perform_command(const char *cmd, struct cmdhandler_ctx_struct* context)
 {
     struct cmd_func_block* fb;
-    int ret;
     int sockfd = context->sockfd;
 
     ods_log_verbose("received command %s", cmd);
@@ -125,8 +124,13 @@ cmdhandler_perform_command(const char *cmd, struct cmdhandler_ctx_struct* contex
 
     /* Find function claiming responsibility */
     if ((fb = get_funcblock(cmd, context->cmdhandler))) {
+        char *buf;
+        if (!(buf = strdup(cmd))) {
+            client_printf_err(sockfd, "memory error\n");
+            return 1;
+        }
         ods_log_debug("[%s] %s command", module_str, fb->cmdname);
-        ret = fb->run(sockfd, context, cmd);
+        int ret = fb->run(sockfd, context, buf);
         if (ret == -1) {
             /* Syntax error, print usage for cmd */
             client_printf_err(sockfd, "Error parsing arguments %s command line %s\n",
@@ -137,6 +141,7 @@ cmdhandler_perform_command(const char *cmd, struct cmdhandler_ctx_struct* contex
             }
         }
         ods_log_debug("[%s] done handling command %s", module_str, cmd);
+        free(buf);
         return ret;
     } else {
         /* Unhandled command, print general error */

@@ -280,6 +280,15 @@ struct key_state_list {
  */
 key_state_list_t* key_state_list_new(const db_connection_t* connection);
 
+int
+key_state_list_get(key_state_list_t* key_state_list);
+
+key_state_list_t*
+key_state_list_new_get(const db_connection_t* connection);
+
+size_t
+key_state_list_size(key_state_list_t* key_state_list);
+
 /**
  * Create a new key state object list that is a copy of another.
  * \param[in] key_state_list a key_state_list_t pointer.

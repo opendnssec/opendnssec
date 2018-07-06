@@ -98,7 +98,7 @@ check_all(int sockfd, engine_type* engine)
 }
 
 static int
-run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 {
 	int error;
         db_connection_t* dbconn = getconnectioncontext(context);

@@ -73,14 +73,4 @@ char *ods_strcat_delim(int argc, char* argv[], char delim);
  */
 char* ods_str_trim(char* str, int keep_newline);
 
-/**
- * Version of ctime_r that does not feature a trailing '\n' character
- *
- * \param[in] buf buffer to write the formatted date/time to
- * \param[in] nbuf size of buf, including any terminating zero characters.
- * \param[in] t time_t value to print to buf
- * \return	buf to indicate success or NULL to indicate failure.
- */
-char *ods_ctime_r(char *buf, size_t nbuf, time_t t);
-
 #endif /* SHARED_STR_H */
