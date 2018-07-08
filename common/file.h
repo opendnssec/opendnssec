@@ -118,7 +118,12 @@ ssize_t ods_writeln(int fd, char const *str);
  * \param[in] ... parameters to be expanded in format string
  *
  */
-void ods_log_error_and_printf(int fd, const char *mod, const char *format, ...);
+void ods_log_error_and_printf(int fd, const char *mod, const char *format, ...)
+#ifdef HAVE___ATTRIBUTE__
+     __attribute__ ((format (printf, 3, 4)))
+#endif
+     ;
+
 	
 /**
  * Get file status.
