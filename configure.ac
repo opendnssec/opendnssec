@@ -155,6 +155,8 @@ ACX_DLOPEN
 AC_DEFINE_UNQUOTED([HSM_DEFAULT_CONFIG],["$OPENDNSSEC_CONFIG_FILE"],[Default configuration file.])
 
 # enforcer
+ACX_ENFORCER_DATABASE
+ACX_LIBREADLINE
 AC_ARG_ENABLE(enforcer,
 	AC_HELP_STRING([--disable-enforcer],
 		[Disable enforcer build (default enabled)]),
@@ -162,8 +164,6 @@ AC_ARG_ENABLE(enforcer,
 		[enable_enforcer="yes"])
 if test "x${enable_enforcer}" = "xyes"; then
 	AC_DEFINE_UNQUOTED(SIGNER_CLI_UPDATE, "$OPENDNSSEC_SIGNER_CLI update", [Path to the OpenDNSSEC signer engine cli])
-	ACX_ENFORCER_DATABASE
-	ACX_LIBREADLINE
 fi
 AM_CONDITIONAL([ENABLE_ENFORCER], [test "${enable_enforcer}" = "yes"])
 
