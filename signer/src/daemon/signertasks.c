@@ -25,6 +25,10 @@
  */
 
 #include <time.h>
+#include <sys/types.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #include "daemon/engine.h"
 #include "scheduler/worker.h"
@@ -40,6 +44,7 @@
 #include "signer/zone.h"
 #include "util.h"
 #include "signertasks.h"
+#include "file.h"
 
 /**
  * Queue RRset for signing.
@@ -534,6 +539,18 @@ do_writezone(task_type* task, const char* zonename, void* zonearg, void *context
     context->clock_in = time_now(); /* TODO this means something different */
     /* perform write to output adapter task */
     status = tools_output(zone, engine);
+
+    struct stat statbuf;
+    char* filename = ods_build_path(zone->name, ".state", 0, 1);
+    if(fstatat(AT_FDCWD, filename, &statbuf, 0)) {
+        if(errno == ENOENT) {
+            names_viewpersist(zone->baseview, AT_FDCWD, filename);
+        } else {
+            ods_log_error("[%s] unable to create state file for zone %s", worker->name, task->owner);
+        }
+    }
+    free(filename);
+
     if (status != ODS_STATUS_OK) {
         ods_log_crit("[%s] CRITICAL: failed to sign zone %s: %s",
                 worker->name, task->owner, ods_status2str(status));

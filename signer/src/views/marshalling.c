@@ -11,7 +11,7 @@
 
 #pragma GCC optimize ("O0")
 
-enum marshall_mode { COPY, READ, WRITE, PRINT, COUNT };
+enum marshall_mode { COPY, FREE, READ, WRITE, PRINT, COUNT };
 enum marshall_func { BASIC, OBJECT, SELF };
 
 int optionaldummy;
@@ -92,7 +92,8 @@ marshallinteger(marshall_handle h, void* member)
     int size;
     switch(h->mode) {
         case COPY:
-            abort(); // FIXME
+            break;
+        case FREE:
             break;
         case READ:
             size = read(h->fd, member, sizeof(int));
@@ -121,6 +122,8 @@ marshallbyte(marshall_handle h, void* member)
     switch(h->mode) {
         case COPY:
             break;
+        case FREE:
+            break;
         case READ:
             size = read(h->fd, member, 1);
             break;
@@ -146,6 +149,9 @@ marshallstring(marshall_handle h, void* member)
         case COPY:
             *str = strdup(*str);
             size = strlen(*str);
+            break;
+        case FREE:
+            free(*str);
             break;
         case READ:
             size = marshallinteger(h, &len);
@@ -207,6 +213,9 @@ marshallldnsrr(marshall_handle h, void* member)
     switch(h->mode) {
         case COPY:
             *rr = ldns_rr_clone(*rr);
+            break;
+        case FREE:
+            ldns_rr_free(*rr);
             break;
         case READ:
             size = marshallinteger(h, &len);
@@ -312,6 +321,21 @@ marshalling(marshall_handle h, const char* name, void* members, int *membercount
             } else if(members) {
                 size = 0;
                 memberfunction(h, members);
+            }
+            break;
+        case FREE:
+            if(name != NULL) {
+                if(membercount) {
+                    if(memberfunction != NULL && memberfunction != marshallself) {
+                        for(i=0; i<*membercount; i++) {
+                            memberfunction(h, &(dest[i*membersize]));
+                        }
+                    }
+                    free(*(char**)members);
+                } else {
+                    memberfunction(h, members);
+                    //free(membersize);
+                }
             }
             break;
         case READ:

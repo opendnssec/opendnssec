@@ -49,6 +49,7 @@
 #include "daemon/signercommands.h"
 #include "utilities.h"
 #include "daemon/signertasks.h"
+#include "daemon/metastorage.h"
 
 #include "comparezone.h"
 
@@ -137,6 +138,7 @@ setUp(void)
         chdir(workdir);
 
     unlink("zones.xml");
+    unlink("signer.pid");
     
     engine = engine_create();
     if((status = engine_setup_config(engine, "conf.xml", 3, 0)) != ODS_STATUS_OK ||
@@ -364,6 +366,7 @@ reresignzone(zone_type* zone)
 extern void testNothing(void);
 extern void testIterator(void);
 extern void testAnnotate(void);
+extern void testStatefile(void);
 extern void testBasic(void);
 extern void testSignNSEC(void);
 extern void testSignNSEC3(void);
@@ -476,6 +479,70 @@ testMarshalling(void)
 
 
 void
+testStatefile(void)
+{
+    zone_type zone1;
+    zone_type zone2;
+    zone_type zone3;
+    zone_type zone4;
+    zone_type zone5;
+    zone_type zone6;
+    unlink("signer.db");
+    memset(&zone1,0xFF,sizeof(zone_type));
+    memset(&zone2,0xFF,sizeof(zone_type));
+    memset(&zone3,0xFF,sizeof(zone_type));
+    memset(&zone4,0xFF,sizeof(zone_type));
+    memset(&zone5,0xFF,sizeof(zone_type));
+    memset(&zone6,0xFF,sizeof(zone_type));
+
+    zone1.name = "example.com";
+    zone1.inboundserial = malloc(sizeof(int));
+    *zone1.inboundserial = 111;
+    zone1.outboundserial = NULL;
+    zone1.nextserial = NULL;
+    metastorageput(&zone1);
+
+    metastorageget("example.com",&zone2);
+    CU_ASSERT_PTR_NOT_NULL(zone2.name);
+    CU_ASSERT_PTR_NOT_NULL(zone2.inboundserial);
+    CU_ASSERT_PTR_NULL(zone2.outboundserial);
+    CU_ASSERT_PTR_NULL(zone2.nextserial);
+    CU_ASSERT_STRING_EQUAL(zone2.name, "example.com");
+    CU_ASSERT_EQUAL(*zone2.inboundserial, 111);
+
+    zone3.name = "example.org";
+    zone3.outboundserial = malloc(sizeof(int));
+    *zone3.outboundserial = 222;
+    zone3.inboundserial = NULL;
+    zone3.nextserial = NULL;
+    metastorageput(&zone3);
+
+    zone4.name = "example.com";
+    zone4.nextserial = malloc(sizeof(int));
+    *zone4.nextserial = 333;
+    zone4.inboundserial = NULL;
+    zone4.outboundserial = NULL;
+    metastorageput(&zone4);
+
+    metastorageget("example.org",&zone5);
+    CU_ASSERT_PTR_NOT_NULL(zone5.name);
+    CU_ASSERT_PTR_NULL(zone5.inboundserial);
+    CU_ASSERT_PTR_NOT_NULL(zone5.outboundserial);
+    CU_ASSERT_PTR_NULL(zone5.nextserial);
+    CU_ASSERT_STRING_EQUAL(zone5.name, "example.org");
+    CU_ASSERT_EQUAL(*zone5.outboundserial, 222);
+
+    metastorageget("example.com",&zone6);
+    CU_ASSERT_PTR_NOT_NULL(zone6.name);
+    CU_ASSERT_PTR_NULL(zone6.inboundserial);
+    CU_ASSERT_PTR_NULL(zone6.outboundserial);
+    CU_ASSERT_PTR_NOT_NULL(zone6.nextserial);
+    CU_ASSERT_STRING_EQUAL(zone6.name, "example.com");
+    CU_ASSERT_EQUAL(*zone6.nextserial, 333);
+}
+
+
+void
 testBasic(void)
 {
     command_update(engine, NULL, NULL, NULL, NULL);
@@ -540,7 +607,7 @@ testSignResign(void)
     char* filename = ods_build_path(zone->name, ".state", 0, 1);
     names_viewpersist(zone->baseview, basefd, filename);
     free(filename);
-    
+
     disposezone(zone);
     engine->zonelist->last_modified = 0; /* force update */
     zonelist_update(engine->zonelist, engine->config->zonelist_filename_signer);
@@ -645,6 +712,7 @@ struct test_struct {
     { "signer", "testIterator",   "test of iterator" },
     { "signer", "testAnnotate",   "test of denial annotation" },
     { "signer", "testMarshalling","test marshalling" },
+    { "signer", "testStatefile",  "test statefile usage" },
     { "signer", "testBasic",      "test of start stop" },
     { "signer", "testSignNSEC",   "test NSEC signing" },
     { "signer", "testSignNSEC3",  "test NSEC3 signing" },

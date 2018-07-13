@@ -18,7 +18,7 @@
 #pragma GCC optimize ("O0")
 
 void
-writezonef(names_view_type view, FILE* fp)
+writezonecontent(names_view_type view, FILE* fp)
 {
     int first;
     char* s;
@@ -46,6 +46,19 @@ writezonef(names_view_type view, FILE* fp)
     }
 }
 
+void
+writezoneapex(names_view_type view, FILE* fp)
+{
+    ldns_rr* rr = NULL;
+    recordset_type record;
+    char* soa = NULL;
+    record = names_take(view,0,NULL);
+    names_recordlookupone(record,LDNS_RR_TYPE_SOA,NULL,&rr);
+    soa = ldns_rr2str(rr);
+    fprintf(fp, "%s", soa);
+    free(soa);
+}
+
 int
 writezone(names_view_type view, const char* filename)
 {
@@ -53,9 +66,6 @@ writezone(names_view_type view, const char* filename)
     int defaultttl = 0;
     ldns_rdf* origin = NULL;
     char* apex = NULL;
-    char* soa = NULL;
-    ldns_rr* rr = NULL;
-    recordset_type record;
 
     fp = fopen(filename,"w");
     if (!fp) {
@@ -71,13 +81,10 @@ writezone(names_view_type view, const char* filename)
     if (names_viewgetdefaultttl(view, &defaultttl)) {
         fprintf(fp, "$TTL %d\n",defaultttl);
     }
-    record = names_take(view,0,apex);
-    names_recordlookupone(record,LDNS_RR_TYPE_SOA,NULL,&rr);
-    soa = ldns_rr2str(rr);
-    
-    fprintf(fp, "%s", soa);
-    writezonef(view, fp);
-    fprintf(fp, "%s", soa);
+
+    writezoneapex(view, fp);
+    writezonecontent(view, fp);
+    writezoneapex(view, fp);
 
     fclose(fp);
     if(apex)

@@ -29,6 +29,7 @@ signertest_LDADD = \
 	../daemon/xfrhandler.o \
 	../daemon/engine.o \
 	../daemon/signertasks.o \
+	../daemon/metastorage.o \
 	../parser/addnsparser.o \
 	../parser/signconfparser.o \
 	../parser/zonelistparser.o \

@@ -152,6 +152,7 @@ tools_input(zone_type* zone)
     switch(status) {
         case ODS_STATUS_OK:
             names_viewcommit(view);
+            metastorageput(zone);
             break;
         case ODS_STATUS_UNCHANGED:
             names_viewreset(view);
@@ -192,6 +193,7 @@ tools_output(zone_type* zone, engine_type* engine)
     ods_log_assert(zone->signconf);
     ods_log_assert(zone->adoutbound);
     /* Output Adapter */
+    metastorageput(zone);
     status = adapter_write(zone);
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] unable to write zone %s: adapter failed (%s)",

@@ -2,7 +2,6 @@
 #define PROTO_H
 
 typedef struct names_iterator_struct* names_iterator;
-typedef struct marshall_struct* marshall_handle;
 typedef struct recordset_struct* recordset_type;
 typedef struct names_index_struct* names_index_type;
 typedef struct names_table_struct* names_table_type;
@@ -10,6 +9,7 @@ typedef struct names_view_struct* names_view_type;
 
 #include "signer/signconf.h"
 #include "signer/zone.h"
+#include "views/marshalling.h"
 
 struct signature_struct {
     ldns_rr* rr;
@@ -87,20 +87,6 @@ names_iterator names_iterator_createdata(size_t size);
 void names_iterator_addptr(names_iterator iter, const void* ptr);
 void names_iterator_adddata(names_iterator iter, const void* ptr);
 
-enum marshall_method { marshall_INPUT, marshall_OUTPUT, marshall_APPEND, marshall_PRINT };
-marshall_handle marshallcreate(enum marshall_method method, ...);
-void marshallclose(marshall_handle h);
-int marshallself(marshall_handle h, void* member);
-int marshallbyte(marshall_handle h, void* member);
-int marshallinteger(marshall_handle h, void* member);
-int marshallstring(marshall_handle h, void* member);
-int marshallldnsrr(marshall_handle h, void* member);
-int marshallsigs(marshall_handle h, void* member);
-int marshallstringarray(marshall_handle h, void* member);
-int marshalling(marshall_handle h, const char* name, void* members, int *membercount, size_t membersize, int (*memberfunction)(marshall_handle,void*));
-
-extern int* marshall_OPTIONAL;
-
 /* A dictionary is an abstract data structure capable of storing key
  * value pairs, where each value is again a dictionary.
  * A (sub)dictionary can also have a name.
@@ -127,7 +113,7 @@ const char* names_recordgetname(recordset_type dict);
 const char* names_recordgetdenial(recordset_type dict);
 int names_recordcompare_namerevision(recordset_type a, recordset_type b);
 int names_recordhasdata(recordset_type record, ldns_rr_type recordtype, ldns_rr* rr, int exact);
-void names_recordadddata(recordset_type d, ldns_rr* rr); // FIXME rename to names_recordadddata()
+void names_recordadddata(recordset_type d, ldns_rr* rr);
 void names_recorddeldata(recordset_type d, ldns_rr_type rrtype, ldns_rr* rr);
 void names_recorddelall(recordset_type, ldns_rr_type rrtype);
 names_iterator names_recordalltypes(recordset_type);
@@ -238,7 +224,8 @@ void names_dumpviewinfo(names_view_type view);
 void names_dumpviewfull(FILE*, names_view_type view);
 void names_dumpindex(FILE* fp, names_view_type view, int index);
 
-void writezonef(names_view_type view, FILE* fp);
+void writezonecontent(names_view_type view, FILE* fp);
+void writezoneapex(names_view_type view, FILE* fp);
 int writezone(names_view_type view, const char* filename);
 enum operation_enum { PLAIN, DELTAMINUS, DELTAPLUS };
 int readzone(names_view_type view, enum operation_enum operation, const char* filename, char** apexptr, int* defaultttlptr);
@@ -246,7 +233,7 @@ int readzone(names_view_type view, enum operation_enum operation, const char* fi
 ldns_rr_type domain_is_occluded(names_view_type view, recordset_type record);
 ldns_rr_type domain_is_delegpt(names_view_type view, recordset_type record);
 void namedb_nsecify(zone_type* globalzone, names_view_type view, uint32_t* num_added);
-ldns_rr* denial_nsecify(signconf_type* signconf, names_view_type view, recordset_type domain, ldns_rdf* nxt); // FIXME
+ldns_rr* denial_nsecify(signconf_type* signconf, names_view_type view, recordset_type domain, ldns_rdf* nxt); // FIXME rename
 ods_status namedb_update_serial(zone_type* globalzone);
 ods_status rrset_sign(signconf_type* signconf, names_view_type view, recordset_type domain, ldns_rr_type rrtype, hsm_ctx_t* ctx, time_t signtime);
 ods_status rrset_getliteralrr(ldns_rr** dnskey, const char *resourcerecord, uint32_t ttl, ldns_rdf* apex);

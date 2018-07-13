@@ -182,9 +182,8 @@ adapi_printaxfr(FILE* fd, zone_type* zone, names_view_type view)
             ods_log_error("[%s] unable to print axfr: file descriptor, zone or name database missing", adapi_str);
             return ODS_STATUS_ASSERT_ERR;
      }
-     /* FIXME force SOA to be written first */
-     writezonef(view, fd);
-     /* lookupone(); */
-     /* FIXME print SOA serial record last again */
+     writezoneapex(view, fd);
+     writezonecontent(view, fd);
+     writezoneapex(view, fd);
      return ODS_STATUS_OK;
 }
