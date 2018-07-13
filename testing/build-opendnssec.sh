@@ -33,6 +33,7 @@ case "$DISTRIBUTION" in
 	opensuse )
 		append_ldflags "-lncurses -lpthread"
 		;;
+	devuan | \
 	debian )
 		append_ldflags "-lpthread"
 		;;
@@ -52,6 +53,7 @@ case "$DISTRIBUTION" in
 	fedora | \
 	sl | \
 	ubuntu | \
+	devuan | \
 	debian | \
 	openbsd | \
 	sunos | \

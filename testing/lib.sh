@@ -13,6 +13,7 @@ exit ()
 					unset _SYSLOG_TRACE_PID
 				}
 				;;
+			devuan | \
 			debian | \
 			ubuntu | \
 			redhat | \
@@ -371,6 +372,7 @@ find_tail ()
 	fi
 
 	case "$DISTRIBUTION" in
+		devuan | \
 		debian | \
 		ubuntu | \
 		redhat | \
@@ -527,7 +529,9 @@ detect_distribution ()
 {
 	DISTRIBUTION="UNKNOWN"
 
-	if [ -f "/etc/debian_version" ]; then
+	if [ -f "/etc/devuan_version" ]; then
+		DISTRIBUTION="devuan"
+	elif [ -f "/etc/debian_version" ]; then
 		if uname -a 2>/dev/null | $GREP -q -i ubuntu 2>/dev/null; then
 			DISTRIBUTION="ubuntu"
 		else
@@ -1690,6 +1694,7 @@ syslog_trace ()
 		slackware)
 			syslog_file="/var/log/opendnssec"
 			;;
+		devuan | \
 		debian | \
 		ubuntu )
 			syslog_file="/var/log/syslog"
