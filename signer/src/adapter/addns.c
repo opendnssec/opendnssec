@@ -746,72 +746,10 @@ addns_read(zone_type* z, names_view_type v)
 ods_status
 addns_write(zone_type* z, names_view_type view)
 {
-    FILE* fd = NULL;
-    char* atmpfile = NULL;
-    char* axfrfile = NULL;
-    char* itmpfile = NULL;
-    char* ixfrfile = NULL;
-    int ret = 0;
-    ods_status status = ODS_STATUS_OK;
     ods_log_assert(z);
     ods_log_assert(z->name);
     ods_log_assert(z->adoutbound);
     ods_log_assert(z->adoutbound->type == ADAPTER_DNS);
-
-    atmpfile = ods_build_path(z->name, ".axfr.tmp", 0, 1);
-    if (!atmpfile) {
-        return ODS_STATUS_MALLOC_ERR;
-    }
-    fd = ods_fopen(atmpfile, NULL, "w");
-    if (!fd) {
-        free((void*) atmpfile);
-        return ODS_STATUS_FOPEN_ERR;
-    }
-    status = adapi_printaxfr(fd, z, view);
-    ods_fclose(fd);
-    if (status != ODS_STATUS_OK) {
-        free((void*) atmpfile);
-        return status;
-    }
-
-    if (status == ODS_STATUS_OK) {
-        if (z->adoutbound->error) {
-            ods_log_error("[%s] unable to write zone %s axfr: one or "
-                "more RR print failed", adapter_str, z->name);
-            /* clear error */
-            z->adoutbound->error = 0;
-            free((void*) atmpfile);
-            free((void*) itmpfile);
-            return ODS_STATUS_FWRITE_ERR;
-        }
-    }
-
-    /* lock and move */
-    axfrfile = ods_build_path(z->name, ".axfr", 0, 1);
-    if (!axfrfile) {
-        free((void*) atmpfile);
-        free((void*) itmpfile);
-        return ODS_STATUS_MALLOC_ERR;
-    }
-
-    pthread_mutex_lock(&z->xfr_lock);
-    ret = rename(atmpfile, axfrfile);
-    if (ret != 0) {
-        ods_log_error("[%s] unable to rename file %s to %s: %s", adapter_str,
-            atmpfile, axfrfile, strerror(errno));
-        pthread_mutex_unlock(&z->xfr_lock);
-        free((void*) atmpfile);
-        free((void*) axfrfile);
-        free((void*) itmpfile);
-        return ODS_STATUS_RENAME_ERR;
-    }
-    free((void*) axfrfile);
-    free((void*) atmpfile);
-    axfrfile = NULL;
-    atmpfile = NULL;
-
-    free((void*) itmpfile);
-    pthread_mutex_unlock(&z->xfr_lock);
 
     dnsout_send_notify(z, view);
     return ODS_STATUS_OK;

@@ -5,13 +5,13 @@
 #include <string.h>
 #include <time.h>
 #include <ldns/ldns.h>
-#include "uthash.h"
 #include "utilities.h"
 #include "logging.h"
-#include "proto.h"
+#include "views/proto.h"
 #include "duration.h"
 #include "util.h"
 #include "compat.h"
+#include "hsm.h"
 
 #pragma GCC optimize ("O0")
 
@@ -611,8 +611,12 @@ namedb_update_serial(zone_type* zone)
     } else if (!strcmp(format, "datecounter")) {
         serial = (uint32_t) time_datestamp(0, "%Y%m%d", NULL) * 100;
     } else if (!strcmp(format, "counter")) {
-        serial = *(zone->inboundserial) + 1;
-        if (zone->outboundserial && !util_serial_gt(serial, *(zone->outboundserial))) {
+        if(zone->inboundserial) {
+            serial = *(zone->inboundserial) + 1;
+            if (zone->outboundserial && !util_serial_gt(serial, *(zone->outboundserial))) {
+                serial = *(zone->outboundserial) + 1;
+            }
+        } else if(zone->outboundserial) {
             serial = *(zone->outboundserial) + 1;
         }
     } else if (!strcmp(format, "keep")) {

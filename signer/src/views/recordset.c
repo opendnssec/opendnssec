@@ -523,6 +523,29 @@ names_recordgetname(recordset_type record)
     return record->name;
 }
 
+int
+names_recordgetrevision(recordset_type record)
+{
+    return record->revision;
+}
+
+char *
+names_recordgetsummary(recordset_type dict, char** dest)
+{
+    char* s = NULL;
+    if(dest && *dest)
+        free(*dest);
+    if(dict != NULL)
+        asprintf(&s, "%s %d (from=%d to=%d expiry=%d)%s%s", dict->name, dict->revision,
+                     (dict->validfrom?(int)*dict->validfrom:-1),
+                     (dict->validupto?(int)*dict->validupto:-1),
+                     (dict->expiry?(int)*dict->expiry:-1),
+                     (dict->spanhash?" ":""),(dict->spanhash?dict->spanhash:""));
+    if(dest!=NULL)
+        *dest = s;
+    return (s?s:"");
+}
+
 const char*
 names_recordgetdenial(recordset_type record)
 {
@@ -639,6 +662,9 @@ DEFINECOMPARISON(compareincomingset)
 DEFINECOMPARISON(comparecurrentset)
 DEFINECOMPARISON(comparerelevantset)
 DEFINECOMPARISON(comparesignedset)
+DEFINECOMPARISON(comparechangesset)
+DEFINECOMPARISON(comparedeletesset)
+DEFINECOMPARISON(compareinsertsset)
 
 int
 comparenamerevision(recordset_type newitem, recordset_type curitem, int* cmp)
@@ -662,6 +688,9 @@ comparenamehierarchy(recordset_type newitem, recordset_type curitem, int* cmp)
             assert(newitem);
             assert(curitem);
             *cmp = strcmp(curitem->name, newitem->name);
+            if(*cmp == 0 && newitem->revision != 0) {
+                *cmp = curitem->revision - newitem->revision;
+            }
         }
     }
     return 1;
@@ -675,6 +704,14 @@ compareexpiry(recordset_type newitem, recordset_type curitem, int* cmp)
             *cmp = (newitem->expiry?*(newitem->expiry):0) - (curitem->expiry?*(curitem->expiry):0);
             if(*cmp == 0) {
                 *cmp = strcmp(newitem->name,curitem->name);
+                /*if(*cmp == 0) {
+                    if(newitem->revision >= curitem->revision) {
+                        return 2;
+                    } else {
+                        return 0;
+                    }
+                }
+                assert(*cmp != 0 || newitem->revision == curitem->revision);*/
             }
         }
     }
@@ -730,8 +767,6 @@ compareincomingset(recordset_type newitem, recordset_type curitem, int* cmp)
 {
     int rc = 1;
     int compare;
-    const char* left;
-    const char* right;
     if(curitem) {
         compare = strcmp(newitem->name, curitem->name);
         if(cmp)
@@ -755,8 +790,6 @@ int
 compareready(recordset_type newitem, recordset_type curitem, int* cmp)
 {
     int c;
-    const char* left;
-    const char* right;
     if (curitem) {
         c = strcmp(curitem->name, newitem->name);
         if (cmp)
@@ -779,8 +812,6 @@ compareready(recordset_type newitem, recordset_type curitem, int* cmp)
 int
 comparecurrentset(recordset_type newitem, recordset_type curitem, int* cmp)
 {
-    const char* left;
-    const char* right;
     if (curitem) {
         if (cmp) {
             *cmp = strcmp(curitem->name, newitem->name);
@@ -836,6 +867,76 @@ comparesignedset(recordset_type newitem, recordset_type curitem, int* cmp)
     return 1;
 }
 
+int
+comparechangesset(recordset_type newitem, recordset_type curitem, int* cmp)
+{
+    if (!newitem->validfrom) {
+        return 0;
+    }
+    if (!newitem->expiry) {
+        return 0;
+    }
+    if (curitem) {
+        if (cmp) {
+            *cmp = strcmp(curitem->name, newitem->name);
+            if(*cmp == 0) {
+                *cmp = *(curitem->validfrom) - *(newitem->validfrom);
+                if(*cmp == 0) {
+                    *cmp = curitem->revision - newitem->revision;
+                }
+            }
+        }
+    }
+    return 1;
+}
+
+int
+compareinsertsset(recordset_type newitem, recordset_type curitem, int* cmp)
+{
+    if (!newitem->validfrom) {
+        return 0;
+    }
+    if (!newitem->expiry) {
+        return 0;
+    }
+    if (curitem) {
+        if (cmp) {
+            *cmp = *curitem->validfrom - *newitem->validfrom;
+            if(*cmp == 0)
+                *cmp = strcmp(curitem->name, newitem->name);
+        }
+    }
+    return 1;
+}
+
+int
+comparedeletesset(recordset_type newitem, recordset_type curitem, int* cmp)
+{
+    if (!newitem->validfrom) {
+        return 0;
+    }
+    if (!newitem->expiry) {
+        return 0;
+    }
+    if (curitem) {
+        if (cmp) {
+            if(curitem->validupto == NULL) {
+                *cmp = 1;
+            } else if(newitem->validupto == NULL) {
+                *cmp = -1;
+            } else {
+                *cmp = *curitem->validupto - *newitem->validupto;
+            }
+            if(*cmp == 0)
+                *cmp = strcmp(curitem->name, newitem->name);
+        }
+        if (cmp) {
+            *cmp = strcmp(curitem->name, newitem->name);
+        }
+    }
+    return 1;
+}
+
 void
 names_recordindexfunction(const char* keyname, int (**acceptfunc)(recordset_type newitem, recordset_type currentitem, int* cmp), int (**comparfunc)(const void *, const void *))
 {
@@ -854,6 +955,12 @@ names_recordindexfunction(const char* keyname, int (**acceptfunc)(recordset_type
         REFERCOMPARISON("name", comparerelevantset);
     } else if(!strcmp(keyname,"validnow")) {
         REFERCOMPARISON("name", comparesignedset);
+    } else if(!strcmp(keyname,"validchanges")) {
+        REFERCOMPARISON("name", comparechangesset);
+    } else if(!strcmp(keyname,"validinserts")) {
+        REFERCOMPARISON("name", compareinsertsset);
+    } else if(!strcmp(keyname,"validdeletes")) {
+        REFERCOMPARISON("name", comparedeletesset);
     } else if(!strcmp(keyname,"expiry")) {
         REFERCOMPARISON("expiry",compareexpiry);
     } else if(!strcmp(keyname,"denialname")) {
@@ -921,7 +1028,8 @@ names_recordlookupall(recordset_type record, ldns_rr_type rrtype, ldns_rr* templ
             break;
     if (i<record->nitemsets) {
         *rrs = ldns_rr_list_new();
-        *rrsigs = ldns_rr_list_new();
+        if(rrsigs)
+            *rrsigs = ldns_rr_list_new();
         if(template == NULL) {
             if(record->itemsets[i].nitems > 0) {
                 for(j=0; j<record->itemsets[i].nitems; j++) {

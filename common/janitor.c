@@ -232,8 +232,10 @@ janitor_thread_dispose(janitor_thread_t info)
                     finishedthreadlist = info->next;
                 }
             }
-            info->next->prev = info->prev;
-            info->prev->next = info->next;
+            if(info->next && info->next->prev == info)
+                info->next->prev = info->prev;
+            if(info->prev && info->prev->next == info)
+                info->prev->next = info->next;
             info->next = info->prev = NULL;
         }
         pthread_mutex_unlock(&threadlock);

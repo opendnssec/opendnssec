@@ -56,7 +56,7 @@ signertest_LDADD = \
 	../wire/xfrd.o \
 	../views/commitlog.o \
 	../views/recordset.o \
-	../views/functions.o \
+	../daemon/signeroperation.o \
 	../views/httpd.o \
 	../views/index.o \
 	../views/iterator.o \

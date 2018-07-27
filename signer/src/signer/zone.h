@@ -80,6 +80,7 @@ struct zone_struct {
     names_view_type neighview;
     names_view_type signview;
     names_view_type outputview;
+    names_view_type changesview;
     char *persistviews;
 
     uint32_t* nextserial;

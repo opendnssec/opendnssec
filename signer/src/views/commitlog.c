@@ -29,7 +29,7 @@ struct names_commitlog_struct {
     int nviews;
     struct names_changelogchainentry {
         names_view_type view;
-        names_table_type nextchangelog;
+        names_table_type* nextchangelogptr;
     } *views;
     names_table_type firstchangelog;
     names_table_type lastchangelog;
@@ -68,73 +68,59 @@ names_commitlogdestroyall(names_commitlog_type commitlog, marshall_handle* store
 }
 
 int
-names_commitlogpoppush(names_commitlog_type commitlog, int viewid, names_table_type* previouslog, names_table_type* submitlog)
+names_commitlogpoppush(names_commitlog_type logs, int viewid, names_table_type* commitlog, names_table_type* submitlog)
 {
-    int rc;
+    int backlog;
     int i;
     names_table_type poppedlog;
-    names_table_type pushedlog;
-    CHECK(pthread_mutex_lock(&commitlog->lock));
-
-    poppedlog = commitlog->views[viewid].nextchangelog;
+    names_table_type previouslog = NULL;
+    CHECK(pthread_mutex_lock(&logs->lock));
+    
+    poppedlog = *(logs->views[viewid].nextchangelogptr);
     if(poppedlog) {
-        if(*previouslog) {
-            assert(*previouslog == poppedlog);
-            commitlog->views[viewid].nextchangelog = poppedlog->next;
-            poppedlog = commitlog->views[viewid].nextchangelog;
-            if(submitlog && poppedlog == *submitlog) {
-                poppedlog = NULL;
-                *submitlog = names_tablecreate();
+        logs->views[viewid].nextchangelogptr = &(poppedlog->next);
+        backlog = 1;
+    } else
+        backlog = 0;
+    if(*commitlog) {
+        if(*commitlog == logs->firstchangelog) {
+            previouslog = *commitlog;
+            for(i=0; i<logs->nviews; i++) {
+                if(&(logs->firstchangelog) == logs->views[i].nextchangelogptr)
+                    break;
             }
-            if (*previouslog == commitlog->firstchangelog) {
-                for (i = 0; i < commitlog->nviews; i++) {
-                    if (commitlog->views[i].nextchangelog == *previouslog)
-                        break;
+            if(i == logs->nviews) {
+                for(i=0; i<logs->nviews; i++) {
+                    if(logs->views[i].nextchangelogptr == &(previouslog->next))
+                        logs->views[i].nextchangelogptr = &(logs->firstchangelog);
                 }
-                if (i == commitlog->nviews) {
-                    commitlog->firstchangelog = commitlog->firstchangelog->next;
-                    if (commitlog->firstchangelog == NULL) {
-                        commitlog->lastchangelog = NULL;
-                    }
-                    names_commitlogdestroy(*previouslog);
-                }
-            }
-        }
-        *previouslog = poppedlog;
-    } else {
-        *previouslog = NULL;
-    }
-    if(*previouslog == NULL) {
-        if(submitlog) {
-            pushedlog = *submitlog;
-            *submitlog = names_tablecreate();
-            *previouslog = pushedlog;
-            if (commitlog->firstchangelog == NULL) {
-                assert(commitlog->lastchangelog == NULL);
-                commitlog->firstchangelog = commitlog->lastchangelog = pushedlog;
+                if(logs->lastchangelog == logs->firstchangelog)
+                    logs->lastchangelog = logs->firstchangelog->next;
+                logs->firstchangelog = logs->firstchangelog->next;
+                *commitlog = NULL;
             } else {
-                assert(commitlog->lastchangelog != pushedlog);
-                commitlog->lastchangelog->next = pushedlog;
-                commitlog->lastchangelog = pushedlog;
+                previouslog = NULL;
             }
-            for (i=0; i<commitlog->nviews; i++) {
-                if (i != viewid) {
-                    if (commitlog->views[i].nextchangelog == NULL) {
-                        commitlog->views[i].nextchangelog = pushedlog;
-                    }
-                } else {
-                    assert(commitlog->views[viewid].nextchangelog == NULL);
-                    commitlog->views[i].nextchangelog = pushedlog;
-                }
-            }
-            names_commitlogpersistincr(commitlog, pushedlog);
         }
-        rc = 0;
-    } else {
-        rc = 1;
     }
-    CHECK(pthread_mutex_unlock(&commitlog->lock));
-    return rc;
+    if(poppedlog == NULL && submitlog) {
+        names_commitlogpersistincr(logs, *submitlog);
+        if(logs->firstchangelog == NULL) {
+            assert(logs->lastchangelog == NULL);
+            logs->lastchangelog = logs->firstchangelog = *submitlog;
+        } else {
+            logs->lastchangelog->next = *submitlog;
+            logs->lastchangelog = *submitlog;
+        }
+        *commitlog = *submitlog;
+        *submitlog = names_tablecreate();
+    } else {
+        *commitlog = poppedlog;
+    }
+    CHECK(pthread_mutex_unlock(&logs->lock));
+    if(previouslog)
+        names_commitlogdestroy(previouslog);
+    return backlog;
 }
 
 int
@@ -156,7 +142,7 @@ names_commitlogsubscribe(names_view_type view, names_commitlog_type* commitlogpt
         (*commitlogptr)->views = realloc((*commitlogptr)->views, sizeof(struct names_changelogchainentry) * (*commitlogptr)->nviews);
     }
     viewid = (*commitlogptr)->nviews - 1;
-    (*commitlogptr)->views[viewid].nextchangelog = NULL;
+    (*commitlogptr)->views[viewid].nextchangelogptr = &((*commitlogptr)->firstchangelog);
     (*commitlogptr)->views[viewid].view = view;
     CHECK(pthread_mutex_unlock(&(*commitlogptr)->lock));
     return viewid;
@@ -184,7 +170,7 @@ names_commitlogpersistfull(names_commitlog_type commitlog, void (*persistfn)(nam
 {
     names_table_type changelog;
     CHECK(pthread_mutex_lock(&commitlog->lock));
-    for(changelog = commitlog->views[viewid].nextchangelog; changelog; changelog=changelog->next) {
+    for(changelog = *(commitlog->views[viewid].nextchangelogptr); changelog; changelog=changelog->next) {
         persistfn(changelog, store);
     }
     *oldstore = commitlog->store;

@@ -56,6 +56,9 @@ marshallcreate(enum marshall_method method, ...)
             old->fd = -1;
             old->fp = NULL;
             break;
+        case marshall_FREE:
+            h->mode = FREE;
+            break;
     }
     va_end(ap);
     h->indentlvl = 0;
@@ -256,7 +259,10 @@ marshallldnsrr(marshall_handle h, void* member)
         case PRINT:
             if(*rr) {
                 str = ldns_rr2str(*rr);
-                size = fprintf(h->fp, "\"%*.*s\"\n", (int)strlen(str)-1, (int)strlen(str)-1, str);
+                len = (int)strlen(str)-1;
+                if(len > 40)
+                    len = 40;
+                size = fprintf(h->fp, "\"%*.*s\"", len, len, str);
                 free(str);
             } else {
                 size = fprintf(h->fp, "NULL");
@@ -278,6 +284,7 @@ marshallsigs(marshall_handle h, void* member)
         size += marshalling(h, "rr", &(signatures->sigs[i].rr), NULL, 0, marshallldnsrr);
         size += marshalling(h, "keylocator", &(signatures->sigs[i].keylocator), NULL, 0, marshallstring);
         size += marshalling(h, "keyflags", &(signatures->sigs[i].keyflags), NULL, 0, marshallinteger);
+        size += marshalling(h, NULL, NULL, &(signatures->nsigs), i, marshallself);
     }
     return size;
 }

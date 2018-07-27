@@ -28,6 +28,7 @@ typedef enum logger_result { logger_DONE, logger_CONT, logger_QUIT } logger_resu
 
 typedef struct logger_ctx_struct* logger_ctx_type;
 typedef struct logger_cls_struct logger_cls_type;
+typedef logger_result_type (*logger_procedure)(const logger_cls_type*, const logger_ctx_type, const logger_lvl_type, const char*, va_list ap);
 
 #define LOGGER_INITIALIZE(N) { N, 0, 0, NULL }
 
@@ -37,6 +38,9 @@ extern logger_cls_type logger_cls;
 
 void logger_initialize(const char* programname);
 void logger_resetup(logger_cls_type* cls);
+void logger_configurecls(const char* name, logger_lvl_type minlvl, logger_procedure proc);
+logger_result_type logger_log_syslog(const logger_cls_type* cls, const logger_ctx_type ctx, const logger_lvl_type lvl, const char* format, va_list ap);
+logger_result_type logger_log_stderr(const logger_cls_type* cls, const logger_ctx_type ctx, const logger_lvl_type lvl, const char* format, va_list ap);
 
 logger_ctx_type logger_newcontext(void);
 void logger_destroycontext(logger_ctx_type);
@@ -65,14 +69,14 @@ logger_message(logger_cls_type* cls, logger_ctx_type ctx, logger_lvl_type lvl, c
 
 int logger_mark_performance(const char* message);
 
-#define logger_message(CLS,TXT,LVL,FMT,...) \
+#define logger_messagex(CLS,CTX,LVL,FMT,...) \
     do { \
         logger_cls_type* logger_cls_var = (CLS); \
-        logger_lvl_type logger_lvl_var = (VAR); \
+        logger_lvl_type logger_lvl_var = (LVL); \
         if(logger_cls_var->setupserial != logger_setup.serial) \
             logger_resetup(logger_cls_var); \
         if(logger_lvl_var <= logger_cls_var->minlvl) \
-            logger_messageinternal(logger_cls_var,(CTX),logger_lvl_var,__VA_ARGS__); \
+            logger_messageinternal(logger_cls_var,(CTX),logger_lvl_var,FMT,__VA_ARGS__); \
     } while(0)
 
 #ifndef DEPRECATE

@@ -25,6 +25,7 @@ ods_signerd_SOURCES=		ods-signerd.c \
 				adapter/adutil.c adapter/adutil.h \
 				daemon/metastorage.c daemon/metastorage.h \
 				daemon/signercommands.c daemon/signercommands.h \
+				daemon/signeroperation.c daemon/signeroperation.h \
 				daemon/dnshandler.c daemon/dnshandler.h \
 				daemon/xfrhandler.c daemon/xfrhandler.h \
 				daemon/engine.c daemon/engine.h \
@@ -56,7 +57,6 @@ ods_signerd_SOURCES=		ods-signerd.c \
 				wire/tsig-openssl.c wire/tsig-openssl.h \
 				wire/xfrd.c wire/xfrd.h \
 				views/recordset.c \
-				views/functions.c \
 				views/index.c \
 				views/iterator.c \
 				views/iteratorgeneric.c \

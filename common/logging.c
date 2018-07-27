@@ -13,8 +13,6 @@
 
 #undef logger_message
 
-typedef logger_result_type (*logger_procedure)(const logger_cls_type*, const logger_ctx_type, const logger_lvl_type, const char*, va_list ap);
-
 struct logger_chain_struct {
     const char* name;
     logger_procedure logger;
@@ -134,8 +132,10 @@ logger_log_stderr(const logger_cls_type* cls, const logger_ctx_type ctx, const l
     context = logger_getcontext(ctx);
     location = cls->name;
     vasprintf(&message, format, ap);
-    fprintf(stderr,"%s%s%s%s%s%s%s%s\n",priority,(location?"[":""),(location?location:""),(location?"] ":""), message, (context?" (":""), (context), (context?")":""));
-    fprintf(stderr,"%s",message);
+    if(message[strlen(message)-1] == '\n') {
+        message[strlen(message)-1] = '\0';
+    }
+    fprintf(stderr,"%s%s%s%s%s%s%s%s\n",priority,(location?"[":""),(location?location:""),(location?"] ":""),message,(context?" (":""), (context?context:""), (context?")":""));
     free(message);
     return logger_CONT;
 }
@@ -190,8 +190,27 @@ logger_resetup(logger_cls_type* cls)
     cls->setupserial = logger_setup.serial;
     cls->minlvl = logger_WARN;
     cls->chain = &logger_setup.chains[0];
+    for(int i=1; i<logger_setup.nchains; i++) {
+        if(!strcmp(cls->name, logger_setup.chains[i].name)) {
+            cls->minlvl = logger_DIAG;
+            cls->chain = &logger_setup.chains[i];
+        }
+    }
     pthread_mutex_unlock(&mutex);
 }
+
+void
+logger_configurecls(const char* name, logger_lvl_type minlvl, logger_procedure proc)
+{
+    pthread_mutex_lock(&mutex);
+    logger_setup.nchains += 1;
+    logger_setup.chains = malloc(sizeof(struct logger_chain_struct) * logger_setup.nchains);
+    logger_setup.chains[logger_setup.nchains-1].name = strdup(name);
+    logger_setup.chains[logger_setup.nchains-1].logger = proc;
+    logger_setup.serial += 1;
+    pthread_mutex_unlock(&mutex);
+}
+
 
 logger_ctx_type
 logger_newcontext(void)

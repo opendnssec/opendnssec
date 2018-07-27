@@ -30,16 +30,16 @@
  */
 
 #include "config.h"
+#include <errno.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
 #include "daemon/dnshandler.h"
 #include "adapter/adapter.h"
 #include "log.h"
 #include "signer/tools.h"
 #include "signer/zone.h"
-
-#include <errno.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <unistd.h>
+#include "daemon/metastorage.h"
 
 static const char* tools_str = "tools";
 

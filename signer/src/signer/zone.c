@@ -494,12 +494,6 @@ zone_cleanup(zone_type* zone)
     free(zone);
 }
 
-static const char* baseviewkeys[] = { "namerevision", NULL};
-static const char* inputviewkeys[] = { "nameupcoming", "namehierarchy", NULL};
-static const char* prepareviewkeys[] = { "namerevision", "namenoserial", "namenewserial", "relevantset", NULL};
-static const char* neighviewkeys[] = { "nameready", "denialname", NULL};
-static const char* signviewkeys[] = { "nameready", "expiry", "denialname", NULL};
-static const char* outputviewkeys[] = { "validnow", NULL};
 
 void
 zone_start(zone_type* zone)
@@ -510,17 +504,19 @@ zone_start(zone_type* zone)
     ldns_rr* rr;
 
     zoneapex = ldns_rdf2str(zone->apex);
-    zone->baseview = names_viewcreate(NULL, "  base    ", baseviewkeys);
+    metastorageget(zoneapex,zone);
+    zone->baseview = names_viewcreate(NULL, names_view_BASE[0], &names_view_BASE[1]);
     names_viewconfig(zone->baseview, &(zone->signconf));
     filename = ods_build_path(zone->name, ".state", 0, 1);
     names_viewrestore(zone->baseview, zoneapex, -1, filename);
     free(filename);
     free(zoneapex);
-    zone->inputview = names_viewcreate(zone->baseview,   "  input   ", inputviewkeys);
-    zone->prepareview = names_viewcreate(zone->baseview, "  prepare ", prepareviewkeys);
-    zone->neighview = names_viewcreate(zone->baseview, "  neighbr ", neighviewkeys);
-    zone->signview = names_viewcreate(zone->baseview,    "  sign    ", signviewkeys);
-    zone->outputview = names_viewcreate(zone->baseview,  "  output  ", outputviewkeys);
+    zone->inputview = names_viewcreate(zone->baseview,   names_view_INPUT[0],   &names_view_INPUT[1]);
+    zone->prepareview = names_viewcreate(zone->baseview, names_view_PREPARE[0], &names_view_PREPARE[1]);
+    zone->neighview = names_viewcreate(zone->baseview,   names_view_NEIGHB[0],  &names_view_NEIGHB[1]);
+    zone->signview = names_viewcreate(zone->baseview,    names_view_SIGN[0],    &names_view_SIGN[1]);
+    zone->outputview = names_viewcreate(zone->baseview,  names_view_OUTPUT[0],  &names_view_OUTPUT[1]);
+    zone->changesview = names_viewcreate(zone->baseview, names_view_CHANGES[0], &names_view_CHANGES[1]);
 
     names_viewlookupone(zone->baseview, zone->apex, LDNS_RR_TYPE_SOA, NULL, &rr);
     if(rr) {

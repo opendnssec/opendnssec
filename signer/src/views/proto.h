@@ -10,6 +10,17 @@ typedef struct names_view_struct* names_view_type;
 #include "signer/signconf.h"
 #include "signer/zone.h"
 #include "views/marshalling.h"
+#include "logging.h"
+
+extern const char* names_view_BASE[];
+extern const char* names_view_INPUT[];
+extern const char* names_view_PREPARE[];
+extern const char* names_view_NEIGHB[];
+extern const char* names_view_SIGN[];
+extern const char* names_view_OUTPUT[];
+extern const char* names_view_CHANGES[];
+
+extern logger_cls_type names_logcommitlog;
 
 struct signature_struct {
     ldns_rr* rr;
@@ -110,6 +121,8 @@ int names_recordhasmarker(recordset_type dict);
 recordset_type names_recordcopy(recordset_type, int increment);
 void names_recorddispose(recordset_type);
 const char* names_recordgetname(recordset_type dict);
+int names_recordgetrevision(recordset_type dict);
+char *names_recordgetsummary(recordset_type dict, char**);
 const char* names_recordgetdenial(recordset_type dict);
 int names_recordcompare_namerevision(recordset_type a, recordset_type b);
 int names_recordhasdata(recordset_type record, ldns_rr_type recordtype, ldns_rr* rr, int exact);
@@ -152,7 +165,6 @@ recordset_type names_indexlookupkey(names_index_type, const char* keyvalue);
 int names_indexremove(names_index_type, recordset_type);
 int names_indexremovekey(names_index_type,const char* keyvalue);
 int names_indexinsert(names_index_type index, recordset_type d, recordset_type* existing);
-int names_indexinsert2(names_index_type index, recordset_type d, recordset_type* existing);
 void names_indexdestroy(names_index_type, void (*userfunc)(void* arg, void* key, void* val), void* userarg);
 names_iterator names_indexiterator(names_index_type);
 
@@ -220,9 +232,10 @@ int names_viewgetdefaultttl(names_view_type view, int* defaultttl);
 int names_viewgetapex(names_view_type view, ldns_rdf** apexptr);
 
 void names_dumprecord(FILE*, recordset_type record);
-void names_dumpviewinfo(names_view_type view);
+void names_dumpviewinfo(FILE*, int nviews, names_view_type views[]);
 void names_dumpviewfull(FILE*, names_view_type view);
 void names_dumpindex(FILE* fp, names_view_type view, int index);
+void names__dumpindex(FILE* fp, names_index_type index);
 
 void writezonecontent(names_view_type view, FILE* fp);
 void writezoneapex(names_view_type view, FILE* fp);

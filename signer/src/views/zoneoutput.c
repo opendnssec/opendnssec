@@ -53,10 +53,12 @@ writezoneapex(names_view_type view, FILE* fp)
     recordset_type record;
     char* soa = NULL;
     record = names_take(view,0,NULL);
-    names_recordlookupone(record,LDNS_RR_TYPE_SOA,NULL,&rr);
-    soa = ldns_rr2str(rr);
-    fprintf(fp, "%s", soa);
-    free(soa);
+    if(record) {
+        names_recordlookupone(record,LDNS_RR_TYPE_SOA,NULL,&rr);
+        soa = ldns_rr2str(rr);
+        fprintf(fp, "%s", soa);
+        free(soa);
+    }
 }
 
 int

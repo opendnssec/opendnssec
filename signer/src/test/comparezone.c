@@ -13,6 +13,7 @@ static int
 inputzone(const char* fname, ldns_zone** zoneptr, ldns_rr*** records, int* count)
 {
     FILE* fp;
+    ldns_rr* soa;
     ldns_rr_list* wsoa;
     ldns_rr_list* rrl1 = NULL;
     ldns_rr_list* rrl2 = NULL;
@@ -34,7 +35,6 @@ inputzone(const char* fname, ldns_zone** zoneptr, ldns_rr*** records, int* count
     } else {
         failure = 1;
     }
-    ldns_rr2canonical(ldns_zone_soa(zone));
     for(i=0; i<ldns_rr_list_rr_count(ldns_zone_rrs(zone)); i++) {
         ldns_rr2canonical(ldns_rr_list_rr(ldns_zone_rrs(zone), i));
     }
@@ -42,7 +42,11 @@ inputzone(const char* fname, ldns_zone** zoneptr, ldns_rr*** records, int* count
     rrl1 = ldns_zone_rrs(zone);
 
     rrl2 = ldns_rr_list_clone(rrl1);
-    ldns_rr_list_push_rr(rrl2, ldns_rr_clone(ldns_zone_soa(zone)));
+    soa = ldns_zone_soa(zone);
+    if(soa) {
+        ldns_rr2canonical(soa);
+        ldns_rr_list_push_rr(rrl2, ldns_rr_clone(ldns_zone_soa(zone)));
+    }
     ldns_rr_list_sort(rrl2);
     *count = ldns_rr_list_rr_count(rrl2);
 

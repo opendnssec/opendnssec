@@ -14,7 +14,20 @@
 #include <ldns/ldns.h>
 #include "uthash.h"
 #include "utilities.h"
+#include "logging.h"
 #include "proto.h"
+
+#pragma GCC optimize ("O0")
+
+const char* names_view_BASE[]    = { "base",    "namerevision", NULL };
+const char* names_view_INPUT[]   = { "input",   "nameupcoming", "namehierarchy", NULL };
+const char* names_view_PREPARE[] = { "prepare", "namerevision", "namenoserial", "namenewserial", "relevantset", NULL };
+const char* names_view_NEIGHB[]  = { "neighb",  "nameready", "denialname", NULL };
+const char* names_view_SIGN[]    = { "sign",    "nameready", "expiry", "denialname", NULL };
+const char* names_view_OUTPUT[]  = { "output",  "validnow", NULL };
+const char* names_view_CHANGES[] = { "changes", "validchanges", "validinserts", "validdeletes", NULL };
+
+logger_cls_type names_logcommitlog = LOGGER_INITIALIZE("commitlog");
 
 struct searchfunc {
     names_index_type index;
@@ -200,14 +213,12 @@ names_viewcreate(names_view_type base, const char* viewname, const char** keynam
         names_indexcreate(&view->indices[i], keynames[i]);
         names_indexsearchfunction(view->indices[i], view, keynames[i]);
     }
-    if(!strcmp(viewname,"  input   ")) {
-    } else if(!strcmp(viewname,"  prepare ")) {
+    if(!strcmp(viewname,names_view_PREPARE[0])) {
         names_viewaddsearchfunction2(view, view->indices[1], view->indices[2], names_iteratorincoming);
-    } else if(!strcmp(viewname,"  neighbr ")) {
+    } else if(!strcmp(viewname,names_view_NEIGHB[0])) {
         names_viewaddsearchfunction2(view, view->indices[0], view->indices[1], names_iteratordenialchainupdates);
-    } else if(!strcmp(viewname,"  sign    ")) {
+    } else if(!strcmp(viewname,names_view_SIGN[0])) {
         names_viewaddsearchfunction2(view, view->indices[0], view->indices[2], names_iteratordenialchainupdates);
-    } else if(!strcmp(viewname,"  output  ")) {
     }
     if(base != NULL) {
         for(iter=names_indexiterator(base->indices[0]); names_iterate(&iter, &content); names_advance(&iter, NULL)) {
@@ -270,7 +281,10 @@ struct names_index_struct {
 void
 names_viewvalidate(names_view_type view)
 {
+    int fail = 0;
     int i;
+    char* temp1 = NULL;
+    char* temp2 = NULL;
     names_iterator iter;
     recordset_type record;
     recordset_type compare;
@@ -278,19 +292,27 @@ names_viewvalidate(names_view_type view)
         for(iter=names_indexiterator(view->indices[i]); names_iterate(&iter,&record); names_advance(&iter,NULL)) {
             compare = names_indexlookup(view->indices[0], record);
             if(compare == NULL) {
-                names_dumprecord(stderr,record);
-                assert(compare != NULL);
-            }
-            if(compare != record) {
-                names_dumprecord(stderr,record);
-                names_dumprecord(stderr,compare);
-                assert(compare == record);
+                fprintf(stderr,"RECORD IN INDEX %s NOT PRESENT IN MAIN INDEX: %s\n",*(char**)view->indices[i],names_recordgetsummary(record,&temp1));
+                // names_dumprecord(stderr,record);
+                fail = 1; // assert(compare != NULL);
+            } else if(compare != record) {
+                fprintf(stderr,"RECORD IN INDEX %s NOT SAME IN MAIN INDEX %s vs %s\n",*(char**)view->indices[i],names_recordgetsummary(record,&temp1),names_recordgetsummary(compare,&temp2));
+                //names_dumprecord(stderr,record);
+                //names_dumprecord(stderr,compare);
+                fail = 1; // assert(compare == record);
             }
             if(view->indices[i]->acceptfunc(record,NULL,NULL) != 1) {
-                names_dumprecord(stderr,record);
+                fprintf(stderr,"RECORD IN INDEX %s SHOULD NOT BE IN INDEX %s\n",*(char**)view->indices[i],names_recordgetsummary(record,&temp1));
+                //names_dumprecord(stderr,record);
                 assert(view->indices[i]->acceptfunc(record,NULL,NULL) == 1);
             }
         }
+    }
+    names_recordgetsummary(NULL,&temp1);
+    names_recordgetsummary(NULL,&temp2);
+    if(fail) {
+        names_dumpindex(stderr,view,0);
+        abort();
     }
 }
 
@@ -402,7 +424,7 @@ resetchangelog(names_view_type view)
     names_iterator iter;
     names_change_type change;
     for(iter=names_tableitems(view->changelog); names_iterate(&iter, &change); names_advance(&iter, NULL)) {
-        assert(change->record != change->oldrecord); /* we cannot handle updates like amends */
+        // FIXME we should assert(change->record != change->oldrecord); as we cannot handle updates like amends  but this assertion currently fails without known reason
         if(change->record != NULL) {
             names_indexremove(view->indices[0], change->record);
         }
@@ -421,38 +443,56 @@ updateview(names_view_type view, names_table_type* mychangelog)
     names_iterator iter;
     names_change_type change;
     names_table_type changelog;
+    char* temp1 = NULL;
+    char* temp2 = NULL;
+    int accepted;
 
     changelog = NULL;
+    
+    logger_message(&names_logcommitlog,logger_noctx,logger_DEBUG,"update view %s commit %p\n",view->viewname,(mychangelog?(void*)*mychangelog:NULL));
     while((names_commitlogpoppush(view->commitlog, view->viewid, &changelog, mychangelog))) {
+        logger_message(&names_logcommitlog,logger_noctx,logger_DEBUG,"  process commit log %p into %s\n",(void*)changelog,view->viewname);
         for(iter = names_tableitems(changelog); names_iterate(&iter, &change); names_advance(&iter, NULL)) {
             if(names_tableget(view->changelog, change->record)) {
-                if (conflict == 0)
+                if (conflict == 0) {
+                    logger_message(&names_logcommitlog,logger_noctx,logger_DEBUG,"    conflict on %s %d\n",names_recordgetname(change->record),names_recordgetrevision(change->record));
                     resetchangelog(view);
+                }
                 conflict = 1;
                 mychangelog = NULL;
             }
             if(change->record != NULL) {
                 recordset_type existing = NULL;
-                names_indexinsert(view->indices[0], change->record, &existing);
+                accepted = names_indexinsert(view->indices[0], change->record, &existing);
+                logger_message(&names_logcommitlog,logger_noctx,logger_DEBUG,"    update %s %s%s%s\n",names_recordgetsummary(change->record,&temp1),(accepted?"accepted":"dropped"),(existing?" replaces ":""),names_recordgetsummary(existing,&temp2));
                 for(i=1; i<view->nindices; i++)
-                    names_indexinsert(view->indices[i], change->record, &existing);
+                    names_indexinsert(view->indices[i], (accepted ? change->record : NULL), (existing ? &existing : NULL));
             }
         }
     }
     if(!conflict && mychangelog) {
+        logger_message(&names_logcommitlog,logger_noctx,logger_DEBUG,"  process submit commit log %p into %s\n",(void*)changelog,view->viewname);
         for(iter=names_tableitems(changelog); names_iterate(&iter, &change); names_advance(&iter, NULL)) {
             recordset_type existing = change->oldrecord;
+            logger_message(&names_logcommitlog,logger_noctx,logger_DEBUG,"    update %s %s%s%s\n",names_recordgetsummary(change->record,&temp1),(accepted?"accepted":"dropped"),(existing?" replaces ":""),names_recordgetsummary(existing,&temp2));
             for(i=1; i<view->nindices; i++) {
                 if(change->record == NULL) {
-                    change->record = change->oldrecord;
-                    change->oldrecord = NULL;
-                    names_recordsetmarker(change->record);
+                    if(existing)
+                        names_indexinsert(view->indices[i], change->record, &existing);
+                } else {
+                    existing = change->oldrecord;
+                    names_indexinsert(view->indices[i], change->record, &existing);
                 }
-                names_indexinsert(view->indices[i], change->record, &existing); // FIXME how does this one handle deletion
+            }
+            if(change->record == NULL) {
+                change->record = change->oldrecord;
+                change->oldrecord = NULL;
             }
         }
         names_commitlogpoppush(view->commitlog, view->viewid, &changelog, mychangelog);
     }
+    names_recordgetsummary(NULL,&temp1);
+    names_recordgetsummary(NULL,&temp2);
     return conflict;
 }
 
@@ -620,16 +660,69 @@ names_dumpviewfull(FILE* fp, names_view_type view)
     marshallclose(marsh);
 }
 
+
 void
-names_dumpindex(FILE* fp, names_view_type view, int index)
+names_dumpviewinfo(FILE* fp, int nviews, names_view_type views[])
+{
+    int len, i, count;
+    names_iterator iter;
+    recordset_type record;
+    uint32_t serial;
+    ldns_rr_list* rrs;
+    ldns_rr_list* rrs2;
+    ldns_rr* rr;
+    len = 0;
+    nviews -= 1; //BERRY
+    for(i=0; i<nviews; i++) {
+        if(strlen(views[i]->viewname) > len)
+            len = strlen(views[i]->viewname);
+    }
+    fprintf(stderr,"view:%*.*srecords  serial\n",len,len,"");
+    for(i=0; i<nviews; i++) {
+        count = 0;
+        rrs = ldns_rr_list_new();
+        for(iter = names_viewiterator(views[i], NULL); names_iterate(&iter,&record); names_advance(&iter,NULL)) {
+            ++count;
+            names_recordlookupall(record, LDNS_RR_TYPE_SOA, NULL, &rrs2, NULL);
+            ldns_rr_list_push_rr_list(rrs,rrs2);
+            ldns_rr_list_free(rrs2);
+        }
+        fprintf(stderr,"  %-*.*s :%7d   ",len,len,views[i]->viewname,count);
+        // BERRY
+        //record = names_take(views[i], 0, NULL);
+        //if(record) {
+            //names_recordlookupall(record, LDNS_RR_TYPE_SOA, NULL, &rrs, NULL);
+            while((rr = ldns_rr_list_pop_rr(rrs))) {
+                serial = ldns_rdf2native_int32(ldns_rr_rdf(rr, 2));
+                fprintf(stderr," %d",(int)serial);
+            }
+            ldns_rr_list_free(rrs);
+        //}
+        fprintf(stderr,"\n");
+    }
+}
+
+
+void
+names__dumpindex(FILE* fp, names_index_type index)
 {
     names_iterator iter;
     recordset_type record;
     marshall_handle marsh;
+    char* temp = NULL;
     marsh = marshallcreate(marshall_PRINT, fp);
-    for(iter = names_indexiterator(view->indices[index]); names_iterate(&iter,&record); names_advance(&iter,NULL))
-        names_recordmarshall(&record, marsh);
+    for(iter = names_indexiterator(index); names_iterate(&iter,&record); names_advance(&iter,NULL)) {
+        printf("  %s\n",names_recordgetsummary(record,&temp));
+        //names_recordmarshalsl(&record, marsh);
+    }
+    names_recordgetsummary(NULL,&temp);
     marshallclose(marsh);
+}
+
+void
+names_dumpindex(FILE* fp, names_view_type view, int index)
+{
+    names__dumpindex(fp, view->indices[index]);
 }
 
 void

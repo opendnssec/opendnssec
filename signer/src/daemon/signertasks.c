@@ -92,6 +92,7 @@ worker_queue_zone(struct worker_context* context, fifoq_type* q, names_view_type
     recordset_type record;
     time_t refreshtime = context->clock_in + duration2time(context->zone->signconf->sig_refresh_interval);
     for(iter=names_viewiterator(view,names_iteratorexpiring,refreshtime); names_iterate(&iter,&record); names_advance(&iter,NULL)) {
+        names_amend(view, record);
         worker_queue_domain(context, q, record, nsubtasks);
     }
 }
@@ -405,6 +406,7 @@ do_signzone(task_type* task, const char* zonename, void* zonearg, void *contexta
             time_t refreshtime = context->clock_in + duration2time(zone->signconf->sig_refresh_interval);
             ctx = hsm_create_context();
             for(iter=names_viewiterator(zone->signview,names_iteratorexpiring,refreshtime); names_iterate(&iter,&record); names_advance(&iter,NULL)) {
+                names_amend(zone->signview, record);
                 signdomain(context, ctx, record);
             }
             hsm_destroy_context(ctx);
@@ -431,8 +433,8 @@ do_signzone(task_type* task, const char* zonename, void* zonearg, void *contexta
         if (zone->stats->sort_done == 0 &&
             (zone->stats->sig_count <= zone->stats->sig_soa_count)) {
             ods_log_verbose("skip write zone %s serial %u (zone not "
-                "changed)", zone->name?zone->name:"(null)",
-                (unsigned int)*zone->inboundserial);
+                "changed)", (zone->name?zone->name:"(null)"),
+                (zone->inboundserial?(unsigned int)*zone->inboundserial:0));
             stats_clear(zone->stats);
             pthread_mutex_unlock(&zone->stats->stats_lock);
             return schedule_SUCCESS;
@@ -538,6 +540,8 @@ do_writezone(task_type* task, const char* zonename, void* zonearg, void *context
     time_t resign;
     context->clock_in = time_now(); /* TODO this means something different */
     /* perform write to output adapter task */
+
+    names_viewreset(zone->outputview);
     status = tools_output(zone, engine);
 
     struct stat statbuf;

@@ -44,12 +44,14 @@
 #include "janitor.h"
 #include "logging.h"
 #include "locks.h"
+#include "file.h"
 #include "confparser.h"
 #include "daemon/engine.h"
 #include "daemon/signercommands.h"
 #include "utilities.h"
 #include "daemon/signertasks.h"
 #include "daemon/metastorage.h"
+#include "views/httpd.h"
 
 #include "comparezone.h"
 
@@ -58,6 +60,10 @@ static char* workdir;
 static engine_type* engine;
 static janitor_threadclass_t debugthreadclass;
 static janitor_thread_t debugthread;
+
+#pragma GCC optimize ("O0")
+
+FILE* getxfr(names_view_type view, const char* zonename, const char* suffix, time_t* serial);
 
 static void
 initialize(int argc, char* argv[])
@@ -139,7 +145,9 @@ setUp(void)
 
     unlink("zones.xml");
     unlink("signer.pid");
-    
+    unlink("signer.db");
+    unlink("example.com.state");
+
     engine = engine_create();
     if((status = engine_setup_config(engine, "conf.xml", 3, 0)) != ODS_STATUS_OK ||
        (status = engine_setup_initialize(engine, &linkfd)) != ODS_STATUS_OK ||
@@ -253,6 +261,7 @@ validatezone(zone_type* zone)
     names_viewvalidate(zone->neighview);
     names_viewvalidate(zone->signview);
     names_viewvalidate(zone->outputview);
+    //names_viewvalidate(zone->changesview);
 }
 
 static void
@@ -265,6 +274,7 @@ disposezone(zone_type* zone)
     names_viewdestroy(zone->neighview);
     names_viewdestroy(zone->signview);
     names_viewdestroy(zone->outputview);
+    names_viewdestroy(zone->changesview);
     names_viewdestroy(zone->baseview);
     zone_cleanup(zone);
 }
@@ -362,11 +372,43 @@ reresignzone(zone_type* zone)
     worker_cleanup(context.worker);
 }
 
+static struct rpc*
+makecall(char* zone, const char* delegation, ...)
+{
+    va_list ap;
+    const char* str;
+    int i, count;
+    ldns_rdf* origin = NULL;
+    struct rpc* rpc = malloc(sizeof(struct rpc));
+    rpc->opc = RPC_CHANGE_DELEGATION;
+    rpc->zone = strdup(zone);
+    rpc->version = strdup("1");
+    rpc->detail_version = strdup("20170620");
+    rpc->correlation = NULL;
+    rpc->delegation_point = strdup(delegation);
+    va_start(ap,delegation);
+    count = 0;
+    while((str=va_arg(ap,const char*))!=NULL)
+        ++count;
+    va_end(ap);
+    rpc->rr_count = count;
+    rpc->rr = malloc(sizeof(ldns_rr*)*count);
+    va_start(ap,delegation);
+    for(i=0; i<count; i++) {
+        str = va_arg(ap,const char*);
+        ldns_rr_new_frm_str(&rpc->rr[i], str, 0, origin, NULL);
+    }
+    va_end(ap);
+    rpc->rr_count = count;
+    rpc->status = RPC_OK;
+    return rpc;
+}
 
 extern void testNothing(void);
 extern void testIterator(void);
 extern void testAnnotate(void);
 extern void testStatefile(void);
+extern void testTransferfile(void);
 extern void testBasic(void);
 extern void testSignNSEC(void);
 extern void testSignNSEC3(void);
@@ -543,6 +585,57 @@ testStatefile(void)
 
 
 void
+testTransferfile(void)
+{
+    FILE* fp;
+    int status;
+    char line[1024];
+    zone_type* zone;
+    usefile("test.xfr", NULL);
+    usefile("example.com.state", NULL);
+    usefile("signer.db", NULL);
+    usefile("example.com.state", NULL);
+    usefile("zones.xml", "zones.xml.example");
+    usefile("unsigned.zone", "unsigned.zone.testing");
+    usefile("signconf.xml", "signconf.xml.nsec");
+    zonelist_update(engine->zonelist, engine->config->zonelist_filename_signer);
+    zone = zonelist_lookup_zone_by_name(engine->zonelist, "example.com", LDNS_RR_CLASS_IN);
+
+    signzone(zone);
+    status = httpd_dispatch(zone->inputview, makecall(zone->name, "domain.example.com.", NULL));
+    CU_ASSERT_EQUAL(status, 0);
+    status = names_viewcommit(zone->inputview);
+    CU_ASSERT_EQUAL(status,0);
+    reresignzone(zone);
+
+    names_viewreset(zone->changesview);
+    time_t serial = 1;
+    fp = getxfr(zone->changesview, "test", ".xfr", &serial);
+    CU_ASSERT_NOT_EQUAL(unlink("text.xfr"), 0);
+    CU_ASSERT_EQUAL(errno, ENOENT);
+
+    /*printf("----\n");
+    while(!feof(fp)) {
+        if(fgets(line,sizeof(line)-2,fp)) {
+            line[sizeof(line)-1] = '\0';
+            printf("%s",line);
+        }
+    }
+    printf("-----\n");*/
+
+    fclose(fp);
+    disposezone(zone);
+
+    usefile("test.xfr", NULL);
+    usefile("example.com.state", NULL);
+    usefile("signer.db", NULL);
+    usefile("example.com.state", NULL);
+    usefile("zones.xml", NULL);
+    usefile("unsigned.zone", NULL);
+    usefile("signconf.xml", NULL);
+}
+
+void
 testBasic(void)
 {
     command_update(engine, NULL, NULL, NULL, NULL);
@@ -553,6 +646,10 @@ void
 testSignNSEC(void)
 {
     zone_type* zone;
+    usefile("example.com.state", NULL);
+    usefile("signer.db", NULL);
+    usefile("example.org.state", NULL);
+
     usefile("example.com.state", NULL);
     usefile("zones.xml", "zones.xml.example");
     usefile("unsigned.zone", "unsigned.zone.example");
@@ -592,6 +689,7 @@ testSignResign(void)
     int basefd = AT_FDCWD;
     zone_type* zone;
     logger_mark_performance("setup files");
+    usefile("signer.db", NULL);
     usefile("example.com.state", NULL);
     usefile("zones.xml", "zones.xml.example");
     usefile("unsigned.zone", "unsigned.zone.testing");
@@ -638,40 +736,6 @@ testSignNL(void)
     //CU_ASSERT_EQUAL((c = comparezone("unsigned.zone","signed.zone")), 0);
 }
 
-#include "views/httpd.h"
-
-struct rpc*
-makecall(char* zone, const char* delegation, ...)
-{
-    va_list ap;
-    const char* str;
-    int i, count;
-    ldns_rdf* origin = NULL;
-    struct rpc* rpc = malloc(sizeof(struct rpc));
-    rpc->opc = RPC_CHANGE_DELEGATION;
-    rpc->zone = strdup(zone);
-    rpc->version = strdup("1");
-    rpc->detail_version = strdup("20170620");
-    rpc->correlation = NULL;
-    rpc->delegation_point = strdup(delegation);
-    va_start(ap,delegation);
-    count = 0;
-    while((str=va_arg(ap,const char*))!=NULL)
-        ++count;
-    va_end(ap);
-    rpc->rr_count = count;
-    rpc->rr = malloc(sizeof(ldns_rr*)*count);
-    va_start(ap,delegation);
-    for(i=0; i<count; i++) {
-        str = va_arg(ap,const char*);
-        ldns_rr_new_frm_str(&rpc->rr[i], str, 0, origin, NULL);
-    }
-    va_end(ap);
-    rpc->rr_count = count;
-    rpc->status = RPC_OK;
-    return rpc;
-}
-
 
 void
 testSignFast(void)
@@ -680,6 +744,7 @@ testSignFast(void)
     zone_type* zone;
     logger_mark_performance("setup files");
     usefile("example.com.state", NULL);
+    usefile("signer.db", NULL);
     usefile("zones.xml", "zones.xml.example");
     usefile("unsigned.zone", "unsigned.zone.testing");
     usefile("signconf.xml", "signconf.xml.nsec");
@@ -713,6 +778,7 @@ struct test_struct {
     { "signer", "testAnnotate",   "test of denial annotation" },
     { "signer", "testMarshalling","test marshalling" },
     { "signer", "testStatefile",  "test statefile usage" },
+    { "signer", "-testTransferfile",  "test transferfile usage" },
     { "signer", "testBasic",      "test of start stop" },
     { "signer", "testSignNSEC",   "test NSEC signing" },
     { "signer", "testSignNSEC3",  "test NSEC3 signing" },
