@@ -69,65 +69,64 @@ names_indexdestroy(names_index_type index, void (*userfunc)(void* arg, void* key
 }
 
 int
-names_indexinsert(names_index_type index, recordset_type d, recordset_type* existing)
-{
+names_indexinsert(names_index_type index, recordset_type record, recordset_type* existing) {
     int cmp;
     ldns_rbnode_t* node;
-    if(existing && *existing) {
+    if (existing && *existing) {
         node = ldns_rbtree_delete(index->tree, *existing);
         free(node);
     }
-  if(d) {
-    if(index->acceptfunc(d, NULL, NULL)) {
-        node = malloc(sizeof(ldns_rbnode_t));
-        assert(d);
-        node->key = d;
-        node->data = d;
-        if(!ldns_rbtree_insert(index->tree, node)) {
-            free(node);
-            node = ldns_rbtree_search(index->tree, d);
-            assert(node);
-            if(existing && *existing == NULL) {
-                *existing = node->data;
-            }
-            switch(index->acceptfunc(d, (recordset_type)node->data, &cmp)) {
-                case 0:
-                        logger_message(&names_logcommitlog,logger_noctx,logger_DEBUG,"      record ignored from %s no match after found\n",index->keyname);
+    if (record) {
+        if (index->acceptfunc(record, NULL, NULL)) {
+            node = malloc(sizeof (ldns_rbnode_t));
+            assert(record);
+            node->key = record;
+            node->data = record;
+            if (!ldns_rbtree_insert(index->tree, node)) {
+                free(node);
+                node = ldns_rbtree_search(index->tree, record);
+                assert(node);
+                if (existing && *existing == NULL) {
+                    *existing = node->data;
+                }
+                switch (index->acceptfunc(record, (recordset_type) node->data, &cmp)) {
+                    case 0:
+                        logger_message(&names_logcommitlog, logger_noctx, logger_DEBUG, "      record ignored from %s no match after found\n", index->keyname);
                         *existing = NULL;
-                    return 0;
-                case 1:
-                        logger_message(&names_logcommitlog,logger_noctx,logger_DEBUG,"      record rewritten in %s matched after found\n",index->keyname);
-                        node->key = d;
-                        node->data = d;
-                    return 1;
-                case 2:
-                    logger_message(&names_logcommitlog,logger_noctx,logger_DEBUG,"      record deleted in %s dropped after found\n",index->keyname);
+                        return 0;
+                    case 1:
+                        logger_message(&names_logcommitlog, logger_noctx, logger_DEBUG, "      record rewritten in %s matched after found\n", index->keyname);
+                        node->key = record;
+                        node->data = record;
+                        return 1;
+                    case 2:
+                        logger_message(&names_logcommitlog, logger_noctx, logger_DEBUG, "      record deleted in %s dropped after found\n", index->keyname);
+                        node = ldns_rbtree_delete(index->tree, node->key);
+                        free(node);
+                        return 0;
+                    default:
+                        abort(); // FIXME
+                }
+            } else {
+                logger_message(&names_logcommitlog, logger_noctx, logger_DEBUG, "      record inserted in %s after not found\n", index->keyname);
+                return 1;
+            }
+        } else {
+            node = ldns_rbtree_search(index->tree, record);
+            if (node != NULL) {
+                if (index->acceptfunc(record, (recordset_type) node->data, &cmp) == 0 || (cmp == 0 && node->key == record)) {
+                    logger_message(&names_logcommitlog, logger_noctx, logger_DEBUG, "      record not accepted and deleted from in %s\n", index->keyname);
                     node = ldns_rbtree_delete(index->tree, node->key);
                     free(node);
-                    return 0;
-                default:
-                    abort(); // FIXME
-            }
-        } else {
-            logger_message(&names_logcommitlog,logger_noctx,logger_DEBUG,"      record inserted in %s after not found\n",index->keyname);
-            return 1;
-        }
-    } else {
-        node = ldns_rbtree_search(index->tree, d);
-        if(node != NULL) {
-            if(index->acceptfunc(d, (recordset_type)node->data, &cmp) == 0 || (cmp == 0 && node->key == d)) {
-                logger_message(&names_logcommitlog,logger_noctx,logger_DEBUG,"      record not accepted and deleted from in %s\n",index->keyname);
-                node = ldns_rbtree_delete(index->tree, node->key);
-                free(node);
+                } else {
+                    logger_message(&names_logcommitlog, logger_noctx, logger_DEBUG, "      record not accepted but not found yet not deleted in %s\n", index->keyname);
+                }
             } else {
-                logger_message(&names_logcommitlog,logger_noctx,logger_DEBUG,"      record not accepted but not found yet not deleted in %s\n",index->keyname);
+                logger_message(&names_logcommitlog, logger_noctx, logger_DEBUG, "      record not accepted and not found in %s\n", index->keyname);
             }
-        } else {
-            logger_message(&names_logcommitlog,logger_noctx,logger_DEBUG,"      record not accepted and not found in %s\n",index->keyname);
+            return 0;
         }
-        return 0;
     }
-  }
 }
 
 recordset_type
