@@ -42,40 +42,6 @@
 
 const char* axfr_str = "axfr";
 
-void
-writezoneapex2(names_view_type view, FILE* fp, time_t serial)
-{
-}
-FILE*
-getxfr(names_view_type view,const char* zonename, const char* suffix, time_t* serial)
-{
-    char *filename;
-    FILE* fp;
-    int fd;
-    asprintf(&filename, "%s%s",zonename,suffix);
-    fd = open(filename, O_RDWR|O_CREAT|O_EXCL, 0666);
-    fp = fdopen(fd, "w+");
-    if(!serial) {
-        writezoneapex(view, fp);
-        writezonecontent(view, fp);
-        writezoneapex(view, fp);
-    } else {
-	    ldns_rr* rr = NULL;
-	    recordset_type record;
-	    char* soa = NULL;
-	    record = names_take(view, 0, NULL);
-	    names_recordlookupone(record, LDNS_RR_TYPE_SOA, NULL, &rr);
-	    soa = ldns_rr2str(rr);
-	    fprintf(fp, "%s", soa);
-	    free(soa);
-    }
-    lseek(fd, SEEK_SET, 0);
-    rewind(fp);
-    unlink(filename);
-    free(filename);
-    return fp;
-}
-
 /**
  * Handle SOA request.
  *
@@ -219,7 +185,7 @@ axfr(query_type* q, engine_type* engine, int fallback)
     ods_log_assert(q->tsig_rr);
     if (q->axfr_fd == NULL) {
         /* start AXFR */
-        q->axfr_fd = getxfr(q->zone->outputview, q->zone->name, ".axfr", NULL);
+        q->axfr_fd = getxfr(q->zone, ".axfr", NULL);
         if (!q->axfr_fd) {
             ods_log_error("[%s] unable to open axfr file for zone %s",
                 axfr_str, q->zone->name);
@@ -448,7 +414,7 @@ ixfr(query_type* q, engine_type* engine)
     ods_log_assert(q->tsig_rr);
     if (q->axfr_fd == NULL) {
         /* start IXFR */
-        q->axfr_fd = getxfr(q->zone->outputview, q->zone->name, ".ixfr", &q->zone->xfrd->serial_xfr_acquired);
+        q->axfr_fd = getxfr(q->zone, ".ixfr", &q->zone->xfrd->serial_xfr_acquired);
         if (!q->axfr_fd) {
             ods_log_error("[%s] unable to open ixfr file for zone %s",
                 axfr_str, q->zone->name);

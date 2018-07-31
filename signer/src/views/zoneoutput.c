@@ -18,6 +18,27 @@
 #pragma GCC optimize ("O0")
 
 void
+writerecordcontent(recordset_type domainitem, FILE* fp)
+{
+    char* s;
+    ldns_rr_type recordtype;
+    names_iterator rrsetiter;
+    names_iterator rriter;
+    for (rrsetiter = names_recordalltypes(domainitem); names_iterate(&rrsetiter, &recordtype); names_advance(&rrsetiter, NULL)) {
+        s = NULL;
+        for (rriter = names_recordallvaluestrings(domainitem, recordtype); names_iterate(&rriter, &s); names_advance(&rriter, NULL)) {
+            if (recordtype != LDNS_RR_TYPE_SOA) {
+                fprintf(fp, "%s", s);
+            }
+        }
+    }
+    s = NULL;
+    for (rriter = names_recordallvaluestrings(domainitem, LDNS_RR_TYPE_NSEC); names_iterate(&rriter, &s); names_advance(&rriter, NULL)) {
+        fprintf(fp, "%s", s);
+    }    
+}
+
+void
 writezonecontent(names_view_type view, FILE* fp)
 {
     int first;
@@ -28,6 +49,7 @@ writezonecontent(names_view_type view, FILE* fp)
     names_iterator rriter;
     recordset_type domainitem;
     for (domainiter = names_viewiterator(view, NULL); names_iterate(&domainiter, &domainitem); names_advance(&domainiter, NULL)) {
+        // FIXME we should/could use writerecordcontent method here
         for (rrsetiter = names_recordalltypes(domainitem); names_iterate(&rrsetiter, &recordtype); names_advance(&rrsetiter, NULL)) {
             s = NULL;
             first = 1;

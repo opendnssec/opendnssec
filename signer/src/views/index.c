@@ -87,7 +87,7 @@ names_indexinsert(names_index_type index, recordset_type record, recordset_type*
                 node = ldns_rbtree_search(index->tree, record);
                 assert(node);
                 if (existing && *existing == NULL) {
-                    *existing = node->data;
+                    *existing = (recordset_type) node->data;
                 }
                 switch (index->acceptfunc(record, (recordset_type) node->data, &cmp)) {
                     case 0:
@@ -126,7 +126,8 @@ names_indexinsert(names_index_type index, recordset_type record, recordset_type*
             }
             return 0;
         }
-    }
+    } else
+        return 0;
 }
 
 recordset_type
@@ -317,6 +318,115 @@ names_iteratorancestors(names_index_type index, va_list ap)
     return iter;
 }
 
+names_iterator
+names_iteratorchangedeletes(names_index_type index, va_list ap)
+{
+    recordset_type find;
+    recordset_type found;
+    int serial, since;
+    ldns_rbnode_t* node;
+    names_iterator iter;
+
+    serial = va_arg(ap, int);
+    find = names_recordcreatetemp(NULL);
+    names_recordsetvalidupto(find, serial);
+    iter = names_iterator_createrefs(NULL);
+
+    if(!ldns_rbtree_find_less_equal(index->tree, find, &node)) {
+        if(node == NULL || node == LDNS_RBTREE_NULL) {
+            node = ldns_rbtree_first(index->tree);
+        } else {
+            node = ldns_rbtree_next(node);
+        }
+    }
+    while (node && node != LDNS_RBTREE_NULL) {
+        found = (recordset_type) node->key;
+        if(names_recordvalidfrom(found,&since)) {
+            if(since <= serial) {
+                names_iterator_addptr(iter, found);
+            }
+        } else {
+            abort(); // FIXME cannot happen
+        }
+        node = ldns_rbtree_next(node);
+    }
+
+    names_recorddispose(find);
+    return iter;
+}
+
+names_iterator
+names_iteratorchangeinserts(names_index_type index, va_list ap)
+{
+    recordset_type find;
+    recordset_type found;
+    int serial, since;
+    ldns_rbnode_t* node;
+    names_iterator iter;
+
+    serial = va_arg(ap, int);
+    find = names_recordcreatetemp(NULL);
+    names_recordsetvalidfrom(find, serial);
+    iter = names_iterator_createrefs(NULL);
+
+    if(!ldns_rbtree_find_less_equal(index->tree, find, &node)) {
+        if(node == NULL || node == LDNS_RBTREE_NULL) {
+            node = ldns_rbtree_first(index->tree);
+        } else {
+            node = ldns_rbtree_next(node);
+        }
+    }
+    while (node && node != LDNS_RBTREE_NULL) {
+        found = (recordset_type) node->key;
+        if(!names_recordvalidupto(found,NULL)) {
+            names_iterator_addptr(iter, found);
+        }
+        node = ldns_rbtree_next(node);
+    }
+
+    names_recorddispose(find);
+    return iter;
+}
+
+names_iterator
+names_iteratorchanges(names_index_type index, va_list ap)
+{
+    recordset_type find;
+    recordset_type found;
+    const char* name;
+    int serial;
+    ldns_rbnode_t* node;
+    names_iterator iter;
+
+    name = va_arg(ap, const char*);
+    serial = va_arg(ap, int);
+    find = names_recordcreatetemp(name);
+    names_recordsetvalidfrom(find, serial);
+    iter = names_iterator_createrefs(NULL);
+            char*t= NULL;
+
+    if(!ldns_rbtree_find_less_equal(index->tree, find, &node)) {
+        if(node == NULL || node == LDNS_RBTREE_NULL) {
+            node = ldns_rbtree_first(index->tree);
+        } else {
+            node = ldns_rbtree_next(node);
+        }
+    }
+    while (node && node != LDNS_RBTREE_NULL) {
+        found = (recordset_type) node->key;
+        if(strcmp(names_recordgetname(found), name)) {
+            break;
+        }
+        names_iterator_addptr(iter, found);
+        node = ldns_rbtree_next(node);
+    }
+
+    names_recorddispose(find);
+    return iter;
+}
+
+
+
 void
 names_indexsearchfunction(names_index_type index, names_view_type view, const char* keyname)
 {
@@ -326,5 +436,11 @@ names_indexsearchfunction(names_index_type index, names_view_type view, const ch
         names_viewaddsearchfunction(view, index, names_iteratorancestors);
     } else if(!strcmp(keyname,"expiry")) {
         names_viewaddsearchfunction(view, index, names_iteratorexpiring);
+    } else if(!strcmp(keyname,"validchanges")) {
+        names_viewaddsearchfunction(view, index, names_iteratorchanges);
+    } else if(!strcmp(keyname,"validdeletes")) {
+        names_viewaddsearchfunction(view, index, names_iteratorchangedeletes);
+    } else if(!strcmp(keyname,"validinserts")) {
+        names_viewaddsearchfunction(view, index, names_iteratorchangeinserts);
     }
 }

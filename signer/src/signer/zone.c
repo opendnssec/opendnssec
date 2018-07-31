@@ -40,6 +40,7 @@
 #include "wire/netio.h"
 #include "compat.h"
 #include "daemon/signertasks.h"
+#include "daemon/metastorage.h"
 
 #include <ldns/ldns.h>
 

@@ -52,6 +52,7 @@
 #include "daemon/signertasks.h"
 #include "daemon/metastorage.h"
 #include "views/httpd.h"
+#include "adapter/adutil.h"
 
 #include "comparezone.h"
 
@@ -62,8 +63,6 @@ static janitor_threadclass_t debugthreadclass;
 static janitor_thread_t debugthread;
 
 #pragma GCC optimize ("O0")
-
-FILE* getxfr(names_view_type view, const char* zonename, const char* suffix, time_t* serial);
 
 static void
 initialize(int argc, char* argv[])
@@ -591,7 +590,7 @@ testTransferfile(void)
     int status;
     char line[1024];
     zone_type* zone;
-    usefile("test.xfr", NULL);
+    usefile("example.com.xfr", NULL);
     usefile("example.com.state", NULL);
     usefile("signer.db", NULL);
     usefile("example.com.state", NULL);
@@ -608,20 +607,19 @@ testTransferfile(void)
     CU_ASSERT_EQUAL(status,0);
     reresignzone(zone);
 
+    names_viewreset(zone->outputview);
     names_viewreset(zone->changesview);
-    time_t serial = 1;
-    fp = getxfr(zone->changesview, "test", ".xfr", &serial);
-    CU_ASSERT_NOT_EQUAL(unlink("text.xfr"), 0);
+    time_t serial = 2;
+    fp = getxfr(zone, ".xfr", &serial);
+    CU_ASSERT_NOT_EQUAL(unlink("example.com.xfr"), 0);
     CU_ASSERT_EQUAL(errno, ENOENT);
 
-    /*printf("----\n");
     while(!feof(fp)) {
         if(fgets(line,sizeof(line)-2,fp)) {
             line[sizeof(line)-1] = '\0';
             printf("%s",line);
         }
     }
-    printf("-----\n");*/
 
     fclose(fp);
     disposezone(zone);
@@ -773,18 +771,18 @@ struct test_struct {
     CU_pSuite pSuite;
     CU_pTest pTest;
 } tests[] = {
-    { "signer", "testNothing",    "test nothing" },
-    { "signer", "testIterator",   "test of iterator" },
-    { "signer", "testAnnotate",   "test of denial annotation" },
-    { "signer", "testMarshalling","test marshalling" },
-    { "signer", "testStatefile",  "test statefile usage" },
-    { "signer", "-testTransferfile",  "test transferfile usage" },
-    { "signer", "testBasic",      "test of start stop" },
-    { "signer", "testSignNSEC",   "test NSEC signing" },
-    { "signer", "testSignNSEC3",  "test NSEC3 signing" },
-    { "signer", "testSignResign", "test resigning restart" },
-    { "signer", "testSignFast",   "test fast updates" },
-    { "signer", "-testSignNL",    "test NL signing" },
+    { "signer", "testNothing",       "test nothing" },
+    { "signer", "testIterator",      "test of iterator" },
+    { "signer", "testAnnotate",      "test of denial annotation" },
+    { "signer", "testMarshalling",   "test marshalling" },
+    { "signer", "testStatefile",     "test statefile usage" },
+    { "signer", "testTransferfile",  "test transferfile usage" },
+    { "signer", "testBasic",         "test of start stop" },
+    { "signer", "testSignNSEC",      "test NSEC signing" },
+    { "signer", "testSignNSEC3",     "test NSEC3 signing" },
+    { "signer", "testSignResign",    "test resigning restart" },
+    { "signer", "testSignFast",      "test fast updates" },
+    { "signer", "-testSignNL",       "test NL signing" },
     { NULL, NULL, NULL }
 };
 

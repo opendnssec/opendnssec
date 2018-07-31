@@ -33,6 +33,7 @@
 #include "views/marshalling.h"
 #include "views/proto.h"
 #include "signer/zone.h"
+#include "metastorage.h"
 
 #pragma GCC optimize ("O0")
 
@@ -207,7 +208,7 @@ setup(void)
 }
 
 int
-metastorageget(const char* name, void* item)
+metastorageget(const char* name, void** item)
 {
     setup();
     return metastorage("signer.db", ndefs, defs, name, item);

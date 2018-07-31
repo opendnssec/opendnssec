@@ -30,6 +30,9 @@
  */
 
 #include "config.h"
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include "adapter/adutil.h"
 #include "file.h"
 #include "log.h"
@@ -189,4 +192,59 @@ adutil_whitespace_line(char* line, int line_len)
         }
     }
     return 1;
+}
+
+FILE*
+getxfr(zone_type* zone, const char* suffix, time_t* serial)
+{
+    names_view_type view;
+    char *filename;
+    names_iterator iter;
+    char* soa1;
+    char* soa2;
+    char*apex;
+    recordset_type record;
+    ldns_rr* rr;
+    FILE* fp;
+    int fd;
+    asprintf(&filename, "%s%s", zone->name, suffix);
+    fd = open(filename, O_RDWR|O_CREAT|O_EXCL, 0666);
+    fp = fdopen(fd, "w+");
+    if(!serial) {
+        view = zone->outputview;
+        writezoneapex(view, fp);
+        writezonecontent(view, fp);
+        writezoneapex(view, fp);
+    } else {
+        view = zone->changesview;
+        apex = ldns_rdf2str(zone->apex);
+        iter = names_viewiterator(view,names_iteratorchanges,apex,(int)*serial);
+        if(names_iterate(&iter,&record)) {
+            names_recordlookupone(record, LDNS_RR_TYPE_SOA, NULL, &rr);
+            soa1 = ldns_rr2str(rr);
+        } else
+            soa1 = NULL;
+        soa2 = NULL;
+        while(names_advance(&iter,&record)) {
+            names_recordlookupone(record, LDNS_RR_TYPE_SOA, NULL, &rr);
+            soa2 = ldns_rr2str(rr);
+        }
+        names_end(&iter);
+        free(apex);
+        fprintf(fp, "%s", soa2);
+        fprintf(fp, "%s", soa1);
+        for(iter=names_viewiterator(view,names_iteratorchangedeletes,(int)*serial); names_iterate(&iter,&record); names_advance(&iter,NULL)) {
+            writerecordcontent(record, fp);
+        }
+        fprintf(fp, "%s", soa2);
+        for(iter=names_viewiterator(view,names_iteratorchangeinserts,(int)*serial); names_iterate(&iter,&record); names_advance(&iter,NULL)) {
+            writerecordcontent(record, fp);
+        }
+        fprintf(fp, "%s", soa2);
+    }
+    lseek(fd, SEEK_SET, 0);
+    rewind(fp);
+    unlink(filename);
+    free(filename);
+    return fp;
 }

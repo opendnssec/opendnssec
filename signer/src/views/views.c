@@ -672,7 +672,6 @@ names_dumpviewinfo(FILE* fp, int nviews, names_view_type views[])
     ldns_rr_list* rrs2;
     ldns_rr* rr;
     len = 0;
-    nviews -= 1; //BERRY
     for(i=0; i<nviews; i++) {
         if(strlen(views[i]->viewname) > len)
             len = strlen(views[i]->viewname);
@@ -688,16 +687,14 @@ names_dumpviewinfo(FILE* fp, int nviews, names_view_type views[])
             ldns_rr_list_free(rrs2);
         }
         fprintf(stderr,"  %-*.*s :%7d   ",len,len,views[i]->viewname,count);
-        // BERRY
-        //record = names_take(views[i], 0, NULL);
-        //if(record) {
-            //names_recordlookupall(record, LDNS_RR_TYPE_SOA, NULL, &rrs, NULL);
+        record = names_take(views[i], 0, NULL);
+        if(record) {
             while((rr = ldns_rr_list_pop_rr(rrs))) {
                 serial = ldns_rdf2native_int32(ldns_rr_rdf(rr, 2));
                 fprintf(stderr," %d",(int)serial);
             }
             ldns_rr_list_free(rrs);
-        //}
+        }
         fprintf(stderr,"\n");
     }
 }

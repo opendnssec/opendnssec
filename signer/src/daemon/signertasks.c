@@ -313,11 +313,11 @@ do_signzone(task_type* task, const char* zonename, void* zonearg, void *contexta
         }
     }
     for (iter=names_viewiterator(prepareview,names_iteratorincoming); names_iterate(&iter,&change); names_advance(&iter,NULL)) {
-        if(change.dst && !names_recordhasvalidupto(change.dst)) {
+        if(change.dst && !names_recordvalidupto(change.dst,NULL)) {
             names_amend(prepareview, change.dst);
             names_recordsetvalidupto(change.dst, newserial);
         }
-        if(!names_recordhasvalidfrom(change.src)) {
+        if(!names_recordvalidfrom(change.src,NULL)) {
             if(names_recordhasdata(change.src, 0, NULL, 0)) {
                 names_amend(prepareview, change.src);
                 names_recordsetvalidfrom(change.src, newserial);

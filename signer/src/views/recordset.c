@@ -529,7 +529,7 @@ names_recordgetrevision(recordset_type record)
     return record->revision;
 }
 
-char *
+const char *
 names_recordgetsummary(recordset_type dict, char** dest)
 {
     char* s = NULL;
@@ -553,8 +553,10 @@ names_recordgetdenial(recordset_type record)
 }
 
 int
-names_recordhasvalidupto(recordset_type record)
+names_recordvalidupto(recordset_type record, int* validupto)
 {
+    if(validupto)
+        *validupto = *(record->validupto);
     return record->validupto != NULL;
 }
 
@@ -567,8 +569,10 @@ names_recordsetvalidupto(recordset_type record, int value)
 }
 
 int
-names_recordhasvalidfrom(recordset_type record)
+names_recordvalidfrom(recordset_type record, int* validfrom)
 {
+    if(validfrom)
+        *validfrom = *(record->validfrom);
     return record->validfrom != NULL;
 }
 
@@ -704,14 +708,14 @@ compareexpiry(recordset_type newitem, recordset_type curitem, int* cmp)
             *cmp = (newitem->expiry?*(newitem->expiry):0) - (curitem->expiry?*(curitem->expiry):0);
             if(*cmp == 0) {
                 *cmp = strcmp(newitem->name,curitem->name);
-                /*if(*cmp == 0) {
+                if(*cmp == 0) {
                     if(newitem->revision >= curitem->revision) {
                         return 2;
                     } else {
                         return 0;
                     }
                 }
-                assert(*cmp != 0 || newitem->revision == curitem->revision);*/
+                assert(*cmp != 0 || newitem->revision == curitem->revision);
             }
         }
     }
@@ -870,22 +874,24 @@ comparesignedset(recordset_type newitem, recordset_type curitem, int* cmp)
 int
 comparechangesset(recordset_type newitem, recordset_type curitem, int* cmp)
 {
+    if (curitem) {
+        if (cmp) {
+            *cmp = strcmp(newitem->name, curitem->name);
+            if(*cmp == 0) {
+                if(newitem->validfrom) {
+                    *cmp = *(newitem->validfrom) - *(curitem->validfrom);
+                } else {
+                    *cmp = -1;
+                }
+            } else {
+            }
+        }
+    }
     if (!newitem->validfrom) {
         return 0;
     }
     if (!newitem->expiry) {
         return 0;
-    }
-    if (curitem) {
-        if (cmp) {
-            *cmp = strcmp(curitem->name, newitem->name);
-            if(*cmp == 0) {
-                *cmp = *(curitem->validfrom) - *(newitem->validfrom);
-                if(*cmp == 0) {
-                    *cmp = curitem->revision - newitem->revision;
-                }
-            }
-        }
     }
     return 1;
 }
@@ -893,18 +899,19 @@ comparechangesset(recordset_type newitem, recordset_type curitem, int* cmp)
 int
 compareinsertsset(recordset_type newitem, recordset_type curitem, int* cmp)
 {
+    if (curitem) {
+        if (cmp) {
+            *cmp = *newitem->validfrom - *curitem->validfrom;
+            if(*cmp == 0 && newitem->name) {
+                *cmp = strcmp(newitem->name, curitem->name);
+            }
+        }
+    }
     if (!newitem->validfrom) {
         return 0;
     }
     if (!newitem->expiry) {
         return 0;
-    }
-    if (curitem) {
-        if (cmp) {
-            *cmp = *curitem->validfrom - *newitem->validfrom;
-            if(*cmp == 0)
-                *cmp = strcmp(curitem->name, newitem->name);
-        }
     }
     return 1;
 }
@@ -912,27 +919,27 @@ compareinsertsset(recordset_type newitem, recordset_type curitem, int* cmp)
 int
 comparedeletesset(recordset_type newitem, recordset_type curitem, int* cmp)
 {
+    if (curitem) {
+        if (cmp) {
+            if(curitem->validupto == NULL) {
+                *cmp = -1;
+            } else if(newitem->validupto == NULL) {
+                *cmp = 1;
+            } else {
+                *cmp = *newitem->validupto - *curitem->validupto;
+            }
+            if(*cmp == 0)
+                *cmp = strcmp(newitem->name, curitem->name);
+        }
+        if (cmp && newitem->name) {
+            *cmp = strcmp(newitem->name, curitem->name);
+        }
+    }
     if (!newitem->validfrom) {
         return 0;
     }
     if (!newitem->expiry) {
         return 0;
-    }
-    if (curitem) {
-        if (cmp) {
-            if(curitem->validupto == NULL) {
-                *cmp = 1;
-            } else if(newitem->validupto == NULL) {
-                *cmp = -1;
-            } else {
-                *cmp = *curitem->validupto - *newitem->validupto;
-            }
-            if(*cmp == 0)
-                *cmp = strcmp(curitem->name, newitem->name);
-        }
-        if (cmp) {
-            *cmp = strcmp(curitem->name, newitem->name);
-        }
     }
     return 1;
 }
@@ -1023,9 +1030,11 @@ names_recordlookupall(recordset_type record, ldns_rr_type rrtype, ldns_rr* templ
                     ldns_rr_list_push_rr(*rrsigs, record->spansignatures->sigs[j].rr);
             }
   } else {
-    for(i=0; i<record->nitemsets; i++)
-        if(record->itemsets[i].rrtype == rrtype)
+    for(i=0; i<record->nitemsets; i++) {
+        if(record->itemsets[i].rrtype == rrtype) {
             break;
+        }
+    }
     if (i<record->nitemsets) {
         *rrs = ldns_rr_list_new();
         if(rrsigs)
