@@ -174,16 +174,3 @@ adapi_del_rr(zone_type* zone, names_view_type view, ldns_rr* rr, int backup)
 {
     return adapi_process_rr(zone, view, rr, 0, backup);
 }
-
-ods_status
-adapi_printaxfr(FILE* fd, zone_type* zone, names_view_type view)
-{
-    if (!fd || !zone) {
-            ods_log_error("[%s] unable to print axfr: file descriptor, zone or name database missing", adapi_str);
-            return ODS_STATUS_ASSERT_ERR;
-     }
-     writezoneapex(view, fd);
-     writezonecontent(view, fd);
-     writezoneapex(view, fd);
-     return ODS_STATUS_OK;
-}

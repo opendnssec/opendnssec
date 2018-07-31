@@ -102,15 +102,6 @@ ods_status adapi_del_rr(zone_type* zone, names_view_type view, ldns_rr* rr, int 
 ods_status adapi_printzone(FILE* fd, zone_type* zone, names_view_type view);
 
 /**
- * Print axfr.
- * \param[in] fd file descriptor
- * \param[in] zone zone
- * \return ods_status status
- *
- */
-ods_status adapi_printaxfr(FILE* fd, zone_type* zone, names_view_type view);
-
-/**
  * Print ixfr.
  * \param[in] fd file descriptor
  * \param[in] zone zone

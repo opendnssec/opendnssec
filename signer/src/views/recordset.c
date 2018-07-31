@@ -102,7 +102,6 @@ recordcreate()
 {
     struct recordset_struct* dict;
     dict = malloc(sizeof(struct recordset_struct));
-    dict->marker = 0;
     dict->nitemsets = 0;
     dict->itemsets = NULL;
     dict->spanhash = NULL;
@@ -136,36 +135,6 @@ names_recordcreatetemp(const char* name)
     dict->name = (name ? strdup(name) : NULL);
     dict->revision = 0;
     return dict;
-}
-
-static char*
-dname_hash(char* name, const char* zone) // FIXME salt, waht?
-{
-    ldns_rdf* dname;
-    ldns_rdf* apex;
-    ldns_rdf* hashed_ownername;
-    ldns_rdf* hashed_label;
-    char* hashed;
-    unsigned char salt[8];
-    salt[0] = '\0';
-
-    memset(salt,0,8);
-    dname = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, name);
-    apex = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, zone);
-
-    /*
-     * The owner name of the NSEC3 RR is the hash of the original owner
-     * name, prepended as a single label to the zone name.
-     */
-    hashed_label = ldns_nsec3_hash_name(dname, 1, 5, 8, salt);
-    hashed_ownername = ldns_dname_cat_clone((const ldns_rdf*) hashed_label,
-        (const ldns_rdf*) apex);
-    hashed = ldns_rdf2str(hashed_ownername);
-    ldns_rdf_deep_free(dname);
-    ldns_rdf_deep_free(apex);
-    ldns_rdf_deep_free(hashed_label);
-    ldns_rdf_deep_free(hashed_ownername);
-    return hashed;
 }
 
 void
@@ -229,19 +198,6 @@ names_recordannotate(recordset_type d, struct names_view_zone* zone)
         d->spanhash = NULL;
         d->spanhashrr = NULL;
     }
-}
-        
-/* deletion marker */
-void
-names_recordsetmarker(recordset_type dict)
-{
-    dict->marker = 1;
-}
-
-int
-names_recordhasmarker(recordset_type dict)
-{
-    return dict->marker;
 }
 
 recordset_type
@@ -619,7 +575,6 @@ marshall(marshall_handle h, void* ptr)
     int i, j;
     size += marshalling(h, "name", &(d->name), NULL, 0, marshallstring);
     size += marshalling(h, "revision", &(d->revision), NULL, 0, marshallinteger);
-    size += marshalling(h, "marker", &(d->marker), NULL, 0, marshallinteger);
     size += marshalling(h, "spanhash", &(d->spanhash), NULL, 0, marshallstring);
     size += marshalling(h, "spansignatures", &(d->spansignatures), marshall_OPTIONAL, sizeof(struct signatures_struct), marshallsigs);
     size += marshalling(h, "spanhashrr", &(d->spanhashrr), NULL, 0, marshallldnsrr);

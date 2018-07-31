@@ -169,6 +169,11 @@ tearDown(void)
 
     unlink("zones.xml");
     unlink("signed.zone");
+    unlink("unsigned.zone");
+    unlink("signconf.xml");
+    unlink("signer.db");
+    unlink("signer.pid");
+    unlink("example.com.state");
 }
 
 static void
@@ -260,7 +265,7 @@ validatezone(zone_type* zone)
     names_viewvalidate(zone->neighview);
     names_viewvalidate(zone->signview);
     names_viewvalidate(zone->outputview);
-    //names_viewvalidate(zone->changesview);
+    names_viewvalidate(zone->changesview);
 }
 
 static void
@@ -516,6 +521,8 @@ testMarshalling(void)
     // names_dumprecord(stderr,record); In case this test fails enable this to investigate
     marshallclose(h);
     close(fd);
+    
+    unlink("test.dmp");
 }
 
 

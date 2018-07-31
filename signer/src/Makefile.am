@@ -71,7 +71,7 @@ ods_signerd_SOURCES=		ods-signerd.c \
 				views/proto.h
 
 analyze:
-	cd $(srcdir) ; cppcheck --quiet --enable=unusedFunction \
+	cd $(srcdir) ; cppcheck --quiet --force --enable=unusedFunction \
 	  $(ods_signerd_SOURCES)
 
 ods_signerd_LDADD=		$(LIBHSM)

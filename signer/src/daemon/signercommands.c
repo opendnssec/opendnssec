@@ -371,20 +371,6 @@ cmdhandler_handle_cmd_sign(int sockfd, cmdhandler_ctx_type* context, char *cmd)
     return 0;
 }
 
-/**
- * Unlink backup file.
- *
- */
-static void
-unlink_backup_file(const char* filename, const char* extension)
-{
-    char* tmpname = ods_build_path(filename, extension, 0, 1);
-    if (tmpname) {
-        ods_log_debug("[%s] unlink file %s", cmdh_str, tmpname);
-        unlink(tmpname);
-        free((void*) tmpname);
-    }
-}
 
 
 /**

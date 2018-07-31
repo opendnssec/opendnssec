@@ -569,34 +569,6 @@ namedb_domain_entize(names_view_type view, recordset_type domain, ldns_rdf* dnam
     return ODS_STATUS_OK;
 }
 
-#ifdef NOTDEFINED
-void
-namedb_nsecify(zone_type* globalzone, names_view_type view, uint32_t* num_added)
-{
-    recordset_type domain;
-    names_iterator iter;
-    ldns_rdf* firstname;
-    ldns_rdf* nextname;
-    uint32_t nsec_added = 0;
-
-    names_firstdenials(view,&iter);
-    if (names_iterate(&iter,&domain)) {
-        nextname = firstname = namedb_denialname(globalzone, domain->dname);
-        names_end(&iter);
-        for (names_reversedenials(view,&iter); names_iterate(&iter,&domain); names_advance(&iter, NULL)) {
-            denial_nsecify(globalzone, view, domain, nextname, &nsec_added);
-            nextname = domain->denial->dname;
-        }
-        ldns_rdf_free(firstname);
-    } else {
-        names_end(&iter);
-    }
-    if (num_added) {
-        *num_added = nsec_added;
-    }
-}
-#endif
-
 ods_status
 namedb_update_serial(zone_type* zone)
 {

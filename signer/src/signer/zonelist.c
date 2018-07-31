@@ -126,18 +126,6 @@ zone2node(zone_type* zone)
 }
 
 void*
-zonelist_get(zonelist_type* zonelist, const char* name)
-{
-    struct ldns_rbnode_t* node;
-    node = ldns_rbtree_search(zonelist->zones, name);
-    if (node == NULL || node == LDNS_RBTREE_NULL) {
-        return NULL;
-    } else {
-        return (void*) node->data;
-    }
-}
-
-void*
 zonelist_obtainresource(zonelist_type* zonelist, const char* name, size_t offset)
 {
     struct ldns_rbnode_t* node;

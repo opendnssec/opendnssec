@@ -249,7 +249,6 @@ int readzone(names_view_type view, enum operation_enum operation, const char* fi
 
 ldns_rr_type domain_is_occluded(names_view_type view, recordset_type record);
 ldns_rr_type domain_is_delegpt(names_view_type view, recordset_type record);
-void namedb_nsecify(zone_type* globalzone, names_view_type view, uint32_t* num_added);
 ldns_rr* denial_nsecify(signconf_type* signconf, names_view_type view, recordset_type domain, ldns_rdf* nxt); // FIXME rename
 ods_status namedb_update_serial(zone_type* globalzone);
 ods_status rrset_sign(signconf_type* signconf, names_view_type view, recordset_type domain, ldns_rr_type rrtype, hsm_ctx_t* ctx, time_t signtime);

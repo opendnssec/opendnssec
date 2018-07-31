@@ -77,6 +77,7 @@ tools/ods-kasp.5
 tools/opendnssec.7
 tools/solaris/ods-enforcerd.init
 tools/solaris/ods-signerd.init
+signer/src/test/signertest
 common/config.h
 common/config.h.in
 common/libcompat.a
