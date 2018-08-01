@@ -265,6 +265,8 @@ AC_CONFIG_FILES([
 	signer/man/ods-signerd.8
 	signer/src/Makefile
 	signer/src/test/Makefile
+	signer/src/test/conf.xml
+	signer/src/test/setup.sh
 	tools/Makefile
 	tools/ods-control
 	tools/solaris/Makefile

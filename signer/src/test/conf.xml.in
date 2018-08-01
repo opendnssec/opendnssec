@@ -3,18 +3,11 @@
 <Configuration>
 	<RepositoryList>
 		<Repository name="SoftHSM">
-			<Module>/home/berry/workspace/OpenDNSSEC/ROOT/lib/softhsm/libsofthsm2.so</Module>
+			<Module>@pkcs11_softhsm_module@</Module>
 			<TokenLabel>OpenDNSSEC</TokenLabel>
 			<PIN>1234</PIN>
 			<SkipPublicKey/>
 		</Repository>
-<!--
-		<Repository name="SoftHSM">
-			<TokenLabel>OpenDNSSEC</TokenLabel>
-			<PIN>0000</PIN>
-			<SkipPublicKey/>
-		</Repository>
--->
 	</RepositoryList>
 	<Common>
 		<Logging>

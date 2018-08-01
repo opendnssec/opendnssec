@@ -1,4 +1,4 @@
-MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
+MAINTAINERCLEANFILES = $(srcdir)/Makefile.in ${srcdir)/conf.xml $(srcdir)/setup.sh
 
 LIBHSM = ${top_builddir}/libhsm/src/lib/libhsm.a
 LIBCOMPAT = ${top_builddir}/common/libcompat.a
@@ -71,4 +71,5 @@ signertest_LDADD = \
 	@CUNIT_LIBS@
 
 check: signertest
+	sh setup.sh
 	./signertest $(top_srcdir)/signer/src/test
