@@ -66,6 +66,7 @@ signertest_LDADD = \
 	../views/table.o \
 	../views/views.o \
 	../views/zoneoutput.o \
+	../views/periodic.o \
 	$(LIBHSM) $(LIBCOMPAT) \
 	@LDNS_LIBS@ @XML2_LIBS@ @PTHREAD_LIBS@ @RT_LIBS@ @SSL_LIBS@ @C_LIBS@ \
 	@CUNIT_LIBS@

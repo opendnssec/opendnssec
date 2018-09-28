@@ -45,9 +45,9 @@
 
 #pragma GCC optimize ("O0")
 
-const char* names_view_BASE[]    = { "base",    "namerevision", NULL };
+const char* names_view_BASE[]    = { "base",    "namerevision", "outdated" };
 const char* names_view_INPUT[]   = { "input",   "nameupcoming", "namehierarchy", NULL };
-const char* names_view_PREPARE[] = { "prepare", "namerevision", "namenoserial", "namenewserial", "relevantset", NULL };
+const char* names_view_PREPARE[] = { "prepare", "namerevision", "incomingset", "currentset", "relevantset", NULL };
 const char* names_view_NEIGHB[]  = { "neighb",  "nameready", "denialname", NULL };
 const char* names_view_SIGN[]    = { "sign",    "nameready", "expiry", "denialname", NULL };
 const char* names_view_OUTPUT[]  = { "output",  "validnow", NULL };
@@ -112,7 +112,6 @@ changed(names_view_type view, recordset_type record, enum changetype type, recor
                 break;
             case UPD:
                 change->oldrecord = record;
-                change->record = record;
                 if(target) {
                     *target = &change->record;
                     change->record = NULL;
@@ -151,13 +150,26 @@ changed(names_view_type view, recordset_type record, enum changetype type, recor
 }
 
 void
-names_own(names_view_type view, recordset_type* record)
+names_underwrite(names_view_type view, recordset_type* record)
 {
     recordset_type* dict;
     changed(view, *record, MOD, &dict);
     if(dict && *dict == NULL) {
         names_indexremove(view->indices[0], *record);
         *dict = names_recordcopy(*record, 1);
+        names_indexinsert(view->indices[0], *dict, NULL);
+    }
+    *record = *dict;
+}
+
+void
+names_overwrite(names_view_type view, recordset_type* record)
+{
+    recordset_type* dict;
+    changed(view, *record, MOD, &dict);
+    if(dict && *dict == NULL) {
+        names_indexremove(view->indices[0], *record);
+        *dict = names_recordcopy(*record, -1);
         names_indexinsert(view->indices[0], *dict, NULL);
     }
     *record = *dict;
@@ -231,7 +243,9 @@ names_viewcreate(names_view_type base, const char* viewname, const char** keynam
     view->zonedata.apex = (base ? base->zonedata.apex : NULL);
     view->zonedata.defaultttl = NULL;
     view->zonedata.signconf = (base ? base->zonedata.signconf : NULL);
-    view->changelog = names_tablecreate();
+    int (*comparfunc)(const void *, const void *);
+    names_recordindexfunction(keynames[0], NULL, &comparfunc);
+    view->changelog = names_tablecreate(comparfunc);
     view->nsearchfuncs = 0;
     view->searchfuncs = NULL;
     view->nindices = nindices;
@@ -239,6 +253,7 @@ names_viewcreate(names_view_type base, const char* viewname, const char** keynam
         names_indexcreate(&view->indices[i], keynames[i]);
         names_indexsearchfunction(view->indices[i], view, keynames[i]);
     }
+    // FIXME there should be better place to initialize these
     if(!strcmp(viewname,names_view_PREPARE[0])) {
         names_viewaddsearchfunction2(view, view->indices[1], view->indices[2], names_iteratorincoming);
     } else if(!strcmp(viewname,names_view_NEIGHB[0])) {
@@ -263,7 +278,7 @@ names_viewcreate(names_view_type base, const char* viewname, const char** keynam
     return view;
 }
 
-void
+static void
 disposedict(void* arg, void* key, void* val)
 {
     recordset_type d = (recordset_type) val;
@@ -449,6 +464,7 @@ resetchangelog(names_view_type view)
 {
     names_iterator iter;
     names_change_type change;
+    names_table_type newchangelog;
     for(iter=names_tableitems(view->changelog); names_iterate(&iter, &change); names_advance(&iter, NULL)) {
         // FIXME we should assert(change->record != change->oldrecord); as we cannot handle updates like amends  but this assertion currently fails without known reason
         if(change->record != NULL) {
@@ -458,8 +474,9 @@ resetchangelog(names_view_type view)
             names_indexinsert(view->indices[0], change->oldrecord, NULL);
         }
     }
+    newchangelog = names_tablecreate2(view->changelog);
     names_commitlogdestroy(view->changelog);
-    view->changelog = names_tablecreate();
+    view->changelog = newchangelog;
 }
 
 static int
@@ -472,6 +489,7 @@ updateview(names_view_type view, names_table_type* mychangelog)
     char* temp1 = NULL;
     char* temp2 = NULL;
     int accepted;
+    recordset_type existing;
 
     changelog = NULL;
     
@@ -487,12 +505,12 @@ updateview(names_view_type view, names_table_type* mychangelog)
                 conflict = 1;
                 mychangelog = NULL;
             }
-            if(change->record != NULL) {
-                recordset_type existing = NULL;
-                accepted = names_indexinsert(view->indices[0], change->record, &existing);
-                logger_message(&names_logcommitlog,logger_noctx,logger_DEBUG,"    update %s %s%s%s\n",names_recordgetsummary(change->record,&temp1),(accepted?"accepted":"dropped"),(existing?" replaces ":""),names_recordgetsummary(existing,&temp2));
-                for(i=1; i<view->nindices; i++)
-                    names_indexinsert(view->indices[i], (accepted ? change->record : NULL), (existing ? &existing : NULL));
+            existing = NULL;
+            accepted = names_indexinsert(view->indices[0], change->record, &existing);
+            logger_message(&names_logcommitlog,logger_noctx,logger_DEBUG,"    update %s %s%s%s\n",names_recordgetsummary(change->record,&temp1),(accepted?"accepted":"dropped"),(existing?" replaces ":""),names_recordgetsummary(existing,&temp2));
+            for(i=1; i<view->nindices; i++) {
+                recordset_type tmp = existing;
+                names_indexinsert(view->indices[i], (accepted ? change->record : NULL), (existing ? &tmp : NULL));
             }
         }
     }
@@ -502,17 +520,13 @@ updateview(names_view_type view, names_table_type* mychangelog)
             recordset_type existing = change->oldrecord;
             logger_message(&names_logcommitlog,logger_noctx,logger_DEBUG,"    update %s %s%s%s\n",names_recordgetsummary(change->record,&temp1),(accepted?"accepted":"dropped"),(existing?" replaces ":""),names_recordgetsummary(existing,&temp2));
             for(i=1; i<view->nindices; i++) {
-                if(change->record == NULL) {
-                    if(existing)
-                        names_indexinsert(view->indices[i], change->record, &existing);
-                } else {
-                    existing = change->oldrecord;
-                    names_indexinsert(view->indices[i], change->record, &existing);
-                }
+                existing = change->oldrecord;
+                names_indexinsert(view->indices[i], change->record, &existing);
             }
             if(change->record == NULL) {
                 change->record = change->oldrecord;
                 change->oldrecord = NULL;
+                names_recorddisposal(change->record, 0);
             }
         }
         names_commitlogpoppush(view->commitlog, view->viewid, &changelog, mychangelog);
@@ -536,28 +550,6 @@ names_viewreset(names_view_type view)
 {
     resetchangelog(view);
     updateview(view, NULL);
-}
-
-int
-names_viewsync(names_view_type view)
-{
-    int i, conflict = 0;
-    names_iterator iter;
-    names_change_type change;
-    names_table_type changelog;
-
-    changelog = NULL;
-    while((names_commitlogpoppush(view->commitlog, view->viewid, &changelog, NULL))) {
-        for(iter = names_tableitems(changelog); names_iterate(&iter, &change); names_advance(&iter, NULL)) {
-            if(change->record != NULL) {
-                recordset_type existing = NULL;
-                names_indexinsert(view->indices[0], change->record, &existing);
-                for(i=1; i<view->nindices; i++)
-                    names_indexinsert(view->indices[i], change->record, &existing);
-            }
-        }
-    }
-    return conflict;
 }
 
 static void

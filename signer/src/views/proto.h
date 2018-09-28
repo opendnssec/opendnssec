@@ -141,11 +141,11 @@ struct names_view_zone {
 recordset_type names_recordcreate(char**name);
 recordset_type names_recordcreatetemp(const char*name);
 void names_recordannotate(recordset_type d, struct names_view_zone* zone);
-void names_recorddestroy(recordset_type);
 void names_recordsetmarker(recordset_type dict);
 int names_recordhasmarker(recordset_type dict);
-recordset_type names_recordcopy(recordset_type, int increment);
+recordset_type names_recordcopy(recordset_type, int clear);
 void names_recorddispose(recordset_type);
+void names_recorddisposal(recordset_type record, int doit);
 const char* names_recordgetname(recordset_type dict);
 int names_recordgetrevision(recordset_type dict);
 const char *names_recordgetsummary(recordset_type dict, char**);
@@ -163,6 +163,7 @@ int names_recordgetvalidupto(recordset_type);
 void names_recordsetvalidupto(recordset_type, int value);
 int names_recordvalidfrom(recordset_type, int*);
 int names_recordgetvalidfrom(recordset_type);
+int names_recordcmpdenial(recordset_type record, ldns_rr* denial);
 void names_recordsetdenial(recordset_type record, ldns_rr* denial);
 void names_recordsetvalidfrom(recordset_type, int value);
 int names_recordhasexpiry(recordset_type);
@@ -200,7 +201,8 @@ names_iterator names_indexiterator(names_index_type);
  * names_ module.
  */
 
-names_table_type names_tablecreate(void);
+names_table_type names_tablecreate(int (*cmpf)(const void *, const void *));
+names_table_type names_tablecreate2(names_table_type oldtable);
 void names_tabledispose(names_table_type table, void (*userfunc)(void* arg, void* key, void* val), void* userarg);
 void* names_tableget(names_table_type table, void* name);
 int names_tabledel(names_table_type table, char* name);
@@ -215,6 +217,7 @@ names_iterator names_tableitems(names_table_type table);
 typedef struct names_commitlog_struct* names_commitlog_type;
 
 void names_commitlogdestroy(names_table_type changelog);
+void names_commitlogdestroyfull(names_table_type changelog);
 void names_commitlogdestroyall(names_commitlog_type views, marshall_handle* store);
 int names_commitlogpoppush(names_commitlog_type, int viewid, names_table_type* previous, names_table_type* mychangelog);
 int names_commitlogsubscribe(names_view_type view, names_commitlog_type*);
@@ -223,6 +226,8 @@ void names_commitlogpersistappend(names_commitlog_type, void (*persistfn)(names_
 int names_commitlogpersistfull(names_commitlog_type, void (*persistfn)(names_table_type, marshall_handle), int viewid, marshall_handle store, marshall_handle* oldstore);
 
 void names_own(names_view_type view, recordset_type* record);
+void names_underwrite(names_view_type view, recordset_type* record);
+void names_overwrite(names_view_type view, recordset_type* record);
 void names_update(names_view_type view, recordset_type* record);
 void names_amend(names_view_type view, recordset_type record);
 void* names_place(names_view_type store, const char* name);
@@ -246,10 +251,10 @@ names_iterator names_iteratorexpiring(names_index_type index, va_list ap);
 names_iterator names_iteratorchangedeletes(names_index_type index, va_list ap);
 names_iterator names_iteratorchangeinserts(names_index_type index, va_list ap);
 names_iterator names_iteratorchanges(names_index_type index, va_list ap);
+names_iterator names_iteratoroutdated(names_index_type index, va_list ap);
 
 int names_viewcommit(names_view_type view);
 void names_viewreset(names_view_type view);
-int names_viewsync(names_view_type view);
 int names_viewpersist(names_view_type view, int basefd, char* filename);
 int names_viewconfig(names_view_type view, signconf_type** signconf);
 int names_viewrestore(names_view_type view, const char* apex, int basefd, const char* filename);
@@ -272,6 +277,7 @@ void writezoneapex(names_view_type view, FILE* fp);
 int writezone(names_view_type view, const char* filename);
 enum operation_enum { PLAIN, DELTAMINUS, DELTAPLUS };
 int readzone(names_view_type view, enum operation_enum operation, const char* filename, char** apexptr, int* defaultttlptr);
+void purgezone(zone_type* zone);
 
 ldns_rr_type domain_is_occluded(names_view_type view, recordset_type record);
 ldns_rr_type domain_is_delegpt(names_view_type view, recordset_type record);

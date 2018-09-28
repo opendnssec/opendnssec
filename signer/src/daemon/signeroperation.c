@@ -41,6 +41,8 @@
 
 #pragma GCC optimize ("O0")
 
+static logger_cls_type cls = LOGGER_INITIALIZE("signing");
+
 ods_status
 rrset_getliteralrr(ldns_rr** dnskey, const char *resourcerecord, uint32_t ttl, ldns_rdf* apex)
 {
@@ -329,6 +331,7 @@ rrset_sign(signconf_type* signconf, names_view_type view, recordset_type record,
         }
 
         /* Sign the RRset with this key */
+        logger_message(&cls,logger_noctx,logger_TRACE, "sign %s with key %s inception=%ld expiration=%ld delegation=%s occluded=%s\n",names_recordgetname(record),signconf->keys->keys[i].locator,(long)expiration,(long)expiration,(delegpt!=LDNS_RR_TYPE_SOA?"yes":"no"),(dstatus!=LDNS_RR_TYPE_SOA?"yes":"no"));
         rrsig = lhsm_sign(ctx, rrset, &signconf->keys->keys[i], inception, expiration);
         if (rrsig == NULL) {
             ods_log_crit("unable to sign RRset[%i]: lhsm_sign() failed", rrtype);
@@ -666,10 +669,10 @@ zone_update_serial(zone_type* zone, names_view_type view)
     if(names_recordhasexpiry(d)) {
         names_amend(view, d);
         names_recordsetvalidupto(d, serial);
-        names_own(view, &d);
+        names_underwrite(view, &d);
         names_recordsetvalidfrom(d, serial);
     } else {
-        names_own(view, &d);
+        names_underwrite(view, &d);
         names_recordsetvalidfrom(d, serial);
     }
     names_recordlookupone(d, LDNS_RR_TYPE_SOA, NULL, &rr);

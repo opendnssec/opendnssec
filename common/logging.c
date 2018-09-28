@@ -94,7 +94,6 @@ logger_messageinternal(logger_cls_type* cls, logger_ctx_type ctx, logger_lvl_typ
     va_start(ap,fmt);
     if(cls && cls->chain && cls->chain->logger)
         cls->chain->logger(cls,ctx,lvl,fmt,ap);
-    vfprintf(stderr,fmt,ap);
     va_end(ap);
 }
 

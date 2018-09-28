@@ -31,7 +31,7 @@
 extern "C" {
 #endif
 
-int metastorageget(const char* name, void** item);
+int metastorageget(const char* name, void* item);
 int metastorageput(void* item);
 
 #ifdef __cplusplus

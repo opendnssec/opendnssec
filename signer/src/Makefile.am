@@ -68,6 +68,7 @@ ods_signerd_SOURCES=		ods-signerd.c \
 				views/ringbuf.h \
 				views/rpc.c \
 				views/zoneoutput.c \
+				views/periodic.c \
 				views/proto.h
 
 analyze:

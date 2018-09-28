@@ -231,6 +231,8 @@ getxfr(zone_type* zone, const char* suffix, time_t* serial)
         }
         names_end(&iter);
         free(apex);
+        assert(soa1);
+        assert(soa2);
         fprintf(fp, "%s", soa2);
         fprintf(fp, "%s", soa1);
         for(iter=names_viewiterator(view,names_iteratorchangedeletes,(int)*serial); names_iterate(&iter,&record); names_advance(&iter,NULL)) {

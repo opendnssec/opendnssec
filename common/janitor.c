@@ -627,6 +627,45 @@ janitor_backtrace(void)
 #endif
 }
 
+static int
+callbackstring(void* data, uintptr_t pc, const char *filename, int lineno, const char *function)
+{
+    int siz, len;
+    char** ptr = data;
+    if (filename != NULL || lineno != 0 || function == NULL) {
+        siz = snprintf(NULL, 0, "  %s:%d in %s()\n", filename, lineno, function);
+        if (*ptr != NULL) {
+            len = strlen(*ptr);
+            siz += len + 1;
+            *ptr = realloc(*ptr, siz);
+        } else {
+            len = 0;
+            siz += 1;
+            *ptr = malloc(siz);
+        }
+        snprintf(&(*ptr)[len], siz-len, "  %s:%d in %s()\n", filename, lineno, function);
+    }
+    if (function && !strcmp(function, "main"))
+        return 1;
+    else
+        return 0;
+}
+
+char*
+janitor_backtrace_string(void)
+{
+    char* string = NULL;
+#ifdef HAVE_BACKTRACE_FULL
+    if(frames == NULL) {
+        frames = backtrace_create_state(NULL, 0, (backtrace_error_callback) errorhandler, NULL);
+    }
+    pthread_mutex_lock(&frameslock);
+    backtrace_full(frames, 1, (backtrace_full_callback) callbackstring, (backtrace_error_callback) errorhandler, &string);
+    pthread_mutex_unlock(&frameslock);
+#endif
+    return string;
+}
+
 void
 janitor_backtrace_all(void)
 {

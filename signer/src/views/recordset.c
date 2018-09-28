@@ -58,7 +58,7 @@ struct recordset_struct {
     struct signatures_struct* spansignatures;
     int* validupto;
     int* validfrom;
-    int* expiry;
+    int* expiry; // FIXME should use int64_t
     int nitemsets;
     struct itemset* itemsets;
 };
@@ -136,6 +136,7 @@ recordcreate()
     dict->validupto = NULL;
     dict->validfrom = NULL;
     dict->expiry = NULL;
+    dict->marker = 0;
     return dict;
 }
 
@@ -227,13 +228,13 @@ names_recordannotate(recordset_type d, struct names_view_zone* zone)
 }
 
 recordset_type
-names_recordcopy(recordset_type dict, int increment)
+names_recordcopy(recordset_type dict, int clear)
 {
     int i, j;
     struct recordset_struct* target;
     char* name = dict->name;
     target = (struct recordset_struct*) names_recordcreate(&name);
-    target->revision = dict->revision + (increment ? 1 : 1);
+    target->revision = dict->revision + 1;
     target->nitemsets = dict->nitemsets;
     CHECKALLOC(target->itemsets = malloc(sizeof(struct itemset) * target->nitemsets));
     for(i=0; i<target->nitemsets; i++) {
@@ -248,7 +249,7 @@ names_recordcopy(recordset_type dict, int increment)
     target->spanhash = (dict->spanhash ? strdup(dict->spanhash) : NULL);
     target->spanhashrr = (dict->spanhashrr ? ldns_rr_clone(dict->spanhashrr) : NULL);
     names_signaturedispose(&target->spansignatures);
-    if(increment == 0) {
+    if(clear == 0) {
         if(dict->expiry) {
             target->expiry = malloc(sizeof(int));
             *(target->expiry) = *(dict->expiry);
@@ -397,7 +398,7 @@ names_recorddelall(recordset_type d, ldns_rr_type rrtype)
         }
     }
     if(rrtype == 0) {
-        free(d->itemsets);
+        free(d->itemsets); // FIXME
         d->itemsets = NULL;
         d->nitemsets = 0;
     } else if(i<d->nitemsets) {
@@ -408,7 +409,7 @@ names_recorddelall(recordset_type d, ldns_rr_type rrtype)
         if (d->nitemsets > 0) {
             CHECKALLOC(d->itemsets = realloc(d->itemsets, sizeof (struct itemset) * d->nitemsets));
         } else {
-            free(d->itemsets);
+            free(d->itemsets); // FIXME
             d->itemsets = NULL;
         }        
     }
@@ -499,6 +500,17 @@ names_recorddispose(recordset_type dict)
     free(dict);
 }
 
+void
+names_recorddisposal(recordset_type record, int doit)
+{
+    if(doit) {
+        if(record->marker)
+            names_recorddispose(record);
+    } else {
+        record->marker = 1;
+    }
+}
+
 const char*
 names_recordgetname(recordset_type record)
 {
@@ -518,10 +530,10 @@ names_recordgetsummary(recordset_type dict, char** dest)
     if(dest && *dest)
         free(*dest);
     if(dict != NULL)
-        asprintf(&s, "%s %d (from=%d to=%d expiry=%d)%s%s", dict->name, dict->revision,
-                     (dict->validfrom?(int)*dict->validfrom:-1),
-                     (dict->validupto?(int)*dict->validupto:-1),
-                     (dict->expiry?(int)*dict->expiry:-1),
+        asprintf(&s, "%s %d (from=%d upto=%d expiry=%d)%s%s", dict->name, dict->revision,
+                     (dict->validfrom?(int)*dict->validfrom:-2),
+                     (dict->validupto?(int)*dict->validupto:-2),
+                     (dict->expiry?(int)*dict->expiry:-2),
                      (dict->spanhash?" ":""),(dict->spanhash?dict->spanhash:""));
     if(dest!=NULL)
         *dest = s;
@@ -566,10 +578,21 @@ names_recordsetvalidfrom(recordset_type record, int value)
     *(record->validfrom) = value;
 }
 
+int
+names_recordcmpdenial(recordset_type record, ldns_rr* denial)
+{
+    if(record->spanhashrr == NULL || ldns_rr_compare(record->spanhashrr, denial)) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
 void
 names_recordsetdenial(recordset_type record, ldns_rr* denial)
 {
     assert(denial != NULL);
+    assert(record->spansignatures == NULL);
     record->spanhashrr = denial;
 }
 
@@ -600,6 +623,7 @@ marshall(marshall_handle h, void* ptr)
     int size = 0;
     int i, j;
     size += marshalling(h, "name", &(d->name), NULL, 0, marshallstring);
+    size += marshalling(h, "marker", &(d->marker), NULL, 0, marshallinteger);
     size += marshalling(h, "revision", &(d->revision), NULL, 0, marshallinteger);
     size += marshalling(h, "spanhash", &(d->spanhash), NULL, 0, marshallstring);
     size += marshalling(h, "spansignatures", &(d->spansignatures), marshall_OPTIONAL, sizeof(struct signatures_struct), marshallsigs);
@@ -650,6 +674,7 @@ DEFINECOMPARISON(comparesignedset)
 DEFINECOMPARISON(comparechangesset)
 DEFINECOMPARISON(comparedeletesset)
 DEFINECOMPARISON(compareinsertsset)
+DEFINECOMPARISON(compareoutdatedset)
 
 int
 comparenamerevision(recordset_type newitem, recordset_type curitem, int* cmp)
@@ -732,8 +757,6 @@ int
 compareupcomingset(recordset_type newitem, recordset_type curitem, int* cmp)
 {
     int c;
-    const char* left;
-    const char* right;
     if(curitem) {
         c = strcmp(newitem->name, curitem->name);
         if(cmp)
@@ -788,8 +811,6 @@ compareready(recordset_type newitem, recordset_type curitem, int* cmp)
         return 0;
     if (!newitem->validfrom)
         return 0;
-    if (newitem->expiry)
-        return 0;
     return 1;
 }
 
@@ -810,12 +831,34 @@ comparecurrentset(recordset_type newitem, recordset_type curitem, int* cmp)
 }
 
 int
+comparecurrentsetnew(recordset_type newitem, recordset_type curitem, int* cmp)
+{
+    int rc = 1;
+    int c = 0;
+    if (curitem) {
+        c = strcmp(curitem->name, newitem->name);
+        if (cmp)
+            *cmp = c;
+        if (c == 0) {
+            c = newitem->revision - curitem->revision;
+            if (newitem->revision < curitem->revision) {
+                rc = 0;
+            } else {
+                rc = 1;
+            }
+        }
+    }
+    if (newitem->validupto)
+        rc = 0;
+    if (!newitem->validfrom)
+        rc = 0;
+    return rc;
+}
+
+int
 comparerelevantset(recordset_type newitem, recordset_type curitem, int* cmp)
 {
     int c;
-    const char* left;
-    const char* right;
-    (void)index;
     if (curitem) {
         c = strcmp(curitem->name, newitem->name);
         if (cmp)
@@ -925,19 +968,46 @@ comparedeletesset(recordset_type newitem, recordset_type curitem, int* cmp)
     return 1;
 }
 
+int
+compareoutdatedset(recordset_type newitem, recordset_type curitem, int* cmp)
+{
+    if (curitem) {
+        if (cmp) {
+            if(curitem->validupto == NULL) {
+                *cmp = -1;
+            } else if(newitem->validupto == NULL) {
+                *cmp = 1;
+            } else {
+                *cmp = *newitem->validupto - *curitem->validupto;
+            }
+            if(*cmp == 0 && newitem->name != NULL)
+                *cmp = strcmp(curitem->name, newitem->name);
+            if(*cmp == 0 && newitem->name != NULL)
+                *cmp = curitem->revision - newitem->revision;
+        }
+    }
+    if (!newitem->validupto) {
+        return 0;
+    }
+    if (!newitem->validfrom) {
+        return 0;
+    }
+    return 1;
+}
+
 void
 names_recordindexfunction(const char* keyname, int (**acceptfunc)(recordset_type newitem, recordset_type currentitem, int* cmp), int (**comparfunc)(const void *, const void *))
 {
-#define REFERCOMPARISON(F,N) do { *comparfunc = N ## _ldns; *acceptfunc = N; } while(0)
+#define REFERCOMPARISON(F,N) do { if(comparfunc) *comparfunc = N ## _ldns; if(acceptfunc) *acceptfunc = N; } while(0)
     if(!strcmp(keyname,"nameready")) {
         REFERCOMPARISON("namerevision", compareready);
     } else if(!strcmp(keyname,"namerevision")) {
         REFERCOMPARISON("namerevision", comparenamerevision);
     } else if(!strcmp(keyname,"nameupcoming")) {
         REFERCOMPARISON("name", compareupcomingset);
-    } else if(!strcmp(keyname,"namenoserial")) {
+    } else if(!strcmp(keyname,"incomingset")) {
         REFERCOMPARISON("name", compareincomingset);
-    } else if(!strcmp(keyname,"namenewserial")) {
+    } else if(!strcmp(keyname,"currentset")) {
         REFERCOMPARISON("name", comparecurrentset);
     } else if(!strcmp(keyname,"relevantset")) {
         REFERCOMPARISON("name", comparerelevantset);
@@ -955,6 +1025,8 @@ names_recordindexfunction(const char* keyname, int (**acceptfunc)(recordset_type
         REFERCOMPARISON("denialname",comparedenialname);
     } else if(!strcmp(keyname,"namehierarchy")) {
         REFERCOMPARISON("name",comparenamehierarchy);
+    } else if(!strcmp(keyname,"outdated")) {
+        REFERCOMPARISON("name",compareoutdatedset);
     } else {
         abort(); // FIXME
     }    

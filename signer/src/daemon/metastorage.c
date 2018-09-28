@@ -208,10 +208,10 @@ setup(void)
 }
 
 int
-metastorageget(const char* name, void** item)
+metastorageget(const char* name, void* item)
 {
     setup();
-    return metastorage("signer.db", ndefs, defs, name, item);
+    return metastorage("signer.db", ndefs, defs, name, (void**)item);
 }
 
 int

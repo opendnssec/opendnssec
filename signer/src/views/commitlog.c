@@ -71,10 +71,25 @@ destroynode(void* arg, void* key, void* val)
     free(val);
 }
 
+static void
+destroynodeandrecord(void* arg, void* key, void* val)
+{
+    (void)arg;
+    (void)key;
+    free(val);
+    names_recorddisposal(key, 1);
+}
+
 void
 names_commitlogdestroy(names_table_type table)
 {
     names_tabledispose(table, destroynode, NULL);
+}
+
+void
+names_commitlogdestroyfull(names_table_type table)
+{
+    names_tabledispose(table, destroynodeandrecord, NULL);
 }
 
 void
@@ -139,13 +154,13 @@ names_commitlogpoppush(names_commitlog_type logs, int viewid, names_table_type* 
             logs->lastchangelog = *submitlog;
         }
         *commitlog = *submitlog;
-        *submitlog = names_tablecreate();
+        *submitlog = names_tablecreate2(*submitlog);
     } else {
         *commitlog = poppedlog;
     }
     CHECK(pthread_mutex_unlock(&logs->lock));
     if(previouslog)
-        names_commitlogdestroy(previouslog);
+        names_commitlogdestroyfull(previouslog);
     return backlog;
 }
 

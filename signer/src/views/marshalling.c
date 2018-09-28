@@ -360,6 +360,7 @@ marshalling(marshall_handle h, const char* name, void* members, int *membercount
             if(name != NULL) {
                 if(membercount) {
                     if(memberfunction != NULL && memberfunction != marshallself) {
+                        dest = *(char**) members;
                         for(i=0; i<*membercount; i++) {
                             memberfunction(h, &(dest[i*membersize]));
                         }

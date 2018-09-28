@@ -47,6 +47,7 @@
 struct names_table_struct {
     ldns_rbtree_t* tree;
     names_table_type next;
+    int (*cmp)(const void *, const void *);
 };
 
 struct names_iterator_struct {
@@ -105,13 +106,20 @@ endimpl(names_iterator*iter)
 }
 
 names_table_type
-names_tablecreate(void)
+names_tablecreate(int (*cmpf)(const void *, const void *))
 {
     struct names_table_struct* table;
     table = malloc(sizeof(struct names_table_struct));
-    table->tree = ldns_rbtree_create(names_recordcompare_namerevision);
+    table->tree = ldns_rbtree_create(cmpf);
     table->next = NULL;
+    table->cmp = cmpf;
     return table;
+}
+
+names_table_type
+names_tablecreate2(names_table_type oldtable)
+{
+    return names_tablecreate(oldtable->cmp);
 }
 
 struct destroyinfo {

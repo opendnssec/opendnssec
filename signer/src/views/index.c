@@ -118,7 +118,9 @@ names_indexinsert(names_index_type index, recordset_type record, recordset_type*
                 switch (index->acceptfunc(record, (recordset_type) node->data, &cmp)) {
                     case 0:
                         logger_message(&names_logcommitlog, logger_noctx, logger_DEBUG, "      record ignored from %s no match after found\n", index->keyname);
-                        *existing = NULL;
+                        if(existing) {
+                            *existing = NULL;
+                        }
                         return 0;
                     case 1:
                         logger_message(&names_logcommitlog, logger_noctx, logger_DEBUG, "      record rewritten in %s matched after found\n", index->keyname);
@@ -140,10 +142,14 @@ names_indexinsert(names_index_type index, recordset_type record, recordset_type*
         } else {
             node = ldns_rbtree_search(index->tree, record);
             if (node != NULL) {
-                if (index->acceptfunc(record, (recordset_type) node->data, &cmp) == 0 || (cmp == 0 && node->key == record)) {
-                    logger_message(&names_logcommitlog, logger_noctx, logger_DEBUG, "      record not accepted and deleted from in %s\n", index->keyname);
-                    node = ldns_rbtree_delete(index->tree, node->key);
-                    free(node);
+                if (index->acceptfunc(record, (recordset_type) node->data, &cmp) == 0) {
+                    if (cmp == 0 && node->key == record) {
+                        logger_message(&names_logcommitlog, logger_noctx, logger_DEBUG, "      record not accepted and deleted from in %s\n", index->keyname);
+                        node = ldns_rbtree_delete(index->tree, node->key);
+                        free(node);
+                    } else {
+                        logger_message(&names_logcommitlog, logger_noctx, logger_DEBUG, "      record not accepted and withheld from deletion from in %s\n", index->keyname);
+                    }
                 } else {
                     logger_message(&names_logcommitlog, logger_noctx, logger_DEBUG, "      record not accepted but not found yet not deleted in %s\n", index->keyname);
                 }
@@ -152,8 +158,9 @@ names_indexinsert(names_index_type index, recordset_type record, recordset_type*
             }
             return 0;
         }
-    } else
+    } else {
         return 0;
+    }
 }
 
 recordset_type
@@ -162,7 +169,8 @@ names_indexlookupkey(names_index_type index, const char* keyvalue)
     recordset_type find;
     recordset_type found;
     /* FIXME, we will only call this function to perform lookups by name (without revision), but
-     * fundamentally we should use the index key
+     * fundamentally we should use the index key.  At the moment this doesn't really matter as the
+     * only lookups are per name only.
      */
     find = names_recordcreatetemp((char*)keyvalue);
     found = names_indexlookup(index, find);
@@ -452,6 +460,39 @@ names_iteratorchanges(names_index_type index, va_list ap)
 }
 
 
+names_iterator
+names_iteratoroutdated(names_index_type index, va_list ap)
+{
+    recordset_type find;
+    recordset_type found;
+    int serial;
+    ldns_rbnode_t* node;
+    names_iterator iter;
+
+    serial = va_arg(ap, int);
+    find = names_recordcreatetemp(NULL);
+    names_recordsetvalidupto(find, serial);
+    iter = names_iterator_createrefs(NULL);
+            char*t= NULL;
+
+    if(!ldns_rbtree_find_less_equal(index->tree, find, &node)) {
+        if(node == NULL || node == LDNS_RBTREE_NULL) {
+            node = ldns_rbtree_first(index->tree);
+        } else {
+            node = ldns_rbtree_next(node);
+        }
+    }
+    while (node && node != LDNS_RBTREE_NULL) {
+        found = (recordset_type) node->key;
+        names_iterator_addptr(iter, found);
+        node = ldns_rbtree_next(node);
+    }
+
+    names_recorddispose(find);
+    return iter;
+}
+
+
 
 void
 names_indexsearchfunction(names_index_type index, names_view_type view, const char* keyname)
@@ -468,5 +509,7 @@ names_indexsearchfunction(names_index_type index, names_view_type view, const ch
         names_viewaddsearchfunction(view, index, names_iteratorchangedeletes);
     } else if(!strcmp(keyname,"validinserts")) {
         names_viewaddsearchfunction(view, index, names_iteratorchangeinserts);
+    } else if(!strcmp(keyname,"outdated")) {
+        names_viewaddsearchfunction(view, index, names_iteratoroutdated);
     }
 }

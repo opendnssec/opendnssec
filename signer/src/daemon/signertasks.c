@@ -125,6 +125,12 @@ signdomain(struct worker_context* superior, hsm_ctx_t* ctx, recordset_type recor
     ods_status status;
     names_iterator iter;
     ldns_rr_type rrtype;
+    int expiration = INT_MAX;
+    time_t rrsigexpirationtime;
+    ldns_rr* rrsig;
+    ldns_rr_list* rrsigs;
+    ldns_rdf* rrsigexpiration;
+
     for (iter=names_recordalltypes(record); names_iterate(&iter,&rrtype); names_advance(&iter,NULL)) {
         if ((status = rrset_sign(superior->zone->signconf, superior->view, record, rrtype, ctx, superior->clock_in)) != ODS_STATUS_OK)
             return status;
@@ -134,11 +140,6 @@ signdomain(struct worker_context* superior, hsm_ctx_t* ctx, recordset_type recor
             return status;
     }
 
-    time_t expiration = LONG_MAX;
-    time_t rrsigexpirationtime;
-    ldns_rr* rrsig;
-    ldns_rr_list*rrsigs;
-    ldns_rdf*rrsigexpiration;
     names_recordlookupall(record, LDNS_RR_TYPE_RRSIG, NULL, NULL, &rrsigs);
     while((rrsig=ldns_rr_list_pop_rr(rrsigs))) {
         rrsigexpiration = ldns_rr_rrsig_expiration(rrsig);
@@ -272,6 +273,52 @@ do_forcereadsignconf(task_type* task, const char* zonename, void* zonearg, void 
     }
 }
 
+void
+processoccluded(names_view_type view)
+{
+    struct dual change;
+    names_iterator iter;
+    /* for any occluded domain names, clear the annotation, since we should not be genereating NSECs for them */
+    for (iter=names_viewiterator(view,names_iteratordenialchainupdates); names_iterate(&iter,&change); names_advance(&iter,NULL)) {
+        if(domain_is_occluded(view, change.src) != LDNS_RR_TYPE_SOA) {
+            recordset_type record = change.src;
+            names_update(view, &record);
+            names_recordannotate(record, NULL);
+        }
+    }
+}
+
+void
+processneighbours(names_view_type view, signconf_type* signconf, int newserial)
+{
+    struct dual change;
+    names_iterator iter;
+    // BERRY FIXME does this iterate over all?  should be only over updates
+    for (iter=names_viewiterator(view,names_iteratordenialchainupdates); names_iterate(&iter,&change); names_advance(&iter,NULL)) {
+        const char* nextnamestr;
+        ldns_rdf* nextnamerdf;
+        if(signconf->nsec3params)
+            nextnamestr = names_recordgetdenial(change.dst);
+        else
+            nextnamestr = names_recordgetname(change.dst);
+        nextnamerdf = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, nextnamestr);
+        ldns_rr* nsec = denial_nsecify(signconf, view, change.src, nextnamerdf);
+        if (names_recordcmpdenial(change.src, nsec)) {
+            recordset_type record = change.src;
+            if(names_recordhasexpiry(record)) {
+                names_amend(view, record);
+                names_recordsetvalidupto(record, newserial);
+                names_underwrite(view, &record); // BERTY
+                names_recordsetvalidfrom(record, newserial);
+            } else {
+                names_amend(view, record);
+            }
+            names_recordsetdenial(record, nsec);
+        }
+        ldns_rdf_deep_free(nextnamerdf);
+    }
+}
+
 time_t
 do_signzone(task_type* task, const char* zonename, void* zonearg, void *contextarg)
 {
@@ -286,6 +333,9 @@ do_signzone(task_type* task, const char* zonename, void* zonearg, void *contexta
     long nsubtasksfailed = 0;
     int newserial;
     int conflict;
+    recordset_type record;
+    struct dual change;
+    names_iterator iter;
 
     names_viewreset(zone->prepareview);
     context->clock_in = time_now();
@@ -295,9 +345,7 @@ do_signzone(task_type* task, const char* zonename, void* zonearg, void *contexta
         namedb_update_serial(zone);
     }
     newserial = *(zone->nextserial);
-    recordset_type record;
-    struct dual change;
-    names_iterator iter;
+
     names_view_type prepareview = zone->prepareview;
     /* The purpose of the next iteration is to go over all new or modified records and fix the SOA serial number from
      * which these records are valid.  If the records is a modified record, the records that it superceeds, will be
@@ -306,8 +354,10 @@ do_signzone(task_type* task, const char* zonename, void* zonearg, void *contexta
     for (iter=names_viewiterator(prepareview,names_iteratorincoming); names_iterate(&iter,&change); names_advance(&iter,NULL)) {
         assert(change.dst != change.src);
         if(names_recordhasexpiry(change.src)) {
-            names_amend(prepareview, change.dst);
-            names_recordsetvalidupto(change.dst, newserial);
+            if(change.dst) {
+                names_amend(prepareview, change.dst);
+                names_recordsetvalidupto(change.dst, newserial);
+            }
             names_amend(prepareview, change.src);
             names_recordsetvalidfrom(change.src, newserial);
         }
@@ -322,10 +372,14 @@ do_signzone(task_type* task, const char* zonename, void* zonearg, void *contexta
                 names_amend(prepareview, change.src);
                 names_recordsetvalidfrom(change.src, newserial);
             } else {
-                names_remove(prepareview, change.src);
+                names_remove(prepareview, change.src); // FIXME what if multiple are overwritten?
             }
         }
     }
+    conflict = names_viewcommit(zone->prepareview);
+    names_viewvalidate(prepareview);
+    assert(!conflict);
+
     status = zone_update_serial(zone, zone->prepareview);
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] unable to sign zone %s: failed to increment serial", worker->name, task->owner);
@@ -338,29 +392,12 @@ do_signzone(task_type* task, const char* zonename, void* zonearg, void *contexta
 
     names_viewreset(zone->signview);
     names_viewreset(zone->neighview);
-    for (iter=names_viewiterator(zone->neighview,names_iteratordenialchainupdates); names_iterate(&iter,&change); names_advance(&iter,NULL)) {
-        if(domain_is_occluded(zone->neighview, change.src) != LDNS_RR_TYPE_SOA) {
-            recordset_type record = change.src;
-            names_update(zone->neighview, &record);
-            names_recordannotate(record, NULL);
-        }
-    }
+    processoccluded(zone->neighview);
     conflict = names_viewcommit(zone->neighview);
     assert(!conflict);
 
-    names_viewsync(zone->signview);
-    for (iter=names_viewiterator(zone->signview,names_iteratordenialchainupdates); names_iterate(&iter,&change); names_advance(&iter,NULL)) {
-        const char* nextnamestr;
-        ldns_rdf* nextnamerdf;
-        if(zone->signconf->nsec3params)
-            nextnamestr = names_recordgetdenial(change.dst);
-        else
-            nextnamestr = names_recordgetname(change.dst);
-        nextnamerdf = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, nextnamestr);
-        names_amend(zone->signview, change.src);
-        names_recordsetdenial(change.src, denial_nsecify(zone->signconf, zone->signview, change.src, nextnamerdf));
-        ldns_rdf_deep_free(nextnamerdf);
-    }
+    names_viewreset(zone->signview);
+    processneighbours(zone->signview, zone->signconf, newserial);
     conflict = names_viewcommit(zone->signview);
     assert(!conflict);
 
@@ -441,7 +478,10 @@ do_signzone(task_type* task, const char* zonename, void* zonearg, void *contexta
         }
         pthread_mutex_unlock(&zone->stats->stats_lock);
     }
-    names_viewcommit(zone->signview);
+    status = names_viewcommit(zone->signview);
+    if(status) {
+        logger_message(&logger_cls,logger_noctx,logger_ERROR,"Failed to commit sign");
+    }
     schedule_scheduletask(engine->taskq, TASK_WRITE, zone->name, zone, &zone->zone_lock, schedule_PROMPTLY);
     return schedule_SUCCESS;
 }

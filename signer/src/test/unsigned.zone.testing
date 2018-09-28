@@ -5,4 +5,4 @@ example.com.	86400	IN	NS	ns1.example.com.
 example.com.	86400	IN	NS	ns2.example.com.
 ns.example.com.	86400	IN	A	192.0.2.1
 domain.example.com.	86400	IN	DS	8119 8 1 FA2008C4071794C5B972FFC771275B611FDA643C
-domain.example.com.	86400	IN	NS	ns.domain.example.
+domain.example.com.	86400	IN	NS	ns.domain.example.com.

@@ -153,6 +153,7 @@ setUp(void)
        (status = engine_setup_finish(engine, linkfd)) != ODS_STATUS_OK) {
         ods_log_error("Unable to start signer daemon: %s", ods_status2str(status));
     }
+    set_time_now(0);
     enginethreadingstart();
     hsm_open2(engine->config->repositories, hsm_check_pin);
     //janitor_thread_create(&debugthread, debugthreadclass, enginerunner, engine);
@@ -377,12 +378,13 @@ reresignzone(zone_type* zone)
 }
 
 static struct rpc*
-makecall(char* zone, const char* delegation, ...)
+makecall(const char* zone, const char* delegation, ...)
 {
     va_list ap;
     const char* str;
     int i, count;
     ldns_rdf* origin = NULL;
+    ldns_status status;
     struct rpc* rpc = malloc(sizeof(struct rpc));
     rpc->opc = RPC_CHANGE_DELEGATION;
     rpc->zone = strdup(zone);
@@ -392,33 +394,26 @@ makecall(char* zone, const char* delegation, ...)
     rpc->delegation_point = strdup(delegation);
     va_start(ap,delegation);
     count = 0;
-    while((str=va_arg(ap,const char*))!=NULL)
+    while((str=va_arg(ap,const char*))!=NULL) {
         ++count;
+    }
     va_end(ap);
     rpc->rr_count = count;
     rpc->rr = malloc(sizeof(ldns_rr*)*count);
     va_start(ap,delegation);
     for(i=0; i<count; i++) {
         str = va_arg(ap,const char*);
-        ldns_rr_new_frm_str(&rpc->rr[i], str, 0, origin, NULL);
+        status = ldns_rr_new_frm_str(&rpc->rr[i], str, 86400, origin, NULL);
+        if(status != LDNS_STATUS_OK) {
+            fprintf(stderr,"%s (%d) \"%s\"\n",ldns_get_errorstr_by_id(status),status,str);
+        }
+        assert(status == LDNS_STATUS_OK);
     }
     va_end(ap);
     rpc->rr_count = count;
     rpc->status = RPC_OK;
     return rpc;
 }
-
-extern void testNothing(void);
-extern void testIterator(void);
-extern void testAnnotate(void);
-extern void testStatefile(void);
-extern void testTransferfile(void);
-extern void testBasic(void);
-extern void testSignNSEC(void);
-extern void testSignNSEC3(void);
-extern void testSignNSECNL(void);
-extern void testSignFast(void);
-
 
 void
 testNothing(void)
@@ -654,17 +649,17 @@ testSignNSEC(void)
     usefile("example.com.state", NULL);
     usefile("signer.db", NULL);
     usefile("example.org.state", NULL);
-
     usefile("example.com.state", NULL);
     usefile("zones.xml", "zones.xml.example");
     usefile("unsigned.zone", "unsigned.zone.example");
     usefile("signconf.xml", "signconf.xml.nsec");
+    set_time_now(1537918509);
     zonelist_update(engine->zonelist, engine->config->zonelist_filename_signer);
     zone = zonelist_lookup_zone_by_name(engine->zonelist, "example.com", LDNS_RR_CLASS_IN);
     signzone(zone);
     disposezone(zone);
     CU_ASSERT_EQUAL((comparezone("unsigned.zone","signed.zone",0)), 0);
-    CU_ASSERT_EQUAL((system("ldns-verify-zone signed.zone")), 0);
+    CU_ASSERT_EQUAL((system("ldns-verify-zone -t 20180926013741 signed.zone")), 0);
 }
 
 
@@ -743,7 +738,7 @@ testSignNL(void)
 
 
 void
-testSignFast(void)
+testSignFastRemove(void)
 {
     int status;
     zone_type* zone;
@@ -769,6 +764,131 @@ testSignFast(void)
     CU_ASSERT_EQUAL((status = comparezone("gold.zone","signed.zone",comparezone_INCL_SOA)), 0);
 }
 
+void
+testSignFastInsert(void)
+{
+    int status;
+    zone_type* zone;
+    set_time_now(1537918509);
+    logger_mark_performance("setup files");
+    usefile("example.com.state", NULL);
+    usefile("signer.db", NULL);
+    usefile("zones.xml", "zones.xml.example");
+    usefile("unsigned.zone", "unsigned.zone.testing");
+    usefile("signconf.xml", "signconf.xml.nsec");
+    set_time_now(1537918509);
+    zonelist_update(engine->zonelist, engine->config->zonelist_filename_signer);
+    zone = zonelist_lookup_zone_by_name(engine->zonelist, "example.com", LDNS_RR_CLASS_IN);
+    signzone(zone);
+    status = names_viewcommit(zone->signview);
+    CU_ASSERT_EQUAL(status,0);
+    names_viewreset(zone->inputview);
+
+    status = httpd_dispatch(zone->inputview, makecall(zone->name, "domein.example.com.", "domein.example.com. NS ns.domain.example.com.", NULL));
+    CU_ASSERT_EQUAL(status, 0);
+    status = names_viewcommit(zone->inputview);
+    CU_ASSERT_EQUAL(status,0);
+
+    reresignzone(zone);
+    outputzone(zone);
+    disposezone(zone);
+    CU_ASSERT_EQUAL((system("ldns-verify-zone -t 20180926013741 signed.zone")), 0);
+}
+
+void
+testSignFastChange(void)
+{
+    int status;
+    zone_type* zone;
+    set_time_now(1537918509);
+    logger_mark_performance("setup files");
+    usefile("example.com.state", NULL);
+    usefile("signer.db", NULL);
+    usefile("zones.xml", "zones.xml.example");
+    usefile("unsigned.zone", "unsigned.zone.testing");
+    usefile("signconf.xml", "signconf.xml.nsec");
+    set_time_now(1537918509);
+    zonelist_update(engine->zonelist, engine->config->zonelist_filename_signer);
+    zone = zonelist_lookup_zone_by_name(engine->zonelist, "example.com", LDNS_RR_CLASS_IN);
+    signzone(zone);
+    status = names_viewcommit(zone->signview);
+    CU_ASSERT_EQUAL(status,0);
+    names_viewreset(zone->inputview);
+
+    status = httpd_dispatch(zone->inputview, makecall(zone->name, "domain.example.com.", "domain.example.com. NS ns1.example.com.", NULL));
+    CU_ASSERT_EQUAL(status, 0);
+    status = names_viewcommit(zone->inputview);
+    CU_ASSERT_EQUAL(status,0);
+
+    reresignzone(zone);
+    outputzone(zone);
+    disposezone(zone);
+    CU_ASSERT_EQUAL((system("ldns-verify-zone -t 20180926013741 signed.zone")), 0);
+}
+
+void
+testDisposing(void)
+{
+    int status;
+    zone_type* zone;
+    logger_mark_performance("setup files");
+    usefile("example.com.state", NULL);
+    usefile("signer.db", NULL);
+    usefile("zones.xml", "zones.xml.example");
+    usefile("unsigned.zone", "unsigned.zone.example");
+    usefile("signconf.xml", "signconf.xml.nsec");
+
+    zonelist_update(engine->zonelist, engine->config->zonelist_filename_signer);
+    zone = zonelist_lookup_zone_by_name(engine->zonelist, "example.com", LDNS_RR_CLASS_IN);
+    signzone(zone);
+
+    //logger_configurecls("commitlog", logger_DEBUG, logger_log_stderr);
+    
+    //names_viewreset(zone->inputview);
+    //CU_ASSERT_EQUAL(httpd_dispatch(zone->inputview, makecall(zone->name, "domain.example.com.", NULL)), 0);
+    //CU_ASSERT_EQUAL(httpd_dispatch(zone->inputview, makecall(zone->name, "j.example.com.", "j.example.com. A 10.0.0.1",NULL)), 0);
+    //reresignzone(zone);
+    CU_ASSERT_EQUAL(httpd_dispatch(zone->inputview, makecall(zone->name, "o.example.com.", "o.example.com. A 10.0.1.1",NULL)), 0);
+    reresignzone(zone);
+    CU_ASSERT_EQUAL(httpd_dispatch(zone->inputview, makecall(zone->name, "o.example.com.", "o.example.com. A 10.0.1.2",NULL)), 0);
+    reresignzone(zone);
+
+    CU_ASSERT_EQUAL(httpd_dispatch(zone->inputview, makecall(zone->name, "o.example.com.", "o.example.com. A 10.0.1.3",NULL)), 0);
+    reresignzone(zone);
+    CU_ASSERT_EQUAL(httpd_dispatch(zone->inputview, makecall(zone->name, "o.example.com.", "o.example.com. A 10.0.1.4",NULL)), 0);
+    reresignzone(zone);
+    CU_ASSERT_EQUAL(httpd_dispatch(zone->inputview, makecall(zone->name, "o.example.com.", "o.example.com. A 10.0.1.5",NULL)), 0);
+    reresignzone(zone);
+    CU_ASSERT_EQUAL(httpd_dispatch(zone->inputview, makecall(zone->name, "o.example.com.", "o.example.com. A 10.0.1.6",NULL)), 0);
+    reresignzone(zone);
+    CU_ASSERT_EQUAL(httpd_dispatch(zone->inputview, makecall(zone->name, "o.example.com.", "o.example.com. A 10.0.1.7",NULL)), 0);
+    reresignzone(zone);
+    CU_ASSERT_EQUAL(httpd_dispatch(zone->inputview, makecall(zone->name, "o.example.com.", "o.example.com. A 10.0.1.8",NULL)), 0);
+    reresignzone(zone);
+    CU_ASSERT_EQUAL(httpd_dispatch(zone->inputview, makecall(zone->name, "o.example.com.", "o.example.com. A 10.0.1.9",NULL)), 0);
+    reresignzone(zone);
+
+    outputzone(zone);
+    names_viewreset(zone->baseview);
+    names_dumpviewinfo(stderr,7,&zone->baseview);
+    purgezone(zone);
+    disposezone(zone);
+}
+
+
+extern void testNothing(void);
+extern void testIterator(void);
+extern void testAnnotate(void);
+extern void testStatefile(void);
+extern void testTransferfile(void);
+extern void testBasic(void);
+extern void testSignNSEC(void);
+extern void testSignNSEC3(void);
+extern void testSignNSECNL(void);
+extern void testSignFastRemove(void);
+extern void testSignFastInsert(void);
+extern void testSignFastChange(void);
+extern void testDisposing(void);
 
 struct test_struct {
     const char* suite;
@@ -778,18 +898,21 @@ struct test_struct {
     CU_pSuite pSuite;
     CU_pTest pTest;
 } tests[] = {
-    { "signer", "testNothing",       "test nothing" },
-    { "signer", "testIterator",      "test of iterator" },
-    { "signer", "testAnnotate",      "test of denial annotation" },
-    { "signer", "testMarshalling",   "test marshalling" },
-    { "signer", "testStatefile",     "test statefile usage" },
-    { "signer", "testTransferfile",  "test transferfile usage" },
-    { "signer", "testBasic",         "test of start stop" },
-    { "signer", "testSignNSEC",      "test NSEC signing" },
-    { "signer", "testSignNSEC3",     "test NSEC3 signing" },
-    { "signer", "testSignResign",    "test resigning restart" },
-    { "signer", "testSignFast",      "test fast updates" },
-    { "signer", "-testSignNL",       "test NL signing" },
+    { "signer", "testNothing",         "test nothing" },
+    { "signer", "testIterator",        "test of iterator" },
+    { "signer", "testAnnotate",        "test of denial annotation" },
+    { "signer", "testMarshalling",     "test marshalling" },
+    { "signer", "testStatefile",       "test statefile usage" },
+    { "signer", "testTransferfile",    "test transferfile usage" },
+    { "signer", "testBasic",           "test of start stop" },
+    { "signer", "testSignNSEC",        "test NSEC signing" },
+    { "signer", "testSignNSEC3",       "test NSEC3 signing" },
+    { "signer", "testSignResign",      "test resigning restart" },
+    { "signer", "testSignFastRemove",  "test fast updates deletes" },
+    { "signer", "testSignFastInsert",  "test fast updates inserts" },
+    { "signer", "testSignFastChange",  "test fast updates changes" },
+    { "signer", "testDisposing",       "test dispose" },
+    { "signer", "-testSignNL",          "test NL signing" },
     { NULL, NULL, NULL }
 };
 

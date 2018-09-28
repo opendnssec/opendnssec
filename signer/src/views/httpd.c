@@ -90,7 +90,7 @@ deletedelegation(names_view_type view, struct rpc *rpc)
     names_iterator iter;
     recordset_type record;
     for (iter = names_viewiterator(view, names_iteratordescendants, rpc->delegation_point); names_iterate(&iter, &record); names_advance(&iter, NULL)) {
-        names_own(view, &record);
+        names_overwrite(view, &record);
         names_recorddelall(record, 0);
     }
     /* in case of error  rpc->status = RPC_ERR; */
@@ -119,7 +119,7 @@ insertrecords(names_view_type view, struct rpc *rpc)
             return 0;
         }
 
-        names_own(view, &record);
+        names_overwrite(view, &record);
         names_recordadddata(record, rr);
     }
 

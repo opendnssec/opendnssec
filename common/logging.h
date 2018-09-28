@@ -102,7 +102,7 @@ int logger_mark_performance(const char* message);
         if(logger_cls_var->setupserial != logger_setup.serial) \
             logger_resetup(logger_cls_var); \
         if(logger_lvl_var <= logger_cls_var->minlvl) \
-            logger_messageinternal(logger_cls_var,(CTX),logger_lvl_var,FMT,__VA_ARGS__); \
+            logger_messageinternal(logger_cls_var,(CTX),logger_lvl_var,__VA_ARGS__); \
     } while(0)
 
 #ifndef DEPRECATE
