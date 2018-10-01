@@ -34,7 +34,9 @@ tokens:
 	softhsm2-util --slot 1 --init-token --label xyzzy \
 		--so-pin 12345678 --pin 123456
 
-check: regress-softhsm
+# FIXME disable this test, it takes a very long time and should be
+# part of integration/regression testing
+# check: regress-softhsm
 
 regress:
 	@echo use target 'regress-{aepkeyper,sca6000,softhsm,etoken,opensc,ncipher,multi}'
