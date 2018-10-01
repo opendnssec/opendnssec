@@ -47,6 +47,7 @@
 #include "signertasks.h"
 #include "signercommands.h"
 #include "confparser.h"
+#include "views/httpd.h"
 
 #include <errno.h>
 #include <libxml/parser.h>
@@ -109,6 +110,16 @@ engine_start_cmdhandler(engine_type* engine)
 {
     ods_log_debug("[%s] start command handler", engine_str);
     janitor_thread_create(&engine->cmdhandler->thread_id, workerthreadclass, (janitor_runfn_t)cmdhandler_start, engine->cmdhandler);
+
+    struct http_listener_struct listenerconfig;
+    struct httpd* httpd;
+    listenerconfig.count = 0;
+    listenerconfig.interfaces = NULL;
+    /* IPv4 addesses needs be placed first */
+    http_listener_push(&listenerconfig, "0.0.0.0", AF_INET, "8000", NULL, NULL);
+    //http_listener_push(&listenerconfig, "::0", AF_INET6, "8000", NULL, NULL);
+    httpd = httpd_create(&listenerconfig, engine->zonelist);
+    httpd_start(httpd);
 }
 
 /**
