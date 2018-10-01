@@ -15,8 +15,13 @@ AM_CPPFLAGS = \
 
 check_PROGRAMS = signertest
 
+EXTRA_DIST = config.yaml opendnssec.conf \
+	signconf.xml.nsec signconf.xml.nsec3 signconf.xml.nl \
+	unsigned.zone.example unsigned.zone.simple unsigned.zone.testing \
+	zones.xml.1 zones.xml.2 zones.xml.example zones.xml.nl
+
 #signertest_SOURCES = signertest.c ../../../contrib/testing-tools/nulllibrary.c
-signertest_SOURCES = signertest.c comparezone.c
+signertest_SOURCES = signertest.c comparezone.c comparezone.h
 signertest_LDFLAGS = -rdynamic
 signertest_LDADD = \
 	../adapter/adapi.o \

@@ -60,13 +60,15 @@ ods_signerd_SOURCES=		ods-signerd.c \
 				views/iteratorgeneric.c \
 				views/table.c \
 				views/views.c \
-				views/marshalling.c \
+				views/marshalling.c views/marshalling.h \
 				views/commitlog.c \
 				views/httpd.c views/httpd.h \
 				views/ringbuf.h \
 				views/rpc.c \
 				views/zoneoutput.c \
-				views/proto.h
+				views/proto.h \
+	views/libut.h views/utarray.h views/uthash.h views/utlist.h \
+	views/utmm.h views/utringbuffer.h views/utstring.h views/utvector.h
 
 analyze:
 	cd $(srcdir) ; cppcheck --quiet --force --enable=unusedFunction \
