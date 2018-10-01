@@ -1,0 +1,76 @@
+#!/bin/sh
+
+PATH="@sbindir@:$PATH"
+PATH="@bindir@:$PATH"
+export PATH
+
+# This script uses two key pairs that have been pre-generated using the
+# following procedure.  First generate the ZSK:
+#   ldns-keygen -a RSASHA1 -b 1024 example.com
+# which produces output indicated which files have been written:
+#   Kexample.com.+005+07320
+# Again for generating the KSK:
+#   ldns-keygen -a RSASHA1 -b 1024 -k example.com
+# Producing the files with the KSK as indicated by the output
+#   Kexample.com.+005+07516
+# You can create a "gold" signed file by signing a unsigned zone:
+#   ldns-signzone unsigned.zone Kexample.com.+005+07320 Kexample.com.+005+07516
+# Then rename file file unsigned.zone.signed to signed.zone or signed.zone.gold
+# The keys still need to be imported into an softhsm token store, however to
+# import them, they need to be converted into pkcs#8 format using:
+#   softhsm2-keyconv --in Kexample.com.+005+07320.private --out Kexample.com.+005+07320
+#   softhsm2-keyconv --in Kexample.com.+005+07516.private --out Kexample.com.+005+07516
+# The two produced files are stated below as here-documents.
+#
+# To force a clean token storage execute
+#   rm -rf @prefix@/var/lib/softhsm/tokens
+
+
+if [ \! -d @prefix@/var/lib/softhsm/tokens ]; then
+  mkdir -p @prefix@/var/lib/softhsm/tokens
+fi
+softhsm2-util --show-slots | grep >/dev/null OpenDNSSEC
+if [ $? -ne 0 ]; then
+  softhsm2-util --init-token --label=OpenDNSSEC --free --pin=1234 --so-pin=1234
+  cat <<END >Kexample.com.+005+07320
+-----BEGIN PRIVATE KEY-----
+MIICdgIBADANBgkqhkiG9w0BAQEFAASCAmAwggJcAgEAAoGBAJ7HWJO0+OZ6zoU+
+jzXBsWMQYRLQJYUrjEWqtVved4xJC7w/n0e2YtDoB87Ynwh033AfepyvUAub47c0
+C7X7HQMAaduUhp5fDXj2ZMr2//cFlfbK08Wd7SzPkYykbvQMH0WNnZyoS6ongvjF
+ZOmV+ez9oCx24nkVbntvpA7aDm4RAgMBAAECgYBvO4g6MhYMoQv9HI6HQmJa3Cal
+X1xpptBmHelfqsJlbObjwk57lrIzV9ngdrEy422ExwjGq6qP923X8oYhvwHa9dAl
+lUMYm+x2T+vDxT5g00j0RNdm/dfxbuz24OOhrWL+Tl6Rs7sgWearS64B+OwxGHzN
+fzfu+j6LRPrkZ4RYYQJBANC36ke7RlhFiMK/XzpTxaD5W0G+TGCZyEYd7cN/0bpn
+GcU8eFe7QfUAQKKI2oS4lh75KHf+17FG1+KkIwvsWv8CQQDCv05Gi6glcUEYM4S2
+Gnju+RScgxiuO3FYb/mfFIAfSZHKoJKde/+zEtxBOtE/enhBHKfcELz9qV6/PM1T
+PIbvAkAMOenIX+kD/LbBKbKrWQLnphO5aytQMVHxAYnO/OrNL4Lr8dne0cJQVr5y
+hu+9/I4WrGO5e70ozkyRIypGZYcDAkAk5RlvRAYXEd3DN/9sgJdorse43x1N5PUU
+TCJ+gOPFCasVOFaOf29x/aC8uufpnsopi8RBbOphJDVPBbXgjxcBAkEAtNlNk8/W
+vRTtyztHZdYUICieIpBPq+3AMrxPI+nCeqGV0dcSMhtow/foCTtltSSCU0xHBowm
+cDvGHpStwB35kg==
+-----END PRIVATE KEY-----
+END
+  cat <<END >Kexample.com.+005+07516
+-----BEGIN PRIVATE KEY-----
+MIICdQIBADANBgkqhkiG9w0BAQEFAASCAl8wggJbAgEAAoGBALaguwyrwZMj+GfW
+6OJe9SBNZYdd13UprWRgB/PubppIQVamEnkUk2of+LuEnxLPRludyZjqxWYIFJnj
+WfTPESYGZXO1vSQl9GVwIIyVo961GJh+hn7np6N+h4jNQ+9u5W/tgIbs+fOgsddX
+Z7JrXLCpBHv5d6Dc4nsOHekBKXXrAgMBAAECgYBvjf6z3rZ/iplR1JSsshRJhv1d
+kpTpnGutxHsXJa2p0DkZFJh0HX1uddkZsgj5FGOF0vwxzDaH/KeY2Kc6QsHVzyMt
+y81Ageu0unA02zpHiut2wfHXUJLKOvCdP0rDoE++ONK5PsZ0ydqPUzSgTgWGQPJh
+OfRbEvxOpu8J0D4PAQJBAOwpnMhaH7aA2mAqmD0ww0uWhNigtDnmR5GAIPT/Ltrj
+Ckd+WT+iLyLE9WnL0UcYQ+gaorZ9RYSSRdlfdXq0CicCQQDF9+t/8CM9CF+j4ZkB
+LYNViW7Uf+0KzNoZQ2n+e/xC2Xqr1agkcW02aLsp84stcEq+GH3qO4BWUnLH5GgR
++GSdAkAuRrEsKUzRjEo+UdpnEykRpLr/X+4w8kjP4BWVLHPX/GlFPSLr7zHhVErq
+oj+t+LlFwAJmVAHNSoRZZfU1SBY9AkBRA/h4TwncvESHiJdZCAsrQib9B602Mkc+
+93u1DYBayy2MjM9WuqR7E7kknepjGgU8bkF5TghjSzJ1419Dm2dxAkAKX1MjSXb8
+24FUVV4zdMOU4Re4x3D2GtWYO4HCA5ThFms5Gv28Vw/sCNu5sgbdhYOobgtI+ffl
+XbUGcn2rmK5I
+-----END PRIVATE KEY-----
+END
+  softhsm2-util --import Kexample.com.+005+07320 --token=OpenDNSSEC --pin=1234 --label=OpenDNSSEC --id=11111111111111111111111111111111
+  softhsm2-util --import Kexample.com.+005+07516 --token=OpenDNSSEC --pin=1234 --label=OpenDNSSEC --id=22222222222222222222222222222222
+  rm Kexample.com.+005+07516 Kexample.com.+005+07320
+fi
+
+exit 0

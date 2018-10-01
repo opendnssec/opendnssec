@@ -31,7 +31,6 @@
 #include <getopt.h>
 
 #include "cmdhandler.h"
-#include "presentation.h"
 #include "daemon/enforcercommands.h"
 #include "daemon/engine.h"
 #include "file.h"

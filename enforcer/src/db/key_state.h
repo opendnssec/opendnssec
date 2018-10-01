@@ -56,7 +56,6 @@ typedef enum key_state_state {
 } key_state_state_t;
 extern const db_enum_t key_state_enum_set_state[];
 
-#include "key_state_ext.h"
 #include "key_data.h"
 
 /**

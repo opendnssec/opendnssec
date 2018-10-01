@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2017 NLNet Labs. All rights reserved.
+ * Copyright (c) 2017-2018 NLNet Labs.
+ * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -21,7 +22,6 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
 /**
@@ -60,7 +60,6 @@ engine_config(const char* cfgfile,
     int cmdline_verbosity, engineconfig_type* oldcfg)
 {
     engineconfig_type* ecfg;
-    const char* rngfile = ODS_SE_RNGDIR "/conf.rng";
     FILE* cfgfd = NULL;
 
     if (!cfgfile || cfgfile[0] == 0) {
@@ -68,13 +67,6 @@ engine_config(const char* cfgfile,
         return NULL;
     }
     ods_log_verbose("[%s] read cfgfile: %s", conf_str, cfgfile);
-
-    /* check syntax (slows down parsing configuration file) */
-    if (parse_file_check(cfgfile, rngfile) != ODS_STATUS_OK) {
-        ods_log_error("[%s] failed to read: unable to parse file %s",
-            conf_str, cfgfile);
-        return NULL;
-    }
 
     /* open cfgfile */
     cfgfd = ods_fopen(cfgfile, NULL, "r");

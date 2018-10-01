@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2009 NLNet Labs. All rights reserved.
+ * Copyright (c) 2009-2018 NLNet Labs.
+ * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -21,7 +22,6 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
 /**
@@ -46,15 +46,14 @@
 #include <stdlib.h>
 
 static const char* adapter_str = "adapter";
-static ods_status adfile_read_file(FILE* fd, zone_type* zone);
-
+static ods_status adfile_read_file(FILE* fd, zone_type* zone, names_view_type view);
 
 /**
  * Read the next RR from zone file.
  *
  */
 static ldns_rr*
-adfile_read_rr(FILE* fd, zone_type* zone, char* line, ldns_rdf** orig,
+adfile_read_rr(FILE* fd, zone_type* zone, names_view_type view, char* line, ldns_rdf** orig,
     ldns_rdf** prev, uint32_t* ttl, ldns_status* status, unsigned int* l)
 {
     ldns_rr* rr = NULL;
@@ -119,7 +118,7 @@ adfile_read_line:
                     }
                     fd_include = ods_fopen(line + offset, NULL, "r");
                     if (fd_include) {
-                        s = adfile_read_file(fd_include, zone);
+                        s = adfile_read_file(fd_include, zone, view);
                         ods_fclose(fd_include);
                     } else {
                         ods_log_error("[%s] unable to open include file %s",
@@ -192,7 +191,7 @@ adfile_read_rr:
  *
  */
 static ods_status
-adfile_read_file(FILE* fd, zone_type* zone)
+adfile_read_file(FILE* fd, zone_type* zone, names_view_type view)
 {
     ods_status result = ODS_STATUS_OK;
     ldns_rr* rr = NULL;
@@ -226,7 +225,7 @@ adfile_read_file(FILE* fd, zone_type* zone)
     /* $TTL <default ttl> */
     ttl = adapi_get_ttl(zone);
     /* read RRs */
-    while ((rr = adfile_read_rr(fd, zone, line, &orig, &prev, &ttl,
+    while ((rr = adfile_read_rr(fd, zone, view, line, &orig, &prev, &ttl,
         &status, &l)) != NULL) {
         /* check status */
         if (status != LDNS_STATUS_OK) {
@@ -246,7 +245,7 @@ adfile_read_file(FILE* fd, zone_type* zone)
               ldns_rdf2native_int32(ldns_rr_rdf(rr, SE_SOA_RDATA_SERIAL));
         }
         /* add to the database */
-        result = adapi_add_rr(zone, rr, 0);
+        result = adapi_add_rr(zone, view, rr, 0);
         if (result == ODS_STATUS_UNCHANGED) {
             ods_log_debug("[%s] skipping RR at line %i (duplicate): %s",
                 adapter_str, l, line);
@@ -260,6 +259,9 @@ adfile_read_file(FILE* fd, zone_type* zone)
             ldns_rr_free(rr);
             rr = NULL;
             break;
+        }
+        if(rr) {
+            ldns_rr_free(rr);
         }
     }
     /* and done */
@@ -278,13 +280,9 @@ adfile_read_file(FILE* fd, zone_type* zone)
     }
     /* input zone ok, set inbound serial and apply differences */
     if (result == ODS_STATUS_OK) {
-        result = namedb_examine(zone->db);
-        if (result != ODS_STATUS_OK) {
-            ods_log_error("[%s] unable to read file: zonefile contains errors",
-                adapter_str);
-            return result;
-        }
-        adapi_set_serial(zone, new_serial);
+        free(zone->inboundserial);
+        zone->inboundserial = malloc(sizeof(uint32_t));
+        *zone->inboundserial = new_serial;
     }
     return result;
 }
@@ -295,10 +293,9 @@ adfile_read_file(FILE* fd, zone_type* zone)
  *
  */
 ods_status
-adfile_read(void* zone)
+adfile_read(zone_type* adzone, names_view_type view)
 {
     FILE* fd = NULL;
-    zone_type* adzone = (zone_type*) zone;
     ods_status status = ODS_STATUS_OK;
     if (!adzone || !adzone->adinbound || !adzone->adinbound->configstr) {
         ods_log_error("[%s] unable to read file: no input adapter",
@@ -309,11 +306,8 @@ adfile_read(void* zone)
     if (!fd) {
         return ODS_STATUS_FOPEN_ERR;
     }
-    status = adfile_read_file(fd, adzone);
+    status = adfile_read_file(fd, adzone, view);
     ods_fclose(fd);
-    if (status == ODS_STATUS_OK) {
-        adapi_trans_full(zone, 0);
-    }
     return status;
 }
 
@@ -323,11 +317,10 @@ adfile_read(void* zone)
  *
  */
 ods_status
-adfile_write(void* zone, const char* filename)
+adfile_write(zone_type* adzone, names_view_type view, const char* filename)
 {
     FILE* fd = NULL;
     char* tmpname = NULL;
-    zone_type* adzone = (zone_type*) zone;
     ods_status status = ODS_STATUS_OK;
 
     /* [start] sanity parameter checking */
@@ -348,22 +341,12 @@ adfile_write(void* zone, const char* filename)
     if (!tmpname) {
         return ODS_STATUS_MALLOC_ERR;
     }
-    fd = ods_fopen(tmpname, NULL, "w");
-    if (fd) {
-        status = adapi_printzone(fd, adzone);
-        ods_fclose(fd);
-        if (status == ODS_STATUS_OK) {
-            if (adzone->adoutbound->error) {
-                ods_log_error("[%s] unable to write zone %s file %s: one or "
-                    "more RR print failed", adapter_str, adzone->name,
-                    filename);
-                /* clear error */
-                adzone->adoutbound->error = 0;
-                status = ODS_STATUS_FWRITE_ERR;
-            }
+    if(writezone(view, tmpname)) {
+        if (adzone->adoutbound->error) {
+            ods_log_error("[%s] unable to write zone %s file %s", adapter_str, adzone->name, filename);
+            adzone->adoutbound->error = 0;
+            status = ODS_STATUS_FWRITE_ERR;
         }
-    } else {
-        status = ODS_STATUS_FOPEN_ERR;
     }
 
     if (status == ODS_STATUS_OK) {

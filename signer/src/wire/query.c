@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2011 NLNet Labs. All rights reserved.
+ * Copyright (c) 2011-2018 NLNet Labs.
+ * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -21,7 +22,6 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
 /**
@@ -454,25 +454,6 @@ query_process_ixfr(query_type* q)
 
 
 /**
- * Add RRset to response.
- *
- */
-static int
-response_add_rrset(response_type* r, rrset_type* rrset,
-    ldns_pkt_section section)
-{
-    if (!r || !rrset || !section) {
-        return 0;
-    }
-    /* duplicates? */
-    r->sections[r->rrset_count] = section;
-    r->rrsets[r->rrset_count] = rrset;
-    ++r->rrset_count;
-    return 1;
-}
-
-
-/**
  * Encode RR.
  *
  */
@@ -502,27 +483,24 @@ response_encode_rr(query_type* q, ldns_rr* rr, ldns_pkt_section section)
  *
  */
 static uint16_t
-response_encode_rrset(query_type* q, rrset_type* rrset, ldns_pkt_section section)
+response_encode_rrset(query_type* q, ldns_rr_list* rrs, ldns_rr_list* rrsigs, ldns_pkt_section section)
 {
-    rrsig_type* rrsig;
-    uint16_t i = 0;
+    ldns_rr* rr;
     uint16_t added = 0;
     ods_log_assert(q);
-    ods_log_assert(rrset);
     ods_log_assert(section);
 
-    for (i = 0; i < rrset->rr_count; i++) {
-        added += response_encode_rr(q, rrset->rrs[i].rr, section);
+    while((rr = ldns_rr_list_pop_rr(rrs))) {
+        added += response_encode_rr(q, rr, section);
     }
     if (q->edns_rr && q->edns_rr->dnssec_ok) {
-        while((rrsig = collection_iterator(rrset->rrsigs))) {
-            added += response_encode_rr(q, rrsig->rr, section);
+        while((rr = ldns_rr_list_pop_rr(rrsigs))) {
+            added += response_encode_rr(q, rr, section);
         }
     }
     /* truncation? */
     return added;
 }
-
 
 /**
  * Encode response.
@@ -531,74 +509,56 @@ response_encode_rrset(query_type* q, rrset_type* rrset, ldns_pkt_section section
 static void
 response_encode(query_type* q, response_type* r)
 {
-    uint16_t counts[LDNS_SECTION_ANY];
-    ldns_pkt_section s = LDNS_SECTION_QUESTION;
-    size_t i = 0;
     ods_log_assert(q);
     ods_log_assert(r);
-    for (s = LDNS_SECTION_ANSWER; s < LDNS_SECTION_ANY; s++) {
-        counts[s] = 0;
-    }
-    for (s = LDNS_SECTION_ANSWER; s < LDNS_SECTION_ANY; s++) {
-        for (i = 0; i < r->rrset_count; i++) {
-            if (r->sections[i] == s) {
-                counts[s] += response_encode_rrset(q, r->rrsets[i], s);
-            }
-        }
-    }
-    buffer_pkt_set_ancount(q->buffer, counts[LDNS_SECTION_ANSWER]);
-    buffer_pkt_set_nscount(q->buffer, counts[LDNS_SECTION_AUTHORITY]);
-    buffer_pkt_set_arcount(q->buffer, counts[LDNS_SECTION_ADDITIONAL]);
+    uint16_t answercount;
+    uint16_t authoritycount;
+    uint16_t additionalcount;
+    answercount = response_encode_rrset(q, r->answersection, r->answersectionsigs, LDNS_SECTION_ANSWER);
+    authoritycount = response_encode_rrset(q, r->authoritysection, r->authoritysectionsigs, LDNS_SECTION_ANSWER);
+    additionalcount = response_encode_rrset(q, r->additionalsection, r->additionalsectionsigs, LDNS_SECTION_ANSWER);
+    buffer_pkt_set_ancount(q->buffer, answercount);
+    buffer_pkt_set_nscount(q->buffer, authoritycount);
+    buffer_pkt_set_arcount(q->buffer, additionalcount);
     buffer_pkt_set_qr(q->buffer);
     buffer_pkt_set_aa(q->buffer);
 }
-
 
 /**
  * Query response.
  *
  */
 static query_state
-query_response(query_type* q, ldns_rr_type qtype)
+query_response(names_view_type view, query_type* q, ldns_rr_type qtype)
 {
-    rrset_type* rrset = NULL;
+    
     response_type r;
     if (!q || !q->zone) {
         return QUERY_DISCARDED;
     }
-    r.rrset_count = 0;
-    pthread_mutex_lock(&q->zone->zone_lock);
-    rrset = zone_lookup_rrset(q->zone, q->zone->apex, qtype);
-    if (rrset) {
-        if (!response_add_rrset(&r, rrset, LDNS_SECTION_ANSWER)) {
-            pthread_mutex_unlock(&q->zone->zone_lock);
-            return query_servfail(q);
-        }
+    r.answersection = ldns_rr_list_new();
+    r.answersectionsigs = ldns_rr_list_new();
+    r.authoritysection = ldns_rr_list_new();
+    r.authoritysectionsigs = ldns_rr_list_new();
+    r.additionalsection = ldns_rr_list_new();
+    r.additionalsectionsigs =  ldns_rr_list_new();
+    names_viewlookupall(view, NULL, qtype, &r.answersection, &r.answersectionsigs);
+    if (r.answersection) {
         /* NS RRset goes into Authority Section */
-        rrset = zone_lookup_rrset(q->zone, q->zone->apex, LDNS_RR_TYPE_NS);
-        if (rrset) {
-            if (!response_add_rrset(&r, rrset, LDNS_SECTION_AUTHORITY)) {
-                pthread_mutex_unlock(&q->zone->zone_lock);
-                return query_servfail(q);
-            }
-        } /* else: not having NS RRs is not fatal  */
+        names_viewlookupall(view, NULL, LDNS_RR_TYPE_NS, &r.authoritysection, &r.authoritysectionsigs);
+        /* not having NS RRs is not fatal  */
     } else if (qtype != LDNS_RR_TYPE_SOA) {
-        rrset = zone_lookup_rrset(q->zone, q->zone->apex, LDNS_RR_TYPE_SOA);
-        if (!rrset) {
-            pthread_mutex_unlock(&q->zone->zone_lock);
-            return query_servfail(q);
-        }
-        if (!response_add_rrset(&r, rrset, LDNS_SECTION_AUTHORITY)) {
-            pthread_mutex_unlock(&q->zone->zone_lock);
-            return query_servfail(q);
-        }
+        names_viewlookupall(view, NULL, LDNS_RR_TYPE_SOA, &r.authoritysection, &r.authoritysectionsigs);
     } else {
-        pthread_mutex_unlock(&q->zone->zone_lock);
         return query_servfail(q);
     }
-    pthread_mutex_unlock(&q->zone->zone_lock);
-
     response_encode(q, &r);
+    ldns_rr_list_deep_free(r.answersection);
+    ldns_rr_list_deep_free(r.answersectionsigs);
+    ldns_rr_list_deep_free(r.authoritysection);
+    ldns_rr_list_deep_free(r.authoritysectionsigs);
+    ldns_rr_list_deep_free(r.answersection);
+    ldns_rr_list_deep_free(r.answersectionsigs);
     /* compression */
     return QUERY_PROCESSED;
 }
@@ -635,13 +595,13 @@ query_prepare(query_type* q)
 static query_state
 query_process_query(query_type* q, ldns_rr_type qtype, engine_type* engine)
 {
+    query_state returnstate;
+    names_view_type view;
     dnsout_type* dnsout = NULL;
     if (!q || !q->zone) {
         return QUERY_DISCARDED;
     }
     ods_log_assert(q->zone->name);
-    ods_log_debug("[%s] incoming query qtype=%s for zone %s", query_str,
-        rrset_type2str(qtype), q->zone->name);
     /* sanity checks */
     if (buffer_pkt_qdcount(q->buffer) != 1 || buffer_pkt_tc(q->buffer)) {
         buffer_pkt_set_flags(q->buffer, 0);
@@ -690,7 +650,10 @@ query_process_query(query_type* q, ldns_rr_type qtype, engine_type* engine)
         return soa_request(q, engine);
     }
     /* other qtypes */
-    return query_response(q, qtype);
+    view = q->zone->outputview;
+    names_viewreset(view);
+    returnstate = query_response(view, q, qtype);
+    return returnstate;
 }
 
 

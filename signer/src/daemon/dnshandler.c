@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2009 NLNet Labs. All rights reserved.
+ * Copyright (c) 2009-2018 NLNet Labs.
+ * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -21,7 +22,6 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
 /**
@@ -58,6 +58,7 @@ dnshandler_create(listener_type* interfaces)
     dnsh->socklist = NULL;
     dnsh->netio = NULL;
     dnsh->query = NULL;
+    dnsh->started = 0;
     dnsh->tcp_accept_handlers = NULL;
     /* setup */
     CHECKALLOC(dnsh->socklist = (socklist_type*) malloc(sizeof(socklist_type)));
@@ -99,7 +100,6 @@ dnshandler_start(dnshandler_type* dnshandler)
     size_t i = 0;
 
     ods_log_assert(dnshandler);
-    ods_log_assert(dnshandler->engine);
     ods_log_debug("[%s] start", dnsh_str);
 
     /* udp */
@@ -165,7 +165,7 @@ dnshandler_start(dnshandler_type* dnshandler)
 void
 dnshandler_signal(dnshandler_type* dnshandler)
 {
-    if (dnshandler && dnshandler->thread_id) {
+    if (dnshandler && dnshandler->thread_id && dnshandler->started) {
         janitor_thread_signal(dnshandler->thread_id);
     }
 }

@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2009 NLNet Labs. All rights reserved.
+ * Copyright (c) 2009-2018 NLNet Labs.
+ * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -21,7 +22,6 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
 /**
@@ -36,11 +36,11 @@
 #include "log.h"
 #include "status.h"
 #include "util.h"
-#include "signer/backup.h"
 #include "signer/zone.h"
 #include "wire/netio.h"
 #include "compat.h"
 #include "daemon/signertasks.h"
+#include "daemon/metastorage.h"
 
 #include <ldns/ldns.h>
 
@@ -98,22 +98,9 @@ zone_create(char* name, ldns_rr_class klass)
     zone->zl_status = ZONE_ZL_OK;
     zone->xfrd = NULL;
     zone->notify = NULL;
-    zone->db = namedb_create((void*)zone);
-    if (!zone->db) {
-        ods_log_error("[%s] unable to create zone %s: namedb_create() "
-            "failed", zone_str, name);
-        zone_cleanup(zone);
-        return NULL;
-    }
-    zone->ixfr = ixfr_create();
-    if (!zone->ixfr) {
-        ods_log_error("[%s] unable to create zone %s: ixfr_create() "
-            "failed", zone_str, name);
-        zone_cleanup(zone);
-        return NULL;
-    }
     zone->zoneconfigvalid = 0;
     zone->signconf = signconf_create();
+    zone->operatingconf = NULL;
     if (!zone->signconf) {
         ods_log_error("[%s] unable to create zone %s: signconf_create() "
             "failed", zone_str, name);
@@ -121,7 +108,6 @@ zone_create(char* name, ldns_rr_class klass)
         return NULL;
     }
     zone->stats = stats_create();
-    zone->rrstore = rrset_store_initialize();
     return zone;
 }
 
@@ -183,16 +169,15 @@ zone_load_signconf(zone_type* zone, signconf_type** new_signconf)
  *
  */
 ods_status
-zone_publish_dnskeys(zone_type* zone, int skip_hsm_access)
+zone_publish_dnskeys(zone_type* zone, names_view_type view, int skip_hsm_access)
 {
     hsm_ctx_t* ctx = NULL;
     uint32_t ttl = 0;
     unsigned int i;
     ods_status status = ODS_STATUS_OK;
-    rrset_type* rrset = NULL;
-    rr_type* dnskey = NULL;
+    ldns_rr* dnskey = NULL;
 
-    if (!zone || !zone->db || !zone->signconf || !zone->signconf->keys) {
+    if (!zone || !zone->signconf || !zone->signconf->keys) {
         return ODS_STATUS_ASSERT_ERR;
     }
     ods_log_assert(zone->name);
@@ -243,18 +228,15 @@ zone_publish_dnskeys(zone_type* zone, int skip_hsm_access)
             ods_log_assert(zone->signconf->keys->keys[i].dnskey);
             ldns_rr_set_ttl(zone->signconf->keys->keys[i].dnskey, ttl);
             ldns_rr_set_class(zone->signconf->keys->keys[i].dnskey, zone->klass);
-            status = zone_add_rr(zone, zone->signconf->keys->keys[i].dnskey, 0);
+            status = zone_add_rr(zone, view, zone->signconf->keys->keys[i].dnskey, 0);
             if (status == ODS_STATUS_UNCHANGED) {
                 /* rr already exists, adjust pointer */
-                rrset = zone_lookup_rrset(zone, zone->apex, LDNS_RR_TYPE_DNSKEY);
-                ods_log_assert(rrset);
-                dnskey = rrset_lookup_rr(rrset,
-                    zone->signconf->keys->keys[i].dnskey);
+                names_viewlookupone(view, NULL, LDNS_RR_TYPE_DNSKEY, zone->signconf->keys->keys[i].dnskey, &dnskey);
                 ods_log_assert(dnskey);
-                if (dnskey->rr != zone->signconf->keys->keys[i].dnskey) {
+                if (dnskey != zone->signconf->keys->keys[i].dnskey) {
                     ldns_rr_free(zone->signconf->keys->keys[i].dnskey);
+                    zone->signconf->keys->keys[i].dnskey = dnskey;
                 }
-                zone->signconf->keys->keys[i].dnskey = dnskey->rr;
                 status = ODS_STATUS_OK;
             } else if (status != ODS_STATUS_OK) {
                 ods_log_error("[%s] unable to publish dnskeys for zone %s: "
@@ -272,46 +254,16 @@ zone_publish_dnskeys(zone_type* zone, int skip_hsm_access)
 
 
 /**
- * Unlink DNSKEY RRs.
- *
- */
-void
-zone_rollback_dnskeys(zone_type* zone)
-{
-    uint16_t i = 0;
-    rrset_type* rrset = NULL;
-    rr_type* dnskey = NULL;
-    if (!zone || !zone->signconf || !zone->signconf->keys) {
-        return;
-    }
-    rrset = zone_lookup_rrset(zone, zone->apex, LDNS_RR_TYPE_DNSKEY);
-    /* unlink dnskey rrs */
-    for (i=0; i < zone->signconf->keys->count; i++) {
-        if (rrset && zone->signconf->keys->keys[i].dnskey) {
-            dnskey = rrset_lookup_rr(rrset,
-                zone->signconf->keys->keys[i].dnskey);
-            if (dnskey && !dnskey->exists &&
-                dnskey->rr == zone->signconf->keys->keys[i].dnskey) {
-                zone->signconf->keys->keys[i].dnskey = NULL;
-            }
-        }
-    }
-}
-
-
-/**
  * Publish the NSEC3 parameters as indicated by the signer configuration.
  *
  */
 ods_status
-zone_publish_nsec3param(zone_type* zone)
+zone_publish_nsec3param(zone_type* zone, names_view_type view)
 {
-    rrset_type* rrset = NULL;
-    rr_type* n3prr = NULL;
     ldns_rr* rr = NULL;
     ods_status status = ODS_STATUS_OK;
 
-    if (!zone || !zone->name || !zone->db || !zone->signconf) {
+    if (!zone || !zone->name || !zone->signconf) {
         return ODS_STATUS_ASSERT_ERR;
     }
     if (!zone->signconf->nsec3params) {
@@ -347,10 +299,10 @@ zone_publish_nsec3param(zone_type* zone)
     }
 
     /* Delete all nsec3param rrs. */
-    (void) zone_del_nsec3params(zone);
+    zone_del_nsec3params(zone, view);
 
     ods_log_assert(zone->signconf->nsec3params->rr);
-    status = zone_add_rr(zone, ldns_rr_clone(zone->signconf->nsec3params->rr), 0);
+    status = zone_add_rr(zone, view, ldns_rr_clone(zone->signconf->nsec3params->rr), 0);
     if (status == ODS_STATUS_UNCHANGED) {
         status = ODS_STATUS_OK;
     } else if (status != ODS_STATUS_OK) {
@@ -359,30 +311,6 @@ zone_publish_nsec3param(zone_type* zone)
             zone->name, ods_status2str(status));
     }
     return status;
-}
-
-
-/**
- * Unlink NSEC3PARAM RR.
- *
- */
-void
-zone_rollback_nsec3param(zone_type* zone)
-{
-    rrset_type* rrset = NULL;
-    rr_type* n3prr = NULL;
-
-    if (!zone || !zone->signconf || !zone->signconf->nsec3params) {
-        return;
-    }
-    rrset = zone_lookup_rrset(zone, zone->apex, LDNS_RR_TYPE_NSEC3PARAMS);
-    if (rrset && zone->signconf->nsec3params->rr) {
-        n3prr = rrset_lookup_rr(rrset, zone->signconf->nsec3params->rr);
-        if (n3prr && !n3prr->exists &&
-            n3prr->rr == zone->signconf->nsec3params->rr) {
-            zone->signconf->nsec3params->rr = NULL;
-        }
-    }
 }
 
 
@@ -397,7 +325,7 @@ zone_prepare_keys(zone_type* zone)
     uint16_t i = 0;
     ods_status status = ODS_STATUS_OK;
 
-    if (!zone || !zone->db || !zone->signconf || !zone->signconf->keys) {
+    if (!zone || !zone->signconf || !zone->signconf->keys) {
         return ODS_STATUS_ASSERT_ERR;
     }
     ods_log_assert(zone->name);
@@ -428,265 +356,45 @@ zone_prepare_keys(zone_type* zone)
 }
 
 
-/**
- * Update serial.
- *
- */
 ods_status
-zone_update_serial(zone_type* zone)
+zone_add_rr(zone_type* zone, names_view_type view, ldns_rr* rr, int do_stats)
 {
-    ods_status status = ODS_STATUS_OK;
-    rrset_type* rrset = NULL;
-    rr_type* soa = NULL;
-    ldns_rr* rr = NULL;
-    ldns_rdf* soa_rdata = NULL;
-
-    ods_log_assert(zone);
-    ods_log_assert(zone->apex);
-    ods_log_assert(zone->name);
-    ods_log_assert(zone->db);
-    ods_log_assert(zone->signconf);
-
-    if (zone->db->serial_updated) {
-        /* already done, unmark and return ok */
-        ods_log_debug("[%s] zone %s soa serial already up to date",
-            zone_str, zone->name);
-        zone->db->serial_updated = 0;
-        return ODS_STATUS_OK;
-    }
-    rrset = zone_lookup_rrset(zone, zone->apex, LDNS_RR_TYPE_SOA);
-    if (!rrset || !rrset->rrs || !rrset->rrs[0].rr) {
-        ods_log_error("[%s] unable to update zone %s soa serial: failed to "
-            "find soa rrset", zone_str, zone->name);
-        return ODS_STATUS_ERR;
-    }
-    ods_log_assert(rrset);
-    ods_log_assert(rrset->rrs);
-    ods_log_assert(rrset->rrs[0].rr);
-    rr = ldns_rr_clone(rrset->rrs[0].rr);
-    if (!rr) {
-        ods_log_error("[%s] unable to update zone %s soa serial: failed to "
-            "clone soa rr", zone_str, zone->name);
-        return ODS_STATUS_ERR;
-    }
-    status = namedb_update_serial(zone->db, zone->name,
-        zone->signconf->soa_serial, zone->db->inbserial);
+    recordset_type record;
+    ods_status status;
+    char* name;
+    name = ldns_rdf2str(ldns_rr_owner(rr));
+    record = names_place(view, name);
+    free(name);
+    /* FIXME We only ought to entize the domain when newly added, but cannot detect this properly */
+    status = namedb_domain_entize(view, record, ldns_rr_owner(rr), zone->apex);
     if (status != ODS_STATUS_OK) {
-        ods_log_error("[%s] unable to update zone %s soa serial: %s",
-            zone_str, zone->name, ods_status2str(status));
-        if (status == ODS_STATUS_CONFLICT_ERR) {
-            ods_log_error("[%s] If this is the result of a key rollover, "
-                "please increment the serial in the unsigned zone %s",
-                zone_str, zone->name);
-        }
-        ldns_rr_free(rr);
-        return status;
-    }
-    ods_log_verbose("[%s] zone %s set soa serial to %u", zone_str,
-        zone->name, zone->db->intserial);
-    soa_rdata = ldns_rr_set_rdf(rr,
-        ldns_native2rdf_int32(LDNS_RDF_TYPE_INT32,
-        zone->db->intserial), SE_SOA_RDATA_SERIAL);
-    if (soa_rdata) {
-        ldns_rdf_deep_free(soa_rdata);
-        soa_rdata = NULL;
-    } else {
-        ods_log_error("[%s] unable to update zone %s soa serial: failed to "
-            "replace soa serial rdata", zone_str, zone->name);
-        ldns_rr_free(rr);
+        ods_log_error("[%s] unable to add RR to zone %s: failed to entize domain", zone_str, zone->name);
         return ODS_STATUS_ERR;
     }
-    soa = rrset_add_rr(rrset, rr);
-    ods_log_assert(soa);
-    rrset_diff(rrset, 0, 0);
-    zone->db->serial_updated = 0;
-    return ODS_STATUS_OK;
+    /* FIXME we should check the TTL of the rr conforms to the other rr already present */
+    if(!names_recordhasdata(record, ldns_rr_get_type(rr), rr, 0)) {
+        names_recordadddata(record, rr);
+    }
+    return status;
 }
 
-
-/**
- * Lookup RRset.
- *
- */
-rrset_type*
-zone_lookup_rrset(zone_type* zone, ldns_rdf* owner, ldns_rr_type type)
-{
-    domain_type* domain = NULL;
-    if (!zone || !owner || !type) {
-        return NULL;
-    }
-    domain = namedb_lookup_domain(zone->db, owner);
-    if (!domain) {
-        return NULL;
-    }
-    return domain_lookup_rrset(domain, type);
-}
-
-
-/**
- * Add RR.
- *
- */
 ods_status
-zone_add_rr(zone_type* zone, ldns_rr* rr, int do_stats)
+zone_del_rr(zone_type* zone, names_view_type view, ldns_rr* rr, int do_stats)
 {
-    domain_type* domain = NULL;
-    rrset_type* rrset = NULL;
-    rr_type* record = NULL;
-    ods_status status = ODS_STATUS_OK;
-
-    ods_log_assert(rr);
-    ods_log_assert(zone);
-    ods_log_assert(zone->name);
-    ods_log_assert(zone->db);
-    ods_log_assert(zone->signconf);
-    /* If we already have this RR, return ODS_STATUS_UNCHANGED */
-    domain = namedb_lookup_domain(zone->db, ldns_rr_owner(rr));
-    if (!domain) {
-        domain = namedb_add_domain(zone->db, ldns_rr_owner(rr));
-        if (!domain) {
-            ods_log_error("[%s] unable to add RR to zone %s: "
-                "failed to add domain", zone_str, zone->name);
-            return ODS_STATUS_ERR;
-        }
-        if (ldns_dname_compare(domain->dname, zone->apex) == 0) {
-            domain->is_apex = 1;
-        } else {
-            status = namedb_domain_entize(zone->db, domain, zone->apex);
-            if (status != ODS_STATUS_OK) {
-                ods_log_error("[%s] unable to add RR to zone %s: "
-                    "failed to entize domain", zone_str, zone->name);
-                return ODS_STATUS_ERR;
-            }
+    recordset_type record;
+    const char* name;
+    name = ldns_rdf2str(ldns_rr_owner(rr));
+    record = names_take(view, 0, name);
+    free((void*)name);
+    if(record) {
+        if(names_recordhasdata(record, ldns_rr_get_type(rr), rr, 0)) {
+            names_recorddeldata(record, ldns_rr_get_type(rr), rr);
         }
     }
-    rrset = domain_lookup_rrset(domain, ldns_rr_get_type(rr));
-    if (!rrset) {
-        rrset = rrset_create(domain->zone, ldns_rr_get_type(rr));
-        if (!rrset) {
-            ods_log_error("[%s] unable to add RR to zone %s: "
-                "failed to add RRset", zone_str, zone->name);
-            return ODS_STATUS_ERR;
-        }
-        domain_add_rrset(domain, rrset);
-    }
-    record = rrset_lookup_rr(rrset, rr);
-
-    uint32_t ttl_rr = ldns_rr_ttl(rr);
-    uint32_t ttl_rrset = rrset_lookup_ttl(rrset, ttl_rr);
-
-    if (record && ttl_rr == ttl_rrset && ttl_rr == ldns_rr_ttl(record->rr)) {
-        record->is_added = 1; /* already exists, just mark added */
-        record->is_removed = 0; /* unset is_removed */
-        return ODS_STATUS_UNCHANGED;
-    } else {
-        record = rrset_add_rr(rrset, rr);
-        ods_log_assert(record);
-        ods_log_assert(record->rr);
-        ods_log_assert(record->is_added);
-        if (ttl_rr != ttl_rrset) {
-            char *str = ldns_rr2str(rr);
-            str[(strlen(str)) - 1] = '\0';
-            for (int i = 0; i < strlen(str); i++) {
-                if (str[i] == '\t') {
-                    str[i] = ' ';
-                }
-            }
-            ods_log_error("In zone file %s: TTL for the record '%s' (%d) not"
-                " equal to recordset TTL (%d)", zone->name, str, ttl_rr, ttl_rrset);
-            LDNS_FREE(str);
-        }
-    }
-    /* update stats */
-    if (do_stats && zone->stats) {
-        zone->stats->sort_count += 1;
-    }
-    return ODS_STATUS_OK;
+    return 0;
 }
 
 
-/**
- * Delete RR.
- *
- */
-ods_status
-zone_del_rr(zone_type* zone, ldns_rr* rr, int do_stats)
-{
-    domain_type* domain = NULL;
-    rrset_type* rrset = NULL;
-    rr_type* record = NULL;
-    ods_log_assert(rr);
-    ods_log_assert(zone);
-    ods_log_assert(zone->name);
-    ods_log_assert(zone->db);
-    ods_log_assert(zone->signconf);
-    domain = namedb_lookup_domain(zone->db, ldns_rr_owner(rr));
-    if (!domain) {
-        ods_log_warning("[%s] unable to delete RR from zone %s: "
-            "domain not found", zone_str, zone->name);
-        return ODS_STATUS_UNCHANGED;
-    }
-    rrset = domain_lookup_rrset(domain, ldns_rr_get_type(rr));
-    if (!rrset) {
-        ods_log_warning("[%s] unable to delete RR from zone %s: "
-            "RRset not found", zone_str, zone->name);
-        return ODS_STATUS_UNCHANGED;
-    }
-    record = rrset_lookup_rr(rrset, rr);
-    if (!record) {
-        ods_log_error("[%s] unable to delete RR from zone %s: "
-            "RR not found", zone_str, zone->name);
-        return ODS_STATUS_UNCHANGED;
-    }
-
-    record->is_removed = 1;
-    record->is_added = 0; /* unset is_added */
-    /* update stats */
-    if (do_stats && zone->stats) {
-        zone->stats->sort_count -= 1;
-    }
-    return ODS_STATUS_OK;
-}
-
-/**
- * Delete NSEC3PARAM RRs.
- *
- * Marks all NSEC3PARAM records as removed.
- */
-ods_status
-zone_del_nsec3params(zone_type* zone)
-{
-    domain_type* domain = NULL;
-    rrset_type* rrset = NULL;
-    int i;
-
-    ods_log_assert(zone);
-    ods_log_assert(zone->name);
-    ods_log_assert(zone->db);
-
-    domain = namedb_lookup_domain(zone->db, zone->apex);
-    if (!domain) {
-        ods_log_verbose("[%s] unable to delete RR from zone %s: "
-            "domain not found", zone_str, zone->name);
-        return ODS_STATUS_UNCHANGED;
-    }
-
-    rrset = domain_lookup_rrset(domain, LDNS_RR_TYPE_NSEC3PARAMS);
-    if (!rrset) {
-        ods_log_verbose("[%s] NSEC3PARAM in zone %s not found: "
-            "skipping delete", zone_str, zone->name);
-        return ODS_STATUS_UNCHANGED;
-    }
-
-    /* We don't actually delete the record as we still need the
-     * information in the IXFR. Just set it as removed. The code
-     * inserting the new record may flip this flag when the record
-     * hasn't changed. */
-    for (i=0; i < rrset->rr_count; i++) {
-        rrset->rrs[i].is_removed = 1;
-    }
-    return ODS_STATUS_OK;
-}
 
 /**
  * Merge zones.
@@ -763,343 +471,62 @@ zone_cleanup(zone_type* zone)
     if (!zone) {
         return;
     }
-pthread_mutex_lock(&zone->zone_lock);
+    pthread_mutex_lock(&zone->zone_lock);
     ldns_rdf_deep_free(zone->apex);
     adapter_cleanup(zone->adinbound);
     adapter_cleanup(zone->adoutbound);
-    namedb_cleanup(zone->db);
-    ixfr_cleanup(zone->ixfr);
     xfrd_cleanup(zone->xfrd, 1);
     notify_cleanup(zone->notify);
     signconf_cleanup(zone->signconf);
-pthread_mutex_unlock(&zone->zone_lock);
+    pthread_mutex_unlock(&zone->zone_lock);
     stats_cleanup(zone->stats);
     free(zone->notify_command);
     free(zone->notify_args);
     free((void*)zone->policy_name);
     free((void*)zone->signconf_filename);
     free((void*)zone->name);
-    collection_class_destroy(&zone->rrstore);
+    free((void*)zone->nextserial);
+    free((void*)zone->inboundserial);
+    free((void*)zone->outboundserial);
+    free((void*)zone->operatingconf);
+    zone->nextserial = NULL;
+    zone->inboundserial = NULL;
+    zone->outboundserial = NULL;
     pthread_mutex_destroy(&zone->xfr_lock);
     pthread_mutex_destroy(&zone->zone_lock);
     free(zone);
 }
 
 
-/**
- * Recover zone from backup.
- *
- */
-ods_status
-zone_recover2(engine_type* engine, zone_type* zone)
+void
+zone_start(zone_type* zone)
 {
-    char* filename = NULL;
-    FILE* fd = NULL;
-    const char* token = NULL;
-    time_t when = 0;
-    ods_status status = ODS_STATUS_OK;
-    /* zone part */
-    int klass = 0;
-    uint32_t inbound = 0, internal = 0, outbound = 0;
-    /* signconf part */
-    time_t lastmod = 0;
-    /* nsec3params part */
-    const char* salt = NULL;
+    char* filename;
+    char* zoneapex;
+    uint32_t serial;
+    ldns_rr* rr;
 
-    ods_log_assert(zone);
-    ods_log_assert(zone->name);
-    ods_log_assert(zone->signconf);
-    ods_log_assert(zone->db);
-
-    filename = ods_build_path(zone->name, ".backup2", 0, 1);
-    if (!filename) {
-        return ODS_STATUS_MALLOC_ERR;
-    }
-    fd = ods_fopen(filename, NULL, "r");
-    if (fd) {
-        /* start recovery */
-        if (!backup_read_check_str(fd, ODS_SE_FILE_MAGIC_V3)) {
-            ods_log_error("[%s] corrupted backup file zone %s: read magic "
-                "error", zone_str, zone->name);
-            goto recover_error2;
-        }
-        if (!backup_read_check_str(fd, ";;Time:") |
-            !backup_read_time_t(fd, &when)) {
-            ods_log_error("[%s] corrupted backup file zone %s: read time "
-                "error", zone_str, zone->name);
-            goto recover_error2;
-        }
-        /* zone stuff */
-        if (!backup_read_check_str(fd, ";;Zone:") |
-            !backup_read_check_str(fd, "name") |
-            !backup_read_check_str(fd, zone->name)) {
-            ods_log_error("[%s] corrupted backup file zone %s: read name "
-                "error", zone_str, zone->name);
-            goto recover_error2;
-        }
-        if (!backup_read_check_str(fd, "class") |
-            !backup_read_int(fd, &klass)) {
-            ods_log_error("[%s] corrupted backup file zone %s: read class "
-                "error", zone_str, zone->name);
-            goto recover_error2;
-        }
-        if (!backup_read_check_str(fd, "inbound") |
-            !backup_read_uint32_t(fd, &inbound) |
-            !backup_read_check_str(fd, "internal") |
-            !backup_read_uint32_t(fd, &internal) |
-            !backup_read_check_str(fd, "outbound") |
-            !backup_read_uint32_t(fd, &outbound)) {
-            ods_log_error("[%s] corrupted backup file zone %s: read serial "
-                "error", zone_str, zone->name);
-            goto recover_error2;
-        }
-        zone->klass = (ldns_rr_class) klass;
-        zone->db->inbserial = inbound;
-        zone->db->intserial = internal;
-        zone->db->outserial = outbound;
-        /* signconf part */
-        if (!backup_read_check_str(fd, ";;Signconf:") |
-            !backup_read_check_str(fd, "lastmod") |
-            !backup_read_time_t(fd, &lastmod) |
-            !backup_read_check_str(fd, "maxzonettl") |
-            !backup_read_check_str(fd, "0") |
-            !backup_read_check_str(fd, "resign") |
-            !backup_read_duration(fd, &zone->signconf->sig_resign_interval) |
-            !backup_read_check_str(fd, "refresh") |
-            !backup_read_duration(fd, &zone->signconf->sig_refresh_interval) |
-            !backup_read_check_str(fd, "valid") |
-            !backup_read_duration(fd, &zone->signconf->sig_validity_default) |
-            !backup_read_check_str(fd, "denial") |
-            !backup_read_duration(fd,&zone->signconf->sig_validity_denial) |
-            !backup_read_check_str(fd, "keyset") |
-            !backup_read_duration(fd,&zone->signconf->sig_validity_keyset) |
-            !backup_read_check_str(fd, "jitter") |
-            !backup_read_duration(fd, &zone->signconf->sig_jitter) |
-            !backup_read_check_str(fd, "offset") |
-            !backup_read_duration(fd, &zone->signconf->sig_inception_offset) |
-            !backup_read_check_str(fd, "nsec") |
-            !backup_read_rr_type(fd, &zone->signconf->nsec_type) |
-            !backup_read_check_str(fd, "dnskeyttl") |
-            !backup_read_duration(fd, &zone->signconf->dnskey_ttl) |
-            !backup_read_check_str(fd, "soattl") |
-            !backup_read_duration(fd, &zone->signconf->soa_ttl) |
-            !backup_read_check_str(fd, "soamin") |
-            !backup_read_duration(fd, &zone->signconf->soa_min) |
-            !backup_read_check_str(fd, "serial") |
-            !backup_read_str(fd, &zone->signconf->soa_serial)) {
-            ods_log_error("[%s] corrupted backup file zone %s: read signconf "
-                "error", zone_str, zone->name);
-            goto recover_error2;
-        }
-        /* nsec3params part */
-        if (zone->signconf->nsec_type == LDNS_RR_TYPE_NSEC3) {
-            if (!backup_read_check_str(fd, ";;Nsec3parameters:") |
-                !backup_read_check_str(fd, "salt") |
-                !backup_read_str(fd, &salt) |
-                !backup_read_check_str(fd, "algorithm") |
-                !backup_read_uint32_t(fd, &zone->signconf->nsec3_algo) |
-                !backup_read_check_str(fd, "optout") |
-                !backup_read_int(fd, &zone->signconf->nsec3_optout) |
-                !backup_read_check_str(fd, "iterations") |
-                !backup_read_uint32_t(fd, &zone->signconf->nsec3_iterations)) {
-                ods_log_error("[%s] corrupted backup file zone %s: read "
-                    "nsec3parameters error", zone_str, zone->name);
-                goto recover_error2;
-            }
-            zone->signconf->nsec3_salt = strdup(salt);
-            free((void*) salt);
-            salt = NULL;
-            zone->signconf->nsec3params = nsec3params_create(
-                zone->signconf,
-                (uint8_t) zone->signconf->nsec3_algo,
-                (uint8_t) zone->signconf->nsec3_optout,
-                (uint16_t) zone->signconf->nsec3_iterations,
-                zone->signconf->nsec3_salt);
-            if (!zone->signconf->nsec3params) {
-                ods_log_error("[%s] corrupted backup file zone %s: unable to "
-                    "create nsec3param", zone_str, zone->name);
-                goto recover_error2;
-            }
-        }
-        zone->signconf->last_modified = lastmod;
-        zone->zoneconfigvalid = 1;
-        zone->default_ttl = (uint32_t) duration2time(zone->signconf->soa_min);
-        /* keys part */
-        zone->signconf->keys = keylist_create((void*) zone->signconf);
-        while (backup_read_str(fd, &token)) {
-            if (ods_strcmp(token, ";;Key:") == 0) {
-                if (!key_recover2(fd, zone->signconf->keys)) {
-                    ods_log_error("[%s] corrupted backup file zone %s: read "
-                        "key error", zone_str, zone->name);
-                    goto recover_error2;
-                }
-            } else if (ods_strcmp(token, ";;") == 0) {
-                /* keylist done */
-                free((void*) token);
-                token = NULL;
-                break;
-            } else {
-                /* keylist corrupted */
-                goto recover_error2;
-            }
-            free((void*) token);
-            token = NULL;
-        }
-        /* publish dnskeys */
-        status = zone_publish_dnskeys(zone, 1);
-        if (status != ODS_STATUS_OK) {
-            ods_log_error("[%s] corrupted backup file zone %s: unable to "
-                "publish dnskeys (%s)", zone_str, zone->name,
-                ods_status2str(status));
-            goto recover_error2;
-        }
-        /* publish nsec3param */
-        if (!zone->signconf->passthrough)
-            status = zone_publish_nsec3param(zone);
-        if (status != ODS_STATUS_OK) {
-            ods_log_error("[%s] corrupted backup file zone %s: unable to "
-                "publish nsec3param (%s)", zone_str, zone->name,
-                ods_status2str(status));
-            goto recover_error2;
-        }
-        /* publish other records */
-        status = backup_read_namedb(fd, zone);
-        if (status != ODS_STATUS_OK) {
-            ods_log_error("[%s] corrupted backup file zone %s: unable to "
-                "read resource records (%s)", zone_str, zone->name,
-                ods_status2str(status));
-            goto recover_error2;
-        }
-        /* task */
-        schedule_scheduletask(engine->taskq, TASK_SIGN, zone->name, zone, &zone->zone_lock, schedule_PROMPTLY);
-        free((void*)filename);
-        ods_fclose(fd);
-        zone->db->is_initialized = 1;
-        zone->db->have_serial = 1;
-        /* journal */
-        filename = ods_build_path(zone->name, ".ixfr", 0, 1);
-        if (filename) {
-            fd = ods_fopen(filename, NULL, "r");
-        }
-        if (fd) {
-            status = backup_read_ixfr(fd, zone);
-            if (status != ODS_STATUS_OK) {
-                ods_log_warning("[%s] corrupted journal file zone %s, "
-                    "skipping (%s)", zone_str, zone->name,
-                    ods_status2str(status));
-                (void)unlink(filename);
-                ixfr_cleanup(zone->ixfr);
-                zone->ixfr = ixfr_create();
-            }
-        }
-        pthread_mutex_lock(&zone->ixfr->ixfr_lock);
-        ixfr_purge(zone->ixfr, zone->name);
-        pthread_mutex_unlock(&zone->ixfr->ixfr_lock);
-
-        /* all ok */
-        free((void*)filename);
-        if (fd) {
-            ods_fclose(fd);
-        }
-        if (zone->stats) {
-            pthread_mutex_lock(&zone->stats->stats_lock);
-            stats_clear(zone->stats);
-            pthread_mutex_unlock(&zone->stats->stats_lock);
-        }
-        return ODS_STATUS_OK;
-    }
+    zoneapex = ldns_rdf2str(zone->apex);
+    metastorageget(zoneapex,zone);
+    zone->baseview = names_viewcreate(NULL, names_view_BASE[0], &names_view_BASE[1]);
+    names_viewconfig(zone->baseview, &(zone->signconf));
+    filename = ods_build_path(zone->name, ".state", 0, 1);
+    names_viewrestore(zone->baseview, zoneapex, -1, filename);
     free(filename);
-    return ODS_STATUS_UNCHANGED;
+    free(zoneapex);
+    zone->inputview = names_viewcreate(zone->baseview,   names_view_INPUT[0],   &names_view_INPUT[1]);
+    zone->prepareview = names_viewcreate(zone->baseview, names_view_PREPARE[0], &names_view_PREPARE[1]);
+    zone->neighview = names_viewcreate(zone->baseview,   names_view_NEIGHB[0],  &names_view_NEIGHB[1]);
+    zone->signview = names_viewcreate(zone->baseview,    names_view_SIGN[0],    &names_view_SIGN[1]);
+    zone->outputview = names_viewcreate(zone->baseview,  names_view_OUTPUT[0],  &names_view_OUTPUT[1]);
+    zone->changesview = names_viewcreate(zone->baseview, names_view_CHANGES[0], &names_view_CHANGES[1]);
 
-recover_error2:
-    free((void*)filename);
-    ods_fclose(fd);
-    /* signconf cleanup */
-    free((void*)salt);
-    salt = NULL;
-    signconf_cleanup(zone->signconf);
-    zone->signconf = signconf_create();
-    ods_log_assert(zone->signconf);
-    /* namedb cleanup */
-    namedb_cleanup(zone->db);
-    zone->db = namedb_create((void*)zone);
-    ods_log_assert(zone->db);
-    /* stats reset */
-    if (zone->stats) {
-       pthread_mutex_lock(&zone->stats->stats_lock);
-       stats_clear(zone->stats);
-       pthread_mutex_unlock(&zone->stats->stats_lock);
+    names_viewlookupone(zone->baseview, zone->apex, LDNS_RR_TYPE_SOA, NULL, &rr);
+    if(rr) {
+        serial = ldns_rdf2native_int32(ldns_rr_rdf(rr, SE_SOA_RDATA_SERIAL));
+        if(zone->inboundserial)
+            free(zone->inboundserial);
+        zone->inboundserial = malloc(sizeof(uint32_t));
+        *zone->inboundserial = serial;
     }
-    return ODS_STATUS_ERR;
-}
-
-
-/**
- * Backup zone.
- *
- */
-ods_status
-zone_backup2(zone_type* zone, time_t nextResign)
-{
-    char* filename = NULL;
-    char* tmpfile = NULL;
-    FILE* fd = NULL;
-    int ret = 0;
-    ods_status status = ODS_STATUS_OK;
-
-    ods_log_assert(zone);
-    ods_log_assert(zone->name);
-    ods_log_assert(zone->db);
-    ods_log_assert(zone->signconf);
-
-    tmpfile = ods_build_path(zone->name, ".backup2.tmp", 0, 1);
-    filename = ods_build_path(zone->name, ".backup2", 0, 1);
-    if (!tmpfile || !filename) {
-        free(tmpfile);
-        free(filename);
-        return ODS_STATUS_MALLOC_ERR;
-    }
-    fd = ods_fopen(tmpfile, NULL, "w");
-    if (fd) {
-        fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC_V3);
-        fprintf(fd, ";;Time: %u\n", (unsigned) nextResign);
-        /** Backup zone */
-        fprintf(fd, ";;Zone: name %s class %i inbound %u internal %u "
-            "outbound %u\n", zone->name, (int) zone->klass,
-            (unsigned) zone->db->inbserial,
-            (unsigned) zone->db->intserial,
-            (unsigned) zone->db->outserial);
-        /** Backup signconf */
-        signconf_backup(fd, zone->signconf, ODS_SE_FILE_MAGIC_V3);
-        /** Backup NSEC3 parameters */
-        if (zone->signconf->nsec3params) {
-            nsec3params_backup(fd,
-                zone->signconf->nsec3_algo,
-                zone->signconf->nsec3_optout,
-                zone->signconf->nsec3_iterations,
-                zone->signconf->nsec3_salt,
-                zone->signconf->nsec3params->rr,
-                ODS_SE_FILE_MAGIC_V3);
-        }
-        /** Backup keylist */
-        keylist_backup(fd, zone->signconf->keys, ODS_SE_FILE_MAGIC_V3);
-        fprintf(fd, ";;\n");
-        /** Backup domains and stuff */
-        namedb_backup2(fd, zone->db);
-        /** Done */
-        fprintf(fd, "%s\n", ODS_SE_FILE_MAGIC_V3);
-        ods_fclose(fd);
-        ret = rename(tmpfile, filename);
-        if (ret != 0) {
-            ods_log_error("[%s] unable to rename zone %s backup %s to %s: %s",
-                zone_str, zone->name, tmpfile, filename, strerror(errno));
-            status = ODS_STATUS_RENAME_ERR;
-        }
-    } else {
-        status = ODS_STATUS_FOPEN_ERR;
-    }
-
-    free((void*) tmpfile);
-    free((void*) filename);
-    return status;
 }

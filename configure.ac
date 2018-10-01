@@ -155,6 +155,8 @@ ACX_DLOPEN
 AC_DEFINE_UNQUOTED([HSM_DEFAULT_CONFIG],["$OPENDNSSEC_CONFIG_FILE"],[Default configuration file.])
 
 # enforcer
+ACX_ENFORCER_DATABASE
+ACX_LIBREADLINE
 AC_ARG_ENABLE(enforcer,
 	AC_HELP_STRING([--disable-enforcer],
 		[Disable enforcer build (default enabled)]),
@@ -162,8 +164,6 @@ AC_ARG_ENABLE(enforcer,
 		[enable_enforcer="yes"])
 if test "x${enable_enforcer}" = "xyes"; then
 	AC_DEFINE_UNQUOTED(SIGNER_CLI_UPDATE, "$OPENDNSSEC_SIGNER_CLI update", [Path to the OpenDNSSEC signer engine cli])
-	ACX_ENFORCER_DATABASE
-	ACX_LIBREADLINE
 fi
 AM_CONDITIONAL([ENABLE_ENFORCER], [test "${enable_enforcer}" = "yes"])
 
@@ -221,6 +221,10 @@ AC_CHECK_FUNC(backtrace, [AC_DEFINE([HAVE_BACKTRACE], [1], [Define if backtrace 
 AC_CHECK_LIB(backtrace, backtrace_full, [AC_DEFINE([HAVE_BACKTRACE_FULL], [1], [Define if backtrace_full supported]) LIBS="$LIBS -lbacktrace"])
 AC_CHECK_LIB(unwind, unw_backtrace, [AC_CHECK_HEADERS(libunwind.h, [AC_DEFINE([HAVE_LIBUNWIND], [1], [Define if libunwind supported]) LIBS="$LIBS -lunwind -lunwind-x86_64"], [], [])])
 
+ACX_LIBMICROHTTPD
+ACX_LIBJANSSON
+ACX_LIBYAML
+
 AC_CONFIG_HEADER([common/config.h])
 
 AC_CONFIG_FILES([
@@ -230,7 +234,6 @@ AC_CONFIG_FILES([
 	conf/Makefile
 	conf/addns.xml
 	conf/conf.xml
-	conf/enforcerstate.xml
 	conf/kasp.xml
 	conf/signconf.xml
 	conf/zonelist.xml
@@ -262,6 +265,9 @@ AC_CONFIG_FILES([
 	signer/man/ods-signer.8
 	signer/man/ods-signerd.8
 	signer/src/Makefile
+	signer/src/test/Makefile
+	signer/src/test/conf.xml
+	signer/src/test/setup.sh
 	tools/Makefile
 	tools/ods-control
 	tools/solaris/Makefile

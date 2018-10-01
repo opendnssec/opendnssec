@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Copyright (c) 2011 NLnet Labs
+  All rights reserved.
+  
+  Redistribution and use in source and binary forms, with or without
+  modification, are permitted provided that the following conditions
+  are met:
+  1. Redistributions of source code must retain the above copyright
+     notice, this list of conditions and the following disclaimer.
+  2. Redistributions in binary form must reproduce the above copyright
+     notice, this list of conditions and the following disclaimer in the
+     documentation and/or other materials provided with the distribution.
+  
+  THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+  IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+  ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
+  DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+  GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+  IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+  OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+  IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+  
+-->
+<grammar xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+  <start>
+    <element name="Adapter">
+      <ref name="dns"/>
+    </element>
+  </start>
+  <define name="dns">
+    <element name="DNS">
+      <zeroOrMore>
+        <!-- TSIG secrets -->
+        <ref name="tsig"/>
+      </zeroOrMore>
+      <optional>
+        <!-- inbound zone transfer settings -->
+        <element name="Inbound">
+          <optional>
+            <element name="RequestTransfer">
+              <oneOrMore>
+                <ref name="remote"/>
+              </oneOrMore>
+            </element>
+          </optional>
+          <optional>
+            <element name="AllowNotify">
+              <oneOrMore>
+                <ref name="peer"/>
+              </oneOrMore>
+            </element>
+          </optional>
+        </element>
+      </optional>
+      <optional>
+        <!-- outbound zone transfer settings -->
+        <element name="Outbound">
+          <optional>
+            <element name="ProvideTransfer">
+              <oneOrMore>
+                <ref name="peer"/>
+              </oneOrMore>
+            </element>
+          </optional>
+          <optional>
+            <element name="Notify">
+              <oneOrMore>
+                <ref name="remote"/>
+              </oneOrMore>
+            </element>
+          </optional>
+        </element>
+      </optional>
+    </element>
+  </define>
+  <!-- TSIG secret -->
+  <define name="tsig">
+    <element name="TSIG">
+      <element name="Name">
+        <data type="string"/>
+      </element>
+      <!-- http://www.iana.org/assignments/tsig-algorithm-names -->
+      <element name="Algorithm">
+        <data type="string"/>
+      </element>
+      <!-- base64 encoded secret -->
+      <element name="Secret">
+        <data type="base64Binary"/>
+      </element>
+    </element>
+  </define>
+  <define name="remote">
+    <element name="Remote">
+      <ref name="address"/>
+      <optional>
+        <ref name="port"/>
+      </optional>
+      <optional>
+        <ref name="key"/>
+      </optional>
+    </element>
+  </define>
+  <define name="peer">
+    <element name="Peer">
+      <optional>
+        <ref name="prefix"/>
+      </optional>
+      <optional>
+        <ref name="key"/>
+      </optional>
+    </element>
+  </define>
+  <define name="address">
+    <element name="Address">
+      <data type="string"/>
+    </element>
+  </define>
+  <!-- e.g., 192.0.2.1 or 2001:DB8::1 -->
+  <define name="prefix">
+    <element name="Prefix">
+      <data type="string"/>
+    </element>
+  </define>
+  <!-- e.g., 192.0.2.0/24 or 2001:DB8::/32 -->
+  <define name="port">
+    <element name="Port">
+      <data type="positiveInteger">
+        <param name="maxInclusive">65535</param>
+      </data>
+    </element>
+  </define>
+  <define name="key">
+    <element name="Key">
+      <data type="string"/>
+    </element>
+  </define>
+</grammar>

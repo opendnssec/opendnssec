@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2009-2011 NLNet Labs. All rights reserved.
+ * Copyright (c) 2009-2018 NLNet Labs.
+ * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -21,7 +22,6 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
 /**
@@ -34,25 +34,11 @@
 
 #include "config.h"
 #include "status.h"
+#include "hsm.h"
+#include "signer/signconf.h"
 #include "signer/zone.h"
 
 #include <ldns/ldns.h>
-
-/**
- * Get the inbound serial.
- * \param[in] zone zone
- * \return uint32_t inbound serial
- *
- */
-uint32_t adapi_get_serial(zone_type* zone);
-
-/**
- * Set the inbound serial.
- * \param[in] zone zone
- * \param[in] serial inbound serial
- *
- */
-void adapi_set_serial(zone_type* zone, uint32_t serial);
 
 /**
  * Get origin.
@@ -76,7 +62,7 @@ uint32_t adapi_get_ttl(zone_type* zone);
  * \param[in] more_coming more transactions are possible
  *
  */
-void adapi_trans_full(zone_type* zone, unsigned more_coming);
+void adapi_trans_full(zone_type* zone, names_view_type view, unsigned more_coming);
 
 /*
  * Do incremental zone transaction.
@@ -84,7 +70,7 @@ void adapi_trans_full(zone_type* zone, unsigned more_coming);
  * \param[in] more_coming more transactions are possible
  *
  */
-void adapi_trans_diff(zone_type* zone, unsigned more_coming);
+void adapi_trans_diff(zone_type* zone, names_view_type view, unsigned more_coming);
 
 /**
  * Add RR.
@@ -94,7 +80,7 @@ void adapi_trans_diff(zone_type* zone, unsigned more_coming);
  * \return ods_status status
  *
  */
-ods_status adapi_add_rr(zone_type* zone, ldns_rr* rr, int backup);
+ods_status adapi_add_rr(zone_type* zone, names_view_type view, ldns_rr* rr, int backup);
 
 /**
  * Delete RR.
@@ -104,7 +90,7 @@ ods_status adapi_add_rr(zone_type* zone, ldns_rr* rr, int backup);
  * \return ods_status status
  *
  */
-ods_status adapi_del_rr(zone_type* zone, ldns_rr* rr, int backup);
+ods_status adapi_del_rr(zone_type* zone, names_view_type view, ldns_rr* rr, int backup);
 
 /**
  * Print zonefile.
@@ -113,16 +99,7 @@ ods_status adapi_del_rr(zone_type* zone, ldns_rr* rr, int backup);
  * \return ods_status status
  *
  */
-ods_status adapi_printzone(FILE* fd, zone_type* zone);
-
-/**
- * Print axfr.
- * \param[in] fd file descriptor
- * \param[in] zone zone
- * \return ods_status status
- *
- */
-ods_status adapi_printaxfr(FILE* fd, zone_type* zone);
+ods_status adapi_printzone(FILE* fd, zone_type* zone, names_view_type view);
 
 /**
  * Print ixfr.

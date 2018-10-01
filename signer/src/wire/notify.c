@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2011 NLNet Labs. All rights reserved.
+ * Copyright (c) 2011-2018 NLNet Labs.
+ * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -21,7 +22,6 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
 /**
@@ -32,7 +32,6 @@
 #include "config.h"
 #include "adapter/addns.h"
 #include "daemon/xfrhandler.h"
-#include "signer/domain.h"
 #include "signer/zone.h"
 #include "wire/notify.h"
 #include "wire/xfrd.h"
@@ -390,10 +389,6 @@ notify_tsig_sign(notify_type* notify, buffer_type* buffer)
     notify->tsig_rr->algo_name =
         ldns_rdf_clone(notify->tsig_rr->algo->wf_name);
     notify->tsig_rr->key_name = ldns_rdf_clone(notify->tsig_rr->key->dname);
-    log_dname(notify->tsig_rr->key_name, "tsig sign notify with key",
-        LOG_DEBUG);
-    log_dname(notify->tsig_rr->algo_name, "tsig sign notify with algorithm",
-        LOG_DEBUG);
     tsig_rr_prepare(notify->tsig_rr);
     tsig_rr_update(notify->tsig_rr, buffer, buffer_position(buffer));
     tsig_rr_sign(notify->tsig_rr);

@@ -110,7 +110,7 @@ start = element Configuration {
 		& element SocketFile { xsd:string }?
 
 		# Location to store intermediate enforcer information
-		# DEFAULT: $(localstatedir)/opendnssec/tmp
+		# DEFAULT: $(localstatedir)/opendnssec/enforcer
 		& element WorkingDirectory { xsd:string }?
 
 		# Number of Worker Threads

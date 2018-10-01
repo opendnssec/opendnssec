@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2016 NLNet Labs. All rights reserved.
+ * Copyright (c) 2016-2018 NLNet Labs.
+ * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -21,7 +22,6 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
 /**
@@ -38,5 +38,7 @@
 struct cmd_func_block** signercommands;
 
 extern engine_type* getglobalcontext(cmdhandler_ctx_type*);
+extern void command_stop(engine_type*);
+extern void command_update(engine_type*, ods_status* zonelistchangestatus, int* addedptr, int* removedptr, int* updatedptr);
 
 #endif

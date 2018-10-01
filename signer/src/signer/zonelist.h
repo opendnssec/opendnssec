@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2009 NLNet Labs. All rights reserved.
+ * Copyright (c) 2009-2018 NLNet Labs.
+ * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -21,7 +22,6 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
 #ifndef SIGNER_ZONELIST_H
@@ -119,5 +119,17 @@ void zonelist_cleanup(zonelist_type* zl);
  *
  */
 void zonelist_free(zonelist_type* zl);
+
+/**
+ * Obtain a certain view from for the named zone. 
+ * This method will block until the resource is available. if the
+ * zone exists.
+ *
+ * @param zonelist The zonelist to search for the named zone
+ * @param name The zone name
+ * @param offset The offset of the view in the zone_type structure
+ * @return The view or NULL if the zone could not be found.
+ */
+void* zonelist_obtainresource(zonelist_type* zonelist, const char* name, size_t offset);
 
 #endif /* SIGNER_ZONELIST_H */

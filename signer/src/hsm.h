@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2009 NLNet Labs. All rights reserved.
+ * Copyright (c) 2009-2018 NLNet Labs.
+ * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -21,7 +22,6 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
 /**
@@ -65,6 +65,6 @@ ods_status lhsm_get_key(hsm_ctx_t* ctx, ldns_rdf* owner, key_type* key_id, int s
  *
  */
 ldns_rr* lhsm_sign(hsm_ctx_t* ctx, ldns_rr_list* rrset, key_type* key_id,
-    ldns_rdf* owner, time_t inception, time_t expiration);
+    time_t inception, time_t expiration);
 
 #endif /* SHARED_HSM_H */

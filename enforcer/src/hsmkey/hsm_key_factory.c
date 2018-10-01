@@ -36,7 +36,6 @@
 #include "daemon/engine.h"
 #include "duration.h"
 #include "libhsm.h"
-#include "presentation.h"
 
 #include <pthread.h>
 #include <math.h>

@@ -46,7 +46,6 @@ typedef enum key_dependency_type {
 } key_dependency_type_t;
 extern const db_enum_t key_dependency_enum_set_type[];
 
-#include "key_dependency_ext.h"
 #include "zone_db.h"
 #include "key_data.h"
 

@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2009 NLNet Labs. All rights reserved.
+ * Copyright (c) 2009-2018 NLNet Labs.
+ * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -21,7 +22,6 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
 /**
@@ -46,6 +46,7 @@
 #include "libhsm.h"
 #include "signertasks.h"
 #include "signercommands.h"
+#include "confparser.h"
 
 #include <errno.h>
 #include <libxml/parser.h>
@@ -62,13 +63,11 @@
 
 static const char* engine_str = "engine";
 
-static engine_type* engine = NULL;
-
 /**
  * Create engine.
  *
  */
-static engine_type*
+engine_type*
 engine_create(void)
 {
     engine_type* engine;
@@ -124,12 +123,13 @@ engine_start_dnshandler(engine_type* engine)
     }
     ods_log_debug("[%s] start dnshandler", engine_str);
     engine->dnshandler->engine = engine;
+    engine->dnshandler->started = 1;
     janitor_thread_create(&engine->dnshandler->thread_id, handlerthreadclass, (janitor_runfn_t)dnshandler_start, engine->dnshandler);
 }
 static void
 engine_stop_dnshandler(engine_type* engine)
 {
-    if (!engine || !engine->dnshandler || !engine->dnshandler->thread_id) {
+    if (!engine || !engine->dnshandler || !engine->dnshandler->started) {
         return;
     }
     ods_log_debug("[%s] stop dnshandler", engine_str);
@@ -297,49 +297,23 @@ engine_wakeup_workers(engine_type* engine)
     schedule_release_all(engine->taskq);
 }
 
-static void *
-signal_handler(sig_atomic_t sig)
-{
-    switch (sig) {
-        case SIGHUP:
-            if (engine) {
-                engine->need_to_reload = 1;
-                pthread_mutex_lock(&engine->signal_lock);
-                pthread_cond_signal(&engine->signal_cond);
-                pthread_mutex_unlock(&engine->signal_lock);
-            }
-            break;
-        case SIGINT:
-        case SIGTERM:
-            if (engine) {
-                engine->need_to_exit = 1;
-                pthread_mutex_lock(&engine->signal_lock);
-                pthread_cond_signal(&engine->signal_cond);
-                pthread_mutex_unlock(&engine->signal_lock);
-            }
-            break;
-        default:
-            break;
-    }
-    return NULL;
-}
-
 /**
  * Set up engine.
  *
  */
-static ods_status
-engine_setup(void)
+ods_status
+engine_setup_initialize(engine_type* engine, int* fdptr)
 {
     ods_status status = ODS_STATUS_OK;
-    struct sigaction action;
     int sockets[2] = {0,0};
     int pipefd[2];
     char buff = '\0';
     int fd, error;
+    const char *err = "unable to setsid daemon: ";
 
     ods_log_debug("[%s] setup signer engine", engine_str);
     if (!engine || !engine->config) {
+        ods_log_error("Failed to setup no configuration");
         return ODS_STATUS_ASSERT_ERR;
     }
     /* set edns */
@@ -348,15 +322,18 @@ engine_setup(void)
     /* create command handler (before chowning socket file) */
     engine->cmdhandler = cmdhandler_create(engine->config->clisock_filename_signer, signercommands, engine, NULL, NULL);
     if (!engine->cmdhandler) {
+        ods_log_error("Failed to setup command handler");
         return ODS_STATUS_CMDHANDLER_ERR;
     }
     engine->dnshandler = dnshandler_create(create_listener(engine->config->interfaces));
     engine->xfrhandler = xfrhandler_create();
     if (!engine->xfrhandler) {
+        ods_log_error("Failed to setup transfer handler");
         return ODS_STATUS_XFRHANDLER_ERR;
     }
     if (engine->dnshandler) {
         if (socketpair(AF_UNIX, SOCK_DGRAM, 0, sockets) == -1) {
+            ods_log_error("Failed to setup dns handler");
             return ODS_STATUS_XFRHANDLER_ERR;
         }
         engine->xfrhandler->dnshandler.fd = sockets[0];
@@ -365,6 +342,7 @@ engine_setup(void)
         if (status != ODS_STATUS_OK) {
             ods_log_error("[%s] setup: unable to listen to sockets (%s)",
                 engine_str, ods_status2str(status));
+            ods_log_error("Failed to setup sockets");
             return ODS_STATUS_XFRHANDLER_ERR;
         }
     }
@@ -393,6 +371,9 @@ engine_setup(void)
         if (pipe(pipefd)) {
             ods_log_error("[%s] unable to pipe: %s", engine_str, strerror(errno));
             return ODS_STATUS_PIPE_ERR;
+        }
+        if(fdptr) {
+            *fdptr = pipefd[1];
         }
         switch ((engine->pid = fork())) {
             case -1: /* error */
@@ -423,7 +404,6 @@ engine_setup(void)
         if (setsid() == -1) {
             ods_log_error("[%s] setup: unable to setsid daemon (%s)",
                 engine_str, strerror(errno));
-            const char *err = "unable to setsid daemon: ";
             ods_writen(pipefd[1], err, strlen(err));
             ods_writeln(pipefd[1], strerror(errno));
             write(pipefd[1], "\0", 1);
@@ -464,30 +444,35 @@ engine_setup(void)
     /* setup done */
     ods_log_verbose("[%s] running as pid %lu", engine_str,
         (unsigned long) engine->pid);
-    /* catch signals */
-    action.sa_handler = (void (*)(int))signal_handler;
-    sigfillset(&action.sa_mask);
-    action.sa_flags = 0;
-    sigaction(SIGTERM, &action, NULL);
-    sigaction(SIGHUP, &action, NULL);
-    sigaction(SIGINT, &action, NULL);
-    sigaction(SIGILL, &action, NULL);
-    sigaction(SIGUSR1, &action, NULL);
-    sigaction(SIGALRM, &action, NULL);
-    sigaction(SIGCHLD, &action, NULL);
-    action.sa_handler = SIG_IGN;
-    sigaction(SIGPIPE, &action, NULL);
+    return ODS_STATUS_OK;
+    
+}
+
+ods_status
+engine_setup_workstart(engine_type* engine)
+{
     /* create workers/drudgers */
     engine_create_workers(engine);
     /* start cmd/dns/xfr handlers */
     engine_start_cmdhandler(engine);
+    return ODS_STATUS_OK;
+}
+
+ods_status
+engine_setup_netwstart(engine_type* engine)
+{
     engine_start_dnshandler(engine);
     engine_start_xfrhandler(engine);
     tsig_handler_init();
+    return ODS_STATUS_OK;
+}
 
+ods_status
+engine_setup_finish(engine_type* engine, int fd)
+{
     if (engine->daemonize) {
-        write(pipefd[1], "\1", 1);
-        close(pipefd[1]);
+        write(fd, "\1", 1);
+        close(fd);
     }
     return ODS_STATUS_OK;
 }
@@ -749,31 +734,11 @@ engine_recover(engine_type* engine)
 
         ods_log_assert(zone->zl_status == ZONE_ZL_ADDED);
         pthread_mutex_lock(&zone->zone_lock);
-        status = zone_recover2(engine, zone);
-        if (status == ODS_STATUS_OK) {
-            ods_log_assert(zone->db);
-            ods_log_assert(zone->signconf);
-            /* notify nameserver */
-            if (engine->config->notify_command && !zone->notify_ns) {
-                set_notify_ns(zone, engine->config->notify_command);
-            }
-            if (status != ODS_STATUS_OK) {
-                ods_log_crit("[%s] unable to schedule task for zone %s: %s",
-                    engine_str, zone->name, ods_status2str(status));
-                result = ODS_STATUS_OK; /* will trigger update zones */
-            } else {
-                ods_log_debug("[%s] recovered zone %s", engine_str,
-                    zone->name);
-                /* recovery done */
-                zone->zl_status = ZONE_ZL_OK;
-            }
-        } else {
             if (status != ODS_STATUS_UNCHANGED) {
                 ods_log_warning("[%s] unable to recover zone %s from backup,"
                 " performing full sign", engine_str, zone->name);
             }
             result = ODS_STATUS_OK; /* will trigger update zones */
-        }
         pthread_mutex_unlock(&zone->zone_lock);
         node = ldns_rbtree_next(node);
     }
@@ -783,21 +748,21 @@ engine_recover(engine_type* engine)
 }
 
 
-/**
- * Start engine.
- *
- */
-int
-engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize, int info)
+ods_status
+engine_setup_preconfig(engine_type* engine, const char* cfgfile)
 {
-    ods_status zl_changed = ODS_STATUS_UNCHANGED;
-    ods_status status = ODS_STATUS_OK;
-
-    engine = engine_create();
-    if (!engine) {
-        ods_fatal_exit("[%s] create failed", engine_str);
-        return 1;
+    const char* rngfile = ODS_SE_RNGDIR "/conf.rng";
+    if (parse_file_check(cfgfile, rngfile) != ODS_STATUS_OK) {
+        ods_log_error("unable to create config: parse error in %s", cfgfile);
+        return ODS_STATUS_ERR;
     }
+    return ODS_STATUS_OK;
+}
+
+ods_status
+engine_setup_config(engine_type* engine, const char* cfgfile, int cmdline_verbosity, int daemonize)
+{
+    ods_status status;
     engine->daemonize = daemonize;
 
     /* config */
@@ -805,23 +770,21 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize, int info
     status = engine_config_check(engine->config);
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] cfgfile %s has errors", engine_str, cfgfile);
-        goto earlyexit;
-    }
-    if (info) {
-        engine_config_print(stdout, engine->config); /* for debugging */
-        goto earlyexit;
+        return ODS_STATUS_PARSE_ERR;
     }
     /* check pidfile */
     if (!util_check_pidfile(engine->config->pid_filename_signer)) {
         exit(1);
     }
-    /* setup */
-    status = engine_setup();
-    if (status != ODS_STATUS_OK) {
-        ods_log_error("[%s] setup failed: %s", engine_str,
-            ods_status2str(status));
-        goto earlyexit;
-    }
+    return ODS_STATUS_OK;
+}
+
+int
+engine_start(engine_type* engine)
+{
+    ods_status zl_changed = ODS_STATUS_UNCHANGED;
+    ods_status status = ODS_STATUS_OK;
+    int linkfd;
 
     /* run */
     while (engine->need_to_exit == 0) {
@@ -850,16 +813,11 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize, int info
                     free(error);
                 }
                 ods_log_error("[%s] opening hsm failed (for engine recover)", engine_str);
-                status = ODS_STATUS_HSM_ERR;
-                break;
             }
-            zl_changed = engine_recover(engine);
+            engine_recover(engine);
             hsm_close();
         }
-        if (zl_changed == ODS_STATUS_OK ||
-            zl_changed == ODS_STATUS_UNCHANGED) {
-            engine_update_zones(engine, zl_changed);
-        }
+        engine_update_zones(engine, zl_changed);
         if (hsm_open2(engine->config->repositories, hsm_check_pin) != HSM_OK) {
             char* error =  hsm_get_error(NULL);
             if (error != NULL) {
@@ -867,8 +825,6 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize, int info
                 free(error);
             }
             ods_log_error("[%s] opening hsm failed (for engine run)", engine_str);
-            status = ODS_STATUS_HSM_ERR;
-            break;
         }
         engine_run(engine);
         hsm_close();
@@ -880,7 +836,6 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize, int info
     engine_stop_xfrhandler(engine);
     engine_stop_dnshandler(engine);
 
-earlyexit:
     if (engine && engine->config) {
         if (engine->config->pid_filename_signer) {
             (void)unlink(engine->config->pid_filename_signer);
@@ -890,8 +845,6 @@ earlyexit:
         }
     }
     tsig_handler_cleanup();
-    engine_cleanup(engine);
-    engine = NULL;
 
     return status;
 }
@@ -920,7 +873,8 @@ engine_cleanup(engine_type* engine)
         }
         zonelist_cleanup(engine->zonelist);
         schedule_cleanup(engine->taskq);
-        cmdhandler_cleanup(engine->cmdhandler);
+        if(engine->cmdhandler)
+            cmdhandler_cleanup(engine->cmdhandler);
         dnshandler_cleanup(engine->dnshandler);
         xfrhandler_cleanup(engine->xfrhandler);
         engine_config_cleanup(engine->config);

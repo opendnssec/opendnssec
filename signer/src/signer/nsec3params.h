@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2009 NLNet Labs. All rights reserved.
+ * Copyright (c) 2009-2018 NLNet Labs.
+ * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -21,7 +22,6 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
 #ifndef SIGNER_NSEC3PARAMS_H
@@ -77,20 +77,6 @@ ods_status nsec3params_create_salt(const char* salt_str, uint8_t* salt_len,
  */
 nsec3params_type* nsec3params_create(void* sc, uint8_t algo, uint8_t flags,
     uint16_t iter, const char* salt);
-
-/**
- * Backup NSEC3 parameters.
- * \param[in] fd file descriptor
- * \param[in] algo algorithm
- * \param[in] flags glags, Opt-Out or Opt-In
- * \param[in] iter number of iterations
- * \param[in] salt salt
- * \param[in] rr NSEC3PARAM RR
- * \param[in] version version string
- *
- */
-void nsec3params_backup(FILE* fd, uint8_t algo, uint8_t flags,
-    uint16_t iter, const char* salt, ldns_rr* rr, const char* version);
 
 /**
  * Clean up the NSEC3 parameters.
