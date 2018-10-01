@@ -146,7 +146,6 @@ parsescalar(yaml_document_t *document, size_t resultsize, void* resultvalue, voi
                 if (defaultvalue)
                     memcpy(resultvalue,defaultvalue,resultsize);
                 fprintf(stderr,"in configuration parameter %s unable unparseable input %s\n",last,str);
-                abort();
                 result = -1;
             } else {
                 result = 0;
