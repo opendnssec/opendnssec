@@ -45,6 +45,7 @@
 #include "util.h"
 #include "signertasks.h"
 #include "file.h"
+#include "settings.h"
 
 /**
  * Queue RRset for signing.
@@ -569,6 +570,82 @@ do_forcereadzone(task_type* task, const char* zonename, void* zonearg, void *con
     }
 }
 
+
+static const long default_statefile_freq = 1;
+static const long default_zonefile_freq = 1;
+static const long default_ixfr_history = 30;
+
+void
+do_outputzonefile(zone_type* zone)
+{
+    names_view_type outputview;
+    char* filename;
+    char* tmpname;
+
+    /* Write the zone as it currently stands */
+    outputview = zone->outputview;
+    names_viewreset(outputview);
+    tmpname = ods_build_path(zone->adoutbound->configstr, ".tmp", 0, 0);
+    if(writezone(outputview, tmpname)) {
+        if (zone->adoutbound->error) {
+            ods_log_error("unable to write zone %s file %s", zone->name, filename);
+            zone->adoutbound->error = 0;
+            // status = ODS_STATUS_FWRITE_ERR;
+        }
+    } else {
+        if (rename((const char*) tmpname, zone->adoutbound->configstr) != 0) {
+            ods_log_error("unable to write file: failed to rename %s to %s (%s)", tmpname, filename, strerror(errno));
+            // status = ODS_STATUS_RENAME_ERR;
+        }
+    }
+    free(tmpname);
+}
+
+void
+do_purgezone(zone_type* zone)
+{
+    int serial;
+    names_view_type baseview;
+    names_iterator iter;
+     recordset_type record;
+
+    baseview = zone->baseview;
+    names_viewreset(baseview);
+
+    /* find any items that are no longer worth preserving because they are
+     * outdated for too long (ie their last valid serial number is too far
+     * in the past.
+     */
+    serial = zone->outboundserial - (zone->operatingconf ? zone->operatingconf->ixfr_history : 4);
+    for(iter=names_viewiterator(baseview,names_iteratoroutdated,serial); names_iterate(&iter,&record); names_advance(&iter, NULL)) {
+        names_remove(baseview, record);
+    }
+    if(names_viewcommit(baseview)) {
+        ods_log_error("Unable to clean zone, retrying next pass");
+    }
+}
+
+void
+do_outputstatefile(zone_type* zone)
+{
+    /* Refresh the current state jounral file */
+    struct stat statbuf;
+    names_view_type baseview;
+    char* filename;
+
+    baseview = zone->baseview;
+    names_viewreset(baseview);
+    filename = ods_build_path(zone->name, ".state", 0, 1);
+    if(fstatat(AT_FDCWD, filename, &statbuf, 0)) {
+        if(errno == ENOENT) {
+            names_viewpersist(baseview, AT_FDCWD, filename);
+        } else {
+            ods_log_error("unable to create state file for zone %s", zone->name);
+        }
+    }
+    free(filename);
+}
+
 time_t
 do_writezone(task_type* task, const char* zonename, void* zonearg, void *contextarg)
 {
@@ -581,25 +658,34 @@ do_writezone(task_type* task, const char* zonename, void* zonearg, void *context
     context->clock_in = time_now(); /* TODO this means something different */
     /* perform write to output adapter task */
 
+    if(zone->operatingconf == NULL) {
+        long defaultvalue;
+        ods_cfg_access(NULL, "opendnssec.conf");
+        zone->operatingconf = malloc(sizeof(struct operatingconf));
+        zone->operatingconf->statefile_timer = 0;
+        ods_cfg_getcount(NULL, &zone->operatingconf->statefile_freq, &default_statefile_freq, NULL, "signer", "output-statefile-period", NULL);
+        zone->operatingconf->zonefile_timer = 0;
+        ods_cfg_getcount(NULL, &zone->operatingconf->zonefile_freq, &default_zonefile_freq, NULL, "signer", "output-zonefile-period", NULL);
+        ods_cfg_getcount(NULL, &zone->operatingconf->ixfr_history, &default_ixfr_history, NULL, "signer", "output-ixfr-history", NULL);
+    }
+
+    if(zone->operatingconf->statefile_timer > 0) {
+        if(--(zone->operatingconf->statefile_timer) == 0) {
+            zone->operatingconf->statefile_timer = zone->operatingconf->statefile_freq;
+            do_outputstatefile(zone);
+        }
+    }
+
     names_viewreset(zone->outputview);
     status = tools_output(zone, engine);
 
-    struct stat statbuf;
-    char* filename = ods_build_path(zone->name, ".state", 0, 1);
-    if(fstatat(AT_FDCWD, filename, &statbuf, 0)) {
-        if(errno == ENOENT) {
-            names_viewpersist(zone->baseview, AT_FDCWD, filename);
-        } else {
-            ods_log_error("[%s] unable to create state file for zone %s", worker->name, task->owner);
+    if(zone->operatingconf->zonefile_timer > 0) {
+        if(--(zone->operatingconf->zonefile_timer) == 0) {
+            zone->operatingconf->zonefile_timer = zone->operatingconf->zonefile_freq;
+            do_outputzonefile(zone);
         }
     }
-    free(filename);
 
-    if (status != ODS_STATUS_OK) {
-        ods_log_crit("[%s] CRITICAL: failed to sign zone %s: %s",
-                worker->name, task->owner, ods_status2str(status));
-        return schedule_DEFER;
-    }
     if (zone->signconf &&
             duration2time(zone->signconf->sig_resign_interval)) {
         resign = context->clock_in +

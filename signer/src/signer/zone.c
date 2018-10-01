@@ -100,6 +100,7 @@ zone_create(char* name, ldns_rr_class klass)
     zone->notify = NULL;
     zone->zoneconfigvalid = 0;
     zone->signconf = signconf_create();
+    zone->operatingconf = NULL;
     if (!zone->signconf) {
         ods_log_error("[%s] unable to create zone %s: signconf_create() "
             "failed", zone_str, name);
@@ -487,6 +488,7 @@ zone_cleanup(zone_type* zone)
     free((void*)zone->nextserial);
     free((void*)zone->inboundserial);
     free((void*)zone->outboundserial);
+    free((void*)zone->operatingconf);
     zone->nextserial = NULL;
     zone->inboundserial = NULL;
     zone->outboundserial = NULL;

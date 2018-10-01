@@ -54,6 +54,20 @@ typedef struct zone_struct zone_type;
 
 struct schedule_struct;
 
+/* FIXME these operating configuration parameters should be better integrated
+ * At the moment we have enforcer supplied configuration parameters, which
+ * are per zone, but based on the KASP.  And we have global parameters from
+ * the conf.xml.  But we have no per-zone parameters that are not part of
+ * the KASP.
+ */
+struct operatingconf {
+    long statefile_freq;
+    long statefile_timer;
+    long zonefile_freq;
+    long zonefile_timer;
+    long ixfr_history;
+};
+
 struct zone_struct {
     ldns_rdf* apex; /* wire format zone name */
     ldns_rr_class klass; /* class */
@@ -72,6 +86,7 @@ struct zone_struct {
     adapter_type* adoutbound; /* outbound adapter */
     /* from signconf.xml */
     signconf_type* signconf; /* signer configuration values */
+    struct operatingconf* operatingconf;
 
     names_view_type baseview;
     names_view_type inputview;
@@ -80,7 +95,6 @@ struct zone_struct {
     names_view_type signview;
     names_view_type outputview;
     names_view_type changesview;
-    char *persistviews;
 
     uint32_t* nextserial;
     uint32_t* inboundserial;
