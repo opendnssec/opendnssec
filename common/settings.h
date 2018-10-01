@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009-2018 NLNet Labs.
+ * Copyright (c) 2018 NLNet Labs.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,34 +24,14 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SIGNERTASKS_H
-#define SIGNERTASKS_H
+#ifndef SETTINGS_H
+#define SETTINGS_H
 
-#include "config.h"
-#include <time.h>
+typedef void* ods_cfg_handle;
 
-#include "scheduler/task.h"
-#include "scheduler/fifoq.h"
-#include "status.h"
-#include "locks.h"
+int ods_cfg_access(ods_cfg_handle*, const char* filename);
+int ods_cfg_getlong(ods_cfg_handle, long* resultvalue, long* defaultvalue, const char* fmt,...);
+int ods_cfg_getcount(ods_cfg_handle, long* resultvalue, long* defaultvalue, const char* fmt,...);
+int ods_cfg_getperiod(ods_cfg_handle, long* resultvalue, long* defaultvalue, const char* fmt,...);
 
-struct worker_context {
-    engine_type* engine;
-    worker_type* worker;
-    fifoq_type* signq;
-    time_t clock_in;
-    zone_type* zone;
-    names_view_type view;
-};
-
-void drudge(worker_type* worker);
-
-time_t do_readsignconf(task_type* task, const char* zonename, void* zonearg, void *contextarg);
-time_t do_forcereadsignconf(task_type* task, const char* zonename, void* zonearg, void *contextarg);
-time_t do_signzone(task_type* task, const char* zonename, void* zonearg, void *contextarg);
-time_t do_readzone(task_type* task, const char* zonename, void* zonearg, void *contextarg);
-time_t do_forcereadzone(task_type* task, const char* zonename, void* zonearg, void *contextarg);
-void do_purgezone(zone_type* zone);
-time_t do_writezone(task_type* task, const char* zonename, void* zonearg, void *contextarg);
-
-#endif /* SIGNERTASKS_H */
+#endif

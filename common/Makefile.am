@@ -29,4 +29,4 @@ libcompat_a_SOURCES = \
 	logging.c logging.h \
 	janitor.c janitor.h \
 	cfg.c cfg.h \
-	confparser.c confparser.h
+	confparser.c confparser.h settings.c settings.h

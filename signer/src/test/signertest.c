@@ -53,6 +53,7 @@
 #include "daemon/metastorage.h"
 #include "views/httpd.h"
 #include "adapter/adutil.h"
+#include "settings.h"
 
 #include "comparezone.h"
 
@@ -415,6 +416,7 @@ makecall(const char* zone, const char* delegation, ...)
     return rpc;
 }
 
+
 void
 testNothing(void)
 {
@@ -445,6 +447,21 @@ testIterator(void)
 }
 
 
+void
+testConfig(void)
+{
+    long value;
+    int rc;
+
+    ods_cfg_access(NULL,"config.yaml");
+    
+    value = 0;
+    rc = ods_cfg_getlong(NULL, &value, NULL, NULL, "logging", "verbosity", NULL);
+    assert(rc == 0);
+    assert(value == 3);
+}
+
+
 static void
 testAnnotateItem(const char* name, const char* expected)
 {
@@ -457,6 +474,7 @@ testAnnotateItem(const char* name, const char* expected)
     CU_ASSERT_STRING_EQUAL(expected, denial);
     names_recorddispose(record);
 }
+
 
 void
 testAnnotate(void)
@@ -871,13 +889,14 @@ testDisposing(void)
     outputzone(zone);
     names_viewreset(zone->baseview);
     names_dumpviewinfo(stderr,7,&zone->baseview);
-    purgezone(zone);
+    do_purgezone(zone);
     disposezone(zone);
 }
 
 
 extern void testNothing(void);
 extern void testIterator(void);
+extern void testConfig(void);
 extern void testAnnotate(void);
 extern void testStatefile(void);
 extern void testTransferfile(void);
@@ -900,6 +919,7 @@ struct test_struct {
 } tests[] = {
     { "signer", "testNothing",         "test nothing" },
     { "signer", "testIterator",        "test of iterator" },
+    { "signer", "testConfig",          "test config" },
     { "signer", "testAnnotate",        "test of denial annotation" },
     { "signer", "testMarshalling",     "test marshalling" },
     { "signer", "testStatefile",       "test statefile usage" },

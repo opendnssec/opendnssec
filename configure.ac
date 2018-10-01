@@ -223,6 +223,7 @@ AC_CHECK_LIB(unwind, unw_backtrace, [AC_CHECK_HEADERS(libunwind.h, [AC_DEFINE([H
 
 ACX_LIBMICROHTTPD
 ACX_LIBJANSSON
+ACX_LIBYAML
 
 AC_CONFIG_HEADER([common/config.h])
 

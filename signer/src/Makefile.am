@@ -34,8 +34,6 @@ ods_signerd_SOURCES=		ods-signerd.c \
 				parser/signconfparser.c parser/signconfparser.h \
 				parser/zonelistparser.c parser/zonelistparser.h \
 				hsm.c hsm.h \
-				signer/denial.h \
-				signer/domain.h \
 				signer/keys.c signer/keys.h \
 				signer/nsec3params.c signer/nsec3params.h \
 				signer/signconf.c signer/signconf.h \
@@ -68,7 +66,6 @@ ods_signerd_SOURCES=		ods-signerd.c \
 				views/ringbuf.h \
 				views/rpc.c \
 				views/zoneoutput.c \
-				views/periodic.c \
 				views/proto.h
 
 analyze:

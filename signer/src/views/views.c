@@ -571,6 +571,8 @@ names_viewconfig(names_view_type view, signconf_type** signconf)
     return 0;
 }
 
+static char filemagic[8] = "\0ODS-S1\n";
+
 int
 names_viewrestore(names_view_type view, const char* apex, int basefd, const char* filename)
 {
@@ -578,6 +580,7 @@ names_viewrestore(names_view_type view, const char* apex, int basefd, const char
     recordset_type record;
     marshall_handle input;
     marshall_handle output;
+    char buffer[8];
 
     view->zonedata.apex = strdup(apex);
 
@@ -587,6 +590,8 @@ names_viewrestore(names_view_type view, const char* apex, int basefd, const char
         else
             fd = open(filename, O_RDWR|O_LARGEFILE);
         if(fd >= 0) {
+            read(fd,buffer,sizeof(buffer));
+            assert(memcmp(buffer,filemagic,sizeof(filemagic))==0);
             input = marshallcreate(marshall_INPUT, fd);
             do {
                 names_recordmarshall(&record, input);
@@ -627,6 +632,7 @@ names_viewpersist(names_view_type view, int basefd, char* filename)
         CHECK((fd = openat(basefd, tmpfilename, O_CREAT|O_WRONLY|O_LARGEFILE|O_TRUNC,0666)) < 0);
     else
         CHECK((fd = open(tmpfilename, O_CREAT|O_WRONLY|O_LARGEFILE|O_TRUNC,0666)) < 0);
+    write(fd,filemagic,sizeof(filemagic));
     marsh = marshallcreate(marshall_OUTPUT, fd);
 
     iter = names_indexiterator(view->indices[0]);
