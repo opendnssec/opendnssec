@@ -145,9 +145,9 @@ adapi_process_rr(zone_type* zone, names_view_type view, ldns_rr* rr, int add, in
     /* TODO: NS and DS checks */
 
     if (add) {
-        return zone_add_rr(zone, view, rr, 1);
+        return zone_add_rr(zone, view, rr);
     } else {
-        return zone_del_rr(zone, view, rr, 1);
+        return zone_del_rr(zone, view, rr);
     }
     /* not reached */
     return ODS_STATUS_ERR;

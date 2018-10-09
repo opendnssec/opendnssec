@@ -592,7 +592,6 @@ void
 names_recordsetdenial(recordset_type record, ldns_rr* denial)
 {
     assert(denial != NULL);
-    assert(record->spansignatures == NULL);
     record->spanhashrr = denial;
 }
 

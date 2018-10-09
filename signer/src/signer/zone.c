@@ -228,7 +228,7 @@ zone_publish_dnskeys(zone_type* zone, names_view_type view, int skip_hsm_access)
             ods_log_assert(zone->signconf->keys->keys[i].dnskey);
             ldns_rr_set_ttl(zone->signconf->keys->keys[i].dnskey, ttl);
             ldns_rr_set_class(zone->signconf->keys->keys[i].dnskey, zone->klass);
-            status = zone_add_rr(zone, view, zone->signconf->keys->keys[i].dnskey, 0);
+            status = zone_add_rr(zone, view, zone->signconf->keys->keys[i].dnskey);
             if (status == ODS_STATUS_UNCHANGED) {
                 /* rr already exists, adjust pointer */
                 names_viewlookupone(view, NULL, LDNS_RR_TYPE_DNSKEY, zone->signconf->keys->keys[i].dnskey, &dnskey);
@@ -302,7 +302,7 @@ zone_publish_nsec3param(zone_type* zone, names_view_type view)
     zone_del_nsec3params(zone, view);
 
     ods_log_assert(zone->signconf->nsec3params->rr);
-    status = zone_add_rr(zone, view, ldns_rr_clone(zone->signconf->nsec3params->rr), 0);
+    status = zone_add_rr(zone, view, ldns_rr_clone(zone->signconf->nsec3params->rr));
     if (status == ODS_STATUS_UNCHANGED) {
         status = ODS_STATUS_OK;
     } else if (status != ODS_STATUS_OK) {
@@ -357,7 +357,7 @@ zone_prepare_keys(zone_type* zone)
 
 
 ods_status
-zone_add_rr(zone_type* zone, names_view_type view, ldns_rr* rr, int do_stats)
+zone_add_rr(zone_type* zone, names_view_type view, ldns_rr* rr)
 {
     recordset_type record;
     ods_status status;
@@ -379,7 +379,7 @@ zone_add_rr(zone_type* zone, names_view_type view, ldns_rr* rr, int do_stats)
 }
 
 ods_status
-zone_del_rr(zone_type* zone, names_view_type view, ldns_rr* rr, int do_stats)
+zone_del_rr(zone_type* zone, names_view_type view, ldns_rr* rr)
 {
     recordset_type record;
     const char* name;
@@ -505,13 +505,17 @@ zone_start(zone_type* zone)
     char* zoneapex;
     uint32_t serial;
     ldns_rr* rr;
+    int notrestored;
 
     zoneapex = ldns_rdf2str(zone->apex);
     metastorageget(zoneapex,zone);
     zone->baseview = names_viewcreate(NULL, names_view_BASE[0], &names_view_BASE[1]);
     names_viewconfig(zone->baseview, &(zone->signconf));
     filename = ods_build_path(zone->name, ".state", 0, 1);
-    names_viewrestore(zone->baseview, zoneapex, -1, filename);
+    notrestored = names_viewrestore(zone->baseview, zoneapex, -1, filename);
+    /* should we add the task schedule:
+     * schedule_scheduletask(engine->taskq, TASK_SIGN, zone->name, zone, &zone->zone_lock, schedule_PROMPTLY);
+     */
     free(filename);
     free(zoneapex);
     zone->inputview = names_viewcreate(zone->baseview,   names_view_INPUT[0],   &names_view_INPUT[1]);
@@ -521,6 +525,12 @@ zone_start(zone_type* zone)
     zone->outputview = names_viewcreate(zone->baseview,  names_view_OUTPUT[0],  &names_view_OUTPUT[1]);
     zone->changesview = names_viewcreate(zone->baseview, names_view_CHANGES[0], &names_view_CHANGES[1]);
 
+    if(notrestored != 0) {
+        zone_recover(zone, zone->inputview);
+        names_viewcommit(zone->inputview);
+        names_viewreset(zone->baseview);
+    }
+    
     names_viewlookupone(zone->baseview, zone->apex, LDNS_RR_TYPE_SOA, NULL, &rr);
     if(rr) {
         serial = ldns_rdf2native_int32(ldns_rr_rdf(rr, SE_SOA_RDATA_SERIAL));

@@ -196,7 +196,7 @@ ldns_rr* zone_lookup_apex_rrset(names_view_type view, ldns_rr_type type,ldns_rr*
  *         other: rr not added to zone, error occurred
  *
  */
-ods_status zone_add_rr(zone_type* zone, names_view_type view, ldns_rr* rr, int do_stats);
+ods_status zone_add_rr(zone_type* zone, names_view_type view, ldns_rr* rr);
 
 /**
  * Delete RR.
@@ -209,7 +209,7 @@ ods_status zone_add_rr(zone_type* zone, names_view_type view, ldns_rr* rr, int d
  *         other: rr not removed from zone, error occurred
  *
  */
-ods_status zone_del_rr(zone_type* zone, names_view_type view, ldns_rr* rr, int do_stats);
+ods_status zone_del_rr(zone_type* zone, names_view_type view, ldns_rr* rr);
 
 /**
  * Remove all NSEC3PARAM RRs from the zone
@@ -243,5 +243,14 @@ void zone_cleanup(zone_type* zone);
  *
  */
 void zone_start(zone_type* zone);
+
+/**
+ * recover from old-style backup file format.
+ * @param zone the zone to cover
+ * @param view the input view of the zone
+ * @return returns whether the recvering was successfull
+ */
+ods_status
+zone_recover(zone_type* zone, names_view_type view);
 
 #endif /* SIGNER_ZONE_H */

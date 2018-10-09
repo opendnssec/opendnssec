@@ -46,6 +46,7 @@ signertest_LDADD = \
 	../signer/tools.o \
 	../signer/zone.o \
 	../signer/zonelist.o \
+	../signer/backup.o \
 	../wire/acl.o \
 	../wire/axfr.o \
 	../wire/buffer.o \

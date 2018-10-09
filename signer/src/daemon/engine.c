@@ -716,49 +716,6 @@ engine_update_zones(engine_type* engine, ods_status zl_changed)
 }
 
 
-/**
- * Try to recover from the backup files.
- *
- */
-static ods_status
-engine_recover(engine_type* engine)
-{
-    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
-    zone_type* zone = NULL;
-    ods_status status = ODS_STATUS_OK;
-    ods_status result = ODS_STATUS_UNCHANGED;
-
-    if (!engine || !engine->zonelist || !engine->zonelist->zones) {
-        ods_log_error("[%s] cannot recover zones: no engine or zonelist",
-            engine_str);
-        return ODS_STATUS_ERR; /* no need to update zones */
-    }
-    ods_log_assert(engine);
-    ods_log_assert(engine->zonelist);
-    ods_log_assert(engine->zonelist->zones);
-
-    pthread_mutex_lock(&engine->zonelist->zl_lock);
-    /* [LOCK] zonelist */
-    node = ldns_rbtree_first(engine->zonelist->zones);
-    while (node && node != LDNS_RBTREE_NULL) {
-        zone = (zone_type*) node->data;
-
-        ods_log_assert(zone->zl_status == ZONE_ZL_ADDED);
-        pthread_mutex_lock(&zone->zone_lock);
-            if (status != ODS_STATUS_UNCHANGED) {
-                ods_log_warning("[%s] unable to recover zone %s from backup,"
-                " performing full sign", engine_str, zone->name);
-            }
-            result = ODS_STATUS_OK; /* will trigger update zones */
-        pthread_mutex_unlock(&zone->zone_lock);
-        node = ldns_rbtree_next(node);
-    }
-    /* [UNLOCK] zonelist */
-    pthread_mutex_unlock(&engine->zonelist->zl_lock);
-    return result;
-}
-
-
 ods_status
 engine_setup_preconfig(engine_type* engine, const char* cfgfile)
 {
@@ -825,7 +782,6 @@ engine_start(engine_type* engine)
                 }
                 ods_log_error("[%s] opening hsm failed (for engine recover)", engine_str);
             }
-            engine_recover(engine);
             hsm_close();
         }
         engine_update_zones(engine, zl_changed);
