@@ -672,6 +672,7 @@ do_writezone(task_type* task, const char* zonename, void* zonearg, void *context
     if(zone->operatingconf->statefile_timer > 0) {
         if(--(zone->operatingconf->statefile_timer) == 0) {
             zone->operatingconf->statefile_timer = zone->operatingconf->statefile_freq;
+            do_purgezone(zone);
             do_outputstatefile(zone);
         }
     }

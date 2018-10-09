@@ -41,6 +41,7 @@ ods_signerd_SOURCES=		ods-signerd.c \
 				signer/tools.c signer/tools.h \
 				signer/zone.c signer/zone.h \
 				signer/zonelist.c signer/zonelist.h \
+				signer/backup.c \
 				wire/acl.c wire/acl.h \
 				wire/axfr.c wire/axfr.h \
 				wire/buffer.c wire/buffer.h \

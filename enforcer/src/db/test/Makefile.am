@@ -64,8 +64,6 @@ test_LDFLAGS = -no-install \
 	@ENFORCER_DB_LIBS@ \
 	$(BACKEND_LDFLAGS_CUSTOM)
 
-check: regress-db
-
 regress-db: test
 if USE_SQLITE
 	rm -f test.db
