@@ -1,6 +1,20 @@
 This is a pre-release of the OpenDNSSEC software for the functionality of
 Fast Updates.
 
+----
+
+Update 2018-10-09
+- Partial support for reading old-style backup files 
+  - will read the contents and signatures
+  - will not preserve the signatures yet, because they immediately expire
+  - will not preserve NSEC chain and will be rebuild
+  in effect most will will be redone, but is a step towards reusing backup
+  files
+- fixed broken periodic memory cleaning that would lead to increased memory
+  usage over time.
+
+----
+
 There are still significant parts of OpenDNSSEC that need work.  Tests for
 signing a zone and producing valid output adding/removing and modifying
 delegations in the input zone using the web-service calls and some other
