@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2009 NLNet Labs. All rights reserved.
+ * Copyright (c) 2009-2018 NLNet Labs.
+ * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -21,7 +22,6 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
 /**
@@ -54,21 +54,20 @@ struct cmd_func_block {
     /* print help, more elaborate than usage. Allowed to be
      * NULL to indicate no help is available */
     void (*help)(int sockfd);
-    /* 1 if module claims responibility for command
+    /* 1 if module claims responsibility for command
      * 0 otherwise */
     int (*handles)(const char *cmd);
     /** Run the handler
      * 
      * \param sockfd, pipe to client,
      * \param ctx, the client context
-     * \param cmd, command and args for additional parsing null character
-     *        terminated
+     * \param cmd, command and args for additional parsing null terminated
      * \param dbconn, connection to the database.
      * \return 0 command executed, all OK
      *      -1 Errors parsing commandline / missing params
      *       positive error code to return to user.
      */
-    int (*run)(int sockfd, cmdhandler_ctx_type*, const char *cmd);
+    int (*run)(int sockfd, cmdhandler_ctx_type*, char *cmd);
 };
 
 struct cmdhandler_struct {

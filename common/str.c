@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2011 NLNet Labs. All rights reserved.
+ * Copyright (c) 2011-2018 NLNet Labs.
+ * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -21,7 +22,6 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
 /**
@@ -119,39 +119,3 @@ ods_str_trim(char *str, int keep_newline)
     return str;
 }
 
-/**
- * Version of ctime_r that does not feature a trailing '\n' character
- *
- */
-char *
-ods_ctime_r(char *buf, size_t nbuf, time_t t)
-{
-#if 0
-    struct tm datetime;
-    if (localtime_r(&t,&datetime) == NULL) {
-        ods_log_error("[%s] time_datestamp: localtime_r() failed", 
-                      module_str);
-        return NULL;
-    }
-    snprintf(buf, nbuf, "%4.4d-%2.2d-%2.2d %2.2d:%2.2d:%2.2d",
-             1900+datetime.tm_year, datetime.tm_mon + 1, datetime.tm_mday,
-             datetime.tm_hour, datetime.tm_min, datetime.tm_sec);
-    return buf;
-#else
-    if (nbuf>=26 && buf!=NULL) { 
-        char *p;
-        char *pbeg = ctime_r(&t,buf);
-        char *pend = pbeg ? (pbeg+strlen(pbeg)) : pbeg;
-        if (pbeg >= pend) {
-            ods_log_error("[%s] time_datestamp: ctime_r() failed", 
-                          module_str);
-            return NULL;
-        }
-        /* strip trailing space characters including '\n' from time string */
-        for (p=pend-1; p>=pbeg && isspace(*p); --p) {
-            *p = '\0';
-        }
-    }
-    return buf;
-#endif
-}

@@ -46,7 +46,6 @@ typedef enum key_dependency_type {
 } key_dependency_type_t;
 extern const db_enum_t key_dependency_enum_set_type[];
 
-#include "key_dependency_ext.h"
 #include "zone_db.h"
 #include "key_data.h"
 
@@ -265,6 +264,9 @@ int key_dependency_list_get_by_clauses(key_dependency_list_t* key_dependency_lis
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
 int key_dependency_list_get_by_zone_id(key_dependency_list_t* key_dependency_list, const db_value_t* zone_id);
+
+key_dependency_list_t*
+key_dependency_list_new_get(const db_connection_t* connection);
 
 /**
  * Get a new list of key dependency objects from the database by a zone_id specified in `zone_id`.

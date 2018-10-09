@@ -1621,7 +1621,7 @@ ods_compare_gold_vs_base_signconf ()
 		# Exit subshell
 	done
 
-	if ! diff gold_temp base_temp; then
+	if ! diff -w gold_temp base_temp; then
 		return 1
 	fi
 
@@ -1717,6 +1717,6 @@ END
 	  xsltproc diff.xsl~ "$1" | xmllint --c14n - | xmllint --format - > "$1~"
 	  xsltproc diff.xsl~ "$2" | xmllint --c14n - | xmllint --format - > "$2~"
 	fi
-	echo "comparing file '$1' to '$2'."
+	echo "comparing file '$1~' to '$2~'."
 	diff -rw "$1~" "$2~"
 }

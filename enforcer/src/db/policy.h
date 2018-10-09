@@ -347,6 +347,7 @@ unsigned int policy_zone_soa_minimum(const policy_t* policy);
  * \return a character pointer or NULL on error or if no zone_soa_serial has been set.
  */
 const char* policy_zone_soa_serial_text(const policy_t* policy);
+const char* policy_zone_soa_serial_text2(unsigned int zone_soa_serial);
 
 /**
  * Get the parent_registration_delay of a policy object. Undefined behavior if `policy` is NULL.
@@ -837,5 +838,8 @@ const policy_t* policy_list_next(policy_list_t* policy_list);
  * policy objects in the policy object list.
  */
 policy_t* policy_list_get_next(policy_list_t* policy_list);
+
+size_t
+policy_list_size(policy_list_t* policy_list);
 
 #endif

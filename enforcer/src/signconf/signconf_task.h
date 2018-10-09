@@ -30,14 +30,14 @@
 #ifndef _SIGNCONF_SIGNCONF_TASK_H_
 #define _SIGNCONF_SIGNCONF_TASK_H_
 
-#include "db/db_connection.h"
-#include "db/policy.h"
+#include "daemon/engine.h"
+#include "db/dbw.h"
 
 void signconf_task_flush_zone(engine_type *engine, db_connection_t *dbconn,
     const char* zonename);
 
 void signconf_task_flush_policy(engine_type *engine, db_connection_t *dbconn,
-    policy_t const *policy);
+    char const *policyname);
 
 void signconf_task_flush_all(engine_type *engine, db_connection_t *dbconn);
 

@@ -37,7 +37,6 @@
 #include "log.h"
 #include "str.h"
 #include "clientpipe.h"
-#include "db/key_data.h"
 #include "keystate/keystate_ds.h"
 
 #include "keystate/keystate_ds_seen_cmd.h"
@@ -50,7 +49,7 @@ usage(int sockfd)
 		"	--zone <zone>				aka -z \n"
 		"	--keytag <keytag> | --cka_id <CKA_ID>	aka -x | -k\n"
 		"key ds-seen\n"
-		"	--all					aka -a \n"
+		"	--all					aka -a \n\n"
 	);
 }
 
@@ -63,24 +62,18 @@ help(int sockfd)
 		"\nOptions:\n"
 		"zone		name of the zone\n"
 		"keytag|cka_id	specify the keytag or the locator of the key\n\n"
-		"all		for all 'ready for ds-seen' KSKs");
+		"all		for all 'ready for ds-seen' KSKs\n");
 }
 
 static int
-run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 {
 	int error;
         db_connection_t* dbconn = getconnectioncontext(context);
         engine_type* engine = getglobalcontext(context);
-	error = run_ds_cmd(sockfd, cmd, dbconn,
+	return run_ds_cmd(sockfd, cmd, dbconn,
 		KEY_DATA_DS_AT_PARENT_SUBMITTED,
 		KEY_DATA_DS_AT_PARENT_SEEN, engine);
-	if (error == 0) {
-		/* YBS: TODO only affected zones */
-		enforce_task_flush_all(engine, dbconn);
-	}
-	return error;
-
 }
 
 struct cmd_func_block key_ds_seen_funcblock = {

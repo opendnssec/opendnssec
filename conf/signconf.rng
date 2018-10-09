@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Copyright (c) 2009 .SE (The Internet Infrastructure Foundation).
+  Copyright (c) 2015-2016 NLnet Labs.
+  All rights reserved.
+  
+  Redistribution and use in source and binary forms, with or without
+  modification, are permitted provided that the following conditions
+  are met:
+  1. Redistributions of source code must retain the above copyright
+     notice, this list of conditions and the following disclaimer.
+  2. Redistributions in binary form must reproduce the above copyright
+     notice, this list of conditions and the following disclaimer in the
+     documentation and/or other materials provided with the distribution.
+  
+  THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+  IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+  ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
+  DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+  GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+  IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+  OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+  IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+  
+-->
+<grammar xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+  <start>
+    <element name="SignerConfiguration">
+      <ref name="zone"/>
+    </element>
+  </start>
+  <define name="zone">
+    <element name="Zone">
+      <interleave>
+        <!-- zone name -->
+        <attribute name="name">
+          <data type="string"/>
+        </attribute>
+        <optional>
+          <!-- Do not touch contents of zonefile. -->
+          <element name="Passthrough">
+            <empty/>
+          </element>
+        </optional>
+        <!-- this section is taken directly from the corresponding KASP policy -->
+        <element name="Signatures">
+          <interleave>
+            <element name="Resign">
+              <data type="duration"/>
+            </element>
+            <element name="Refresh">
+              <data type="duration"/>
+            </element>
+            <element name="Validity">
+              <interleave>
+                <element name="Default">
+                  <data type="duration"/>
+                </element>
+                <element name="Denial">
+                  <data type="duration"/>
+                </element>
+                <optional>
+                  <element name="Keyset">
+                    <data type="duration"/>
+                  </element>
+                </optional>
+              </interleave>
+            </element>
+            <element name="Jitter">
+              <data type="duration"/>
+            </element>
+            <element name="InceptionOffset">
+              <data type="duration"/>
+            </element>
+            <optional>
+              <ref name="maxzonettl"/>
+            </optional>
+          </interleave>
+          <!-- Maximum TTL that may be used in a zone. -->
+        </element>
+        <!-- use NSEC or NSEC3? -->
+        <element name="Denial">
+          <choice>
+            <ref name="nsec"/>
+            <ref name="nsec3"/>
+          </choice>
+        </element>
+        <element name="Keys">
+          <interleave>
+            <!-- TTL for all DNSKEYs -->
+            <ref name="ttl"/>
+            <zeroOrMore>
+              <element name="Key">
+                <interleave>
+                  <!-- DNSKEY flags -->
+                  <element name="Flags">
+                    <data type="nonNegativeInteger">
+                      <param name="maxInclusive">65535</param>
+                    </data>
+                  </element>
+                  <!-- DNSKEY algorithm -->
+                  <ref name="algorithm"/>
+                  <optional>
+                    <!--
+                      The key locator is matched against the
+                      PKCS#11 CKA_ID and is specified as a string
+                      of hex characters.
+                    -->
+                    <element name="Locator">
+                      <data type="hexBinary"/>
+                    </element>
+                  </optional>
+                  <optional>
+                    <element name="ResourceRecord">
+                      <data type="base64Binary"/>
+                    </element>
+                  </optional>
+                  <optional>
+                    <!-- sign all the DNSKEY RRsets with this key? -->
+                    <element name="KSK">
+                      <empty/>
+                    </element>
+                  </optional>
+                  <optional>
+                    <!-- sign all non-DNSKEY RRsets with this key? -->
+                    <element name="ZSK">
+                      <empty/>
+                    </element>
+                  </optional>
+                  <optional>
+                    <!-- include this key in the zonefile? -->
+                    <element name="Publish">
+                      <empty/>
+                    </element>
+                  </optional>
+                  <optional>
+                    <!-- deactivate this key (i.e. do not recycle any signatures) -->
+                    <element name="Deactivate">
+                      <empty/>
+                    </element>
+                  </optional>
+                </interleave>
+              </element>
+            </zeroOrMore>
+            <zeroOrMore>
+              <element name="SignatureResourceRecord">
+                <data type="base64Binary"/>
+              </element>
+            </zeroOrMore>
+          </interleave>
+        </element>
+        <!-- What parameters to use for the SOA record -->
+        <ref name="soa"/>
+      </interleave>
+    </element>
+  </define>
+  <define name="algorithm">
+    <element name="Algorithm">
+      <data type="nonNegativeInteger">
+        <param name="maxInclusive">255</param>
+      </data>
+    </element>
+  </define>
+  <define name="ttl">
+    <element name="TTL">
+      <data type="duration"/>
+    </element>
+  </define>
+  <define name="soa">
+    <element name="SOA">
+      <interleave>
+        <ref name="ttl"/>
+        <element name="Minimum">
+          <data type="duration"/>
+        </element>
+        <ref name="serial"/>
+      </interleave>
+    </element>
+  </define>
+  <!-- see kasp.rnc for description -->
+  <define name="serial">
+    <element name="Serial">
+      <choice>
+        <value>counter</value>
+        <value>datecounter</value>
+        <value>unixtime</value>
+        <value>keep</value>
+      </choice>
+    </element>
+  </define>
+  <!-- This section is taken directly from the corresponding KASP policy -->
+  <define name="nsec">
+    <element name="NSEC">
+      <empty/>
+    </element>
+  </define>
+  <!--
+    This section is taken directly from the corresponding KASP policy
+    (except that the NSEC3 Salt is not optional)
+  -->
+  <define name="nsec3">
+    <element name="NSEC3">
+      <interleave>
+        <optional>
+          <ref name="ttl"/>
+        </optional>
+        <optional>
+          <element name="OptOut">
+            <empty/>
+          </element>
+        </optional>
+        <element name="Hash">
+          <interleave>
+            <ref name="algorithm"/>
+            <element name="Iterations">
+              <data type="nonNegativeInteger">
+                <param name="maxInclusive">65535</param>
+              </data>
+            </element>
+            <element name="Salt">
+              <data type="string"/>
+            </element>
+          </interleave>
+        </element>
+      </interleave>
+    </element>
+  </define>
+  <define name="maxzonettl">
+    <element name="MaxZoneTTL">
+      <data type="duration"/>
+    </element>
+  </define>
+</grammar>

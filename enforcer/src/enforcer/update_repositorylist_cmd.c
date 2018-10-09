@@ -36,11 +36,10 @@
 #include "str.h"
 #include "log.h"
 #include "file.h"
-#include "daemon/engine.h"
 #include "clientpipe.h"
-#include "daemon/cfg.h"
-#include "parser/confparser.h"
 #include "status.h"
+#include "cfg.h"
+#include "confparser.h"
 #include "utils/kc_helper.h"
 #include "daemon/engine.h"
 #include "libhsm.h"
@@ -75,7 +74,7 @@ perform_update_repositorylist(int sockfd, engine_type* engine)
 {
 	const char* cfgfile = ODS_SE_CFGFILE;
 	int status = 1;
-	hsm_repository_t* new_reps;
+	struct engineconfig_repository* new_reps;
 
 	if (validate_configfile(cfgfile)) {
 		ods_log_error_and_printf(sockfd, module_str,
@@ -96,7 +95,7 @@ perform_update_repositorylist(int sockfd, engine_type* engine)
 			client_printf(sockfd, "Could not load new repositories. Will continue with old.\n");
 		} else {
 			/* succes */
-            hsm_repository_free(engine->config->repositories);
+			engine_config_freehsms(engine->config->repositories);
 			engine->config->repositories = new_reps;
 			engine->need_to_reload = 1;
 			client_printf(sockfd, "new repositories parsed successful.\n");
@@ -124,7 +123,7 @@ help(int sockfd)
 }
 
 static int
-run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 {
         engine_type* engine = getglobalcontext(context);
         (void)cmd;

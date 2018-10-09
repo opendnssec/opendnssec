@@ -1,3 +1,4 @@
+.PHONY: analyze
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
 LIBHSM = ${top_builddir}/libhsm/src/lib/libhsm.a
@@ -22,30 +23,25 @@ ods_signerd_SOURCES=		ods-signerd.c \
 				adapter/addns.c adapter/addns.h \
 				adapter/adfile.c adapter/adfile.h \
 				adapter/adutil.c adapter/adutil.h \
-				daemon/cfg.c daemon/cfg.h \
+				daemon/metastorage.c daemon/metastorage.h \
 				daemon/signercommands.c daemon/signercommands.h \
+				daemon/signeroperation.c \
 				daemon/dnshandler.c daemon/dnshandler.h \
 				daemon/xfrhandler.c daemon/xfrhandler.h \
 				daemon/engine.c daemon/engine.h \
 				daemon/signertasks.c daemon/signertasks.h \
 				parser/addnsparser.c parser/addnsparser.h \
-				parser/confparser.c parser/confparser.h \
 				parser/signconfparser.c parser/signconfparser.h \
 				parser/zonelistparser.c parser/zonelistparser.h \
-				signer/backup.c signer/backup.h \
 				hsm.c hsm.h \
-				signer/denial.c signer/denial.h \
-				signer/domain.c signer/domain.h \
-				signer/ixfr.c signer/ixfr.h \
 				signer/keys.c signer/keys.h \
-				signer/namedb.c signer/namedb.h \
 				signer/nsec3params.c signer/nsec3params.h \
-				signer/rrset.c signer/rrset.h \
 				signer/signconf.c signer/signconf.h \
 				signer/stats.c signer/stats.h \
 				signer/tools.c signer/tools.h \
 				signer/zone.c signer/zone.h \
 				signer/zonelist.c signer/zonelist.h \
+				signer/backup.c \
 				wire/acl.c wire/acl.h \
 				wire/axfr.c wire/axfr.h \
 				wire/buffer.c wire/buffer.h \
@@ -58,7 +54,26 @@ ods_signerd_SOURCES=		ods-signerd.c \
 				wire/tcpset.c wire/tcpset.h \
 				wire/tsig.c wire/tsig.h \
 				wire/tsig-openssl.c wire/tsig-openssl.h \
-				wire/xfrd.c wire/xfrd.h
+				wire/xfrd.c wire/xfrd.h \
+				views/recordset.c \
+				views/index.c \
+				views/iterator.c \
+				views/iteratorgeneric.c \
+				views/table.c \
+				views/views.c \
+				views/marshalling.c views/marshalling.h \
+				views/commitlog.c \
+				views/httpd.c views/httpd.h \
+				views/ringbuf.h \
+				views/rpc.c \
+				views/zoneoutput.c \
+				views/proto.h \
+	views/libut.h views/utarray.h views/uthash.h views/utlist.h \
+	views/utmm.h views/utringbuffer.h views/utstring.h views/utvector.h
+
+analyze:
+	cd $(srcdir) ; cppcheck --quiet --force --enable=unusedFunction \
+	  $(ods_signerd_SOURCES)
 
 ods_signerd_LDADD=		$(LIBHSM)
 ods_signerd_LDADD+=		$(LIBCOMPAT)

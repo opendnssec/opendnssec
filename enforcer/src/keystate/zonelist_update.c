@@ -29,7 +29,7 @@
 #include "log.h"
 #include "str.h"
 #include "utils/kc_helper.h"
-#include "db/policy.h"
+#include "db/dbw.h"
 #include "clientpipe.h"
 
 #include "keystate/zonelist_update.h"
@@ -41,7 +41,9 @@
 #include <stdio.h>
 #include <string.h>
 
-static int zonelist_update(int add, int sockfd, const char* filename, const zone_db_t* zone, int comment) {
+static int zonelist_update(int add, int sockfd, const char* filename,
+        const struct dbw_zone *zone, const char *policyname, int comment)
+{
     xmlDocPtr doc;
     xmlNodePtr root;
     xmlNodePtr node;
@@ -51,12 +53,8 @@ static int zonelist_update(int add, int sockfd, const char* filename, const zone
     xmlChar* name;
     int found = 0;
     char path[PATH_MAX];
-    policy_t* policy;
 
-    if (!filename) {
-        return ZONELIST_UPDATE_ERR_ARGS;
-    }
-    if (!zone) {
+    if (!filename || !zone) {
         return ZONELIST_UPDATE_ERR_ARGS;
     }
 
@@ -147,7 +145,7 @@ static int zonelist_update(int add, int sockfd, const char* filename, const zone
                     return ZONELIST_UPDATE_ERR_XML;
                 }
 
-                if (!strcmp(zone_db_name(zone), (char*)name)) {
+                if (!strcmp(zone->name, (char*)name)) {
                     if (!add) {
                         xmlUnlinkNode(node);
                         xmlFreeNode(node);
@@ -172,25 +170,22 @@ static int zonelist_update(int add, int sockfd, const char* filename, const zone
         }
 
         if (add) {
-            if (!(policy = zone_db_get_policy(zone))
-                || !(node = xmlNewChild(root, NULL, (xmlChar*)"Zone", NULL))
-                || !xmlNewProp(node, (xmlChar*)"name", (xmlChar*)zone_db_name(zone))
-                || !xmlNewChild(node, NULL, (xmlChar*)"Policy", (xmlChar*)policy_name(policy))
-                || !xmlNewChild(node, NULL, (xmlChar*)"SignerConfiguration", (xmlChar*)zone_db_signconf_path(zone))
+            if (!(node = xmlNewChild(root, NULL, (xmlChar*)"Zone", NULL))
+                || !xmlNewProp(node, (xmlChar*)"name", (xmlChar*)zone->name)
+                || !xmlNewChild(node, NULL, (xmlChar*)"Policy", (xmlChar*)policyname)
+                || !xmlNewChild(node, NULL, (xmlChar*)"SignerConfiguration", (xmlChar*)zone->signconf_path)
                 || !(node2 = xmlNewChild(node, NULL, (xmlChar*)"Adapters", NULL))
                 || !(node3 = xmlNewChild(node2, NULL, (xmlChar*)"Input", NULL))
-                || !(node4 = xmlNewChild(node3, NULL, (xmlChar*)"Adapter", (xmlChar*)zone_db_input_adapter_uri(zone)))
-                || !xmlNewProp(node4, (xmlChar*)"type", (xmlChar*)zone_db_input_adapter_type(zone))
+                || !(node4 = xmlNewChild(node3, NULL, (xmlChar*)"Adapter", (xmlChar*)zone->input_adapter_uri))
+                || !xmlNewProp(node4, (xmlChar*)"type", (xmlChar*)zone->input_adapter_type)
                 || !(node3 = xmlNewChild(node2, NULL, (xmlChar*)"Output", NULL))
-                || !(node4 = xmlNewChild(node3, NULL, (xmlChar*)"Adapter", (xmlChar*)zone_db_output_adapter_uri(zone)))
-                || !xmlNewProp(node4, (xmlChar*)"type", (xmlChar*)zone_db_output_adapter_type(zone)))
+                || !(node4 = xmlNewChild(node3, NULL, (xmlChar*)"Adapter", (xmlChar*)zone->output_adapter_uri))
+                || !xmlNewProp(node4, (xmlChar*)"type", (xmlChar*)zone->output_adapter_type))
             {
                 client_printf_err(sockfd, "Unable to create new XML element, memory allocation or internal error!\n");
-                policy_free(policy);
                 xmlFreeDoc(doc);
                 return ZONELIST_UPDATE_ERR_XML;
             }
-            policy_free(policy);
         }
 
         break;
@@ -225,10 +220,14 @@ static int zonelist_update(int add, int sockfd, const char* filename, const zone
     return ZONELIST_UPDATE_OK;
 }
 
-int zonelist_update_add(int sockfd, const char* filename, const zone_db_t* zone, int comment) {
-    return zonelist_update(1, sockfd, filename, zone, comment);
+int zonelist_update_add(int sockfd, const char* filename,
+       const struct dbw_zone* zone, const char *policyname, int comment)
+{
+    return zonelist_update(1, sockfd, filename, zone, policyname, comment);
 }
 
-int zonelist_update_delete(int sockfd, const char* filename, const zone_db_t* zone, int comment) {
-    return zonelist_update(0, sockfd, filename, zone, comment);
+int zonelist_update_delete(int sockfd, const char* filename,
+       const struct dbw_zone* zone, const char *policyname, int comment)
+{
+    return zonelist_update(0, sockfd, filename, zone, policyname, comment);
 }

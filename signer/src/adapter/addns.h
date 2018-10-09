@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2009 NLNet Labs. All rights reserved.
+ * Copyright (c) 2009-2018 NLNet Labs.
+ * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -21,7 +22,6 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
 /**
@@ -36,7 +36,8 @@
 #include "status.h"
 #include "wire/acl.h"
 #include "wire/tsig.h"
-
+#include "signer/zone.h"
+#include "views/proto.h"
 #include <ldns/ldns.h>
 #include <stdio.h>
 #include <time.h>
@@ -123,7 +124,7 @@ ldns_rr* addns_read_rr(FILE* fd, char* line, ldns_rdf** orig, ldns_rdf** prev,
  * \return ods_status status
  *
  */
-ods_status addns_read(void* zone);
+ods_status addns_read(zone_type* zone, names_view_type view);
 
 /**
  * Write zone to DNS output adapter.
@@ -131,7 +132,7 @@ ods_status addns_read(void* zone);
  * \return ods_status status
  *
  */
-ods_status addns_write(void* zone);
+ods_status addns_write(zone_type* zone, names_view_type view);
 
 /**
  * Clean up DNS input adapter.

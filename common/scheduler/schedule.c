@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2009 NLNet Labs. All rights reserved.
+ * Copyright (c) 2009-2018 NLNet Labs.
+ * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -21,7 +22,6 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
 /**
@@ -189,14 +189,10 @@ schedule_create()
 {
     schedule_type* schedule;
     CHECKALLOC(schedule = (schedule_type*) malloc(sizeof(schedule_type)));
-    if (!schedule) {
-        ods_log_error("[%s] unable to create: malloc failed", schedule_str);
-        return NULL;
-    }
 
     schedule->tasks = ldns_rbtree_create(task_compare_time_then_ttuple);
     schedule->tasks_by_name = ldns_rbtree_create(task_compare_ttuple);
-    schedule->locks_by_name = ldns_rbtree_create(task_compare_ttuple);
+    schedule->locks_by_name = ldns_rbtree_create(task_compare_ttuple_lock);
 
     pthread_mutex_init(&schedule->schedule_lock, NULL);
     pthread_cond_init(&schedule->schedule_cond, NULL);
@@ -462,6 +458,7 @@ schedule_pop_task(schedule_type* schedule)
         timeout = clamp((task ? (task->due_date - now) : 0),
                         ((task && !strcmp(task->class, TASK_CLASS_ENFORCER)) ? 0 : 60),
                         ODS_SE_MAX_BACKOFF);
+        if (time_leaped()) timeout = -1;
         ods_thread_wait(&schedule->schedule_cond, &schedule->schedule_lock, timeout);
         schedule->num_waiting -= 1;
         task = NULL;
@@ -571,21 +568,23 @@ schedule_describetask(task_type* task)
     char* strtask = NULL;
     time_t time;
 
-    if (task) {
-	time = (task->due_date < time_now()) ? time_now() : task->due_date;
-        strtime = ctime_r(&time, ctimebuf);
-        if (strtime) {
-            strtime[strlen(strtime)-1] = '\0';
-        }
-        strtask = (char*) calloc(ODS_SE_MAXLINE, sizeof(char));
-        if (strtask) {
-            snprintf(strtask, ODS_SE_MAXLINE, "On %s I will %s zone %s\n",
-                    strtime ? strtime : "(null)", task->type, task->owner);
-            return strtask;
-        } else {
-            ods_log_error("unable to convert task to string: malloc error");
-            return NULL;
-        }
+    if (!task) return NULL;
+    time = (task->due_date < time_now()) ? time_now() : task->due_date;
+    strtime = ctime_r(&time, ctimebuf);
+    if (strtime) {
+        strtime[strlen(strtime)-1] = '\0';
+    } else {
+        strtime = (char *)"(null)";
+    }
+    strtask = (char*) calloc(ODS_SE_MAXLINE, sizeof(char));
+    if (strtask) {
+        char const *entity = strcmp(TASK_TYPE_RESALT, task->type) ? "zone" : "policy";
+        snprintf(strtask, ODS_SE_MAXLINE, "On %s I will %s %s %s\n",
+            strtime, task->type, entity, task->owner);
+        return strtask;
+    } else {
+        ods_log_error("unable to convert task to string: malloc error");
+        return NULL;
     }
     return strtask;
 }

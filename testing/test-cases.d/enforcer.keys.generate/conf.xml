@@ -11,6 +11,7 @@
 	</RepositoryList>
 	<Common>
 		<Logging>
+                    <Verbosity>5</Verbosity>
 			<Syslog><Facility>local0</Facility></Syslog>
 		</Logging>
 		<PolicyFile>@INSTALL_ROOT@/etc/opendnssec/kasp.xml</PolicyFile>
@@ -19,9 +20,10 @@
 	<Enforcer>
 		<Datastore><SQLite>@INSTALL_ROOT@/var/opendnssec/kasp.db</SQLite></Datastore>
 		<AutomaticKeyGenerationPeriod>PT50H</AutomaticKeyGenerationPeriod>
+		<WorkerThreads>1</WorkerThreads>
 	</Enforcer>
 	<Signer>
-		<WorkingDirectory>@INSTALL_ROOT@/var/opendnssec/tmp</WorkingDirectory>
+		<WorkingDirectory>@INSTALL_ROOT@/var/opendnssec/signer</WorkingDirectory>
 		<WorkerThreads>4</WorkerThreads>
 	</Signer>
 </Configuration>

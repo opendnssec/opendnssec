@@ -61,15 +61,15 @@ log_this ods-enforcer-zone_add   ods-enforcer zone delete --zone ods1 &&
 sleep 5 && ods_enforcer_idle &&
 log_grep ods-enforcer-zone_add   stdout "Deleted zone.*ods1" &&
 
-sleep 3 &&
+syslog_waitfor 180 "zone ods1 deleted" &&
 
 log_this ods-signer-sign-all ods-signer update --all &&
 log_this ods-signer-sign-all ods-signer sign --all &&
 
 #syslog_waitfor_count 5 1 "update zone: ods0" &&
-syslog_waitfor_count 60 2 'ods-signerd: .*\[STATS\] ods0' &&
+syslog_waitfor 60  'ods-signerd: .*\[STATS\] ods0.*new=1 reused=51' &&
 #syslog_grep_count 1 "update zone: ods1" &&
-syslog_grep_count 1 'ods-signerd: .*\[STATS\] ods1' &&
+! syslog_waitfor 15 'ods-signerd: .*\[STATS\] ods1.*new=1 reused=51' &&
 
 ods_stop_ods-control &&
 

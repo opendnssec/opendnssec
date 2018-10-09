@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2009-2011 NLNet Labs. All rights reserved.
+ * Copyright (c) 2009-2018 NLNet Labs.
+ * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -21,7 +22,6 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
 /**
@@ -36,6 +36,7 @@
 
 #include <stdio.h>
 #include <ldns/ldns.h>
+#include "signer/zone.h"
 
 #define SE_ADFILE_MAXLINE 65535
 
@@ -66,5 +67,21 @@ void adutil_rtrim_line(char* line, int* line_len);
  *
  */
 int adutil_whitespace_line(char* line, int line_len);
+
+/**
+ * Produce an AXFR or IXFR file, the file is immediately deleted, but an
+ * open file handler is returned so its content can be read.
+ * \param[in] zone Zone for which to produce an zone file
+ * \param[in] suffix Zhe suffix to use for the file, the base directory if the
+ *                   working directory for the signer and the filename is
+ *                   composed from the zone name, the suffix should start with
+ *                   a dot if one wants to have a proper suffix.
+ * \param[in] serial In case an IXFR needs to be produced this will be the
+ *                   requestors SOA serial number.  NULL in case an AXFR should
+ *                   be made.
+ * \return FILE* A file pointer to the rewound file containing the zone
+ *               transfer file.
+ */
+FILE* getxfr(zone_type* zone, const char* suffix, time_t* serial);
 
 #endif /* ADAPTER_ADUTIL_H */

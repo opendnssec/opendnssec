@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 NLNet Labs. All rights reserved.
+ * Copyright (c) 2009-2018 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -21,7 +21,6 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
 /**
@@ -30,16 +29,16 @@
  */
 
 #include "config.h"
+#include <errno.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
 #include "daemon/dnshandler.h"
 #include "adapter/adapter.h"
 #include "log.h"
 #include "signer/tools.h"
 #include "signer/zone.h"
-
-#include <errno.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <unistd.h>
+#include "daemon/metastorage.h"
 
 static const char* tools_str = "tools";
 
@@ -66,9 +65,7 @@ tools_signconf(zone_type* zone)
              * Or NSEC -> NSEC3, or NSEC3 -> NSEC, or NSEC3 params changed.
              * All NSEC(3)s become invalid.
              */
-            namedb_wipe_denial(zone->db);
-            namedb_cleanup_denials(zone->db);
-            namedb_init_denials(zone->db);
+            /* FIXME namedb_wipe_denial(zone, NULL); */
         }
         /* all ok, switch signer configuration */
         signconf_cleanup(zone->signconf);
@@ -100,29 +97,27 @@ tools_input(zone_type* zone)
     ods_log_assert(zone->name);
     ods_log_assert(zone->adinbound);
     ods_log_assert(zone->signconf);
+    
+    names_view_type view;
+    view = zone->inputview;
+    
     /* Key Rollover? */
-    status = zone_publish_dnskeys(zone, 0);
+    status = zone_publish_dnskeys(zone, view, 0);
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] unable to read zone %s: failed to "
             "publish dnskeys (%s)", tools_str, zone->name,
             ods_status2str(status));
-        zone_rollback_dnskeys(zone);
-        zone_rollback_nsec3param(zone);
-        namedb_rollback(zone->db, 0);
         return status;
     }
     /* Denial of Existence Rollover? */
     if (!zone->signconf->passthrough)
-        status = zone_publish_nsec3param(zone);
+        status = zone_publish_nsec3param(zone, view);
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] unable to read zone %s: failed to "
             "publish nsec3param (%s)", tools_str, zone->name,
             ods_status2str(status));
-        zone_rollback_dnskeys(zone);
-        zone_rollback_nsec3param(zone);
-        namedb_rollback(zone->db, 0);
         return status;
-    }
+    } else {
 
     if (zone->stats) {
         pthread_mutex_lock(&zone->stats->stats_lock);
@@ -133,7 +128,7 @@ tools_input(zone_type* zone)
     }
     /* Input Adapter */
     start = time(NULL);
-    status = adapter_read((void*)zone);
+    status = adapter_read(zone, view);
     if (status != ODS_STATUS_OK && status != ODS_STATUS_UNCHANGED) {
         if (status == ODS_STATUS_XFRINCOMPLETE) {
             ods_log_info("[%s] read zone %s: xfr in progress",
@@ -142,9 +137,6 @@ tools_input(zone_type* zone)
             ods_log_error("[%s] unable to read zone %s: adapter failed (%s)",
                 tools_str, zone->name, ods_status2str(status));
         }
-        zone_rollback_dnskeys(zone);
-        zone_rollback_nsec3param(zone);
-        namedb_rollback(zone->db, 0);
     }
     end = time(NULL);
     if ((status == ODS_STATUS_OK || status == ODS_STATUS_UNCHANGED)
@@ -154,6 +146,18 @@ tools_input(zone_type* zone)
         zone->stats->sort_time = (end-start);
         zone->stats->sort_done = 1;
         pthread_mutex_unlock(&zone->stats->stats_lock);
+    }
+    }
+    switch(status) {
+        case ODS_STATUS_OK:
+            names_viewcommit(view);
+            metastorageput(zone);
+            break;
+        case ODS_STATUS_UNCHANGED:
+            names_viewreset(view);
+            break;
+        default:
+            names_viewreset(view);
     }
     return status;
 }
@@ -184,39 +188,17 @@ tools_output(zone_type* zone, engine_type* engine)
     ods_log_assert(engine);
     ods_log_assert(engine->config);
     ods_log_assert(zone);
-    ods_log_assert(zone->db);
     ods_log_assert(zone->name);
     ods_log_assert(zone->signconf);
     ods_log_assert(zone->adoutbound);
-    /* prepare */
-    if (zone->stats) {
-        pthread_mutex_lock(&zone->stats->stats_lock);
-        if (zone->stats->sort_done == 0 &&
-            (zone->stats->sig_count <= zone->stats->sig_soa_count)) {
-            ods_log_verbose("[%s] skip write zone %s serial %u (zone not "
-                "changed)", tools_str, zone->name?zone->name:"(null)",
-                zone->db->intserial);
-            stats_clear(zone->stats);
-            pthread_mutex_unlock(&zone->stats->stats_lock);
-            zone->db->intserial =
-                zone->db->outserial;
-            return ODS_STATUS_OK;
-        }
-        pthread_mutex_unlock(&zone->stats->stats_lock);
-    }
     /* Output Adapter */
-    status = adapter_write((void*)zone);
+    metastorageput(zone);
+    status = adapter_write(zone);
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] unable to write zone %s: adapter failed (%s)",
             tools_str, zone->name, ods_status2str(status));
         return status;
     }
-    zone->db->outserial = zone->db->intserial;
-    zone->db->is_initialized = 1;
-    zone->db->have_serial = 1;
-    pthread_mutex_lock(&zone->ixfr->ixfr_lock);
-    ixfr_purge(zone->ixfr, zone->name);
-    pthread_mutex_unlock(&zone->ixfr->ixfr_lock);
     /* kick the nameserver */
     if (zone->notify_ns) {
 	int pid_status;
@@ -265,8 +247,8 @@ tools_output(zone_type* zone, engine_type* engine)
         pthread_mutex_lock(&zone->stats->stats_lock);
         zone->stats->end_time = time(NULL);
         ods_log_debug("[%s] log stats for zone %s serial %u", tools_str,
-            zone->name?zone->name:"(null)", (unsigned) zone->db->outserial);
-        stats_log(zone->stats, zone->name, zone->db->outserial,
+            (zone->name?zone->name:"(null)"), (unsigned) (zone->outboundserial ? *zone->outboundserial : 0));
+        stats_log(zone->stats, zone->name, (zone->outboundserial ? *zone->outboundserial : 0),
             zone->signconf->nsec_type);
         stats_clear(zone->stats);
         pthread_mutex_unlock(&zone->stats->stats_lock);

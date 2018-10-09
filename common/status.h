@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2010-2011 NLNet Labs. All rights reserved.
+ * Copyright (c) 2010-2018 NLNet Labs.
+ * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -21,7 +22,6 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
 /**
@@ -36,7 +36,7 @@
 #include "log.h"
 
 enum ods_enum_status {
-    ODS_STATUS_OK,
+    ODS_STATUS_OK = 0,
     ODS_STATUS_EOF,
     ODS_STATUS_NOTIMPL,
     ODS_STATUS_UPTODATE,
@@ -118,6 +118,8 @@ ods_lookup_table* ods_lookup_by_id(ods_lookup_table *table, int id);
  */
 const char *ods_status2str(ods_status status);
 
+#ifndef CHECKALLOC
 #define CHECKALLOC(PTR) if(!(PTR)) { ods_fatal_exit("Out of memory when executing %s at %s:%d\n", #PTR, __FILE__, __LINE__); }
+#endif
 
 #endif /* UTIL_STATUS_H */

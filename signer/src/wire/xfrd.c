@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2011 NLNet Labs. All rights reserved.
+ * Copyright (c) 2011-2018 NLNet Labs.
+ * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -21,7 +22,6 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
 /**
@@ -37,11 +37,9 @@
 #include "log.h"
 #include "status.h"
 #include "util.h"
-#include "signer/domain.h"
 #include "signer/zone.h"
 #include "wire/tcpset.h"
 #include "wire/xfrd.h"
-#include "signer/backup.h"
 
 #include <unistd.h>
 #include <fcntl.h>
@@ -86,225 +84,6 @@ static time_t xfrd_time(xfrd_type* xfrd);
 static void xfrd_set_timer(xfrd_type* xfrd, time_t t);
 static void xfrd_set_timer_time(xfrd_type* xfrd, time_t t);
 static void xfrd_unset_timer(xfrd_type* xfrd);
-
-
-/**
- * Recover transfer variables.
- *
- */
-static uint8_t
-xfrd_recover_dname(uint8_t* dname, const char* name)
-{
-    const uint8_t *s = (const uint8_t *) name;
-    uint8_t *h;
-    uint8_t *p;
-    uint8_t *d = dname;
-    size_t label_length;
-
-    if (strcmp(name, ".") == 0) {
-        /* Root domain.  */
-        dname[0] = 0;
-        return 1;
-    }
-    for (h = d, p = h + 1; *s; ++s, ++p) {
-        if (p - dname >= MAXDOMAINLEN) {
-            return 0;
-        }
-        switch (*s) {
-            case '.':
-                if (p == h + 1) {
-                    /* Empty label.  */
-                    return 0;
-                } else {
-                    label_length = p - h - 1;
-                    if (label_length > MAXLABELLEN) {
-                        return 0;
-                    }
-                    *h = label_length;
-                    h = p;
-                }
-                break;
-            case '\\':
-                /* Handle escaped characters (RFC1035 5.1) */
-                if (isdigit(s[1]) && isdigit(s[2]) && isdigit(s[3])) {
-                    int val = (ldns_hexdigit_to_int(s[1]) * 100 +
-                               ldns_hexdigit_to_int(s[2]) * 10 +
-                               ldns_hexdigit_to_int(s[3]));
-                    if (0 <= val && val <= 255) {
-                        s += 3;
-                        *p = val;
-                    } else {
-                        *p = *++s;
-                    }
-                } else if (s[1] != '\0') {
-                    *p = *++s;
-                }
-                break;
-            default:
-                *p = *s;
-                break;
-        }
-    }
-    if (p != h + 1) {
-        /* Terminate last label.  */
-        label_length = p - h - 1;
-        if (label_length > MAXLABELLEN) {
-            return 0;
-        }
-        *h = label_length;
-        h = p;
-    }
-    /* Add root label.  */
-    *h = 0;
-    return p-dname;
-}
-
-
-/**
- * Recover transfer variables.
- *
- */
-static void
-xfrd_recover(xfrd_type* xfrd)
-{
-    zone_type* zone = (zone_type*) xfrd->zone;
-    char* file = NULL;
-    FILE* fd = NULL;
-    int round_num = 0;
-    int master_num = 0;
-    int next_master = 0;
-    uint32_t timeout = 0;
-    uint32_t serial_xfr = 0;
-    uint32_t serial_notify = 0;
-    uint32_t serial_disk = 0;
-    time_t serial_xfr_acquired = 0;
-    time_t serial_notify_acquired = 0;
-    time_t serial_disk_acquired = 0;
-    uint32_t soa_ttl = 0;
-    uint32_t soa_serial = 0;
-    uint32_t soa_refresh = 0;
-    uint32_t soa_retry = 0;
-    uint32_t soa_expire = 0;
-    uint32_t soa_minimum = 0;
-    const char* soa_mname = NULL;
-    const char* soa_rname = NULL;
-
-    if (zone && zone->name && zone->db &&
-        zone->db->is_initialized && zone->db->have_serial) {
-        file = ods_build_path(zone->name, ".xfrd-state", 0, 1);
-        if (file) {
-            ods_log_verbose("[%s] recover xfrd.state file %s zone %s", xfrd_str,
-                file, zone->name);
-            fd = ods_fopen(file, NULL, "r");
-            if (fd) {
-                if (!backup_read_check_str(fd, ODS_SE_FILE_MAGIC_V3)) {
-                    ods_log_error("[%s] corrupted state file zone %s: read "
-                        "magic (start) error", xfrd_str, zone->name);
-                    goto xfrd_recover_error;
-                }
-                if (!backup_read_check_str(fd, ";;Zone:") |
-                    !backup_read_check_str(fd, "name") |
-                    !backup_read_check_str(fd, zone->name) |
-                    !backup_read_check_str(fd, "ttl") |
-                    !backup_read_uint32_t(fd, &soa_ttl) |
-                    !backup_read_check_str(fd, "mname") |
-                    !backup_read_str(fd, &soa_mname) |
-                    !backup_read_check_str(fd, "rname") |
-                    !backup_read_str(fd, &soa_rname) |
-                    !backup_read_check_str(fd, "serial") |
-                    !backup_read_uint32_t(fd, &soa_serial) |
-                    !backup_read_check_str(fd, "refresh") |
-                    !backup_read_uint32_t(fd, &soa_refresh) |
-                    !backup_read_check_str(fd, "retry") |
-                    !backup_read_uint32_t(fd, &soa_retry) |
-                    !backup_read_check_str(fd, "expire") |
-                    !backup_read_uint32_t(fd, &soa_expire) |
-                    !backup_read_check_str(fd, "minimum") |
-                    !backup_read_uint32_t(fd, &soa_minimum)) {
-                    ods_log_error("[%s] corrupted state file zone %s: read "
-                         ";;Zone error", xfrd_str, zone->name);
-                    goto xfrd_recover_error;
-                }
-                if (!backup_read_check_str(fd, ";;Master:") |
-                    !backup_read_check_str(fd, "num") |
-                    !backup_read_int(fd, &master_num) |
-                    !backup_read_check_str(fd, "next") |
-                    !backup_read_int(fd, &next_master) |
-                    !backup_read_check_str(fd, "round") |
-                    !backup_read_int(fd, &round_num) |
-                    !backup_read_check_str(fd, "timeout") |
-                    !backup_read_uint32_t(fd, &timeout)) {
-                    ods_log_error("[%s] corrupt state file zone %s: read "
-                         ";;Master error", xfrd_str, zone->name);
-                    goto xfrd_recover_error;
-                }
-                if (!backup_read_check_str(fd, ";;Serial:") |
-                    !backup_read_check_str(fd, "xfr") |
-                    !backup_read_uint32_t(fd, &serial_xfr) |
-                    !backup_read_time_t(fd, &serial_xfr_acquired) |
-                    !backup_read_check_str(fd, "notify") |
-                    !backup_read_uint32_t(fd, &serial_notify) |
-                    !backup_read_time_t(fd, &serial_notify_acquired) |
-                    !backup_read_check_str(fd, "disk") |
-                    !backup_read_uint32_t(fd, &serial_disk) |
-                    !backup_read_time_t(fd, &serial_disk_acquired)) {
-                    ods_log_error("[%s] corrupt state file zone %s: read "
-                         ";;Serial error", xfrd_str, zone->name);
-                    goto xfrd_recover_error;
-                }
-                if (!backup_read_check_str(fd, ODS_SE_FILE_MAGIC_V3)) {
-                    ods_log_error("[%s] corrupt state file zone %s: read "
-                        "magic (end) error", xfrd_str, zone->name);
-                    goto xfrd_recover_error;
-                }
-
-                /* all ok */
-                xfrd->master_num = master_num;
-                xfrd->next_master = next_master;
-                xfrd->round_num = round_num;
-                xfrd->timeout.tv_sec = timeout;
-                xfrd->timeout.tv_nsec = 0;
-                xfrd->master = NULL; /* acl_find_num(...) */
-                xfrd->soa.ttl = soa_ttl;
-                xfrd->soa.serial = soa_serial;
-                xfrd->soa.refresh = soa_refresh;
-                xfrd->soa.retry = soa_retry;
-                xfrd->soa.expire = soa_expire;
-                xfrd->soa.minimum = soa_minimum;
-                xfrd->soa.mname[0] = xfrd_recover_dname(xfrd->soa.mname+1,
-                    soa_mname);
-                xfrd->soa.rname[0] = xfrd_recover_dname(xfrd->soa.rname+1,
-                    soa_rname);
-                xfrd->serial_xfr = serial_xfr;
-                xfrd->serial_xfr_acquired = serial_xfr_acquired;
-                xfrd->serial_notify = serial_notify;
-                xfrd->serial_notify_acquired = serial_notify_acquired;
-                xfrd->serial_disk = serial_disk;
-                xfrd->serial_disk_acquired = serial_disk_acquired;
-                if (!timeout || serial_notify_acquired ||
-                    (serial_disk_acquired &&
-                    (uint32_t)xfrd_time(xfrd) - serial_disk_acquired >
-                    soa_refresh)) {
-                    xfrd_set_timer_refresh(xfrd);
-                }
-                if (serial_disk_acquired &&
-                    ((uint32_t)xfrd_time(xfrd) - serial_disk_acquired >
-                    soa_expire)) {
-                    xfrd_set_timer_refresh(xfrd);
-                }
-
-xfrd_recover_error:
-                free((void*)soa_mname);
-                free((void*)soa_rname);
-                ods_fclose(fd);
-            }
-            free(file);
-        }
-    } else {
-        ods_log_verbose("[%s] did not recover xfrd.state file zone %s", xfrd_str,
-            (zone && zone->name)?zone->name:"(null)");
-    }
-}
 
 
 /**
@@ -370,7 +149,6 @@ xfrd_create(xfrhandler_type* xfrhandler, zone_type* zone)
         NETIO_EVENT_READ|NETIO_EVENT_TIMEOUT;
     xfrd->handler.event_handler = xfrd_handle_zone;
     xfrd_set_timer_time(xfrd, 0);
-    xfrd_recover(xfrd);
     return xfrd;
 }
 
@@ -568,9 +346,6 @@ xfrd_tsig_sign(xfrd_type* xfrd, buffer_type* buffer)
     xfrd->tsig_rr->original_query_id = buffer_pkt_id(buffer);
     xfrd->tsig_rr->algo_name = ldns_rdf_clone(xfrd->tsig_rr->algo->wf_name);
     xfrd->tsig_rr->key_name = ldns_rdf_clone(xfrd->tsig_rr->key->dname);
-    log_dname(xfrd->tsig_rr->key_name, "tsig sign query with key", LOG_DEBUG);
-    log_dname(xfrd->tsig_rr->algo_name, "tsig sign query with algorithm",
-        LOG_DEBUG);
     tsig_rr_prepare(xfrd->tsig_rr);
     tsig_rr_update(xfrd->tsig_rr, buffer, buffer_position(buffer));
     tsig_rr_sign(xfrd->tsig_rr);
@@ -1550,6 +1325,7 @@ xfrd_tcp_read(xfrd_type* xfrd, tcp_set_type* set)
             ods_log_verbose("[%s] disable ixfr requests for %s from now (%lu)",
                 xfrd_str, xfrd->master->address, (unsigned long)xfrd->master->ixfr_disabled);
             /* break; */
+            __attribute__ ((fallthrough)); /* squelch compiler warning */
         case XFRD_PKT_BAD:
         default:
             ods_log_debug("[%s] tcp read %s: release connection", xfrd_str,
@@ -1834,6 +1610,7 @@ xfrd_udp_read(xfrd_type* xfrd)
             ods_log_verbose("[%s] disable ixfr requests for %s from now (%lu)",
                 xfrd_str, xfrd->master->address, (unsigned long)xfrd->master->ixfr_disabled);
             /* break; */
+            __attribute__ ((fallthrough)); /* squelch compiler warning */
         case XFRD_PKT_BAD:
         default:
             ods_log_debug("[%s] bad ixfr packet from %s",

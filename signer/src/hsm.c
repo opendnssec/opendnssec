@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2009 NLNet Labs. All rights reserved.
+ * Copyright (c) 2009-2018 NLNet Labs.
+ * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -21,7 +22,6 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
 /**
@@ -136,13 +136,13 @@ llibhsm_key_start:
  */
 ldns_rr*
 lhsm_sign(hsm_ctx_t* ctx, ldns_rr_list* rrset, key_type* key_id,
-    ldns_rdf* owner, time_t inception, time_t expiration)
+    time_t inception, time_t expiration)
 {
     char* error = NULL;
     ldns_rr* result = NULL;
     hsm_sign_params_t* params = NULL;
 
-    if (!owner || !key_id || !rrset || !inception || !expiration) {
+    if (!key_id || !rrset || !inception || !expiration) {
         ods_log_error("[%s] unable to sign: missing required elements",
             hsm_str);
         return NULL;
@@ -157,9 +157,6 @@ lhsm_sign(hsm_ctx_t* ctx, ldns_rr_list* rrset, key_type* key_id,
     params->inception = inception;
     params->expiration = expiration;
     params->keytag = key_id->params->keytag;
-    ods_log_deeebug("[%s] sign RRset[%i] with key %s tag %u", hsm_str,
-        ldns_rr_get_type(ldns_rr_list_rr(rrset, 0)),
-        key_id->locator?key_id->locator:"(null)", params->keytag);
     result = hsm_sign_rrset(ctx, rrset, keylookup(ctx, key_id->locator), params);
     hsm_sign_params_free(params);
     if (!result) {

@@ -18,7 +18,7 @@ syslog_waitfor 10 'ods-enforcerd: .*Incorrect PIN for repository SoftHSM' &&
 
 ! ods_start_signer &&
 syslog_waitfor 10 'ods-signerd: .*Incorrect PIN for repository SoftHSM' &&
-syslog_waitfor 10 'ods-signerd: \[engine\] opening hsm failed (for engine recover)' &&
+syslog_waitfor 10 'ods-signerd: \[engine\] opening hsm failed' &&
 
 ! pgrep -u `id -u` '(ods-enforcerd|ods-signerd)' >/dev/null 2>/dev/null &&
 return 0

@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2011 NLNet Labs. All rights reserved.
+ * Copyright (c) 2011-2018 NLNet Labs.
+ * All rights reserved.
  *
  * Taken from NSD3 and adjusted for OpenDNSSEC, NLnet Labs.
  *
@@ -23,7 +24,6 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
 /**
@@ -77,11 +77,9 @@ tsig_handler_add_key(tsig_key_type* key)
         return;
     }
     CHECKALLOC(entry = (tsig_key_table_type *) malloc(sizeof(tsig_key_table_type)));
-    if (entry) {
-        entry->key = key;
-        entry->next = tsig_key_table;
-        tsig_key_table = entry;
-    }
+    entry->key = key;
+    entry->next = tsig_key_table;
+    tsig_key_table = entry;
 }
 
 
@@ -97,13 +95,11 @@ tsig_handler_add_algo(tsig_algo_type* algo)
         return;
     }
     CHECKALLOC(entry = (tsig_algo_table_type *) malloc(sizeof(tsig_algo_table_type)));
-    if (entry) {
-        entry->algorithm = algo;
-        entry->next = tsig_algo_table;
-        tsig_algo_table = entry;
-        if (algo->max_digest_size > max_algo_digest_size) {
-            max_algo_digest_size = algo->max_digest_size;
-        }
+    entry->algorithm = algo;
+    entry->next = tsig_algo_table;
+    tsig_algo_table = entry;
+    if (algo->max_digest_size > max_algo_digest_size) {
+        max_algo_digest_size = algo->max_digest_size;
     }
 }
 

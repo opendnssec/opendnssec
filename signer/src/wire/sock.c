@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2011 NLNet Labs. All rights reserved.
+ * Copyright (c) 2011-2018 NLNet Labs.
+ * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -21,7 +22,6 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
 /**
@@ -474,13 +474,6 @@ sock_handle_tcp_accept(netio_type* netio, netio_handler_type* handler,
     /* create tcp handler data */
     CHECKALLOC(tcp_data = (struct tcp_data*) malloc(sizeof(struct tcp_data)));
     tcp_data->query = query_create();
-    if (!tcp_data->query) {
-        ods_log_error("[%s] unable to handle incoming tcp connection: "
-            "query_create() failed", sock_str);
-        free(tcp_data);
-        close(s);
-        return;
-    }
     tcp_data->engine = accept_data->engine;
     tcp_data->tcp_accept_handler_count =
         accept_data->tcp_accept_handler_count;
@@ -492,15 +485,6 @@ sock_handle_tcp_accept(netio_type* netio, netio_handler_type* handler,
     CHECKALLOC(tcp_handler = (netio_handler_type*) malloc(sizeof(netio_handler_type)));
     tcp_handler->fd = s;
     CHECKALLOC(tcp_handler->timeout = (struct timespec*) malloc(sizeof(struct timespec)));
-    if (!tcp_handler->timeout) {
-        ods_log_error("[%s] unable to handle incoming tcp connection: "
-            "allocator_alloc() timeout failed", sock_str);
-        free(tcp_handler);
-        query_cleanup(tcp_data->query);
-        free(tcp_data);
-        close(s);
-        return;
-    }
     tcp_handler->timeout->tv_sec = XFRD_TCP_TIMEOUT;
     tcp_handler->timeout->tv_nsec = 0L;
     timespec_add(tcp_handler->timeout, netio_current_time(netio));

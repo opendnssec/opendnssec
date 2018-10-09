@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2009 NLNet Labs. All rights reserved.
+ * Copyright (c) 2009-2018 NLNet Labs.
+ * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -21,7 +22,6 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
 /**
@@ -37,12 +37,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <libxml/parser.h>
-#include "parser/confparser.h"
+#include "confparser.h"
+#include "logging.h"
 
 
 #define AUTHOR_NAME "Matthijs Mekking"
 #define COPYRIGHT_STR "Copyright (C) 2008-2010 NLnet Labs OpenDNSSEC"
 
+static engine_type* engine;
 
 /**
  * Prints usage.
@@ -120,16 +122,16 @@ main(int argc, char* argv[])
     char* argv0;
     int c, returncode;
     int options_index = 0;
-    int info = 0;
     int daemonize = 1;
     int cmdline_verbosity = 0;
     char *time_arg = NULL;
     const char* cfgfile = ODS_SE_CFGFILE;
+    int linkfd;
+    ods_status status;
     static struct option long_options[] = {
         {"config", required_argument, 0, 'c'},
         {"no-daemon", no_argument, 0, 'd'},
         {"help", no_argument, 0, 'h'},
-        {"info", no_argument, 0, 'i'},
         {"verbose", no_argument, 0, 'v'},
         {"version", no_argument, 0, 'V'},
         {"set-time", required_argument, 0, 256},
@@ -138,14 +140,14 @@ main(int argc, char* argv[])
 
     if(argv[0][0] != '/') {
         char *path = getcwd(NULL,0);
-        asprintf(&argv0, "%s/%s", path, argv[0]);
+        asprintf(&argv0, "%s/%s", path, argv[0]); /* FIXME this won't work when ods-signer is in path, the result is that stacktraces won't work. */
         free(path);
     } else {
         argv0 = strdup(argv[0]);
     }
 
     /* parse the commandline */
-    while ((c=getopt_long(argc, argv, "c:dhivV",
+    while ((c=getopt_long(argc, argv, "c:dhvV",
         long_options, &options_index)) != -1) {
         switch (c) {
             case 'c':
@@ -157,9 +159,6 @@ main(int argc, char* argv[])
             case 'h':
                 usage(stdout);
                 exit(0);
-                break;
-            case 'i':
-                info = 1;
                 break;
             case 'v':
                 cmdline_verbosity++;
@@ -196,9 +195,81 @@ main(int argc, char* argv[])
 
     ods_janitor_initialize(argv0);
     program_setup(cfgfile, cmdline_verbosity);
-    returncode = engine_start(cfgfile, cmdline_verbosity, daemonize, info);
+
+    engine = engine_create();
+    if((status = engine_setup_preconfig(engine, cfgfile)) != ODS_STATUS_OK) {
+        ods_fatal_exit("Unable to start signer daemon: %s", ods_status2str(status));
+    }
+    if((status = engine_setup_config(engine, cfgfile, cmdline_verbosity, daemonize)) != ODS_STATUS_OK) {
+        ods_fatal_exit("Unable to start signer daemon: %s", ods_status2str(status));
+    }
+    if((status = engine_setup_initialize(engine, &linkfd)) != ODS_STATUS_OK) {
+        ods_fatal_exit("Unable to start signer daemon: %s", ods_status2str(status));
+    }
+    if((status = engine_setup_signals(engine)) != ODS_STATUS_OK) {
+        ods_fatal_exit("Unable to start signer daemon: %s", ods_status2str(status));
+    }
+    if((status = engine_setup_workstart(engine)) != ODS_STATUS_OK) {
+        ods_fatal_exit("Unable to start signer daemon: %s", ods_status2str(status));
+    }
+    if((status = engine_setup_netwstart(engine)) != ODS_STATUS_OK) {
+        ods_fatal_exit("Unable to start signer daemon: %s", ods_status2str(status));
+    }
+    if((status = engine_setup_finish(engine, linkfd)) != ODS_STATUS_OK) {
+        ods_fatal_exit("Unable to start signer daemon: %s", ods_status2str(status));
+    }
+    returncode = engine_start(engine);
+    engine_cleanup(engine);
+    engine = NULL;
     program_teardown();
 
     free(argv0);
     return returncode;
+}
+
+static void *
+signal_handler(sig_atomic_t sig)
+{
+    switch (sig) {
+        case SIGHUP:
+            if (engine) {
+                engine->need_to_reload = 1;
+                pthread_mutex_lock(&engine->signal_lock);
+                pthread_cond_signal(&engine->signal_cond);
+                pthread_mutex_unlock(&engine->signal_lock);
+            }
+            break;
+        case SIGINT:
+        case SIGTERM:
+            if (engine) {
+                engine->need_to_exit = 1;
+                pthread_mutex_lock(&engine->signal_lock);
+                pthread_cond_signal(&engine->signal_cond);
+                pthread_mutex_unlock(&engine->signal_lock);
+            }
+            break;
+        default:
+            break;
+    }
+    return NULL;
+}
+
+ods_status
+engine_setup_signals(engine_type* engine)
+{
+    struct sigaction action;
+    /* catch signals */
+    action.sa_handler = (void (*)(int))signal_handler;
+    sigfillset(&action.sa_mask);
+    action.sa_flags = 0;
+    sigaction(SIGTERM, &action, NULL);
+    sigaction(SIGHUP, &action, NULL);
+    sigaction(SIGINT, &action, NULL);
+    sigaction(SIGILL, &action, NULL);
+    sigaction(SIGUSR1, &action, NULL);
+    sigaction(SIGALRM, &action, NULL);
+    sigaction(SIGCHLD, &action, NULL);
+    action.sa_handler = SIG_IGN;
+    sigaction(SIGPIPE, &action, NULL);
+    return ODS_STATUS_OK;
 }

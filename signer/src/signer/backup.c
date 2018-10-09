@@ -30,6 +30,7 @@
  */
 
 #include "config.h"
+#include "signer/zone.h"
 #include "adapter/adapi.h"
 #include "adapter/adutil.h"
 #include "duration.h"
@@ -37,12 +38,21 @@
 #include "log.h"
 #include "status.h"
 #include "util.h"
-#include "signer/backup.h"
-#include "signer/zone.h"
+#include "signer/signconf.h"
 
 #include <ldns/ldns.h>
 
 static const char* backup_str = "backup";
+static const char* sc_str = "signconf";
+static const char* zone_str = "zone";
+
+
+
+static recordset_type*
+lookupdenial(names_view_type view, ldns_rdf* dname)
+{
+    return NULL; // FIXME
+}
 
 
 /**
@@ -301,11 +311,11 @@ replace_space_with_nul(char* str)
  *
  */
 ods_status
-backup_read_namedb(FILE* in, void* zone)
+backup_read_namedb(FILE* in, zone_type* zone, names_view_type view)
 {
     zone_type* z = (zone_type*) zone;
-    denial_type* denial = NULL;
-    rrset_type* rrset = NULL;
+    recordset_type record;
+    ldns_rr_list* rrset;
     ods_status result = ODS_STATUS_OK;
     ldns_rr_type type_covered;
     ldns_rr* rr = NULL;
@@ -316,6 +326,7 @@ backup_read_namedb(FILE* in, void* zone)
     char line[SE_ADFILE_MAXLINE];
     char* str = NULL;
     char* locator = NULL;
+    char* name;
     uint32_t flags = 0;
     unsigned int l = 0;
 
@@ -323,7 +334,7 @@ backup_read_namedb(FILE* in, void* zone)
     ods_log_assert(z);
 
     /* $ORIGIN <zone name> */
-    dname = adapi_get_origin(z);
+    dname = zone->apex;
     if (!dname) {
         ods_log_error("[%s] error getting default value for $ORIGIN",
             backup_str);
@@ -347,7 +358,7 @@ backup_read_namedb(FILE* in, void* zone)
             goto backup_namedb_done;
         }
         /* add to the database */
-        result = adapi_add_rr(z, rr, 1);
+        result = adapi_add_rr(z, view, rr, 1);
         if (result == ODS_STATUS_UNCHANGED) {
             ods_log_debug("[%s] skipping RR #%i (duplicate): %s",
                 backup_str, l, line);
@@ -369,7 +380,6 @@ backup_read_namedb(FILE* in, void* zone)
         result = ODS_STATUS_ERR;
         goto backup_namedb_done;
     }
-    namedb_diff(z->db, 0, 0);
 
     /* read NSEC(3)s */
     ods_log_debug("[%s] read NSEC(3)s %s", backup_str, z->name);
@@ -393,16 +403,9 @@ backup_read_namedb(FILE* in, void* zone)
             goto backup_namedb_done;
         }
         /* add to the denial chain */
-        denial = namedb_lookup_denial(z->db, ldns_rr_owner(rr));
-        if (!denial) {
-            ods_log_error("[%s] error adding NSEC(3) #%i: %s",
-                backup_str, l, line);
-            ldns_rr_free(rr);
-            rr = NULL;
-            result = ODS_STATUS_ERR;
-            goto backup_namedb_done;
-        }
-        denial_add_rr(denial, rr);
+        record = lookupdenial(view, ldns_rr_owner(rr));
+        if(record)
+            names_recordsetdenial(record, rr);
     }
     if (result == ODS_STATUS_OK && status != LDNS_STATUS_OK) {
         ods_log_error("[%s] error reading NSEC(3) #%i (%s): %s",
@@ -442,20 +445,12 @@ backup_read_namedb(FILE* in, void* zone)
         }
         /* add signatures */
         type_covered = ldns_rdf2rr_type(ldns_rr_rrsig_typecovered(rr));
+#ifdef NOTDEFINED
         if (type_covered == LDNS_RR_TYPE_NSEC ||
             type_covered == LDNS_RR_TYPE_NSEC3) {
-            denial = namedb_lookup_denial(z->db, ldns_rr_owner(rr));
-            if (!denial) {
-                ods_log_error("[%s] error restoring RRSIG #%i (%s): %s",
-                    backup_str, l, ldns_get_errorstr_by_id(status), line);
-                ldns_rr_free(rr);
-                rr = NULL;
-                result = ODS_STATUS_ERR;
-                goto backup_namedb_done;
-            }
-            rrset = denial->rrset;
+            names_viewlookupall(view, ldns_rr_owner(rr), type_covered, NULL, &rrset);
         } else {
-            rrset = zone_lookup_rrset(z, ldns_rr_owner(rr), type_covered);
+            names_viewlookupall(view, ldns_rr_owner(rr), type_covered, NULL, &rrset);
         }
         if (!rrset) {
             ods_log_error("[%s] error restoring RRSIG #%i (%s): %s",
@@ -465,9 +460,12 @@ backup_read_namedb(FILE* in, void* zone)
             result = ODS_STATUS_ERR;
             goto backup_namedb_done;
         }
-        rrset_add_rrsig(rrset, rr, locator, flags);
+#endif
+        name = ldns_rdf2str(ldns_rr_owner(rr));
+        record = names_place(view, name);
+        free(name);
+        names_recordaddsignature(record, type_covered, rr, locator, flags);
         locator = NULL; /* Locator is owned by rrset now */
-        rrset->needs_signing = 0;
     }
     if (result == ODS_STATUS_OK && status != LDNS_STATUS_OK) {
         ods_log_error("[%s] error reading RRSIG #%i (%s): %s",
@@ -491,152 +489,267 @@ backup_namedb_done:
 
 
 /**
- * Read ixfr journal from file.
+ * Recover key from backup.
  *
+ */
+key_type*
+key_recover2(FILE* fd, keylist_type* kl)
+{
+    const char* locator = NULL;
+    const char* resourcerecord = NULL;
+    uint8_t algorithm = 0;
+    uint32_t flags = 0;
+    int publish = 0;
+    int ksk = 0;
+    int zsk = 0;
+    int keytag = 0; /* We are not actually interested but we must
+        parse it to continue correctly in the stream.
+        When reading 1.4.8 or later version backup file, the real value of keytag is 
+        rfc5011, but not importat due to not using it.*/
+    ods_log_assert(fd);
+
+    if (!backup_read_check_str(fd, "locator") ||
+        !backup_read_str(fd, &locator) ||
+        !backup_read_check_str(fd, "algorithm") ||
+        !backup_read_uint8_t(fd, &algorithm) ||
+        !backup_read_check_str(fd, "flags") ||
+        !backup_read_uint32_t(fd, &flags) ||
+        !backup_read_check_str(fd, "publish") ||
+        !backup_read_int(fd, &publish) ||
+        !backup_read_check_str(fd, "ksk") ||
+        !backup_read_int(fd, &ksk) ||
+        !backup_read_check_str(fd, "zsk") ||
+        !backup_read_int(fd, &zsk) ||
+        !backup_read_check_str(fd, "keytag") ||
+        !backup_read_int(fd, &keytag)) {
+        if (locator) {
+           free((void*)locator);
+           locator = NULL;
+        }
+        return NULL;
+    }
+    /* key ok */
+    return keylist_push(kl, locator, resourcerecord, algorithm, flags, publish, ksk, zsk);
+}
+
+
+/**
+ * Backup duration.
+ *
+ */
+static void
+signconf_backup_duration(FILE* fd, const char* opt, duration_type* duration)
+{
+    char* str = (duration == NULL ? NULL : duration2string(duration));
+    fprintf(fd, "%s %s ", opt, (str?str:"0"));
+    free(str);
+}
+
+
+/**
+ * Recover zone from backup.
  *
  */
 ods_status
-backup_read_ixfr(FILE* in, void* zone)
+zone_recover(zone_type* zone, names_view_type view)
 {
-    zone_type* z = (zone_type*) zone;
-    ods_status result = ODS_STATUS_OK;
-    ldns_rr* rr = NULL;
-    ldns_rdf* prev = NULL;
-    ldns_rdf* orig = NULL;
-    ldns_rdf* dname = NULL;
-    ldns_status status = LDNS_STATUS_OK;
-    char line[SE_ADFILE_MAXLINE];
-    char *str;
-    uint32_t serial = 0;
-    unsigned l = 0;
-    unsigned first_soa = 0;
-    unsigned del_mode = 0;
+    char* filename = NULL;
+    FILE* fd = NULL;
+    const char* token = NULL;
+    time_t when = 0;
+    ods_status status = ODS_STATUS_OK;
+    /* zone part */
+    int klass = 0;
+    uint32_t inbound = 0, internal = 0, outbound = 0;
+    /* signconf part */
+    time_t lastmod = 0;
+    /* nsec3params part */
+    const char* salt = NULL;
 
-    ods_log_assert(in);
-    ods_log_assert(z);
+    ods_log_assert(zone);
+    ods_log_assert(zone->name);
+    ods_log_assert(zone->signconf);
 
-    /* $ORIGIN <zone name> */
-    dname = adapi_get_origin(z);
-    if (!dname) {
-        ods_log_error("[%s] error getting default value for $ORIGIN",
-            backup_str);
-        return ODS_STATUS_ERR;
+    filename = ods_build_path(zone->name, ".backup2", 0, 1);
+    if (!filename) {
+        return ODS_STATUS_MALLOC_ERR;
     }
-    orig = ldns_rdf_clone(dname);
-    if (!orig) {
-        ods_log_error("[%s] error setting default value for $ORIGIN",
-            backup_str);
-        return ODS_STATUS_ERR;
-    }
-    /* read RRs */
-    while ((rr = backup_read_rr(in, z, line, &orig, &prev, &status, &l))
-        != NULL) {
-        /* check status */
-        if (status != LDNS_STATUS_OK) {
-            ods_log_error("[%s] error reading RR #%i (%s): %s",
-                backup_str, l, ldns_get_errorstr_by_id(status), line);
-            result = ODS_STATUS_ERR;
-            goto backup_ixfr_done;
+    fd = ods_fopen(filename, NULL, "r");
+    if (fd) {
+        /* start recovery */
+        if (!backup_read_check_str(fd, ODS_SE_FILE_MAGIC_V3)) {
+            ods_log_error("[%s] corrupted backup file zone %s: read magic "
+                "error", zone_str, zone->name);
+            goto recover_error2;
         }
-        if (first_soa == 2) {
-            ods_log_error("[%s] bad ixfr journal: trailing RRs after final "
-               "SOA", backup_str);
-            ldns_rr_free(rr);
-            rr = NULL;
-            result = ODS_STATUS_ERR;
-            goto backup_ixfr_done;
+        if (!backup_read_check_str(fd, ";;Time:") |
+            !backup_read_time_t(fd, &when)) {
+            ods_log_error("[%s] corrupted backup file zone %s: read time "
+                "error", zone_str, zone->name);
+            goto recover_error2;
         }
-        if (ldns_rr_get_type(rr) == LDNS_RR_TYPE_SOA) {
-            serial = ldns_rdf2native_int32(
-                ldns_rr_rdf(rr, SE_SOA_RDATA_SERIAL));
-            if (!first_soa) {
-                str = ldns_rr2str(rr);
-                ods_log_debug("[%s] ixfr first SOA: %s", backup_str,
-                    str);
-                LDNS_FREE(str);
-                /* first SOA */
-                ldns_rr_free(rr);
-                rr = NULL;
-                if (z->db->outserial != serial) {
-                    ods_log_error("[%s] bad ixfr journal: first SOA wrong "
-                        "serial (was %u, expected %u)", backup_str,
-                        serial, z->db->outserial);
-                    result = ODS_STATUS_ERR;
-                    goto backup_ixfr_done;
+        /* zone stuff */
+        if (!backup_read_check_str(fd, ";;Zone:") |
+            !backup_read_check_str(fd, "name") |
+            !backup_read_check_str(fd, zone->name)) {
+            ods_log_error("[%s] corrupted backup file zone %s: read name "
+                "error", zone_str, zone->name);
+            goto recover_error2;
+        }
+        if (!backup_read_check_str(fd, "class") |
+            !backup_read_int(fd, &klass)) {
+            ods_log_error("[%s] corrupted backup file zone %s: read class "
+                "error", zone_str, zone->name);
+            goto recover_error2;
+        }
+        if (!backup_read_check_str(fd, "inbound") |
+            !backup_read_uint32_t(fd, &inbound) |
+            !backup_read_check_str(fd, "internal") |
+            !backup_read_uint32_t(fd, &internal) |
+            !backup_read_check_str(fd, "outbound") |
+            !backup_read_uint32_t(fd, &outbound)) {
+            ods_log_error("[%s] corrupted backup file zone %s: read serial "
+                "error", zone_str, zone->name);
+            goto recover_error2;
+        }
+        zone->klass = (ldns_rr_class) klass;
+        zone->inboundserial   = malloc(sizeof(uint32_t));
+        zone->nextserial      = malloc(sizeof(uint32_t));
+        zone->outboundserial  = malloc(sizeof(uint32_t));
+        *zone->inboundserial  = inbound;
+        *zone->nextserial     = internal;
+        *zone->outboundserial = outbound;
+        /* signconf part */
+        if (!backup_read_check_str(fd, ";;Signconf:") |
+            !backup_read_check_str(fd, "lastmod") |
+            !backup_read_time_t(fd, &lastmod) |
+            !backup_read_check_str(fd, "maxzonettl") |
+            !backup_read_check_str(fd, "0") |
+            !backup_read_check_str(fd, "resign") |
+            !backup_read_duration(fd, &zone->signconf->sig_resign_interval) |
+            !backup_read_check_str(fd, "refresh") |
+            !backup_read_duration(fd, &zone->signconf->sig_refresh_interval) |
+            !backup_read_check_str(fd, "valid") |
+            !backup_read_duration(fd, &zone->signconf->sig_validity_default) |
+            !backup_read_check_str(fd, "denial") |
+            !backup_read_duration(fd,&zone->signconf->sig_validity_denial) |
+            !backup_read_check_str(fd, "keyset") |
+            !backup_read_duration(fd,&zone->signconf->sig_validity_keyset) |
+            !backup_read_check_str(fd, "jitter") |
+            !backup_read_duration(fd, &zone->signconf->sig_jitter) |
+            !backup_read_check_str(fd, "offset") |
+            !backup_read_duration(fd, &zone->signconf->sig_inception_offset) |
+            !backup_read_check_str(fd, "nsec") |
+            !backup_read_rr_type(fd, &zone->signconf->nsec_type) |
+            !backup_read_check_str(fd, "dnskeyttl") |
+            !backup_read_duration(fd, &zone->signconf->dnskey_ttl) |
+            !backup_read_check_str(fd, "soattl") |
+            !backup_read_duration(fd, &zone->signconf->soa_ttl) |
+            !backup_read_check_str(fd, "soamin") |
+            !backup_read_duration(fd, &zone->signconf->soa_min) |
+            !backup_read_check_str(fd, "serial") |
+            !backup_read_str(fd, &zone->signconf->soa_serial)) {
+            ods_log_error("[%s] corrupted backup file zone %s: read signconf "
+                "error", zone_str, zone->name);
+            goto recover_error2;
+        }
+        /* nsec3params part */
+        if (zone->signconf->nsec_type == LDNS_RR_TYPE_NSEC3) {
+            if (!backup_read_check_str(fd, ";;Nsec3parameters:") |
+                !backup_read_check_str(fd, "salt") |
+                !backup_read_str(fd, &salt) |
+                !backup_read_check_str(fd, "algorithm") |
+                !backup_read_uint32_t(fd, &zone->signconf->nsec3_algo) |
+                !backup_read_check_str(fd, "optout") |
+                !backup_read_int(fd, &zone->signconf->nsec3_optout) |
+                !backup_read_check_str(fd, "iterations") |
+                !backup_read_uint32_t(fd, &zone->signconf->nsec3_iterations)) {
+                ods_log_error("[%s] corrupted backup file zone %s: read "
+                    "nsec3parameters error", zone_str, zone->name);
+                goto recover_error2;
+            }
+            zone->signconf->nsec3_salt = strdup(salt);
+            free((void*) salt);
+            salt = NULL;
+            zone->signconf->nsec3params = nsec3params_create(
+                zone->signconf,
+                (uint8_t) zone->signconf->nsec3_algo,
+                (uint8_t) zone->signconf->nsec3_optout,
+                (uint16_t) zone->signconf->nsec3_iterations,
+                zone->signconf->nsec3_salt);
+            if (!zone->signconf->nsec3params) {
+                ods_log_error("[%s] corrupted backup file zone %s: unable to "
+                    "create nsec3param", zone_str, zone->name);
+                goto recover_error2;
+            }
+        }
+        zone->signconf->last_modified = lastmod;
+        zone->zoneconfigvalid = 1;
+        zone->default_ttl = (uint32_t) duration2time(zone->signconf->soa_min);
+        /* keys part */
+        zone->signconf->keys = keylist_create((void*) zone->signconf);
+        while (backup_read_str(fd, &token)) {
+            if (ods_strcmp(token, ";;Key:") == 0) {
+                if (!key_recover2(fd, zone->signconf->keys)) {
+                    ods_log_error("[%s] corrupted backup file zone %s: read "
+                        "key error", zone_str, zone->name);
+                    goto recover_error2;
                 }
-                first_soa = 1;
-                continue;
-            }
-            ods_log_assert(first_soa);
-            if (!del_mode) {
-                if (z->db->outserial == serial) {
-                    /* final SOA */
-                    str = ldns_rr2str(rr);
-                    ods_log_debug("[%s] ixfr final SOA: %s", backup_str,
-                        str);
-                    LDNS_FREE(str);
-                    ldns_rr_free(rr);
-                    rr = NULL;
-                    result = ODS_STATUS_OK;
-                    first_soa = 2;
-                    continue;
-                } else {
-                    str = ldns_rr2str(rr);
-                    ods_log_debug("[%s] new part SOA: %s", backup_str,
-                        str);
-                    LDNS_FREE(str);
-                    pthread_mutex_lock(&z->ixfr->ixfr_lock);
-                    ixfr_purge(z->ixfr, z->name);
-                    pthread_mutex_unlock(&z->ixfr->ixfr_lock);
-                }
+            } else if (ods_strcmp(token, ";;") == 0) {
+                /* keylist done */
+                free((void*) token);
+                token = NULL;
+                break;
             } else {
-                str = ldns_rr2str(rr);
-                ods_log_debug("[%s] second part SOA: %s", backup_str,
-                    str);
-                LDNS_FREE(str);
+                /* keylist corrupted */
+                goto recover_error2;
             }
-            del_mode = !del_mode;
+            free((void*) token);
+            token = NULL;
         }
-        /* ixfr add or del rr */
-        if (!first_soa) {
-            ods_log_error("[%s] bad ixfr journal: first RR not SOA",
-                backup_str);
-            ldns_rr_free(rr);
-            rr = NULL;
-            result = ODS_STATUS_ERR;
-            goto backup_ixfr_done;
+        /* publish dnskeys */
+        status = zone_publish_dnskeys(zone, view, 1);
+        if (status != ODS_STATUS_OK) {
+            ods_log_error("[%s] corrupted backup file zone %s: unable to "
+                "publish dnskeys (%s)", zone_str, zone->name,
+                ods_status2str(status));
+            goto recover_error2;
         }
-        ods_log_assert(first_soa);
-        if (z->db->is_initialized) {
-            str = ldns_rr2str(rr);
-            pthread_mutex_lock(&z->ixfr->ixfr_lock);
-            if (del_mode) {
-                ods_log_deeebug("[%s] -IXFR: %s", backup_str, str);
-                ixfr_del_rr(z->ixfr, rr);
-            } else {
-                ods_log_deeebug("[%s] +IXFR: %s", backup_str, str);
-                ixfr_add_rr(z->ixfr, rr);
-            }
-            pthread_mutex_unlock(&z->ixfr->ixfr_lock);
-            LDNS_FREE(str);
+        /* publish nsec3param */
+        if (!zone->signconf->passthrough)
+            status = zone_publish_nsec3param(zone, view);
+        if (status != ODS_STATUS_OK) {
+            ods_log_error("[%s] corrupted backup file zone %s: unable to "
+                "publish nsec3param (%s)", zone_str, zone->name,
+                ods_status2str(status));
+            goto recover_error2;
         }
-        ldns_rr_free(rr);
-    }
-    if (result == ODS_STATUS_OK && status != LDNS_STATUS_OK) {
-        ods_log_error("[%s] error reading RR #%i (%s): %s",
-            backup_str, l, ldns_get_errorstr_by_id(status), line);
-        result = ODS_STATUS_ERR;
-    }
+        /* publish other records */
+        status = backup_read_namedb(fd, zone, view);
+        if (status != ODS_STATUS_OK) {
+            ods_log_error("[%s] corrupted backup file zone %s: unable to "
+                "read resource records (%s)", zone_str, zone->name,
+                ods_status2str(status));
+            goto recover_error2;
+        }
+        free((void*)filename);
+        ods_fclose(fd);
 
-backup_ixfr_done:
-    if (orig) {
-        ldns_rdf_deep_free(orig);
-        orig = NULL;
+        /* all ok */
+        free((void*)filename);
+        if (fd) {
+            ods_fclose(fd);
+        }
+        if (zone->stats) {
+            pthread_mutex_lock(&zone->stats->stats_lock);
+            stats_clear(zone->stats);
+            pthread_mutex_unlock(&zone->stats->stats_lock);
+        }
+        return ODS_STATUS_OK;
     }
-    if (prev) {
-        ldns_rdf_deep_free(prev);
-        prev = NULL;
-    }
-    return result;
+    free(filename);
+    return ODS_STATUS_UNCHANGED;
+
+  recover_error2:
+    return -1;
 }
-

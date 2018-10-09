@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2009 NLNet Labs. All rights reserved.
+ * Copyright (c) 2009-2018 NLNet Labs.
+ * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -21,7 +22,6 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
 /**
@@ -37,7 +37,7 @@
 
 typedef struct engine_struct engine_type;
 
-#include "daemon/cfg.h"
+#include "cfg.h"
 #include "cmdhandler.h"
 #include "daemon/dnshandler.h"
 #include "daemon/xfrhandler.h"
@@ -72,18 +72,16 @@ struct engine_struct {
     edns_data_type edns;
 };
 
-/**
- * Start engine.
- * \param[in] cfgfile configuration file
- * \param[in] cmdline_verbosity how many -v on the command line
- * \param[in] daemonize to run as daemon or not
- * \param[in] info print info and exit
- * \param[in] single_run run once
- * \return 0 if successful, 1 on error
- *
- */
-int engine_start(const char* cfgfile, int cmdline_verbosity,
-    int daemonize, int info);
+engine_type* engine_create(void);
+ods_status engine_setup_preconfig(engine_type* engine, const char* cfgfile);
+ods_status engine_setup_config(engine_type* engine, const char* cfgfile, int cmdline_verbosity, int daemonize);
+ods_status engine_setup_initialize(engine_type* engine, int* fdptr);
+ods_status engine_setup_signals(engine_type* engine);
+ods_status engine_setup_workstart(engine_type* engine);
+ods_status engine_setup_netwstart(engine_type* engine);
+ods_status engine_setup_finish(engine_type* engine, int fd);
+int engine_start(engine_type*);
+ods_status engine_setup_signals(engine_type* engine);
 
 /**
  * Wake up workers.
@@ -106,5 +104,7 @@ void engine_update_zones(engine_type* engine, ods_status zl_changed);
  *
  */
 void engine_cleanup(engine_type* engine);
+
+listener_type* create_listener(struct engineconfig_listener* list);
 
 #endif /* DAEMON_ENGINE_H */

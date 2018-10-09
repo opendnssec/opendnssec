@@ -1,5 +1,60 @@
 OpenDNSSEC 2.2 - 2017-xx-xx
 
+* OPENDNSSEC-620: SocketFile and PidFile where not reconized in the signer config.
+* OPENDNSSEC-796: Improved separation of logic and database code.
+* OPENDNSSEC-809: Clear signers' zones.xml when running ods-enforcer-database-setup.
+* OPENDNSSEC-885: Command policy resalt without arguments is no longer allowed.
+                  Either policyname or --all must be specified.
+* OPENDNSSEC-898: During signer startup print HSM error messages to console.
+* OPENDNSSEC-893: Warn user when NSEC3 iteration count is out of spec (RFC5155)
+* OPENDNSSEC-909: Improve the output of ods-enforcer queue command.
+* OPENDNSSEC-910: DelegationSignerSubmitCommand would strip --cka_id
+* OPENDNSSEC-914: Rolling keys before finishing a previous roll could lead
+                  to invalid state in some cases.
+* OPENDNSSEC-915: Enforcer would exit on receiving SIGPIPE
+* OPENDNSSEC-916: Key list and zone list output of the enforcer now has a
+                  predictable ordering. Zones are ordered by policyname,
+                  zonename. Keys are ordered by policyname, zonename, key role
+                  (KSK first), age.
+* OPENDNSSEC-917: When no DelegationSignerSubmitCommand specified in the
+                  conf.xml the enforcer would errornously put the ds in a 
+                  'submitted' state.
+* OPENDNSSEC-918: New enforcer feature 'look ahead'. Indicate for a given zone
+                  what actions the enforcer will take at what time in the
+                  future. Output of this command is not stable and not
+                  intended to be processed by other programs yet.
+* OPENDNSSEC-919: Signer would crash after removing a zone and quickly add
+                  the same zone back again.
+* SUPPORT-215:    Notify the signer after a zone was deleted.
+
+OpenDNSSEC 2.1.3 - 2017-08-10
+
+* OPENDNSSEC-508: Tag <RolloverNotification> was not functioning correctly
+* OPENDNSSEC-901: Enforcer would ignore <ManualKeyGeneration/> tag in conf.xml
+* OPENDNSSEC-906: Tag <AllowExtraction> tag included from late 1.4 development
+* OPENDNSSEC-894: repair configuration script to allow excluding the build of 
+                  the enforcer.
+* OPENDNSSEC-886: Improper time calculation on 32 bits machine causes purge
+                  time to be skipped.
+* OPENDNSSEC-904 / SUPPORT-216 autoconfigure fails to properly identify
+                  functions in ssl library on certain distributions
+                  causing tsig unknown algorithm hmac-sha256
+* OPENDNSSEC-908: Warn when TTL exceeds KASP's MaxZoneTTL instead of capping.
+
+OpenDNSSEC 2.1.1 - 2017-04-28
+
+* OPENDNSSEC-882: Signerd exit code always non-zero.
+* OPENDNSSEC-889: MySQL migration script didn't work for all database and
+  MySQL versions.
+* OPENDNSSEC-879: --suspend option for 'zone add' was broken. Fixed and
+  undocumented since it is not intended for production.
+* OPENDNSSEC-887: Segfault on extraneous <Interval> tag.
+* Libunwind header files presence not properly checked.
+* OPENDNSSEC-508: Implementing <RolloverNotification> tag.
+* OPENDNSSEC-880: Command line parsing for import key command failed.
+* OPENDNSSEC-890: Bogus signatures upon wrong zone input when TTLs for
+  same rrset are mismatching.
+
 OpenDNSSEC 2.1.0 - 2017-02-22
 
 * If listening port for signer is not set in conf file, the default value

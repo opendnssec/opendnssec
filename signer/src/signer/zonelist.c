@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2009 NLNet Labs. All rights reserved.
+ * Copyright (c) 2009-2018 NLNet Labs.
+ * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -21,7 +22,6 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
 /**
@@ -30,7 +30,7 @@
  */
 
 #include "config.h"
-#include "parser/confparser.h"
+#include "confparser.h"
 #include "parser/zonelistparser.h"
 #include "duration.h"
 #include "file.h"
@@ -74,12 +74,7 @@ zonelist_type*
 zonelist_create()
 {
     zonelist_type* zlist = NULL;
-        CHECKALLOC(zlist = (zonelist_type*) malloc(sizeof(zonelist_type)));
-    if (!zlist) {
-        ods_log_error("[%s] unable to create zonelist: allocator_alloc() "
-            "failed", zl_str);
-        return NULL;
-    }
+    CHECKALLOC(zlist = (zonelist_type*) malloc(sizeof(zonelist_type)));
     zlist->zones = ldns_rbtree_create(zone_compare);
     if (!zlist->zones) {
         ods_log_error("[%s] unable to create zonelist: ldns_rbtree_create() "
@@ -130,6 +125,53 @@ zone2node(zone_type* zone)
     return node;
 }
 
+void*
+zonelist_obtainresource(zonelist_type* zonelist, const char* name, size_t offset)
+{
+    struct ldns_rbnode_t* node;
+    zone_type* zone;
+    names_view_type* viewptr;
+    names_view_type view;
+    pthread_mutex_lock(&zonelist->zl_lock);
+    node = ldns_rbtree_search(zonelist->zones, name);
+    if (node == NULL || node == LDNS_RBTREE_NULL) {
+        view = NULL;
+    } else {
+        zone = (zone_type*) node->data;
+        viewptr = (void*)&(((char*)zone)[offset]);
+        view = *viewptr;
+        if(view == NULL) {
+            if(viewptr == &zone->inputview) {
+            } else if(viewptr == &zone->inputview) {
+                // FIXME
+            }
+        }
+        *viewptr = NULL;
+    }
+    pthread_mutex_lock(&zonelist->zl_lock);
+    return view;
+}
+
+
+void*
+zonelist_releaseresource(zonelist_type* zonelist, const char* name, size_t offset, names_view_type view)
+{
+    struct ldns_rbnode_t* node;
+    zone_type* zone;
+    names_view_type* viewptr;
+    pthread_mutex_lock(&zonelist->zl_lock);
+    node = ldns_rbtree_search(zonelist->zones, name);
+    if (node == NULL || node == LDNS_RBTREE_NULL) {
+        view = NULL;
+    } else {
+        zone = (zone_type*) node->data;
+        viewptr = (void*)&(((char*)zone)[offset]);
+        *viewptr = view;
+    }
+    pthread_mutex_lock(&zonelist->zl_lock);
+    return view;
+}
+
 
 /**
  * Lookup zone.
@@ -161,14 +203,8 @@ zonelist_lookup_zone_by_name(zonelist_type* zonelist, const char* name,
     zone_type* result = NULL;
     if (zonelist && zonelist->zones && name  && klass) {
         zone = zone_create((char*) name, klass);
-        if (!zone) {
-            ods_log_error("[%s] unable to lookup zone %s: "
-                "zone_create() failed", zl_str, name);
-            /* result stays NULL */
-        } else {
-            result = zonelist_lookup_zone(zonelist, zone);
-            zone_cleanup(zone);
-        }
+        result = zonelist_lookup_zone(zonelist, zone);
+        zone_cleanup(zone);
     }
     return result;
 }
@@ -225,6 +261,7 @@ zonelist_add_zone(zonelist_type* zlist, zone_type* zone)
         return NULL;
     }
     zone->zl_status = ZONE_ZL_ADDED;
+
     zlist->just_added++;
     return zone;
 }
@@ -293,6 +330,7 @@ zonelist_merge(zonelist_type* zl1, zonelist_type* zl2)
                 ods_log_crit("[%s] merge failed: z2 not added", zl_str);
                 return;
             }
+            zone_start(z2);
             n2 = ldns_rbtree_next(n2);
         } else {
             /* compare the zones z1 and z2 */
@@ -309,6 +347,7 @@ zonelist_merge(zonelist_type* zl1, zonelist_type* zl2)
                     ods_log_crit("[%s] merge failed: z2 not added", zl_str);
                     return;
                 }
+                zone_start(z2);
                 n2 = ldns_rbtree_next(n2);
             } else {
                 /* just update zone z1 */
@@ -357,18 +396,13 @@ zonelist_update(zonelist_type* zl, const char* zlfile)
     st_mtime = ods_file_lastmodified(zlfile);
     if (st_mtime <= zl->last_modified) {
         (void)time_datestamp(zl->last_modified, "%Y-%m-%d %T", &datestamp);
-        ods_log_debug("[%s] zonelist file %s is unchanged since %s",
+        ods_log_error("[%s] zonelist file %s is unchanged since %s",
             zl_str, zlfile, datestamp?datestamp:"Unknown");
         free((void*)datestamp);
         return ODS_STATUS_UNCHANGED;
     }
     /* create new zonelist */
     new_zlist = zonelist_create();
-    if (!new_zlist) {
-        ods_log_error("[%s] unable to update zonelist: zonelist_create() "
-            "failed", zl_str);
-        return ODS_STATUS_ERR;
-    }
     /* read zonelist */
     status = zonelist_read(new_zlist, zlfile);
     if (status == ODS_STATUS_OK) {
@@ -378,7 +412,7 @@ zonelist_update(zonelist_type* zl, const char* zlfile)
         new_zlist->last_modified = st_mtime;
         zonelist_merge(zl, new_zlist);
         (void)time_datestamp(zl->last_modified, "%Y-%m-%d %T", &datestamp);
-        ods_log_debug("[%s] file %s is modified since %s", zl_str, zlfile,
+        ods_log_error("[%s] file %s is modified since %s", zl_str, zlfile,
             datestamp?datestamp:"Unknown");
         free((void*)datestamp);
     } else {

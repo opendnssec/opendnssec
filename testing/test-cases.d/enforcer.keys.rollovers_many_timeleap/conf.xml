@@ -18,6 +18,8 @@
 	<Enforcer>
 		<Datastore><SQLite>@INSTALL_ROOT@/var/opendnssec/kasp.db</SQLite></Datastore>
 		<AutomaticKeyGenerationPeriod>PT360000S</AutomaticKeyGenerationPeriod>
+		<DelegationSignerSubmitCommand>true</DelegationSignerSubmitCommand>
+		<DelegationSignerRetractCommand>true</DelegationSignerRetractCommand>
 		<WorkerThreads>0</WorkerThreads>
 	</Enforcer>
 	<Signer>

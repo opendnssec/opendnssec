@@ -1,0 +1,365 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Copyright (c) 2009 .SE (The Internet Infrastructure Foundation).
+  All rights reserved.
+  
+  Redistribution and use in source and binary forms, with or without
+  modification, are permitted provided that the following conditions
+  are met:
+  1. Redistributions of source code must retain the above copyright
+     notice, this list of conditions and the following disclaimer.
+  2. Redistributions in binary form must reproduce the above copyright
+     notice, this list of conditions and the following disclaimer in the
+     documentation and/or other materials provided with the distribution.
+  
+  THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+  IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+  ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
+  DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+  GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+  IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+  OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+  IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+  
+-->
+<grammar xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+  <start>
+    <element name="KASP">
+      <zeroOrMore>
+        <element name="Policy">
+          <!-- (short) symbolic name for Policy -->
+          <attribute name="name">
+            <data type="string"/>
+          </attribute>
+          <optional>
+            <!-- Do not touch contents of zonefile. -->
+            <element name="Passthrough">
+              <empty/>
+            </element>
+          </optional>
+          <!-- description of policy (free text) -->
+          <element name="Description">
+            <data type="string"/>
+          </element>
+          <!--
+            <Signatures> hold parameters related to signatures
+            These will go in the signature category in the DB
+            Most of these will be passed to the signer without
+            processing.
+          -->
+          <element name="Signatures">
+            <!-- how often should the zone be (re)signed? -->
+            <element name="Resign">
+              <data type="duration"/>
+            </element>
+            <!--
+              the signatures are reused for a period of time
+              how long time before the expiration of the signature
+              should it be refreshed?
+            -->
+            <element name="Refresh">
+              <data type="duration"/>
+            </element>
+            <!-- for how long should a signature be valid? -->
+            <element name="Validity">
+              <element name="Default">
+                <data type="duration"/>
+              </element>
+              <element name="Denial">
+                <data type="duration"/>
+              </element>
+              <optional>
+                <element name="Keyset">
+                  <data type="duration"/>
+                </element>
+              </optional>
+            </element>
+            <!--
+              how much should we jitter the signature expiration time?
+              (e.g. increase the expiration time by X)
+            -->
+            <element name="Jitter">
+              <data type="duration"/>
+            </element>
+            <!-- how much should we predate the signature inception time? -->
+            <element name="InceptionOffset">
+              <data type="duration"/>
+            </element>
+            <optional>
+              <!-- Maximum TTL that may be used in a zone. -->
+              <ref name="maxzonettl"/>
+            </optional>
+          </element>
+          <!-- use NSEC or NSEC3? -->
+          <element name="Denial">
+            <choice>
+              <ref name="nsec"/>
+              <ref name="nsec3"/>
+            </choice>
+          </element>
+          <element name="Keys">
+            <!-- TTL for DNSKEYs -->
+            <ref name="ttl"/>
+            <!-- key retirement safety factor -->
+            <element name="RetireSafety">
+              <data type="duration"/>
+            </element>
+            <!-- key publication safety factor -->
+            <element name="PublishSafety">
+              <data type="duration"/>
+            </element>
+            <optional>
+              <!-- do the zones share the same keys? -->
+              <element name="ShareKeys">
+                <empty/>
+              </element>
+            </optional>
+            <optional>
+              <!-- enforcer may purge keys after this amount of time -->
+              <element name="Purge">
+                <data type="duration"/>
+              </element>
+            </optional>
+            <zeroOrMore>
+              <!-- Key Signing Keys (KSK) parameters -->
+              <element name="KSK">
+                <!-- generic key definition, see below -->
+                <ref name="anykey"/>
+                <optional>
+                  <!-- Controlling minimize flags Enforcer -->
+                  <element name="KskRollType">
+                    <choice>
+                      <value>KskDoubleRRset</value>
+                      <value>KskDoubleDS</value>
+                      <value>KskDoubleSignature</value>
+                    </choice>
+                  </element>
+                </optional>
+                <optional>
+                  <!--
+                    use RFC 5011 for key rollover?
+                    Not implemented yet
+                  -->
+                  <element name="RFC5011">
+                    <empty/>
+                  </element>
+                </optional>
+              </element>
+            </zeroOrMore>
+            <zeroOrMore>
+              <!-- Zone Signing Keys (ZSK) parameters -->
+              <element name="ZSK">
+                <!-- generic key definition, see below -->
+                <ref name="anykey"/>
+                <optional>
+                  <!-- Controlling minimize flags Enforcer -->
+                  <element name="ZskRollType">
+                    <choice>
+                      <value>ZskDoubleSignature</value>
+                      <value>ZskPrePublication</value>
+                      <value>ZskDoubleRRsig</value>
+                    </choice>
+                  </element>
+                </optional>
+              </element>
+            </zeroOrMore>
+            <zeroOrMore>
+              <!-- Combined Signing Keys (CSK) parameters -->
+              <element name="CSK">
+                <!-- generic key definition, see below -->
+                <ref name="anykey"/>
+                <optional>
+                  <!-- Controlling minimize flags Enforcer -->
+                  <element name="CskRollType">
+                    <choice>
+                      <value>CskDoubleRRset</value>
+                      <value>CskSingleSignature</value>
+                      <value>CskDoubleDS</value>
+                      <value>CskDoubleSignature</value>
+                      <value>CskPrePublication</value>
+                    </choice>
+                  </element>
+                </optional>
+                <optional>
+                  <!--
+                    use RFC 5011 for key rollover?
+                    Not implemented yet
+                  -->
+                  <element name="RFC5011">
+                    <empty/>
+                  </element>
+                </optional>
+              </element>
+            </zeroOrMore>
+          </element>
+          <element name="Zone">
+            <!-- Expected propagation delay in child publication -->
+            <ref name="propagationdelay"/>
+            <!-- Expected zone SOA parameters -->
+            <element name="SOA">
+              <ref name="anysoa"/>
+              <ref name="serial"/>
+            </element>
+          </element>
+          <!--
+            Excepted paren parameters for key rollover usage.
+            These might be guess or obtained by querying the parent zone
+            NOTE: This assumes that all zones with the same policy have
+            the same parent or at least parents with the same parameters!
+          -->
+          <element name="Parent">
+            <!-- Expected propagation delay in parent publication -->
+            <ref name="propagationdelay"/>
+            <!-- Expected TTL of DS in parent -->
+            <element name="DS">
+              <ref name="ttl"/>
+            </element>
+            <!-- Expected parent SOA parameters -->
+            <element name="SOA">
+              <ref name="anysoa"/>
+            </element>
+            <optional>
+              <!-- Expected time between submit and first publish -->
+              <ref name="registrationdelay"/>
+            </optional>
+          </element>
+        </element>
+      </zeroOrMore>
+    </element>
+  </start>
+  <define name="serial">
+    <element name="Serial">
+      <choice>
+        <!-- use increasing counter (sync with unsigned zone if possible) -->
+        <value>counter</value>
+        <!-- use increasing counter in YYYYMMDDxx format -->
+        <value>datecounter</value>
+        <!-- use unix timestamp as an 32-bit unsigned integer -->
+        <value>unixtime</value>
+        <!-- keep the serial from unsigned zone (do not resign unless incremented) -->
+        <value>keep</value>
+      </choice>
+    </element>
+  </define>
+  <define name="nsec">
+    <element name="NSEC">
+      <empty/>
+    </element>
+  </define>
+  <define name="nsec3">
+    <element name="NSEC3">
+      <optional>
+        <!-- what value for NSEC3PARAM TTL to use? Default 0. -->
+        <ref name="ttl"/>
+      </optional>
+      <optional>
+        <!-- use global NSEC3 opt-out? -->
+        <element name="OptOut">
+          <empty/>
+        </element>
+      </optional>
+      <!-- how often should we resalt? (e.g. create new NSEC3 chains) -->
+      <element name="Resalt">
+        <data type="duration"/>
+      </element>
+      <!-- NSEC3 hash parameters -->
+      <element name="Hash">
+        <element name="Algorithm">
+          <data type="nonNegativeInteger">
+            <param name="maxInclusive">255</param>
+          </data>
+        </element>
+        <element name="Iterations">
+          <data type="nonNegativeInteger">
+            <param name="maxInclusive">65535</param>
+          </data>
+        </element>
+        <!-- Salt length in octets -->
+        <element name="Salt">
+          <attribute name="length">
+            <data type="nonNegativeInteger">
+              <param name="maxInclusive">255</param>
+            </data>
+          </attribute>
+          <optional>
+            <!--
+              The actual salt is generated by the Enforcer
+              Note: the enforcer may decide to store the
+              current salt in the DB and so it could be exported
+              here.
+            -->
+            <data type="string"/>
+          </optional>
+        </element>
+      </element>
+    </element>
+  </define>
+  <!-- Generic SOA definition -->
+  <define name="anysoa">
+    <ref name="ttl"/>
+    <element name="Minimum">
+      <data type="duration"/>
+    </element>
+  </define>
+  <!-- Generic key definition -->
+  <define name="anykey">
+    <element name="Algorithm">
+      <attribute name="length">
+        <data type="positiveInteger"/>
+      </attribute>
+      <data type="nonNegativeInteger">
+        <param name="maxInclusive">255</param>
+      </data>
+    </element>
+    <element name="Lifetime">
+      <data type="duration"/>
+    </element>
+    <element name="Repository">
+      <data type="string"/>
+    </element>
+    <optional>
+      <!--
+        Number of Standby keys
+        Makes the rollover faster, since the key is
+        already pre-published and ready.
+      -->
+      <element name="Standby">
+        <data type="nonNegativeInteger"/>
+      </element>
+    </optional>
+    <optional>
+      <!-- Use manual key rollover? -->
+      <element name="ManualRollover">
+        <empty/>
+      </element>
+    </optional>
+  </define>
+  <define name="ttl">
+    <element name="TTL">
+      <data type="duration"/>
+    </element>
+  </define>
+  <define name="maxzonettl">
+    <element name="MaxZoneTTL">
+      <data type="duration"/>
+    </element>
+  </define>
+  <define name="propagationdelay">
+    <element name="PropagationDelay">
+      <data type="duration"/>
+    </element>
+  </define>
+  <define name="registrationdelay">
+    <element name="RegistrationDelay">
+      <data type="duration"/>
+    </element>
+  </define>
+  <define name="partial">
+    <element name="Partial">
+      <empty/>
+    </element>
+  </define>
+</grammar>

@@ -42,7 +42,6 @@ endif
 
 ods_enforcerd_SOURCES = \
 	ods-enforcerd.c \
-	daemon/cfg.c daemon/cfg.h \
 	daemon/enforcercommands.c daemon/enforcercommands.h \
 	daemon/engine.c daemon/engine.h \
 	daemon/help_cmd.c daemon/help_cmd.h \
@@ -50,7 +49,6 @@ ods_enforcerd_SOURCES = \
 	daemon/queue_cmd.c daemon/queue_cmd.h \
 	daemon/verbosity_cmd.c daemon/verbosity_cmd.h \
 	daemon/ctrl_cmd.c daemon/ctrl_cmd.h \
-	parser/confparser.c parser/confparser.h \
 	policy/policy_export_cmd.c policy/policy_export_cmd.h \
 	policy/policy_purge_cmd.c policy/policy_purge_cmd.h \
 	policy/policy_export.c policy/policy_export.h \
@@ -62,6 +60,7 @@ ods_enforcerd_SOURCES = \
 	hsmkey/backup_hsmkeys_cmd.c hsmkey/backup_hsmkeys_cmd.h \
 	hsmkey/hsm_key_factory.c hsmkey/hsm_key_factory.h \
 	hsmkey/key_generate_cmd.c hsmkey/key_generate_cmd.h \
+	hsmkey/hsmkey_list_cmd.c hsmkey/hsmkey_list_cmd.h \
 	keystate/zone_list_cmd.c keystate/zone_list_cmd.h \
 	keystate/zone_add_cmd.c keystate/zone_add_cmd.h \
 	keystate/zone_del_cmd.c keystate/zone_del_cmd.h \
@@ -96,7 +95,9 @@ ods_enforcerd_SOURCES = \
 	enforcer/repositorylist_cmd.c enforcer/repositorylist_cmd.h \
 	enforcer/update_all_cmd.c enforcer/update_all_cmd.h \
 	enforcer/update_conf_cmd.c enforcer/update_conf_cmd.h \
+	enforcer/lookahead_cmd.c enforcer/lookahead_cmd.h \
 	utils/kc_helper.c utils/kc_helper.h \
+	db/dbw.c db/dbw.h \
 	db/db_backend.c db/db_backend.h \
 	db/db_clause.c db/db_clause.h \
 	db/db_configuration.c db/db_configuration.h \
@@ -109,8 +110,8 @@ ods_enforcerd_SOURCES = \
 	db/db_error.h \
 	db/zone_db.c db/zone_db_ext.c db/zone_db_ext.h db/zone_db.h \
 	db/key_data.c db/key_data_ext.c db/key_data_ext.h db/key_data.h \
-	db/key_state.c db/key_state_ext.c db/key_state_ext.h db/key_state.h \
-	db/key_dependency.c db/key_dependency_ext.c db/key_dependency_ext.h db/key_dependency.h \
+	db/key_state.c db/key_state.h \
+	db/key_dependency.c db/key_dependency.h \
 	db/policy.c db/policy_ext.c db/policy_ext.h db/policy.h \
 	db/policy_key.c db/policy_key_ext.c db/policy_key_ext.h db/policy_key.h \
 	db/hsm_key.c db/hsm_key_ext.c db/hsm_key_ext.h db/hsm_key.h \
@@ -129,9 +130,7 @@ ods_enforcerd_LDADD = \
 
 ods_migrate_SOURCES = \
 	ods-migrate.c \
-	daemon/cfg.c daemon/cfg.h \
 	daemon/engine.h \
-	parser/confparser.c parser/confparser.h \
 	utils/kc_helper.c utils/kc_helper.h
 
 ods_migrate_LDADD = \
@@ -160,8 +159,6 @@ ods_enforcer_LDADD = \
 
 ods_enforcer_db_setup_SOURCES = \
 	ods-enforcer-db-setup.c \
-	daemon/cfg.c daemon/cfg.h \
-	parser/confparser.c parser/confparser.h \
 	$(BACKEND_SCHEMA_CUSTOM)
 
 ods_enforcer_db_setup_LDADD = \

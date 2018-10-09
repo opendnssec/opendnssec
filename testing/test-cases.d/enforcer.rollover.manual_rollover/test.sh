@@ -42,9 +42,9 @@ log_grep ods-enforcer-key-list1 stdout 'ods3[[:space:]]*ZSK[[:space:]]*active' &
 ! log_this ods-enforcer-key-rollover_bad1 ods-enforcer key rollover --keytype ZSK &&
 log_grep ods-enforcer-key-rollover_bad1 stdout 'expected either --zone <zone> or --policy <policy> option' &&
 
-# Make sure nothing happens for a non-existant zone
+# Make sure nothing happens for a non-existent zone
 ! log_this ods-enforcer-key-rollover_bad2 ods-enforcer key rollover --zone bob --keytype ZSK &&
-log_grep ods-enforcer-key-rollover_bad2 stdout "zone bob not found" &&
+log_grep ods-enforcer-key-rollover_bad2 stderr "zone bob not found" &&
 
 # ******************* Roll the ZSK first ************************ 
 sleep 1 && ods_enforcer_idle &&
@@ -81,8 +81,14 @@ log_grep ods-enforcer-key-list3 stdout "ods[[:space:]]*KSK[[:space:]]*ready.*$KS
 log_grep ods-enforcer-key-list3 stdout "ods[[:space:]]*ZSK[[:space:]]*retire.*$ZSK_CKA_ID1" &&
 log_grep ods-enforcer-key-list3 stdout "ods[[:space:]]*ZSK[[:space:]]*active.*$ZSK_CKA_ID2" &&
 
-# Run the ds-seen on the KSK and check the output (enforcer won't HUP as it isn't running)
+# Run the ds-seen on the KSK and check the output
 ods_enforcer_idle &&
+
+log_this ods-enforcer-dssubmit_ods1   ods-enforcer key ds-submit --zone ods --cka_id $KSK_CKA_ID1 &&
+sleep 1 && ods_enforcer_idle &&
+log_grep ods-enforcer-dssubmit_ods1 stdout "1 KSK matches found" &&
+log_grep ods-enforcer-dssubmit_ods1 stdout "1 KSKs changed." &&
+
 log_this ods-enforcer-dsseen_ods1   ods-enforcer key ds-seen --zone ods --cka_id $KSK_CKA_ID1 &&
 sleep 1 && ods_enforcer_idle &&
 log_grep ods-enforcer-dsseen_ods1 stdout "1 KSK matches found" &&
@@ -134,11 +140,24 @@ log_this ods-enforcer-time-leap-5 ods_timeleap_search_key "ods" "KSK" "ready" "$
 # Look for a ready KSK 
 log_this ods-enforcer-key-list7 ods-enforcer key list --verbose &&
 log_grep ods-enforcer-key-list7 stdout "ods[[:space:]]*KSK[[:space:]]*retire.*$KSK_CKA_ID1" &&
-log_grep ods-enforcer-key-list7 stdout "ods[[:space:]]*KSK[[:space:]]*ready[[:space:]]*waiting for ds-seen.*$KSK_CKA_ID2" &&
+log_grep ods-enforcer-key-list7 stdout "ods[[:space:]]*KSK[[:space:]]*ready[[:space:]]*waiting for ds-submit.*$KSK_CKA_ID2" &&
 log_grep ods-enforcer-key-list7 stdout "ods[[:space:]]*ZSK[[:space:]]*retire.*$ZSK_CKA_ID2" &&
 log_grep ods-enforcer-key-list7 stdout "ods[[:space:]]*ZSK[[:space:]]*ready.*$ZSK_CKA_ID3" &&
 
 syslog_grep "ods-enforcerd: .*please submit DS with keytag $KSK_KEYTAG2 for zone ods" &&
+
+# Run a ds-submit on this new key and check the output
+ods_enforcer_idle &&
+log_this ods-enforcer-dssubmit_ods2   ods-enforcer key ds-submit --zone ods --cka_id $KSK_CKA_ID2 &&
+sleep 1 && ods_enforcer_idle &&
+log_grep ods-enforcer-dssubmit_ods2 stdout "1 KSK matches found." &&
+log_grep ods-enforcer-dssubmit_ods2 stdout "1 KSKs changed." &&
+
+log_this ods-enforcer-key-list7.25 ods-enforcer key list --verbose &&
+log_grep ods-enforcer-key-list7.25 stdout "ods[[:space:]]*KSK[[:space:]]*retire.*$KSK_CKA_ID1" &&
+log_grep ods-enforcer-key-list7.25 stdout "ods[[:space:]]*KSK[[:space:]]*ready[[:space:]]*waiting for ds-seen.*$KSK_CKA_ID2" &&
+log_grep ods-enforcer-key-list7.25 stdout "ods[[:space:]]*ZSK[[:space:]]*retire.*$ZSK_CKA_ID2" &&
+log_grep ods-enforcer-key-list7.25 stdout "ods[[:space:]]*ZSK[[:space:]]*ready.*$ZSK_CKA_ID3" &&
 
 # Run a ds-seen on this new key and check the output
 ods_enforcer_idle &&
@@ -163,6 +182,10 @@ log_grep ods-enforcer-key-list8 stdout "ods[[:space:]]*ZSK[[:space:]]*retire.*$Z
 log_grep ods-enforcer-key-list8 stdout "ods[[:space:]]*ZSK[[:space:]]*active.*$ZSK_CKA_ID3" &&
 
 # ##################  STEP 5: Time Leap: one and only one ksk which is active for ods ###########################
+ods_enforcer_idle &&
+log_this ods-enforcer-ds-retract_ods1 ods-enforcer key ds-retract --zone ods --cka_id $KSK_CKA_ID1 &&
+sleep 1 && ods_enforcer_idle &&
+
 ods_enforcer_idle &&
 log_this ods-enforcer-ds-gone_ods1 ods-enforcer key ds-gone --zone ods --cka_id $KSK_CKA_ID1 &&
 sleep 1 && ods_enforcer_idle &&

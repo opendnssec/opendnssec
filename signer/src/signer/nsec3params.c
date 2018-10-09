@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2009 NLNet Labs. All rights reserved.
+ * Copyright (c) 2009-2018 NLNet Labs.
+ * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -21,7 +22,6 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
 /**
@@ -32,7 +32,6 @@
 #include "status.h"
 #include "log.h"
 #include "util.h"
-#include "signer/backup.h"
 #include "signer/nsec3params.h"
 #include "signer/signconf.h"
 
@@ -111,11 +110,6 @@ nsec3params_create(void* sc, uint8_t algo, uint8_t flags, uint16_t iter,
         return NULL;
     }
     CHECKALLOC(nsec3params = (nsec3params_type*) malloc(sizeof(nsec3params_type)));
-    if (!nsec3params) {
-        ods_log_error("[%s] unable to create: allocator_alloc() failed",
-            nsec3_str);
-        return NULL;
-    }
     nsec3params->sc = sc;
     nsec3params->algorithm = algo;
     nsec3params->flags = flags;
@@ -130,30 +124,6 @@ nsec3params_create(void* sc, uint8_t algo, uint8_t flags, uint16_t iter,
     nsec3params->salt_data = salt_data;
     nsec3params->rr = NULL;
     return nsec3params;
-}
-
-
-/**
- * Backup NSEC3 parameters.
- *
- */
-void
-nsec3params_backup(FILE* fd, uint8_t algo, uint8_t flags,
-    uint16_t iter, const char* salt, ldns_rr* rr, const char* version)
-{
-    if (!fd) {
-        return;
-    }
-    fprintf(fd, ";;Nsec3parameters: salt %s algorithm %u optout %u "
-        "iterations %u\n", salt?salt:"-", (unsigned) algo,
-        (unsigned) flags, (unsigned) iter);
-    if (strcmp(version, ODS_SE_FILE_MAGIC_V2) == 0) {
-        if (rr) {
-            (void)util_rr_print(fd, rr);
-        }
-        fprintf(fd, ";;Nsec3done\n");
-        fprintf(fd, ";;\n");
-    }
 }
 
 

@@ -17,8 +17,8 @@ EXTRA_DIST =	*.xml $(srcdir)/softhsm2.conf
 
 noinst_PROGRAMS = hsmcheck
  
-hsmcheck_SOURCES = hsmcheck.c confparser.c
-hsmcheck_LDADD = ../src/lib/libhsm.a @LDNS_LIBS@ @XML2_LIBS@ $(LIBCOMPAT)
+hsmcheck_SOURCES = hsmcheck.c
+hsmcheck_LDADD = ../src/lib/libhsm.a $(LIBCOMPAT) @LDNS_LIBS@ @XML2_LIBS@
 hsmcheck_LDFLAGS = -no-install
 
 SOFTHSM_ENV = SOFTHSM2_CONF=$(srcdir)/softhsm2.conf
@@ -34,7 +34,9 @@ tokens:
 	softhsm2-util --slot 1 --init-token --label xyzzy \
 		--so-pin 12345678 --pin 123456
 
-check: regress-softhsm
+# FIXME disable this test, it takes a very long time and should be
+# part of integration/regression testing
+# check: regress-softhsm
 
 regress:
 	@echo use target 'regress-{aepkeyper,sca6000,softhsm,etoken,opensc,ncipher,multi}'

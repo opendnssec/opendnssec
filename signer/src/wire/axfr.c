@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2011 NLNet Labs. All rights reserved.
+ * Copyright (c) 2011-2018 NLNet Labs.
+ * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -21,15 +22,12 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- */
-
-/**
- * AXFR.
- *
  */
 
 #include "config.h"
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include "adapter/addns.h"
 #include "adapter/adutil.h"
 #include "file.h"
@@ -43,7 +41,6 @@
 #define AXFR_TSIG_SIGN_EVERY_NTH 96 /* tsig sign every N packets. */
 
 const char* axfr_str = "axfr";
-
 
 /**
  * Handle SOA request.
@@ -151,7 +148,6 @@ soa_request(query_type* q, engine_type* engine)
 query_state
 axfr(query_type* q, engine_type* engine, int fallback)
 {
-    char* xfrfile = NULL;
     ldns_rr* rr = NULL;
     ldns_rdf* prev = NULL;
     ldns_rdf* orig = NULL;
@@ -189,18 +185,13 @@ axfr(query_type* q, engine_type* engine, int fallback)
     ods_log_assert(q->tsig_rr);
     if (q->axfr_fd == NULL) {
         /* start AXFR */
-        xfrfile = ods_build_path(q->zone->name, ".axfr", 0, 1);
-        if (xfrfile) {
-            q->axfr_fd = ods_fopen(xfrfile, NULL, "r");
-        }
+        q->axfr_fd = getxfr(q->zone, ".axfr", NULL);
         if (!q->axfr_fd) {
-            ods_log_error("[%s] unable to open axfr file %s for zone %s",
-                axfr_str, xfrfile, q->zone->name);
-            free((void*)xfrfile);
+            ods_log_error("[%s] unable to open axfr file for zone %s",
+                axfr_str, q->zone->name);
             buffer_pkt_set_rcode(q->buffer, LDNS_RCODE_SERVFAIL);
             return QUERY_PROCESSED;
         }
-        free((void*)xfrfile);
         if (q->tsig_rr->status == TSIG_OK) {
             q->tsig_sign_it = 1; /* sign first packet in stream */
         }
@@ -388,7 +379,6 @@ udp_overflow:
 query_state
 ixfr(query_type* q, engine_type* engine)
 {
-    char* xfrfile = NULL;
     ldns_rr* rr = NULL;
     ldns_rdf* prev = NULL;
     ldns_rdf* orig = NULL;
@@ -424,20 +414,15 @@ ixfr(query_type* q, engine_type* engine)
     ods_log_assert(q->tsig_rr);
     if (q->axfr_fd == NULL) {
         /* start IXFR */
-        xfrfile = ods_build_path(q->zone->name, ".ixfr", 0, 1);
-        if (xfrfile) {
-            q->axfr_fd = ods_fopen(xfrfile, NULL, "r");
-        }
+        q->axfr_fd = getxfr(q->zone, ".ixfr", &q->zone->xfrd->serial_xfr_acquired);
         if (!q->axfr_fd) {
-            ods_log_error("[%s] unable to open ixfr file %s for zone %s",
-                axfr_str, xfrfile, q->zone->name);
+            ods_log_error("[%s] unable to open ixfr file for zone %s",
+                axfr_str, q->zone->name);
             ods_log_info("[%s] axfr fallback zone %s", axfr_str,
                 q->zone->name);
-            free((void*)xfrfile);
             buffer_set_position(q->buffer, q->startpos);
             return axfr(q, engine, 1);
         }
-        free((void*)xfrfile);
         if (q->tsig_rr->status == TSIG_OK) {
             q->tsig_sign_it = 1; /* sign first packet in stream */
         }

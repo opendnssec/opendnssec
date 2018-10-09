@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2009 NLNet Labs. All rights reserved.
+ * Copyright (c) 2009-2018 NLNet Labs.
+ * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -21,7 +22,6 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
 /**
@@ -471,6 +471,12 @@ time_now(void)
     return time_now_set ? time_now_set: time(NULL);
 }
 
+int
+time_leaped(void)
+{
+    return time_now_set?1:0;
+}
+
 /**
  * copycode: This code is based on the EXAMPLE in the strftime manual.
  *
@@ -506,6 +512,21 @@ time_datestamp(time_t tt, const char* format, char** str)
         *str = strdup(outstr);
     }
     return ut;
+}
+
+/**
+ * Version of ctime_r that does not feature a trailing '\n' character
+ * buf must be allocated and at least 26 bytes!
+ */
+char *
+ods_ctime_r(time_t t, char *buf)
+{
+    if (!buf) return NULL;
+    char *p = ctime_r(&t, buf);
+    if (!p) return NULL;
+    p += strlen(p) - 1;
+    while (p >= buf && isspace(*p)) *(p--) = 0;
+    return buf;
 }
 
 /**

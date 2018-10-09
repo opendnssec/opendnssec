@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<SignerConfiguration>
+  <Zone name="example.com">
+    <Signatures>
+      <Resign>PT3M</Resign>
+      <Refresh>PT15M</Refresh>
+      <Validity>
+        <Default>PT86400S</Default>
+        <Denial>PT86400S</Denial>
+      </Validity>
+      <Jitter>PT0S</Jitter>
+      <InceptionOffset>PT0S</InceptionOffset>
+      <MaxZoneTTL>P1D</MaxZoneTTL>
+    </Signatures>
+    <Denial>
+      <NSEC3>
+        <OptOut/>
+        <Hash>
+          <Algorithm>1</Algorithm>
+          <Iterations>5</Iterations>
+          <Salt>4e2b7eda0871a0d4</Salt>
+        </Hash>
+      </NSEC3>
+    </Denial>
+    <Keys>
+      <TTL>PT86400S</TTL>
+      <Key>
+        <Flags>257</Flags>
+        <Algorithm>8</Algorithm>
+        <Locator>22222222222222222222222222222222</Locator>
+        <KSK/>
+        <Publish/>
+      </Key>
+      <Key>
+        <Flags>256</Flags>
+        <Algorithm>8</Algorithm>
+        <Locator>11111111111111111111111111111111</Locator>
+        <ZSK/>
+        <Publish/>
+      </Key>
+    </Keys>
+    <SOA>
+      <TTL>PT86400S</TTL>
+      <Minimum>PT86400S</Minimum>
+      <Serial>counter</Serial>
+    </SOA>
+  </Zone>
+</SignerConfiguration>

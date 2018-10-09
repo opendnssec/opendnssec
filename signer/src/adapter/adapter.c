@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2009 NLNet Labs. All rights reserved.
+ * Copyright (c) 2009-2018 NLNet Labs.
+ * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -21,7 +22,6 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
 /**
@@ -144,7 +144,7 @@ adapter_load_config(adapter_type* adapter)
  *
  */
 ods_status
-adapter_read(zone_type* zone)
+adapter_read(zone_type* zone, names_view_type view)
 {
     if (!zone || !zone->adinbound) {
         ods_log_error("[%s] unable to read zone: no input adapter",
@@ -156,11 +156,11 @@ adapter_read(zone_type* zone)
         case ADAPTER_FILE:
             ods_log_verbose("[%s] read zone %s from file input adapter %s",
                 adapter_str, zone->name, zone->adinbound->configstr);
-            return adfile_read(zone);
+            return adfile_read(zone, view);
         case ADAPTER_DNS:
             ods_log_verbose("[%s] read zone %s from dns input adapter %s",
                 adapter_str, zone->name, zone->adinbound->configstr);
-            return addns_read(zone);
+            return addns_read(zone, view);
         default:
             ods_log_error("[%s] unable to read zone %s from adapter: unknown "
                 "adapter", adapter_str, zone->name);
@@ -178,7 +178,9 @@ adapter_read(zone_type* zone)
 ods_status
 adapter_write(zone_type* zone)
 {
-    if (!zone || !zone->db || !zone->adoutbound) {
+    ods_status status = ODS_STATUS_ERR;
+    names_view_type view;
+    if (!zone || !zone->adoutbound) {
         ods_log_error("[%s] unable to write zone: no output adapter",
             adapter_str);
         return ODS_STATUS_ASSERT_ERR;
@@ -186,21 +188,27 @@ adapter_write(zone_type* zone)
     ods_log_assert(zone->name);
     ods_log_assert(zone->adoutbound->configstr);
 
+    view = zone->outputview;
+    names_viewreset(view);
     switch(zone->adoutbound->type) {
         case ADAPTER_FILE:
-            ods_log_verbose("[%s] write zone %s serial %u to output file "
-                "adapter %s", adapter_str, zone->name,
-                zone->db->intserial, zone->adoutbound->configstr);
-            return adfile_write(zone, zone->adoutbound->configstr);
+            if(!zone->operatingconf || zone->operatingconf->zonefile_freq==0) {
+                ods_log_verbose("[%s] write zone %s serial %u to output file "
+                    "adapter %s", adapter_str, zone->name,
+                    (zone->outboundserial ? *(zone->outboundserial) : 0), zone->adoutbound->configstr);
+                status = adfile_write(zone, view, zone->adoutbound->configstr);
+            }
+            break;
         case ADAPTER_DNS:
-            return addns_write(zone);
+            status = addns_write(zone, view);
+            break;
         default:
             ods_log_error("[%s] unable to write zone %s to adapter: unknown "
                 "adapter", adapter_str, zone->name);
-            return ODS_STATUS_ERR;
+            status = ODS_STATUS_ERR;
     }
     /* not reached */
-    return ODS_STATUS_ERR;
+    return status;
 }
 
 

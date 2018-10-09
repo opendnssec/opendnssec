@@ -398,7 +398,7 @@ int db_object_set_object_field_list(db_object_t* object, db_object_field_list_t*
     return DB_OK;
 }
 
-int db_object_create(const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set) {
+int db_object_create(db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set) {
     if (!object) {
         return DB_ERROR_UNKNOWN;
     }
@@ -414,11 +414,16 @@ int db_object_create(const db_object_t* object, const db_object_field_list_t* ob
     if (!object->primary_key_name) {
         return DB_ERROR_UNKNOWN;
     }
-
+    int r;
     if (object_field_list) {
-        return db_connection_create(object->connection, object, object_field_list, value_set);
+        r = db_connection_create(object->connection, object, object_field_list, value_set);
+    } else {
+        r = db_connection_create(object->connection, object, object->object_field_list, value_set);
     }
-    return db_connection_create(object->connection, object, object->object_field_list, value_set);
+    if (!r) {
+        r = db_connection_last_id(object->connection, &object->last_row_id);
+    }
+    return r;
 }
 
 db_result_list_t* db_object_read(const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list) {

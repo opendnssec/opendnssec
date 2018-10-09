@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2009 NLNet Labs. All rights reserved.
+ * Copyright (c) 2009-2018 NLNet Labs.
+ * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -21,7 +22,6 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
 #ifndef SIGNER_ZONE_H
@@ -44,18 +44,29 @@ typedef struct zone_struct zone_type;
 #include "scheduler/schedule.h"
 #include "locks.h"
 #include "status.h"
-#include "signer/ixfr.h"
-#include "signer/namedb.h"
 #include "signer/signconf.h"
 #include "signer/stats.h"
-#include "signer/rrset.h"
 #include "wire/buffer.h"
 #include "wire/notify.h"
 #include "wire/xfrd.h"
-#include "datastructure.h"
 #include "daemon/engine.h"
+#include "views/proto.h"
 
 struct schedule_struct;
+
+/* FIXME these operating configuration parameters should be better integrated
+ * At the moment we have enforcer supplied configuration parameters, which
+ * are per zone, but based on the KASP.  And we have global parameters from
+ * the conf.xml.  But we have no per-zone parameters that are not part of
+ * the KASP.
+ */
+struct operatingconf {
+    long statefile_freq;
+    long statefile_timer;
+    long zonefile_freq;
+    long zonefile_timer;
+    long ixfr_history;
+};
 
 struct zone_struct {
     ldns_rdf* apex; /* wire format zone name */
@@ -75,9 +86,19 @@ struct zone_struct {
     adapter_type* adoutbound; /* outbound adapter */
     /* from signconf.xml */
     signconf_type* signconf; /* signer configuration values */
-    /* zone data */
-    namedb_type* db;
-    ixfr_type* ixfr;
+    struct operatingconf* operatingconf;
+
+    names_view_type baseview;
+    names_view_type inputview;
+    names_view_type prepareview;
+    names_view_type neighview;
+    names_view_type signview;
+    names_view_type outputview;
+    names_view_type changesview;
+
+    uint32_t* nextserial;
+    uint32_t* inboundserial;
+    uint32_t* outboundserial;
     /* zone transfers */
     xfrd_type* xfrd;
     notify_type* notify;
@@ -86,7 +107,6 @@ struct zone_struct {
     pthread_mutex_t zone_lock;
     pthread_mutex_t xfr_lock;
     /* backing store for rrsigs (both domain as denial) */
-    collection_class rrstore;
     int zoneconfigvalid; /* flag indicating whether the signconf has at least once been read */
 };
 
@@ -129,14 +149,7 @@ ods_status zone_reschedule_task(zone_type* zone, schedule_type* taskq,
  * \return ods_status status
  *
  */
-ods_status zone_publish_dnskeys(zone_type* zone, int skip_hsm_access);
-
-/**
- * Unlink DNSKEY RRs.
- * \param[in] zone zone
- *
- */
-void zone_rollback_dnskeys(zone_type* zone);
+ods_status zone_publish_dnskeys(zone_type* zone, names_view_type view, int skip_hsm_access);
 
 /**
  * Publish the NSEC3 parameters as indicated by the signer configuration.
@@ -144,14 +157,7 @@ void zone_rollback_dnskeys(zone_type* zone);
  * \return ods_status status
  *
  */
-ods_status zone_publish_nsec3param(zone_type* zone);
-
-/**
- * Unlink NSEC3PARAM RR.
- * \param[in] zone zone
- *
- */
-void zone_rollback_nsec3param(zone_type* zone);
+ods_status zone_publish_nsec3param(zone_type* zone, names_view_type view);
 
 /**
  * Prepare keys for signing.
@@ -167,7 +173,7 @@ ods_status zone_prepare_keys(zone_type* zone);
  * \return ods_status status
  *
  */
-ods_status zone_update_serial(zone_type* zone);
+ods_status zone_update_serial(zone_type* zone, names_view_type view);
 
 /**
  * Lookup RRset.
@@ -177,8 +183,7 @@ ods_status zone_update_serial(zone_type* zone);
  * \return rrset_type* RRset, if found
  *
  */
-rrset_type* zone_lookup_rrset(zone_type* zone, ldns_rdf* owner,
-    ldns_rr_type type);
+ldns_rr* zone_lookup_apex_rrset(names_view_type view, ldns_rr_type type,ldns_rr*);
 
 /**
  * Add RR.
@@ -191,7 +196,7 @@ rrset_type* zone_lookup_rrset(zone_type* zone, ldns_rdf* owner,
  *         other: rr not added to zone, error occurred
  *
  */
-ods_status zone_add_rr(zone_type* zone, ldns_rr* rr, int do_stats);
+ods_status zone_add_rr(zone_type* zone, names_view_type view, ldns_rr* rr);
 
 /**
  * Delete RR.
@@ -204,13 +209,13 @@ ods_status zone_add_rr(zone_type* zone, ldns_rr* rr, int do_stats);
  *         other: rr not removed from zone, error occurred
  *
  */
-ods_status zone_del_rr(zone_type* zone, ldns_rr* rr, int do_stats);
+ods_status zone_del_rr(zone_type* zone, names_view_type view, ldns_rr* rr);
 
 /**
  * Remove all NSEC3PARAM RRs from the zone
  * \return ODS_STATUS_UNCHANGED or ODS_STATUS_OK
  */ 
-ods_status zone_del_nsec3params(zone_type* zone);
+ods_status zone_del_nsec3params(zone_type* zone, names_view_type view);
 
 /**
  * Merge zones. Values that are merged:
@@ -232,18 +237,20 @@ void zone_merge(zone_type* z1, zone_type* z2);
 void zone_cleanup(zone_type* zone);
 
 /**
- * Backup zone.
- * \param[in] zone corresponding zone
- * \return ods_status status
+ * Mark the zone ready to be used.
+ *
+ * \param[in] zone zone
  *
  */
-ods_status zone_backup2(zone_type* zone, time_t nextResign);
+void zone_start(zone_type* zone);
 
 /**
- * Recover zone from backup.
- * \param[in] zone corresponding zone
- *
+ * recover from old-style backup file format.
+ * @param zone the zone to cover
+ * @param view the input view of the zone
+ * @return returns whether the recvering was successfull
  */
-ods_status zone_recover2(engine_type* engine, zone_type* zone);
+ods_status
+zone_recover(zone_type* zone, names_view_type view);
 
 #endif /* SIGNER_ZONE_H */

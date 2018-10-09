@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2011 NLNet Labs. All rights reserved.
+ * Copyright (c) 2011-2018 NLNet Labs.
+ * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -21,7 +22,6 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
 /**
@@ -47,11 +47,6 @@ fifoq_create()
 {
     fifoq_type* fifoq;
     CHECKALLOC(fifoq = (fifoq_type*) malloc(sizeof(fifoq_type)));
-    if (!fifoq) {
-        ods_log_error("[%s] unable to create fifoq: allocator_alloc() failed",
-            fifoq_str);
-        return NULL;
-    }
     fifoq_wipe(fifoq);
     pthread_mutex_init(&fifoq->q_lock, NULL);
     pthread_cond_init(&fifoq->q_threshold, NULL);

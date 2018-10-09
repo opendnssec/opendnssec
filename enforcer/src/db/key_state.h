@@ -56,7 +56,6 @@ typedef enum key_state_state {
 } key_state_state_t;
 extern const db_enum_t key_state_enum_set_state[];
 
-#include "key_state_ext.h"
 #include "key_data.h"
 
 /**
@@ -279,6 +278,15 @@ struct key_state_list {
  * \return a key_state_list_t pointer or NULL on error.
  */
 key_state_list_t* key_state_list_new(const db_connection_t* connection);
+
+int
+key_state_list_get(key_state_list_t* key_state_list);
+
+key_state_list_t*
+key_state_list_new_get(const db_connection_t* connection);
+
+size_t
+key_state_list_size(key_state_list_t* key_state_list);
 
 /**
  * Create a new key state object list that is a copy of another.

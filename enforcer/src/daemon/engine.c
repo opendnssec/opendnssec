@@ -33,7 +33,7 @@
 
 #include <pthread.h>
 
-#include "daemon/cfg.h"
+#include "cfg.h"
 #include "daemon/enforcercommands.h"
 #include "clientpipe.h"
 #include "cmdhandler.h"
@@ -129,25 +129,25 @@ engine_privdrop(engine_type* engine)
     ods_log_assert(engine->config);
     ods_log_debug("[%s] drop privileges", engine_str);
 
-    if (engine->config->username && engine->config->group) {
+    if (engine->config->username_enforcer && engine->config->group_enforcer) {
         ods_log_verbose("[%s] drop privileges to user %s, group %s",
-           engine_str, engine->config->username, engine->config->group);
-    } else if (engine->config->username) {
+           engine_str, engine->config->username_enforcer, engine->config->group_enforcer);
+    } else if (engine->config->username_enforcer) {
         ods_log_verbose("[%s] drop privileges to user %s", engine_str,
-           engine->config->username);
-    } else if (engine->config->group) {
+           engine->config->username_enforcer);
+    } else if (engine->config->group_enforcer) {
         ods_log_verbose("[%s] drop privileges to group %s", engine_str,
-           engine->config->group);
+           engine->config->group_enforcer);
     }
-    if (engine->config->chroot) {
+    if (engine->config->chroot_enforcer) {
         ods_log_verbose("[%s] chroot to %s", engine_str,
-            engine->config->chroot);
+            engine->config->chroot_enforcer);
     }
-    status = privdrop(engine->config->username, engine->config->group,
-        engine->config->chroot, &uid, &gid);
+    status = privdrop(engine->config->username_enforcer, engine->config->group_enforcer,
+        engine->config->chroot_enforcer, &uid, &gid);
     engine->uid = uid;
     engine->gid = gid;
-    privclose(engine->config->username, engine->config->group);
+    privclose(engine->config->username_enforcer, engine->config->group_enforcer);
     return status;
 }
 
@@ -163,8 +163,8 @@ engine_create_workers(engine_type* engine)
     ods_log_assert(engine);
     ods_log_assert(engine->config);
     engine->workers = (worker_type**) malloc(
-        (size_t)engine->config->num_worker_threads * sizeof(worker_type*));
-    for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
+        (size_t)engine->config->num_worker_threads_enforcer * sizeof(worker_type*));
+    for (i=0; i < (size_t) engine->config->num_worker_threads_enforcer; i++) {
         asprintf(&name, "worker[%d]", i+1);
         engine->workers[i] = worker_create(name, engine->taskq);
     }
@@ -178,7 +178,7 @@ engine_start_workers(engine_type* engine)
     ods_log_assert(engine);
     ods_log_assert(engine->config);
     ods_log_debug("[%s] start workers", engine_str);
-    for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
+    for (i=0; i < (size_t) engine->config->num_worker_threads_enforcer; i++) {
         engine->workers[i]->need_to_exit = 0;
         engine->workers[i]->context = get_database_connection(engine);
         if (!engine->workers[i]->context) {
@@ -198,12 +198,12 @@ engine_stop_workers(engine_type* engine)
     ods_log_assert(engine->config);
     ods_log_debug("[%s] stop workers", engine_str);
     /* tell them to exit and wake up sleepyheads */
-    for (i=0; i < engine->config->num_worker_threads; i++) {
+    for (i=0; i < engine->config->num_worker_threads_enforcer; i++) {
         engine->workers[i]->need_to_exit = 1;
     }
     engine_wakeup_workers(engine);
     /* head count */
-    for (i=0; i < engine->config->num_worker_threads; i++) {
+    for (i=0; i < engine->config->num_worker_threads_enforcer; i++) {
         ods_log_debug("[%s] join worker %i", engine_str, i+1);
         janitor_thread_join(engine->workers[i]->thread_id);
         db_connection_free(engine->workers[i]->context);
@@ -435,12 +435,13 @@ engine_setup()
     int fd, error;
     int pipefd[2];
     char buff = '\0';
+    const char *err = "unable to setsid daemon: ";
 
     ods_log_debug("[%s] enforcer setup", engine_str);
 
     engine->pid = getpid(); /* We need to do this again after fork() */
 
-    if (!util_pidfile_avail(engine->config->pid_filename)) {
+    if (!util_pidfile_avail(engine->config->pid_filename_enforcer)) {
         ods_log_error("[%s] Pidfile exists and process with PID is running", engine_str);
         return ODS_STATUS_WRITE_PIDFILE_ERR;
     }
@@ -454,10 +455,10 @@ engine_setup()
     }
 
     /* create command handler (before chowning socket file) */
-    engine->cmdhandler = cmdhandler_create(engine->config->clisock_filename, enforcercommands, engine, (void*(*)(void*)) (void(*)(void*))&get_database_connection, (void(*)(void*))&db_connection_free);
+    engine->cmdhandler = cmdhandler_create(engine->config->clisock_filename_enforcer, enforcercommands, engine, (void*(*)(void*)) (void(*)(void*))&get_database_connection, (void(*)(void*))&db_connection_free);
     if (!engine->cmdhandler) {
         ods_log_error("[%s] create command handler to %s failed",
-            engine_str, engine->config->clisock_filename);
+            engine_str, engine->config->clisock_filename_enforcer);
         return ODS_STATUS_CMDHANDLER_ERR;
     }
 
@@ -468,20 +469,20 @@ engine_setup()
 
     if (!engine->init_setup_done) {
         /* privdrop */
-        engine->uid = privuid(engine->config->username);
-        engine->gid = privgid(engine->config->group);
+        engine->uid = privuid(engine->config->username_enforcer);
+        engine->gid = privgid(engine->config->group_enforcer);
         /* TODO: does piddir exists? */
         /* remove the chown stuff: piddir? */
-        ods_chown(engine->config->pid_filename, engine->uid, engine->gid, 1);
-        ods_chown(engine->config->clisock_filename, engine->uid, engine->gid, 0);
-        ods_chown(engine->config->working_dir, engine->uid, engine->gid, 0);
+        ods_chown(engine->config->pid_filename_enforcer, engine->uid, engine->gid, 1);
+        ods_chown(engine->config->clisock_filename_enforcer, engine->uid, engine->gid, 0);
+        ods_chown(engine->config->working_dir_enforcer, engine->uid, engine->gid, 0);
         if (engine->config->log_filename && !engine->config->use_syslog) {
             ods_chown(engine->config->log_filename, engine->uid, engine->gid, 0);
         }
-        if (engine->config->working_dir &&
-            chdir(engine->config->working_dir) != 0) {
+        if (engine->config->working_dir_enforcer &&
+            chdir(engine->config->working_dir_enforcer) != 0) {
             ods_log_error("[%s] chdir to %s failed: %s", engine_str,
-                engine->config->working_dir, strerror(errno));
+                engine->config->working_dir_enforcer, strerror(errno));
             return ODS_STATUS_CHDIR_ERR;
         }
         if (engine_privdrop(engine) != ODS_STATUS_OK) {
@@ -523,7 +524,6 @@ engine_setup()
             if (setsid() == -1) {
                 ods_log_error("[%s] unable to setsid daemon (%s)",
                     engine_str, strerror(errno));
-                const char *err = "unable to setsid daemon: ";
                 ods_writen(pipefd[1], err, strlen(err));
                 ods_writeln(pipefd[1], strerror(errno));
                 write(pipefd[1], "\0", 1);
@@ -542,7 +542,7 @@ engine_setup()
     engine_create_workers(engine);
 
     /* write pidfile */
-    if (util_write_pidfile(engine->config->pid_filename, engine->pid) == -1) {
+    if (util_write_pidfile(engine->config->pid_filename_enforcer, engine->pid) == -1) {
         hsm_close();
         ods_log_error("[%s] unable to write pid file", engine_str);
         if (engine->daemonize) {
@@ -589,15 +589,15 @@ engine_teardown(engine_type* engine)
 
     if (!engine) return;
     if (engine->config) {
-        if (engine->config->pid_filename) {
-            (void)unlink(engine->config->pid_filename);
+        if (engine->config->pid_filename_enforcer) {
+            (void)unlink(engine->config->pid_filename_enforcer);
         }
-        if (engine->config->clisock_filename) {
-            (void)unlink(engine->config->clisock_filename);
+        if (engine->config->clisock_filename_enforcer) {
+            (void)unlink(engine->config->clisock_filename_enforcer);
         }
     }
     if (engine->workers && engine->config) {
-        for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
+        for (i=0; i < (size_t) engine->config->num_worker_threads_enforcer; i++) {
             worker_cleanup(engine->workers[i]);
         }
         free(engine->workers);
@@ -632,6 +632,7 @@ engine_init(engine_type* engine, int daemonize)
     sigaction(SIGHUP, &action, NULL);
     sigaction(SIGTERM, &action, NULL);
     sigaction(SIGINT, &action, NULL);
+    sigaction(SIGPIPE, &action, NULL);
     engine->dbcfg_list = NULL;
 }
 

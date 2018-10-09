@@ -27,8 +27,7 @@
 #ifndef _ENFORCER_ENFORCER_H_
 #define _ENFORCER_ENFORCER_H_
 
-#include "db/zone_db.h"
-#include "db/policy.h"
+#include "db/dbw.h"
 #include "daemon/engine.h"
 
 /**
@@ -48,6 +47,10 @@
  * @return time_t Time the function wishes to be called again.
  * */
 time_t
-update(engine_type *engine, db_connection_t *dbconn, zone_db_t *zone, policy_t const *policy, time_t now, int *zone_updated);
-
+update(engine_type *engine, struct dbw_db *db, struct dbw_zone *zone, time_t now, int *zone_updated);
+/**
+ * same as above except will not create HSM keys.
+ */
+time_t
+update_mockup(engine_type *engine, struct dbw_db *db, struct dbw_zone *zone, time_t now, int *zone_updated);
 #endif /* _ENFORCER_ENFORCER_H_ */

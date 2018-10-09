@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2011 NLNet Labs. All rights reserved.
+ * Copyright (c) 2011-2018 NLNet Labs.
+ * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -21,7 +22,6 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
 /**
@@ -94,9 +94,12 @@ struct query_struct {
  */
 typedef struct response_struct response_type;
 struct response_struct {
-    size_t rrset_count;
-    ldns_pkt_section sections[QUERY_RESPONSE_MAX_RRSET];
-    rrset_type* rrsets[QUERY_RESPONSE_MAX_RRSET];
+    ldns_rr_list* answersection;
+    ldns_rr_list* authoritysection;
+    ldns_rr_list* additionalsection;
+    ldns_rr_list* answersectionsigs;
+    ldns_rr_list* authoritysectionsigs;
+    ldns_rr_list* additionalsectionsigs;
 };
 
 /**
