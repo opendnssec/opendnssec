@@ -513,6 +513,9 @@ zone_start(zone_type* zone)
     names_viewconfig(zone->baseview, &(zone->signconf));
     filename = ods_build_path(zone->name, ".state", 0, 1);
     notrestored = names_viewrestore(zone->baseview, zoneapex, -1, filename);
+    if(notrestored != 0) {
+        zone_recover(zone);
+    }
     /* should we add the task schedule:
      * schedule_scheduletask(engine->taskq, TASK_SIGN, zone->name, zone, &zone->zone_lock, schedule_PROMPTLY);
      */
@@ -526,7 +529,6 @@ zone_start(zone_type* zone)
     zone->changesview = names_viewcreate(zone->baseview, names_view_CHANGES[0], &names_view_CHANGES[1]);
 
     if(notrestored != 0) {
-        zone_recover(zone, zone->inputview);
         names_viewcommit(zone->inputview);
         names_viewreset(zone->baseview);
     }

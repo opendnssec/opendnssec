@@ -251,6 +251,6 @@ void zone_start(zone_type* zone);
  * @return returns whether the recvering was successfull
  */
 ods_status
-zone_recover(zone_type* zone, names_view_type view);
+zone_recover(zone_type* zone);
 
 #endif /* SIGNER_ZONE_H */

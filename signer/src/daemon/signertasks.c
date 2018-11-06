@@ -126,7 +126,7 @@ signdomain(struct worker_context* superior, hsm_ctx_t* ctx, recordset_type recor
     ods_status status;
     names_iterator iter;
     ldns_rr_type rrtype;
-    int expiration = INT_MAX;
+    time_t expiration = INT_MAX;
     time_t rrsigexpirationtime;
     ldns_rr* rrsig;
     ldns_rr_list* rrsigs;

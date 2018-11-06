@@ -132,8 +132,9 @@ names_commitlogpoppush(names_commitlog_type logs, int viewid, names_table_type* 
             }
             if(i == logs->nviews) {
                 for(i=0; i<logs->nviews; i++) {
-                    if(logs->views[i].nextchangelogptr == &(previouslog->next))
-                        logs->views[i].nextchangelogptr = &(logs->firstchangelog);
+                    if(logs->views[i].view)
+                        if(logs->views[i].nextchangelogptr == &(previouslog->next))
+                            logs->views[i].nextchangelogptr = &(logs->firstchangelog);
                 }
                 if(logs->lastchangelog == logs->firstchangelog)
                     logs->lastchangelog = logs->firstchangelog->next;
@@ -187,6 +188,15 @@ names_commitlogsubscribe(names_view_type view, names_commitlog_type* commitlogpt
     (*commitlogptr)->views[viewid].view = view;
     CHECK(pthread_mutex_unlock(&(*commitlogptr)->lock));
     return viewid;
+}
+
+void
+names_commitlogunsubscribe(int viewid, names_commitlog_type commitlogptr)
+{
+    CHECK(pthread_mutex_lock(&commitlogptr->lock));
+    commitlogptr->views[viewid].nextchangelogptr = NULL;
+    commitlogptr->views[viewid].view = NULL;
+    CHECK(pthread_mutex_unlock(&commitlogptr->lock));
 }
 
 void

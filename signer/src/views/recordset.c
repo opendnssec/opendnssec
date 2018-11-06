@@ -680,6 +680,7 @@ comparenamerevision(recordset_type newitem, recordset_type curitem, int* cmp)
 {
     if (curitem) {
         if (cmp) {
+            assert(newitem);
             *cmp = strcmp(newitem->name, curitem->name);
             if(*cmp == 0 && newitem->revision != 0) {
                 *cmp = newitem->revision - curitem->revision;
