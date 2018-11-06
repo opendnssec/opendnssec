@@ -39,21 +39,22 @@
 #include "status.h"
 #include "util.h"
 #include "signer/signconf.h"
+#include "views/proto.h"
 
 #include <ldns/ldns.h>
 
 static const char* backup_str = "backup";
-static const char* sc_str = "signconf";
-static const char* zone_str = "zone";
 
-
-
-static recordset_type*
+static recordset_type
 lookupdenial(names_view_type view, ldns_rdf* dname)
 {
-    return NULL; // FIXME
+    char* name;
+    recordset_type record;
+    name = ldns_rdf2str(dname);
+    record = names_take(view, 1, name);
+    free(name);
+    return record;
 }
-
 
 /**
  * Read token from backup file.
@@ -381,6 +382,8 @@ backup_read_namedb(FILE* in, zone_type* zone, names_view_type view)
         goto backup_namedb_done;
     }
 
+    names_viewcommit(view);
+    
     /* read NSEC(3)s */
     ods_log_debug("[%s] read NSEC(3)s %s", backup_str, z->name);
     l = 0;
@@ -472,6 +475,7 @@ backup_read_namedb(FILE* in, zone_type* zone, names_view_type view)
             backup_str, l, ldns_get_errorstr_by_id(status), line);
         result = ODS_STATUS_ERR;
     }
+    names_viewcommit(view);
 
 backup_namedb_done:
     if (orig) {
@@ -545,13 +549,40 @@ signconf_backup_duration(FILE* fd, const char* opt, duration_type* duration)
     free(str);
 }
 
+static void
+upgraderecords(zone_type* zone, names_view_type view)
+{
+    names_iterator iter;
+    recordset_type record;
+    time_t expiration = LONG_MAX;
+    ldns_rr_list* rrsigs;
+    ldns_rr* rrsig;
+    ldns_rdf* rrsigexpiration;
+    time_t rrsigexpirationtime;
+    uint32_t serial;
+    serial = zone->outboundserial;
+    for(iter=names_viewiterator(view,NULL); names_iterate(&iter,&record);  names_advance(&iter,NULL)) {
+        names_amend(view, record);
+        names_recordsetvalidfrom(record, serial);
+        names_recordlookupall(record, LDNS_RR_TYPE_RRSIG, NULL, NULL, &rrsigs);
+        while ((rrsig=ldns_rr_list_pop_rr(rrsigs))) {
+            rrsigexpiration = ldns_rr_rrsig_expiration(rrsig);
+            rrsigexpirationtime = ldns_rdf2native_time_t(rrsigexpiration);
+            if(rrsigexpirationtime < expiration)
+                expiration = rrsigexpirationtime;
+        }
+        ldns_rr_list_free(rrsigs);
+        names_recordsetexpiry(record, expiration);
+    }
+    names_viewcommit(view);
+}
 
 /**
  * Recover zone from backup.
  *
  */
 ods_status
-zone_recover(zone_type* zone, names_view_type view)
+zone_recover(zone_type* zone)
 {
     char* filename = NULL;
     FILE* fd = NULL;
@@ -565,6 +596,7 @@ zone_recover(zone_type* zone, names_view_type view)
     time_t lastmod = 0;
     /* nsec3params part */
     const char* salt = NULL;
+    names_view_type view;
 
     ods_log_assert(zone);
     ods_log_assert(zone->name);
@@ -579,13 +611,13 @@ zone_recover(zone_type* zone, names_view_type view)
         /* start recovery */
         if (!backup_read_check_str(fd, ODS_SE_FILE_MAGIC_V3)) {
             ods_log_error("[%s] corrupted backup file zone %s: read magic "
-                "error", zone_str, zone->name);
+                "error", backup_str, zone->name);
             goto recover_error2;
         }
         if (!backup_read_check_str(fd, ";;Time:") |
             !backup_read_time_t(fd, &when)) {
             ods_log_error("[%s] corrupted backup file zone %s: read time "
-                "error", zone_str, zone->name);
+                "error", backup_str, zone->name);
             goto recover_error2;
         }
         /* zone stuff */
@@ -593,13 +625,13 @@ zone_recover(zone_type* zone, names_view_type view)
             !backup_read_check_str(fd, "name") |
             !backup_read_check_str(fd, zone->name)) {
             ods_log_error("[%s] corrupted backup file zone %s: read name "
-                "error", zone_str, zone->name);
+                "error", backup_str, zone->name);
             goto recover_error2;
         }
         if (!backup_read_check_str(fd, "class") |
             !backup_read_int(fd, &klass)) {
             ods_log_error("[%s] corrupted backup file zone %s: read class "
-                "error", zone_str, zone->name);
+                "error", backup_str, zone->name);
             goto recover_error2;
         }
         if (!backup_read_check_str(fd, "inbound") |
@@ -609,7 +641,7 @@ zone_recover(zone_type* zone, names_view_type view)
             !backup_read_check_str(fd, "outbound") |
             !backup_read_uint32_t(fd, &outbound)) {
             ods_log_error("[%s] corrupted backup file zone %s: read serial "
-                "error", zone_str, zone->name);
+                "error", backup_str, zone->name);
             goto recover_error2;
         }
         zone->klass = (ldns_rr_class) klass;
@@ -650,7 +682,7 @@ zone_recover(zone_type* zone, names_view_type view)
             !backup_read_check_str(fd, "serial") |
             !backup_read_str(fd, &zone->signconf->soa_serial)) {
             ods_log_error("[%s] corrupted backup file zone %s: read signconf "
-                "error", zone_str, zone->name);
+                "error", backup_str, zone->name);
             goto recover_error2;
         }
         /* nsec3params part */
@@ -665,7 +697,7 @@ zone_recover(zone_type* zone, names_view_type view)
                 !backup_read_check_str(fd, "iterations") |
                 !backup_read_uint32_t(fd, &zone->signconf->nsec3_iterations)) {
                 ods_log_error("[%s] corrupted backup file zone %s: read "
-                    "nsec3parameters error", zone_str, zone->name);
+                    "nsec3parameters error", backup_str, zone->name);
                 goto recover_error2;
             }
             zone->signconf->nsec3_salt = strdup(salt);
@@ -679,7 +711,7 @@ zone_recover(zone_type* zone, names_view_type view)
                 zone->signconf->nsec3_salt);
             if (!zone->signconf->nsec3params) {
                 ods_log_error("[%s] corrupted backup file zone %s: unable to "
-                    "create nsec3param", zone_str, zone->name);
+                    "create nsec3param", backup_str, zone->name);
                 goto recover_error2;
             }
         }
@@ -692,7 +724,7 @@ zone_recover(zone_type* zone, names_view_type view)
             if (ods_strcmp(token, ";;Key:") == 0) {
                 if (!key_recover2(fd, zone->signconf->keys)) {
                     ods_log_error("[%s] corrupted backup file zone %s: read "
-                        "key error", zone_str, zone->name);
+                        "key error", backup_str, zone->name);
                     goto recover_error2;
                 }
             } else if (ods_strcmp(token, ";;") == 0) {
@@ -707,11 +739,14 @@ zone_recover(zone_type* zone, names_view_type view)
             free((void*) token);
             token = NULL;
         }
+
+        view = names_viewcreate(zone->baseview, names_view_BACKUP[0], &names_view_BACKUP[1]);
+
         /* publish dnskeys */
         status = zone_publish_dnskeys(zone, view, 1);
         if (status != ODS_STATUS_OK) {
             ods_log_error("[%s] corrupted backup file zone %s: unable to "
-                "publish dnskeys (%s)", zone_str, zone->name,
+                "publish dnskeys (%s)", backup_str, zone->name,
                 ods_status2str(status));
             goto recover_error2;
         }
@@ -720,7 +755,7 @@ zone_recover(zone_type* zone, names_view_type view)
             status = zone_publish_nsec3param(zone, view);
         if (status != ODS_STATUS_OK) {
             ods_log_error("[%s] corrupted backup file zone %s: unable to "
-                "publish nsec3param (%s)", zone_str, zone->name,
+                "publish nsec3param (%s)", backup_str, zone->name,
                 ods_status2str(status));
             goto recover_error2;
         }
@@ -728,23 +763,23 @@ zone_recover(zone_type* zone, names_view_type view)
         status = backup_read_namedb(fd, zone, view);
         if (status != ODS_STATUS_OK) {
             ods_log_error("[%s] corrupted backup file zone %s: unable to "
-                "read resource records (%s)", zone_str, zone->name,
+                "read resource records (%s)", backup_str, zone->name,
                 ods_status2str(status));
             goto recover_error2;
         }
-        free((void*)filename);
-        ods_fclose(fd);
+
+        upgraderecords(zone, view);
 
         /* all ok */
-        free((void*)filename);
-        if (fd) {
+        names_viewdestroy(view);
+        if (fd >= 0) {
             ods_fclose(fd);
         }
         if (zone->stats) {
             pthread_mutex_lock(&zone->stats->stats_lock);
             stats_clear(zone->stats);
             pthread_mutex_unlock(&zone->stats->stats_lock);
-        }
+        }       
         return ODS_STATUS_OK;
     }
     free(filename);

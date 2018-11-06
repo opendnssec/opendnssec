@@ -45,6 +45,7 @@ extern const char* names_view_NEIGHB[];
 extern const char* names_view_SIGN[];
 extern const char* names_view_OUTPUT[];
 extern const char* names_view_CHANGES[];
+extern const char* names_view_BACKUP[];
 
 extern logger_cls_type names_logcommitlog;
 
@@ -212,6 +213,7 @@ void names_commitlogdestroyfull(names_table_type changelog);
 void names_commitlogdestroyall(names_commitlog_type views, marshall_handle* store);
 int names_commitlogpoppush(names_commitlog_type, int viewid, names_table_type* previous, names_table_type* mychangelog);
 int names_commitlogsubscribe(names_view_type view, names_commitlog_type*);
+void names_commitlogunsubscribe(int viewid, names_commitlog_type commitlogptr);
 void names_commitlogpersistincr(names_commitlog_type, names_table_type changelog);
 void names_commitlogpersistappend(names_commitlog_type, void (*persistfn)(names_table_type, marshall_handle), marshall_handle store);
 int names_commitlogpersistfull(names_commitlog_type, void (*persistfn)(names_table_type, marshall_handle), int viewid, marshall_handle store, marshall_handle* oldstore);

@@ -176,6 +176,7 @@ tearDown(void)
     unlink("signer.db");
     unlink("signer.pid");
     unlink("example.com.state");
+    unlink("example.com.backup2");
 }
 
 static void
@@ -893,6 +894,51 @@ testDisposing(void)
     disposezone(zone);
 }
 
+void
+testBackup(void)
+{
+    int status;
+    zone_type* zone;
+    names_view_type* view;
+    char* zoneapex;
+    int notrestored;
+    usefile("example.com.state", NULL);
+    usefile("signer.db", NULL);
+    usefile("unsigned.zone", NULL);
+    usefile("signconf.xml", "signconf.xml.nsec");
+    usefile("example.com.backup2", "unsigned.zone.example.backup2");
+    zone = zone_create(strdup("example.com"), LDNS_RR_CLASS_IN);
+    zone->baseview = names_viewcreate(NULL, names_view_BASE[0], &names_view_BASE[1]);
+    zoneapex = ldns_rdf2str(zone->apex);
+    notrestored = names_viewrestore(zone->baseview, zoneapex, -1, NULL);
+    CU_ASSERT_TRUE(notrestored);
+    names_viewconfig(zone->baseview, &(zone->signconf));
+    zone->inputview = names_viewcreate(zone->baseview,   names_view_INPUT[0],   &names_view_INPUT[1]);
+    zone->prepareview = names_viewcreate(zone->baseview, names_view_PREPARE[0], &names_view_PREPARE[1]);
+    zone->neighview = names_viewcreate(zone->baseview,   names_view_NEIGHB[0],  &names_view_NEIGHB[1]);
+    zone->signview = names_viewcreate(zone->baseview,    names_view_SIGN[0],    &names_view_SIGN[1]);
+    zone->outputview = names_viewcreate(zone->baseview,  names_view_OUTPUT[0],  &names_view_OUTPUT[1]);
+    zone->changesview = names_viewcreate(zone->baseview, names_view_CHANGES[0], &names_view_CHANGES[1]);
+    view = names_viewcreate(zone->baseview, names_view_BACKUP[0],  &names_view_BACKUP[1]);
+    zone_recover(zone);
+    names_viewreset(zone->baseview);
+    names_viewreset(zone->inputview);
+    names_viewreset(zone->prepareview);
+    names_viewreset(zone->neighview);
+    names_viewreset(zone->signview);
+    names_viewreset(zone->outputview);
+    names_viewreset(zone->changesview);
+    names_dumpviewinfo(stderr,7,&zone->baseview);
+    names_viewreset(zone->baseview);
+    names_viewdestroy(zone->inputview);
+    names_viewdestroy(zone->prepareview);
+    names_viewdestroy(zone->neighview);
+    names_viewdestroy(zone->signview);
+    names_viewdestroy(zone->outputview);
+    names_viewdestroy(zone->changesview);
+    names_viewdestroy(zone->baseview);
+    zone_cleanup(zone);
+}
 
 extern void testNothing(void);
 extern void testIterator(void);
@@ -932,6 +978,7 @@ struct test_struct {
     { "signer", "testSignFastInsert",  "test fast updates inserts" },
     { "signer", "testSignFastChange",  "test fast updates changes" },
     { "signer", "testDisposing",       "test dispose" },
+    { "signer", "testBackup",          "test migration backup files" },
     { "signer", "-testSignNL",          "test NL signing" },
     { NULL, NULL, NULL }
 };

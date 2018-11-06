@@ -52,6 +52,7 @@ const char* names_view_NEIGHB[]  = { "neighb",  "nameready", "denialname", NULL 
 const char* names_view_SIGN[]    = { "sign",    "nameready", "expiry", "denialname", NULL };
 const char* names_view_OUTPUT[]  = { "output",  "validnow", NULL };
 const char* names_view_CHANGES[] = { "changes", "validchanges", "validinserts", "validdeletes", NULL };
+const char* names_view_BACKUP[]  = { "backup", "namerevision", "denialname", NULL };
 
 logger_cls_type names_logcommitlog = LOGGER_INITIALIZE("commitlog");
 
@@ -214,8 +215,10 @@ void*
 names_take(names_view_type view, int index, const char* name)
 {
     recordset_type found;
-    if(name == NULL)
+    if(name == NULL) {
+        assert(view->zonedata.apex);
         name = view->zonedata.apex;
+    }
     found = names_indexlookupkey(view->indices[index], name);
     return found;
 }
@@ -292,6 +295,7 @@ names_viewdestroy(names_view_type view)
 {
     int i;
     marshall_handle store = NULL;
+    names_commitlogunsubscribe(view->viewid, view->commitlog);
     names_commitlogdestroy(view->changelog);
     for(i=1; i<view->nindices; i++) {
         names_indexdestroy(view->indices[i], NULL, NULL);
@@ -518,7 +522,7 @@ updateview(names_view_type view, names_table_type* mychangelog)
         logger_message(&names_logcommitlog,logger_noctx,logger_DEBUG,"  process submit commit log %p into %s\n",(void*)changelog,view->viewname);
         for(iter=names_tableitems(changelog); names_iterate(&iter, &change); names_advance(&iter, NULL)) {
             recordset_type existing = change->oldrecord;
-            logger_message(&names_logcommitlog,logger_noctx,logger_DEBUG,"    update %s %s%s%s\n",names_recordgetsummary(change->record,&temp1),(accepted?"accepted":"dropped"),(existing?" replaces ":""),names_recordgetsummary(existing,&temp2));
+            logger_message(&names_logcommitlog,logger_noctx,logger_DEBUG,"    update %s %s%s\n",names_recordgetsummary(change->record,&temp1),(existing?" replaces ":""),names_recordgetsummary(existing,&temp2));
             for(i=1; i<view->nindices; i++) {
                 existing = change->oldrecord;
                 names_indexinsert(view->indices[i], change->record, &existing);
@@ -607,7 +611,7 @@ names_viewrestore(names_view_type view, const char* apex, int basefd, const char
             return 1;
         }
     } else {
-        return 0;
+        return 1;
     }
 }
 
