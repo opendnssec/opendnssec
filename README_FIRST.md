@@ -1,7 +1,7 @@
 This is a pre-release of the OpenDNSSEC software for the functionality of
 Fast Updates.
 
-Updates since previous pre-release:
+Update 2018-11-13:
 - Reading signed/state files from earlier 2.1 releases for migration
   purposes should now be functional.
 - Signature expiration beyond 2038 was broken which is now fixed.
