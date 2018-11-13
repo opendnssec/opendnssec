@@ -145,6 +145,35 @@ marshallinteger(marshall_handle h, void* member)
 }
 
 int
+marshallint64(marshall_handle h, void* member)
+{
+    int size;
+    switch(h->mode) {
+        case COPY:
+            break;
+        case FREE:
+            break;
+        case READ:
+            size = read(h->fd, member, sizeof(int64_t));
+            assert(size==sizeof(int64_t));
+            break;
+        case WRITE:
+            size = write(h->fd, member, sizeof(int64_t));
+            assert(size==sizeof(int64_t));
+            break;
+        case COUNT:
+            abort(); // FIXME
+            break;
+        case PRINT:
+            size = fprintf(h->fp, "%d", *(int64_t*)member);
+            break;
+        default:
+            abort(); // FIXME
+    }
+    return size;
+}
+
+int
 marshallbyte(marshall_handle h, void* member)
 {
     int size;

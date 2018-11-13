@@ -41,6 +41,7 @@ void marshallclose(marshall_handle h);
 int marshallself(marshall_handle h, void* member);
 int marshallbyte(marshall_handle h, void* member);
 int marshallinteger(marshall_handle h, void* member);
+int marshallint64(marshall_handle h, void* member);
 int marshallstring(marshall_handle h, void* member);
 int marshallldnsrr(marshall_handle h, void* member);
 int marshallsigs(marshall_handle h, void* member);
