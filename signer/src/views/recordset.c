@@ -58,7 +58,7 @@ struct recordset_struct {
     struct signatures_struct* spansignatures;
     int* validupto;
     int* validfrom;
-    int* expiry; // FIXME should use int64_t
+    int64_t* expiry;
     int nitemsets;
     struct itemset* itemsets;
 };
@@ -251,7 +251,7 @@ names_recordcopy(recordset_type dict, int clear)
     names_signaturedispose(&target->spansignatures);
     if(clear == 0) {
         if(dict->expiry) {
-            target->expiry = malloc(sizeof(int));
+            target->expiry = malloc(sizeof(int64_t));
             *(target->expiry) = *(dict->expiry);
         } else
             target->expiry = NULL;
@@ -530,10 +530,10 @@ names_recordgetsummary(recordset_type dict, char** dest)
     if(dest && *dest)
         free(*dest);
     if(dict != NULL)
-        asprintf(&s, "%s %d (from=%d upto=%d expiry=%d)%s%s", dict->name, dict->revision,
+        asprintf(&s, "%s %d (from=%d upto=%d expiry=%ld)%s%s", dict->name, dict->revision,
                      (dict->validfrom?(int)*dict->validfrom:-2),
                      (dict->validupto?(int)*dict->validupto:-2),
-                     (dict->expiry?(int)*dict->expiry:-2),
+                     (dict->expiry?(int64_t)*dict->expiry:-2),
                      (dict->spanhash?" ":""),(dict->spanhash?dict->spanhash:""));
     if(dest!=NULL)
         *dest = s;
@@ -601,17 +601,17 @@ names_recordhasexpiry(recordset_type record)
     return record->expiry != NULL;
 }
 
-int
+int64_t
 names_recordgetexpiry(recordset_type record)
 {
     return *(record->expiry);
 }
 
 void
-names_recordsetexpiry(recordset_type record, int value)
+names_recordsetexpiry(recordset_type record, int64_t value)
 {
     assert(record->expiry == NULL);
-    record->expiry = malloc(sizeof(int));
+    record->expiry = malloc(sizeof(int64_t));
     *(record->expiry) = value;
 }
 
@@ -629,7 +629,7 @@ marshall(marshall_handle h, void* ptr)
     size += marshalling(h, "spanhashrr", &(d->spanhashrr), NULL, 0, marshallldnsrr);
     size += marshalling(h, "validupto", &(d->validupto), marshall_OPTIONAL, sizeof(int), marshallinteger);
     size += marshalling(h, "validfrom", &(d->validfrom), marshall_OPTIONAL, sizeof(int), marshallinteger);
-    size += marshalling(h, "expiry", &(d->expiry), marshall_OPTIONAL, sizeof(int), marshallinteger);
+    size += marshalling(h, "expiry", &(d->expiry), marshall_OPTIONAL, sizeof(int64_t), marshallint64);
     size += marshalling(h, "itemsets", &(d->itemsets), &(d->nitemsets), sizeof(struct itemset), marshallself);
     for(i=0; i<d->nitemsets; i++) {
         size += marshalling(h, "itemname", &(d->itemsets[i].rrtype), NULL, 0, marshallinteger);

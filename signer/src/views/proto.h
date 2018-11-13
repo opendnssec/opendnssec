@@ -164,8 +164,8 @@ int names_recordcmpdenial(recordset_type record, ldns_rr* denial);
 void names_recordsetdenial(recordset_type record, ldns_rr* denial);
 void names_recordsetvalidfrom(recordset_type, int value);
 int names_recordhasexpiry(recordset_type);
-int names_recordgetexpiry(recordset_type);
-void names_recordsetexpiry(recordset_type, int value);
+int64_t names_recordgetexpiry(recordset_type);
+void names_recordsetexpiry(recordset_type, int64_t value);
 void names_recordaddsignature(recordset_type record, ldns_rr_type rrtype, ldns_rr* rrsig, const char* keylocator, int keyflags);
 int names_recordmarshall(recordset_type*, marshall_handle);
 
