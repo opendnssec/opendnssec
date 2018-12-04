@@ -51,6 +51,7 @@ typedef struct zone_struct zone_type;
 #include "wire/xfrd.h"
 #include "daemon/engine.h"
 #include "views/proto.h"
+#include "signer/zonelist.h"
 
 struct schedule_struct;
 
@@ -89,12 +90,12 @@ struct zone_struct {
     struct operatingconf* operatingconf;
 
     names_view_type baseview;
-    names_view_type inputview;
-    names_view_type prepareview;
-    names_view_type neighview;
-    names_view_type signview;
-    names_view_type outputview;
-    names_view_type changesview;
+    names_viewfactory_type inputview;
+    names_viewfactory_type prepareview;
+    names_viewfactory_type neighview;
+    names_viewfactory_type signview;
+    names_viewfactory_type outputview;
+    names_viewfactory_type changesview;
 
     uint32_t* nextserial;
     uint32_t* inboundserial;

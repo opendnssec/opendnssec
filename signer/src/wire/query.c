@@ -650,9 +650,10 @@ query_process_query(query_type* q, ldns_rr_type qtype, engine_type* engine)
         return soa_request(q, engine);
     }
     /* other qtypes */
-    view = q->zone->outputview;
+    view = zonelist_obtainresource(NULL, q->zone, NULL, offsetof(zone_type,outputview));
     names_viewreset(view);
     returnstate = query_response(view, q, qtype);
+    zonelist_releaseresource(NULL, q->zone, NULL, offsetof(zone_type,outputview), view);
     return returnstate;
 }
 

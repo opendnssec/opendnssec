@@ -32,10 +32,12 @@
 #include <time.h>
 
 typedef struct zonelist_struct zonelist_type;
+typedef struct names_viewfactory_struct* names_viewfactory_type;
 
 #include "status.h"
 #include "locks.h"
 #include "signer/zone.h"
+#include "views/proto.h"
 
 /**
  * Zone list
@@ -123,13 +125,63 @@ void zonelist_free(zonelist_type* zl);
 /**
  * Obtain a certain view from for the named zone. 
  * This method will block until the resource is available. if the
- * zone exists.
+ * zone exists.  The zone is searched for in the zonelist if the zone
+ * is not given (NULL).  A zone obtianed must be released using
+ * zonelist_releaseresource.
  *
  * @param zonelist The zonelist to search for the named zone
  * @param name The zone name
- * @param offset The offset of the view in the zone_type structure
+ * @param zone The zone pointer, if already known
+ * @param offset The offset of the view or viewfactory in the zone_type structure
  * @return The view or NULL if the zone could not be found.
  */
-void* zonelist_obtainresource(zonelist_type* zonelist, const char* name, size_t offset);
+names_view_type zonelist_obtainresource(zonelist_type* zonelist, zone_type* zone, const char* name, size_t offset);
+
+/**
+ * Releases a previous obtained view from zonelist_obtainresource 
+ * The zone is searched for in the zonelist if the zone is not given (NULL).
+ *
+ * @param zonelist The zonelist to search for the named zone
+ * @param name The zone name
+ * @param zone The zone pointer, if already known
+ * @param offset The offset of the view or viewfactory in the zone_type structure
+ * @param view The previous obtained resource from zonelist_releaseresource.
+ * @return The view or NULL if the zone could not be found.
+ */
+void
+zonelist_releaseresource(zonelist_type* zonelist, zone_type* zone, const char* name, size_t offset, names_view_type view);
+
+/**
+ * Creates a viewfactory which holds one or multiple views with the same properties.
+ * @param base the base view
+ * @param viewname the view name for human consumption
+ * @param keynames the keynames passed to names_viewcreate
+ * @param mincount the initial and minimum number of similar views
+ * @param maxcount the maximum number of view, after which the zonelist_obtainresourc will block when 
+ * @return the created viewfactory
+ */
+names_viewfactory_type zonelist_createresource(names_view_type base, const char* viewname, const char** keynames, int mincount, int maxcount);
+
+/**
+ * Destroys the viewfactory and all views containes therein
+ * @param viewfactory the viewfactory earlier created using zonelist_createresource
+ */
+void zonelist_destroyresource(names_viewfactory_type viewfactory);
+
+/**
+ * Calls the provided callback function on all views created by the view
+ * factory.  Should only be used in case it is certain no other threads are
+ * using the views.
+ * @param viewfactory the viewfactory for which to bring all views up to date
+ */
+void zonelist_traverseresource(names_viewfactory_type viewfactory, void (*callback)(names_view_type));
+
+/**
+ * Emits debugging output on stderrr (only) concerning all views in the zone.
+ * Should only be used in case it is certain no other threads are using the
+ * views.
+ * @param zone the zone containing the views and viewfactories.
+ */
+void zonelist_zonedumpviews(zone_type* zone);
 
 #endif /* SIGNER_ZONELIST_H */

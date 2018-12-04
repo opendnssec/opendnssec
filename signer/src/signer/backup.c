@@ -560,7 +560,7 @@ upgraderecords(zone_type* zone, names_view_type view)
     ldns_rdf* rrsigexpiration;
     time_t rrsigexpirationtime;
     uint32_t serial;
-    serial = zone->outboundserial;
+    serial = *zone->outboundserial;
     for(iter=names_viewiterator(view,NULL); names_iterate(&iter,&record);  names_advance(&iter,NULL)) {
         names_amend(view, record);
         names_recordsetvalidfrom(record, serial);

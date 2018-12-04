@@ -1,6 +1,10 @@
 This is a pre-release of the OpenDNSSEC software for the functionality of
 Fast Updates.
 
+Update 2018-12-04:
+- Multiple concurrent fast updates and multiple concurrent output [AI]XFRs.
+- Big fixes
+
 Update 2018-11-13:
 - Reading signed/state files from earlier 2.1 releases for migration
   purposes should now be functional.

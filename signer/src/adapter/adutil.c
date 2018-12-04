@@ -211,12 +211,15 @@ getxfr(zone_type* zone, const char* suffix, time_t* serial)
     fd = open(filename, O_RDWR|O_CREAT|O_EXCL, 0666);
     fp = fdopen(fd, "w+");
     if(!serial) {
-        view = zone->outputview;
+        view = zonelist_obtainresource(NULL, zone, NULL, offsetof(zone_type,outputview));
+        names_viewreset(view);
         writezoneapex(view, fp);
         writezonecontent(view, fp);
         writezoneapex(view, fp);
+        zonelist_releaseresource(NULL, zone, NULL, offsetof(zone_type,outputview), view);
     } else {
-        view = zone->changesview;
+        view = zonelist_obtainresource(NULL, zone, NULL, offsetof(zone_type,changesview));
+        names_viewreset(view);
         apex = ldns_rdf2str(zone->apex);
         iter = names_viewiterator(view,names_iteratorchanges,apex,(int)*serial);
         if(names_iterate(&iter,&record)) {
@@ -243,6 +246,7 @@ getxfr(zone_type* zone, const char* suffix, time_t* serial)
             writerecordcontent(record, fp);
         }
         fprintf(fp, "%s", soa2);
+        zonelist_releaseresource(NULL, zone, NULL, offsetof(zone_type,changesview), view);
     }
     lseek(fd, SEEK_SET, 0);
     rewind(fp);

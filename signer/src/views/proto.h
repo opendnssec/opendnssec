@@ -162,6 +162,7 @@ int names_recordgetvalidupto(recordset_type);
 int names_recordvalidfrom(recordset_type, int*);
 int names_recordcmpdenial(recordset_type record, ldns_rr* denial);
 void names_recordsetdenial(recordset_type record, ldns_rr* denial);
+void names_recordsetvalidupto(recordset_type record, int value);
 void names_recordsetvalidfrom(recordset_type, int value);
 int names_recordhasexpiry(recordset_type);
 int64_t names_recordgetexpiry(recordset_type);
@@ -259,7 +260,7 @@ int names_viewgetdefaultttl(names_view_type view, int* defaultttl);
 int names_viewgetapex(names_view_type view, ldns_rdf** apexptr);
 
 void names_dumprecord(FILE*, recordset_type record);
-void names_dumpviewinfo(FILE*, int nviews, names_view_type views[]);
+void names_dumpviewinfo(FILE*, names_view_type view);
 void names_dumpviewfull(FILE*, names_view_type view);
 void names_dumpindex(FILE* fp, names_view_type view, int index);
 void names__dumpindex(FILE* fp, names_index_type index);
