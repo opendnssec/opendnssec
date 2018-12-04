@@ -1,6 +1,11 @@
 This is a pre-release of the OpenDNSSEC software for the functionality of
 Fast Updates.
 
+Update 2018-11-13:
+- Reading signed/state files from earlier 2.1 releases for migration
+  purposes should now be functional.
+- Signature expiration beyond 2038 was broken which is now fixed.
+
 There are still significant parts of OpenDNSSEC that need work.  Tests for
 signing a zone and producing valid output adding/removing and modifying
 delegations in the input zone using the web-service calls and some other
@@ -9,9 +14,8 @@ and changes in operation which are hardly applicable.  However, the amount
 of testing and code review is on a low level.
 
 The following issues are open (non-exhaustive list):
-- Reading signed/state files from earlier 2.1 releases for migration
-  purposes;
-- There is no signer command to force a full resign;
+- There is no signer command to force a full resign or clear zone contents;
+  this is however in the making now;
 - Key roll changes are not tested, but expected not to reuse signatures
   correctly.
 
@@ -27,14 +31,17 @@ OpenDNSSEC from source.
 
 Migration
 
-At this time, one of the missing parts is that OpenDNSSEC does not read
-state files from earlier 2.1 releases.  Hence a full re-sign will be
-triggered during start-up.  There is no change in the configration files
-nor in the signconf files used by the communication between enforcer and
-signer.  Command line interface has no changes.  Configurable parameters
-for the purpose of the fast updates are configured in a separate configuration
-file, or are fixed for the moment.  It is still under evaluation how
-these parameters should be used.
+When OpenDNSSEC signer starts, it will try to read a new-style
+state file per zone.  In case this is missing, is will try to read a 2.1
+style state file and try to use that instead and produce a new style state
+file.  Be sure to delete also the old-style state file when you delete
+the new-style state file.
+There are no changes in the configuration file nor in the signconf files
+used by the communication between enforcer and signer.  Command line
+interface has no changes.  Configurable parameters for the purpose
+of the fast updates are configured in a separate configuration file,
+or are fixed for the moment.  It is still under evaluation how these
+parameters should be used.
 
 The signer will perform a normal sign - write zone cycle as usual when
 not explicitly configured.  This isn't suited for fast updates because
