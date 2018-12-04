@@ -52,7 +52,7 @@ const char* names_view_NEIGHB[]  = { "neighb",  "nameready", "denialname", NULL 
 const char* names_view_SIGN[]    = { "sign",    "nameready", "expiry", "denialname", NULL };
 const char* names_view_OUTPUT[]  = { "output",  "validnow", NULL };
 const char* names_view_CHANGES[] = { "changes", "validchanges", "validinserts", "validdeletes", NULL };
-const char* names_view_BACKUP[]  = { "backup", "namerevision", "denialname", NULL };
+const char* names_view_BACKUP[]  = { "backup",  "namerevision", "denialname", NULL };
 
 logger_cls_type names_logcommitlog = LOGGER_INITIALIZE("commitlog");
 
@@ -237,6 +237,9 @@ names_viewcreate(names_view_type base, const char* viewname, const char** keynam
     int i, nindices;
     names_iterator iter;
     recordset_type content;
+    if(base && base->base) {
+        base = base->base;
+    }
     for(i=nindices=0; keynames[i]; i++)
         ++nindices;
     assert(nindices > 0);
@@ -690,32 +693,25 @@ names_dumpviewfull(FILE* fp, names_view_type view)
 
 
 void
-names_dumpviewinfo(FILE* fp, int nviews, names_view_type views[])
+names_dumpviewinfo(FILE* fp, names_view_type view)
 {
-    int len, i, count;
+    int i, count;
     names_iterator iter;
     recordset_type record;
     uint32_t serial;
     ldns_rr_list* rrs;
     ldns_rr_list* rrs2;
     ldns_rr* rr;
-    len = 0;
-    for(i=0; i<nviews; i++) {
-        if(strlen(views[i]->viewname) > len)
-            len = strlen(views[i]->viewname);
-    }
-    fprintf(stderr,"view:%*.*srecords  serial\n",len,len,"");
-    for(i=0; i<nviews; i++) {
         count = 0;
         rrs = ldns_rr_list_new();
-        for(iter = names_viewiterator(views[i], NULL); names_iterate(&iter,&record); names_advance(&iter,NULL)) {
+        for(iter = names_viewiterator(view, NULL); names_iterate(&iter,&record); names_advance(&iter,NULL)) {
             ++count;
             names_recordlookupall(record, LDNS_RR_TYPE_SOA, NULL, &rrs2, NULL);
             ldns_rr_list_push_rr_list(rrs,rrs2);
             ldns_rr_list_free(rrs2);
         }
-        fprintf(stderr,"  %-*.*s :%7d   ",len,len,views[i]->viewname,count);
-        record = names_take(views[i], 0, NULL);
+        fprintf(stderr,"  %-10.10s :%7d   ",view->viewname,count);
+        record = names_take(view, 0, NULL);
         if(record) {
             while((rr = ldns_rr_list_pop_rr(rrs))) {
                 serial = ldns_rdf2native_int32(ldns_rr_rdf(rr, 2));
@@ -724,7 +720,6 @@ names_dumpviewinfo(FILE* fp, int nviews, names_view_type views[])
             ldns_rr_list_free(rrs);
         }
         fprintf(stderr,"\n");
-    }
 }
 
 

@@ -188,7 +188,8 @@ adapter_write(zone_type* zone)
     ods_log_assert(zone->name);
     ods_log_assert(zone->adoutbound->configstr);
 
-    view = zone->outputview;
+    view = zonelist_obtainresource(NULL, zone, NULL, offsetof(zone_type,outputview));
+
     names_viewreset(view);
     switch(zone->adoutbound->type) {
         case ADAPTER_FILE:
@@ -207,6 +208,9 @@ adapter_write(zone_type* zone)
                 "adapter", adapter_str, zone->name);
             status = ODS_STATUS_ERR;
     }
+
+    zonelist_releaseresource(NULL, zone, NULL, offsetof(zone_type,outputview), view);
+
     /* not reached */
     return status;
 }

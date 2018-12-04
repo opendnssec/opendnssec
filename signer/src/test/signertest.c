@@ -263,12 +263,12 @@ static void
 validatezone(zone_type* zone)
 {
     names_viewvalidate(zone->baseview);
-    names_viewvalidate(zone->inputview);
-    names_viewvalidate(zone->prepareview);
-    names_viewvalidate(zone->neighview);
-    names_viewvalidate(zone->signview);
-    names_viewvalidate(zone->outputview);
-    names_viewvalidate(zone->changesview);
+    zonelist_zonevalidateviewfactory(zone->inputview);
+    zonelist_zonevalidateviewfactory(zone->prepareview);
+    zonelist_zonevalidateviewfactory(zone->neighview);
+    zonelist_zonevalidateviewfactory(zone->signview);
+    zonelist_zonevalidateviewfactory(zone->outputview);
+    zonelist_zonevalidateviewfactory(zone->changesview);
 }
 
 static void
@@ -276,13 +276,13 @@ disposezone(zone_type* zone)
 {
     zonelist_del_zone(engine->zonelist, zone);
     names_viewreset(zone->baseview);
-    names_viewdestroy(zone->inputview);
-    names_viewdestroy(zone->prepareview);
-    names_viewdestroy(zone->neighview);
-    names_viewdestroy(zone->signview);
-    names_viewdestroy(zone->outputview);
-    names_viewdestroy(zone->changesview);
-    names_viewdestroy(zone->baseview);
+    zonelist_destroyresource(zone->inputview);
+    zonelist_destroyresource(zone->prepareview);
+    zonelist_destroyresource(zone->neighview);
+    zonelist_destroyresource(zone->signview);
+    zonelist_destroyresource(zone->outputview);
+    zonelist_destroyresource(zone->changesview);
+    zonelist_destroyresource(zone->baseview);
     zone_cleanup(zone);
 }
 
@@ -296,7 +296,6 @@ outputzone(zone_type* zone)
     context.signq = NULL;
     context.zone = zone;
     context.clock_in = time_now();
-    context.view = zone->outputview;
     task = task_create(strdup(zone->name), TASK_CLASS_SIGNER, TASK_WRITE, do_writezone, zone, NULL, 0);
     task->callback(task, zone->name, zone, &context);
     task_destroy(task);
@@ -318,17 +317,14 @@ signzone(zone_type* zone)
     task->callback(task, zone->name, zone, &context);
     task_destroy(task);
     context.clock_in = time_now();
-    context.view = zone->inputview;
     task = task_create(strdup(zone->name), TASK_CLASS_SIGNER, TASK_READ, do_readzone, zone, NULL, 0);
     task->callback(task, zone->name, zone, &context);
     task_destroy(task);
     context.clock_in = time_now();
-    context.view = zone->signview;
     task = task_create(strdup(zone->name), TASK_CLASS_SIGNER, TASK_SIGN, do_signzone, zone, NULL, 0);
     task->callback(task, zone->name, zone, &context);
     task_destroy(task);
     context.clock_in = time_now();
-    context.view = zone->outputview;
     task = task_create(strdup(zone->name), TASK_CLASS_SIGNER, TASK_WRITE, do_writezone, zone, NULL, 0);
     task->callback(task, zone->name, zone, &context);
     task_destroy(task);
@@ -345,17 +341,14 @@ resignzone(zone_type* zone)
     context.signq = NULL;
     context.zone = zone;
     context.clock_in = time_now();
-    context.view = zone->inputview;
     task = task_create(strdup(zone->name), TASK_CLASS_SIGNER, TASK_SIGNCONF, do_readsignconf, zone, NULL, 0);
     task->callback(task, zone->name, zone, &context);
     task_destroy(task);
     context.clock_in = time_now();
-    context.view = zone->signview;
     task = task_create(strdup(zone->name), TASK_CLASS_SIGNER, TASK_SIGN, do_signzone, zone, NULL, 0);
     task->callback(task, zone->name, zone, &context);
     task_destroy(task);
     context.clock_in = time_now();
-    context.view = zone->outputview;
     task = task_create(strdup(zone->name), TASK_CLASS_SIGNER, TASK_WRITE, do_writezone, zone, NULL, 0);
     task->callback(task, zone->name, zone, &context);
     task_destroy(task);
@@ -372,7 +365,6 @@ reresignzone(zone_type* zone)
     context.signq = NULL;
     context.zone = zone;
     context.clock_in = time_now();
-    context.view = zone->signview;
     task = task_create(strdup(zone->name), TASK_CLASS_SIGNER, TASK_SIGN, do_signzone, zone, NULL, 0);
     task->callback(task, zone->name, zone, &context);
     task_destroy(task);
@@ -611,6 +603,7 @@ testTransferfile(void)
     int status;
     char line[1024];
     zone_type* zone;
+    names_view_type view;
     usefile("example.com.xfr", NULL);
     usefile("example.com.state", NULL);
     usefile("signer.db", NULL);
@@ -622,14 +615,14 @@ testTransferfile(void)
     zone = zonelist_lookup_zone_by_name(engine->zonelist, "example.com", LDNS_RR_CLASS_IN);
 
     signzone(zone);
-    status = httpd_dispatch(zone->inputview, makecall(zone->name, "domain.example.com.", NULL));
+    view = zonelist_obtainresource(NULL, zone, NULL, offsetof(zone_type, inputview));
+    status = httpd_dispatch(view, makecall(zone->name, "domain.example.com.", NULL));
     CU_ASSERT_EQUAL(status, 0);
-    status = names_viewcommit(zone->inputview);
+    status = names_viewcommit(view);
+    zonelist_releaseresource(NULL, zone, NULL, offsetof(zone_type, inputview), view);
     CU_ASSERT_EQUAL(status,0);
     reresignzone(zone);
 
-    names_viewreset(zone->outputview);
-    names_viewreset(zone->changesview);
     time_t serial = 2;
     fp = getxfr(zone, ".xfr", &serial);
     CU_ASSERT_NOT_EQUAL(unlink("example.com.xfr"), 0);
@@ -761,6 +754,7 @@ testSignFastRemove(void)
 {
     int status;
     zone_type* zone;
+    names_view_type view;
     logger_mark_performance("setup files");
     usefile("example.com.state", NULL);
     usefile("signer.db", NULL);
@@ -770,13 +764,14 @@ testSignFastRemove(void)
     zonelist_update(engine->zonelist, engine->config->zonelist_filename_signer);
     zone = zonelist_lookup_zone_by_name(engine->zonelist, "example.com", LDNS_RR_CLASS_IN);
     signzone(zone);
-    status = names_viewcommit(zone->signview);
     CU_ASSERT_EQUAL(status,0);
-    names_viewreset(zone->inputview);
-    status = httpd_dispatch(zone->inputview, makecall(zone->name, "domain.example.com.", NULL));
+    view = zonelist_obtainresource(NULL, zone, NULL, offsetof(zone_type, inputview));
+    names_viewreset(view);
+    status = httpd_dispatch(view, makecall(zone->name, "domain.example.com.", NULL));
     CU_ASSERT_EQUAL(status, 0);
-    status = names_viewcommit(zone->inputview);
-    CU_ASSERT_EQUAL(status,0);
+    status = names_viewcommit(view);
+    zonelist_releaseresource(NULL, zone, NULL, offsetof(zone_type, inputview), view);
+    CU_ASSERT_EQUAL(status, 0);
     reresignzone(zone);
     outputzone(zone);
     disposezone(zone);
@@ -799,14 +794,17 @@ testSignFastInsert(void)
     zonelist_update(engine->zonelist, engine->config->zonelist_filename_signer);
     zone = zonelist_lookup_zone_by_name(engine->zonelist, "example.com", LDNS_RR_CLASS_IN);
     signzone(zone);
-    status = names_viewcommit(zone->signview);
     CU_ASSERT_EQUAL(status,0);
-    names_viewreset(zone->inputview);
+    
+    names_view_type inputview;
+    inputview = zonelist_obtainresource(NULL, zone, NULL, offsetof(zone_type, inputview));
+    names_viewreset(inputview);
 
-    status = httpd_dispatch(zone->inputview, makecall(zone->name, "domein.example.com.", "domein.example.com. NS ns.domain.example.com.", NULL));
+    status = httpd_dispatch(inputview, makecall(zone->name, "domein.example.com.", "domein.example.com. NS ns.domain.example.com.", NULL));
     CU_ASSERT_EQUAL(status, 0);
-    status = names_viewcommit(zone->inputview);
+    status = names_viewcommit(inputview);
     CU_ASSERT_EQUAL(status,0);
+    zonelist_releaseresource(NULL, zone, NULL, offsetof(zone_type, inputview), inputview);
 
     reresignzone(zone);
     outputzone(zone);
@@ -830,14 +828,16 @@ testSignFastChange(void)
     zonelist_update(engine->zonelist, engine->config->zonelist_filename_signer);
     zone = zonelist_lookup_zone_by_name(engine->zonelist, "example.com", LDNS_RR_CLASS_IN);
     signzone(zone);
-    status = names_viewcommit(zone->signview);
-    CU_ASSERT_EQUAL(status,0);
-    names_viewreset(zone->inputview);
 
-    status = httpd_dispatch(zone->inputview, makecall(zone->name, "domain.example.com.", "domain.example.com. NS ns1.example.com.", NULL));
+    names_view_type inputview;
+    inputview = zonelist_obtainresource(NULL, zone, NULL, offsetof(zone_type, inputview));
+    names_viewreset(inputview);
+
+    status = httpd_dispatch(inputview, makecall(zone->name, "domain.example.com.", "domain.example.com. NS ns1.example.com.", NULL));
     CU_ASSERT_EQUAL(status, 0);
-    status = names_viewcommit(zone->inputview);
+    status = names_viewcommit(inputview);
     CU_ASSERT_EQUAL(status,0);
+    zonelist_releaseresource(NULL, zone, NULL, offsetof(zone_type, inputview), inputview);
 
     reresignzone(zone);
     outputzone(zone);
@@ -867,29 +867,32 @@ testDisposing(void)
     //CU_ASSERT_EQUAL(httpd_dispatch(zone->inputview, makecall(zone->name, "domain.example.com.", NULL)), 0);
     //CU_ASSERT_EQUAL(httpd_dispatch(zone->inputview, makecall(zone->name, "j.example.com.", "j.example.com. A 10.0.0.1",NULL)), 0);
     //reresignzone(zone);
-    CU_ASSERT_EQUAL(httpd_dispatch(zone->inputview, makecall(zone->name, "o.example.com.", "o.example.com. A 10.0.1.1",NULL)), 0);
+    names_view_type inputview;
+    inputview = zonelist_obtainresource(NULL, zone, NULL, offsetof(zone_type, inputview));
+    CU_ASSERT_EQUAL(httpd_dispatch(inputview, makecall(zone->name, "o.example.com.", "o.example.com. A 10.0.1.1",NULL)), 0);
     reresignzone(zone);
-    CU_ASSERT_EQUAL(httpd_dispatch(zone->inputview, makecall(zone->name, "o.example.com.", "o.example.com. A 10.0.1.2",NULL)), 0);
+    CU_ASSERT_EQUAL(httpd_dispatch(inputview, makecall(zone->name, "o.example.com.", "o.example.com. A 10.0.1.2",NULL)), 0);
     reresignzone(zone);
 
-    CU_ASSERT_EQUAL(httpd_dispatch(zone->inputview, makecall(zone->name, "o.example.com.", "o.example.com. A 10.0.1.3",NULL)), 0);
+    CU_ASSERT_EQUAL(httpd_dispatch(inputview, makecall(zone->name, "o.example.com.", "o.example.com. A 10.0.1.3",NULL)), 0);
     reresignzone(zone);
-    CU_ASSERT_EQUAL(httpd_dispatch(zone->inputview, makecall(zone->name, "o.example.com.", "o.example.com. A 10.0.1.4",NULL)), 0);
+    CU_ASSERT_EQUAL(httpd_dispatch(inputview, makecall(zone->name, "o.example.com.", "o.example.com. A 10.0.1.4",NULL)), 0);
     reresignzone(zone);
-    CU_ASSERT_EQUAL(httpd_dispatch(zone->inputview, makecall(zone->name, "o.example.com.", "o.example.com. A 10.0.1.5",NULL)), 0);
+    CU_ASSERT_EQUAL(httpd_dispatch(inputview, makecall(zone->name, "o.example.com.", "o.example.com. A 10.0.1.5",NULL)), 0);
     reresignzone(zone);
-    CU_ASSERT_EQUAL(httpd_dispatch(zone->inputview, makecall(zone->name, "o.example.com.", "o.example.com. A 10.0.1.6",NULL)), 0);
+    CU_ASSERT_EQUAL(httpd_dispatch(inputview, makecall(zone->name, "o.example.com.", "o.example.com. A 10.0.1.6",NULL)), 0);
     reresignzone(zone);
-    CU_ASSERT_EQUAL(httpd_dispatch(zone->inputview, makecall(zone->name, "o.example.com.", "o.example.com. A 10.0.1.7",NULL)), 0);
+    CU_ASSERT_EQUAL(httpd_dispatch(inputview, makecall(zone->name, "o.example.com.", "o.example.com. A 10.0.1.7",NULL)), 0);
     reresignzone(zone);
-    CU_ASSERT_EQUAL(httpd_dispatch(zone->inputview, makecall(zone->name, "o.example.com.", "o.example.com. A 10.0.1.8",NULL)), 0);
+    CU_ASSERT_EQUAL(httpd_dispatch(inputview, makecall(zone->name, "o.example.com.", "o.example.com. A 10.0.1.8",NULL)), 0);
     reresignzone(zone);
-    CU_ASSERT_EQUAL(httpd_dispatch(zone->inputview, makecall(zone->name, "o.example.com.", "o.example.com. A 10.0.1.9",NULL)), 0);
+    CU_ASSERT_EQUAL(httpd_dispatch(inputview, makecall(zone->name, "o.example.com.", "o.example.com. A 10.0.1.9",NULL)), 0);
     reresignzone(zone);
+    zonelist_releaseresource(NULL, zone, NULL, offsetof(zone_type, inputview), inputview);
 
     outputzone(zone);
     names_viewreset(zone->baseview);
-    names_dumpviewinfo(stderr,7,&zone->baseview);
+    zonelist_zonedumpviews(zone);
     do_purgezone(zone);
     disposezone(zone);
 }
@@ -913,29 +916,30 @@ testBackup(void)
     notrestored = names_viewrestore(zone->baseview, zoneapex, -1, NULL);
     CU_ASSERT_TRUE(notrestored);
     names_viewconfig(zone->baseview, &(zone->signconf));
-    zone->inputview = names_viewcreate(zone->baseview,   names_view_INPUT[0],   &names_view_INPUT[1]);
-    zone->prepareview = names_viewcreate(zone->baseview, names_view_PREPARE[0], &names_view_PREPARE[1]);
-    zone->neighview = names_viewcreate(zone->baseview,   names_view_NEIGHB[0],  &names_view_NEIGHB[1]);
-    zone->signview = names_viewcreate(zone->baseview,    names_view_SIGN[0],    &names_view_SIGN[1]);
-    zone->outputview = names_viewcreate(zone->baseview,  names_view_OUTPUT[0],  &names_view_OUTPUT[1]);
-    zone->changesview = names_viewcreate(zone->baseview, names_view_CHANGES[0], &names_view_CHANGES[1]);
+    zone->inputview = zonelist_createresource(zone->baseview,   names_view_INPUT[0],   &names_view_INPUT[1],   1, 5);
+    zone->prepareview = zonelist_createresource(zone->baseview, names_view_PREPARE[0], &names_view_PREPARE[1], 1, 1);
+    zone->neighview = zonelist_createresource(zone->baseview,   names_view_NEIGHB[0],  &names_view_NEIGHB[1],  1, 1);
+    zone->signview = zonelist_createresource(zone->baseview,    names_view_SIGN[0],    &names_view_SIGN[1],    1, 1);
+    zone->outputview = zonelist_createresource(zone->baseview,  names_view_OUTPUT[0],  &names_view_OUTPUT[1],  1, 4);
+    zone->changesview = zonelist_createresource(zone->baseview, names_view_CHANGES[0], &names_view_CHANGES[1], 1, 1);
     view = names_viewcreate(zone->baseview, names_view_BACKUP[0],  &names_view_BACKUP[1]);
     zone_recover(zone);
     names_viewreset(zone->baseview);
-    names_viewreset(zone->inputview);
-    names_viewreset(zone->prepareview);
-    names_viewreset(zone->neighview);
-    names_viewreset(zone->signview);
-    names_viewreset(zone->outputview);
-    names_viewreset(zone->changesview);
-    names_dumpviewinfo(stderr,7,&zone->baseview);
+    zonelist_traverseresource(zone->inputview, names_viewreset);
+    zonelist_traverseresource(zone->inputview, names_viewreset);
+    zonelist_traverseresource(zone->prepareview, names_viewreset);
+    zonelist_traverseresource(zone->neighview, names_viewreset);
+    zonelist_traverseresource(zone->signview, names_viewreset);
+    zonelist_traverseresource(zone->outputview, names_viewreset);
+    zonelist_traverseresource(zone->changesview, names_viewreset);
+    zonelist_zonedumpviews(zone);
     names_viewreset(zone->baseview);
-    names_viewdestroy(zone->inputview);
-    names_viewdestroy(zone->prepareview);
-    names_viewdestroy(zone->neighview);
-    names_viewdestroy(zone->signview);
-    names_viewdestroy(zone->outputview);
-    names_viewdestroy(zone->changesview);
+    zonelist_destroyresource(zone->inputview);
+    zonelist_destroyresource(zone->prepareview);
+    zonelist_destroyresource(zone->neighview);
+    zonelist_destroyresource(zone->signview);
+    zonelist_destroyresource(zone->outputview);
+    zonelist_destroyresource(zone->changesview);
     names_viewdestroy(zone->baseview);
     zone_cleanup(zone);
 }

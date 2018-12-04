@@ -497,7 +497,6 @@ zone_cleanup(zone_type* zone)
     free(zone);
 }
 
-
 void
 zone_start(zone_type* zone)
 {
@@ -515,24 +514,20 @@ zone_start(zone_type* zone)
     notrestored = names_viewrestore(zone->baseview, zoneapex, -1, filename);
     if(notrestored != 0) {
         zone_recover(zone);
+        names_viewreset(zone->baseview);
     }
     /* should we add the task schedule:
      * schedule_scheduletask(engine->taskq, TASK_SIGN, zone->name, zone, &zone->zone_lock, schedule_PROMPTLY);
      */
     free(filename);
     free(zoneapex);
-    zone->inputview = names_viewcreate(zone->baseview,   names_view_INPUT[0],   &names_view_INPUT[1]);
-    zone->prepareview = names_viewcreate(zone->baseview, names_view_PREPARE[0], &names_view_PREPARE[1]);
-    zone->neighview = names_viewcreate(zone->baseview,   names_view_NEIGHB[0],  &names_view_NEIGHB[1]);
-    zone->signview = names_viewcreate(zone->baseview,    names_view_SIGN[0],    &names_view_SIGN[1]);
-    zone->outputview = names_viewcreate(zone->baseview,  names_view_OUTPUT[0],  &names_view_OUTPUT[1]);
-    zone->changesview = names_viewcreate(zone->baseview, names_view_CHANGES[0], &names_view_CHANGES[1]);
+    zone->inputview = zonelist_createresource(zone->baseview,   names_view_INPUT[0],   &names_view_INPUT[1],   1, 5);
+    zone->prepareview = zonelist_createresource(zone->baseview, names_view_PREPARE[0], &names_view_PREPARE[1], 1, 1);
+    zone->neighview = zonelist_createresource(zone->baseview,   names_view_NEIGHB[0],  &names_view_NEIGHB[1],  1, 1);
+    zone->signview = zonelist_createresource(zone->baseview,    names_view_SIGN[0],    &names_view_SIGN[1],    1, 1);
+    zone->outputview = zonelist_createresource(zone->baseview,  names_view_OUTPUT[0],  &names_view_OUTPUT[1],  1, 4);
+    zone->changesview = zonelist_createresource(zone->baseview, names_view_CHANGES[0], &names_view_CHANGES[1], 1, 1);
 
-    if(notrestored != 0) {
-        names_viewcommit(zone->inputview);
-        names_viewreset(zone->baseview);
-    }
-    
     names_viewlookupone(zone->baseview, zone->apex, LDNS_RR_TYPE_SOA, NULL, &rr);
     if(rr) {
         serial = ldns_rdf2native_int32(ldns_rr_rdf(rr, SE_SOA_RDATA_SERIAL));

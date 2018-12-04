@@ -125,53 +125,176 @@ zone2node(zone_type* zone)
     return node;
 }
 
-void*
-zonelist_obtainresource(zonelist_type* zonelist, const char* name, size_t offset)
+struct names_viewfactory_struct {
+    int maxviews;
+    int curviews;
+    const char* viewname;
+    const char** keynames;
+    names_view_type* views;
+    pthread_mutex_t mutex;
+    pthread_cond_t cond;
+};
+
+
+void
+zonelist_zonedumpviews(zone_type* zone)
 {
+    int i;
+    fprintf(stderr,"view:%10.10srecords  serial\n","");
+    names_dumpviewinfo(stderr, zone->baseview);
+    for(i=0; i<zone->prepareview->curviews; i++)
+        names_dumpviewinfo(stderr, zone->prepareview->views[i]);
+    for(i=0; i<zone->neighview->curviews; i++)
+        names_dumpviewinfo(stderr, zone->neighview->views[i]);
+    for(i=0; i<zone->signview->curviews; i++)
+        names_dumpviewinfo(stderr, zone->signview->views[i]);
+    for(i=0; i<zone->outputview->curviews; i++)
+        names_dumpviewinfo(stderr, zone->outputview->views[i]);
+    for(i=0; i<zone->changesview->curviews; i++)
+        names_dumpviewinfo(stderr, zone->changesview->views[i]);
+}
+
+names_view_type
+zonelist_obtainresource(zonelist_type* zonelist, zone_type* zone, const char* name, size_t offset)
+{
+    int i;
     struct ldns_rbnode_t* node;
-    zone_type* zone;
-    names_view_type* viewptr;
-    names_view_type view;
-    pthread_mutex_lock(&zonelist->zl_lock);
-    node = ldns_rbtree_search(zonelist->zones, name);
-    if (node == NULL || node == LDNS_RBTREE_NULL) {
-        view = NULL;
-    } else {
-        zone = (zone_type*) node->data;
-        viewptr = (void*)&(((char*)zone)[offset]);
-        view = *viewptr;
-        if(view == NULL) {
-            if(viewptr == &zone->inputview) {
-            } else if(viewptr == &zone->inputview) {
-                // FIXME
+    names_viewfactory_type viewfactory;
+    names_view_type view = NULL;
+    if(zonelist != NULL && zone == NULL) {
+        pthread_mutex_lock(&zonelist->zl_lock);
+        if(zone == NULL) {
+            node = ldns_rbtree_search(zonelist->zones, name);
+            if (node != NULL && node != LDNS_RBTREE_NULL) {
+                zone = (zone_type*) node->data;
             }
         }
-        *viewptr = NULL;
+        pthread_mutex_unlock(&zonelist->zl_lock);
     }
-    pthread_mutex_lock(&zonelist->zl_lock);
+    if(zone != NULL) {
+        viewfactory = *(names_viewfactory_type*)&(((char*)zone)[offset]);
+        assert(viewfactory == zone->inputview || viewfactory == zone->prepareview || viewfactory == zone->neighview || viewfactory == zone->signview || viewfactory == zone->outputview || viewfactory == zone->changesview);
+        if(viewfactory->maxviews > 0)
+            pthread_mutex_lock(&viewfactory->mutex);
+        do {
+            for(i=0; i<viewfactory->curviews; i++) {
+                view = viewfactory->views[i];
+                if(view != NULL) {
+                    viewfactory->views[i] = NULL;
+                    break;
+                }
+            }
+            if(view == NULL) {
+                if(viewfactory->curviews < viewfactory->maxviews) {
+                    viewfactory->curviews += 1;
+                    viewfactory->views = realloc(viewfactory->views, sizeof(names_view_type) * viewfactory->curviews);
+                    viewfactory->views[viewfactory->curviews-1] = view = names_viewcreate(viewfactory->views[0], viewfactory->viewname, viewfactory->keynames);
+                } else if(viewfactory->maxviews > 0) {
+                    pthread_cond_wait(&viewfactory->cond, &viewfactory->mutex);
+                } else {
+                    break;
+                }
+            }
+        } while(view == NULL);
+        if(viewfactory->maxviews > 0)
+            pthread_mutex_unlock(&viewfactory->mutex);
+    }
+    assert(view);
     return view;
 }
 
 
-void*
-zonelist_releaseresource(zonelist_type* zonelist, const char* name, size_t offset, names_view_type view)
+void
+zonelist_releaseresource(zonelist_type* zonelist, zone_type* zone, const char* name, size_t offset, names_view_type view)
 {
+    int i;
     struct ldns_rbnode_t* node;
-    zone_type* zone;
-    names_view_type* viewptr;
-    pthread_mutex_lock(&zonelist->zl_lock);
-    node = ldns_rbtree_search(zonelist->zones, name);
-    if (node == NULL || node == LDNS_RBTREE_NULL) {
-        view = NULL;
-    } else {
-        zone = (zone_type*) node->data;
-        viewptr = (void*)&(((char*)zone)[offset]);
-        *viewptr = view;
+    names_viewfactory_type viewfactory;
+    if(zonelist != NULL && zone == NULL) {
+        pthread_mutex_lock(&zonelist->zl_lock);
+        if(zone == NULL) {
+            node = ldns_rbtree_search(zonelist->zones, name);
+            if (node != NULL && node != LDNS_RBTREE_NULL) {
+                zone = (zone_type*) node->data;
+            }
+        }
+        pthread_mutex_unlock(&zonelist->zl_lock);
     }
-    pthread_mutex_lock(&zonelist->zl_lock);
-    return view;
+    if(zone != NULL) {
+        viewfactory = *(names_viewfactory_type*)&(((char*)zone)[offset]);
+        assert(viewfactory == zone->inputview || viewfactory == zone->prepareview || viewfactory == zone->neighview || viewfactory == zone->signview || viewfactory == zone->outputview || viewfactory == zone->changesview);
+        if(viewfactory->maxviews > 0)
+            pthread_mutex_lock(&viewfactory->mutex);
+        for(i=0; i<viewfactory->curviews; i++) {
+            if(viewfactory->views[i] == NULL) {
+                viewfactory->views[i] = view;
+                if(viewfactory->maxviews > 0) {
+                    pthread_cond_broadcast(&viewfactory->cond);
+                }
+                view = NULL;
+                break;
+            }
+        }
+        assert(view == NULL);
+        if(viewfactory->maxviews > 0)
+            pthread_mutex_unlock(&viewfactory->mutex);
+    }
 }
 
+
+names_viewfactory_type
+zonelist_createresource(names_view_type base, const char* viewname, const char** keynames, int mincount, int maxcount)
+{
+    int i;
+    names_viewfactory_type viewfactory;
+    viewfactory = malloc(sizeof(struct names_viewfactory_struct));
+    viewfactory->curviews = mincount;
+    viewfactory->maxviews = maxcount;
+    viewfactory->viewname = viewname;
+    viewfactory->keynames = keynames;
+    if(viewfactory->maxviews > 0) {
+        pthread_mutex_init(&viewfactory->mutex, NULL);
+        pthread_cond_init(&viewfactory->cond, NULL);
+    }
+    viewfactory->views = malloc(sizeof(names_view_type) * mincount);
+    for(i=0; i<mincount; i++) {
+        viewfactory->views[i] = names_viewcreate(base, viewname, keynames);
+    }
+    return viewfactory;
+}
+
+void
+zonelist_traverseresource(names_viewfactory_type viewfactory, void (*callback)(names_view_type))
+{
+    int i;
+    for(i=0; i<viewfactory->curviews; i++)
+        if(viewfactory->views[i])
+            (*callback)(viewfactory->views[i]);
+}
+
+void
+zonelist_destroyresource(names_viewfactory_type viewfactory)
+{
+    int i;
+    /*
+    for(i=0; i<viewfactory->curviews; i++)
+        if(viewfactory->views[i])
+            names_viewdestroy(viewfactory->views[i]);
+    if(viewfactory->maxviews > 0) {
+        pthread_mutex_destroy(&viewfactory->mutex);
+        pthread_cond_destroy(&viewfactory->cond);
+    }
+    free(viewfactory);*/
+}
+
+void
+zonelist_zonevalidateviewfactory(names_viewfactory_type viewfactory)
+{
+    int i;
+    for(i=0; i<viewfactory->curviews; i++)
+        if(viewfactory->views[i])
+            names_viewvalidate(viewfactory->views[i]);
+}
 
 /**
  * Lookup zone.

@@ -320,34 +320,12 @@ processneighbours(names_view_type view, signconf_type* signconf, int newserial)
     }
 }
 
-time_t
-do_signzone(task_type* task, const char* zonename, void* zonearg, void *contextarg)
+void
+preparesign(names_view_type prepareview, int newserial)
 {
-    struct worker_context* context = contextarg;
-    engine_type* engine = context->engine;
-    worker_type* worker = context->worker;
-    zone_type* zone = zonearg;
-    ods_status status;
-    time_t start = 0;
-    time_t end = 0;
-    long nsubtasks = 0;
-    long nsubtasksfailed = 0;
-    int newserial;
     int conflict;
-    recordset_type record;
     struct dual change;
     names_iterator iter;
-
-    names_viewreset(zone->prepareview);
-    context->clock_in = time_now();
-    context->zone = zone;
-    context->view = zone->signview;
-    if (!zone->nextserial) {
-        namedb_update_serial(zone);
-    }
-    newserial = *(zone->nextserial);
-
-    names_view_type prepareview = zone->prepareview;
     /* The purpose of the next iteration is to go over all new or modified records and fix the SOA serial number from
      * which these records are valid.  If the records is a modified record, the records that it superceeds, will be
      * marked with the same serial indicating that it is no longer valid from this moment on.
@@ -377,29 +355,71 @@ do_signzone(task_type* task, const char* zonename, void* zonearg, void *contexta
             }
         }
     }
-    conflict = names_viewcommit(zone->prepareview);
+    conflict = names_viewcommit(prepareview);
     names_viewvalidate(prepareview);
     assert(!conflict);
+}
 
-    status = zone_update_serial(zone, zone->prepareview);
+time_t
+do_signzone(task_type* task, const char* zonename, void* zonearg, void *contextarg)
+{
+    struct worker_context* context = contextarg;
+    engine_type* engine = context->engine;
+    worker_type* worker = context->worker;
+    zone_type* zone = zonearg;
+    ods_status status;
+    time_t start = 0;
+    time_t end = 0;
+    long nsubtasks = 0;
+    long nsubtasksfailed = 0;
+    int newserial;
+    int conflict;
+    recordset_type record;
+    struct dual change;
+    names_iterator iter;
+    time_t returnscheduletime = schedule_SUCCESS;
+
+    context->clock_in = time_now();
+    context->zone = zone;
+    if (!zone->nextserial) {
+        namedb_update_serial(zone);
+    }
+    newserial = *(zone->nextserial);
+
+    { names_view_type prepareview;
+    prepareview = zonelist_obtainresource(NULL, zone, NULL, offsetof(zone_type, prepareview));
+    names_viewreset(prepareview);
+    preparesign(prepareview, newserial);
+     
+
+    status = zone_update_serial(zone, prepareview);
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] unable to sign zone %s: failed to increment serial", worker->name, task->owner);
         ods_log_crit("[%s] CRITICAL: failed to sign zone %s: %s",
                 worker->name, task->owner, ods_status2str(status));
         return schedule_DEFER; /* backoff */
     }
-    conflict = names_viewcommit(zone->prepareview);
+    conflict = names_viewcommit(prepareview);
     assert(!conflict);
+    zonelist_releaseresource(NULL, zone, NULL, offsetof(zone_type, prepareview), prepareview);
+    }
 
-    names_viewreset(zone->signview);
-    names_viewreset(zone->neighview);
-    processoccluded(zone->neighview);
-    conflict = names_viewcommit(zone->neighview);
+    //names_viewreset(zone->signview);
+    { names_view_type neighview;
+    neighview = zonelist_obtainresource(NULL, zone, NULL, offsetof(zone_type, neighview));
+    names_viewreset(neighview);
+    processoccluded(neighview);
+    conflict = names_viewcommit(neighview);
     assert(!conflict);
+    zonelist_releaseresource(NULL, zone, NULL, offsetof(zone_type, neighview), neighview);
+    }
 
-    names_viewreset(zone->signview);
-    processneighbours(zone->signview, zone->signconf, newserial);
-    conflict = names_viewcommit(zone->signview);
+    names_view_type signview;
+    signview = zonelist_obtainresource(NULL, zone, NULL, offsetof(zone_type, signview));
+    context->view = signview;
+    names_viewreset(signview);
+    processneighbours(signview, zone->signconf, newserial);
+    conflict = names_viewcommit(signview);
     assert(!conflict);
 
     /* start timer */
@@ -429,10 +449,10 @@ do_signzone(task_type* task, const char* zonename, void* zonearg, void *contexta
     /* prepare keys */
     status = zone_prepare_keys(zone);
     if (status == ODS_STATUS_OK) {
-        names_viewreset(zone->signview);
+        names_viewreset(signview);
         /* queue menial, hard signing work */
         if(context->signq) {
-            worker_queue_zone(context, worker->taskq->signq, zone->signview, &nsubtasks);
+            worker_queue_zone(context, worker->taskq->signq, signview, &nsubtasks);
             ods_log_deeebug("[%s] wait until drudgers are finished "
                     "signing zone %s", worker->name, task->owner);
             /* sleep until work is done */
@@ -443,8 +463,8 @@ do_signzone(task_type* task, const char* zonename, void* zonearg, void *contexta
             recordset_type record;
             time_t refreshtime = context->clock_in + duration2time(zone->signconf->sig_refresh_interval);
             ctx = hsm_create_context();
-            for(iter=names_viewiterator(zone->signview,names_iteratorexpiring,refreshtime); names_iterate(&iter,&record); names_advance(&iter,NULL)) {
-                names_amend(zone->signview, record);
+            for(iter=names_viewiterator(signview,names_iteratorexpiring,refreshtime); names_iterate(&iter,&record); names_advance(&iter,NULL)) {
+                names_amend(signview, record);
                 signdomain(context, ctx, record);
             }
             hsm_destroy_context(ctx);
@@ -456,18 +476,14 @@ do_signzone(task_type* task, const char* zonename, void* zonearg, void *contexta
     if (status == ODS_STATUS_OK) {
         status = worker_check_jobs(worker, task, nsubtasks, nsubtasksfailed);
     }
-    if (status == ODS_STATUS_OK && zone->stats) {
-        pthread_mutex_lock(&zone->stats->stats_lock);
-        zone->stats->sig_time = (end - start);
-        pthread_mutex_unlock(&zone->stats->stats_lock);
-    }
     if (status != ODS_STATUS_OK) {
         ods_log_crit("[%s] CRITICAL: failed to sign zone %s: %s",
                 worker->name, task->owner, ods_status2str(status));
-        return schedule_DEFER; /* backoff */
-    }
-    if (zone->stats) {
+        returnscheduletime =  schedule_DEFER; /* backoff */
+    } else {
+      if (zone->stats) {
         pthread_mutex_lock(&zone->stats->stats_lock);
+        zone->stats->sig_time = (end - start);
         if (zone->stats->sort_done == 0 &&
             (zone->stats->sig_count <= zone->stats->sig_soa_count)) {
             ods_log_verbose("skip write zone %s serial %u (zone not "
@@ -475,16 +491,20 @@ do_signzone(task_type* task, const char* zonename, void* zonearg, void *contexta
                 (zone->inboundserial?(unsigned int)*zone->inboundserial:0));
             stats_clear(zone->stats);
             pthread_mutex_unlock(&zone->stats->stats_lock);
-            return schedule_SUCCESS;
         }
         pthread_mutex_unlock(&zone->stats->stats_lock);
+      }
     }
-    status = names_viewcommit(zone->signview);
+    status = names_viewcommit(signview);
     if(status) {
         logger_message(&logger_cls,logger_noctx,logger_ERROR,"Failed to commit sign");
     }
-    schedule_scheduletask(engine->taskq, TASK_WRITE, zone->name, zone, &zone->zone_lock, schedule_PROMPTLY);
-    return schedule_SUCCESS;
+    zonelist_releaseresource(NULL, zone, NULL, offsetof(zone_type, signview), signview);
+
+    if(returnscheduletime == schedule_SUCCESS) {
+        schedule_scheduletask(engine->taskq, TASK_WRITE, zone->name, zone, &zone->zone_lock, schedule_PROMPTLY);
+    }
+    return returnscheduletime;
 }
 
 time_t
@@ -583,7 +603,7 @@ do_outputzonefile(zone_type* zone)
     char* tmpname;
 
     /* Write the zone as it currently stands */
-    outputview = zone->outputview;
+    outputview = zonelist_obtainresource(NULL, zone, NULL, offsetof(zone_type,outputview));
     names_viewreset(outputview);
     tmpname = ods_build_path(zone->adoutbound->configstr, ".tmp", 0, 0);
     if(writezone(outputview, tmpname)) {
@@ -599,6 +619,7 @@ do_outputzonefile(zone_type* zone)
         }
     }
     free(tmpname);
+    zonelist_releaseresource(NULL, zone, NULL, offsetof(zone_type,outputview), outputview);
 }
 
 void
@@ -653,7 +674,6 @@ do_writezone(task_type* task, const char* zonename, void* zonearg, void *context
     engine_type* engine = context->engine;
     worker_type* worker = context->worker;
     zone_type* zone = zonearg;
-    ods_status status;
     time_t resign;
     context->clock_in = time_now(); /* TODO this means something different */
     /* perform write to output adapter task */
@@ -677,8 +697,7 @@ do_writezone(task_type* task, const char* zonename, void* zonearg, void *context
         }
     }
 
-    names_viewreset(zone->outputview);
-    status = tools_output(zone, engine);
+    tools_output(zone, engine);
 
     if(zone->operatingconf->zonefile_timer > 0) {
         if(--(zone->operatingconf->zonefile_timer) == 0) {
