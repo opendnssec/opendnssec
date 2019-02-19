@@ -169,6 +169,7 @@ int64_t names_recordgetexpiry(recordset_type);
 void names_recordsetexpiry(recordset_type, int64_t value);
 void names_recordaddsignature(recordset_type record, ldns_rr_type rrtype, ldns_rr* rrsig, const char* keylocator, int keyflags);
 int names_recordmarshall(recordset_type*, marshall_handle);
+size_t names_recordextend(recordset_type);
 
 void names_recordlookupone(recordset_type record, ldns_rr_type type, ldns_rr* template, ldns_rr** rr);
 void names_recordlookupall(recordset_type record, ldns_rr_type type, ldns_rr* template, ldns_rr_list** rrs, ldns_rr_list** rrsigs);

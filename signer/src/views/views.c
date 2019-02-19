@@ -48,7 +48,7 @@
 const char* names_view_BASE[]    = { "base",    "namerevision", "outdated" };
 const char* names_view_INPUT[]   = { "input",   "nameupcoming", "namehierarchy", NULL };
 const char* names_view_PREPARE[] = { "prepare", "namerevision", "incomingset", "currentset", "relevantset", NULL };
-const char* names_view_NEIGHB[]  = { "neighb",  "nameready", "denialname", NULL };
+const char* names_view_NEIGHB[]  = { "neighb",  "namerevision", "nameready", "denialname", NULL };
 const char* names_view_SIGN[]    = { "sign",    "nameready", "expiry", "denialname", NULL };
 const char* names_view_OUTPUT[]  = { "output",  "validnow", NULL };
 const char* names_view_CHANGES[] = { "changes", "validchanges", "validinserts", "validdeletes", NULL };
@@ -259,11 +259,10 @@ names_viewcreate(names_view_type base, const char* viewname, const char** keynam
         names_indexcreate(&view->indices[i], keynames[i]);
         names_indexsearchfunction(view->indices[i], view, keynames[i]);
     }
-    // FIXME there should be better place to initialize these
     if(!strcmp(viewname,names_view_PREPARE[0])) {
         names_viewaddsearchfunction2(view, view->indices[1], view->indices[2], names_iteratorincoming);
     } else if(!strcmp(viewname,names_view_NEIGHB[0])) {
-        names_viewaddsearchfunction2(view, view->indices[0], view->indices[1], names_iteratordenialchainupdates);
+        names_viewaddsearchfunction2(view, view->indices[1], view->indices[2], names_iteratordenialchainupdates);
     } else if(!strcmp(viewname,names_view_SIGN[0])) {
         names_viewaddsearchfunction2(view, view->indices[0], view->indices[2], names_iteratordenialchainupdates);
     }
@@ -330,13 +329,26 @@ void
 names_viewvalidate(names_view_type view)
 {
     int fail = 0;
-    int i;
+    int count, size, i;
     char* temp1 = NULL;
     char* temp2 = NULL;
     names_iterator iter;
     recordset_type record;
     recordset_type compare;
+    size = 0;
+    count = 0;
+    for(iter=names_indexiterator(view->indices[0]); names_iterate(&iter,&record); names_advance(&iter,NULL)) {
+        ++count;
+        if(view->viewid == 0) {
+            size += names_recordextend(record);
+        }
+    }
+    if(view->viewid == 0) {
+        fprintf(stderr,"total memory size of records is %d, index nodes are %d\n",size,sizeof(ldns_rbnode_t));
+    }
+    fprintf(stderr,"view %s contains %d records in primary index%s",view->viewname,count,(view->nindices>1?" in other indices:":""));
     for(i=1; i<view->nindices; i++) {
+        count = 0;
         for(iter=names_indexiterator(view->indices[i]); names_iterate(&iter,&record); names_advance(&iter,NULL)) {
             compare = names_indexlookup(view->indices[0], record);
             if(compare == NULL) {
@@ -354,8 +366,11 @@ names_viewvalidate(names_view_type view)
                 //names_dumprecord(stderr,record);
                 assert(view->indices[i]->acceptfunc(record,NULL,NULL) == 1);
             }
+            ++count;
         }
+        fprintf(stderr," %d",count);
     }
+    fprintf(stderr,"\n");
     names_recordgetsummary(NULL,&temp1);
     names_recordgetsummary(NULL,&temp2);
     if(fail) {
@@ -406,7 +421,7 @@ names_viewiterator(names_view_type view, names_indexrange_func func, ...)
             }
         }
     }
-    abort(); // FIXME?
+    ods_fatal_exit("internal error finding index search function");
     return NULL;
 }
 
@@ -499,14 +514,15 @@ updateview(names_view_type view, names_table_type* mychangelog)
     recordset_type existing;
 
     changelog = NULL;
-    
-    logger_message(&names_logcommitlog,logger_noctx,logger_DEBUG,"update view %s commit %p\n",view->viewname,(mychangelog?(void*)*mychangelog:NULL));
+
+    logger_message(&names_logcommitlog,logger_noctx,logger_DIAG,"update view %s commit %p\n",view->viewname,(mychangelog?(void*)*mychangelog:NULL));
     while((names_commitlogpoppush(view->commitlog, view->viewid, &changelog, mychangelog))) {
-        logger_message(&names_logcommitlog,logger_noctx,logger_DEBUG,"  process commit log %p into %s\n",(void*)changelog,view->viewname);
+        logger_message(&names_logcommitlog,logger_noctx,logger_DIAG,"  process commit log %p into %s\n",(void*)changelog,view->viewname);
         for(iter = names_tableitems(changelog); names_iterate(&iter, &change); names_advance(&iter, NULL)) {
+            logger_message(&names_logcommitlog,logger_noctx,logger_DIAG,"    processing %s\n",names_recordgetsummary(change->record,&temp1));
             if(names_tableget(view->changelog, change->record)) {
                 if (conflict == 0) {
-                    logger_message(&names_logcommitlog,logger_noctx,logger_DEBUG,"    conflict on %s %d\n",names_recordgetname(change->record),names_recordgetrevision(change->record));
+                    logger_message(&names_logcommitlog,logger_noctx,logger_DIAG,"      conflict on %s %d\n",names_recordgetname(change->record),names_recordgetrevision(change->record));
                     resetchangelog(view);
                 }
                 conflict = 1;
@@ -514,7 +530,7 @@ updateview(names_view_type view, names_table_type* mychangelog)
             }
             existing = NULL;
             accepted = names_indexinsert(view->indices[0], change->record, &existing);
-            logger_message(&names_logcommitlog,logger_noctx,logger_DEBUG,"    update %s %s%s%s\n",names_recordgetsummary(change->record,&temp1),(accepted?"accepted":"dropped"),(existing?" replaces ":""),names_recordgetsummary(existing,&temp2));
+            logger_message(&names_logcommitlog,logger_noctx,logger_DIAG,"      update %s %s%s%s\n",names_recordgetsummary(change->record,&temp1),(accepted?"accepted":"dropped"),(existing?" replaces ":""),names_recordgetsummary(existing,&temp2));
             for(i=1; i<view->nindices; i++) {
                 recordset_type tmp = existing;
                 names_indexinsert(view->indices[i], (accepted ? change->record : NULL), (existing ? &tmp : NULL));
@@ -522,10 +538,10 @@ updateview(names_view_type view, names_table_type* mychangelog)
         }
     }
     if(!conflict && mychangelog) {
-        logger_message(&names_logcommitlog,logger_noctx,logger_DEBUG,"  process submit commit log %p into %s\n",(void*)changelog,view->viewname);
+        logger_message(&names_logcommitlog,logger_noctx,logger_DIAG,"  process submit commit log %p into %s\n",(void*)changelog,view->viewname);
         for(iter=names_tableitems(changelog); names_iterate(&iter, &change); names_advance(&iter, NULL)) {
             recordset_type existing = change->oldrecord;
-            logger_message(&names_logcommitlog,logger_noctx,logger_DEBUG,"    update %s %s%s\n",names_recordgetsummary(change->record,&temp1),(existing?" replaces ":""),names_recordgetsummary(existing,&temp2));
+            logger_message(&names_logcommitlog,logger_noctx,logger_DIAG,"    update %s %s%s\n",names_recordgetsummary(change->record,&temp1),(existing?" replaces ":""),names_recordgetsummary(existing,&temp2));
             for(i=1; i<view->nindices; i++) {
                 existing = change->oldrecord;
                 names_indexinsert(view->indices[i], change->record, &existing);

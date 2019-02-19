@@ -15,7 +15,7 @@ AM_CPPFLAGS = \
 
 check_PROGRAMS = signertest
 
-EXTRA_DIST = config.yaml opendnssec.conf \
+EXTRA_DIST = opendnssec.conf.tradiional opendnssec.conf.dynamic \
 	signconf.xml.nsec signconf.xml.nsec3 signconf.xml.nl \
 	unsigned.zone.example unsigned.zone.simple unsigned.zone.testing \
 	zones.xml.1 zones.xml.2 zones.xml.example zones.xml.nl

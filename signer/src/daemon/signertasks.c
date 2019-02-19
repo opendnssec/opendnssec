@@ -47,6 +47,8 @@
 #include "file.h"
 #include "settings.h"
 
+static logger_cls_type names_logsigning = LOGGER_INITIALIZE("signing");
+
 /**
  * Queue RRset for signing.
  *
@@ -150,7 +152,7 @@ signdomain(struct worker_context* superior, hsm_ctx_t* ctx, recordset_type recor
     }
     ldns_rr_list_free(rrsigs);
     names_recordsetexpiry(record, expiration);
-
+    logger_message(&names_logsigning,logger_noctx,logger_DEBUG,"signed %s expiration %ld\n",names_recordgetname(record),expiration);
     return ODS_STATUS_OK;
 }
 
@@ -289,15 +291,14 @@ processoccluded(names_view_type view)
     }
 }
 
-void
+static void
 processneighbours(names_view_type view, signconf_type* signconf, int newserial)
 {
     struct dual change;
     names_iterator iter;
-    // BERRY FIXME does this iterate over all?  should be only over updates
+    const char* nextnamestr;
+    ldns_rdf* nextnamerdf;
     for (iter=names_viewiterator(view,names_iteratordenialchainupdates); names_iterate(&iter,&change); names_advance(&iter,NULL)) {
-        const char* nextnamestr;
-        ldns_rdf* nextnamerdf;
         if(signconf->nsec3params)
             nextnamestr = names_recordgetdenial(change.dst);
         else
@@ -320,7 +321,7 @@ processneighbours(names_view_type view, signconf_type* signconf, int newserial)
     }
 }
 
-void
+static void
 preparesign(names_view_type prepareview, int newserial)
 {
     int conflict;
@@ -689,20 +690,23 @@ do_writezone(task_type* task, const char* zonename, void* zonearg, void *context
         ods_cfg_getcount(NULL, &zone->operatingconf->ixfr_history, &default_ixfr_history, NULL, "signer", "output-ixfr-history", NULL);
     }
 
-    if(zone->operatingconf->statefile_timer > 0) {
-        if(--(zone->operatingconf->statefile_timer) == 0) {
+    if(zone->operatingconf->statefile_freq > 0) {
+        if(--(zone->operatingconf->statefile_timer) <= 0) {
             zone->operatingconf->statefile_timer = zone->operatingconf->statefile_freq;
             do_purgezone(zone);
+            logger_mark_performance("done purge outdated zone data");
             do_outputstatefile(zone);
+            logger_mark_performance("done writing statefile");
         }
     }
 
     tools_output(zone, engine);
 
-    if(zone->operatingconf->zonefile_timer > 0) {
-        if(--(zone->operatingconf->zonefile_timer) == 0) {
+    if(zone->operatingconf->zonefile_freq > 0) {
+        if(--(zone->operatingconf->zonefile_timer) <= 0) {
             zone->operatingconf->zonefile_timer = zone->operatingconf->zonefile_freq;
             do_outputzonefile(zone);
+            logger_mark_performance("done writing periodic zonefile");
         }
     }
 

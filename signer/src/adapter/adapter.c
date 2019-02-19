@@ -198,7 +198,8 @@ adapter_write(zone_type* zone)
                     "adapter %s", adapter_str, zone->name,
                     (zone->outboundserial ? *(zone->outboundserial) : 0), zone->adoutbound->configstr);
                 status = adfile_write(zone, view, zone->adoutbound->configstr);
-            }
+            } else
+                status = ODS_STATUS_OK;
             break;
         case ADAPTER_DNS:
             status = addns_write(zone, view);

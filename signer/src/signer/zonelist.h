@@ -184,4 +184,12 @@ void zonelist_traverseresource(names_viewfactory_type viewfactory, void (*callba
  */
 void zonelist_zonedumpviews(zone_type* zone);
 
+/**
+ * Validate all views produced by the view factory in a zone.  These are
+ * the views that share the same purpose.  Used as sanity test and
+ * debugging.  The state of the views is outputted to standard error.
+ * @param viewfactory the views factory which to check for
+ */
+void zonelist_zonevalidateviewfactory(names_viewfactory_type viewfactory);
+
 #endif /* SIGNER_ZONELIST_H */
