@@ -133,63 +133,6 @@ enginethreadingstop(void)
 }
 
 static void
-setUp(void)
-{
-    int linkfd, status;
-
-    ods_log_init(argv0, 0, NULL, 3);
-    logger_initialize(argv0);
-
-    if (workdir != NULL)
-        chdir(workdir);
-
-    unlink("zones.xml");
-    unlink("signer.pid");
-    unlink("signer.db");
-    unlink("example.com.state");
-    usefile("opendnssec.conf", "opendnssec.conf.traditional");
-
-    engine = engine_create();
-    if((status = engine_setup_config(engine, "conf.xml", 3, 0)) != ODS_STATUS_OK ||
-       (status = engine_setup_initialize(engine, &linkfd)) != ODS_STATUS_OK ||
-       (status = engine_setup_finish(engine, linkfd)) != ODS_STATUS_OK) {
-        ods_log_error("Unable to start signer daemon: %s", ods_status2str(status));
-    }
-    set_time_now(0);
-    enginethreadingstart();
-    hsm_open2(engine->config->repositories, hsm_check_pin);
-}
-
-static void
-tearDown(void)
-{
-    //command_stop(engine);
-    //janitor_thread_join(debugthread);
-    enginethreadingstop();
-    engine_cleanup(engine);
-    engine = NULL;
-
-    unlink("zones.xml");
-    unlink("signed.zone");
-    unlink("unsigned.zone");
-    unlink("signconf.xml");
-    unlink("signer.db");
-    unlink("signer.pid");
-    unlink("example.com.state");
-    unlink("example.com.backup2");
-}
-
-static void
-finalize(void)
-{
-    janitor_threadclass_destroy(debugthreadclass);
-    xmlCleanupParser();
-    xmlCleanupGlobals();
-    ods_log_close();
-    free(argv0);
-}
-
-static void
 producefile(const char* inputfile, const char* outputfile, const char* program, ...)
 {
     int input;
@@ -257,6 +200,63 @@ usefile(const char* basename, const char* specific)
         newtime[1] = curtime;
         utimensat(basefd, basename, newtime, 0);
     }
+}
+
+static void
+setUp(void)
+{
+    int linkfd, status;
+
+    ods_log_init(argv0, 0, NULL, 3);
+    logger_initialize(argv0);
+
+    if (workdir != NULL)
+        chdir(workdir);
+
+    unlink("zones.xml");
+    unlink("signer.pid");
+    unlink("signer.db");
+    unlink("example.com.state");
+    usefile("opendnssec.conf", "opendnssec.conf.traditional");
+
+    engine = engine_create();
+    if((status = engine_setup_config(engine, "conf.xml", 3, 0)) != ODS_STATUS_OK ||
+       (status = engine_setup_initialize(engine, &linkfd)) != ODS_STATUS_OK ||
+       (status = engine_setup_finish(engine, linkfd)) != ODS_STATUS_OK) {
+        ods_log_error("Unable to start signer daemon: %s", ods_status2str(status));
+    }
+    set_time_now(0);
+    enginethreadingstart();
+    hsm_open2(engine->config->repositories, hsm_check_pin);
+}
+
+static void
+tearDown(void)
+{
+    //command_stop(engine);
+    //janitor_thread_join(debugthread);
+    enginethreadingstop();
+    engine_cleanup(engine);
+    engine = NULL;
+
+    unlink("zones.xml");
+    unlink("signed.zone");
+    unlink("unsigned.zone");
+    unlink("signconf.xml");
+    unlink("signer.db");
+    unlink("signer.pid");
+    unlink("example.com.state");
+    unlink("example.com.backup2");
+}
+
+static void
+finalize(void)
+{
+    janitor_threadclass_destroy(debugthreadclass);
+    xmlCleanupParser();
+    xmlCleanupGlobals();
+    ods_log_close();
+    free(argv0);
 }
 
 static void
