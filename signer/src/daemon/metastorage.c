@@ -35,8 +35,6 @@
 #include "signer/zone.h"
 #include "metastorage.h"
 
-#pragma GCC optimize ("O0")
-
 struct definition_struct {
     const char *membercode;
     size_t membersize;
@@ -86,9 +84,9 @@ metastorage(const char* filename, int ndefs, struct definition_struct* defs, con
     //basefd = open(directory,O_DIRECTORY,0);
     for(;;) {
         if(name!=NULL) {
-            rdfd = openat(basefd,filename,O_RDONLY,0666);
+            rdfd = openat(basefd,filename,O_RDONLY);
         } else {
-            rdfd = openat(basefd,filename,O_RDWR,0666);
+            rdfd = openat(basefd,filename,O_RDWR);
         }
         if(rdfd < 0 && errno == ENOENT) {
             wrfd = openat(basefd,filename,O_WRONLY|O_CREAT|O_EXCL,0666);
