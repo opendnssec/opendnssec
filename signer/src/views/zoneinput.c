@@ -59,6 +59,7 @@ struct removal_struct* removals = NULL;
 int
 readzone(names_view_type view, enum operation_enum operation, const char* filename, char** apexptr, int* defaultttlptr)
 {
+    int returnstatus = 0;
     char* s;
     char* recordname;
     ldns_rr_type recordtype;
@@ -100,13 +101,10 @@ readzone(names_view_type view, enum operation_enum operation, const char* filena
         }
     }
 
-    while(!feof(fp)) {
+    while(fp && !feof(fp)) {
         rr = NULL;
         if((err = ldns_rr_new_frm_fp_l(&rr,fp,&defaultttl,&origin,&prevowner,&linenum))) {
             switch(err) {
-                case LDNS_STATUS_SYNTAX_INCLUDE:
-                    abort(); // FIXME
-                    break;
                 case LDNS_STATUS_SYNTAX_TTL:
                     if(defaultttlptr) {
                         defaultttlptr = malloc(sizeof(int));
@@ -133,9 +131,13 @@ readzone(names_view_type view, enum operation_enum operation, const char* filena
                     }
                     err = LDNS_STATUS_OK;
                     break;
+                case LDNS_STATUS_SYNTAX_INCLUDE:
                 default:
-                    fprintf(stderr,"Error at %s:%d \n",__FILE__,__LINE__);
-                    fprintf(stderr,"%d %s\n", err, ldns_get_errorstr_by_id(err));
+                    ods_log_error("[adfile] error parsing at line %i (%s)", linenum, ldns_get_errorstr_by_id(err));
+                    fclose(fp);
+                    fp = NULL;
+                    returnstatus = 1;
+                    break;
             }
         } else {
             recordname = ldns_rdf2str(ldns_rr_owner(rr));
@@ -182,7 +184,8 @@ readzone(names_view_type view, enum operation_enum operation, const char* filena
         ldns_rdf_deep_free(origin);
     if(prevowner)
         ldns_rdf_deep_free(prevowner);
-    fclose(fp);
+    if(fp)
+        fclose(fp);
 
     if (removals) {
         for(removal=removals; removal!=NULL; removal=removal->hh.next) {
@@ -191,7 +194,7 @@ readzone(names_view_type view, enum operation_enum operation, const char* filena
             recorddata = &recordname[strlen(&recordname[strlen(recordname) + 1]) + 1];
             record = names_take(view, 0, recordname);
             names_own(view, &record);
-            names_recorddeldata(record,recordtype,NULL); // FIXME should be recorddata iso NULL but ident stores data not
+            names_recorddeldata(record,recordtype,recorddata);
         }
         HASH_ITER(hh, removals, removal, tmp) {
             HASH_DEL(removals, removal);
@@ -200,5 +203,5 @@ readzone(names_view_type view, enum operation_enum operation, const char* filena
         removals = NULL;
     }
 
-    return 0;
+    return returnstatus;
 }

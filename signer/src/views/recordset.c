@@ -64,7 +64,7 @@ struct recordset_struct {
 };
 
 static void
-names_signaturedispose(struct signatures_struct** signatures)
+disposesignature(struct signatures_struct** signatures)
 {
     int i;
     if(*signatures) {
@@ -76,6 +76,17 @@ names_signaturedispose(struct signatures_struct** signatures)
         free((*signatures));
         *signatures = NULL;
     }
+}
+
+void
+disposeitemset(struct itemset* itemset)
+{
+    int j;
+    for(j=0; j<itemset->nitems; j++) {
+        ldns_rr_free(itemset->items[j].rr);
+    }
+    free(itemset->items);
+    disposesignature(&(itemset->signatures));
 }
 
 void
@@ -248,7 +259,7 @@ names_recordcopy(recordset_type dict, int clear)
     }
     target->spanhash = (dict->spanhash ? strdup(dict->spanhash) : NULL);
     target->spanhashrr = (dict->spanhashrr ? ldns_rr_clone(dict->spanhashrr) : NULL);
-    names_signaturedispose(&target->spansignatures);
+    disposesignature(&target->spansignatures);
     if(clear == 0) {
         if(dict->expiry) {
             target->expiry = malloc(sizeof(int64_t));
@@ -388,17 +399,13 @@ names_recorddelall(recordset_type d, ldns_rr_type rrtype)
     int i, j;
     for(i=0; i<d->nitemsets; i++) {
         if(rrtype==0 || d->itemsets[i].rrtype == rrtype) {
-            for(j=0; j<d->itemsets[i].nitems; j++) {
-                ldns_rr_free(d->itemsets[i].items[j].rr);
-            }
-            free(d->itemsets[i].items);
-            names_signaturedispose(&d->itemsets[i].signatures);
+            disposeitemset(&(d->itemsets[i]));
             if(rrtype != 0)
                 break;
         }
     }
     if(rrtype == 0) {
-        free(d->itemsets); // FIXME
+        free(d->itemsets);
         d->itemsets = NULL;
         d->nitemsets = 0;
     } else if(i<d->nitemsets) {
@@ -409,7 +416,9 @@ names_recorddelall(recordset_type d, ldns_rr_type rrtype)
         if (d->nitemsets > 0) {
             CHECKALLOC(d->itemsets = realloc(d->itemsets, sizeof (struct itemset) * d->nitemsets));
         } else {
-            free(d->itemsets); // FIXME
+            for(i=0; i<d->nitemsets; i++)
+                disposeitemset(&(d->itemsets[i]));
+            free(d->itemsets);
             d->itemsets = NULL;
         }        
     }
@@ -484,7 +493,7 @@ names_recorddispose(recordset_type dict)
         for(j=0; j<dict->itemsets[i].nitems; j++) {
             ldns_rr_free(dict->itemsets[i].items[j].rr);
         }
-        names_signaturedispose(&dict->itemsets[i].signatures);
+        disposesignature(&dict->itemsets[i].signatures);
         free(dict->itemsets[i].items);
     }
     free(dict->itemsets);
@@ -493,7 +502,7 @@ names_recorddispose(recordset_type dict)
     if(dict->spanhashrr) {
         ldns_rr_free(dict->spanhashrr);
     }
-    names_signaturedispose(&dict->spansignatures);
+    disposesignature(&dict->spansignatures);
     free(dict->validupto);
     free(dict->validfrom);
     free(dict->expiry);
@@ -653,6 +662,46 @@ names_recordmarshall(recordset_type* record, marshall_handle h)
         record = &dummy;
     rc = marshalling(h, "domain", record, marshall_OPTIONAL, sizeof(struct recordset_struct), marshall);
     return rc;
+}
+
+size_t
+names_recordextend(recordset_type record)
+{
+    int i, j;
+    size_t size;
+    size = sizeof(struct recordset_struct);
+    size += record->nitemsets * sizeof(struct itemset);
+    for(i=0; i<record->nitemsets; i++) {
+        size += record->itemsets[i].nitems * sizeof(struct item);
+        for(j=0; j<record->itemsets[i].nitems; j++) {
+            size += ldns_rr_uncompressed_size(record->itemsets[i].items[j].rr);
+        }
+        if(record->itemsets[i].signatures) {
+            size += sizeof(struct signatures_struct);
+            size += record->itemsets[i].signatures->nsigs * sizeof(struct signature_struct);
+            for(j=0; j<record->itemsets[i].signatures->nsigs; j++) {
+                size += (record->itemsets[i].signatures->sigs[j].keylocator ? strlen(record->itemsets[i].signatures->sigs[j].keylocator) : 0);
+                size += ldns_rr_uncompressed_size(record->itemsets[i].signatures->sigs[j].rr);
+            }
+        }
+    }
+    size += (record->name ? strlen(record->name) : 0);
+    size += (record->spanhash ? strlen(record->spanhash) : 0);
+    if(record->spanhashrr) {
+        size += ldns_rr_uncompressed_size(record->spanhashrr);
+    }
+    if(record->spansignatures) {
+        size += sizeof(struct signatures_struct);
+        size += record->spansignatures->nsigs * sizeof(struct signature_struct);
+        for(j=0; j<record->spansignatures->nsigs; j++) {
+            size += (record->spansignatures->sigs[j].keylocator ? strlen(record->spansignatures->sigs[j].keylocator) : 0);
+            size += ldns_rr_uncompressed_size(record->spansignatures->sigs[j].rr);
+        }
+    }
+    size += (record->validupto ? sizeof(int) : 0);
+    size += (record->validfrom ? sizeof(int) : 0);
+    size += (record->expiry ? sizeof(int64_t) : 0);
+    return size;
 }
 
 #define DEFINECOMPARISON(N) \
@@ -1028,7 +1077,7 @@ names_recordindexfunction(const char* keyname, int (**acceptfunc)(recordset_type
     } else if(!strcmp(keyname,"outdated")) {
         REFERCOMPARISON("name",compareoutdatedset);
     } else {
-        abort(); // FIXME
+        ods_fatal_exit("unable to find index for %s",keyname);
     }    
 }
 
@@ -1094,12 +1143,16 @@ names_recordlookupall(recordset_type record, ldns_rr_type rrtype, ldns_rr* templ
             *rrsigs = ldns_rr_list_new();
         if(template == NULL) {
             if(record->itemsets[i].nitems > 0) {
-                for(j=0; j<record->itemsets[i].nitems; j++) {
-                    if(rrs) {
+                if(rrs) {
+                    for(j=0; j<record->itemsets[i].nitems; j++) {
                         assert(record->itemsets[i].items[j].rr);
                         ldns_rr_list_push_rr(*rrs, record->itemsets[i].items[j].rr);
                     }
-                    // FIXME also push rrsigs
+                }
+                if(rrsigs && record->itemsets[i].signatures) {
+                    for(j=0; j<record->itemsets[i].signatures->nsigs; j++) {
+                        ldns_rr_list_push_rr(*rrsigs, record->itemsets[i].signatures->sigs[j].rr);
+                    }
                 }
             }
         } else {

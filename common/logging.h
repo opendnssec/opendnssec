@@ -67,6 +67,7 @@ void logger_resetup(logger_cls_type* cls);
 void logger_configurecls(const char* name, logger_lvl_type minlvl, logger_procedure proc);
 logger_result_type logger_log_syslog(const logger_cls_type* cls, const logger_ctx_type ctx, const logger_lvl_type lvl, const char* format, va_list ap);
 logger_result_type logger_log_stderr(const logger_cls_type* cls, const logger_ctx_type ctx, const logger_lvl_type lvl, const char* format, va_list ap);
+logger_result_type logger_log_stdout(const logger_cls_type* cls, const logger_ctx_type ctx, const logger_lvl_type lvl, const char* format, va_list ap);
 
 logger_ctx_type logger_newcontext(void);
 void logger_destroycontext(logger_ctx_type);

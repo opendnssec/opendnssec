@@ -19,3 +19,8 @@ This can be used to:
 - speed up tests as signing takes most time
 - give an upper-bound on the performance as it simulates an infinite
   speed HSM.
+
+Compile using:
+
+  gcc -shared -Wl,-soname,libpkcs11null.so -I../../libhsm/src/lib \
+      -fPIC -g -o libpkcs11null.so nulllibrary.c -ldl

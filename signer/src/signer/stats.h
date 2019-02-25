@@ -57,7 +57,6 @@ struct stats_struct {
     uint32_t    sig_soa_count;
     uint32_t    sig_reuse;
     time_t      sig_time;
-    time_t      audit_time;
     time_t      start_time;
     time_t      end_time;
     pthread_mutex_t stats_lock;

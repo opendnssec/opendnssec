@@ -137,13 +137,11 @@ logger_log_syslog(const logger_cls_type* cls, const logger_ctx_type ctx, const l
     return logger_CONT;
 }
 
-logger_result_type
-logger_log_stderr(const logger_cls_type* cls, const logger_ctx_type ctx, const logger_lvl_type lvl, const char* format, va_list ap)
+static logger_result_type
+logger_stdhelper(FILE* fp, const char* location, const char* context, const logger_lvl_type lvl, const char* format, va_list ap)
 {
     const char* priority;
     char* message;
-    const char* location;
-    const char* context;
     switch(lvl) {
         case logger_FATAL:  priority = "fatal error: ";  break;
         case logger_ERROR:  priority = "error: ";        break;
@@ -154,15 +152,33 @@ logger_log_stderr(const logger_cls_type* cls, const logger_ctx_type ctx, const l
         default:
             priority = "unknown problem: ";
     }
-    context = logger_getcontext(ctx);
-    location = cls->name;
     vasprintf(&message, format, ap);
     if(message[strlen(message)-1] == '\n') {
         message[strlen(message)-1] = '\0';
     }
-    fprintf(stderr,"%s%s%s%s%s%s%s%s\n",priority,(location?"[":""),(location?location:""),(location?"] ":""),message,(context?" (":""), (context?context:""), (context?")":""));
+    fprintf(fp,"%s%s%s%s%s%s%s%s\n",priority,(location?"[":""),(location?location:""),(location?"] ":""),message,(context?" (":""), (context?context:""), (context?")":""));
     free(message);
     return logger_CONT;
+}
+
+logger_result_type
+logger_log_stderr(const logger_cls_type* cls, const logger_ctx_type ctx, const logger_lvl_type lvl, const char* format, va_list ap)
+{
+    const char* location;
+    const char* context;
+    context = logger_getcontext(ctx);
+    location = cls->name;
+    return logger_stdhelper(stderr,location,context,lvl,format,ap);
+}
+
+logger_result_type
+logger_log_stdout(const logger_cls_type* cls, const logger_ctx_type ctx, const logger_lvl_type lvl, const char* format, va_list ap)
+{
+    const char* location;
+    const char* context;
+    context = logger_getcontext(ctx);
+    location = cls->name;
+    return logger_stdhelper(stdout,location,context,lvl,format,ap);
 }
 
 void
@@ -334,7 +350,7 @@ logger_mark_performance(const char* message)
         t = time(NULL);
         b = (intptr_t) sbrk(0);
     }
-    logger_message(&logger_cls_performance, logger_ctx, logger_ERROR, "MARK#%02d %2ld %4ld %s\n", markcount, t-marktime, (b-markbrk+1048576/2)/1048576, message);
+    logger_message(&logger_cls_performance, logger_ctx, logger_INFO, "MARK#%02d %2ld %4ld %s\n", markcount, (long)(t-marktime), (long)((b-markbrk+1048576/2)/1048576), message);
     ++markcount;
     return 0;
 }

@@ -133,63 +133,6 @@ enginethreadingstop(void)
 }
 
 static void
-setUp(void)
-{
-    int linkfd, status;
-
-    ods_log_init(argv0, 0, NULL, 3);
-    logger_initialize(argv0);
-
-    if (workdir != NULL)
-        chdir(workdir);
-
-    unlink("zones.xml");
-    unlink("signer.pid");
-    unlink("signer.db");
-    unlink("example.com.state");
-
-    engine = engine_create();
-    if((status = engine_setup_config(engine, "conf.xml", 3, 0)) != ODS_STATUS_OK ||
-       (status = engine_setup_initialize(engine, &linkfd)) != ODS_STATUS_OK ||
-       (status = engine_setup_finish(engine, linkfd)) != ODS_STATUS_OK) {
-        ods_log_error("Unable to start signer daemon: %s", ods_status2str(status));
-    }
-    set_time_now(0);
-    enginethreadingstart();
-    hsm_open2(engine->config->repositories, hsm_check_pin);
-    //janitor_thread_create(&debugthread, debugthreadclass, enginerunner, engine);
-}
-
-static void
-tearDown(void)
-{
-    //command_stop(engine);
-    //janitor_thread_join(debugthread);
-    enginethreadingstop();
-    engine_cleanup(engine);
-    engine = NULL;
-
-    unlink("zones.xml");
-    unlink("signed.zone");
-    unlink("unsigned.zone");
-    unlink("signconf.xml");
-    unlink("signer.db");
-    unlink("signer.pid");
-    unlink("example.com.state");
-    unlink("example.com.backup2");
-}
-
-static void
-finalize(void)
-{
-    janitor_threadclass_destroy(debugthreadclass);
-    xmlCleanupParser();
-    xmlCleanupGlobals();
-    ods_log_close();
-    free(argv0);
-}
-
-static void
 producefile(const char* inputfile, const char* outputfile, const char* program, ...)
 {
     int input;
@@ -260,6 +203,63 @@ usefile(const char* basename, const char* specific)
 }
 
 static void
+setUp(void)
+{
+    int linkfd, status;
+
+    ods_log_init(argv0, 0, NULL, 3);
+    logger_initialize(argv0);
+
+    if (workdir != NULL)
+        chdir(workdir);
+
+    unlink("zones.xml");
+    unlink("signer.pid");
+    unlink("signer.db");
+    unlink("example.com.state");
+    usefile("opendnssec.conf", "opendnssec.conf.traditional");
+
+    engine = engine_create();
+    if((status = engine_setup_config(engine, "conf.xml", 3, 0)) != ODS_STATUS_OK ||
+       (status = engine_setup_initialize(engine, &linkfd)) != ODS_STATUS_OK ||
+       (status = engine_setup_finish(engine, linkfd)) != ODS_STATUS_OK) {
+        ods_log_error("Unable to start signer daemon: %s", ods_status2str(status));
+    }
+    set_time_now(0);
+    enginethreadingstart();
+    hsm_open2(engine->config->repositories, hsm_check_pin);
+}
+
+static void
+tearDown(void)
+{
+    //command_stop(engine);
+    //janitor_thread_join(debugthread);
+    enginethreadingstop();
+    engine_cleanup(engine);
+    engine = NULL;
+
+    unlink("zones.xml");
+    unlink("signed.zone");
+    unlink("unsigned.zone");
+    unlink("signconf.xml");
+    unlink("signer.db");
+    unlink("signer.pid");
+    unlink("example.com.state");
+    unlink("example.com.backup2");
+}
+
+static void
+finalize(void)
+{
+    janitor_threadclass_destroy(debugthreadclass);
+    xmlCleanupParser();
+    xmlCleanupGlobals();
+    ods_log_close();
+    free(argv0);
+}
+
+static void
 validatezone(zone_type* zone)
 {
     names_viewvalidate(zone->baseview);
@@ -282,7 +282,7 @@ disposezone(zone_type* zone)
     zonelist_destroyresource(zone->signview);
     zonelist_destroyresource(zone->outputview);
     zonelist_destroyresource(zone->changesview);
-    zonelist_destroyresource(zone->baseview);
+    names_viewdestroy(zone->baseview);
     zone_cleanup(zone);
 }
 
@@ -312,17 +312,20 @@ signzone(zone_type* zone)
     context.signq = NULL;
     context.zone = zone;
     context.clock_in = time_now();
-    context.view = zone->inputview;
+    context.view = NULL;
     task = task_create(strdup(zone->name), TASK_CLASS_SIGNER, TASK_SIGNCONF, do_readsignconf, zone, NULL, 0);
     task->callback(task, zone->name, zone, &context);
+    logger_mark_performance("done read signconf");
     task_destroy(task);
     context.clock_in = time_now();
     task = task_create(strdup(zone->name), TASK_CLASS_SIGNER, TASK_READ, do_readzone, zone, NULL, 0);
     task->callback(task, zone->name, zone, &context);
+    logger_mark_performance("done read zonefile");
     task_destroy(task);
     context.clock_in = time_now();
     task = task_create(strdup(zone->name), TASK_CLASS_SIGNER, TASK_SIGN, do_signzone, zone, NULL, 0);
     task->callback(task, zone->name, zone, &context);
+    logger_mark_performance("done sign full");
     task_destroy(task);
     context.clock_in = time_now();
     task = task_create(strdup(zone->name), TASK_CLASS_SIGNER, TASK_WRITE, do_writezone, zone, NULL, 0);
@@ -446,7 +449,7 @@ testConfig(void)
     long value;
     int rc;
 
-    ods_cfg_access(NULL,"config.yaml");
+    ods_cfg_access(NULL,"opendnssec.conf");
     
     value = 0;
     rc = ods_cfg_getlong(NULL, &value, NULL, NULL, "logging", "verbosity", NULL);
@@ -734,18 +737,37 @@ void
 testSignNL(void)
 {
     zone_type* zone;
-    logger_mark_performance("setup files");
+    names_view_type view;
+    int notrestored;
+    char* zoneapex;
+    logger_configurecls("performance", logger_INFO, logger_log_stdout);
     usefile("nl.state", NULL);
     usefile("zones.xml", "zones.xml.nl");
     usefile("unsigned.zone", "unsigned.zone.nl.gz");
+    usefile("signed.zone", NULL);
     usefile("signconf.xml", "signconf.xml.nl");
-    logger_mark_performance("setup zone");
+    usefile("opendnssec.conf", "opendnssec.conf.dynamic");
+    logger_mark_performance("done setup files");
+
     zonelist_update(engine->zonelist, engine->config->zonelist_filename_signer);
     zone = zonelist_lookup_zone_by_name(engine->zonelist, "nl", LDNS_RR_CLASS_IN);
-    logger_mark_performance("sign");
+    logger_mark_performance("done setup zone");
+
     signzone(zone);
+
+    outputzone(zone);
+    logger_mark_performance("done output zone 1");
+
+    validatezone(zone);
+
+    outputzone(zone);
+    logger_mark_performance("done output zone 2");
+
+    outputzone(zone);
+    logger_mark_performance("done output zone 3");
+
     disposezone(zone);
-    //CU_ASSERT_EQUAL((c = comparezone("unsigned.zone","signed.zone")), 0);
+    logger_mark_performance("done disposing zone");
 }
 
 
@@ -902,7 +924,7 @@ testBackup(void)
 {
     int status;
     zone_type* zone;
-    names_view_type* view;
+    names_view_type view;
     char* zoneapex;
     int notrestored;
     usefile("example.com.state", NULL);
@@ -953,7 +975,7 @@ extern void testTransferfile(void);
 extern void testBasic(void);
 extern void testSignNSEC(void);
 extern void testSignNSEC3(void);
-extern void testSignNSECNL(void);
+extern void testSignNL(void);
 extern void testSignFastRemove(void);
 extern void testSignFastInsert(void);
 extern void testSignFastChange(void);

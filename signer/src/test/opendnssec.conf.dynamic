@@ -1,0 +1,6 @@
+logging:
+  verbosity: 3
+
+signer:
+  output-zonefile-period: 1
+  output-statefile-period: 1

@@ -276,7 +276,6 @@ void
 zonelist_destroyresource(names_viewfactory_type viewfactory)
 {
     int i;
-    /*
     for(i=0; i<viewfactory->curviews; i++)
         if(viewfactory->views[i])
             names_viewdestroy(viewfactory->views[i]);
@@ -284,7 +283,7 @@ zonelist_destroyresource(names_viewfactory_type viewfactory)
         pthread_mutex_destroy(&viewfactory->mutex);
         pthread_cond_destroy(&viewfactory->cond);
     }
-    free(viewfactory);*/
+    free(viewfactory);
 }
 
 void
