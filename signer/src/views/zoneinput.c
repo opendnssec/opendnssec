@@ -25,9 +25,12 @@
  */
 
 #define _LARGEFILE64_SOURCE
+#define _LARGEFILE_SOURCE
 #define _GNU_SOURCE
 
 #include "config.h"
+
+#pragma GCC optimize ("O0")
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -41,8 +44,6 @@
 #include <ldns/host2str.h>
 #include "uthash.h"
 #include "proto.h"
-
-#pragma GCC optimize ("O0")
 
 #define HASH_FIND_OPAQUE(head,findptr,findlen,out) \
     HASH_FIND(hh,head,findptr,(unsigned)findlen,out)

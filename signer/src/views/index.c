@@ -26,6 +26,8 @@
 
 #include "config.h"
 
+#pragma GCC optimize ("O0")
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -33,8 +35,6 @@
 #include <ldns/ldns.h>
 #include "uthash.h"
 #include "proto.h"
-
-#pragma GCC optimize ("O0")
 
 typedef int (*comparefunction)(const void *, const void *);
 typedef int (*acceptfunction)(recordset_type newitem, recordset_type currentitem, int* cmp);

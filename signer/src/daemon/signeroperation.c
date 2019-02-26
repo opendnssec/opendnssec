@@ -26,6 +26,8 @@
 
 #include "config.h"
 
+#pragma GCC optimize ("O0")
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -38,8 +40,6 @@
 #include "util.h"
 #include "compat.h"
 #include "hsm.h"
-
-#pragma GCC optimize ("O0")
 
 static logger_cls_type cls = LOGGER_INITIALIZE("signing");
 

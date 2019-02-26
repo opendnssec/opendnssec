@@ -84,6 +84,4 @@ extern char* argv0;
 typedef void (*functioncast_t)(void);
 extern functioncast_t functioncast(void*generic);
 
-unsigned long long int rnd(void);
-
 #endif

@@ -26,6 +26,8 @@
 
 #include "config.h"
 
+#pragma GCC optimize ("O0")
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -35,8 +37,6 @@
 #include "utilities.h"
 #include "logging.h"
 #include "proto.h"
-
-#pragma GCC optimize ("O0")
 
 struct item {
     ldns_rr* rr;
