@@ -26,13 +26,13 @@
 
 #include "config.h"
 
+#pragma GCC optimize ("O0")
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ldns/ldns.h>
 #include "proto.h"
-
-#pragma GCC optimize ("O0")
 
 struct names_iterator_struct {
     int (*iterate)(names_iterator*iter, void*);

@@ -26,6 +26,8 @@
 
 #include "config.h"
 
+#pragma GCC optimize ("O0")
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -34,8 +36,6 @@
 #include <assert.h>
 #include <ldns/ldns.h>
 #include "proto.h"
-
-#pragma GCC optimize ("O0")
 
 enum marshall_mode { COPY, FREE, READ, WRITE, PRINT, COUNT };
 enum marshall_func { BASIC, OBJECT, SELF };

@@ -25,7 +25,10 @@
  */
 
 #define _GNU_SOURCE
+
 #include "config.h"
+
+#pragma GCC optimize ("O0")
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -62,8 +65,6 @@ static char* workdir;
 static engine_type* engine;
 static janitor_threadclass_t debugthreadclass;
 static janitor_thread_t debugthread;
-
-#pragma GCC optimize ("O0")
 
 static void
 initialize(int argc, char* argv[])

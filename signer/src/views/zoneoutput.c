@@ -25,9 +25,12 @@
  */
 
 #define _LARGEFILE64_SOURCE
+#define _LARGEFILE_SOURCE
 #define _GNU_SOURCE
 
 #include "config.h"
+
+#pragma GCC optimize ("O0")
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -40,8 +43,6 @@
 #include <ldns/ldns.h>
 #include "uthash.h"
 #include "proto.h"
-
-#pragma GCC optimize ("O0")
 
 void
 writerecordcontent(recordset_type domainitem, FILE* fp)
