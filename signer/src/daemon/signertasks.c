@@ -681,7 +681,7 @@ do_writezone(task_type* task, const char* zonename, void* zonearg, void *context
 
     if(zone->operatingconf == NULL) {
         long defaultvalue;
-        ods_cfg_access(NULL, "opendnssec.conf");
+        ods_cfg_access(NULL, AT_FDCWD, "opendnssec.conf");
         zone->operatingconf = malloc(sizeof(struct operatingconf));
         zone->operatingconf->statefile_timer = 0;
         ods_cfg_getcount(NULL, &zone->operatingconf->statefile_freq, &default_statefile_freq, NULL, "signer", "output-statefile-period", NULL);

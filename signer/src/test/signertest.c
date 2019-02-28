@@ -219,6 +219,7 @@ setUp(void)
     unlink("signer.db");
     unlink("example.com.state");
     usefile("opendnssec.conf", "opendnssec.conf.traditional");
+    ods_cfg_access(NULL, AT_FDCWD, "opendnssec.conf");
 
     engine = engine_create();
     if((status = engine_setup_config(engine, "conf.xml", 3, 0)) != ODS_STATUS_OK ||
@@ -444,20 +445,54 @@ testIterator(void)
 }
 
 
+static const char* loggerenumstrings[] = { "fatal", "error", "alert", "warn", "warning", "info", "informational", "notice", "debug", "verbose", "diag", "diagnostic", "trace", "tracing" };
+static const int loggerenumvalues[] = { logger_FATAL, logger_ERROR, logger_ERROR, logger_WARN, logger_WARN, logger_INFO, logger_INFO, logger_INFO, logger_DEBUG, logger_DEBUG, logger_DIAG, logger_DIAG, logger_DIAG, logger_DIAG };
+static const char* loggerenumtargets[] = { "default", "stdout", "stderr", "syslog" };
+
 void
 testConfig(void)
 {
-    long value;
     int rc;
+    int count;
+    char* name;
+    int verbosity;
+    int defaultverbosity = 1;
+    int target = -1;
+    int defaulttarget = -1;
+    logger_procedure targetproc;
+    ods_cfg_handle cfghandle;
 
-    ods_cfg_access(NULL,"opendnssec.conf");
-    
-    value = 0;
-    rc = ods_cfg_getlong(NULL, &value, NULL, NULL, "logging", "verbosity", NULL);
-    assert(rc == 0);
-    assert(value == 3);
+    ods_cfg_access(&cfghandle, AT_FDCWD, "opendnssec.conf");
+
+    verbosity = 0;
+    rc = ods_cfg_getenum2(cfghandle, &verbosity, &defaultverbosity, loggerenumstrings, loggerenumvalues, NULL, "logging", "verbosity", NULL);
+    CU_ASSERT_EQUAL(0, rc);
+    CU_ASSERT_EQUAL(3, verbosity);
+
+    ods_cfg_getcompound(cfghandle, &count, "logging.classes");
+    ods_cfg_getstring(cfghandle, &name, NULL, "logging.classes.%d.name", 0);
+    for(int i=0; i<count; i++) {
+        ods_cfg_getstring(cfghandle, &name, NULL, "logging.classes.%d.name", 0);
+        ods_cfg_getenum2(cfghandle, &verbosity, &defaultverbosity, loggerenumstrings, loggerenumvalues, "logging.classes.%d.verbosity", 0);
+        ods_cfg_getenum(cfghandle, &target, &defaulttarget, loggerenumtargets, "logging.classes.%d.target", 0);
+        switch (target) {
+            case 1:
+                targetproc = logger_log_stdout;
+                break;
+            case 2:
+                targetproc = logger_log_stderr;
+                break;
+            case 3:
+                targetproc = logger_log_syslog;
+                break;
+            case 0:
+            default:
+                targetproc = logger_log_syslog;
+                break;
+        }
+        logger_configurecls(name, verbosity, targetproc);
+    }
 }
-
 
 static void
 testAnnotateItem(const char* name, const char* expected)
@@ -925,7 +960,6 @@ testBackup(void)
 {
     int status;
     zone_type* zone;
-    names_view_type view;
     char* zoneapex;
     int notrestored;
     usefile("example.com.state", NULL);
@@ -945,7 +979,7 @@ testBackup(void)
     zone->signview = zonelist_createresource(zone->baseview,    names_view_SIGN[0],    &names_view_SIGN[1],    1, 1);
     zone->outputview = zonelist_createresource(zone->baseview,  names_view_OUTPUT[0],  &names_view_OUTPUT[1],  1, 4);
     zone->changesview = zonelist_createresource(zone->baseview, names_view_CHANGES[0], &names_view_CHANGES[1], 1, 1);
-    view = names_viewcreate(zone->baseview, names_view_BACKUP[0],  &names_view_BACKUP[1]);
+    names_viewcreate(zone->baseview, names_view_BACKUP[0],  &names_view_BACKUP[1]);
     zone_recover(zone);
     names_viewreset(zone->baseview);
     zonelist_traverseresource(zone->inputview, names_viewreset);

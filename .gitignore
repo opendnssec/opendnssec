@@ -37,6 +37,7 @@ Makefile.in
 /m4/ltversion.m4
 /m4/lt~obsolete.m4
 /missing
+/softhsm-*
 conf/addns.xml
 conf/conf.xml
 conf/kasp.xml
@@ -80,6 +81,14 @@ tools/solaris/ods-signerd.init
 signer/src/test/signertest
 signer/src/test/conf.xml
 signer/src/test/setup.sh
+signer/src/test/opendnssec.conf
+signer/src/test/signconf.xml
+signer/src/test/signed.zone
+signer/src/test/signer.db
+signer/src/test/signer.pid
+signer/src/test/zones.xml
+signer/src/test/unsigned.zone
+signer/src/test/unsigned.zone.nl.gz
 common/config.h
 common/config.h.in
 common/libcompat.a
@@ -105,3 +114,4 @@ testing/test-cases.d/signer.adapters.bind_stress_test/bind9/ods
 nbproject
 **/CUnitAutomated-Listing.xml
 **/CUnitAutomated-Results.xml
+ROOT

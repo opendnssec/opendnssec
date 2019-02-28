@@ -772,14 +772,14 @@ zone_recover(zone_type* zone)
 
         /* all ok */
         names_viewdestroy(view);
-        if (fd >= 0) {
+        if (fd != NULL) {
             ods_fclose(fd);
         }
         if (zone->stats) {
             pthread_mutex_lock(&zone->stats->stats_lock);
             stats_clear(zone->stats);
             pthread_mutex_unlock(&zone->stats->stats_lock);
-        }       
+        }
         return ODS_STATUS_OK;
     }
     free(filename);

@@ -165,7 +165,7 @@ marshallint64(marshall_handle h, void* member)
             abort(); // FIXME
             break;
         case PRINT:
-            size = fprintf(h->fp, "%d", *(int64_t*)member);
+            size = fprintf(h->fp, "%ld", *(int64_t*)member);
             break;
         default:
             abort(); // FIXME

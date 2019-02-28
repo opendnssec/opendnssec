@@ -254,6 +254,10 @@ tools_output(zone_type* zone, engine_type* engine)
         pthread_mutex_unlock(&zone->stats->stats_lock);
     }
     if (engine->dnshandler) {
+        /* FIXME, this should become a separate process that is executed asynchronously, especially
+         * since now the statistics are no longer printed just before this line, but when this
+         * process is done.
+         */
         ods_log_debug("[%s] forward a notify", tools_str);
         dnshandler_fwd_notify(engine->dnshandler, (uint8_t*) ODS_SE_NOTIFY_CMD,
             strlen(ODS_SE_NOTIFY_CMD));

@@ -259,7 +259,7 @@ engine_setup_signals(engine_type* engine)
 {
     struct sigaction action;
     /* catch signals */
-    action.sa_handler = (void (*)(int))signal_handler;
+    action.sa_handler = signal_handler;
     sigfillset(&action.sa_mask);
     action.sa_flags = 0;
     sigaction(SIGTERM, &action, NULL);
