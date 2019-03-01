@@ -561,6 +561,53 @@ cmdhandler_handle_cmd_verbosity(int sockfd, cmdhandler_ctx_type* context, char *
     return 0;
 }
 
+/**
+ * Handle the 'time leap' command.
+ *
+ */
+static int
+cmdhandler_handle_cmd_timeleap(int sockfd, cmdhandler_ctx_type* context, char *cmd)
+{
+    struct tm strtime_struct;
+    char strtime[64]; /* at least 26 according to docs plus a long integer */
+    time_t now = time_now();
+    time_t time_leap = 0;
+    struct tm tm;
+    int taskcount;
+    engine_type* engine = getglobalcontext(context);
+
+    /* skip "time" and "leap" */
+    while(isspace(*cmd)) ++cmd;
+    cmd = &cmd[4];
+    while(isspace(*cmd)) ++cmd;
+    cmd = &cmd[4];
+    while(isspace(*cmd)) ++cmd;
+
+    if (strptime(cmd, "%Y-%m-%d-%H:%M:%S", &tm)) {
+        tm.tm_isdst = -1;
+        time_leap = mktime(&tm);
+        client_printf(sockfd, "Using %s parameter value as time to leap to\n", cmd);
+    } else {
+        client_printf_err(sockfd, "Time leap: Error - could not convert '%s' to a time. Format is YYYY-MM-DD-HH:MM:SS \n", cmd);
+        return -1;
+    }
+    if (!engine->taskq || !engine->taskq->tasks) {
+        client_printf(sockfd, "There are no tasks scheduled.\n");
+        return 1;
+    }
+    schedule_info(engine->taskq, &time_leap, NULL, &taskcount);
+    now = time_now();
+    strftime(strtime, sizeof (strtime), "%c", localtime_r(&now, &strtime_struct));
+    client_printf(sockfd, "There are %i tasks scheduled.\nIt is now       %s (%ld seconds since epoch)\n", taskcount, strtime, (long) now);
+    set_time_now(time_leap);
+    strftime(strtime, sizeof (strtime), "%c", localtime_r(&time_leap, &strtime_struct));
+    client_printf(sockfd, "Leaping to time %s (%ld seconds since epoch)\n", (strtime[0] ? strtime : "(null)"), (long) time_leap);
+    ods_log_info("Time leap: Leaping to time %s\n", strtime);
+    client_printf(sockfd, "Waking up workers\n");
+    engine_wakeup_workers(engine);
+    return 0;
+}
+
 struct cmd_func_block helpCmdDef = { "help", NULL, NULL, NULL, &cmdhandler_handle_cmd_help };
 struct cmd_func_block zonesCmdDef = { "zones", NULL, NULL, NULL, &cmdhandler_handle_cmd_zones };
 struct cmd_func_block signCmdDef = { "sign", NULL, NULL, NULL, &cmdhandler_handle_cmd_sign };
@@ -573,6 +620,7 @@ struct cmd_func_block reloadCmdDef = { "reload", NULL, NULL, NULL, &cmdhandler_h
 struct cmd_func_block retransferCmdDef = { "retransfer", NULL, NULL, NULL, &cmdhandler_handle_cmd_retransfer };
 struct cmd_func_block runningCmdDef = { "running", NULL, NULL, NULL, &cmdhandler_handle_cmd_running };
 struct cmd_func_block verbosityCmdDef = { "verbosity", NULL, NULL, NULL, &cmdhandler_handle_cmd_verbosity };
+struct cmd_func_block timeleapCmdDef = { "time leap", NULL, NULL, NULL, &cmdhandler_handle_cmd_timeleap };
 
 struct cmd_func_block* signcommands[] = {
     &helpCmdDef,
@@ -587,6 +635,7 @@ struct cmd_func_block* signcommands[] = {
     &retransferCmdDef,
     &runningCmdDef,
     &verbosityCmdDef,
+    &timeleapCmdDef,
     NULL
 };
 struct cmd_func_block** signercommands = signcommands;
