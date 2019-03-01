@@ -572,7 +572,6 @@ cmdhandler_handle_cmd_timeleap(int sockfd, cmdhandler_ctx_type* context, char *c
     char strtime[64]; /* at least 26 according to docs plus a long integer */
     time_t now = time_now();
     time_t time_leap = 0;
-    time_t next_leap = 0;
     struct tm tm;
     int taskcount;
     engine_type* engine = getglobalcontext(context);
@@ -596,7 +595,7 @@ cmdhandler_handle_cmd_timeleap(int sockfd, cmdhandler_ctx_type* context, char *c
         client_printf(sockfd, "There are no tasks scheduled.\n");
         return 1;
     }
-    schedule_info(engine->taskq, &next_leap, NULL, &taskcount);
+    schedule_info(engine->taskq, &time_leap, NULL, &taskcount);
     now = time_now();
     strftime(strtime, sizeof (strtime), "%c", localtime_r(&now, &strtime_struct));
     client_printf(sockfd, "There are %i tasks scheduled.\nIt is now       %s (%ld seconds since epoch)\n", taskcount, strtime, (long) now);
