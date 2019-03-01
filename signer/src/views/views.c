@@ -46,7 +46,7 @@
 #include "logging.h"
 #include "proto.h"
 
-const char* names_view_BASE[]    = { "base",    "namerevision", "outdated" };
+const char* names_view_BASE[]    = { "base",    "namerevision", "outdated", NULL };
 const char* names_view_INPUT[]   = { "input",   "nameupcoming", "namehierarchy", NULL };
 const char* names_view_PREPARE[] = { "prepare", "namerevision", "incomingset", "currentset", "relevantset", NULL };
 const char* names_view_NEIGHB[]  = { "neighb",  "namerevision", "nameready", "denialname", NULL };
@@ -345,7 +345,7 @@ names_viewvalidate(names_view_type view)
         }
     }
     if(view->viewid == 0) {
-        fprintf(stderr,"total memory size of records is %d, index nodes are %d\n",size,sizeof(ldns_rbnode_t));
+        fprintf(stderr,"total memory size of records is %d, index nodes are %lu\n",size,sizeof(ldns_rbnode_t));
     }
     fprintf(stderr,"view %s contains %d records in primary index%s",view->viewname,count,(view->nindices>1?" in other indices:":""));
     for(i=1; i<view->nindices; i++) {
@@ -553,7 +553,6 @@ updateview(names_view_type view, names_table_type* mychangelog)
                 names_recorddisposal(change->record, 0);
             }
         }
-        names_commitlogpoppush(view->commitlog, view->viewid, &changelog, mychangelog);
     }
     names_recordgetsummary(NULL,&temp1);
     names_recordgetsummary(NULL,&temp2);
@@ -564,7 +563,7 @@ int
 names_viewcommit(names_view_type view)
 {
     int conflict;
-    conflict = updateview(view, &view->changelog);
+    conflict = updateview(view, &(view->changelog));
     assert(!conflict);
     return conflict;
 }

@@ -112,6 +112,16 @@ names_commitlogdestroyall(names_commitlog_type commitlog, marshall_handle* store
 int
 names_commitlogpoppush(names_commitlog_type logs, int viewid, names_table_type* commitlog, names_table_type* submitlog)
 {
+    /* The basic idea of this function is simple, but the details make it
+     * complicated.  There are multiple views, which are accessed by
+     * individual threads.  Data between the views is updates by having
+     * changelogs that each thread responsible for a view incorporate in their
+     * own view.  When a thread synchronized, is goes over all the changelog
+     * it hasn't processed them, retrieving each one by one by calling this
+     * function iteratively).  When there are no changelogs present anymore
+     * it hasn't processed, it may optionally add its changelog to the last
+     * in this chain.
+     */ 
     int backlog;
     int i;
     names_table_type poppedlog;
@@ -155,6 +165,8 @@ names_commitlogpoppush(names_commitlog_type logs, int viewid, names_table_type* 
             logs->lastchangelog->next = *submitlog;
             logs->lastchangelog = *submitlog;
         }
+        assert(*(logs->views[viewid].nextchangelogptr) == *submitlog);
+        logs->views[viewid].nextchangelogptr = &((*logs->views[viewid].nextchangelogptr)->next);
         *commitlog = *submitlog;
         *submitlog = names_tablecreate2(*submitlog);
     } else {
@@ -162,7 +174,7 @@ names_commitlogpoppush(names_commitlog_type logs, int viewid, names_table_type* 
     }
     CHECK(pthread_mutex_unlock(&logs->lock));
     if(previouslog)
-        names_commitlogdestroyfull(previouslog);
+        names_commitlogdestroy(previouslog);
     return backlog;
 }
 
