@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<Configuration>
+	<RepositoryList>
+		<Repository name="SoftHSM">
+			<Module>@SOFTHSM_MODULE@</Module>
+			<TokenLabel>OpenDNSSEC</TokenLabel>
+			<PIN>1234</PIN>
+		</Repository>
+	</RepositoryList>
+	<Common>
+		<Logging>
+			<Verbosity>6</Verbosity>
+			<Syslog><Facility>local0</Facility></Syslog>
+		</Logging>
+		<PolicyFile>@INSTALL_ROOT@/etc/opendnssec/kasp.xml</PolicyFile>
+		<ZoneListFile>@INSTALL_ROOT@/etc/opendnssec/zonelist.xml</ZoneListFile>
+	</Common>
+	<Enforcer>
+		<Datastore><SQLite>@INSTALL_ROOT@/var/opendnssec/kasp.db</SQLite></Datastore>
+		<AutomaticKeyGenerationPeriod>PT3600S</AutomaticKeyGenerationPeriod>
+	</Enforcer>
+	<Signer>
+		<WorkingDirectory>@INSTALL_ROOT@/var/opendnssec/signer</WorkingDirectory>
+		<WorkerThreads>4</WorkerThreads>
+	</Signer>
+</Configuration>
