@@ -1,0 +1,89 @@
+Test output observations:
+
+Test start time:
+./_syslog.:1:Mar 13 08:55:20 ade9827fd3a4 ods-enforcerd: [log] switching log to syslog verbosity 6 (log level 8)
+
+Key events:
+./_syslog.: 220:Mar 13 08:55:22 ade9827fd3a4 ods-enforcerd: 1 new ZSK(s) (1024 bits) need to be created.
+./_syslog.: 399:Mar 13 08:55:22 ade9827fd3a4 ods-enforcerd: 1 new ZSK(s) (1024 bits) need to be created.
+./_syslog.: 405:Mar 13 08:55:22 ade9827fd3a4 ods-enforcerd: [signconf_cmd] performing signconf for zone example.com == FAILED DUE TO 'unable to notify signer'
+./_syslog.: 416:Mar 13 08:55:22 ade9827fd3a4 ods-enforcerd: [signconf_cmd] performing signconf for zone example.com == FAILED DUE TO 'unable to notify signer'
+./_syslog.: 461:Mar 13 08:55:25 ade9827fd3a4 ods-enforcerd: [signconf_cmd] performing signconf for zone example.com == FAILED DUE TO 'unable to notify signer'
+== MAIN TEST LOGIC STARTS HERE ==
+./_syslog.: 757:Mar 13 08:55:28 ade9827fd3a4 ods-signerd:   [zone] publish example.com DNSKEY locator 7e7908ff454f4f504fc597f40dd59819 == KEYTAG:32829 K_SK
+./_syslog.: 761:Mar 13 08:55:28 ade9827fd3a4 ods-signerd:   [zone] publish example.com DNSKEY locator 950a40cc0c0c152101787094310e3629 == KEYTAG:24335 ZSK
+
+./_syslog.: 966:Mar 13 08:55:33 ade9827fd3a4 ods-enforcerd: Time leap: Leaping to time Wed Mar 13 22:55:22 2019
+./_syslog.:1044:Mar 13 08:55:33 ade9827fd3a4 ods-enforcerd: [signconf_cmd] performing signconf for zone example.com
+./_syslog.:1097:Mar 13 08:55:33 ade9827fd3a4 ods-signerd:   [zone] publish example.com DNSKEY locator 7e7908ff454f4f504fc597f40dd59819 == KEYTAG:32829 K_SK
+./_syslog.:1098:Mar 13 08:55:33 ade9827fd3a4 ods-signerd:   [zone] publish example.com DNSKEY locator 950a40cc0c0c152101787094310e3629 == KEYTAG:24335 ZSK
+
+./_syslog.:1228:Mar 13 08:55:40 ade9827fd3a4 ods-enforcerd: Time leap: Leaping to time Thu Mar 14 20:55:22 2019
+./_syslog.:1297:Mar 13 08:55:40 ade9827fd3a4 ods-enforcerd: [signconf_cmd] performing signconf for zone example.com
+./_syslog.:1359:Mar 13 08:55:40 ade9827fd3a4 ods-signerd:   [zone] publish example.com DNSKEY locator 7e7908ff454f4f504fc597f40dd59819 == KEYTAG:32829 K_SK
+./_syslog.:1360:Mar 13 08:55:40 ade9827fd3a4 ods-signerd:   [zone] publish example.com DNSKEY locator 950a40cc0c0c152101787094310e3629 == KEYTAG:24335 ZSK
+
+./_syslog.:1527:Mar 13 08:55:47 ade9827fd3a4 ods-enforcerd: Time leap: Leaping to time Wed Apr 10 08:55:22 2019
+./_syslog.:1550:Mar 13 08:55:47 ade9827fd3a4 ods-enforcerd: [signconf_cmd] performing signconf for zone example.com
+./_syslog.:1604:Mar 13 08:55:47 ade9827fd3a4 ods-signerd:   [zone] publish example.com DNSKEY locator 7e7908ff454f4f504fc597f40dd59819 == KEYTAG:32829 K_SK
+./_syslog.:1605:Mar 13 08:55:47 ade9827fd3a4 ods-signerd:   [zone] publish example.com DNSKEY locator 950a40cc0c0c152101787094310e3629 == KEYTAG:24335 ZSK
+
+./_syslog.:1760:Mar 13 08:55:54 ade9827fd3a4 ods-enforcerd: Time leap: Leaping to time Fri Apr 12 08:55:22 2019
+./_syslog.:1853:Mar 13 08:55:55 ade9827fd3a4 ods-enforcerd: 1 new ZSK(s) (1024 bits) need to be created.
+== date -d "Apr 12 08:55:55 2019" +'%s': 1555052155
+== date -d "Mar 13 08:55:20" +'%s':      1552463720
+== difference in seconds:                   2588435
+== difference in days: 2588435/60/60/24 =   29.9587 days
+./_syslog.:1859:Mar 13 08:55:55 ade9827fd3a4 ods-enforcerd: [signconf_cmd] performing signconf for zone example.com
+./_syslog.:1912:Mar 13 08:55:55 ade9827fd3a4 ods-signerd:   [zone] publish example.com DNSKEY locator 7e7908ff454f4f504fc597f40dd59819 == KEYTAG:32829 K_SK
+./_syslog.:1913:Mar 13 08:55:55 ade9827fd3a4 ods-signerd:   [zone] publish example.com DNSKEY locator 950a40cc0c0c152101787094310e3629 == KEYTAG:24335 ZSK
+./_syslog.:1914:Mar 13 08:55:55 ade9827fd3a4 ods-signerd:   [zone] publish example.com DNSKEY locator 4e5814dcffa33cda817695a4c7d0eae9 == KEYTAG:4235  ZSK         <== NEW!
+
+./_syslog.:2070:Mar 13 08:56:02 ade9827fd3a4 ods-enforcerd: Time leap: Leaping to time Fri Apr 12 22:55:22 2019
+./_syslog.:2160:Mar 13 08:56:02 ade9827fd3a4 ods-enforcerd: [signconf_cmd] performing signconf for zone example.com
+./_syslog.:2214:Mar 13 08:56:02 ade9827fd3a4 ods-signerd:   [zone] publish example.com DNSKEY locator 7e7908ff454f4f504fc597f40dd59819 == KEYTAG:32829 K_SK
+./_syslog.:2215:Mar 13 08:56:02 ade9827fd3a4 ods-signerd:   [zone] publish example.com DNSKEY locator 950a40cc0c0c152101787094310e3629 == KEYTAG:24335 ZSK
+./_syslog.:2216:Mar 13 08:56:02 ade9827fd3a4 ods-signerd:   [zone] publish example.com DNSKEY locator 4e5814dcffa33cda817695a4c7d0eae9 == KEYTAG:4235  NEW ZSK
+
+./_syslog.:2395:Mar 13 08:56:09 ade9827fd3a4 ods-enforcerd: Time leap: Leaping to time Sun Apr 21 11:55:22 2019
+./_syslog.:2424:Mar 13 08:56:09 ade9827fd3a4 ods-enforcerd: [enforcer] updateZone: processing key 950a40cc0c0c152101787094310e3629 1
+./_syslog.:2425:Mar 13 08:56:09 ade9827fd3a4 ods-enforcerd: [enforcer] updateZone: May ZSK 950a40cc0c0c152101787094310e3629 DNSKEY in state omnipresent transition to unretentive?
+./_syslog.:2426:Mar 13 08:56:09 ade9827fd3a4 ods-enforcerd: [enforcer] updateZone Policy says we can (1/3)
+./_syslog.:2427:Mar 13 08:56:09 ade9827fd3a4 ods-enforcerd: [enforcer] updateZone: May ZSK 950a40cc0c0c152101787094310e3629 RRSIG in state unretentive transition to hidden?
+./_syslog.:2428:Mar 13 08:56:09 ade9827fd3a4 ods-enforcerd: [enforcer] updateZone Policy says we can (1/3)
+
+== ONLY 1/3 POLICY CHECKS PASSED, SO WHAT CHANGES NEXT SUCH THAT ALL THREE POLICY CHECKS ARE PASSED? TRANSITION OF NEW ZSK TO 'OMNIPRESENT'?
+
+./_syslog.:2429:Mar 13 08:56:09 ade9827fd3a4 ods-enforcerd: [enforcer] updateZone: processing key 4e5814dcffa33cda817695a4c7d0eae9 1   == KEYTAG:4235  NEW ZSK
+./_syslog.:2430:Mar 13 08:56:09 ade9827fd3a4 ods-enforcerd: [enforcer] updateZone: May ZSK 4e5814dcffa33cda817695a4c7d0eae9 RRSIG in state rumoured transition to omnipresent?
+./_syslog.:2431:Mar 13 08:56:09 ade9827fd3a4 ods-enforcerd: [enforcer] updateZone Policy says we can (1/3)
+./_syslog.:2432:Mar 13 08:56:09 ade9827fd3a4 ods-enforcerd: [enforcer] updateZone DNSSEC says we can (2/3)
+./_syslog.:2433:Mar 13 08:56:09 ade9827fd3a4 ods-enforcerd: [enforcer] updateZone Timing says we can (3/3) now: 1555847722 key: 1555847722
+./_syslog.:2434:Mar 13 08:56:09 ade9827fd3a4 ods-enforcerd: [enforcer] updateZone: Transitioning ZSK 4e5814dcffa33cda817695a4c7d0eae9 RRSIG from rumoured to omnipresent
+
+./_syslog.:2440:Mar 13 08:56:09 ade9827fd3a4 ods-enforcerd: [enforcer] updateZone: processing key 950a40cc0c0c152101787094310e3629 1
+./_syslog.:2441:Mar 13 08:56:09 ade9827fd3a4 ods-enforcerd: [enforcer] updateZone: May ZSK 950a40cc0c0c152101787094310e3629 DNSKEY in state omnipresent transition to unretentive?
+./_syslog.:2442:Mar 13 08:56:09 ade9827fd3a4 ods-enforcerd: [enforcer] updateZone Policy says we can (1/3)
+./_syslog.:2443:Mar 13 08:56:09 ade9827fd3a4 ods-enforcerd: [enforcer] updateZone DNSSEC says we can (2/3)
+./_syslog.:2444:Mar 13 08:56:09 ade9827fd3a4 ods-enforcerd: [enforcer] updateZone Timing says we can (3/3) now: 1555847722 key: 1552517722
+./_syslog.:2445:Mar 13 08:56:09 ade9827fd3a4 ods-enforcerd: [enforcer] updateZone: Transitioning ZSK 950a40cc0c0c152101787094310e3629 DNSKEY from omnipresent to unretentive
+./_syslog.:2449:Mar 13 08:56:09 ade9827fd3a4 ods-enforcerd: [enforcer] updateZone: May ZSK 950a40cc0c0c152101787094310e3629 RRSIG in state unretentive transition to hidden?
+./_syslog.:2450:Mar 13 08:56:09 ade9827fd3a4 ods-enforcerd: [enforcer] updateZone Policy says we can (1/3)
+./_syslog.:2451:Mar 13 08:56:09 ade9827fd3a4 ods-enforcerd: [enforcer] updateZone DNSSEC says we can (2/3)
+./_syslog.:2452:Mar 13 08:56:09 ade9827fd3a4 ods-enforcerd: [enforcer] updateZone Timing says we can (3/3) now: 1555847722 key: 1555239322
+./_syslog.:2453:Mar 13 08:56:09 ade9827fd3a4 ods-enforcerd: [enforcer] updateZone: Transitioning ZSK 950a40cc0c0c152101787094310e3629 RRSIG from unretentive to hidden
+
+== NOW THAT THE ZSK IS HIDDEN, IN THE NEXT STEP IT IS NOT INCLUDED IN THE PUBLISHED KEY SET AND SO DISAPPEARS FROM THE ZONE
+== THIS WOULD BE FINE IF THE RRSIGs WERE REPLACED WITH ONES SIGNED BY THE NEW ZSK BUT THEY ARE NOT ... WHY NOT?
+
+== KEY QUESTION:
+== WAS IT WRONG TO REMOVE THE ZSK, OR WRONG TO NOT REPLACE THE RRSIGs?
+
+./_syslog.:2475:Mar 13 08:56:09 ade9827fd3a4 ods-enforcerd: [signconf_cmd] performing signconf for zone example.com
+./_syslog.:2517:Mar 13 08:56:09 ade9827fd3a4 ods-signerd: [signconf] zone example.com signconf: RESIGN[PT1H] REFRESH[P15D] VALIDITY[P21D] DENIAL[P21D] KEYSET[PT0S] JITTER[P1D] OFFSET[PT1H] NSEC[50] DNSKEYTTL[PT1H] SOATTL[PT1H] MINIMUM[PT1H] SERIAL[unixtime]
+./_syslog.:2518:Mar 13 08:56:09 ade9827fd3a4 ods-signerd: [signconf] zone example.com nsec3: PARAMTTL[PT0S] OPTOUT[0] ALGORITHM[1] ITERATIONS[5] SALT[90d4953c16af8754]
+./_syslog.:2519:Mar 13 08:56:09 ade9827fd3a4 ods-signerd: [keys] zone example.com key: LOCATOR[7e7908ff454f4f504fc597f40dd59819] FLAGS[257] ALGORITHM[7] KSK[1] ZSK[0] PUBLISH[1]
+./_syslog.:2520:Mar 13 08:56:09 ade9827fd3a4 ods-signerd: [keys] zone example.com key: LOCATOR[950a40cc0c0c152101787094310e3629] FLAGS[256] ALGORITHM[7] KSK[0] ZSK[0] PUBLISH[0] <== OLD ZSK: NOT PUBLISHED!
+./_syslog.:2521:Mar 13 08:56:09 ade9827fd3a4 ods-signerd: [keys] zone example.com key: LOCATOR[4e5814dcffa33cda817695a4c7d0eae9] FLAGS[256] ALGORITHM[7] KSK[0] ZSK[1] PUBLISH[1] <== NEW ZSK: PUBLISHED
+./_syslog.:2530:Mar 13 08:56:09 ade9827fd3a4 ods-signerd:   [zone] publish example.com DNSKEY locator 7e7908ff454f4f504fc597f40dd59819 == KEYTAG:32829 K_SK
+./_syslog.:2531:Mar 13 08:56:09 ade9827fd3a4 ods-signerd:   [zone] publish example.com DNSKEY locator 4e5814dcffa33cda817695a4c7d0eae9 == KEYTAG:4235  ZSK
