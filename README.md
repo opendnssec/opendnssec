@@ -7,7 +7,7 @@ secures zone data just before it is published in an authoritative name server.
 
 ## More Information
 
-More informnation can be found at the project website available at
+More information can be found at the project website available at
 http://www.opendnssec.org/ and on the development WIKI at
 http://wiki.opendnssec.org/.
 
@@ -30,9 +30,9 @@ also needed:
 
 - A Java runtime environment (JRE/JDK)
 
-## Building from the source code respository
+## Building from the source code repository
 
-If the code is downloaded directly from the source code respository (git), you
+If the code is downloaded directly from the source code repository (git), you
 have to prepare the configuration scripts before continuing with build:
 
 1. Install automake, autoconf and libtool.
