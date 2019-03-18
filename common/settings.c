@@ -297,7 +297,7 @@ parsecompound(yaml_document_t *document, int* resultvalue, const char* fmt, va_l
 int
 ods_cfg_access(ods_cfg_handle* handleptr, int basefd, const char* filename)
 {
-    int fd;
+    int fd, returncode;
     FILE *input = NULL;
     yaml_parser_t parser;
     yaml_document_t* document;
@@ -322,10 +322,13 @@ ods_cfg_access(ods_cfg_handle* handleptr, int basefd, const char* filename)
         yaml_parser_load(&parser, document);
         yaml_parser_delete(&parser);
         fclose(input); /* this will also close the file descriptor */
-    } else
+        returncode = 0;
+    } else {
         document = NULL;
+        returncode = -1;
+    }
     *handleptr = document;
-    return 0;
+    return returncode;
 }
 
 int

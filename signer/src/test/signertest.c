@@ -57,6 +57,7 @@
 #include "views/httpd.h"
 #include "adapter/adutil.h"
 #include "settings.h"
+#include "cfg.h"
 
 #include "comparezone.h"
 
@@ -444,11 +445,6 @@ testIterator(void)
         names_end(&iter);
 }
 
-
-static const char* loggerenumstrings[] = { "fatal", "error", "alert", "warn", "warning", "info", "informational", "notice", "debug", "verbose", "diag", "diagnostic", "trace", "tracing" };
-static const int loggerenumvalues[] = { logger_FATAL, logger_ERROR, logger_ERROR, logger_WARN, logger_WARN, logger_INFO, logger_INFO, logger_INFO, logger_DEBUG, logger_DEBUG, logger_DIAG, logger_DIAG, logger_DIAG, logger_DIAG };
-static const char* loggerenumtargets[] = { "default", "stdout", "stderr", "syslog" };
-
 void
 testConfig(void)
 {
@@ -465,7 +461,7 @@ testConfig(void)
     ods_cfg_access(&cfghandle, AT_FDCWD, "opendnssec.conf");
 
     verbosity = 0;
-    rc = ods_cfg_getenum2(cfghandle, &verbosity, &defaultverbosity, loggerenumstrings, loggerenumvalues, NULL, "logging", "verbosity", NULL);
+    rc = ods_cfg_getenum2(cfghandle, &verbosity, &defaultverbosity, engineconfig_loggerstrings, engineconfig_loggervalues, NULL, "logging", "verbosity", NULL);
     CU_ASSERT_EQUAL(0, rc);
     CU_ASSERT_EQUAL(3, verbosity);
 
@@ -473,8 +469,8 @@ testConfig(void)
     ods_cfg_getstring(cfghandle, &name, NULL, "logging.classes.%d.name", 0);
     for(int i=0; i<count; i++) {
         ods_cfg_getstring(cfghandle, &name, NULL, "logging.classes.%d.name", 0);
-        ods_cfg_getenum2(cfghandle, &verbosity, &defaultverbosity, loggerenumstrings, loggerenumvalues, "logging.classes.%d.verbosity", 0);
-        ods_cfg_getenum(cfghandle, &target, &defaulttarget, loggerenumtargets, "logging.classes.%d.target", 0);
+        ods_cfg_getenum2(cfghandle, &verbosity, &defaultverbosity, engineconfig_loggerstrings, engineconfig_loggervalues, "logging.classes.%d.verbosity", 0);
+        ods_cfg_getenum(cfghandle, &target, &defaulttarget, engineconfig_loggertargets, "logging.classes.%d.target", 0);
         switch (target) {
             case 1:
                 targetproc = logger_log_stdout;
@@ -999,7 +995,7 @@ testBackup(void)
     zonelist_destroyresource(zone->changesview);
     names_viewdestroy(zone->baseview);
     zone_cleanup(zone);
-}
+ }
 
 extern void testNothing(void);
 extern void testIterator(void);

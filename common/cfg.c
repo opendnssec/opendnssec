@@ -30,15 +30,22 @@
  */
 
 #include "config.h"
-#include "cfg.h"
-#include "confparser.h"
-#include "file.h"
-#include "log.h"
-#include "status.h"
 
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
+#include "confparser.h"
+#include "file.h"
+#include "log.h"
+#include "status.h"
+#include "logging.h"
+#include "log.h"
+#include "settings.h"
+#include "cfg.h"
 
 static const char* conf_str = "config";
 
@@ -51,6 +58,10 @@ strdup_or_null(const char *s)
     return s?strdup(s):s;
 }
 
+static const char* engineconfig_loggerstrings[] = { "fatal", "error", "alert", "warn", "warning", "info", "informational", "notice", "debug", "verbose", "diag", "diagnostic", "trace", "tracing" };
+static const int engineconfig_loggervalues[] = { logger_FATAL, logger_ERROR, logger_ERROR, logger_WARN, logger_WARN, logger_INFO, logger_INFO, logger_INFO, logger_DEBUG, logger_DEBUG, logger_DIAG, logger_DIAG, logger_DIAG, logger_DIAG };
+static const char* engineconfig_loggertargets[] = { "default", "stdout", "stderr", "syslog" };
+
 /**
  * Configure engine.
  *
@@ -59,7 +70,7 @@ engineconfig_type*
 engine_config(const char* cfgfile,
     int cmdline_verbosity, engineconfig_type* oldcfg)
 {
-    engineconfig_type* ecfg;
+    engineconfig_type* ecfg = NULL;
     FILE* cfgfd = NULL;
 
     if (!cfgfile || cfgfile[0] == 0) {
@@ -147,12 +158,99 @@ engine_config(const char* cfgfile,
 
         /* done */
         ods_fclose(cfgfd);
-        return ecfg;
     }
 
-    ods_log_error("[%s] failed to read: unable to open file %s", conf_str,
-        cfgfile);
-    return NULL;
+    ods_cfg_handle cfghandle;
+    int verbosity, count;
+    char* name;
+    int defaultverbosity = 1;
+    int target = -1;
+    int defaulttarget = -1;
+    logger_procedure targetproc;
+    if (!ods_cfg_access(&cfghandle, AT_FDCWD, "opendnssec.conf")) {
+        if (!ecfg) {
+            CHECKALLOC(ecfg = malloc(sizeof(engineconfig_type)));
+        }
+        verbosity = -1;
+        if(ods_cfg_getenum2(cfghandle, &verbosity, NULL, engineconfig_loggerstrings, engineconfig_loggervalues, NULL, "logging", "verbosity", NULL)) {
+            switch(ecfg->verbosity) {
+                case LOG_EMERG: /* fatal */
+                    verbosity = logger_FATAL;
+                    break;
+                case LOG_ALERT:
+                case LOG_CRIT:
+                case LOG_ERR:
+                    verbosity = logger_ERROR;
+                    break;
+                case LOG_WARNING:
+                case LOG_NOTICE:
+                    verbosity = logger_WARN;
+                    break;
+                case LOG_INFO: /* verbose */
+                    verbosity = logger_INFO;
+                    break;
+                case LOG_DEBUG:
+                    verbosity = logger_DEBUG;
+                    break;
+                case LOG_DEEEBUG:
+                    verbosity = logger_DIAG;
+                    break;
+                default:
+                    verbosity = logger_WARN;
+            }
+        } else {
+            switch(verbosity) {
+                case logger_FATAL:
+                    ecfg->verbosity = LOG_EMERG;
+                    break;
+                case logger_ERROR:
+                    ecfg->verbosity = LOG_ERR;
+                    break;
+                case logger_WARN:
+                    ecfg->verbosity = LOG_WARNING;
+                    break;
+                case logger_INFO:
+                    ecfg->verbosity = LOG_INFO;
+                    break;
+                case logger_DEBUG:
+                    ecfg->verbosity = LOG_DEBUG;
+                    break;
+                case logger_DIAG:
+                    ecfg->verbosity = LOG_DEEEBUG;
+                    break;
+                default:
+                    verbosity = LOG_ERR;
+            }
+        }
+        ods_cfg_getcompound(cfghandle, &count, "logging.classes");
+        ods_cfg_getstring(cfghandle, &name, NULL, "logging.classes.%d.name", 0);
+        for(int i=0; i<count; i++) {
+            ods_cfg_getstring(cfghandle, &name, NULL, "logging.classes.%d.name", 0);
+            ods_cfg_getenum2(cfghandle, &verbosity, &defaultverbosity, engineconfig_loggerstrings, engineconfig_loggervalues, "logging.classes.%d.verbosity", 0);
+            ods_cfg_getenum(cfghandle, &target, &defaulttarget, engineconfig_loggertargets, "logging.classes.%d.target", 0);
+            switch (target) {
+                case 1:
+                    targetproc = logger_log_stdout;
+                    break;
+                case 2:
+                    targetproc = logger_log_stderr;
+                    break;
+                case 3:
+                    targetproc = logger_log_syslog;
+                    break;
+                case 0:
+                default:
+                    targetproc = logger_log_syslog;
+                    break;
+            }
+            logger_configurecls(name, verbosity, targetproc);
+        }
+    }
+
+    if(!ecfg) {
+        ods_log_error("[%s] failed to read: unable to open file %s", conf_str, cfgfile);
+    }
+    return ecfg;
 }
 
 

@@ -41,6 +41,7 @@
 
 struct logger_chain_struct {
     const char* name;
+    int minlvl;
     logger_procedure logger;
 
 };
@@ -207,6 +208,7 @@ logger_initialize(const char* programname)
     logger_setup.nchains = 1;
     logger_setup.chains = malloc(sizeof(struct logger_chain_struct) * logger_setup.nchains);
     logger_setup.chains[0].name = "";
+    logger_setup.chains[0].minlvl = logger_ERROR;
     logger_setup.chains[0].logger = logger_log_stderr;
     logger_log_syslog_open(programname);
     //logger_setup.chains[0].logger = logger_log_syslog;
@@ -229,11 +231,11 @@ logger_resetup(logger_cls_type* cls)
         logger_initialize(NULL);
     }
     cls->setupserial = logger_setup.serial;
-    cls->minlvl = logger_WARN;
+    cls->minlvl = logger_setup.chains[0].minlvl;
     cls->chain = &logger_setup.chains[0];
-    for(int i=1; i<logger_setup.nchains; i++) {
-        if(!strcmp(cls->name, logger_setup.chains[i].name)) {
-            cls->minlvl = logger_DIAG;
+    for (int i=1; i<logger_setup.nchains; i++) {
+        if (logger_setup.chains[i].name == NULL || !strcmp(cls->name, logger_setup.chains[i].name)) {
+            cls->minlvl = logger_setup.chains[i].minlvl;
             cls->chain = &logger_setup.chains[i];
         }
     }
@@ -247,6 +249,7 @@ logger_configurecls(const char* name, logger_lvl_type minlvl, logger_procedure p
     logger_setup.nchains += 1;
     logger_setup.chains = malloc(sizeof(struct logger_chain_struct) * logger_setup.nchains);
     logger_setup.chains[logger_setup.nchains-1].name = strdup(name);
+    logger_setup.chains[logger_setup.nchains-1].minlvl = minlvl;
     logger_setup.chains[logger_setup.nchains-1].logger = proc;
     logger_setup.serial += 1;
     pthread_mutex_unlock(&mutex);
