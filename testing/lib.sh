@@ -1548,7 +1548,7 @@ run_tests ()
 			log_cleanup
 			syslog_cleanup
 
-			echo '<testsuite name="'"$test_path"'" tests="1" time="'"$test_time"'">' >> "$junit_test"
+			echo '<testsuite name="'"$test_path"'" tests="1" errors="0" failures="0" time="'"$test_time"'">' >> "$junit_test"
 			echo '<testcase name="'"$test_name"'" classname="'"$test_classname"'" time="'"$test_time"'">' >> "$junit_test"
 			echo '</testcase>' >> "$junit_test"
 			echo '<system-out>' >> "$junit_test"
@@ -1561,7 +1561,7 @@ run_tests ()
 			cat "_test.$BUILD_TAG"
 			echo "##### `date` $test_iter/$test_num $test_path ... FAILED!"
 
-			echo '<testsuite name="'"$test_path"'" tests="1" time="'"$test_time"'">' >> "$junit_test"
+			echo '<testsuite name="'"$test_path"'" tests="1" errors="0" failures="1" time="'"$test_time"'">' >> "$junit_test"
 			echo '<testcase name="'"$test_name"'" classname="'"$test_classname"'" time="'"$test_time"'">' >> "$junit_test"
 			echo '<failure message="Failed">Test failed, exit code '"$test_status"'</failure>' >> "$junit_test"
 			echo '</testcase>' >> "$junit_test"
