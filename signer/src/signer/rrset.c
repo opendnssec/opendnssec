@@ -447,147 +447,6 @@ rrset_add_rrsig(rrset_type* rrset, ldns_rr* rr,
 }
 
 /**
- * Recycle signatures from RRset and drop unreusable signatures.
- *
- */
-static uint32_t
-rrset_recycle(rrset_type* rrset, time_t signtime, ldns_rr_type dstatus,
-    ldns_rr_type delegpt)
-{
-    uint32_t refresh = 0;
-    uint32_t expiration = 0;
-    uint32_t inception = 0;
-    uint32_t reusedsigs = 0;
-    unsigned drop_sig = 0;
-    key_type* key = NULL;
-    zone_type* zone = NULL;
-    rrsig_type* rrsig;
-
-    if (!rrset) {
-        return 0;
-    }
-    zone = (zone_type*) rrset->zone;
-    /* Calculate the Refresh Window = Signing time + Refresh */
-    if (zone->signconf && zone->signconf->sig_refresh_interval) {
-        refresh = (uint32_t) (signtime +
-            duration2time(zone->signconf->sig_refresh_interval));
-    }
-    /* Check every signature if it matches the recycling logic. */
-    while((rrsig = collection_iterator(rrset->rrsigs))) {
-        drop_sig = 0;
-        /* 0. Skip delegation, glue and occluded RRsets */
-        if (dstatus != LDNS_RR_TYPE_SOA || (delegpt != LDNS_RR_TYPE_SOA &&
-            rrset->rrtype != LDNS_RR_TYPE_DS)) {
-            drop_sig = 1;
-            goto recycle_drop_sig;
-        }
-        ods_log_assert(dstatus == LDNS_RR_TYPE_SOA ||
-            (delegpt == LDNS_RR_TYPE_SOA || rrset->rrtype == LDNS_RR_TYPE_DS));
-        /* 1. If the RRset has changed, drop all signatures */
-        /* 2. If Refresh is disabled, drop all signatures */
-        if (rrset->needs_signing || refresh <= (uint32_t) signtime) {
-            drop_sig = 1;
-            goto recycle_drop_sig;
-        }
-        /* 3. Expiration - Refresh has passed */
-        expiration = ldns_rdf2native_int32(
-            ldns_rr_rrsig_expiration(rrsig->rr));
-        if (expiration < refresh) {
-            drop_sig = 1;
-            goto recycle_drop_sig;
-        }
-        /* 4. Inception has not yet passed */
-        inception = ldns_rdf2native_int32(
-            ldns_rr_rrsig_inception(rrsig->rr));
-        if (inception > (uint32_t) signtime) {
-            drop_sig = 1;
-            goto recycle_drop_sig;
-        }
-        /* 5. Corresponding key is dead (key is locator+flags) */
-        key = keylist_lookup_by_locator(zone->signconf->keys,
-            rrsig->key_locator);
-        if (!key || key->flags != rrsig->key_flags) {
-            drop_sig = 1;
-        }
-
-recycle_drop_sig:
-        if (drop_sig) {
-            /* A rule mismatched, refresh signature */
-            /* ixfr -RRSIG */
-            if (zone->db->is_initialized) {
-                pthread_mutex_lock(&zone->ixfr->ixfr_lock);
-                ixfr_del_rr(zone->ixfr, rrsig->rr);
-                pthread_mutex_unlock(&zone->ixfr->ixfr_lock);
-            }
-            collection_del_cursor(rrset->rrsigs);
-        } else {
-            /* All rules ok, recycle signature */
-            reusedsigs += 1;
-        }
-    }
-    return reusedsigs;
-}
-
-
-/**
- * Is the RRset signed with this algorithm?
- *
- */
-static int
-rrset_sigalgo(rrset_type* rrset, uint8_t algorithm)
-{
-    rrsig_type* rrsig;
-    int match = 0;
-    if (rrset) {
-        while((rrsig = collection_iterator(rrset->rrsigs))) {
-            if (algorithm == ldns_rdf2native_int8(ldns_rr_rrsig_algorithm(rrsig->rr))) {
-                match = 1;
-            }
-        }
-    }
-    return match;
-}
-
-
-/**
- * Count the signatures with this algorithm for this RRset?
- *
- */
-static int
-rrset_sigalgo_count(rrset_type* rrset, uint8_t algorithm)
-{
-    rrsig_type* rrsig;
-    int match = 0;
-    if (!rrset) return 0;
-    while((rrsig = collection_iterator(rrset->rrsigs))) {
-        if (algorithm == ldns_rdf2native_int8(ldns_rr_rrsig_algorithm(rrsig->rr))) {
-            match++;
-        }
-    }
-    return match;
-}
-
-/**
- * Is the RRset signed with this locator?
- *
- */
-static int
-rrset_siglocator(rrset_type* rrset, const char* locator)
-{
-    rrsig_type* rrsig;
-    int match = 0;
-    if (rrset) {
-        while ((rrsig = collection_iterator(rrset->rrsigs))) {
-            if (!ods_strcmp(locator, rrsig->key_locator)) {
-                match = 1;
-            }
-        }
-    }
-    return match;
-}
-
-
-/**
  * Transmogrify the RRset to a RRlist.
  *
  */
@@ -659,6 +518,49 @@ rrset_sigvalid_period(signconf_type* sc, ldns_rr_type rrtype, time_t signtime,
 }
 
 
+struct rrsigkeymatching {
+    rrsig_type* signature;
+    key_type* key;
+};
+
+static int
+rrsigkeyismatching(rrsig_type* rrsig, key_type* key)
+{
+    if(rrsig->key_flags == key->flags && rrsig->key_locator == key->locator) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+static void 
+rrsigkeymatching(signconf_type* signconf, int nrrsigs, rrsig_type** rrsigs, struct rrsigkeymatching** rrsigkeymatchingptr, int* nrrsigkeymatchingptr)
+{
+    int i, j;
+    int nmatches = 0;
+    struct rrsigkeymatching* matches = malloc(sizeof(struct rrsigkeymatching) * (signconf->keys->count + nrrsigs));
+    for(int i=0; i<nrrsigs; i++) {
+        matches[nmatches].signature = rrsigs[i];
+            ++nmatches;
+    }
+    for(int i=0; i<signconf->keys->count; i++) {
+        for(j=0; j<nmatches; j++) {
+            if(matches[j].signature && rrsigkeyismatching(matches[j].signature, &signconf->keys->keys[i])) {
+                matches[j].key = &signconf->keys->keys[j];
+                break;
+            }
+        }
+        if(j==nmatches) {
+            matches[nmatches].signature = NULL;
+            matches[nmatches].key = &signconf->keys->keys[i];
+            ++nmatches;
+        }
+    }
+    *rrsigkeymatchingptr = matches;
+    *nrrsigkeymatchingptr = nmatches;
+}
+
+
 /**
  * Sign RRset.
  *
@@ -671,6 +573,7 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
     uint32_t newsigs = 0;
     uint32_t reusedsigs = 0;
     ldns_rr* rrsig = NULL;
+    rrsig_type* signature;
     ldns_rr_list* rr_list = NULL;
     ldns_rr_list* rr_list_clone = NULL;
     const char* locator = NULL;
@@ -698,7 +601,32 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
         dstatus = domain_is_occluded(domain);
         delegpt = domain_is_delegpt(domain);
     }
-    reusedsigs = rrset_recycle(rrset, signtime, dstatus, delegpt);
+
+    int nrrsigs;
+    for(nrrsigs=0; (signature = collection_iterator(rrset->rrsigs)); nrrsigs++)
+        ;
+    rrsig_type** rrsigs = malloc(sizeof(rrsig_type*) * nrrsigs);
+    for(i=0; (signature = collection_iterator(rrset->rrsigs)); nrrsigs++)
+        rrsigs[i] = signature;
+    struct rrsigkeymatching* matchedsignatures;
+    int nmatchedsignatures;
+    rrsigkeymatching(zone->signconf, nrrsigs, rrsigs, &matchedsignatures, &nmatchedsignatures);
+    for(i=0; i<nrrsigs; i++) {
+        if(matchedsignatures[i].signature == NULL) {
+            if (zone->db->is_initialized) {
+                pthread_mutex_lock(&zone->ixfr->ixfr_lock);
+                ixfr_del_rr(zone->ixfr, rrsigs[i]->rr);
+                pthread_mutex_unlock(&zone->ixfr->ixfr_lock);
+            }
+            while((signature = collection_iterator(rrset->rrsigs))) {
+                if(signature == rrsigs[i])
+                    collection_del_cursor(rrset->rrsigs);
+            }
+        } else
+           ++reusedsigs;
+    }
+    free(rrsigs);
+
     rrset->needs_signing = 0;
 
     ods_log_assert(rrset->rrs);
@@ -747,46 +675,62 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
     /* Calculate signature validity */
     rrset_sigvalid_period(zone->signconf, rrset->rrtype, signtime,
          &inception, &expiration);
+    uint32_t refresh;
+    if (zone->signconf && zone->signconf->sig_refresh_interval) {
+        refresh = (uint32_t) (signtime + duration2time(zone->signconf->sig_refresh_interval));
+    }
     /* Walk keys */
-    for (i=0; i < zone->signconf->keys->count; i++) {
-        /* If not ZSK don't sign other RRsets */
-        if (!zone->signconf->keys->keys[i].zsk &&
-            rrset->rrtype != LDNS_RR_TYPE_DNSKEY) {
-            continue;
+    for (int i = 0; i < nmatchedsignatures; i++) {
+        if (matchedsignatures[i].signature) {
+            expiration = ldns_rdf2native_int32(ldns_rr_rrsig_expiration(matchedsignatures[i].signature->rr));
+            inception = ldns_rdf2native_int32(ldns_rr_rrsig_inception(matchedsignatures[i].signature->rr));
         }
-        /* If not KSK don't sign DNSKEY RRset */
-        if (!zone->signconf->keys->keys[i].ksk &&
-            rrset->rrtype == LDNS_RR_TYPE_DNSKEY) {
-            continue;
+        if (!matchedsignatures[i].key->zsk && rrset->rrtype != LDNS_RR_TYPE_DNSKEY) {
+            /* If not ZSK don't sign other RRsets */
+            matchedsignatures[i].key = NULL;
+        } else if (matchedsignatures->key && !matchedsignatures->key->ksk && rrset->rrtype == LDNS_RR_TYPE_DNSKEY) {
+            /* If not KSK don't sign DNSKEY RRset */
+            matchedsignatures[i].key = NULL;
+        } else if (matchedsignatures->key && matchedsignatures[i].key->ksk && matchedsignatures[i].key->locator == NULL) {
+            /* If key has no locator, and should be pre-signed dnskey RR, skip */
+            matchedsignatures[i].key = NULL;
+        } else if (refresh <= (uint32_t) signtime) {
+            /* If Refresh is disabled, drop all signatures */
+            matchedsignatures[i].signature = NULL;
+        } else if (matchedsignatures[i].signature && expiration < refresh) {
+            /* Expiration - Refresh has passed */
+            matchedsignatures[i].signature = NULL;
+        } else if (matchedsignatures[i].signature && inception > (uint32_t) signtime) {
+            /* Inception has not yet passed */
+            matchedsignatures[i].signature = NULL;
+        } else if (dstatus != LDNS_RR_TYPE_SOA || (delegpt != LDNS_RR_TYPE_SOA && rrset->rrtype != LDNS_RR_TYPE_DS)) {
+            /* Skip delegation, glue and occluded RRsets */
+        } else {
+            ods_log_assert(dstatus == LDNS_RR_TYPE_SOA || (delegpt == LDNS_RR_TYPE_SOA || rrset->rrtype == LDNS_RR_TYPE_DS));
         }
-        /* Additional rules for signatures */
-        if (rrset_siglocator(rrset, zone->signconf->keys->keys[i].locator)) {
-            continue;
-        }
-
-        /** We know this key doesn't sign the set, but only if 
-         * n_sig < n_active_keys we should sign. If we already counted active
-         * keys for this algorithm sjip counting step */
-        keycount = 0;
-        if (algorithm != zone->signconf->keys->keys[i].algorithm) {
-            algorithm = zone->signconf->keys->keys[i].algorithm;
-            for (j = 0; j < zone->signconf->keys->count; j++) {
-                if (zone->signconf->keys->keys[j].algorithm == algorithm &&
-                        zone->signconf->keys->keys[j].zsk) /* is active */
-                {
-                    keycount++;
+    }
+    for (int i = 0; i < nmatchedsignatures; i++) {
+        if (!matchedsignatures[i].signature && matchedsignatures[i].key) {
+            /* We now know this key doesn't sign the set, we will only
+             * sign when there isn't already an active key for that algorithm
+             */
+            int j;
+            for (j = 0; j < nmatchedsignatures; j++) {
+                if (j != i) {
+                    if (matchedsignatures[j].key && matchedsignatures[j].signature && matchedsignatures[j].key->algorithm == matchedsignatures[i].key->algorithm) {
+                        break;
+                    }
                 }
             }
+            if (j < nmatchedsignatures) {
+                matchedsignatures[i].key = NULL;
+            }
         }
-        sigcount = rrset_sigalgo_count(rrset, algorithm);
-        if (rrset->rrtype != LDNS_RR_TYPE_DNSKEY && sigcount >= keycount)
-            continue;
-
-        /* If key has no locator, and should be pre-signed dnskey RR, skip */
-        if (zone->signconf->keys->keys[i].ksk && zone->signconf->keys->keys[i].locator == NULL) {
-            continue;
-        }
-
+    }
+    /* Calculate signature validity */
+    rrset_sigvalid_period(zone->signconf, rrset->rrtype, signtime, &inception, &expiration);
+    for (int i=0; i<nmatchedsignatures; i++)
+      if (!matchedsignatures[i].signature && matchedsignatures[i].key) {
         /* Sign the RRset with this key */
         ods_log_deeebug("[%s] signing RRset[%i] with key %s", rrset_str,
             rrset->rrtype, zone->signconf->keys->keys[i].locator);
