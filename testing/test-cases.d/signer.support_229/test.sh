@@ -42,12 +42,12 @@ test -f "${SIGNED_ZONES}/example.com" &&
 # example.com.    86400   IN      RRSIG   A 7 2 [0-9]+ 20190403012345 20190312213351 52667 example.com. <BASE64>
 log_this cat-example.com-before cat "${SIGNED_ZONES}/example.com" &&
 log_this key-status-before ods-enforcer key list --all --verbose &&
-echo -n "Capturing RRSIG A count.." && RRSIG_A_COUNT=$(grep -E -- "^example.com.\s+[0-9]+\s+IN\s+RRSIG\s+A" "${SIGNED_ZONES}/example.com" | wc -l) && echo " ${RRSIG_A_COUNT}" &&
+echo -n "Capturing RRSIG A count.." && RRSIG_A_COUNT=$(grep -E -- "^example.com.[[:space:]]+[0-9]+[[:space:]]+IN[[:space:]]+RRSIG[[:space:]]+A" "${SIGNED_ZONES}/example.com" | wc -l) && echo " ${RRSIG_A_COUNT}" &&
 echo "Checking RRSIG A count ${RRSIG_A_COUNT} == 1.." && [ "${RRSIG_A_COUNT}" -eq "1" ] &&
-echo -n "Capturing ZSK count.." && ZSK_COUNT=$(grep -E -- "^example.com.\s+[0-9]+\s+IN\s+DNSKEY\s+256" "${SIGNED_ZONES}/example.com" | wc -l) && echo " ${ZSK_COUNT}" &&
+echo -n "Capturing ZSK count.." && ZSK_COUNT=$(grep -E -- "^example.com.[[:space:]]+[0-9]+[[:space:]]+IN[[:space:]]+DNSKEY[[:space:]]+256" "${SIGNED_ZONES}/example.com" | wc -l) && echo " ${ZSK_COUNT}" &&
 echo "Checking ZSK count ${ZSK_COUNT} == 1.." && [ "${ZSK_COUNT}" -eq "1" ] &&
-echo -n "Capturing ZSK KEYTAG (id).." && DNSKEYID=$(grep -E -- "^example.com.\s+[0-9]+\s+IN\s+DNSKEY\s+256" "${SIGNED_ZONES}/example.com" | grep -Eo 'id = [0-9]+ \(zsk\)' | grep -Eo '[0-9]+') && echo " ${DNSKEYID}" &&
-echo -n "Capturing RRSIG A KEYTAG.." && KEYTAG=$(grep -E -- "^example.com.\s+[0-9]+\s+IN\s+RRSIG\s+A" "${SIGNED_ZONES}/example.com" | awk '{print $11}') && echo " ${KEYTAG}" &&
+echo -n "Capturing ZSK KEYTAG (id).." && DNSKEYID=$(grep -E -- "^example.com.[[:space:]]+[0-9]+[[:space:]]+IN[[:space:]]+DNSKEY[[:space:]]+256" "${SIGNED_ZONES}/example.com" | grep -Eo 'id = [0-9]+ \(zsk\)' | grep -Eo '[0-9]+') && echo " ${DNSKEYID}" &&
+echo -n "Capturing RRSIG A KEYTAG.." && KEYTAG=$(grep -E -- "^example.com.[[:space:]]+[0-9]+[[:space:]]+IN[[:space:]]+RRSIG[[:space:]]+A" "${SIGNED_ZONES}/example.com" | awk '{print $11}') && echo " ${KEYTAG}" &&
 echo -n "Capturing DNSKEY ${KEYTAG} status.." && ZSKSTATUS=$(ods-enforcer key list --all --verbose | awk '{print $2,$3,$10}' | grep ${KEYTAG}) && echo " ${ZSKSTATUS}" &&
 echo "Checking ZSK ${KEYTAG} is ready.." && [ "${ZSKSTATUS}" == "ZSK ready ${KEYTAG}" ] &&
 echo "Testing KEYTAG equality (DNSKEYID: $DNSKEYID == KEYTAG: $KEYTAG ?).." && [ "${DNSKEYID}" == "${KEYTAG}" ] &&
@@ -65,12 +65,12 @@ log_this ods-enforcer-leap ods_enforcer_leap_over ${THIRTY_ONE_DAYS_IN_SECONDS} 
 log_this cat-example.com.xml-after cat "${SIGNCONF_FILE}" &&
 log_this cat-example.com-after cat "${SIGNED_ZONES}/example.com" &&
 log_this key-status-after ods-enforcer key list --all --verbose &&
-echo -n "Capturing RRSIG A count.." && RRSIG_A_COUNT=$(grep -E -- "^example.com.\s+[0-9]+\s+IN\s+RRSIG\s+A" "${SIGNED_ZONES}/example.com" | wc -l) && echo " ${RRSIG_A_COUNT}" &&
+echo -n "Capturing RRSIG A count.." && RRSIG_A_COUNT=$(grep -E -- "^example.com.[[:space:]]+[0-9]+[[:space:]]+IN[[:space:]]+RRSIG[[:space:]]+A" "${SIGNED_ZONES}/example.com" | wc -l) && echo " ${RRSIG_A_COUNT}" &&
 echo "Checking RRSIG A count ${RRSIG_A_COUNT} == 1.." && [ "${RRSIG_A_COUNT}" -eq "1" ] &&
-echo -n "Capturing ZSK count.." && ZSK_COUNT=$(grep -E -- "^example.com.\s+[0-9]+\s+IN\s+DNSKEY\s+256" "${SIGNED_ZONES}/example.com" | wc -l) && echo " ${ZSK_COUNT}" &&
+echo -n "Capturing ZSK count.." && ZSK_COUNT=$(grep -E -- "^example.com.[[:space:]]+[0-9]+[[:space:]]+IN[[:space:]]+DNSKEY[[:space:]]+256" "${SIGNED_ZONES}/example.com" | wc -l) && echo " ${ZSK_COUNT}" &&
 echo "Checking ZSK count ${ZSK_COUNT} == 1.." && [ "${ZSK_COUNT}" -eq "1" ] &&
-echo -n "Capturing ZSK KEYTAG (id).." && DNSKEYID=$(grep -E -- "^example.com.\s+[0-9]+\s+IN\s+DNSKEY\s+256" "${SIGNED_ZONES}/example.com" | grep -Eo 'id = [0-9]+ \(zsk\)' | grep -Eo '[0-9]+') && echo " ${DNSKEYID}" &&
-echo -n "Capturing RRSIG A KEYTAG.." && KEYTAG=$(grep -E -- "^example.com.\s+[0-9]+\s+IN\s+RRSIG\s+A" "${SIGNED_ZONES}/example.com" | awk '{print $11}') && echo " ${KEYTAG}" &&
+echo -n "Capturing ZSK KEYTAG (id).." && DNSKEYID=$(grep -E -- "^example.com.[[:space:]]+[0-9]+[[:space:]]+IN[[:space:]]+DNSKEY[[:space:]]+256" "${SIGNED_ZONES}/example.com" | grep -Eo 'id = [0-9]+ \(zsk\)' | grep -Eo '[0-9]+') && echo " ${DNSKEYID}" &&
+echo -n "Capturing RRSIG A KEYTAG.." && KEYTAG=$(grep -E -- "^example.com.[[:space:]]+[0-9]+[[:space:]]+IN[[:space:]]+RRSIG[[:space:]]+A" "${SIGNED_ZONES}/example.com" | awk '{print $11}') && echo " ${KEYTAG}" &&
 echo -n "Capturing DNSKEY ${DNSKEYID} status.." && ZSKDNSKEYSTATUS=$(ods-enforcer key list --all --verbose | awk '{print $2,$3,$10}' | grep ${DNSKEYID}) && echo " ${ZSKDNSKEYSTATUS}" &&
 echo -n "Capturing DNSKEY ${KEYTAG} status.." && ZSKKEYTAGSTATUS=$(ods-enforcer key list --all --verbose | awk '{print $2,$3,$10}' | grep ${KEYTAG}) && echo " ${ZSKKEYTAGSTATUS}" &&
 echo "Checking ZSK ${DNSKEYID} is active.." && [ "${ZSKDNSKEYSTATUS}" == "ZSK active ${DNSKEYID}" ] &&
