@@ -541,7 +541,7 @@ rrsigkeymatching(signconf_type* signconf, int nrrsigs, rrsig_type** rrsigs, stru
     struct rrsigkeymatching* matches = malloc(sizeof(struct rrsigkeymatching) * (signconf->keys->count + nrrsigs));
     for(int i=0; i<nrrsigs; i++) {
         matches[nmatches].signature = rrsigs[i];
-            ++nmatches;
+        ++nmatches;
     }
     for(int i=0; i<signconf->keys->count; i++) {
         for(j=0; j<nmatches; j++) {
@@ -606,21 +606,23 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
     for(nrrsigs=0; (signature = collection_iterator(rrset->rrsigs)); nrrsigs++)
         ;
     rrsig_type** rrsigs = malloc(sizeof(rrsig_type*) * nrrsigs);
-    for(i=0; (signature = collection_iterator(rrset->rrsigs)); nrrsigs++)
+    for(i=0; (signature = collection_iterator(rrset->rrsigs)); i++)
         rrsigs[i] = signature;
     struct rrsigkeymatching* matchedsignatures;
     int nmatchedsignatures;
     rrsigkeymatching(zone->signconf, nrrsigs, rrsigs, &matchedsignatures, &nmatchedsignatures);
     for(i=0; i<nrrsigs; i++) {
         if(matchedsignatures[i].signature == NULL) {
-            if (zone->db->is_initialized) {
-                pthread_mutex_lock(&zone->ixfr->ixfr_lock);
-                ixfr_del_rr(zone->ixfr, rrsigs[i]->rr);
-                pthread_mutex_unlock(&zone->ixfr->ixfr_lock);
-            }
-            while((signature = collection_iterator(rrset->rrsigs))) {
-                if(signature == rrsigs[i])
-                    collection_del_cursor(rrset->rrsigs);
+            if (rrsigs[i]) {
+                if (zone->db->is_initialized) {
+                    pthread_mutex_lock(&zone->ixfr->ixfr_lock);
+                    ixfr_del_rr(zone->ixfr, rrsigs[i]->rr);
+                    pthread_mutex_unlock(&zone->ixfr->ixfr_lock);
+                }
+                while((signature = collection_iterator(rrset->rrsigs))) {
+                    if(signature == rrsigs[i])
+                        collection_del_cursor(rrset->rrsigs);
+                }
             }
         } else
            ++reusedsigs;
@@ -734,7 +736,7 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
         /* Sign the RRset with this key */
         ods_log_deeebug("[%s] signing RRset[%i] with key %s", rrset_str,
             rrset->rrtype, zone->signconf->keys->keys[i].locator);
-        rrsig = lhsm_sign(ctx, rr_list_clone, &zone->signconf->keys->keys[i],
+        rrsig = lhsm_sign(ctx, rr_list_clone, matchedsignatures[i].key,
             zone->apex, inception, expiration);
         if (!rrsig) {
             ods_log_crit("[%s] unable to sign RRset[%i]: lhsm_sign() failed",
@@ -744,9 +746,8 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
             return ODS_STATUS_HSM_ERR;
         }
         /* Add signature */
-        locator = strdup(zone->signconf->keys->keys[i].locator);
-        rrset_add_rrsig(rrset, rrsig, locator,
-            zone->signconf->keys->keys[i].flags);
+        locator = strdup(matchedsignatures[i].key->locator);
+        rrset_add_rrsig(rrset, rrsig, locator, matchedsignatures[i].key->flags);
         newsigs++;
         /* ixfr +RRSIG */
         if (zone->db->is_initialized) {
