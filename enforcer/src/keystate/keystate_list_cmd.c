@@ -224,8 +224,8 @@ usage(int sockfd)
         "	[--debug]				aka -d\n"
         "	[--parsable]				aka -p\n"
         "	[--zone]				aka -z  \n"
-        "	[--type]				aka -t  \n"
-        "	[--state]				aka -e  \n"
+        "	[--keytype]				aka -t  \n"
+        "	[--keystate]				aka -e  \n"
         "	[--all]                                 aka -a  \n"
     );
 }
