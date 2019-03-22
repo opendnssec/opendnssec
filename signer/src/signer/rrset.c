@@ -585,7 +585,6 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
     ldns_rr_type dstatus = LDNS_RR_TYPE_FIRST;
     ldns_rr_type delegpt = LDNS_RR_TYPE_FIRST;
     uint8_t algorithm = 0;
-    int sigcount, keycount;
 
     ods_log_assert(ctx);
     ods_log_assert(rrset);
@@ -607,8 +606,10 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
     for(nrrsigs=0; (signature = collection_iterator(rrset->rrsigs)); nrrsigs++)
         ;
     rrsig_type** rrsigs = malloc(sizeof(rrsig_type*) * nrrsigs);
-    for(i=0; (signature = collection_iterator(rrset->rrsigs)); i++)
+    for(i=0; (signature = collection_iterator(rrset->rrsigs)); i++) {
+        assert(signature);
         rrsigs[i] = signature;
+    }
     struct rrsigkeymatching* matchedsignatures;
     int nmatchedsignatures;
     rrsigkeymatching(zone->signconf, nrrsigs, rrsigs, &matchedsignatures, &nmatchedsignatures);
@@ -680,9 +681,11 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
         if (matchedsignatures[i].key && !matchedsignatures[i].key->zsk && rrset->rrtype != LDNS_RR_TYPE_DNSKEY) {
             /* If not ZSK don't sign other RRsets */
             matchedsignatures[i].key = NULL;
+            matchedsignatures[i].signature = NULL;
         } else if (matchedsignatures[i].key && !matchedsignatures[i].key->ksk && rrset->rrtype == LDNS_RR_TYPE_DNSKEY) {
             /* If not KSK don't sign DNSKEY RRset */
             matchedsignatures[i].key = NULL;
+            matchedsignatures[i].signature = NULL;
         } else if (matchedsignatures[i].key && matchedsignatures[i].key->ksk && matchedsignatures[i].key->locator == NULL) {
             /* If key has no locator, and should be pre-signed dnskey RR, skip */
             matchedsignatures[i].key = NULL;
@@ -694,6 +697,8 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
             matchedsignatures[i].signature = NULL;
         } else if (matchedsignatures[i].signature && inception > (uint32_t) signtime) {
             /* Inception has not yet passed */
+            matchedsignatures[i].signature = NULL;
+        } else if (matchedsignatures[i].signature && !matchedsignatures[i].key) {
             matchedsignatures[i].signature = NULL;
         } else if (dstatus != LDNS_RR_TYPE_SOA || (delegpt != LDNS_RR_TYPE_SOA && rrset->rrtype != LDNS_RR_TYPE_DS)) {
             /* Skip delegation, glue and occluded RRsets */
@@ -721,17 +726,17 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
             }
             if (j < nmatchedsignatures) {
                 matchedsignatures[i].key = NULL;
+                matchedsignatures[i].signature = NULL;
             }
         }
     }
-    for (int i = 0; i < nmatchedsignatures; i++) {
-        
-    }
 
-    /* For each of the existing signatures, if they are no longer present in the output, delete them */
+    /* For each of the existing signatures, if they are no longer present in the output, delete them
+     * The rrsigs array is guaranteed to line up with the mathcedsignatures array
+     */
     for(i=0; i<nrrsigs; i++) {
         if(matchedsignatures[i].signature == NULL) {
-            if (rrsigs[i]) {
+            if (rrsigs[i] != NULL) {
                 if (zone->db->is_initialized) {
                     pthread_mutex_lock(&zone->ixfr->ixfr_lock);
                     ixfr_del_rr(zone->ixfr, rrsigs[i]->rr);
@@ -753,7 +758,7 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
     /* Calculate signature validity for new signatures */
     rrset_sigvalid_period(zone->signconf, rrset->rrtype, signtime, &inception, &expiration);
     /* for each missing signature (no signature, but with key in the tuplie list) produce a signature */
-    for (int i = 0; i < nmatchedsignatures; i++)
+    for (int i = 0; i < nmatchedsignatures; i++) {
         if (!matchedsignatures[i].signature && matchedsignatures[i].key) {
             /* Sign the RRset with this key */
             ods_log_deeebug("[%s] signing RRset[%i] with key %s", rrset_str,
@@ -778,6 +783,7 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
                 pthread_mutex_unlock(&zone->ixfr->ixfr_lock);
             }
         }
+    }
     /* Add signatures for DNSKEY if have been configured to be added explicitjy */
     if(rrset->rrtype == LDNS_RR_TYPE_DNSKEY && zone->signconf->dnskey_signature) {
         for(i=0; zone->signconf->dnskey_signature[i]; i++) {
