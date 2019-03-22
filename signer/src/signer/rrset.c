@@ -541,6 +541,7 @@ rrsigkeymatching(signconf_type* signconf, int nrrsigs, rrsig_type** rrsigs, stru
     struct rrsigkeymatching* matches = malloc(sizeof(struct rrsigkeymatching) * (signconf->keys->count + nrrsigs));
     for(int i=0; i<nrrsigs; i++) {
         matches[nmatches].signature = rrsigs[i];
+        matches[nmatches].key = NULL;
         ++nmatches;
     }
     for(int i=0; i<signconf->keys->count; i++) {
@@ -674,26 +675,29 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
         ldns_rr_set_ttl(ldns_rr_list_rr(rr_list_clone, i), min_ttl);
     }
 
+    assert(zone->signconf);
     /* Calculate signature validity */
     rrset_sigvalid_period(zone->signconf, rrset->rrtype, signtime,
          &inception, &expiration);
-    uint32_t refresh;
+    uint32_t refresh = 0;
     if (zone->signconf && zone->signconf->sig_refresh_interval) {
         refresh = (uint32_t) (signtime + duration2time(zone->signconf->sig_refresh_interval));
     }
     /* Walk keys */
     for (int i = 0; i < nmatchedsignatures; i++) {
         if (matchedsignatures[i].signature) {
+            assert(matchedsignatures[i].signature->rr);
             expiration = ldns_rdf2native_int32(ldns_rr_rrsig_expiration(matchedsignatures[i].signature->rr));
             inception = ldns_rdf2native_int32(ldns_rr_rrsig_inception(matchedsignatures[i].signature->rr));
         }
+        assert(rrset);
         if (matchedsignatures[i].key && !matchedsignatures[i].key->zsk && rrset->rrtype != LDNS_RR_TYPE_DNSKEY) {
             /* If not ZSK don't sign other RRsets */
             matchedsignatures[i].key = NULL;
-        } else if (matchedsignatures->key && !matchedsignatures[i].key->ksk && rrset->rrtype == LDNS_RR_TYPE_DNSKEY) {
+        } else if (matchedsignatures[i].key && !matchedsignatures[i].key->ksk && rrset->rrtype == LDNS_RR_TYPE_DNSKEY) {
             /* If not KSK don't sign DNSKEY RRset */
             matchedsignatures[i].key = NULL;
-        } else if (matchedsignatures->key && matchedsignatures[i].key->ksk && matchedsignatures[i].key->locator == NULL) {
+        } else if (matchedsignatures[i].key && matchedsignatures[i].key->ksk && matchedsignatures[i].key->locator == NULL) {
             /* If key has no locator, and should be pre-signed dnskey RR, skip */
             matchedsignatures[i].key = NULL;
         } else if (refresh <= (uint32_t) signtime) {
