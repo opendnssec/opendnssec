@@ -27,6 +27,7 @@
  */
 #include <getopt.h>
 #include <math.h>
+#include <limits.h>
 
 #include "daemon/engine.h"
 #include "cmdhandler.h"
@@ -95,7 +96,7 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
     time_t duration_time = 0;
     duration_type* duration = NULL;
     int all = 0;
-    int count = 0;
+    long count = 0;
     db_connection_t* dbconn = getconnectioncontext(context);
     engine_type* engine = getglobalcontext(context);
 
@@ -132,9 +133,11 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
                 if (errno) {
                     client_printf_err(sockfd, "Unable to parse number.\n");
                     return 1;
-                } else if (!count) {
-                    /* abort if count == 0, otherwise we would fall back to duration */
-                    client_printf_err(sockfd, "count must be > 1.\n");
+                } else if (count < 1) {
+                    client_printf_err(sockfd, "count must be >= 1.\n");
+                    return 1;
+                } else if (count > INT_MAX) {
+                    client_printf_err(sockfd, "count must be <= %d.\n", INT_MAX);
                     return 1;
                 }
                 break;
@@ -166,7 +169,7 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
     if (!db) return 1;
 
     for (size_t pk = 0; pk < db->policykeys->n; pk++) {
-        int nr_keys = count;
+        int nr_keys = (int)count;
         struct dbw_policykey *pkey = (struct dbw_policykey *)db->policykeys->set[pk];
         if (policy_name && strcasecmp(policy_name, pkey->policy->name)) continue;
         if (!duration_time && !count) {
