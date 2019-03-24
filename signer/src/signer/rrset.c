@@ -536,7 +536,6 @@ rrsigkeyismatching(rrsig_type* rrsig, key_type* key)
 static void 
 rrsigkeymatching(signconf_type* signconf, int nrrsigs, rrsig_type** rrsigs, struct rrsigkeymatching** rrsigkeymatchingptr, int* nrrsigkeymatchingptr)
 {
-    int i, j;
     int nmatches = 0;
     struct rrsigkeymatching* matches = malloc(sizeof(struct rrsigkeymatching) * (signconf->keys->count + nrrsigs));
     for(int i=0; i<nrrsigs; i++) {
@@ -544,16 +543,17 @@ rrsigkeymatching(signconf_type* signconf, int nrrsigs, rrsig_type** rrsigs, stru
         matches[nmatches].key = NULL;
         ++nmatches;
     }
-    for(int i=0; i<signconf->keys->count; i++) {
-        for(j=0; j<nmatches; j++) {
-            if(matches[j].signature && rrsigkeyismatching(matches[j].signature, &signconf->keys->keys[i])) {
-                matches[j].key = &signconf->keys->keys[j];
+    for(int keyidx=0; keyidx<signconf->keys->count; keyidx++) {
+        int matchidx;
+        for(matchidx=0; matchidx<nmatches; matchidx++) {
+            if(matches[matchidx].signature && rrsigkeyismatching(matches[matchidx].signature, &signconf->keys->keys[keyidx])) {
+                matches[matchidx].key = &signconf->keys->keys[keyidx];
                 break;
             }
         }
-        if(j==nmatches) {
+        if(matchidx==nmatches) {
             matches[nmatches].signature = NULL;
-            matches[nmatches].key = &signconf->keys->keys[i];
+            matches[nmatches].key = &signconf->keys->keys[keyidx];
             ++nmatches;
         }
     }
@@ -677,7 +677,6 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
             expiration = ldns_rdf2native_int32(ldns_rr_rrsig_expiration(matchedsignatures[i].signature->rr));
             inception = ldns_rdf2native_int32(ldns_rr_rrsig_inception(matchedsignatures[i].signature->rr));
         }
-        assert(rrset);
         if (matchedsignatures[i].key && !matchedsignatures[i].key->zsk && rrset->rrtype != LDNS_RR_TYPE_DNSKEY) {
             /* If not ZSK don't sign other RRsets */
             matchedsignatures[i].key = NULL;
@@ -744,7 +743,6 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
                 }
                 while((signature = collection_iterator(rrset->rrsigs))) {
                     if(signature == rrsigs[i]) {
-                        ods_log_error("BERRY DEL\n");
                         collection_del_cursor(rrset->rrsigs);
                     }
                 }
