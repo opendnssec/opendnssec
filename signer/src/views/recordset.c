@@ -1108,28 +1108,30 @@ names_recordlookupone(recordset_type record, ldns_rr_type recordtype, ldns_rr* t
 }
 
 void
-names_recordlookupall(recordset_type record, ldns_rr_type rrtype, ldns_rr* template, ldns_rr_list** rrs, ldns_rr_list** rrsigs)
+names_recordlookupall(recordset_type record, ldns_rr_type rrtype, ldns_rr* template, ldns_rr_list** rrs, struct signature_struct*** rrsigs)
 {
     int i, j;
+    int nrrsigs = 0;
     assert(record);
     if(rrs)
         *rrs = NULL;
     if(rrsigs)
         *rrsigs = NULL;
     if(rrtype==LDNS_RR_TYPE_RRSIG) {
-        if(rrsigs)
-            *rrsigs = ldns_rr_list_new();
         for(i=0; i<record->nitemsets; i++) {
             if(record->itemsets[i].signatures) {
                 for(j=0; j<record->itemsets[i].signatures->nsigs; j++) {
-                    ldns_rr_list_push_rr(*rrsigs, record->itemsets[i].signatures->sigs[j].rr);
+                    ++nrrsigs;
+                    *rrsigs = realloc(*rrsigs, sizeof(struct signature_struct*) * nrrsigs);
+                    (*rrsigs)[nrrsigs-1] = &record->itemsets[i].signatures->sigs[j];
                 }
             }
         }
         if(record->spansignatures)
             for(j=0; j<record->spansignatures->nsigs; j++) {
-                if(rrsigs)
-                    ldns_rr_list_push_rr(*rrsigs, record->spansignatures->sigs[j].rr);
+                ++nrrsigs;
+                *rrsigs = realloc(*rrsigs, sizeof(struct signature_struct*) * nrrsigs);
+                (*rrsigs)[nrrsigs-1] = &record->spansignatures->sigs[j];
             }
   } else {
     for(i=0; i<record->nitemsets; i++) {
@@ -1139,8 +1141,6 @@ names_recordlookupall(recordset_type record, ldns_rr_type rrtype, ldns_rr* templ
     }
     if (i<record->nitemsets) {
         *rrs = ldns_rr_list_new();
-        if(rrsigs)
-            *rrsigs = ldns_rr_list_new();
         if(template == NULL) {
             if(record->itemsets[i].nitems > 0) {
                 if(rrs) {
@@ -1151,7 +1151,9 @@ names_recordlookupall(recordset_type record, ldns_rr_type rrtype, ldns_rr* templ
                 }
                 if(rrsigs && record->itemsets[i].signatures) {
                     for(j=0; j<record->itemsets[i].signatures->nsigs; j++) {
-                        ldns_rr_list_push_rr(*rrsigs, record->itemsets[i].signatures->sigs[j].rr);
+                        ++nrrsigs;
+                        *rrsigs = realloc(*rrsigs, sizeof(struct signature_struct*) * nrrsigs);
+                        (*rrsigs)[nrrsigs-1] = &record->itemsets[i].signatures->sigs[j];
                     }
                 }
             }
@@ -1170,18 +1172,22 @@ names_recordlookupall(recordset_type record, ldns_rr_type rrtype, ldns_rr* templ
         if(rrtype == LDNS_RR_TYPE_NSEC || rrtype == LDNS_RR_TYPE_NSEC3) {
             if(rrs)
                 *rrs = ldns_rr_list_new();
-            if(rrsigs)
-                *rrsigs = ldns_rr_list_new();
             if(rrs) {
                 assert(record->spanhashrr);
                 ldns_rr_list_push_rr(*rrs, record->spanhashrr);
             }
             if(record->spansignatures)
                 for(j=0; j<record->spansignatures->nsigs; j++) {
-                    ldns_rr_list_push_rr(*rrsigs, record->spansignatures->sigs[j].rr);
-                    // FIXME should push whole structure
+                    ++nrrsigs;
+                    *rrsigs = realloc(*rrsigs, sizeof(struct signature_struct*) * nrrsigs);
+                    (*rrsigs)[nrrsigs-1] = &record->spansignatures->sigs[j];
                 }
         }
     }
   }
+    if(rrsigs) {
+        ++nrrsigs;
+        *rrsigs = realloc(*rrsigs, sizeof(struct signature_struct*) * nrrsigs);
+        (*rrsigs)[nrrsigs-1] = NULL;
+    }
 }

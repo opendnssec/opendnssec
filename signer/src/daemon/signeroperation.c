@@ -139,109 +139,6 @@ domain_is_occluded(names_view_type view, recordset_type record)
     return LDNS_RR_TYPE_SOA;
 }
 
-
-
-
-#ifdef NOTDEFINED
-static uint32_t
-rrset_recycle(signconf_type* signconf, recordset_type domain, ldns_rr_type rrtype, ldns_rr_list* rrset, ldns_rr_list* rrsigs, time_t signtime, ldns_rr_type dstatus, ldns_rr_type delegpt)
-{
-    uint32_t refresh;
-    uint32_t expiration;
-    uint32_t inception;
-    uint32_t reusedsigs;
-    unsigned drop_sig;
-    key_type* key = NULL;
-    ldns_rr* rrsig;
-    names_iterator iter;
-    ldns_rr_list* newrrsigs;
-    newrrsigs = ldns_rr_list_new();
-
-    /* Calculate the Refresh Window = Signing time + Refresh */
-    if (signconf && signconf->sig_refresh_interval) {
-        refresh = (uint32_t) (signtime + duration2time(signconf->sig_refresh_interval));
-    }
-    /* Check every signature if it matches the recycling logic. */
-    while((rrsig = ldns_rr_list_pop_rr(rrsigs))) {
-        drop_sig = 0;
-        /* 0. Skip delegation, glue and occluded RRsets */
-        if (dstatus != LDNS_RR_TYPE_SOA || (delegpt != LDNS_RR_TYPE_SOA && rrtype != LDNS_RR_TYPE_DS)) {
-            drop_sig = 1;
-        } else {
-            ods_log_assert(dstatus == LDNS_RR_TYPE_SOA || (delegpt == LDNS_RR_TYPE_SOA || rrtype == LDNS_RR_TYPE_DS));
-        }
-        /* 1. If the RRset has changed, drop all signatures */
-        /* 2. If Refresh is disabled, drop all signatures */
-        if(!drop_sig) {
-            if (refresh <= (uint32_t) signtime) {
-                drop_sig = 1;
-            }
-        }
-        /* 3. Expiration - Refresh has passed */
-        if(!drop_sig) {
-            expiration = ldns_rdf2native_int32(ldns_rr_rrsig_expiration(rrsig));
-            if (expiration < refresh) {
-                drop_sig = 1;
-            }
-        }
-        /* 4. Inception has not yet passed */
-        if(!drop_sig) {
-            inception = ldns_rdf2native_int32(ldns_rr_rrsig_inception(rrsig));
-            if (inception > (uint32_t) signtime) {
-                drop_sig = 1;
-            }
-        }
-        /* 5. Corresponding key is dead (key is locator+flags) */
-        if(!drop_sig) {
-            key = keylist_lookup_by_locator(signconf->keys, rrsig->keylocator);
-            if (!key || key->flags != rrsig->keyflags) {
-                drop_sig = 1;
-            }
-        }
-
-        if (drop_sig) {
-            // FIXME clear expiry to force resign
-        } else {
-            /* All rules ok, recycle signature */
-            reusedsigs += 1;
-        }
-    }
-    ldns_rr_list_push_rr_list(rrsigs, newrrsigs);
-    ldns_rr_list_free(newrrsigs);
-    return reusedsigs;
-}
-
-static int
-rrset_siglocator(struct itemset* rrset, const char* locator)
-{
-    int match = 0;
-    for(int i=0; i<rrset->nsignatures; i++) {
-        if (!strcmp(locator, rrset->signatures[i].keylocator)) {
-            match += 1;
-        }
-    }
-    return match;
-}
-
-
-
-struct key_struct {
-    ldns_rr* dnskey;
-    hsm_sign_params_t* params;
-    const char* locator;
-    const char* resourcerecord;
-    uint8_t algorithm;
-    uint32_t flags;
-    int publish;
-    int ksk;
-    int zsk;
-};
-
-#endif
-
-
-
-
 struct rrsigkeymatching {
     struct signature_struct* signature;
     key_type* key;
@@ -262,7 +159,7 @@ rrsigkeymatching(signconf_type* signconf, struct signature_struct** rrsigs, stru
 {
     int nmatches = 0;
     int nrrsigs = 0;
-    for(i=0; rrsigs[i]; i++)
+    for(int i=0; rrsigs[i]; i++)
         ++nrrsigs;
     struct rrsigkeymatching* matches = malloc(sizeof(struct rrsigkeymatching) * (signconf->keys->count + nrrsigs));
     for(int i=0; i<nrrsigs; i++) {
@@ -287,7 +184,6 @@ rrsigkeymatching(signconf_type* signconf, struct signature_struct** rrsigs, stru
     *rrsigkeymatchingptr = matches;
     *nrrsigkeymatchingptr = nmatches;
 }
-
 
 /**
  * Sign RRset.
@@ -439,7 +335,6 @@ rrset_sign(signconf_type* signconf, names_view_type view, recordset_type record,
                 /* Add signature */
                 names_recordaddsignature(record, rrtype, rrsig, NULL, 0);
                 newsigs++;
-                /* ixfr +RRSIG */
             }
             if(apex)
                 ldns_rdf_free(apex);
