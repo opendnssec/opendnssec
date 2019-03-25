@@ -358,9 +358,11 @@ rrset_sign(signconf_type* signconf, names_view_type view, recordset_type record,
         if (matchedsignatures[i].key && !matchedsignatures[i].key->zsk && rrtype != LDNS_RR_TYPE_DNSKEY) {
             /* If not ZSK don't sign other RRsets */
             matchedsignatures[i].key = NULL;
+            matchedsignatures[i].signature = NULL;
         } else if (matchedsignatures[i].key && !matchedsignatures[i].key->ksk && rrtype == LDNS_RR_TYPE_DNSKEY) {
             /* If not KSK don't sign DNSKEY RRset */
             matchedsignatures[i].key = NULL;
+            matchedsignatures[i].signature = NULL;
         } else if (matchedsignatures[i].key && matchedsignatures[i].key->ksk && matchedsignatures[i].key->locator == NULL) {
             /* If key has no locator, and should be pre-signed dnskey RR, skip */
             matchedsignatures[i].key = NULL;
@@ -372,6 +374,8 @@ rrset_sign(signconf_type* signconf, names_view_type view, recordset_type record,
             matchedsignatures[i].signature = NULL;
         } else if (matchedsignatures[i].signature && inception > (uint32_t) signtime) {
             /* Inception has not yet passed */
+            matchedsignatures[i].signature = NULL;
+        } else if (matchedsignatures[i].signature && !matchedsignatures[i].key) {
             matchedsignatures[i].signature = NULL;
         } else if (dstatus != LDNS_RR_TYPE_SOA || (delegpt != LDNS_RR_TYPE_SOA && rrtype != LDNS_RR_TYPE_DS)) {
             /* Skip delegation, glue and occluded RRsets */
@@ -397,13 +401,15 @@ rrset_sign(signconf_type* signconf, names_view_type view, recordset_type record,
                     }
                 }
             }
-            if(j<nmatchedsignatures) {
+            if (j < nmatchedsignatures) {
                 matchedsignatures[i].key = NULL;
+                matchedsignatures[i].signature = NULL;
             }
         }
     }
     /* Calculate signature validity for new signatures */
     rrset_sigvalid_period(signconf, rrtype, signtime, &inception, &expiration);
+    /* for each missing signature (no signature, but with key in the tuplie list) produce a signature */
     for (int i = 0; i < nmatchedsignatures; i++) {
         if (!matchedsignatures[i].signature && matchedsignatures[i].key) {
             /* Sign the RRset with this key */
