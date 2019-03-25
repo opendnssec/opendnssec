@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2016 NLNet Labs. All rights reserved.
+ * Copyright (c) 2016-2018 NLNet Labs.
+ * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -21,7 +22,6 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
 #ifndef _GNU_SOURCE
@@ -36,6 +36,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <stdint.h>
 #include <unistd.h>
 #include <signal.h>
 #include <string.h>
@@ -232,8 +233,10 @@ janitor_thread_dispose(janitor_thread_t info)
                     finishedthreadlist = info->next;
                 }
             }
-            info->next->prev = info->prev;
-            info->prev->next = info->next;
+            if(info->next && info->next->prev == info)
+                info->next->prev = info->prev;
+            if(info->prev && info->prev->next == info)
+                info->prev->next = info->next;
             info->next = info->prev = NULL;
         }
         pthread_mutex_unlock(&threadlock);
@@ -626,6 +629,45 @@ janitor_backtrace(void)
 #endif
 }
 
+static int
+callbackstring(void* data, uintptr_t pc, const char *filename, int lineno, const char *function)
+{
+    int siz, len;
+    char** ptr = data;
+    if (filename != NULL || lineno != 0 || function == NULL) {
+        siz = snprintf(NULL, 0, "  %s:%d in %s()\n", filename, lineno, function);
+        if (*ptr != NULL) {
+            len = strlen(*ptr);
+            siz += len + 1;
+            *ptr = realloc(*ptr, siz);
+        } else {
+            len = 0;
+            siz += 1;
+            *ptr = malloc(siz);
+        }
+        snprintf(&(*ptr)[len], siz-len, "  %s:%d in %s()\n", filename, lineno, function);
+    }
+    if (function && !strcmp(function, "main"))
+        return 1;
+    else
+        return 0;
+}
+
+char*
+janitor_backtrace_string(void)
+{
+    char* string = NULL;
+#ifdef HAVE_BACKTRACE_FULL
+    if(frames == NULL) {
+        frames = backtrace_create_state(NULL, 0, (backtrace_error_callback) errorhandler, NULL);
+    }
+    pthread_mutex_lock(&frameslock);
+    backtrace_full(frames, 1, (backtrace_full_callback) callbackstring, (backtrace_error_callback) errorhandler, &string);
+    pthread_mutex_unlock(&frameslock);
+#endif
+    return string;
+}
+
 void
 janitor_backtrace_all(void)
 {
@@ -680,4 +722,71 @@ janitor_disablecoredump(void)
     return 0;
 fail:
     return -1;
+}
+
+struct janitor_pthread_barrier_struct {
+    pthread_mutex_t mutex;
+    pthread_cond_t cond;
+    unsigned int waiting;
+    unsigned int count;
+};
+
+int
+janitor_pthread_barrier_init(pthread_barrier_t* barrier, const pthread_barrierattr_t* attr, unsigned int count)
+{
+    struct janitor_pthread_barrier_struct* b;
+    b = malloc(sizeof(struct janitor_pthread_barrier_struct));
+    if(count == 0 || attr != NULL) {
+        errno = EINVAL;
+        return -1;
+    }
+    if(pthread_mutex_init(&b->mutex, 0) < 0) {
+        free(b);
+        return -1;
+    }
+    if(pthread_cond_init(&b->cond, 0) < 0) {
+        pthread_mutex_destroy(&b->mutex);
+        free(b);
+        return -1;
+    }
+    b->count = count;
+    b->waiting = 0;
+    *(void**)barrier = b;
+    return 0;
+}
+
+int
+janitor_pthread_barrier_destroy(pthread_barrier_t* barrier)
+{
+    struct janitor_pthread_barrier_struct* b = *(void**)barrier;
+    pthread_mutex_lock(&b->mutex);
+    if(b->count > 0) {
+        pthread_mutex_unlock(&b->mutex);
+        errno = EBUSY;
+        return -1;
+    }
+    *(void**)barrier = NULL;
+    pthread_mutex_unlock(&b->mutex);
+    pthread_cond_destroy(&b->cond);
+    pthread_mutex_destroy(&b->mutex);
+    free(b);
+    return 0;
+}
+
+int
+janitor_pthread_barrier_wait(pthread_barrier_t* barrier)
+{
+    struct janitor_pthread_barrier_struct* b = *(void**)barrier;
+    pthread_mutex_lock(&b->mutex);
+    b->waiting += 1;
+    if(b->waiting == b->count) {
+        b->count = 0;
+        pthread_cond_broadcast(&b->cond);
+        pthread_mutex_unlock(&b->mutex);
+        return PTHREAD_BARRIER_SERIAL_THREAD;
+    } else {
+        pthread_cond_wait(&b->cond, &b->mutex);
+        pthread_mutex_unlock(&b->mutex);
+        return 0;
+    }
 }

@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2016 NLNet Labs. All rights reserved.
+ * Copyright (c) 2016-2018 NLNet Labs.
+ * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -21,7 +22,6 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
 #ifndef DEBUG_H
@@ -64,8 +64,28 @@ extern int janitor_disablecoredump(void);
 extern int janitor_trapsignals(char* argv0);
 
 extern void janitor_backtrace(void);
+extern char* janitor_backtrace_string(void);
 extern void janitor_backtrace_all(void);
 
 extern void janitor_thread_signal(janitor_thread_t thread);
+
+/* in case of missing pthread barrier calls */
+#ifndef HAVE_PTHREAD_BARRIER
+# ifdef pthread_barrier_init
+#  undef pthread_barrier_init
+# endif
+# define pthread_barrier_init janitor_pthread_barrier_init
+# ifdef pthread_barrier_destroy
+#  undef pthread_barrier_destroy
+# endif
+#  define pthread_barrier_destroy janitor_pthread_barrier_destroy
+# ifdef pthread_barrier_wait
+#  undef pthread_barrier_wait
+# endif
+# define pthread_barrier_wait janitor_pthread_barrier_wait
+# ifndef PTHREAD_BARRIER_SERIAL_THREAD
+#  define PTHREAD_BARRIER_SERIAL_THREAD 1
+# endif
+#endif
 
 #endif
