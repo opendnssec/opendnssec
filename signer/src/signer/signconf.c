@@ -270,7 +270,7 @@ signconf_check(signconf_type* sc)
             sc->nsec_type);
         status = ODS_STATUS_CFG_ERR;
     }
-    if ((!sc->keys || sc->keys->count == 0) && !sc->passthrough) {
+    if ((!sc->keys || sc->keys->count == 0) && sc->passthrough!=1) {
         ods_log_error("[%s] check failed: no keys found", sc_str);
         status = ODS_STATUS_CFG_ERR;
     }
@@ -372,7 +372,7 @@ signconf_log(signconf_type* sc, const char* name)
             name?name:"(null)",
             resign?resign:"(null)",
             refresh?refresh:"(null)",
-            sc->passthrough?"PASSTHROUGH ":"",
+            sc->passthrough==1?"PASSTHROUGH ":"",
             validity?validity:"(null)",
             denial?denial:"(null)",
             keyset?keyset:"(null)",

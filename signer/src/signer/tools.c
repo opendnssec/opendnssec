@@ -108,7 +108,7 @@ tools_input(zone_type* zone)
             ods_status2str(status));
     } else {
     /* Denial of Existence Rollover? */
-    if (!zone->signconf->passthrough)
+    if (zone->signconf->passthrough != 1)
         status = zone_publish_nsec3param(zone, view);
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] unable to read zone %s: failed to "

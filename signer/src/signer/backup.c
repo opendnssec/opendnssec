@@ -751,7 +751,7 @@ zone_recover(zone_type* zone)
             goto recover_error2;
         }
         /* publish nsec3param */
-        if (!zone->signconf->passthrough)
+        if (zone->signconf->passthrough != 1)
             status = zone_publish_nsec3param(zone, view);
         if (status != ODS_STATUS_OK) {
             ods_log_error("[%s] corrupted backup file zone %s: unable to "

@@ -126,10 +126,10 @@ adapi_process_rr(zone_type* zone, names_view_type view, ldns_rr* rr, int add, in
         } else if (ldns_rr_get_type(rr) == LDNS_RR_TYPE_DNSKEY) {
             adapi_process_dnskey(zone, rr);
         } else if (util_is_dnssec_rr(rr) && !backup) {
-            ods_log_warning("[%s] zone %s contains dnssec data (type=%u), "
-                "skipping", adapi_str, zone->name,
-                (unsigned) ldns_rr_get_type(rr));
-            return ODS_STATUS_UNCHANGED;
+            if (!zone->signconf->passthrough) {
+                ods_log_warning("[%s] zone %s contains dnssec data (type=%u), skipping", adapi_str, zone->name, (unsigned) ldns_rr_get_type(rr));
+                return ODS_STATUS_UNCHANGED;
+            }
         } else if (zone->signconf->max_zone_ttl) {
             /* Convert MaxZoneTTL */
             tmp = (uint32_t) duration2time(zone->signconf->max_zone_ttl);

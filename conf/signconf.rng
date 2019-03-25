@@ -42,7 +42,12 @@
         <optional>
           <!-- Do not touch contents of zonefile. -->
           <element name="Passthrough">
-            <empty/>
+            <choice>
+              <empty/>
+              <value/>
+              <value>asis</value>
+              <value>signatures</value>
+            </choice>
           </element>
         </optional>
         <!-- this section is taken directly from the corresponding KASP policy -->

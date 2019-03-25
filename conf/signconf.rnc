@@ -33,7 +33,7 @@ zone = element Zone {
 		attribute name { xsd:string }
 
 		# Do not touch contents of zonefile.
-		& element Passthrough { empty }?
+		& element Passthrough { empty | "" | "asis" | "signatures" }?
 
 		# this section is taken directly from the corresponding KASP policy
 		& element Signatures {
