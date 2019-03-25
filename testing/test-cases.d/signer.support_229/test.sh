@@ -28,6 +28,74 @@ ods_reset_env &&
 # start both enforcer and signer
 ods_start_ods-control &&
 
+capture_dnskey_ids() {
+    ZONE_NAME="$1"
+    FLAGS_VALUE_TO_MATCH="$2"
+    COMMENT_TXT_TO_MATCH="$3"
+    ZONE_FILE_PATH="${SIGNED_ZONES}/${ZONE_NAME}"
+    grep -E -- "^${ZONE_NAME}\.[[:space:]]+[0-9]+[[:space:]]+IN[[:space:]]+DNSKEY[[:space:]]+${FLAGS_VALUE_TO_MATCH}" ${ZONE_FILE_PATH} \
+        | grep -Eo 'id = [0-9]+ \('${COMMENT_TXT_TO_MATCH}'\)' \
+        | grep -Eo '[0-9]+' \
+        | sort \
+        | uniq
+}
+
+pretty_print_multiline_value_as_space_separated_single_line_value() {
+    for VALUE in $*; do
+        echo $VALUE | tr '[:space:]' ' '
+    done
+}
+
+find_orphaned_signatures() {
+    ZONE_NAME="$1"
+    ZONE_FILE_PATH="${SIGNED_ZONES}/${ZONE_NAME}"
+
+    echo -n "Capturing KSK ids from zone file DNSKEY RR comments.. "
+    KSK_IDS=$(capture_dnskey_ids "${ZONE_NAME}" 257 ksk)
+    pretty_print_multiline_value_as_space_separated_single_line_value ${KSK_IDS}
+    echo
+
+    echo -n "Capturing ZSK ids from zone file DNSKEY RR comments.. "
+    ZSK_IDS=$(capture_dnskey_ids "${ZONE_NAME}" 256 zsk)
+    pretty_print_multiline_value_as_space_separated_single_line_value ${ZSK_IDS}
+    echo
+
+    echo -n "Capturing DNSKEY RRSIG keytags from zone file.. "
+    DNSKEY_RRSIG_KEYTAGS=$(grep -E -- "^${ZONE_NAME}\.[[:space:]]+[0-9]+[[:space:]]+IN[[:space:]]+RRSIG[[:space:]]DNSKEY" ${ZONE_FILE_PATH} | awk '{print $11}' | sort | uniq)
+    pretty_print_multiline_value_as_space_separated_single_line_value ${DNSKEY_RRSIG_KEYTAGS}
+    echo
+
+    echo -n "Capturing non-DNSKEY RRSIG keytags from zone file.. "
+    NON_DNSKEY_RRSIG_KEYTAGS=$(grep -E -- "^${ZONE_NAME}\.[[:space:]]+[0-9]+[[:space:]]+IN[[:space:]]+RRSIG[[:space:]]" ${ZONE_FILE_PATH} | \
+        grep -Ev -- "^${ZONE_NAME}\.[[:space:]]+[0-9]+[[:space:]]+IN[[:space:]]+RRSIG[[:space:]]DNSKEY" | awk '{print $11}' | sort | uniq)
+    pretty_print_multiline_value_as_space_separated_single_line_value ${NON_DNSKEY_RRSIG_KEYTAGS}
+    echo
+
+    for DNSKEY_RRSIG_KEYTAG in $DNSKEY_RRSIG_KEYTAGS; do
+        echo -n "Checking that a KSK exists with id equal to DNSKEY RRSIG keytag ${DNSKEY_RRSIG_KEYTAG}.. "
+        echo ${KSK_IDS} | grep -Fwq ${DNSKEY_RRSIG_KEYTAG} && {
+            echo "KSK id ${DNSKEY_RRSIG_KEYTAG} found in DNSKEY RR comments"
+        } || {
+            echo "ERROR: No KSK with id ${DNSKEY_RRSIG_KEYTAG} found in DNSKEY RR comments"
+            return 1
+        }
+    done
+
+    for NON_DNSKEY_RRSIG_KEYTAG in $NON_DNSKEY_RRSIG_KEYTAGS; do
+        echo -n "Checking that a ZSK exists with id equal to non-DNSKEY RRSIG keytag ${NON_DNSKEY_RRSIG_KEYTAG}.. "
+        echo ${ZSK_IDS} | grep -Fwq ${NON_DNSKEY_RRSIG_KEYTAG} && {
+            echo "ZSK id ${NON_DNSKEY_RRSIG_KEYTAG} found in DNSKEY RR comments"
+        } || {
+            echo "ERROR: No ZSK with id ${NON_DNSKEY_RRSIG_KEYTAG} found in DNSKEY RR comments"
+            return 1
+        }
+    done
+
+    echo "No oprhaned signatures found."
+
+    return 0
+}
+
 #########################################################################
 # wait for creation and signing of a single simple signed zone
 # assumes that the input zone file is present in test subdir unsigned/example.com
@@ -42,15 +110,7 @@ test -f "${SIGNED_ZONES}/example.com" &&
 # example.com.    86400   IN      RRSIG   A 7 2 [0-9]+ 20190403012345 20190312213351 52667 example.com. <BASE64>
 log_this cat-example.com-before cat "${SIGNED_ZONES}/example.com" &&
 log_this key-status-before ods-enforcer key list --all --verbose &&
-echo -n "Capturing RRSIG A count.." && RRSIG_A_COUNT=$(grep -E -- "^example.com.[[:space:]]+[0-9]+[[:space:]]+IN[[:space:]]+RRSIG[[:space:]]+A" "${SIGNED_ZONES}/example.com" | wc -l) && echo " ${RRSIG_A_COUNT}" &&
-echo "Checking RRSIG A count ${RRSIG_A_COUNT} == 1.." && [ "${RRSIG_A_COUNT}" -eq "1" ] &&
-echo -n "Capturing ZSK count.." && ZSK_COUNT=$(grep -E -- "^example.com.[[:space:]]+[0-9]+[[:space:]]+IN[[:space:]]+DNSKEY[[:space:]]+256" "${SIGNED_ZONES}/example.com" | wc -l) && echo " ${ZSK_COUNT}" &&
-echo "Checking ZSK count ${ZSK_COUNT} == 1.." && [ "${ZSK_COUNT}" -eq "1" ] &&
-echo -n "Capturing ZSK KEYTAG (id).." && DNSKEYID=$(grep -E -- "^example.com.[[:space:]]+[0-9]+[[:space:]]+IN[[:space:]]+DNSKEY[[:space:]]+256" "${SIGNED_ZONES}/example.com" | grep -Eo 'id = [0-9]+ \(zsk\)' | grep -Eo '[0-9]+') && echo " ${DNSKEYID}" &&
-echo -n "Capturing RRSIG A KEYTAG.." && KEYTAG=$(grep -E -- "^example.com.[[:space:]]+[0-9]+[[:space:]]+IN[[:space:]]+RRSIG[[:space:]]+A" "${SIGNED_ZONES}/example.com" | awk '{print $11}') && echo " ${KEYTAG}" &&
-echo -n "Capturing DNSKEY ${KEYTAG} status.." && ZSKSTATUS=$(ods-enforcer key list --all --verbose | awk '{print $2,$3,$10}' | grep ${KEYTAG}) && echo " ${ZSKSTATUS}" &&
-echo "Checking ZSK ${KEYTAG} is ready.." && [ "${ZSKSTATUS}" == "ZSK ready ${KEYTAG}" ] &&
-echo "Testing KEYTAG equality (DNSKEYID: $DNSKEYID == KEYTAG: $KEYTAG ?).." && [ "${DNSKEYID}" == "${KEYTAG}" ] &&
+find_orphaned_signatures "example.com" &&
 #########################################################################
 
 #########################################################################
@@ -65,17 +125,7 @@ log_this ods-enforcer-leap ods_enforcer_leap_over ${THIRTY_ONE_DAYS_IN_SECONDS} 
 log_this cat-example.com.xml-after cat "${SIGNCONF_FILE}" &&
 log_this cat-example.com-after cat "${SIGNED_ZONES}/example.com" &&
 log_this key-status-after ods-enforcer key list --all --verbose &&
-echo -n "Capturing RRSIG A count.." && RRSIG_A_COUNT=$(grep -E -- "^example.com.[[:space:]]+[0-9]+[[:space:]]+IN[[:space:]]+RRSIG[[:space:]]+A" "${SIGNED_ZONES}/example.com" | wc -l) && echo " ${RRSIG_A_COUNT}" &&
-echo "Checking RRSIG A count ${RRSIG_A_COUNT} == 1.." && [ "${RRSIG_A_COUNT}" -eq "1" ] &&
-echo -n "Capturing ZSK count.." && ZSK_COUNT=$(grep -E -- "^example.com.[[:space:]]+[0-9]+[[:space:]]+IN[[:space:]]+DNSKEY[[:space:]]+256" "${SIGNED_ZONES}/example.com" | wc -l) && echo " ${ZSK_COUNT}" &&
-echo "Checking ZSK count ${ZSK_COUNT} == 1.." && [ "${ZSK_COUNT}" -eq "1" ] &&
-echo -n "Capturing ZSK KEYTAG (id).." && DNSKEYID=$(grep -E -- "^example.com.[[:space:]]+[0-9]+[[:space:]]+IN[[:space:]]+DNSKEY[[:space:]]+256" "${SIGNED_ZONES}/example.com" | grep -Eo 'id = [0-9]+ \(zsk\)' | grep -Eo '[0-9]+') && echo " ${DNSKEYID}" &&
-echo -n "Capturing RRSIG A KEYTAG.." && KEYTAG=$(grep -E -- "^example.com.[[:space:]]+[0-9]+[[:space:]]+IN[[:space:]]+RRSIG[[:space:]]+A" "${SIGNED_ZONES}/example.com" | awk '{print $11}') && echo " ${KEYTAG}" &&
-echo -n "Capturing DNSKEY ${DNSKEYID} status.." && ZSKDNSKEYSTATUS=$(ods-enforcer key list --all --verbose | awk '{print $2,$3,$10}' | grep ${DNSKEYID}) && echo " ${ZSKDNSKEYSTATUS}" &&
-echo -n "Capturing DNSKEY ${KEYTAG} status.." && ZSKKEYTAGSTATUS=$(ods-enforcer key list --all --verbose | awk '{print $2,$3,$10}' | grep ${KEYTAG}) && echo " ${ZSKKEYTAGSTATUS}" &&
-echo "Checking ZSK ${DNSKEYID} is active.." && [ "${ZSKDNSKEYSTATUS}" == "ZSK active ${DNSKEYID}" ] &&
-echo "Checking ZSK ${KEYTAG} is retire.." && [ "${ZSKKEYTAGSTATUS}" == "ZSK retire ${KEYTAG}" ] &&
-echo "Testing KEYTAG equality (DNSKEYID: $DNSKEYID == KEYTAG: $KEYTAG ?).." && [ "${DNSKEYID}" == "${KEYTAG}" ] &&
+find_orphaned_signatures "example.com" &&
 #########################################################################
 
 # Shutdown
