@@ -260,7 +260,6 @@ rrsigkeyismatching(struct signature_struct* signature, key_type* key)
 static void 
 rrsigkeymatching(signconf_type* signconf, struct signature_struct** rrsigs, struct rrsigkeymatching** rrsigkeymatchingptr, int* nrrsigkeymatchingptr)
 {
-    int i, j;
     int nmatches = 0;
     int nrrsigs = 0;
     for(i=0; rrsigs[i]; i++)
@@ -271,16 +270,17 @@ rrsigkeymatching(signconf_type* signconf, struct signature_struct** rrsigs, stru
         matches[nmatches].key = NULL;
         ++nmatches;
     }
-    for(int i=0; i<signconf->keys->count; i++) {
-        for(j=0; j<nmatches; j++) {
-            if(matches[j].signature && rrsigkeyismatching(matches[j].signature, &signconf->keys->keys[i])) {
-                matches[j].key = &signconf->keys->keys[j];
+    for(int keyidx=0; keyidx<signconf->keys->count; keyidx++) {
+        int matchidx;
+        for(matchidx=0; matchidx<nmatches; matchidx++) {
+            if(matches[matchidx].signature && rrsigkeyismatching(matches[matchidx].signature, &signconf->keys->keys[keyidx])) {
+                matches[matchidx].key = &signconf->keys->keys[keyidx];
                 break;
             }
         }
-        if(j==nmatches) {
+        if(matchidx==nmatches) {
             matches[nmatches].signature = NULL;
-            matches[nmatches].key = &signconf->keys->keys[i];
+            matches[nmatches].key = &signconf->keys->keys[keyidx];
             ++nmatches;
         }
     }
