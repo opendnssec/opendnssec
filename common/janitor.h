@@ -92,6 +92,10 @@ extern void janitor_thread_signal(janitor_thread_t thread);
 #  undef pthread_barrier_t
 # endif
 # define pthread_barrier_t struct janitor_pthread_barrier_struct*
+# ifdef pthread_barrierattr_t
+#  undef pthread_barrierattr_t
+# endif
+# define pthread_barrierattr_t void*
 #endif
 
 struct janitor_pthread_barrier_struct;
