@@ -136,7 +136,7 @@ janitor_threadclass_setminstacksize(janitor_threadclass_t threadclass, size_t mi
 }
 
 static void fail(const char* file, int line, const char* func, const char* expr, int stat);
-#define CHECKFAIL(EX) do { int CHECKFAIL; if((CHECKFAIL = (EX))) { fail(__FILE__,__LINE__,__FUNCTION__,#EX,CHECKFAIL); goto fail; } } while(0)
+#define CHECKFAIL(EX) do { int CHECKFAIL; if((CHECKFAIL = (EX))) { fail(__FILE__,__LINE__,__func__,#EX,CHECKFAIL); goto fail; } } while(0)
 
 static void
 fail(const char* file, int line, const char* func, const char* expr, int stat)
