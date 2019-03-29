@@ -12,12 +12,7 @@ help
 | running
 .br
 .B ods\-enforcer
-queue
-| flush
-| signconf
-| enforce
-| verbosity
-.R <number>
+queue | flush | signconf | enforce | verbosity <number>
 .br
 .B ods\-enforcer update 
 conf | repositorylist | all
