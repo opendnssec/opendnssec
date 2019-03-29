@@ -274,6 +274,7 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
         client_printf_err(sockfd, "Unable to find policy %s needed for adding the zone!\n",
             policy_name);
         dbw_zone_free((struct dbrow *)zone);
+        dbw_free(db);
         return 1;
     }
     zone->policy_id = policy->id;
