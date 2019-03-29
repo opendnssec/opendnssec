@@ -28,7 +28,7 @@ XMLLINT=@XMLLINT@
 XSLTPROC=@XSLTPROC@
 
 if [ ! -x "$XMLLINT" ]; then
-	XMLLINT=$(find ${PATH//:/ } -maxdepth 1 -name xmllint -print -quit)
+	XMLLINT=$(find $(echo "$PATH" | tr : ' ') -maxdepth 1 -name xmllint -print -quit)
 	if [ ! -x "$XMLLINT" ]; then
 		echo "error: xmllint required, but not found"
 		exit 1
@@ -36,7 +36,7 @@ if [ ! -x "$XMLLINT" ]; then
 fi
 
 if [ ! -x "$XSLTPROC" ]; then
-	XSLTPROC=$(find ${PATH//:/ } -maxdepth 1 -name xsltproc -print -quit)
+	XSLTPROC=$(find $(echo "$PATH" | tr : ' ') -maxdepth 1 -name xsltproc -print -quit)
 	if [ ! -x "$XSLTPROC" ]; then
 		echo "error: xsltproc required, but not found"
 		exit 1
