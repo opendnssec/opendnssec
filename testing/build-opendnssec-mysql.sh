@@ -50,6 +50,7 @@ case "$DISTRIBUTION" in
 	fedora | \
 	sl | \
 	ubuntu | \
+	devuan | \
 	debian | \
 	openbsd | \
 	opensuse | \
