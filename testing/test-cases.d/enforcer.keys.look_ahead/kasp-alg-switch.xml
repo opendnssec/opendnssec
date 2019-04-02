@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<KASP>
+<Policy name="default">
+	<Description>
+			Policy1 in ODS wiki BasicTest outline
+	</Description>
+		
+	<Signatures>
+		<Resign>PT1S</Resign>
+		<Refresh>PT10S</Refresh>
+		<Validity>
+			<Default>PT1M</Default>
+			<Denial>PT1M</Denial>
+		</Validity>
+		<Jitter>PT0S</Jitter>
+		<InceptionOffset>PT0S</InceptionOffset>
+	</Signatures>
+	<Denial>
+		<NSEC/>
+	</Denial>
+	
+	<Keys>
+		<!-- Parameters for both KSK and ZSK -->
+		<TTL>PT5M</TTL>
+		<RetireSafety>PT0S</RetireSafety>
+		<PublishSafety>PT0S</PublishSafety>
+		<ShareKeys/>
+		<Purge>P5M</Purge>
+		<!-- Parameters for KSK only -->
+		<KSK>
+			<Algorithm length="2048">8</Algorithm>
+			<Lifetime>P15M</Lifetime>
+			<!-- @TODO@ Repository should be configured -->
+			<Repository>SoftHSM</Repository>
+		</KSK>
+		<!-- Parameters for ZSK only -->
+		<ZSK>
+			<Algorithm length="2048">8</Algorithm>
+			<Lifetime>P15M</Lifetime>
+			<!-- @TODO@ Repository should be configured -->
+			<Repository>SoftHSM</Repository>
+		</ZSK>
+	</Keys>
+	
+	<Zone>
+		<PropagationDelay>PT0S</PropagationDelay>
+		<SOA>
+			<TTL>PT1M</TTL>
+			<Minimum>PT1M</Minimum>
+			<Serial>unixtime</Serial>
+		</SOA>
+	</Zone>
+	
+	<Parent>
+		<PropagationDelay>PT0M</PropagationDelay>
+		<DS>
+			<TTL>PT10S</TTL>
+		</DS>
+		<SOA>
+			<TTL>PT0M</TTL>
+			<Minimum>PT0M</Minimum>
+		</SOA>
+	</Parent>
+</Policy>
+</KASP>
+
