@@ -1,4 +1,18 @@
-OpenDNSSEC 2.1.4 - xxxx-xx-xx
+OpenDNSSEC 2.1.4 - 2019-??-?? (T.B.A)
+
+* SUPPORT-229: Missing signatures for key new while signatures for old key
+  still present under certain kasp policies, leading to bogus zones.
+  Root cause for bug existed but made prominent since 2.1.3 release.
+* OPENDNSSEC-943: support build on MacOS with missing pthread barriers
+* Strip build directory from doxygen docs
+* remove bashisms from ods-kasp2html.in
+* upgrade developer build scripts to softhsm-2.5.0 update some platform
+  dependent files (only for developers).
+* OPENDNSSEC-942: time leap command for signer for debugging purposes
+  only, not to be used on actual deployments.
+* The ods-signer and ods-signerd man page should be in section 8 not 22
+  Note that this might mean that package managers should remove the older
+  man pages from the old location.
 
 OpenDNSSEC 2.1.3 - 2017-08-10
 
