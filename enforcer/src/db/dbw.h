@@ -57,11 +57,12 @@ enum dbw_ds_at_parent {
     DBW_DS_AT_PARENT_SUBMITTED   = 2,
     DBW_DS_AT_PARENT_SEEN        = 3,
     DBW_DS_AT_PARENT_RETRACT     = 4,
-    DBW_DS_AT_PARENT_RETRACTED   = 5
+    DBW_DS_AT_PARENT_RETRACTED   = 5,
+    DBW_DS_AT_PARENT_GONE        = 6
 };
 
 static const char * dbw_ds_at_parent_txt[] = {
-    "unsubmitted", "submit", "submitted", "seen", "retract", "retracted", NULL
+    "unsubmitted", "submit", "submitted", "seen", "retract", "retracted", "gone", NULL
 };
 
 enum dbw_hsmkey_state {

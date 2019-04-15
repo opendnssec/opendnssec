@@ -47,6 +47,7 @@ const db_enum_t key_data_enum_set_ds_at_parent[] = {
     { "seen", (key_data_ds_at_parent_t)KEY_DATA_DS_AT_PARENT_SEEN },
     { "retract", (key_data_ds_at_parent_t)KEY_DATA_DS_AT_PARENT_RETRACT },
     { "retracted", (key_data_ds_at_parent_t)KEY_DATA_DS_AT_PARENT_RETRACTED },
+    { "gone", (key_data_ds_at_parent_t)KEY_DATA_DS_AT_PARENT_GONE },
     { NULL, 0 }
 };
 
@@ -542,6 +543,9 @@ int key_data_from_result(key_data_t* key_data, const db_result_t* result) {
     }
     else if (ds_at_parent == (key_data_ds_at_parent_t)KEY_DATA_DS_AT_PARENT_RETRACTED) {
         key_data->ds_at_parent = KEY_DATA_DS_AT_PARENT_RETRACTED;
+    }
+    else if (ds_at_parent == (key_data_ds_at_parent_t)KEY_DATA_DS_AT_PARENT_GONE) {
+        key_data->ds_at_parent = KEY_DATA_DS_AT_PARENT_GONE;
     }
     else {
         return DB_ERROR_UNKNOWN;
