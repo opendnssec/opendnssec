@@ -730,22 +730,6 @@ struct janitor_pthread_barrier_struct {
     unsigned int count;
 };
 
-#ifdef pthread_barrier_init
-#undef pthread_barrier_init
-#endif
-#define pthread_barrier_init janitor_pthread_barrier_init
-#ifdef pthread_barrier_destroy
-#undef pthread_barrier_destroy
-#endif
-#define pthread_barrier_destroy janitor_pthread_barrier_destroy
-#ifdef pthread_barrier_wait
-#undef pthread_barrier_wait
-#endif
-#define pthread_barrier_wait janitor_pthread_barrier_wait
-#ifndef PTHREAD_BARRIER_SERIAL_THREAD
-#define PTHREAD_BARRIER_SERIAL_THREAD 1
-#endif
-
 int
 janitor_pthread_barrier_init(pthread_barrier_t* barrier, const pthread_barrierattr_t* attr, unsigned int count)
 {

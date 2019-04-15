@@ -29,9 +29,13 @@
 
 typedef void* ods_cfg_handle;
 
-int ods_cfg_access(ods_cfg_handle*, const char* filename);
-int ods_cfg_getlong(ods_cfg_handle, long* resultvalue, long* defaultvalue, const char* fmt,...);
-int ods_cfg_getcount(ods_cfg_handle, long* resultvalue, long* defaultvalue, const char* fmt,...);
-int ods_cfg_getperiod(ods_cfg_handle, long* resultvalue, long* defaultvalue, const char* fmt,...);
+int ods_cfg_access(ods_cfg_handle*, int basefd, const char* filename);
+int ods_cfg_getlong(ods_cfg_handle, long* resultvalue, const long* defaultvalue, const char* fmt,...);
+int ods_cfg_getenum(ods_cfg_handle, int* resultvalue, const int* defaultvalue, const char** enums, const char* fmt, ...);
+int ods_cfg_getenum2(ods_cfg_handle, int* resultvalue, const int* defaultvalue, const char** enumstrings, const int* enumvalues, const char* fmt, ...);
+int ods_cfg_getcount(ods_cfg_handle, long* resultvalue, const long* defaultvalue, const char* fmt,...);
+int ods_cfg_getperiod(ods_cfg_handle, long* resultvalue, const long* defaultvalue, const char* fmt,...);
+int ods_cfg_getstring(ods_cfg_handle, char** resultvalue, const char* defaultvalue, const char* fmt, ...);
+int ods_cfg_getcompound(ods_cfg_handle, int* resultvalue, const char* fmt, ...);
 
 #endif

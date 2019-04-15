@@ -172,7 +172,7 @@ int names_recordmarshall(recordset_type*, marshall_handle);
 size_t names_recordextend(recordset_type);
 
 void names_recordlookupone(recordset_type record, ldns_rr_type type, ldns_rr* template, ldns_rr** rr);
-void names_recordlookupall(recordset_type record, ldns_rr_type type, ldns_rr* template, ldns_rr_list** rrs, ldns_rr_list** rrsigs);
+void names_recordlookupall(recordset_type record, ldns_rr_type type, ldns_rr* template, ldns_rr_list** rrs, struct signature_struct*** rrsigs);
 
 struct dual {
     recordset_type src;
@@ -254,7 +254,7 @@ int names_viewpersist(names_view_type view, int basefd, char* filename);
 int names_viewconfig(names_view_type view, signconf_type** signconf);
 int names_viewrestore(names_view_type view, const char* apex, int basefd, const char* filename);
 
-void names_viewlookupall(names_view_type view, ldns_rdf* dname, ldns_rr_type type, ldns_rr_list** rrs, ldns_rr_list** rrsigs);
+void names_viewlookupall(names_view_type view, ldns_rdf* dname, ldns_rr_type type, ldns_rr_list** rrs, ldns_rr_list** signatures);
 void names_viewlookupone(names_view_type view, ldns_rdf* dname, ldns_rr_type type, ldns_rr* template, ldns_rr** rr);
 
 int names_viewgetdefaultttl(names_view_type view, int* defaultttl);

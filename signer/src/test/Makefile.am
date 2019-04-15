@@ -15,7 +15,7 @@ AM_CPPFLAGS = \
 
 check_PROGRAMS = signertest
 
-EXTRA_DIST = opendnssec.conf.tradiional opendnssec.conf.dynamic \
+EXTRA_DIST = opendnssec.conf.traditional opendnssec.conf.dynamic \
 	signconf.xml.nsec signconf.xml.nsec3 signconf.xml.nl \
 	unsigned.zone.example unsigned.zone.simple unsigned.zone.testing \
 	zones.xml.1 zones.xml.2 zones.xml.example zones.xml.nl
@@ -76,6 +76,6 @@ signertest_LDADD = \
 	@LDNS_LIBS@ @XML2_LIBS@ @PTHREAD_LIBS@ @RT_LIBS@ @SSL_LIBS@ @C_LIBS@ \
 	@CUNIT_LIBS@
 
-check: signertest
+check: signertest conf.xml setup.sh
 	sh setup.sh
 	./signertest $(top_srcdir)/signer/src/test

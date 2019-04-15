@@ -131,7 +131,7 @@ signdomain(struct worker_context* superior, hsm_ctx_t* ctx, recordset_type recor
     time_t expiration = INT_MAX;
     time_t rrsigexpirationtime;
     ldns_rr* rrsig;
-    ldns_rr_list* rrsigs;
+    struct signature_struct** rrsigs;
     ldns_rdf* rrsigexpiration;
 
     for (iter=names_recordalltypes(record); names_iterate(&iter,&rrtype); names_advance(&iter,NULL)) {
@@ -144,13 +144,14 @@ signdomain(struct worker_context* superior, hsm_ctx_t* ctx, recordset_type recor
     }
 
     names_recordlookupall(record, LDNS_RR_TYPE_RRSIG, NULL, NULL, &rrsigs);
-    while((rrsig=ldns_rr_list_pop_rr(rrsigs))) {
+    for(int i=0; rrsigs[i]; i++) {
+        rrsig = rrsigs[i]->rr;
         rrsigexpiration = ldns_rr_rrsig_expiration(rrsig);
         rrsigexpirationtime = ldns_rdf2native_time_t(rrsigexpiration);
         if(rrsigexpirationtime < expiration)
             expiration = rrsigexpirationtime;
     }
-    ldns_rr_list_free(rrsigs);
+    free(rrsigs);
     names_recordsetexpiry(record, expiration);
     logger_message(&names_logsigning,logger_noctx,logger_DEBUG,"signed %s expiration %ld\n",names_recordgetname(record),expiration);
     return ODS_STATUS_OK;
@@ -681,7 +682,7 @@ do_writezone(task_type* task, const char* zonename, void* zonearg, void *context
 
     if(zone->operatingconf == NULL) {
         long defaultvalue;
-        ods_cfg_access(NULL, "opendnssec.conf");
+        ods_cfg_access(NULL, AT_FDCWD, "opendnssec.conf");
         zone->operatingconf = malloc(sizeof(struct operatingconf));
         zone->operatingconf->statefile_timer = 0;
         ods_cfg_getcount(NULL, &zone->operatingconf->statefile_freq, &default_statefile_freq, NULL, "signer", "output-statefile-period", NULL);

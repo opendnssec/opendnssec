@@ -1,5 +1,10 @@
 logging:
   verbosity: 3
+  classes:
+    - name: commitlog
+      verbosity: diagnostics
+      target: stderr
+    - { name: signing, target: stderr }
 
 signer:
   output-zonefile-period: 0

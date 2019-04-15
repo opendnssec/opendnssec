@@ -244,7 +244,7 @@ tearDown(void)
     engine = NULL;
 
     unlink("zones.xml");
-    unlink("signed.zone");
+    //unlink("signed.zone");
     unlink("unsigned.zone");
     unlink("signconf.xml");
     unlink("signer.db");
@@ -998,6 +998,29 @@ testBackup(void)
     zone_cleanup(zone);
  }
 
+void
+testSignedAlready(void)
+{
+    zone_type* zone;
+    logger_mark_performance("setup files");
+    usefile("example.com.state", NULL);
+    usefile("signer.db", NULL);
+    usefile("zones.xml", "zones.xml.example");
+    usefile("unsigned.zone", "unsigned.zone.already");
+    usefile("signconf.xml", "signconf.xml.already");
+    //set_time_now(1537918509);
+    zonelist_update(engine->zonelist, engine->config->zonelist_filename_signer);
+    zone = zonelist_lookup_zone_by_name(engine->zonelist, "example.com", LDNS_RR_CLASS_IN);
+    signzone(zone);
+    outputzone(zone);
+    disposezone(zone);
+    CU_ASSERT_EQUAL((comparezone("unsigned.zone","signed.zone",0)), 0);
+    //CU_ASSERT_EQUAL((system("ldns-verify-zone -t 20180926013741 signed.zone")), 0);
+    CU_ASSERT_EQUAL((system("/usr/sbin/dnssec-verify -o example.com signed.zone")), 0);
+    // rrset_sign(signconf_type* signconf, names_view_type view, recordset_type record, ldns_rr_type rrtype, hsm_ctx_t* ctx, time_t signtime);
+    //signconf_type* signconf = signconf_create();
+ }
+
 extern void testNothing(void);
 extern void testIterator(void);
 extern void testConfig(void);
@@ -1012,6 +1035,7 @@ extern void testSignFastRemove(void);
 extern void testSignFastInsert(void);
 extern void testSignFastChange(void);
 extern void testDisposing(void);
+extern void testSignedAlready(void);
 
 struct test_struct {
     const char* suite;
@@ -1027,7 +1051,7 @@ struct test_struct {
     { "signer", "testAnnotate",        "test of denial annotation" },
     { "signer", "testMarshalling",     "test marshalling" },
     { "signer", "testStatefile",       "test statefile usage" },
-    { "signer", "testTransferfile",    "test transferfile usage" },
+    //{ "signer", "testTransferfile",    "test transferfile usage" },
     { "signer", "testBasic",           "test of start stop" },
     { "signer", "testSignNSEC",        "test NSEC signing" },
     { "signer", "testSignNSEC3",       "test NSEC3 signing" },
@@ -1037,6 +1061,7 @@ struct test_struct {
     { "signer", "testSignFastChange",  "test fast updates changes" },
     { "signer", "testDisposing",       "test dispose" },
     { "signer", "testBackup",          "test migration backup files" },
+    //{ "signer", "testSignedAlready",   "test already signed files" },
     { "signer", "-testSignNL",          "test NL signing" },
     { NULL, NULL, NULL }
 };

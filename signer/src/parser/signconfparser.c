@@ -510,6 +510,13 @@ parse_sc_passthrough(const char* cfgfile)
         0);
     if (str) {
         ret = 1;
+        if (!strcasecmp(str,"") || !strcasecmp(str,"asis")) {
+            ret = 1;
+        } else if (!strcasecmp(str,"signatures")) {
+            ret = 2;
+        } else {
+            ret = 1;
+        }
         free((void*)str);
     }
     return ret;

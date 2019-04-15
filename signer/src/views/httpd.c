@@ -171,9 +171,9 @@ handle_content(struct httpd* httpd, const char *url, const char *buf, size_t buf
     }
 
     /* PROCESS DB STUFF HERE */
-    view = zonelist_obtainresource(httpd->zonelist, rpc->zone, NULL, offsetof(zone_type, inputview));
+    view = zonelist_obtainresource(httpd->zonelist, NULL, rpc->zone, offsetof(zone_type, inputview));
     ret = httpd_dispatch(view, rpc);
-    zonelist_releaseresource(httpd->zonelist, rpc->zone, NULL, offsetof(zone_type, inputview), view);
+    zonelist_releaseresource(httpd->zonelist, NULL, rpc->zone, offsetof(zone_type, inputview), view);
     if (ret) {
         /* Failed to apply to database, status is set by rpcproc_apply */
         /* PASS */

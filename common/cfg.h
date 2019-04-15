@@ -107,6 +107,10 @@ struct engineconfig_struct {
     engineconfig_database_type_t db_type;
 };
 
+extern const char* engineconfig_loggerstrings[];
+extern const int engineconfig_loggervalues[];
+extern const char* engineconfig_loggertargets[];
+
 /**
  * Configure engine.
  * \param[in] allocator memory allocation

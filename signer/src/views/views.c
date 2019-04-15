@@ -46,7 +46,7 @@
 #include "logging.h"
 #include "proto.h"
 
-const char* names_view_BASE[]    = { "base",    "namerevision", "outdated" };
+const char* names_view_BASE[]    = { "base",    "namerevision", "outdated", NULL };
 const char* names_view_INPUT[]   = { "input",   "nameupcoming", "namehierarchy", NULL };
 const char* names_view_PREPARE[] = { "prepare", "namerevision", "incomingset", "currentset", "relevantset", NULL };
 const char* names_view_NEIGHB[]  = { "neighb",  "namerevision", "nameready", "denialname", NULL };
@@ -345,7 +345,7 @@ names_viewvalidate(names_view_type view)
         }
     }
     if(view->viewid == 0) {
-        fprintf(stderr,"total memory size of records is %d, index nodes are %d\n",size,sizeof(ldns_rbnode_t));
+        fprintf(stderr,"total memory size of records is %d, index nodes are %lu\n",size,sizeof(ldns_rbnode_t));
     }
     fprintf(stderr,"view %s contains %d records in primary index%s",view->viewname,count,(view->nindices>1?" in other indices:":""));
     for(i=1; i<view->nindices; i++) {
@@ -553,7 +553,6 @@ updateview(names_view_type view, names_table_type* mychangelog)
                 names_recorddisposal(change->record, 0);
             }
         }
-        names_commitlogpoppush(view->commitlog, view->viewid, &changelog, mychangelog);
     }
     names_recordgetsummary(NULL,&temp1);
     names_recordgetsummary(NULL,&temp2);
@@ -564,7 +563,7 @@ int
 names_viewcommit(names_view_type view)
 {
     int conflict;
-    conflict = updateview(view, &view->changelog);
+    conflict = updateview(view, &(view->changelog));
     assert(!conflict);
     return conflict;
 }
@@ -773,14 +772,22 @@ names_dumprecord(FILE* fp, recordset_type record)
 
 
 void
-names_viewlookupall(names_view_type view, ldns_rdf* dname, ldns_rr_type type, ldns_rr_list** rrs, ldns_rr_list** rrsigs)
+names_viewlookupall(names_view_type view, ldns_rdf* dname, ldns_rr_type type, ldns_rr_list** rrs, ldns_rr_list** signatures)
 {
     recordset_type record;
+    struct signature_struct** rrsigs;
+    ldns_rr* rrsig = NULL;
     char* name;
     name = (dname ? ldns_rdf2str(dname) : NULL);
     record = names_take(view, 0, name);
     if(record) {
-        names_recordlookupall(record, type, NULL, rrs, rrsigs);
+        *signatures = ldns_rr_list_new();
+        names_recordlookupall(record, type, NULL, rrs, &rrsigs);
+        for(int i=0; rrsigs[i]; i++) {
+            rrsig = rrsigs[i]->rr;
+            ldns_rr_list_push_rr(*signatures, rrsig);
+        }
+        free(rrsigs);
     } else {
         *rrs = NULL;
         *rrsigs = NULL;

@@ -555,7 +555,7 @@ upgraderecords(zone_type* zone, names_view_type view)
     names_iterator iter;
     recordset_type record;
     time_t expiration = LONG_MAX;
-    ldns_rr_list* rrsigs;
+    struct signature_struct** rrsigs;
     ldns_rr* rrsig;
     ldns_rdf* rrsigexpiration;
     time_t rrsigexpirationtime;
@@ -565,13 +565,14 @@ upgraderecords(zone_type* zone, names_view_type view)
         names_amend(view, record);
         names_recordsetvalidfrom(record, serial);
         names_recordlookupall(record, LDNS_RR_TYPE_RRSIG, NULL, NULL, &rrsigs);
-        while ((rrsig=ldns_rr_list_pop_rr(rrsigs))) {
+        for(int i=0; rrsigs[i]; i++) {
+            rrsig = rrsigs[i]->rr;
             rrsigexpiration = ldns_rr_rrsig_expiration(rrsig);
             rrsigexpirationtime = ldns_rdf2native_time_t(rrsigexpiration);
             if(rrsigexpirationtime < expiration)
                 expiration = rrsigexpirationtime;
         }
-        ldns_rr_list_free(rrsigs);
+        free(rrsigs);
         names_recordsetexpiry(record, expiration);
     }
     names_viewcommit(view);
@@ -751,7 +752,7 @@ zone_recover(zone_type* zone)
             goto recover_error2;
         }
         /* publish nsec3param */
-        if (!zone->signconf->passthrough)
+        if (zone->signconf->passthrough != 1)
             status = zone_publish_nsec3param(zone, view);
         if (status != ODS_STATUS_OK) {
             ods_log_error("[%s] corrupted backup file zone %s: unable to "
@@ -772,14 +773,14 @@ zone_recover(zone_type* zone)
 
         /* all ok */
         names_viewdestroy(view);
-        if (fd >= 0) {
+        if (fd != NULL) {
             ods_fclose(fd);
         }
         if (zone->stats) {
             pthread_mutex_lock(&zone->stats->stats_lock);
             stats_clear(zone->stats);
             pthread_mutex_unlock(&zone->stats->stats_lock);
-        }       
+        }
         return ODS_STATUS_OK;
     }
     free(filename);
