@@ -47,7 +47,7 @@ struct logger_chain_struct {
 };
 
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-struct logger_setup_struct logger_setup;
+struct logger_setup_struct logger_setup = { 0, 0, NULL };
 static logger_cls_type logger = LOGGER_INITIALIZE(__FILE__);
 
 logger_ctx_type logger_noctx = NULL;
@@ -247,7 +247,7 @@ logger_configurecls(const char* name, logger_lvl_type minlvl, logger_procedure p
 {
     pthread_mutex_lock(&mutex);
     logger_setup.nchains += 1;
-    logger_setup.chains = malloc(sizeof(struct logger_chain_struct) * logger_setup.nchains);
+    logger_setup.chains = realloc(logger_setup.chains, sizeof(struct logger_chain_struct) * logger_setup.nchains);
     logger_setup.chains[logger_setup.nchains-1].name = strdup(name);
     logger_setup.chains[logger_setup.nchains-1].minlvl = minlvl;
     logger_setup.chains[logger_setup.nchains-1].logger = proc;

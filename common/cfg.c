@@ -58,9 +58,9 @@ strdup_or_null(const char *s)
     return s?strdup(s):s;
 }
 
-static const char* engineconfig_loggerstrings[] = { "fatal", "error", "alert", "warn", "warning", "info", "informational", "notice", "debug", "verbose", "diag", "diagnostic", "trace", "tracing" };
-static const int engineconfig_loggervalues[] = { logger_FATAL, logger_ERROR, logger_ERROR, logger_WARN, logger_WARN, logger_INFO, logger_INFO, logger_INFO, logger_DEBUG, logger_DEBUG, logger_DIAG, logger_DIAG, logger_DIAG, logger_DIAG };
-static const char* engineconfig_loggertargets[] = { "default", "stdout", "stderr", "syslog" };
+const char* engineconfig_loggerstrings[] = { "fatal", "error", "alert", "warn", "warning", "info", "informational", "notice", "debug", "verbose", "diag", "diagnostic", "trace", "tracing" };
+const int engineconfig_loggervalues[] = { logger_FATAL, logger_ERROR, logger_ERROR, logger_WARN, logger_WARN, logger_INFO, logger_INFO, logger_INFO, logger_DEBUG, logger_DEBUG, logger_DIAG, logger_DIAG, logger_DIAG, logger_DIAG };
+const char* engineconfig_loggertargets[] = { "default", "stdout", "stderr", "syslog" };
 
 /**
  * Configure engine.

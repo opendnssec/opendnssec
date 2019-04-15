@@ -272,9 +272,12 @@ rrset_sign(signconf_type* signconf, names_view_type view, recordset_type record,
             /* Inception has not yet passed */
             matchedsignatures[i].signature = NULL;
         } else if (matchedsignatures[i].signature && !matchedsignatures[i].key) {
+            /* Orphaned signatures */
             matchedsignatures[i].signature = NULL;
         } else if (dstatus != LDNS_RR_TYPE_SOA || (delegpt != LDNS_RR_TYPE_SOA && rrtype != LDNS_RR_TYPE_DS)) {
             /* Skip delegation, glue and occluded RRsets */
+            matchedsignatures[i].key = NULL;
+            matchedsignatures[i].signature = NULL;
         } else {
             ods_log_assert(dstatus == LDNS_RR_TYPE_SOA || (delegpt == LDNS_RR_TYPE_SOA || rrtype == LDNS_RR_TYPE_DS));
         }
