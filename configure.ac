@@ -96,7 +96,7 @@ AC_CHECK_FUNCS([va_start va_end])
 AC_CHECK_FUNCS([xmlInitParser xmlCleanupParser xmlCleanupThreads])
 AC_CHECK_FUNCS([pthread_mutex_init pthread_mutex_destroy pthread_mutex_lock pthread_mutex_unlock])
 AC_CHECK_FUNCS([pthread_cond_init pthread_cond_signal pthread_cond_destroy pthread_cond_wait pthread_cond_timedwait])
-AC_CHECK_FUNCS([pthread_create pthread_detach pthread_self pthread_join pthread_sigmask])
+AC_CHECK_FUNCS([pthread_create pthread_detach pthread_self pthread_join pthread_sigmask pthread_barrier_wait])
 
 AC_FUNC_CHOWN
 AC_FUNC_FORK
