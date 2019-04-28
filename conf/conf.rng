@@ -75,7 +75,7 @@
                 </optional>
                 <optional>
                   <!-- Generate extractable keys (CKA_EXTRACTABLE = TRUE) (optional) -->
-                  <element name="AllowExtract">
+                  <element name="AllowExtraction">
                     <empty/>
                   </element>
                 </optional>
