@@ -96,7 +96,7 @@ AC_CHECK_FUNCS([va_start va_end])
 AC_CHECK_FUNCS([xmlInitParser xmlCleanupParser xmlCleanupThreads])
 AC_CHECK_FUNCS([pthread_mutex_init pthread_mutex_destroy pthread_mutex_lock pthread_mutex_unlock])
 AC_CHECK_FUNCS([pthread_cond_init pthread_cond_signal pthread_cond_destroy pthread_cond_wait pthread_cond_timedwait])
-AC_CHECK_FUNCS([pthread_create pthread_detach pthread_self pthread_join pthread_sigmask])
+AC_CHECK_FUNCS([pthread_create pthread_detach pthread_self pthread_join pthread_sigmask pthread_barrier_wait])
 
 AC_FUNC_CHOWN
 AC_FUNC_FORK
@@ -219,7 +219,14 @@ DX_INIT_DOXYGEN(${PACKAGE_NAME}, [Doxyfile], [doxygen-doc])
 
 AC_CHECK_FUNC(backtrace, [AC_DEFINE([HAVE_BACKTRACE], [1], [Define if backtrace supported])])
 AC_CHECK_LIB(backtrace, backtrace_full, [AC_DEFINE([HAVE_BACKTRACE_FULL], [1], [Define if backtrace_full supported]) LIBS="$LIBS -lbacktrace"])
-AC_CHECK_LIB(unwind, unw_backtrace, [AC_DEFINE([HAVE_LIBUNWIND], [1], [Define if libunwind supported]) LIBS="$LIBS -lunwind -lunwind-x86_64"])
+
+AC_ARG_WITH([libunwind], AS_HELP_STRING([--with-libunwind], [Build with the libunwind library]))
+AS_IF([test "x$with_libunwind" = "xyes"], [
+   PKG_CHECK_MODULES([LIBUNWIND], [libunwind])
+])
+AC_SUBST([LIBUNWIND_CFLAGS])
+AC_SUBST([LIBUNWIND_LIBS])
+LIBS="$LIBS $LIBUNWIND_LIBS"
 
 AC_CONFIG_HEADER([common/config.h])
 

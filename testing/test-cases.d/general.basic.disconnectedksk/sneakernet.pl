@@ -37,7 +37,7 @@ foreach my $keyNode ($document->findnodes('//SignerConfiguration/Zone/Keys/Key')
 my $resourcerecord = "";
 open(FILE, $ARGV[1]);
 while(<FILE>) {
-        if(m/^(.*	.*	IN	RRSIG	DNSKEY \d+ \d+ \d+ \d+ \d+ \d+ .* .*); {locator .* flags 257}$/) {
+        if(m/^(.*	.*	IN	RRSIG	DNSKEY \d+ \d+ \d+ \d+ \d+ \d+ .* .*); \{locator .* flags 257}$/) {
            my $resourceNode = XML::LibXML::Element->new('SignatureResourceRecord');
            $resourceNode->appendText(encode_base64($1));
            $document->find('//SignerConfiguration/Zone/Keys')->get_node(1)->appendChild($resourceNode);;

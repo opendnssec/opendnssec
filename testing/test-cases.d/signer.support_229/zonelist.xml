@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ZoneList>
+	<Zone name="example.com">
+		<Policy>default</Policy>
+		<SignerConfiguration>@INSTALL_ROOT@/var/opendnssec/signconf/example.com.xml</SignerConfiguration>
+		<Adapters>
+			<Input>
+				<File>@INSTALL_ROOT@/var/opendnssec/unsigned/example.com</File>
+			</Input>
+			<Output>
+				<File>@INSTALL_ROOT@/var/opendnssec/signed/example.com</File>
+			</Output>
+		</Adapters>
+	</Zone>
+</ZoneList>
