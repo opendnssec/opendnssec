@@ -151,16 +151,20 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 
 	if (!zone_name) {
 		client_printf_err(sockfd, "expected option --zone <zone>\n");
-		free(policy_name);
+		if (policy_name) {
+			free(policy_name);
+		}
 		return -1;
 	} else if (!policy_name) {
 		client_printf_err(sockfd, "expected option --policy <policy>\n");
+		free(zone_name);
 		return -1;
 	}
 
 	//validation
 
 	zone_db_t* zone = zone_db_new_get_by_name(dbconn, zone_name);
+	free(zone_name);
 	if (!zone) {
 		client_printf_err(sockfd, "Unable to update zone, zone does not exist!\n");
 		free(policy_name);
