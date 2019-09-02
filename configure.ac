@@ -219,6 +219,7 @@ DX_INIT_DOXYGEN(${PACKAGE_NAME}, [Doxyfile], [doxygen-doc])
 
 AC_CHECK_FUNC(backtrace, [AC_DEFINE([HAVE_BACKTRACE], [1], [Define if backtrace supported])])
 AC_CHECK_LIB(backtrace, backtrace_full, [AC_DEFINE([HAVE_BACKTRACE_FULL], [1], [Define if backtrace_full supported]) LIBS="$LIBS -lbacktrace"])
+
 AC_ARG_WITH([libunwind], AS_HELP_STRING([--with-libunwind], [Build with the libunwind library]))
 AS_IF([test "x$with_libunwind" = "xyes"], [
    PKG_CHECK_MODULES([LIBUNWIND], [libunwind])

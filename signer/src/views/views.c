@@ -30,8 +30,6 @@
 
 #include "config.h"
 
-#pragma GCC optimize ("O0")
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -465,6 +463,7 @@ names_iteratorexpiring(names_index_type index, va_list ap)
 names_iterator
 names_iteratordenialchainupdates(names_index_type primary, names_index_type secondary, va_list ap)
 {
+    /* a database implementation can do this in a single query */
     struct dual entry;
     recordset_type record;
     names_iterator iter;

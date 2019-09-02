@@ -204,7 +204,7 @@ destroyctx(void* arg)
 void
 logger_initialize(const char* programname)
 {
-    logger_setup.serial = 2;
+    logger_setup.serial += 1;
     logger_setup.nchains = 1;
     logger_setup.chains = malloc(sizeof(struct logger_chain_struct) * logger_setup.nchains);
     logger_setup.chains[0].name = "";
@@ -353,6 +353,7 @@ logger_mark_performance(const char* message)
         t = time(NULL);
         b = (intptr_t) sbrk(0);
     }
+fprintf(stderr, "MARK#%02d %2ld %4ld %s\n", markcount, (long)(t-marktime), (long)((b-markbrk+1048576/2)/1048576), message);
     logger_message(&logger_cls_performance, logger_ctx, logger_INFO, "MARK#%02d %2ld %4ld %s\n", markcount, (long)(t-marktime), (long)((b-markbrk+1048576/2)/1048576), message);
     ++markcount;
     return 0;
