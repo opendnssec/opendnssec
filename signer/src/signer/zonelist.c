@@ -163,13 +163,9 @@ zonelist_obtainresource(zonelist_type* zonelist, zone_type* zone, const char* na
     names_view_type view = NULL;
     if(zonelist != NULL && zone == NULL) {
         pthread_mutex_lock(&zonelist->zl_lock);
-        if(zone == NULL) {
-            node = ldns_rbtree_search(zonelist->zones, name);
-            if (node != NULL && node != LDNS_RBTREE_NULL) {
-                zone = (zone_type*) node->data;
-            }
-        }
+        zone = zonelist_lookup_zone_by_name(zonelist, name, LDNS_RR_CLASS_IN);
         pthread_mutex_unlock(&zonelist->zl_lock);
+        assert(zone);
     }
     if(zone != NULL) {
         viewfactory = *(names_viewfactory_type*)&(((char*)zone)[offset]);

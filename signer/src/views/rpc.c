@@ -139,7 +139,6 @@ rpc_decode_json(const char *url, const char *buf, size_t buflen)
             ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, json_string_value(rr_owner)),
             &prev_owner) != LDNS_STATUS_OK)
         {
-            printf("err constructing rr.\n");
             err = 1;
             break;
         }

@@ -1,39 +1,55 @@
+# Beta release of OpenDNSSEC Fast Updates
+
 This is a pre-release of the OpenDNSSEC software for the functionality of
 Fast Updates.
-
-Update 2018-12-04:
-- Multiple concurrent fast updates and multiple concurrent output [AI]XFRs.
-- Big fixes
-
-Update 2018-11-13:
-- Reading signed/state files from earlier 2.1 releases for migration
-  purposes should now be functional.
-- Signature expiration beyond 2038 was broken which is now fixed.
 
 There are still significant parts of OpenDNSSEC that need work.  Tests for
 signing a zone and producing valid output adding/removing and modifying
 delegations in the input zone using the web-service calls and some other
 general tests pass.  Some existing tests fail because of changes in output
-and changes in operation which are hardly applicable.  However, the amount
-of testing and code review is on a low level.
+and changes in operation which are hardly applicable.
 
-The following issues are open (non-exhaustive list):
-- There is no signer command to force a full resign or clear zone contents;
-  this is however in the making now;
-- Key roll changes are not tested, but expected not to reuse signatures
-  correctly.
+Fast updates allow the signer to quickly sign zone changes, however
+ath the current cost of a full zone initial resign and start up.  This
+performance degredation is still under improvement.  The normal operation
+of OpenDNSSEC is now faster.
+
+## Building OpenDNSSEC
 
 The prerequisites to OpenDNSSEC have changed.  The following additional
 dependencies are needed:
-  libmicrohttpd  (<URL:https://www.gnu.org/software/libmicrohttpd/>)
-  libjansson     (<URL:http://www.digip.org/jansson/>)
-  libyaml        (<URL:https://pyyaml.org/wiki/LibYAML>)
+
+  - libmicrohttpd  (<URL:https://www.gnu.org/software/libmicrohttpd/>)
+  - libjansson     (<URL:http://www.digip.org/jansson/>)
+  - libyaml        (<URL:https://pyyaml.org/wiki/LibYAML>)
+
 These are normally available on normal distribution sites using yum, get-apt,
 slackbuilds, etcetera.  There is no specific version needed.
 Apart from these extra dependencies, there are no changes in building
 OpenDNSSEC from source.
 
-Migration
+The actual building process hasn't changed much, it can still be
+build using:
+
+  sh autogen.sh
+  ./configure --prefix=...
+  make all
+  make install
+
+This pre-release of OpenDNSSEC now comes with real unit test framework
+that allow for faster testing and does not involve a complicated
+framework.  The number of tests is somehow limited and only involve the
+signer, but better check the correct signing operation.
+A working and accessible SoftHSM installation is however required.
+
+Tests are run using:
+
+  make check
+
+The LDNS tools are required to perform full test run.
+We do not expect a normal installation to run this.
+
+## Migration
 
 When OpenDNSSEC signer starts, it will try to read a new-style
 state file per zone.  In case this is missing, is will try to read a 2.1
@@ -63,6 +79,12 @@ Which means that the statefile (a journal of all actions) will be recreated
 every 2 runs, the full signed zone file will be created every 5 runs and IXFRs
 for output will be retained for 30 serial increments.    
 
+Apart from providing this new configuration file, no explicit migration is
+needed.  Downgrading isn't recommended at this time, without performing a
+full resign and incrementing the SOA serial number explicitly.
+
+## Using fast updates
+
 The fast update webservice is enabled by default on port 8000.  An example
 to perform an updates:
 
@@ -77,5 +99,3 @@ to perform an updates:
                                  "class" : "IN"}]}'
       localhost:8000/api/v1/changedelegation/example.com./domein.example.com./
 
-We are going for an improvement cycle and make a build every week on Tuesday
-early morning.

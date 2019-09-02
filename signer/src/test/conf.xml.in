@@ -9,7 +9,7 @@
 			<SkipPublicKey/>
 		</Repository>
 		<Repository name="NullHSM">
-			<Module>../../../contrib/testing-tools/libpkcs11null.so></Module>
+			<Module>../../../contrib/testing-tools/libpkcs11null.so</Module>
 			<TokenLabel>OpenDNSSEC</TokenLabel>
 			<PIN>1234</PIN>
 			<SkipPublicKey/>

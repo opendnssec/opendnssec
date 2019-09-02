@@ -694,9 +694,7 @@ do_writezone(task_type* task, const char* zonename, void* zonearg, void *context
         if(--(zone->operatingconf->statefile_timer) <= 0) {
             zone->operatingconf->statefile_timer = zone->operatingconf->statefile_freq;
             do_purgezone(zone);
-            logger_mark_performance("done purge outdated zone data");
             do_outputstatefile(zone);
-            logger_mark_performance("done writing statefile");
         }
     }
 
@@ -706,7 +704,6 @@ do_writezone(task_type* task, const char* zonename, void* zonearg, void *context
         if(--(zone->operatingconf->zonefile_timer) <= 0) {
             zone->operatingconf->zonefile_timer = zone->operatingconf->zonefile_freq;
             do_outputzonefile(zone);
-            logger_mark_performance("done writing periodic zonefile");
         }
     }
 
