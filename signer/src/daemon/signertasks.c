@@ -358,7 +358,6 @@ preparesign(names_view_type prepareview, int newserial)
         }
     }
     conflict = names_viewcommit(prepareview);
-    names_viewvalidate(prepareview);
     assert(!conflict);
 }
 

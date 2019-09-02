@@ -30,8 +30,6 @@
 
 #include "config.h"
 
-#pragma GCC optimize ("O0")
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

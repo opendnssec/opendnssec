@@ -27,14 +27,14 @@
       <Key>
         <Flags>257</Flags>
         <Algorithm>8</Algorithm>
-        <Locator>12222222222222222222222222222222</Locator>
+        <Locator>22222222222222222222222222222222</Locator>
         <KSK/>
         <Publish/>
       </Key>
       <Key>
         <Flags>256</Flags>
         <Algorithm>8</Algorithm>
-        <Locator>21111111111111111111111111111111</Locator>
+        <Locator>11111111111111111111111111111111</Locator>
         <ZSK/>
         <Publish/>
       </Key>

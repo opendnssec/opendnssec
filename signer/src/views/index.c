@@ -26,8 +26,6 @@
 
 #include "config.h"
 
-#pragma GCC optimize ("O0")
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -320,6 +318,7 @@ names_parent(const char* child)
     return name;
 }
 
+/* This function can be optimized a lot. */
 names_iterator
 names_iteratorancestors(names_index_type index, va_list ap)
 {
@@ -491,8 +490,6 @@ names_iteratoroutdated(names_index_type index, va_list ap)
     names_recorddispose(find);
     return iter;
 }
-
-
 
 void
 names_indexsearchfunction(names_index_type index, names_view_type view, const char* keyname)
