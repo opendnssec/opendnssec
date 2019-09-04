@@ -175,15 +175,17 @@ parsefuncenum(void* user, const char* str, void* resultvalue)
     struct parsefuncenum2* enums = (struct parsefuncenum2*)user;
     errno = 0;
     *resultint = strtol(str, &end, 0);
-    if (errno) {
-        for(i=0; enums->enumstrings[i]; i++)
-            if(!strcasecmp(enums->enumstrings[i], str)) {
-                if(enums->enumvalues)
+    if ((errno || end == str) && enums) {
+        for(i=0; enums->enumstrings[i] != NULL; i++) {
+            if (!strcasecmp(enums->enumstrings[i], str)) {
+                if(enums->enumvalues) {
                     *resultint = enums->enumvalues[i];
-                else
+                } else {
                     *resultint = i;
+                }
                 return 0;
             }
+        }
         return 1;
     } else
         return 0;
@@ -244,8 +246,9 @@ parsescalar(yaml_document_t *document, size_t resultsize, void* resultvalue, con
                 --len;
             str = strndup(str, len);
             if (parsefunc(parsedata,str,resultvalue)) {
-                if (defaultvalue)
+                if (defaultvalue) {
                     memcpy(resultvalue,defaultvalue,resultsize);
+                }
                 logger_message(&logger, logger_ctx, logger_WARN, "In configuration parameter %s unable unparseable input %s\n",last,str);
                 result = -1;
             } else {
@@ -254,8 +257,9 @@ parsescalar(yaml_document_t *document, size_t resultsize, void* resultvalue, con
             free((void*)str);
         } else {
             logger_message(&logger, logger_ctx, logger_WARN, "In configuration parameter %s unable to parse argument\n",last);
-            if (defaultvalue)
+            if (defaultvalue) {
                 memcpy(resultvalue,defaultvalue,resultsize);
+            }
             result = -1;
         }
     } else {

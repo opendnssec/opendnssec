@@ -212,7 +212,6 @@ logger_initialize(const char* programname)
     logger_setup.chains[0].logger = logger_log_stderr;
     logger_log_syslog_open(programname);
     //logger_setup.chains[0].logger = logger_log_syslog;
-    logger_message(&logger, logger_noctx, logger_INFO, "%s started",programname);
     pthread_key_create(&currentctx, destroyctx);
     logger_ctx = logger_newcontext();
 }
@@ -248,7 +247,7 @@ logger_configurecls(const char* name, logger_lvl_type minlvl, logger_procedure p
     pthread_mutex_lock(&mutex);
     logger_setup.nchains += 1;
     logger_setup.chains = realloc(logger_setup.chains, sizeof(struct logger_chain_struct) * logger_setup.nchains);
-    logger_setup.chains[logger_setup.nchains-1].name = strdup(name);
+    logger_setup.chains[logger_setup.nchains-1].name = (name ? strdup(name) : NULL);
     logger_setup.chains[logger_setup.nchains-1].minlvl = minlvl;
     logger_setup.chains[logger_setup.nchains-1].logger = proc;
     logger_setup.serial += 1;

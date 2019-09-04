@@ -67,8 +67,8 @@ The signer will perform a normal sign - write zone cycle as usual when
 not explicitly configured.  This isn't suited for fast updates because
 writing the whole zone file every time will take too long.  In order
 to perform these tasks periodically, a separate configuration file
-opendnssec.conf needs to be created in the signer directory, with the following
-content:
+opendnssec.conf needs to be created next to the conf.xml configuration
+(no longer in the signer directory), with the following content:
 
   signer:
     output-statefile-period: #2
