@@ -314,6 +314,7 @@ compute(char **argv, int* id, uint16_t* keytag)
     ksk = (atoi(argv[2]) == 1);
     *keytag = atoi(argv[3]);
     locator = argv[4];
+    fprintf(stdout, "Computing keytag for key with ID %d\n", *id);
     hsm_keytag(locator, algorithm, ksk, keytag);
     
     return 0;
@@ -371,6 +372,7 @@ main(int argc, char* argv[])
     tzset(); /* for portability */
 
     /* Parse config file */
+    fprintf(stdout, "Reading config file '%s'..\n", cfgfile);
     cfg = engine_config(cfgfile, verbosity, NULL);
     if (!cfg) {
         return 1;
@@ -382,6 +384,7 @@ main(int argc, char* argv[])
         abort(); /* TODO give some error, abort */
     }
 
+    fprintf(stdout, "Connecting to HSM..\n");
     status = hsm_open2(parse_conf_repositories(cfgfile), hsm_prompt_pin);
     if (status != HSM_OK) {
         char* errorstr =  hsm_get_error(NULL);
@@ -396,6 +399,7 @@ main(int argc, char* argv[])
     }
     dblayer_initialize();
 
+    fprintf(stdout, "Connecting to database..\n");
     switch (cfg->db_type) {
         case ENFORCER_DATABASE_TYPE_SQLITE:
 #ifdef HAVE_SQLITE3
@@ -416,8 +420,10 @@ main(int argc, char* argv[])
             fprintf(stderr, "No database defined\n");
     }
 
+    fprintf(stdout, "Computing keytags. Warning: This could take a while.\n");
     dblayer_foreach(listQueryStr, updateQueryStr, &compute);
-    
+
+    fprintf(stdout, "Finishing..\n");
     hsm_close();
 
     engine_config_cleanup(cfg);
