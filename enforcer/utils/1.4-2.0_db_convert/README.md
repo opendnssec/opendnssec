@@ -1,7 +1,7 @@
 Convert OpenDNSSEC 1.4 database to OpenDNSSEC 2.0 database
 ==========================================================
 
-The ODS2.0 database is set up very different from the ODS1.4 database. We 
+The ODS2.0 database is set up very differently from the ODS1.4 database. We 
 provide a couple of scripts to make the transition. Please review this 
 document entirely before starting the conversation.
 
@@ -21,8 +21,8 @@ General preparation
  * Also prevent any nameserver from receiving updates from OpenDNSSEC until
    you are sure the migration was successful.
  * It is discouraged to perform the migration during a rollover. The migration
-   script tries to deal with it as gracefull as possible though many corner
-   cased exist. Generally it will not break the zone but unexpected behaviour
+   script tries to deal with it as gracefully as possible though many corner
+   cases exist. Generally it will not break the zone but unexpected behaviour
    may occur. If you do, and see unexpected state, the best way to deal with it
    is to start a rollover for the offending keytype.
 
@@ -47,7 +47,7 @@ There are 2 relevant files for the conversion:
  * convert_mysql - A bash conversion script
  * mysql_convert.sql - Contains SQL statements, called by convert_mysql
 
-call the script like so: `./convert_sqlite -i INPUT -o OUTPUT -h HOST -u USER
+call the script like so: `./convert_mysql -i INPUT -o OUTPUT -h HOST -u USER
 -p PASSWORD`. Where INPUT is the name of the existing database on HOST. And
 OUTPUT is a non-existing database on the same host where the new database
 should go. On success, replace old database with the new database file or
@@ -58,7 +58,7 @@ Post Conversion
 
 ODS 2.0 stores the keytags in the database, 1.4 unfortunately does not.
 Therefore an additional tool is provided which calculates the keytags and
-stores them in the database. Make sure that at this point conf.xml points to
+stores them in the database. Make sure that at this point _conf.xml_ points to
 the new database. Then run `ods-migrate`.
 
 Now your new database is ready for use. At this point the signer will refuse to
