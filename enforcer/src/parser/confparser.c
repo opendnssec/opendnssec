@@ -680,7 +680,7 @@ engineconfig_database_type_t parse_conf_db_type(const char *cfgfile) {
 
     if ((str = parse_conf_string(
         cfgfile,
-        "//Configuration/Enforcer/Datastore/MySQL/Host",
+        "//Configuration/Enforcer/Datastore/MySQL/Database",
         0)))
     {
         free((void*)str);

@@ -52,7 +52,7 @@ if [[ $Z = *[![:space:]]* ]]; then
 fi
 
 echo "Creating database $DB_OUT (as user $DB_USR)"
-echo "DROP DATABASE IF EXISTS $DB_OUT;CREATE DATABASE $DB_OUT;" | 
+echo "CREATE DATABASE IF NOT EXISTS $DB_OUT;" | 
 	mysql -u $DB_USR -p$DB_PWD -h $DB_HOST
 
 echo "Creating tables in $DB_OUT (as user $DB_USR)"
