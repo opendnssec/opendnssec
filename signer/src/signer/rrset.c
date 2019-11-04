@@ -610,7 +610,7 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
         assert(signature);
         rrsigs[i] = signature;
     }
-    struct rrsigkeymatching* matchedsignatures;
+    struct rrsigkeymatching* matchedsignatures = NULL;
     int nmatchedsignatures;
     rrsigkeymatching(zone->signconf, nrrsigs, rrsigs, &matchedsignatures, &nmatchedsignatures);
 
@@ -623,11 +623,15 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
     if (dstatus != LDNS_RR_TYPE_SOA) {
         log_rrset(ldns_rr_owner(rrset->rrs[0].rr), rrset->rrtype,
             "skip signing occluded RRset", LOG_DEEEBUG);
+        free(rrsigs);
+        free(matchedsignatures);
         return ODS_STATUS_OK;
     }
     if (delegpt != LDNS_RR_TYPE_SOA && rrset->rrtype != LDNS_RR_TYPE_DS) {
         log_rrset(ldns_rr_owner(rrset->rrs[0].rr), rrset->rrtype,
             "skip signing delegation RRset", LOG_DEEEBUG);
+        free(rrsigs);
+        free(matchedsignatures);
         return ODS_STATUS_OK;
     }
 
@@ -640,6 +644,8 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
     if (ldns_rr_list_rr_count(rr_list) <= 0) {
         /* Empty RRset, no signatures needed */
         ldns_rr_list_free(rr_list);
+        free(rrsigs);
+        free(matchedsignatures);
         return ODS_STATUS_OK;
     }
     /* Use rr_list_clone for signing, keep the original rr_list untouched for case preservation */
@@ -774,6 +780,7 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
             if (!rrsig) {
                 ods_log_crit("[%s] unable to sign RRset[%i]: lhsm_sign() failed",
                         rrset_str, rrset->rrtype);
+                free(matchedsignatures);
                 ldns_rr_list_free(rr_list);
                 ldns_rr_list_free(rr_list_clone);
                 return ODS_STATUS_HSM_ERR;
@@ -813,6 +820,7 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
     }
 
     /* RRset signing completed */
+    free(matchedsignatures);
     ldns_rr_list_free(rr_list);
     ldns_rr_list_deep_free(rr_list_clone);
     pthread_mutex_lock(&zone->stats->stats_lock);
