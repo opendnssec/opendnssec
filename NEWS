@@ -35,6 +35,7 @@ OpenDNSSEC 2.1.5 - 2019-11-05
 * Allow for MySQL database to be pre-generated when running the migration.
 * Full list of key states, that combined the -d and -v without trying to 
   be backwards compatible.
+* Fix AllowExtraction tag in configration file definition.
 * SUPPORT-242: Skip over EDNS cookie option (thanks to Ha¥vard Eidne and
   Ulrich-Lorenz Schlueter).
 * SUPPORT-240: Prevent exit of enforcer daemon upon interrupted interaction
