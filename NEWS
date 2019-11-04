@@ -27,6 +27,13 @@ OpenDNSSEC 2.2 - 2017-xx-xx
                   the same zone back again.
 * SUPPORT-215:    Notify the signer after a zone was deleted.
 
+OpenDNSSEC 2.1.5 - 2019-11-05
+
+* SUPPORT-245: Resolve memory leak in signer since 2.1.4.
+* SUPPORT-244: Don't require Host and Port to be specified in conf.xml
+  when migrating with a MySQL-based enforcer database backend.
+* Allow for MySQL database to be pre-generated when running the migration.
+
 OpenDNSSEC 2.1.4 - 2019-05-16
 
 * SUPPORT-229: Missing signatures for key new while signatures for old key
