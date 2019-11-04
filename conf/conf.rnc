@@ -53,7 +53,7 @@ start = element Configuration {
 			element SkipPublicKey { empty }? &
 
 			# Generate extractable keys (CKA_EXTRACTABLE = TRUE) (optional)
-			element AllowExtract { empty }?
+			element AllowExtraction { empty }?
 
 		}*
 	} &
