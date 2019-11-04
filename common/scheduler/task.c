@@ -205,7 +205,7 @@ task_compare_time_then_ttuple(const void* a, const void* b)
 
     if (x->due_date != schedule_WHENEVER && y->due_date != schedule_WHENEVER) {
         if (x->due_date != y->due_date) {
-            return (int) x->due_date - y->due_date;
+            return x->due_date - y->due_date;
         }
     }
     return cmp_ttuple(x, y);
