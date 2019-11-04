@@ -379,7 +379,8 @@ main(int argc, char* argv[])
     cfg->verbosity = verbosity;
     /* does it make sense? */
     if (engine_config_check(cfg) != ODS_STATUS_OK) {
-        abort(); /* TODO give some error, abort */
+        fprintf(stderr,"Configuration error.\n");
+        exit(1);
     }
 
     status = hsm_open2(parse_conf_repositories(cfgfile), hsm_prompt_pin);
@@ -388,7 +389,6 @@ main(int argc, char* argv[])
         if (errorstr != NULL) {
             fprintf(stderr, "%s", errorstr);
             free(errorstr);
-            abort(); /* FIXME */
         } else {
             fprintf(stderr,"error opening libhsm (errno %i)\n", status);
         }
@@ -402,6 +402,7 @@ main(int argc, char* argv[])
             dblayer_sqlite3_open(cfg->datastore);
 #else
             fprintf(stderr, "Database SQLite3 not available during compile-time.\n");
+            exit(1);
 #endif
             break;
         case ENFORCER_DATABASE_TYPE_MYSQL:
@@ -409,11 +410,14 @@ main(int argc, char* argv[])
             dblayer_mysql_open(cfg->db_host, cfg->db_username, cfg->db_password, cfg->datastore, cfg->db_port, NULL);
 #else
     fprintf(stderr, "Database MySQL not available during compile-time.\n");
+    exit(1);
 #endif
             break;
         case ENFORCER_DATABASE_TYPE_NONE:
         default:
-            fprintf(stderr, "No database defined\n");
+            fprintf(stderr, "No database defined, possible mismatch build\n");
+            fprintf(stderr, "and configuration for SQLite3 or MySQL.\n");
+            exit(1);
     }
 
     dblayer_foreach(listQueryStr, updateQueryStr, &compute);

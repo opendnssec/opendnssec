@@ -725,7 +725,7 @@ parse_conf_db_type(const char *cfgfile) {
     const char* str = NULL;
 
     if ((str = parse_conf_string(cfgfile,
-                                 "//Configuration/Enforcer/Datastore/MySQL/Host",
+                                 "//Configuration/Enforcer/Datastore/MySQL/Database",
                                  0)))
     {
         free((void*)str);
