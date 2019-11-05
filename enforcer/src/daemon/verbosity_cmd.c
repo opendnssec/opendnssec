@@ -104,7 +104,7 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 			return -1;
 		}
 		ods_log_setverbosity(val);
-		client_printf(sockfd, "Verbosity level set to %i.\n", val);
+		client_printf(sockfd, "Verbosity level set to %li.\n", val);
 		return 0;
 	} else {
 		client_printf(sockfd, "Too many arguments.\n");

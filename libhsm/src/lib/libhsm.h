@@ -160,7 +160,11 @@ the given strings.
 */
 void
 hsm_ctx_set_error(hsm_ctx_t *ctx, int error, const char *action,
-                 const char *message, ...);
+                 const char *message, ...)
+#ifdef HAVE___ATTRIBUTE__
+     __attribute__ ((format (printf, 4, 5)))
+#endif
+     ;
 
 /*! Open HSM library
 
