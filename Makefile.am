@@ -22,7 +22,6 @@ SUBDIRS += enforcer
 endif
 
 EXTRA_DIST =	$(srcdir)/LICENSE \
-		$(srcdir)/MIGRATION \
 		$(srcdir)/README.md \
 		$(srcdir)/contrib/ods-sequencer/ods-sequencer \
 		$(srcdir)/contrib/ods-sequencer/ods-sequencer.md \
