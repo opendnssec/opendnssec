@@ -12,6 +12,7 @@ OpenDNSSEC 2.1.5 - 2019-11-05
   Ulrich-Lorenz Schlueter).
 * SUPPORT-240: Prevent exit of enforcer daemon upon interrupted interaction
   with CLI commands.
+* Correct some error messages (thanks to Jonas Berlin).
 
 OpenDNSSEC 2.1.4 - 2019-05-16
 
