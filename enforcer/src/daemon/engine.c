@@ -634,6 +634,8 @@ engine_init(engine_type* engine, int daemonize)
     sigaction(SIGINT, &action, NULL);
     sigaction(SIGPIPE, &action, NULL);
     engine->dbcfg_list = NULL;
+    action.sa_handler = SIG_IGN;
+    sigaction(SIGPIPE, &action, NULL);
 }
 
 /**
