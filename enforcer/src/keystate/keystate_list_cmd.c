@@ -225,6 +225,7 @@ usage(int sockfd)
         "key list\n"
         "	[--verbose]				aka -v\n"
         "	[--debug]				aka -d\n"
+        "	[--full]				aka -f\n"
         "	[--parsable]				aka -p\n"
         "	[--zone]				aka -z  \n"
         "	[--keytype]				aka -t  \n"
@@ -236,11 +237,13 @@ usage(int sockfd)
 static void
 help(int sockfd)
 {
+
     client_printf(sockfd, 
         "List the keys in the enforcer database.\n"
         "\nOptions:\n"
         "verbose		also show additional key parameters\n"
         "debug		print information about the keystate\n"
+        "full		print information about the keystate and keytags\n"
         "parsable	output machine parsable list\n"
         "zone		limit the output to the specific zone\n"
         "keytype	limit the output to the given type, can be ZSK, KSK, or CSK\n"
