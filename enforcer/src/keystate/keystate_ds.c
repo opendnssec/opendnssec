@@ -192,7 +192,7 @@ exec_dnskey_by_id(int sockfd, key_data_t *key, const char* ds_command,
 				if (bytes_written < 0) {
 					status = 5;
 					ods_log_error_and_printf(sockfd,  module_str,
-						 "[%s] Failed to write to %s: %s", ds_command,
+						 "Failed to write to %s: %s", ds_command,
 						 strerror(errno));
 				} else if (pclose(fp) == -1) {
 					status = 6;

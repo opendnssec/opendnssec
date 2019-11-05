@@ -54,9 +54,9 @@ static const char *module_str = "keystate_list_task";
 #define UNR KEY_STATE_STATE_UNRETENTIVE
 #define NAV KEY_STATE_STATE_NA
 
-enum {KS_GEN = 0, KS_PUB, KS_RDY, KS_ACT, KS_RET, KS_UNK, KS_MIX};
+enum {KS_GEN = 0, KS_PUB, KS_RDY, KS_ACT, KS_RET, KS_UNK, KS_MIX, KS_DEAD};
 const char* statenames[] = {"generate", "publish", "ready",
-		"active", "retire", "unknown", "mixed"};
+		"active", "retire", "unknown", "mixed", "dead"};
 
 /** Map 2.0 states to 1.x states
  * @param p: state of RR higher in the chain (e.g. DS)
@@ -148,7 +148,10 @@ map_keytime(const zone_db_t *zone, const key_data_t *key)
 			return strdup("waiting for ds-retract");
 		case KEY_DATA_DS_AT_PARENT_RETRACTED:
 			return strdup("waiting for ds-gone");
-		default:
+            case KEY_DATA_DS_AT_PARENT_INVALID: return strdup("ds-invalid");
+            case KEY_DATA_DS_AT_PARENT_UNSUBMITTED: return strdup("ds-unsubmitted");
+            case KEY_DATA_DS_AT_PARENT_SEEN: return strdup("ds-seen");
+            default:
 			break;
 	}
 	if (zone_db_next_change(zone) < 0)
@@ -216,6 +219,7 @@ usage(int sockfd)
 		"key list\n"
 		"	[--verbose]				aka -v\n"
 		"	[--debug]				aka -d\n"
+		"	[--full]				aka -f\n"
 		"	[--parsable]				aka -p\n"
 		"	[--zone]				aka -z  \n"
 		"	[--keystate | --all]				aka -k | -a  \n"
@@ -230,6 +234,7 @@ help(int sockfd)
 		"\nOptions:\n"
 		"verbose		also show additional key parameters\n"
 		"debug		print information about the keystate\n"
+		"full		print information about the keystate and keytags\n"
 		"parsable	output machine parsable list\n"
 		"zone		limit the output to the specific zone\n"
 		"keytype	limit the output to the given type, can be ZSK, KSK, or CSK\n"
@@ -277,6 +282,25 @@ printverbosekey(int sockfd, zone_db_t* zone, key_data_t* key, char* tchange, hsm
             hsm_key_locator(hsmkey),
             hsm_key_repository(hsmkey),
             key_data_keytag(key));
+}
+
+static void
+printFullkey(int sockfd, zone_db_t* zone, key_data_t* key, char* tchange, hsm_key_t* hsmkey) {
+    (void)tchange;
+    client_printf(sockfd,
+            "%-31s %-8s %-9s %d %s %-12s %-12s %-12s %-12s %d %4d    %s\n",
+            zone_db_name(zone),
+            key_data_role_text(key),
+            map_keystate(key),
+            key_data_keytag(key),
+            hsm_key_locator(hsmkey),
+            key_state_state_text(key_data_cached_ds(key)),
+            key_state_state_text(key_data_cached_dnskey(key)),
+            key_state_state_text(key_data_cached_rrsigdnskey(key)),
+            key_state_state_text(key_data_cached_rrsig(key)),
+            key_data_publish(key),
+            key_data_active_ksk(key) | key_data_active_zsk(key),
+            tchange);
 }
 
 static void
@@ -341,7 +365,7 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
     #define NARGV 12
     const char *argv[NARGV];
     int success, argIndex;
-    int argc = 0, bVerbose = 0, bDebug = 0, bParsable = 0, bAll = 0;
+    int argc = 0, bVerbose = 0, bDebug = 0, bFull = 0, bParsable = 0, bAll = 0;
     int long_index = 0, opt = 0;
     const char* keytype = NULL;
     const char* keystate = NULL;
@@ -351,6 +375,7 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
     static struct option long_options[] = {
         {"verbose", no_argument, 0, 'v'},
         {"debug", no_argument, 0, 'd'},
+        {"full", no_argument, 0, 'f'},
         {"parsable", no_argument, 0, 'p'},
         {"zone", required_argument, 0, 'z'},
         {"keytype", required_argument, 0, 't'},
@@ -374,13 +399,16 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
         return -1;
     }
     optind = 0;
-    while ((opt = getopt_long(argc, (char* const*)argv, "vdpz:t:e:a", long_options, &long_index) ) != -1) {
+    while ((opt = getopt_long(argc, (char* const*)argv, "vdfpz:t:e:a", long_options, &long_index) ) != -1) {
         switch (opt) {
             case 'v':
                 bVerbose = 1;
                 break;
             case 'd':
                 bDebug = 1;
+                break;
+            case 'f':
+                bFull = 1;
                 break;
             case 'p':
                 bParsable = 1;
@@ -410,7 +438,9 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
         return -1;
     }
 
-    if (bDebug) {
+    if (bFull) {
+        success = perform_keystate_list(sockfd, dbconn, zonename, keytype, keystate, NULL, &printFullkey);
+    } else if (bDebug) {
         if (bParsable) {
             success = perform_keystate_list(sockfd, dbconn, zonename, keytype, keystate, NULL, &printdebugparsablekey);
         } else {
