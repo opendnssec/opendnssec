@@ -302,6 +302,8 @@ dblayer_foreach(const char* listQueryStr, const char* updateQueryStr, int (*comp
 const char* listQueryStr = "select keyData.id,keyData.algorithm,keyData.role,keyData.keytag,hsmKey.locator from keyData join hsmKey on keyData.hsmKeyId = hsmKey.id";
 const char* updateQueryStr = "update keyData set keytag = ? where id = ?";
 
+static int keytagcount;
+
 static int
 compute(char **argv, int* id, uint16_t* keytag)
 {
@@ -315,6 +317,7 @@ compute(char **argv, int* id, uint16_t* keytag)
     *keytag = atoi(argv[3]);
     locator = argv[4];
     hsm_keytag(locator, algorithm, ksk, keytag);
+    keytagcount += 1;
     
     return 0;
 }
@@ -371,6 +374,7 @@ main(int argc, char* argv[])
     tzset(); /* for portability */
 
     /* Parse config file */
+    printf("Reading config file '%s'..\n", cfgfile);
     cfg = engine_config(cfgfile, verbosity, NULL);
     if (!cfg) {
         return 1;
@@ -383,6 +387,7 @@ main(int argc, char* argv[])
         exit(1);
     }
 
+    printf("Connecting to HSM..\n");
     status = hsm_open2(parse_conf_repositories(cfgfile), hsm_prompt_pin);
     if (status != HSM_OK) {
         char* errorstr =  hsm_get_error(NULL);
@@ -396,6 +401,7 @@ main(int argc, char* argv[])
     }
     dblayer_initialize();
 
+    printf("Connecting to database..\n");
     switch (cfg->db_type) {
         case ENFORCER_DATABASE_TYPE_SQLITE:
 #ifdef HAVE_SQLITE3
@@ -420,8 +426,12 @@ main(int argc, char* argv[])
             exit(1);
     }
 
+    keytagcount = 0;
+    printf("Computing keytags, this could take a while.\n");
     dblayer_foreach(listQueryStr, updateQueryStr, &compute);
-    
+    printf("Added keytags for %d keys.\n", keytagcount);
+
+    printf("Finishing..\n");
     hsm_close();
 
     engine_config_cleanup(cfg);

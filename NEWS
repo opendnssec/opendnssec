@@ -32,11 +32,12 @@ OpenDNSSEC 2.1.5 - 2019-11-05
 * SUPPORT-245: Resolve memory leak in signer since 2.1.4.
 * SUPPORT-244: Don't require Host and Port to be specified in conf.xml
   when migrating with a MySQL-based enforcer database backend.
-* Allow for MySQL database to be pre-generated when running the migration.
+* Allow for MySQL database to be pre-generated when running the migration,
+  bit more verbose migration process.
 * Full list of key states, that combined the -d and -v without trying to 
   be backwards compatible.
-* Fix AllowExtraction tag in configration file definition.
-* SUPPORT-242: Skip over EDNS cookie option (thanks to Ha¥vard Eidne and
+* Fix AllowExtraction tag in configration file definition (thanks to raixie1A)
+* SUPPORT-242: Skip over EDNS cookie option (thanks to HÃ¥vard Eidne and
   Ulrich-Lorenz Schlueter).
 * SUPPORT-240: Prevent exit of enforcer daemon upon interrupted interaction
   with CLI commands.
