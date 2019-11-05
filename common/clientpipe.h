@@ -28,11 +28,22 @@
 #ifndef DAEMON_CLIENTPIPE_H
 #define DAEMON_CLIENTPIPE_H
 
+#include "config.h"
 #include <stdint.h>
 
 /* 1 on succes 0 on fail*/
-int client_printf(int sockfd, const char * format, ...);
-int client_printf_err(int sockfd, const char * format, ...);
+int client_printf(int sockfd, const char * format, ...)
+#ifdef HAVE___ATTRIBUTE__
+     __attribute__ ((format (printf, 2, 3)))
+#endif
+     ;
+
+int client_printf_err(int sockfd, const char * format, ...)
+#ifdef HAVE___ATTRIBUTE__
+     __attribute__ ((format (printf, 2, 3)))
+#endif
+     ;
+
 
 /**
  * Client part of prompt handling

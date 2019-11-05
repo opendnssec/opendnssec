@@ -34,6 +34,7 @@
 #define DEFAULT_LOG_FACILITY_STRING "LOG_USER"
 #endif /* LOG_DAEMON */
 
+#include "config.h"
 #include <libxml/xpath.h>
 
 #define KC_NAME_LENGTH     256
@@ -53,7 +54,12 @@ int check_zonelist(const char *zonelist, int verbose, char **policy_names,
 
 void log_init(int facility, const char *program_name);
 void log_switch(int facility, const char *program_name);
-void dual_log(const char *format, ...);
+void dual_log(const char *format, ...)
+#ifdef HAVE___ATTRIBUTE__
+     __attribute__ ((format (printf, 1, 2)))
+#endif
+     ;
+
 
 int check_rng(const char *filename, const char *rngfilename, int verbose);
 
