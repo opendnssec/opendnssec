@@ -1,4 +1,4 @@
-OpenDNSSEC 2.2 - 2017-xx-xx
+OpenDNSSEC 2.2 - 2019-xx-xx
 
 * OPENDNSSEC-620: SocketFile and PidFile where not reconized in the signer config.
 * OPENDNSSEC-796: Improved separation of logic and database code.
@@ -26,6 +26,40 @@ OpenDNSSEC 2.2 - 2017-xx-xx
 * OPENDNSSEC-919: Signer would crash after removing a zone and quickly add
                   the same zone back again.
 * SUPPORT-215:    Notify the signer after a zone was deleted.
+
+OpenDNSSEC 2.1.5 - 2019-11-05
+
+* SUPPORT-245: Resolve memory leak in signer introduced in 2.1.4.
+* SUPPORT-244: Don't require Host and Port to be specified in conf.xml
+  when migrating with a MySQL-based enforcer database backend.
+* Allow for MySQL database to pre-exist when performing a migration,
+  and be a bit more verbose during migration.
+* New -f argument to ods-enforcer key list to show the full list of key states,
+  similar to combinining -d and -v.
+* Fix AllowExtraction tag in configuration file definition (thanks to raixie1A).
+* SUPPORT-242: Skip over EDNS cookie option (thanks to Håvard Eidne and
+  Ulrich-Lorenz Schlueter).
+* SUPPORT-240: Prevent exit of enforcer daemon upon interrupted interaction
+  with CLI commands.
+* Correct some error messages (thanks to Jonas Berlin).
+
+OpenDNSSEC 2.1.4 - 2019-05-16
+
+* SUPPORT-229: Missing signatures for key new while signatures for old key
+  still present under certain kasp policies, leading to bogus zones.
+  Root cause for bug existed but made prominent since 2.1.3 release.
+* OPENDNSSEC-942: time leap command for signer for debugging purposes
+  only, not to be used on actual deployments.
+* OPENDNSSEC-943: support build on MacOS with missing pthread barriers
+* SUPPORT-229: fixed for too early retivement of signatures upon double
+  rrsig key roll signing strategy.
+* Strip build directory from doxygen docs
+* remove bashisms from ods-kasp2html.in
+* upgrade developer build scripts to softhsm-2.5.0 update some platform
+  dependent files (only for developers).
+* The ods-signer and ods-signerd man page should be in section 8 not 22
+  Note that this might mean that package managers should remove the older
+  man pages from the old location.
 
 OpenDNSSEC 2.1.3 - 2017-08-10
 
