@@ -138,7 +138,7 @@ Import zones from zonelist.xml into the enforcer database.
 .SH "KEY MANAGEMENT SUBCOMMANDS"
 .LP
 .TP
-.B key list [--verbose] [--debug] [--parsable] [--zone] [--keystate] [--all]
+.B key list [--verbose] [--debug] [--full] [--parsable] [--zone] [--keystate] [--all]
 List information about keys in all zones, or in a particular zone from the database.
 .TP 
 .B key export (--zone <zone> | --all) [--keystate <state>] [--keytype <type>] [--ds]

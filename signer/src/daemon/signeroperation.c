@@ -214,8 +214,9 @@ rrset_sign(signconf_type* signconf, names_view_type view, recordset_type record,
 
     /* Transmogrify rrset */
     if (ldns_rr_list_rr_count(rrset) <= 0) {
-        if(rrset) ldns_rr_list_free(rrset);
         /* Empty RRset, no signatures needed */
+        if(rrset) ldns_rr_list_free(rrset);
+        free(matchedsignatures);
         return 0;
     }
 
@@ -234,10 +235,12 @@ rrset_sign(signconf_type* signconf, names_view_type view, recordset_type record,
     /* Skip delegation, glue and occluded RRsets */
     if (dstatus != LDNS_RR_TYPE_SOA) {
         if(rrset) ldns_rr_list_free(rrset);
+        free(matchedsignatures);
         return 0;
     }
     if (delegpt != LDNS_RR_TYPE_SOA && rrtype != LDNS_RR_TYPE_DS) {
         if(rrset) ldns_rr_list_free(rrset);
+        free(matchedsignatures);
         return 0;
     }
     
@@ -319,6 +322,8 @@ rrset_sign(signconf_type* signconf, names_view_type view, recordset_type record,
             rrsig = lhsm_sign(ctx, rrset, matchedsignatures[i].key, inception, expiration);
             if (rrsig == NULL) {
                 ods_log_crit("unable to sign RRset[%i]: lhsm_sign() failed", rrtype);
+                if(rrset) ldns_rr_list_free(rrset);
+                free(matchedsignatures);
                 return ODS_STATUS_HSM_ERR;
             }
             /* Add signature */
@@ -336,6 +341,7 @@ rrset_sign(signconf_type* signconf, names_view_type view, recordset_type record,
                     if(apex)
                         ldns_rdf_free(apex);
                     if(rrset) ldns_rr_list_free(rrset);
+                    free(matchedsignatures);
                     return status;
                 }
                 /* Add signature */
