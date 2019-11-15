@@ -318,7 +318,7 @@ rrset_sign(signconf_type* signconf, names_view_type view, recordset_type record,
     for (int i = 0; i < nmatchedsignatures; i++) {
         if (!matchedsignatures[i].signature && matchedsignatures[i].key) {
             /* Sign the RRset with this key */
-            logger_message(&cls,logger_noctx,logger_TRACE, "sign %s with key %s inception=%ld expiration=%ld delegation=%s occluded=%s\n",names_recordgetname(record),matchedsignatures[i].key->locator,(long)expiration,(long)expiration,(delegpt!=LDNS_RR_TYPE_SOA?"yes":"no"),(dstatus!=LDNS_RR_TYPE_SOA?"yes":"no"));
+            logger_message(&cls,logger_noctx,logger_TRACE, "sign %s with key %s inception=%ld expiration=%ld delegation=%s occluded=%s\n",names_recordgetname(record),matchedsignatures[i].key->locator,(long)inception,(long)expiration,(delegpt!=LDNS_RR_TYPE_SOA?"yes":"no"),(dstatus!=LDNS_RR_TYPE_SOA?"yes":"no"));
             rrsig = lhsm_sign(ctx, rrset, matchedsignatures[i].key, inception, expiration);
             if (rrsig == NULL) {
                 ods_log_crit("unable to sign RRset[%i]: lhsm_sign() failed", rrtype);
