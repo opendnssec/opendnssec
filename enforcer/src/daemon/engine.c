@@ -398,7 +398,7 @@ desetup_database(engine_type* engine)
     engine->dbcfg_list = NULL;
 }
 
-static void *
+static void
 signal_handler(sig_atomic_t sig)
 {
     switch (sig) {
@@ -422,7 +422,6 @@ signal_handler(sig_atomic_t sig)
         default:
             break;
     }
-    return NULL;
 }
 
 /**
@@ -455,7 +454,7 @@ engine_setup()
     }
 
     /* create command handler (before chowning socket file) */
-    engine->cmdhandler = cmdhandler_create(engine->config->clisock_filename_enforcer, enforcercommands, engine, (void*(*)(void*)) (void(*)(void*))&get_database_connection, (void(*)(void*))&db_connection_free);
+    engine->cmdhandler = cmdhandler_create(engine->config->clisock_filename_enforcer, enforcercommands, engine, (void*(*)(void*)) &get_database_connection, (void(*)(void*))&db_connection_free);
     if (!engine->cmdhandler) {
         ods_log_error("[%s] create command handler to %s failed",
             engine_str, engine->config->clisock_filename_enforcer);
