@@ -26,8 +26,8 @@
  *
  */
 
-#include <getopt.h>
 #include "config.h"
+#include <getopt.h>
 
 #include "file.h"
 #include "duration.h"
