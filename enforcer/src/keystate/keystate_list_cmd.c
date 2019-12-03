@@ -148,10 +148,7 @@ map_keytime(const zone_db_t *zone, const key_data_t *key)
 			return strdup("waiting for ds-retract");
 		case KEY_DATA_DS_AT_PARENT_RETRACTED:
 			return strdup("waiting for ds-gone");
-            case KEY_DATA_DS_AT_PARENT_INVALID: return strdup("ds-invalid");
-            case KEY_DATA_DS_AT_PARENT_UNSUBMITTED: return strdup("ds-unsubmitted");
-            case KEY_DATA_DS_AT_PARENT_SEEN: return strdup("ds-seen");
-            default:
+                default:
 			break;
 	}
 	if (zone_db_next_change(zone) < 0)

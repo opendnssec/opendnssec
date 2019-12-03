@@ -1,3 +1,8 @@
+OpenDNSSEC 2.1.6 - 2019-12-??
+
+* OPENDNSSEC-913: verify databasew connection upon every use.
+* OPENDNSSEC-944: bad display of date of next transition (regression)
+
 OpenDNSSEC 2.1.5 - 2019-11-05
 
 * SUPPORT-245: Resolve memory leak in signer introduced in 2.1.4.
