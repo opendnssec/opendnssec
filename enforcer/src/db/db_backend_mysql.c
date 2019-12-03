@@ -55,6 +55,11 @@ typedef struct db_backend_mysql {
     MYSQL* db;
     int transaction;
     unsigned int timeout;
+    const char* db_host;
+    const char* db_user;
+    const char* db_pass;
+    const char* db_name;
+    int db_port;
 } db_backend_mysql_t;
 
 
@@ -133,6 +138,27 @@ static inline void __db_backend_mysql_finish(db_backend_mysql_statement_t* state
     free(statement);
 }
 
+
+static inline void checkconnection(db_backend_mysql_t* backend_mysql)
+{
+    MYSQL_RES *result;
+    if(mysql_query(backend_mysql->db, "SELECT 1")) {
+        ods_log_warning("db_backend_mysql: connection lost, trying to reconnect");
+        if(!mysql_real_connect(backend_mysql->db, backend_mysql->db_host, backend_mysql->db_user, backend_mysql->db_pass,
+                               backend_mysql->db_name, backend_mysql->db_port, NULL, 0) ||
+            mysql_autocommit(backend_mysql->db, 1)) {
+                if (backend_mysql->db) {
+                    ods_log_error("db_backend_mysql: reconnect failed %d: %s", mysql_errno(backend_mysql->db), mysql_error(backend_mysql->db));
+                    mysql_close(backend_mysql->db);
+                    backend_mysql->db = NULL;
+                }
+        }
+    } else {
+          result = mysql_store_result(backend_mysql->db);
+          mysql_free_result(result);
+    }
+}
+
 /**
  * MySQL prepare function.
  *
@@ -162,6 +188,8 @@ static inline int __db_backend_mysql_prepare(db_backend_mysql_t* backend_mysql, 
     if (!sql) {
         return DB_ERROR_UNKNOWN;
     }
+
+    checkconnection(backend_mysql);
 
     /*
      * Prepare the statement.
@@ -701,16 +729,16 @@ static int db_backend_mysql_connect(void* data, const db_configuration_list_t* c
         }
     }
 
+    backend_mysql->db_host = (host ? db_configuration_value(host) : NULL);
+    backend_mysql->db_user = (user ? db_configuration_value(user) : NULL);
+    backend_mysql->db_pass = (pass ? db_configuration_value(pass) : NULL);
+    backend_mysql->db_port = port;
+    backend_mysql->db_name = (db   ? db_configuration_value(db)   : NULL);
     if (!(backend_mysql->db = mysql_init(NULL))
         || mysql_options(backend_mysql->db, MYSQL_OPT_CONNECT_TIMEOUT, &backend_mysql->timeout)
         || !mysql_real_connect(backend_mysql->db,
-            (host ? db_configuration_value(host) : NULL),
-            (user ? db_configuration_value(user) : NULL),
-            (pass ? db_configuration_value(pass) : NULL),
-            (db ? db_configuration_value(db) : NULL),
-            port,
-            NULL,
-            0)
+                               backend_mysql->db_host, backend_mysql->db_user, backend_mysql->db_pass,
+                               backend_mysql->db_name, backend_mysql->db_port, NULL, 0)
         || mysql_autocommit(backend_mysql->db, 1))
     {
         if (backend_mysql->db) {
