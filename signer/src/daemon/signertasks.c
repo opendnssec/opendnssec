@@ -485,6 +485,8 @@ do_signzone(task_type* task, const char* zonename, void* zonearg, void *contexta
       if (zone->stats) {
         pthread_mutex_lock(&zone->stats->stats_lock);
         zone->stats->sig_time = (end - start);
+        /* TODO: set sig_count and sig_soa_count to the right values as
+           currently they are always zero in the develop branch. */
         if (zone->stats->sort_done == 0 &&
             (zone->stats->sig_count <= zone->stats->sig_soa_count)) {
             ods_log_verbose("skip write zone %s serial %u (zone not "
@@ -698,6 +700,11 @@ do_writezone(task_type* task, const char* zonename, void* zonearg, void *context
         }
     }
 
+    /* TODO: factor this call to tools_output() and the subsequent if block
+       out because either one or the other will actually write the zone, but
+       not both. Which is determined by the value of zonefile_freq which
+       relates to whether or not fast updates are enabled, so perhaps a fast
+       updates enabled flag should be checked to make this more explicit? */
     tools_output(zone, engine);
 
     if(zone->operatingconf->zonefile_freq > 0) {
