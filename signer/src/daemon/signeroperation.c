@@ -589,6 +589,8 @@ namedb_update_serial(zone_type* zone)
         serial = (uint32_t) time_now();
     } else if (!strcmp(format, "datecounter")) {
         serial = (uint32_t) time_datestamp(0, "%Y%m%d", NULL) * 100;
+        /* TODO: support 01-99 values of NN in YYYYmmddNN, e.g. if the YYYYmmdd
+           part of serial is the same as zone->inboundserial? */
     } else if (!strcmp(format, "counter")) {
         if(zone->inboundserial) {
             serial = *(zone->inboundserial) + 1;
