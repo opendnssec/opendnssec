@@ -109,6 +109,10 @@ void
 janitor_threadclass_setdetached(janitor_threadclass_t threadclass)
 {
     threadclass->detached = 1;
+    if (!threadclass->hasattr) {
+        pthread_attr_init(&threadclass->attr);
+    }
+    pthread_attr_setdetachstate(&threadclass->attr, PTHREAD_CREATE_DETACHED);
 }
 
 void
@@ -127,7 +131,9 @@ void
 janitor_threadclass_setminstacksize(janitor_threadclass_t threadclass, size_t minstacksize)
 {
     size_t stacksize;
-    pthread_attr_init(&threadclass->attr);
+    if (!threadclass->hasattr) {
+        pthread_attr_init(&threadclass->attr);
+    }
     pthread_attr_getstacksize(&threadclass->attr, &stacksize);
     if (stacksize < minstacksize) {
         pthread_attr_setstacksize(&threadclass->attr, minstacksize);
@@ -241,7 +247,7 @@ janitor_thread_dispose(janitor_thread_t info)
         }
         pthread_mutex_unlock(&threadlock);
     }
-    /*free(info);*/
+    free(info);
 }
 
 static void
@@ -276,6 +282,9 @@ janitor_thread_finished(janitor_thread_t info)
         }
         finishedthreadlist = info;
         pthread_mutex_unlock(&threadlock);
+    } else {
+        pthread_detach(pthread_self());
+        janitor_thread_dispose(info);
     }
 }
 
@@ -308,6 +317,8 @@ runthread(void* data)
             report("pthread_sigmask: %s (%d)", strerror(err), err);
     }
     info->runfunc(info->rundata);
+    sigaltstack(&prevss, NULL);
+    free(ss.ss_sp); /* libxml has/had problems when freeing this as it tries to access it */
     janitor_thread_unregister(info);
     janitor_thread_finished(info);
     return NULL;
@@ -386,7 +397,6 @@ janitor_thread_tryjoinall(janitor_threadclass_t threadclass)
         }
         pthread_mutex_unlock(&threadlock);
         if (foundthread) {
-            free(foundthread->rundata);
             janitor_thread_join(foundthread);
         }
     } while(foundthread);
