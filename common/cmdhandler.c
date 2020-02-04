@@ -284,6 +284,7 @@ cmdhandler_accept_client(void* arg)
     if (context->cmdhandler->destroylocalcontext) {
         context->cmdhandler->destroylocalcontext(context->localcontext);
     }
+    free(context);
 }
 
 /**
@@ -364,8 +365,11 @@ cmdhandler_create(const char* filename, struct cmd_func_block** commands, void* 
 void
 cmdhandler_cleanup(cmdhandler_type* cmdhandler)
 {
-    close(cmdhandler->listen_fd);
-    free(cmdhandler);
+    if (cmdhandler) {
+        if (cmdhandler->listen_fd >= 0)
+            close(cmdhandler->listen_fd);
+        free(cmdhandler);
+    }
 }
 
 /**
