@@ -1,8 +1,9 @@
-OpenDNSSEC 2.1.6 - 2019-12-??
+OpenDNSSEC 2.1.6 - 2020-02-05
 
 * OPENDNSSEC-913: verify database connection upon every use.
 * OPENDNSSEC-944: bad display of date of next transition (regression)
 * SUPPORT-250: missing signatures on using combined keys (CSK)
+* OPENDNSSEC-945: memory leak per command to enforcer.
 
 OpenDNSSEC 2.1.5 - 2019-11-05
 
