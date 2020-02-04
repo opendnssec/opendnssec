@@ -683,7 +683,7 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
             expiration = ldns_rdf2native_int32(ldns_rr_rrsig_expiration(matchedsignatures[i].signature->rr));
             inception = ldns_rdf2native_int32(ldns_rr_rrsig_inception(matchedsignatures[i].signature->rr));
         }
-        if (matchedsignatures[i].key && matchedsignatures[i].key->ksk && rrset->rrtype != LDNS_RR_TYPE_DNSKEY) {
+        if (matchedsignatures[i].key && matchedsignatures[i].key->ksk && !matchedsignatures[i].key->zsk && rrset->rrtype != LDNS_RR_TYPE_DNSKEY) {
             /* If KSK don't sign other RRsets */
             matchedsignatures[i].key = NULL;
             matchedsignatures[i].signature = NULL;
@@ -692,7 +692,7 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
         } else if (matchedsignatures[i].key && !matchedsignatures[i].key->ksk && !matchedsignatures[i].key->zsk && rrset->rrtype != LDNS_RR_TYPE_DNSKEY && !matchedsignatures[i].key->publish) {
             matchedsignatures[i].key = NULL;
             matchedsignatures[i].signature = NULL;
-        } else if (matchedsignatures[i].key && !matchedsignatures[i].key->ksk && rrset->rrtype == LDNS_RR_TYPE_DNSKEY) {
+        } else if (matchedsignatures[i].key && !matchedsignatures[i].key->ksk && matchedsignatures[i].key->zsk && rrset->rrtype == LDNS_RR_TYPE_DNSKEY) {
             /* If not KSK don't sign DNSKEY RRset */
             matchedsignatures[i].key = NULL;
             matchedsignatures[i].signature = NULL;
