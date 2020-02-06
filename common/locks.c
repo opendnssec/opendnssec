@@ -220,7 +220,6 @@ ods_janitor_initialize(char*argv0)
 
     janitor_threadclass_create(&cmdhandlerthreadclass, "cmdhandlerthreads");
     janitor_threadclass_setautorun(cmdhandlerthreadclass);
-    janitor_threadclass_setblockedsignals(workerthreadclass);
     janitor_threadclass_setminstacksize(cmdhandlerthreadclass, ODS_MINIMUM_STACKSIZE);
 
     janitor_trapsignals(argv0);

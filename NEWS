@@ -27,6 +27,14 @@ OpenDNSSEC 2.2 - 2019-xx-xx
                   the same zone back again.
 * SUPPORT-215:    Notify the signer after a zone was deleted.
 
+OpenDNSSEC 2.1.6 - 2020-02-05
+
+* OPENDNSSEC-913: verify database connection upon every use.
+* OPENDNSSEC-944: bad display of date of next transition (regression)
+* SUPPORT-250: missing signatures on using combined keys (CSK)
+* OPENDNSSEC-945: memory leak per command to enforcer.
+* OPENDNSSEC-946: unclean enforcer exit in case of certain config problems.
+
 OpenDNSSEC 2.1.5 - 2019-11-05
 
 * SUPPORT-245: Resolve memory leak in signer introduced in 2.1.4.
