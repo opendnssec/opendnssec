@@ -1,4 +1,4 @@
-OpenDNSSEC 2.1.6 - 2020-02-05
+OpenDNSSEC 2.1.6 - 2020-02-06
 
 * OPENDNSSEC-913: verify database connection upon every use.
 * OPENDNSSEC-944: bad display of date of next transition (regression)
