@@ -34,6 +34,7 @@ OpenDNSSEC 2.1.6 - 2020-02-05
 * SUPPORT-250: missing signatures on using combined keys (CSK)
 * OPENDNSSEC-945: memory leak per command to enforcer.
 * OPENDNSSEC-946: unclean enforcer exit in case of certain config problems.
+* OPENDNSSEC-411: set-policy command to change policy of zone (experimental)
 
 OpenDNSSEC 2.1.5 - 2019-11-05
 

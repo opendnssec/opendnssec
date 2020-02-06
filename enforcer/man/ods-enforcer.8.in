@@ -21,7 +21,7 @@ conf | repositorylist | all
 list | export | import | purge | resalt
 .br
 .B ods\-enforcer zone 
-list | add | delete
+list | add | delete | set-policy
 .br
 .B ods\-enforcer zonelist 
 export | import
@@ -128,6 +128,9 @@ Add a new zone to the enforcer database.
 .TP
 .B zone delete (--zone <zone> | --all [--xml])
 Delete a zone or all of zones from the enforcer database. 
+.TP
+.B zone set-policy --zone <zone> --policy <policy> [--xml]
+Change the policy for a zone in the enforcer database.
 .TP
 .B zonelist export
 Export list of zones from the database to the zonelist.xml file.
