@@ -30,6 +30,7 @@
 #include "keystate/zone_list_cmd.h"
 #include "keystate/zone_del_cmd.h"
 #include "keystate/zone_add_cmd.h"
+#include "keystate/zone_set_policy_cmd.h"
 #include "keystate/keystate_ds_submit_cmd.h"
 #include "keystate/keystate_ds_seen_cmd.h"
 #include "keystate/keystate_ds_retract_cmd.h"
@@ -64,6 +65,7 @@ static struct cmd_func_block* enforcecommands[] = {
         &zone_list_funcblock,
         &zone_add_funcblock,
         &zone_del_funcblock,
+        &zone_set_policy_funcblock,
 
         &zonelist_export_funcblock,
         &zonelist_import_funcblock,

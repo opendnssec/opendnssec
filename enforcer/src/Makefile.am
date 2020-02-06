@@ -65,6 +65,7 @@ ods_enforcerd_SOURCES = \
 	keystate/zone_list_cmd.c keystate/zone_list_cmd.h \
 	keystate/zone_add_cmd.c keystate/zone_add_cmd.h \
 	keystate/zone_del_cmd.c keystate/zone_del_cmd.h \
+	keystate/zone_set_policy_cmd.c keystate/zone_set_policy_cmd.h \
 	keystate/keystate_list_cmd.c keystate/keystate_list_cmd.h \
 	keystate/rollover_list_cmd.c keystate/rollover_list_cmd.h \
 	keystate/keystate_export_cmd.c keystate/keystate_export_cmd.h \
