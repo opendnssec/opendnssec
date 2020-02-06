@@ -57,7 +57,7 @@
 
 			<!-- Parameters for ZSK only -->
 			<ZSK>
-				<Algorithm length="1024">8</Algorithm>
+				<Algorithm length="2048">8</Algorithm>
 				<Lifetime>P90D</Lifetime>
 				<Repository>SoftHSM</Repository>
 				<!-- <ManualRollover/> -->
@@ -115,14 +115,14 @@
 			<!-- Parameters for KSK only -->
 			<KSK>
 				<Algorithm length="2048">8</Algorithm>
-				<Lifetime>P1Y</Lifetime>
+				<Lifetime>PT1H</Lifetime>
 				<Repository>SoftHSM</Repository>
 			</KSK>
 
 			<!-- Parameters for ZSK only -->
 			<ZSK>
-				<Algorithm length="1024">8</Algorithm>
-				<Lifetime>PT4H</Lifetime>
+				<Algorithm length="2048">8</Algorithm>
+				<Lifetime>PT30M</Lifetime>
 				<Repository>SoftHSM</Repository>
 				<!-- <ManualRollover/> -->
 			</ZSK>
