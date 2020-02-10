@@ -692,6 +692,9 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
         } else if (matchedsignatures[i].key && !matchedsignatures[i].key->ksk && !matchedsignatures[i].key->zsk && rrset->rrtype != LDNS_RR_TYPE_DNSKEY && !matchedsignatures[i].key->publish) {
             matchedsignatures[i].key = NULL;
             matchedsignatures[i].signature = NULL;
+        } else if (matchedsignatures[i].key && !matchedsignatures[i].key->ksk && !matchedsignatures[i].key->zsk && rrset->rrtype == LDNS_RR_TYPE_DNSKEY) {
+            matchedsignatures[i].key = NULL;
+            matchedsignatures[i].signature = NULL;
         } else if (matchedsignatures[i].key && !matchedsignatures[i].key->ksk && matchedsignatures[i].key->zsk && rrset->rrtype == LDNS_RR_TYPE_DNSKEY) {
             /* If not KSK don't sign DNSKEY RRset */
             matchedsignatures[i].key = NULL;
