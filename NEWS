@@ -27,7 +27,7 @@ OpenDNSSEC 2.2 - 2017-xx-xx
                   the same zone back again.
 * SUPPORT-215:    Notify the signer after a zone was deleted.
 
-OpenDNSSEC 2.1.6 - 2020-02-06
+OpenDNSSEC 2.1.6 - 2020-02-10
 
 * OPENDNSSEC-913: verify database connection upon every use.
 * OPENDNSSEC-944: bad display of date of next transition (regression)
