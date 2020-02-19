@@ -39,6 +39,6 @@
  * Create a new database backend handle for SQLite.
  * \return a db_backend_handle_t pointer or NULL on error.
  */
-db_backend_handle_t* db_backend_sqlite_new_handle(void);
+extern db_backend_handle_t* db_backend_sqlite_new_handle(void);
 
 #endif

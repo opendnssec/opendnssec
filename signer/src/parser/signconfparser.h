@@ -47,7 +47,7 @@
  * \return keylist_type* key list
  *
  */
-keylist_type* parse_sc_keys(void* sc, const char* cfgfile);
+extern keylist_type* parse_sc_keys(void* sc, const char* cfgfile);
 
 /**
  * Parse elements from the configuration file.
@@ -55,19 +55,19 @@ keylist_type* parse_sc_keys(void* sc, const char* cfgfile);
  * \return duration_type* duration
  *
  */
-duration_type* parse_sc_sig_resign_interval(const char* cfgfile);
-duration_type* parse_sc_sig_refresh_interval(const char* cfgfile);
-duration_type* parse_sc_sig_validity_default(const char* cfgfile);
-duration_type* parse_sc_sig_validity_denial(const char* cfgfile);
-duration_type* parse_sc_sig_validity_keyset(const char* cfgfile);
-duration_type* parse_sc_sig_jitter(const char* cfgfile);
-duration_type* parse_sc_sig_inception_offset(const char* cfgfile);
-duration_type* parse_sc_dnskey_ttl(const char* cfgfile);
-const char** parse_sc_dnskey_sigrrs(const char* cfgfile);
-duration_type* parse_sc_nsec3param_ttl(const char* cfgfile);
-duration_type* parse_sc_soa_ttl(const char* cfgfile);
-duration_type* parse_sc_soa_min(const char* cfgfile);
-duration_type* parse_sc_max_zone_ttl(const char* cfgfile);
+extern duration_type* parse_sc_sig_resign_interval(const char* cfgfile);
+extern duration_type* parse_sc_sig_refresh_interval(const char* cfgfile);
+extern duration_type* parse_sc_sig_validity_default(const char* cfgfile);
+extern duration_type* parse_sc_sig_validity_denial(const char* cfgfile);
+extern duration_type* parse_sc_sig_validity_keyset(const char* cfgfile);
+extern duration_type* parse_sc_sig_jitter(const char* cfgfile);
+extern duration_type* parse_sc_sig_inception_offset(const char* cfgfile);
+extern duration_type* parse_sc_dnskey_ttl(const char* cfgfile);
+extern const char** parse_sc_dnskey_sigrrs(const char* cfgfile);
+extern duration_type* parse_sc_nsec3param_ttl(const char* cfgfile);
+extern duration_type* parse_sc_soa_ttl(const char* cfgfile);
+extern duration_type* parse_sc_soa_min(const char* cfgfile);
+extern duration_type* parse_sc_max_zone_ttl(const char* cfgfile);
 
 /**
  * Parse elements from the configuration file.
@@ -75,7 +75,7 @@ duration_type* parse_sc_max_zone_ttl(const char* cfgfile);
  * \return ldns_rr_type rr type
  *
  */
-ldns_rr_type parse_sc_nsec_type(const char* cfgfile);
+extern ldns_rr_type parse_sc_nsec_type(const char* cfgfile);
 
 /**
  * Parse elements from the configuration file.
@@ -83,8 +83,8 @@ ldns_rr_type parse_sc_nsec_type(const char* cfgfile);
  * \return uint32_t integer
  *
  */
-uint32_t parse_sc_nsec3_algorithm(const char* cfgfile);
-uint32_t parse_sc_nsec3_iterations(const char* cfgfile);
+extern uint32_t parse_sc_nsec3_algorithm(const char* cfgfile);
+extern uint32_t parse_sc_nsec3_iterations(const char* cfgfile);
 
 /**
  * Parse elements from the configuration file.
@@ -92,14 +92,14 @@ uint32_t parse_sc_nsec3_iterations(const char* cfgfile);
  * \return int integer
  *
  */
-int parse_sc_nsec3_optout(const char* cfgfile);
+extern int parse_sc_nsec3_optout(const char* cfgfile);
 
 /**
  * Parse elements from the configuration file.
  * \param[in] cfgfile the configuration file name.
  * \return boolean
  */
-int parse_sc_passthrough(const char* cfgfile);
+extern int parse_sc_passthrough(const char* cfgfile);
 
 /**
  * Parse elements from the configuration file.
@@ -107,7 +107,7 @@ int parse_sc_passthrough(const char* cfgfile);
  * \return const char* string
  *
  */
-const char* parse_sc_soa_serial(const char* cfgfile);
-const char* parse_sc_nsec3_salt(const char* cfgfile);
+extern const char* parse_sc_soa_serial(const char* cfgfile);
+extern const char* parse_sc_nsec3_salt(const char* cfgfile);
 
 #endif /* PARSER_SIGNCONFPARSER_H */

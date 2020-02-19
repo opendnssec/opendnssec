@@ -67,7 +67,7 @@ struct stats_struct {
  * \return the initialized stats;
  *
  */
-stats_type* stats_create(void);
+extern stats_type* stats_create(void);
 
 /**
  * Log statistics.
@@ -77,7 +77,7 @@ stats_type* stats_create(void);
  * \param[in] nsec_type NSEC or NSEC3
  *
  */
-void stats_log(stats_type* stats, const char* name, uint32_t serial,
+extern void stats_log(stats_type* stats, const char* name, uint32_t serial,
     ldns_rr_type nsec_type);
 
 /**
@@ -85,13 +85,13 @@ void stats_log(stats_type* stats, const char* name, uint32_t serial,
  * \param[in] stats statistics to be cleared
  *
  */
-void stats_clear(stats_type* stats);
+extern void stats_clear(stats_type* stats);
 
 /**
  * Clean up statistics.
  * \param[in] stats statistics to be deleted
  *
  */
-void stats_cleanup(stats_type* stats);
+extern void stats_cleanup(stats_type* stats);
 
 #endif /* SIGNER_STATS_H */

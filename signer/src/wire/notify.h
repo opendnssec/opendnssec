@@ -74,7 +74,7 @@ struct notify_struct {
  * \return notify_type* notify structure.
  *
  */
-notify_type* notify_create(xfrhandler_type* xfrhandler, zone_type* zone);
+extern notify_type* notify_create(xfrhandler_type* xfrhandler, zone_type* zone);
 
 /**
  * Enable notify.
@@ -82,20 +82,20 @@ notify_type* notify_create(xfrhandler_type* xfrhandler, zone_type* zone);
  * \param[in] soa current soa
  *
  */
-void notify_enable(notify_type* notify, ldns_rr* soa);
+extern void notify_enable(notify_type* notify, ldns_rr* soa);
 
 /**
  * Send notify.
  * \param[in] notify notify structure
  *
  */
-void notify_send(notify_type* notify);
+extern void notify_send(notify_type* notify);
 
 /**
  * Cleanup notify structure.
  * \param[in] notify notify structure.
  *
  */
-void notify_cleanup(notify_type* notify);
+extern void notify_cleanup(notify_type* notify);
 
 #endif /* WIRE_NOTIFY_H */

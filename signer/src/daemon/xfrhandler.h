@@ -79,14 +79,14 @@ struct xfrhandler_struct {
  * \return xfrhandler_type* created zoned transfer handler
  *
  */
-xfrhandler_type* xfrhandler_create(void);
+extern xfrhandler_type* xfrhandler_create(void);
 
 /**
  * Start zone transfer handler.
  * \param[in] xfrhandler_type* zone transfer handler
  *
  */
-void xfrhandler_start(xfrhandler_type* xfrhandler);
+extern void xfrhandler_start(xfrhandler_type* xfrhandler);
 
 /**
  * Get current time from the zone transfer handler.
@@ -94,20 +94,20 @@ void xfrhandler_start(xfrhandler_type* xfrhandler);
  * \return time_t current time
  *
  */
-time_t xfrhandler_time(xfrhandler_type* xfrhandler);
+extern time_t xfrhandler_time(xfrhandler_type* xfrhandler);
 
 /**
  * Signal zone transfer handler.
  * \param[in] xfrhandler_type* zone transfer handler
  *
  */
-void xfrhandler_signal(xfrhandler_type* xfrhandler);
+extern void xfrhandler_signal(xfrhandler_type* xfrhandler);
 
 /**
  * Cleanup zone transfer handler.
  * \param[in] xfrhandler_type* zone transfer handler
  *
  */
-void xfrhandler_cleanup(xfrhandler_type* xfrhandler);
+extern void xfrhandler_cleanup(xfrhandler_type* xfrhandler);
 
 #endif /* DAEMON_XFRHANDLER_H */

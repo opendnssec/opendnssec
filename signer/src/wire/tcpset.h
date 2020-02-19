@@ -77,7 +77,7 @@ struct tcp_set_struct {
  * \return tcp_conn_type* TCP connection.
  *
  */
-tcp_conn_type* tcp_conn_create(void);
+extern tcp_conn_type* tcp_conn_create(void);
 
 /**
  * Create a set of tcp connections.
@@ -85,14 +85,14 @@ tcp_conn_type* tcp_conn_create(void);
  * \return tcp_set_type* set of tcp connection.
  *
  */
-tcp_set_type* tcp_set_create(void);
+extern tcp_set_type* tcp_set_create(void);
 
 /**
  * Make tcp connection ready for reading.
  * \param[in] tcp tcp connection
  *
  */
-void tcp_conn_ready(tcp_conn_type* tcp);
+extern void tcp_conn_ready(tcp_conn_type* tcp);
 
 /*
  * Read from a tcp connection.
@@ -104,7 +104,7 @@ void tcp_conn_ready(tcp_conn_type* tcp);
  *              1 on completed read.
  *
  */
-int tcp_conn_read(tcp_conn_type* tcp);
+extern int tcp_conn_read(tcp_conn_type* tcp);
 
 /*
  * Write to a tcp connection.
@@ -116,7 +116,7 @@ int tcp_conn_read(tcp_conn_type* tcp);
  *              1 on completed write.
  *
  */
-int tcp_conn_write(tcp_conn_type* tcp);
+extern int tcp_conn_write(tcp_conn_type* tcp);
 
 /**
  * Clean up set of tcp connections.
@@ -124,6 +124,6 @@ int tcp_conn_write(tcp_conn_type* tcp);
  * \param[in] allocator memory allocator
  *
  */
-void tcp_set_cleanup(tcp_set_type* set);
+extern void tcp_set_cleanup(tcp_set_type* set);
 
 #endif /* WIRE_TCPSET_H */

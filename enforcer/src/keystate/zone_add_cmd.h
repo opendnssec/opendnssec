@@ -30,6 +30,6 @@
 #ifndef _KEYSTATE_ZONE_ADD_CMD_H_
 #define _KEYSTATE_ZONE_ADD_CMD_H_
 
-struct cmd_func_block zone_add_funcblock;
+extern struct cmd_func_block zone_add_funcblock;
 
 #endif /* _KEYSTATE_ZONE_ADD_CMD_H_ */

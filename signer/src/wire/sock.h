@@ -99,7 +99,7 @@ struct tcp_data {
  * \return ods_status status
  *
  */
-ods_status sock_listen(socklist_type* sockets, listener_type* listener);
+extern ods_status sock_listen(socklist_type* sockets, listener_type* listener);
 
 /**
  * Handle incoming udp queries.
@@ -108,7 +108,7 @@ ods_status sock_listen(socklist_type* sockets, listener_type* listener);
  * \param[in] event_types the types of events that should be checked for
  *
  */
-void sock_handle_udp(netio_type* netio, netio_handler_type* handler,
+extern void sock_handle_udp(netio_type* netio, netio_handler_type* handler,
     netio_events_type event_types);
 
 /**
@@ -118,7 +118,7 @@ void sock_handle_udp(netio_type* netio, netio_handler_type* handler,
  * \param[in] event_types the types of events that should be checked for
  *
  */
-void sock_handle_tcp_accept(netio_type* netio, netio_handler_type* handler,
+extern void sock_handle_tcp_accept(netio_type* netio, netio_handler_type* handler,
     netio_events_type event_types);
 
 /**
@@ -128,7 +128,7 @@ void sock_handle_tcp_accept(netio_type* netio, netio_handler_type* handler,
  * \param[in] event_types the types of events that should be checked for
  *
  */
-void sock_handle_tcp_read(netio_type* netio, netio_handler_type* handler,
+extern void sock_handle_tcp_read(netio_type* netio, netio_handler_type* handler,
     netio_events_type event_types);
 
 /**
@@ -138,7 +138,7 @@ void sock_handle_tcp_read(netio_type* netio, netio_handler_type* handler,
  * \param[in] event_types the types of events that should be checked for
  *
  */
-void sock_handle_tcp_write(netio_type* netio, netio_handler_type* handler,
+extern void sock_handle_tcp_write(netio_type* netio, netio_handler_type* handler,
     netio_events_type event_types);
 
 #endif /* WIRE_SOCK_H */

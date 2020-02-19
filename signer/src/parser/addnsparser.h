@@ -46,7 +46,7 @@
  * \return acl_type* ACL
  *
  */
-acl_type* parse_addns_request_xfr(const char* filename, tsig_type* tsig);
+extern acl_type* parse_addns_request_xfr(const char* filename, tsig_type* tsig);
 
 /**
  * Parse <AllowNotify/>.
@@ -56,7 +56,7 @@ acl_type* parse_addns_request_xfr(const char* filename, tsig_type* tsig);
  * \return acl_type* ACL
  *
  */
-acl_type* parse_addns_allow_notify(const char* filename, tsig_type* tsig);
+extern acl_type* parse_addns_allow_notify(const char* filename, tsig_type* tsig);
 
 /**
  * Parse <ProvideTransfer/>.
@@ -66,7 +66,7 @@ acl_type* parse_addns_allow_notify(const char* filename, tsig_type* tsig);
  * \return acl_type* ACL
  *
  */
-acl_type* parse_addns_provide_xfr(const char* filename, tsig_type* tsig);
+extern acl_type* parse_addns_provide_xfr(const char* filename, tsig_type* tsig);
 
 /**
  * Parse <Notify/>.
@@ -76,7 +76,7 @@ acl_type* parse_addns_provide_xfr(const char* filename, tsig_type* tsig);
  * \return acl_type* ACL
  *
  */
-acl_type* parse_addns_do_notify(const char* filename, tsig_type* tsig);
+extern acl_type* parse_addns_do_notify(const char* filename, tsig_type* tsig);
 
 /**
  * Parse <TSIG/>.
@@ -85,6 +85,6 @@ acl_type* parse_addns_do_notify(const char* filename, tsig_type* tsig);
  * \return tsig_type* TSIG
  *
  */
-tsig_type* parse_addns_tsig(const char* filename);
+extern tsig_type* parse_addns_tsig(const char* filename);
 
 #endif /* PARSER_ADDNSPARSER_H */

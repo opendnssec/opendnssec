@@ -46,11 +46,11 @@
  * @param[in] keyfactory
  * @return time_t Time the function wishes to be called again.
  * */
-time_t
+extern time_t
 update(engine_type *engine, struct dbw_db *db, struct dbw_zone *zone, time_t now, int *zone_updated);
 /**
  * same as above except will not create HSM keys.
  */
-time_t
+extern time_t
 update_mockup(engine_type *engine, struct dbw_db *db, struct dbw_zone *zone, time_t now, int *zone_updated);
 #endif /* _ENFORCER_ENFORCER_H_ */

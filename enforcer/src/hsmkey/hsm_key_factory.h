@@ -34,9 +34,9 @@
 
 #include <time.h>
 
-void hsm_key_factory_deinit(void);
+extern void hsm_key_factory_deinit(void);
 
-void
+extern void
 hsm_key_factory_schedule(engine_type *engine, int id, int count);
 
 /**
@@ -50,7 +50,7 @@ hsm_key_factory_schedule(engine_type *engine, int id, int count);
  * \return an allocated HSM key or NULL on error or if there are no unused keys
  * available for allocation right now.
  */
-struct dbw_hsmkey *
+extern struct dbw_hsmkey *
 hsm_key_factory_get_key(engine_type *engine, struct dbw_db *db,
     struct dbw_policykey *pkey, struct dbw_zone *zone);
 
@@ -58,9 +58,9 @@ hsm_key_factory_get_key(engine_type *engine, struct dbw_db *db,
  * Release a key, if its not used anymore it will be marked DELETE.
  * \param[in] key
  */
-void
+extern void
 hsm_key_factory_release_key(struct dbw_hsmkey *hsmkey, struct dbw_key *key);
-void
+extern void
 hsm_key_factory_release_key_mockup(struct dbw_hsmkey *hsmkey, struct dbw_key *key, int mockup);
 
 #endif /* _HSM_KEY_FACTORY_H_ */

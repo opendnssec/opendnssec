@@ -94,20 +94,20 @@ struct key_data {
  * \param[in] connection a db_connection_t pointer.
  * \return a key_data_t pointer or NULL on error.
  */
-key_data_t* key_data_new(const db_connection_t* connection);
+extern key_data_t* key_data_new(const db_connection_t* connection);
 
 /**
  * Create a new key data object that is a copy of another key data object.
  * \param[in] key_data a key_data_t pointer.
  * \return a key_data_t pointer or NULL on error.
  */
-key_data_t* key_data_new_copy(const key_data_t* key_data);
+extern key_data_t* key_data_new_copy(const key_data_t* key_data);
 
 /**
  * Delete a key data object, this does not delete it from the database.
  * \param[in] key_data a key_data_t pointer.
  */
-void key_data_free(key_data_t* key_data);
+extern void key_data_free(key_data_t* key_data);
 
 /**
  * Copy the content of a key data object.
@@ -115,7 +115,7 @@ void key_data_free(key_data_t* key_data);
  * \param[in] key_data_copy a key_data_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_data_copy(key_data_t* key_data, const key_data_t* key_data_copy);
+extern int key_data_copy(key_data_t* key_data, const key_data_t* key_data_copy);
 
 /**
  * Compare two key data objects and return less than, equal to,
@@ -126,7 +126,7 @@ int key_data_copy(key_data_t* key_data, const key_data_t* key_data_copy);
  * \return less than, equal to, or greater than zero if A is found, respectively,
  * to be less than, to match, or be greater than B.
  */
-int key_data_cmp(const key_data_t* key_data_a, const key_data_t* key_data_b);
+extern int key_data_cmp(const key_data_t* key_data_a, const key_data_t* key_data_b);
 
 /**
  * Set the content of a key data object based on a database result.
@@ -134,21 +134,21 @@ int key_data_cmp(const key_data_t* key_data_a, const key_data_t* key_data_b);
  * \param[in] result a db_result_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_data_from_result(key_data_t* key_data, const db_result_t* result);
+extern int key_data_from_result(key_data_t* key_data, const db_result_t* result);
 
 /**
  * Get the id of a key data object.
  * \param[in] key_data a key_data_t pointer.
  * \return a db_value_t pointer or NULL on error.
  */
-const db_value_t* key_data_id(const key_data_t* key_data);
+extern const db_value_t* key_data_id(const key_data_t* key_data);
 
 /**
  * Get the zone_id of a key data object.
  * \param[in] key_data a key_data_t pointer.
  * \return a db_value_t pointer or NULL on error.
  */
-const db_value_t* key_data_zone_id(const key_data_t* key_data);
+extern const db_value_t* key_data_zone_id(const key_data_t* key_data);
 
 /**
  * Get the zone_id object related to a key data object.
@@ -156,28 +156,28 @@ const db_value_t* key_data_zone_id(const key_data_t* key_data);
  * \param[in] key_data a key_data_t pointer.
  * \return a zone_db_t pointer or NULL on error or if no object could be found.
  */
-zone_db_t* key_data_get_zone(const key_data_t* key_data);
+extern zone_db_t* key_data_get_zone(const key_data_t* key_data);
 
 /**
  * Get the hsm_key_id of a key data object.
  * \param[in] key_data a key_data_t pointer.
  * \return a db_value_t pointer or NULL on error.
  */
-const db_value_t* key_data_hsm_key_id(const key_data_t* key_data);
+extern const db_value_t* key_data_hsm_key_id(const key_data_t* key_data);
 
 /**
  * Cache the hsm_key_id object related to a key data object.
  * \param[in] key_data a key_data_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_data_cache_hsm_key(key_data_t* key_data);
+extern int key_data_cache_hsm_key(key_data_t* key_data);
 
 /**
  * Get the hsm_key_id object related to a key data object.
  * \param[in] key_data a key_data_t pointer.
  * \return a hsm_key_t pointer or NULL on error or if no object could be found.
  */
-const hsm_key_t* key_data_hsm_key(const key_data_t* key_data);
+extern const hsm_key_t* key_data_hsm_key(const key_data_t* key_data);
 
 /**
  * Get the hsm_key_id object related to a key data object.
@@ -185,91 +185,91 @@ const hsm_key_t* key_data_hsm_key(const key_data_t* key_data);
  * \param[in] key_data a key_data_t pointer.
  * \return a hsm_key_t pointer or NULL on error or if no object could be found.
  */
-hsm_key_t* key_data_get_hsm_key(const key_data_t* key_data);
+extern hsm_key_t* key_data_get_hsm_key(const key_data_t* key_data);
 
 /**
  * Get the algorithm of a key data object. Undefined behavior if `key_data` is NULL.
  * \param[in] key_data a key_data_t pointer.
  * \return an unsigned integer.
  */
-unsigned int key_data_algorithm(const key_data_t* key_data);
+extern unsigned int key_data_algorithm(const key_data_t* key_data);
 
 /**
  * Get the inception of a key data object. Undefined behavior if `key_data` is NULL.
  * \param[in] key_data a key_data_t pointer.
  * \return an unsigned integer.
  */
-unsigned int key_data_inception(const key_data_t* key_data);
+extern unsigned int key_data_inception(const key_data_t* key_data);
 
 /**
  * Get the role of a key data object.
  * \param[in] key_data a key_data_t pointer.
  * \return a key_data_role_t which may be KEY_DATA_ROLE_INVALID on error or if no role has been set.
  */
-key_data_role_t key_data_role(const key_data_t* key_data);
+extern key_data_role_t key_data_role(const key_data_t* key_data);
 
 /**
  * Get the role as text of a key data object.
  * \param[in] key_data a key_data_t pointer.
  * \return a character pointer or NULL on error or if no role has been set.
  */
-const char* key_data_role_text(const key_data_t* key_data);
+extern const char* key_data_role_text(const key_data_t* key_data);
 
 /**
  * Get the introducing of a key data object. Undefined behavior if `key_data` is NULL.
  * \param[in] key_data a key_data_t pointer.
  * \return an unsigned integer.
  */
-unsigned int key_data_introducing(const key_data_t* key_data);
+extern unsigned int key_data_introducing(const key_data_t* key_data);
 
 /**
  * Get the active_zsk of a key data object. Undefined behavior if `key_data` is NULL.
  * \param[in] key_data a key_data_t pointer.
  * \return an unsigned integer.
  */
-unsigned int key_data_active_zsk(const key_data_t* key_data);
+extern unsigned int key_data_active_zsk(const key_data_t* key_data);
 
 /**
  * Get the publish of a key data object. Undefined behavior if `key_data` is NULL.
  * \param[in] key_data a key_data_t pointer.
  * \return an unsigned integer.
  */
-unsigned int key_data_publish(const key_data_t* key_data);
+extern unsigned int key_data_publish(const key_data_t* key_data);
 
 /**
  * Get the active_ksk of a key data object. Undefined behavior if `key_data` is NULL.
  * \param[in] key_data a key_data_t pointer.
  * \return an unsigned integer.
  */
-unsigned int key_data_active_ksk(const key_data_t* key_data);
+extern unsigned int key_data_active_ksk(const key_data_t* key_data);
 
 /**
  * Get the ds_at_parent of a key data object.
  * \param[in] key_data a key_data_t pointer.
  * \return a key_data_ds_at_parent_t which may be KEY_DATA_DS_AT_PARENT_INVALID on error or if no ds_at_parent has been set.
  */
-key_data_ds_at_parent_t key_data_ds_at_parent(const key_data_t* key_data);
+extern key_data_ds_at_parent_t key_data_ds_at_parent(const key_data_t* key_data);
 
 /**
  * Get the keytag of a key data object. Undefined behavior if `key_data` is NULL.
  * \param[in] key_data a key_data_t pointer.
  * \return an unsigned integer.
  */
-unsigned int key_data_keytag(const key_data_t* key_data);
+extern unsigned int key_data_keytag(const key_data_t* key_data);
 
 /**
  * Get the minimize of a key data object. Undefined behavior if `key_data` is NULL.
  * \param[in] key_data a key_data_t pointer.
  * \return an unsigned integer.
  */
-unsigned int key_data_minimize(const key_data_t* key_data);
+extern unsigned int key_data_minimize(const key_data_t* key_data);
 
 /**
  * Get the key_state objects related to a key data object.
  * \param[in] key_data a key_data_t pointer.
  * \return a key_state_list_t pointer or NULL on error.
  */
-key_state_list_t* key_data_key_state_list(key_data_t* key_data);
+extern key_state_list_t* key_data_key_state_list(key_data_t* key_data);
 
 /**
  * Retrieve key_state objects related to a key data object.
@@ -278,7 +278,7 @@ key_state_list_t* key_data_key_state_list(key_data_t* key_data);
  * \param[in] key_data a key_data_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_data_retrieve_key_state_list(key_data_t* key_data);
+extern int key_data_retrieve_key_state_list(key_data_t* key_data);
 
 /**
  * Set the zone_id of a key data object. If this fails the original value may have been lost.
@@ -286,7 +286,7 @@ int key_data_retrieve_key_state_list(key_data_t* key_data);
  * \param[in] zone_id a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_data_set_zone_id(key_data_t* key_data, const db_value_t* zone_id);
+extern int key_data_set_zone_id(key_data_t* key_data, const db_value_t* zone_id);
 
 /**
  * Set the hsm_key_id of a key data object. If this fails the original value may have been lost.
@@ -294,7 +294,7 @@ int key_data_set_zone_id(key_data_t* key_data, const db_value_t* zone_id);
  * \param[in] hsm_key_id a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_data_set_hsm_key_id(key_data_t* key_data, const db_value_t* hsm_key_id);
+extern int key_data_set_hsm_key_id(key_data_t* key_data, const db_value_t* hsm_key_id);
 
 /**
  * Set the algorithm of a key data object.
@@ -302,7 +302,7 @@ int key_data_set_hsm_key_id(key_data_t* key_data, const db_value_t* hsm_key_id);
  * \param[in] algorithm an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_data_set_algorithm(key_data_t* key_data, unsigned int algorithm);
+extern int key_data_set_algorithm(key_data_t* key_data, unsigned int algorithm);
 
 /**
  * Set the inception of a key data object.
@@ -310,7 +310,7 @@ int key_data_set_algorithm(key_data_t* key_data, unsigned int algorithm);
  * \param[in] inception an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_data_set_inception(key_data_t* key_data, unsigned int inception);
+extern int key_data_set_inception(key_data_t* key_data, unsigned int inception);
 
 /**
  * Set the role of a key data object.
@@ -318,7 +318,7 @@ int key_data_set_inception(key_data_t* key_data, unsigned int inception);
  * \param[in] role a key_data_role_t.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_data_set_role(key_data_t* key_data, key_data_role_t role);
+extern int key_data_set_role(key_data_t* key_data, key_data_role_t role);
 
 /**
  * Set the introducing of a key data object.
@@ -326,7 +326,7 @@ int key_data_set_role(key_data_t* key_data, key_data_role_t role);
  * \param[in] introducing an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_data_set_introducing(key_data_t* key_data, unsigned int introducing);
+extern int key_data_set_introducing(key_data_t* key_data, unsigned int introducing);
 
 /**
  * Set the active_zsk of a key data object.
@@ -334,7 +334,7 @@ int key_data_set_introducing(key_data_t* key_data, unsigned int introducing);
  * \param[in] active_zsk an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_data_set_active_zsk(key_data_t* key_data, unsigned int active_zsk);
+extern int key_data_set_active_zsk(key_data_t* key_data, unsigned int active_zsk);
 
 /**
  * Set the publish of a key data object.
@@ -342,7 +342,7 @@ int key_data_set_active_zsk(key_data_t* key_data, unsigned int active_zsk);
  * \param[in] publish an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_data_set_publish(key_data_t* key_data, unsigned int publish);
+extern int key_data_set_publish(key_data_t* key_data, unsigned int publish);
 
 /**
  * Set the active_ksk of a key data object.
@@ -350,7 +350,7 @@ int key_data_set_publish(key_data_t* key_data, unsigned int publish);
  * \param[in] active_ksk an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_data_set_active_ksk(key_data_t* key_data, unsigned int active_ksk);
+extern int key_data_set_active_ksk(key_data_t* key_data, unsigned int active_ksk);
 
 /**
  * Set the ds_at_parent of a key data object.
@@ -358,7 +358,7 @@ int key_data_set_active_ksk(key_data_t* key_data, unsigned int active_ksk);
  * \param[in] ds_at_parent a key_data_ds_at_parent_t.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_data_set_ds_at_parent(key_data_t* key_data, key_data_ds_at_parent_t ds_at_parent);
+extern int key_data_set_ds_at_parent(key_data_t* key_data, key_data_ds_at_parent_t ds_at_parent);
 
 /**
  * Set the keytag of a key data object.
@@ -366,7 +366,7 @@ int key_data_set_ds_at_parent(key_data_t* key_data, key_data_ds_at_parent_t ds_a
  * \param[in] keytag an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_data_set_keytag(key_data_t* key_data, unsigned int keytag);
+extern int key_data_set_keytag(key_data_t* key_data, unsigned int keytag);
 
 /**
  * Set the minimize of a key data object.
@@ -374,7 +374,7 @@ int key_data_set_keytag(key_data_t* key_data, unsigned int keytag);
  * \param[in] minimize an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_data_set_minimize(key_data_t* key_data, unsigned int minimize);
+extern int key_data_set_minimize(key_data_t* key_data, unsigned int minimize);
 
 /**
  * Create a clause for zone_id of a key data object and add it to a database clause list.
@@ -385,7 +385,7 @@ int key_data_set_minimize(key_data_t* key_data, unsigned int minimize);
  * \param[in] zone_id a db_value_t pointer.
  * \return a db_clause_t pointer to the added clause or NULL on error.
  */
-db_clause_t* key_data_zone_id_clause(db_clause_list_t* clause_list, const db_value_t* zone_id);
+extern db_clause_t* key_data_zone_id_clause(db_clause_list_t* clause_list, const db_value_t* zone_id);
 
 /**
  * Create a clause for hsm_key_id of a key data object and add it to a database clause list.
@@ -396,7 +396,7 @@ db_clause_t* key_data_zone_id_clause(db_clause_list_t* clause_list, const db_val
  * \param[in] hsm_key_id a db_value_t pointer.
  * \return a db_clause_t pointer to the added clause or NULL on error.
  */
-db_clause_t* key_data_hsm_key_id_clause(db_clause_list_t* clause_list, const db_value_t* hsm_key_id);
+extern db_clause_t* key_data_hsm_key_id_clause(db_clause_list_t* clause_list, const db_value_t* hsm_key_id);
 
 /**
  * Create a clause for role of a key data object and add it to a database clause list.
@@ -407,7 +407,7 @@ db_clause_t* key_data_hsm_key_id_clause(db_clause_list_t* clause_list, const db_
  * \param[in] role a key_data_role_t.
  * \return a db_clause_t pointer to the added clause or NULL on error.
  */
-db_clause_t* key_data_role_clause(db_clause_list_t* clause_list, key_data_role_t role);
+extern db_clause_t* key_data_role_clause(db_clause_list_t* clause_list, key_data_role_t role);
 
 /**
  * Create a clause for ds_at_parent of a key data object and add it to a database clause list.
@@ -418,7 +418,7 @@ db_clause_t* key_data_role_clause(db_clause_list_t* clause_list, key_data_role_t
  * \param[in] ds_at_parent a key_data_ds_at_parent_t.
  * \return a db_clause_t pointer to the added clause or NULL on error.
  */
-db_clause_t* key_data_ds_at_parent_clause(db_clause_list_t* clause_list, key_data_ds_at_parent_t ds_at_parent);
+extern db_clause_t* key_data_ds_at_parent_clause(db_clause_list_t* clause_list, key_data_ds_at_parent_t ds_at_parent);
 
 /**
  * Create a clause for keytag of a key data object and add it to a database clause list.
@@ -429,14 +429,14 @@ db_clause_t* key_data_ds_at_parent_clause(db_clause_list_t* clause_list, key_dat
  * \param[in] keytag an unsigned integer.
  * \return a db_clause_t pointer to the added clause or NULL on error.
  */
-db_clause_t* key_data_keytag_clause(db_clause_list_t* clause_list, unsigned int keytag);
+extern db_clause_t* key_data_keytag_clause(db_clause_list_t* clause_list, unsigned int keytag);
 
 /**
  * Create a key data object in the database.
  * \param[in] key_data a key_data_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_data_create(key_data_t* key_data);
+extern int key_data_create(key_data_t* key_data);
 
 /**
  * Get a key data object from the database by a id specified in `id`.
@@ -444,21 +444,21 @@ int key_data_create(key_data_t* key_data);
  * \param[in] id a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_data_get_by_id(key_data_t* key_data, const db_value_t* id);
+extern int key_data_get_by_id(key_data_t* key_data, const db_value_t* id);
 
 /**
  * Update a key data object in the database.
  * \param[in] key_data a key_data_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_data_update(key_data_t* key_data);
+extern int key_data_update(key_data_t* key_data);
 
 /**
  * Delete a key data object from the database.
  * \param[in] key_data a key_data_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_data_delete(key_data_t* key_data);
+extern int key_data_delete(key_data_t* key_data);
 
 /**
  * Count the number of key data objects in the database, if a selection of
@@ -470,7 +470,7 @@ int key_data_delete(key_data_t* key_data);
  * should be counted.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_data_count(key_data_t* key_data, db_clause_list_t* clause_list, size_t* count);
+extern int key_data_count(key_data_t* key_data, db_clause_list_t* clause_list, size_t* count);
 
 /**
  * A list of key data objects.
@@ -495,14 +495,14 @@ struct key_data_list {
  * \param[in] connection a db_connection_t pointer.
  * \return a key_data_list_t pointer or NULL on error.
  */
-key_data_list_t* key_data_list_new(const db_connection_t* connection);
+extern key_data_list_t* key_data_list_new(const db_connection_t* connection);
 
 /**
  * Create a new key data object list that is a copy of another.
  * \param[in] key_data_list a key_data_list_t pointer.
  * \return a key_data_list_t pointer or NULL on error.
  */
-key_data_list_t* key_data_list_new_copy(const key_data_list_t* key_data_copy);
+extern key_data_list_t* key_data_list_new_copy(const key_data_list_t* key_data_copy);
 
 /**
  * Specify that objects should be stored within the list as they are fetch,
@@ -510,13 +510,13 @@ key_data_list_t* key_data_list_new_copy(const key_data_list_t* key_data_copy);
  * \param[in] key_data_list a key_data_list_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_data_list_object_store(key_data_list_t* key_data_list);
+extern int key_data_list_object_store(key_data_list_t* key_data_list);
 
 /**
  * Delete a key data object list.
  * \param[in] key_data_list a key_data_list_t pointer.
  */
-void key_data_list_free(key_data_list_t* key_data_list);
+extern void key_data_list_free(key_data_list_t* key_data_list);
 
 /**
  * Copy the content of another key data object list.
@@ -524,21 +524,21 @@ void key_data_list_free(key_data_list_t* key_data_list);
  * \param[in] from_key_data_list a key_data_list_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_data_list_copy(key_data_list_t* key_data_list, const key_data_list_t* from_key_data_list);
+extern int key_data_list_copy(key_data_list_t* key_data_list, const key_data_list_t* from_key_data_list);
 
 /**
  * Get all key data objects.
  * \param[in] key_data_list a key_data_list_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_data_list_get(key_data_list_t* key_data_list);
+extern int key_data_list_get(key_data_list_t* key_data_list);
 
 /**
  * Get a new list with all key data objects.
  * \param[in] connection a db_connection_t pointer.
  * \return a key_data_list_t pointer or NULL on error.
  */
-key_data_list_t* key_data_list_new_get(const db_connection_t* connection);
+extern key_data_list_t* key_data_list_new_get(const db_connection_t* connection);
 
 /**
  * Get key data objects from the database by a clause list.
@@ -546,7 +546,7 @@ key_data_list_t* key_data_list_new_get(const db_connection_t* connection);
  * \param[in] clause_list a db_clause_list_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_data_list_get_by_clauses(key_data_list_t* key_data_list, const db_clause_list_t* clause_list);
+extern int key_data_list_get_by_clauses(key_data_list_t* key_data_list, const db_clause_list_t* clause_list);
 
 /**
  * Get a new list of key data objects from the database by a clause list.
@@ -554,7 +554,7 @@ int key_data_list_get_by_clauses(key_data_list_t* key_data_list, const db_clause
  * \param[in] clause_list a db_clause_list_t pointer.
  * \return a key_data_list_t pointer or NULL on error.
  */
-key_data_list_t* key_data_list_new_get_by_clauses(const db_connection_t* connection, const db_clause_list_t* clause_list);
+extern key_data_list_t* key_data_list_new_get_by_clauses(const db_connection_t* connection, const db_clause_list_t* clause_list);
 
 /**
  * Get key data objects from the database by a zone_id specified in `zone_id`.
@@ -562,7 +562,7 @@ key_data_list_t* key_data_list_new_get_by_clauses(const db_connection_t* connect
  * \param[in] zone_id a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_data_list_get_by_zone_id(key_data_list_t* key_data_list, const db_value_t* zone_id);
+extern int key_data_list_get_by_zone_id(key_data_list_t* key_data_list, const db_value_t* zone_id);
 
 /**
  * Get a new list of key data objects from the database by a zone_id specified in `zone_id`.
@@ -570,7 +570,7 @@ int key_data_list_get_by_zone_id(key_data_list_t* key_data_list, const db_value_
  * \param[in] zone_id a db_value_t pointer.
  * \return a key_data_list_t pointer or NULL on error.
  */
-key_data_list_t* key_data_list_new_get_by_zone_id(const db_connection_t* connection, const db_value_t* zone_id);
+extern key_data_list_t* key_data_list_new_get_by_zone_id(const db_connection_t* connection, const db_value_t* zone_id);
 
 /**
  * Get the first key data object in a key data object list and reset the
@@ -579,7 +579,7 @@ key_data_list_t* key_data_list_new_get_by_zone_id(const db_connection_t* connect
  * \return a key_data_t pointer or NULL on error or if there are no
  * key data objects in the key data object list.
  */
-const key_data_t* key_data_list_begin(key_data_list_t* key_data_list);
+extern const key_data_t* key_data_list_begin(key_data_list_t* key_data_list);
 
 /**
  * Get the first key data object in a key data object list and reset the
@@ -589,7 +589,7 @@ const key_data_t* key_data_list_begin(key_data_list_t* key_data_list);
  * \return a key_data_t pointer or NULL on error or if there are no
  * key data objects in the key data object list.
  */
-key_data_t* key_data_list_get_begin(key_data_list_t* key_data_list);
+extern key_data_t* key_data_list_get_begin(key_data_list_t* key_data_list);
 
 /**
  * Get the next key data object in a key data object list.
@@ -599,7 +599,7 @@ key_data_t* key_data_list_get_begin(key_data_list_t* key_data_list);
  * \return a key_data_t pointer or NULL on error or if there are no more
  * key data objects in the key data object list.
  */
-const key_data_t* key_data_list_next(key_data_list_t* key_data_list);
+extern const key_data_t* key_data_list_next(key_data_list_t* key_data_list);
 
 /**
  * Get the next key data object in a key data object list.
@@ -609,7 +609,7 @@ const key_data_t* key_data_list_next(key_data_list_t* key_data_list);
  * \return a key_data_t pointer or NULL on error or if there are no more
  * key data objects in the key data object list.
  */
-key_data_t* key_data_list_get_next(key_data_list_t* key_data_list);
+extern key_data_t* key_data_list_get_next(key_data_list_t* key_data_list);
 
 /**
  * Get the size of a key data object list.
@@ -617,11 +617,11 @@ key_data_t* key_data_list_get_next(key_data_list_t* key_data_list);
  * \return a size_t with the size of the list or zero on error, if the list is
  * empty or if the backend does not support returning the size.
  */
-size_t key_data_list_size(key_data_list_t* key_data_list);
+extern size_t key_data_list_size(key_data_list_t* key_data_list);
 
-key_data_t* key_data_new_get_by_hsm_key_id (const db_connection_t* connection, const db_value_t* hsm_key_id);
+extern key_data_t* key_data_new_get_by_hsm_key_id (const db_connection_t* connection, const db_value_t* hsm_key_id);
 
-int key_data_get_by_hsm_key_id (key_data_t* key_data, const db_value_t* hsm_key_id);
+extern int key_data_get_by_hsm_key_id (key_data_t* key_data, const db_value_t* hsm_key_id);
 
 hsm_key_list_t*
 hsm_key_list_new_get(const db_connection_t* connection);

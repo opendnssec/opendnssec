@@ -37,6 +37,6 @@
  * \param[in] a db_connection_t pointer.
  * \return an integer with the database version or zero on error.
  */
-int database_version_get_version(db_connection_t* connection);
+extern int database_version_get_version(db_connection_t* connection);
 
 #endif

@@ -146,7 +146,7 @@ the given strings.
 \param action   action for which the error occured
 \param message  error message format string
 */
-void
+extern void
 hsm_ctx_set_error(hsm_ctx_t *ctx, int error, const char *action,
                  const char *message, ...)
 #ifdef HAVE___ATTRIBUTE__
@@ -154,7 +154,7 @@ hsm_ctx_set_error(hsm_ctx_t *ctx, int error, const char *action,
 #endif
      ;
 
-struct engineconfig_repository *
+extern struct engineconfig_repository *
 hsm_find_repository(struct engineconfig_repository *rlist, char const *name);
 
 /*! Open HSM library
@@ -172,7 +172,7 @@ Also creates initial sessions (not part of any context; every API
 function that takes a context can be passed NULL, in which case the
 global context will be used) and log into each HSM.
 */
-int
+extern int
 hsm_open2(struct engineconfig_repository* rlist,
          char *(pin_callback)(unsigned int, const char *, unsigned int));
 
@@ -186,7 +186,7 @@ hsm_open2(struct engineconfig_repository* rlist,
 \param mode The type of mode the function should run in.
 \return The string the user enters
 */
-char *
+extern char *
 hsm_prompt_pin(unsigned int id, const char *repository, unsigned int mode);
 
 
@@ -198,7 +198,7 @@ hsm_prompt_pin(unsigned int id, const char *repository, unsigned int mode);
 \param mode The type of mode the function should run in.
 \return The string the user enters
 */
-char *
+extern char *
 hsm_check_pin(unsigned int id, const char *repository, unsigned int mode);
 
 
@@ -208,7 +208,7 @@ hsm_check_pin(unsigned int id, const char *repository, unsigned int mode);
     semaphore. Any authenticated process will still be able to interact
     with the HSM.
 */
-int
+extern int
 hsm_logout_pin(void);
 
 
@@ -218,7 +218,7 @@ hsm_logout_pin(void);
     This cleans up all data for libhsm, and should be the last function
     called.
 */
-void
+extern void
 hsm_close(void);
 
 
@@ -227,7 +227,7 @@ hsm_close(void);
 Creates a new session for each attached HSM. The returned hsm_ctx_t *
 can be freed with hsm_destroy_context()
 */
-hsm_ctx_t *
+extern hsm_ctx_t *
 hsm_create_context(void);
 
 
@@ -239,7 +239,7 @@ If they are not alive, then try re-open libhsm.
 \param context HSM context
 \return 0 if successful, !0 if failed
 */
-int
+extern int
 hsm_check_context();
 
 
@@ -249,10 +249,10 @@ hsm_check_context();
 
 Also destroys any associated sessions.
 */
-void
+extern void
 hsm_destroy_context(hsm_ctx_t *context);
 
-void
+extern void
 libhsm_key_free(libhsm_key_t *key);
 
 /*! List all known keys in all attached HSMs
@@ -267,7 +267,7 @@ freed with libhsm_key_free()
 \param context HSM context
 \param count location to store the number of keys found
 */
-libhsm_key_t **
+extern libhsm_key_t **
 hsm_list_keys(hsm_ctx_t *context, size_t *count);
 
 
@@ -284,7 +284,7 @@ freed with libhsm_key_free()
 \param count location to store the number of keys found
 \param repository repository to list the keys in
 */
-libhsm_key_t **
+extern libhsm_key_t **
 hsm_list_keys_repository(hsm_ctx_t *context,
                          size_t *count,
                          const char *repository);
@@ -300,7 +300,7 @@ The returned key structure can be freed with libhsm_key_free()
           string of hex characters)
 \return key identifier or NULL if not found (or invalid input)
 */
-libhsm_key_t *
+extern libhsm_key_t *
 hsm_find_key_by_id(hsm_ctx_t *context,
                    const char *id);
 
@@ -317,7 +317,7 @@ The returned key structure can be freed with libhsm_key_free()
 \param keysize Size of RSA key
 \return return key identifier or NULL if key generation failed
 */
-libhsm_key_t *
+extern libhsm_key_t *
 hsm_generate_rsa_key(hsm_ctx_t *context,
                      const char *repository,
                      unsigned long keysize);
@@ -334,7 +334,7 @@ The returned key structure can be freed with libhsm_key_free()
 \param keysize Size of DSA key
 \return return key identifier or NULL if key generation failed
 */
-libhsm_key_t *
+extern libhsm_key_t *
 hsm_generate_dsa_key(hsm_ctx_t *context,
                      const char *repository,
                      unsigned long keysize);
@@ -350,7 +350,7 @@ The returned key structure can be freed with libhsm_key_free()
 \param repository repository in where to create the key
 \return return key identifier or NULL if key generation failed
 */
-libhsm_key_t *
+extern libhsm_key_t *
 hsm_generate_gost_key(hsm_ctx_t *context,
                      const char *repository);
 
@@ -366,7 +366,7 @@ The returned key structure can be freed with libhsm_key_free()
 \param curve which curve to use
 \return return key identifier or NULL if key generation failed
 */
-libhsm_key_t *
+extern libhsm_key_t *
 hsm_generate_ecdsa_key(hsm_ctx_t *context,
                        const char *repository,
                        const char *curve);
@@ -381,7 +381,7 @@ needs to be freed.
 \param key Key pair to be removed
 \return 0 if successful, !0 if failed
 */
-int
+extern int
 hsm_remove_key(hsm_ctx_t *context, libhsm_key_t *key);
 
 
@@ -391,7 +391,7 @@ hsm_list_keys()
 \param key_list The array of keys to free
 \param count The number of keys in the array
 */
-void
+extern void
 libhsm_key_list_free(libhsm_key_t **key_list, size_t count);
 
 
@@ -403,7 +403,7 @@ The returned id is allocated data, and must be free()d by the caller
 \param key Key pair to get the ID from
 \return id of key pair
 */
-char *
+extern char *
 hsm_get_key_id(hsm_ctx_t *context,
                const libhsm_key_t *key);
 
@@ -417,7 +417,7 @@ With libhsm_key_info_free()
 \param key Key pair to get information about
 \return key information
 */
-libhsm_key_info_t *
+extern libhsm_key_info_t *
 hsm_get_key_info(hsm_ctx_t *context,
                  const libhsm_key_t *key);
 
@@ -426,7 +426,7 @@ hsm_get_key_info(hsm_ctx_t *context,
 
 \param key_info The structure to free
 */
-void
+extern void
 libhsm_key_info_free(libhsm_key_info_t *key_info);
 
 /*! Fill a buffer with random data from any attached HSM
@@ -437,7 +437,7 @@ libhsm_key_info_free(libhsm_key_info_t *key_info);
 \return 0 if successful, !0 if failed
 
 */
-int
+extern int
 hsm_random_buffer(hsm_ctx_t *ctx,
                   unsigned char *buffer,
                   unsigned long length);
@@ -448,7 +448,7 @@ hsm_random_buffer(hsm_ctx_t *ctx,
 \return 32-bit random number, or 0 if no HSM with a random generator is
                attached
 */
-uint32_t
+extern uint32_t
 hsm_random32(hsm_ctx_t *ctx);
 
 
@@ -457,7 +457,7 @@ hsm_random32(hsm_ctx_t *ctx);
 \return 64-bit random number, or 0 if no HSM with a random generator is
                attached
 */
-uint64_t
+extern uint64_t
 hsm_random64(hsm_ctx_t *ctx);
 
 
@@ -477,7 +477,7 @@ hsm_random64(hsm_ctx_t *ctx);
 \param config optional configuration
 \return 0 on success, -1 on error
 */
-int
+extern int
 hsm_attach(const char *repository,
            const char *token_name,
            const char *path,
@@ -489,7 +489,7 @@ hsm_attach(const char *repository,
 \param token_name The name of the token
 \return 1 if the token is attached, 0 if not found
 */
-int
+extern int
 hsm_token_attached(hsm_ctx_t *ctx,
                    const char *repository);
 
@@ -501,15 +501,15 @@ The returned message is allocated data, and must be free()d by the caller
 \return error message string
 */
 
-char *
+extern char *
 hsm_get_error(hsm_ctx_t *gctx);
 
 /* a few debug functions for applications */
-void hsm_print_session(hsm_session_t *session);
-void hsm_print_ctx(hsm_ctx_t *ctx);
-void hsm_print_key(hsm_ctx_t *ctx, libhsm_key_t *key);
-void hsm_print_error(hsm_ctx_t *ctx);
-void hsm_print_tokeninfo(hsm_ctx_t *ctx);
+extern void hsm_print_session(hsm_session_t *session);
+extern void hsm_print_ctx(hsm_ctx_t *ctx);
+extern void hsm_print_key(hsm_ctx_t *ctx, libhsm_key_t *key);
+extern void hsm_print_error(hsm_ctx_t *ctx);
+extern void hsm_print_tokeninfo(hsm_ctx_t *ctx);
 
 /* implementation of a key cache per context, needs changing see
  * OPENDNSSEC-799.

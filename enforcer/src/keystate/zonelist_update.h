@@ -64,7 +64,7 @@
  * \param[in] comment if non-zero include a comment about the zonelist file.
  * \return ZONELIST_UPDATE_ERR_* on error otherwise ZONELIST_UPDATE_OK.
  */
-int zonelist_update_add(int sockfd, const char* filename,
+extern int zonelist_update_add(int sockfd, const char* filename,
        const struct dbw_zone* zone, const char *policyname, int comment);
 
 /**
@@ -75,6 +75,6 @@ int zonelist_update_add(int sockfd, const char* filename,
  * \param[in] comment if non-zero include a comment about the zonelist file.
  * \return ZONELIST_UPDATE_ERR_* on error otherwise ZONELIST_UPDATE_OK.
  */
-int zonelist_update_delete(int sockfd, const char* filename,
+extern int zonelist_update_delete(int sockfd, const char* filename,
        const struct dbw_zone* zone, const char *policyname, int comment);
 #endif /* _KEYSTATE_ZONELIST_UPDATE_H_ */

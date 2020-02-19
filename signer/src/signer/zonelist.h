@@ -58,7 +58,7 @@ struct zonelist_struct {
  * \return zonelist_type* created zone list
  *
  */
-zonelist_type* zonelist_create(void);
+extern zonelist_type* zonelist_create(void);
 
 /**
  * Lookup zone by name and class.
@@ -68,7 +68,7 @@ zonelist_type* zonelist_create(void);
  * \return zone_type* found zone
  *
  */
-zone_type* zonelist_lookup_zone_by_name(zonelist_type* zonelist,
+extern zone_type* zonelist_lookup_zone_by_name(zonelist_type* zonelist,
     const char* name, ldns_rr_class klass);
 
 /**
@@ -79,7 +79,7 @@ zone_type* zonelist_lookup_zone_by_name(zonelist_type* zonelist,
  * \return zone_type* found zone
  *
  */
-zone_type* zonelist_lookup_zone_by_dname(zonelist_type* zonelist,
+extern zone_type* zonelist_lookup_zone_by_dname(zonelist_type* zonelist,
     ldns_rdf* dname, ldns_rr_class klass);
 
 /**
@@ -89,7 +89,7 @@ zone_type* zonelist_lookup_zone_by_dname(zonelist_type* zonelist,
  * \return zone_type* added zone
  *
  */
-zone_type* zonelist_add_zone(zonelist_type* zl, zone_type* zone);
+extern zone_type* zonelist_add_zone(zonelist_type* zl, zone_type* zone);
 
 /**
  * Delete zone.
@@ -97,7 +97,7 @@ zone_type* zonelist_add_zone(zonelist_type* zl, zone_type* zone);
  * \param[in] zone zone
  *
  */
-void zonelist_del_zone(zonelist_type* zlist, zone_type* zone);
+extern void zonelist_del_zone(zonelist_type* zlist, zone_type* zone);
 
 /**
  * Update zonelist.
@@ -106,21 +106,21 @@ void zonelist_del_zone(zonelist_type* zlist, zone_type* zone);
  * \return ods_status status
  *
  */
-ods_status zonelist_update(zonelist_type* zl, const char* zlfile);
+extern ods_status zonelist_update(zonelist_type* zl, const char* zlfile);
 
 /**
  * Clean up zone list.
  * \param[in] zl zone list
  *
  */
-void zonelist_cleanup(zonelist_type* zl);
+extern void zonelist_cleanup(zonelist_type* zl);
 
 /**
  * Free zone list.
  * \param[in] zl zone list
  *
  */
-void zonelist_free(zonelist_type* zl);
+extern void zonelist_free(zonelist_type* zl);
 
 /**
  * Obtain a certain view from for the named zone. 

@@ -32,53 +32,53 @@
 #ifndef __test_test_h
 #define __test_test_h
 
-int init_suite_classes(void);
-int clean_suite_classes(void);
-void test_class_db_backend_handle(void);
-void test_class_db_backend(void);
-void test_class_db_clause(void);
-void test_class_db_clause_list(void);
-void test_class_db_configuration(void);
-void test_class_db_configuration_list(void);
-void test_class_db_connection(void);
-void test_class_db_join(void);
-void test_class_db_join_list(void);
-void test_class_db_object_field(void);
-void test_class_db_object_field_list(void);
-void test_class_db_object(void);
-void test_class_db_value_set(void);
-void test_class_db_result(void);
-void test_class_db_result_list(void);
-void test_class_db_value(void);
-void test_class_end(void);
+extern int init_suite_classes(void);
+extern int clean_suite_classes(void);
+extern void test_class_db_backend_handle(void);
+extern void test_class_db_backend(void);
+extern void test_class_db_clause(void);
+extern void test_class_db_clause_list(void);
+extern void test_class_db_configuration(void);
+extern void test_class_db_configuration_list(void);
+extern void test_class_db_connection(void);
+extern void test_class_db_join(void);
+extern void test_class_db_join_list(void);
+extern void test_class_db_object_field(void);
+extern void test_class_db_object_field_list(void);
+extern void test_class_db_object(void);
+extern void test_class_db_value_set(void);
+extern void test_class_db_result(void);
+extern void test_class_db_result_list(void);
+extern void test_class_db_value(void);
+extern void test_class_end(void);
 
-int init_suite_initialization(void);
-int clean_suite_initialization(void);
-void test_initialization_configuration(void);
-void test_initialization_connection(void);
+extern int init_suite_initialization(void);
+extern int clean_suite_initialization(void);
+extern void test_initialization_configuration(void);
+extern void test_initialization_connection(void);
 
 #if defined(ENFORCER_DATABASE_SQLITE3)
-int init_suite_database_operations_sqlite(void);
+extern int init_suite_database_operations_sqlite(void);
 #endif
-int init_suite_database_operations_mysql(void);
-int clean_suite_database_operations(void);
-void test_database_operations_read_object1(void);
-void test_database_operations_create_object2(void);
-void test_database_operations_read_object2(void);
-void test_database_operations_update_object2(void);
-void test_database_operations_delete_object2(void);
-void test_database_operations_create_object3(void);
-void test_database_operations_delete_object3(void);
-void test_database_operations_read_all(void);
-void test_database_operations_count(void);
+extern int init_suite_database_operations_mysql(void);
+extern int clean_suite_database_operations(void);
+extern void test_database_operations_read_object1(void);
+extern void test_database_operations_create_object2(void);
+extern void test_database_operations_read_object2(void);
+extern void test_database_operations_update_object2(void);
+extern void test_database_operations_delete_object2(void);
+extern void test_database_operations_create_object3(void);
+extern void test_database_operations_delete_object3(void);
+extern void test_database_operations_read_all(void);
+extern void test_database_operations_count(void);
 
-void test_database_operations_read_object1_2(void);
-void test_database_operations_create_object2_2(void);
-void test_database_operations_read_object2_2(void);
-void test_database_operations_update_object2_2(void);
-void test_database_operations_delete_object2_2(void);
-void test_database_operations_create_object3_2(void);
-void test_database_operations_delete_object3_2(void);
-void test_database_operations_update_objects_revisions(void);
+extern void test_database_operations_read_object1_2(void);
+extern void test_database_operations_create_object2_2(void);
+extern void test_database_operations_read_object2_2(void);
+extern void test_database_operations_update_object2_2(void);
+extern void test_database_operations_delete_object2_2(void);
+extern void test_database_operations_create_object3_2(void);
+extern void test_database_operations_delete_object3_2(void);
+extern void test_database_operations_update_objects_revisions(void);
 
 #endif

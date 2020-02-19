@@ -35,18 +35,18 @@
 #include "scheduler/task.h"
 #include "db/dbw.h"
 
-task_type *enforce_task(engine_type *engine, char const *owner);
+extern task_type *enforce_task(engine_type *engine, char const *owner);
 
-time_t enforce_task_perform(task_type* task, char const *owner, void *context,
+extern time_t enforce_task_perform(task_type* task, char const *owner, void *context,
     void *dbconn);
 
 /* Schedule enforce tasks for *now* for zone. */
-void enforce_task_flush_zone(engine_type *engine, char const *zonename);
+extern void enforce_task_flush_zone(engine_type *engine, char const *zonename);
 
 /* Schedule enforce tasks for *now* for ALL zones of policy. */
-void enforce_task_flush_policy(engine_type *engine, struct dbw_policy *policy);
+extern void enforce_task_flush_policy(engine_type *engine, struct dbw_policy *policy);
 
 /* Schedule enforce tasks for *now* for ALL zones. */
-void enforce_task_flush_all(engine_type *engine, db_connection_t *dbconn);
+extern void enforce_task_flush_all(engine_type *engine, db_connection_t *dbconn);
 
 #endif

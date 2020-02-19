@@ -73,22 +73,22 @@ struct engine_struct {
 };
 
 engine_type* engine_create(void);
-ods_status engine_setup_preconfig(engine_type* engine, const char* cfgfile);
-ods_status engine_setup_config(engine_type* engine, const char* cfgfile, int cmdline_verbosity, int daemonize);
-ods_status engine_setup_initialize(engine_type* engine, int* fdptr);
-ods_status engine_setup_signals(engine_type* engine);
-ods_status engine_setup_workstart(engine_type* engine);
-ods_status engine_setup_netwstart(engine_type* engine);
-ods_status engine_setup_finish(engine_type* engine, int fd);
-int engine_start(engine_type*);
-ods_status engine_setup_signals(engine_type* engine);
+extern ods_status engine_setup_preconfig(engine_type* engine, const char* cfgfile);
+extern ods_status engine_setup_config(engine_type* engine, const char* cfgfile, int cmdline_verbosity, int daemonize);
+extern ods_status engine_setup_initialize(engine_type* engine, int* fdptr);
+extern ods_status engine_setup_signals(engine_type* engine);
+extern ods_status engine_setup_workstart(engine_type* engine);
+extern ods_status engine_setup_netwstart(engine_type* engine);
+extern ods_status engine_setup_finish(engine_type* engine, int fd);
+extern int engine_start(engine_type*);
+extern ods_status engine_setup_signals(engine_type* engine);
 
 /**
  * Wake up workers.
  * \param[in] engine engine
  *
  */
-void engine_wakeup_workers(engine_type* engine);
+extern void engine_wakeup_workers(engine_type* engine);
 
 /**
  * Update zones.
@@ -96,15 +96,15 @@ void engine_wakeup_workers(engine_type* engine);
  * \param[in] zl_changed whether the zonelist has changed or not
  *
  */
-void engine_update_zones(engine_type* engine, ods_status zl_changed);
+extern void engine_update_zones(engine_type* engine, ods_status zl_changed);
 
 /**
  * Clean up engine.
  * \param[in] engine engine
  *
  */
-void engine_cleanup(engine_type* engine);
+extern void engine_cleanup(engine_type* engine);
 
-listener_type* create_listener(struct engineconfig_listener* list);
+extern listener_type* create_listener(struct engineconfig_listener* list);
 
 #endif /* DAEMON_ENGINE_H */

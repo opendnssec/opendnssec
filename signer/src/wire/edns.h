@@ -87,7 +87,7 @@ struct edns_rr_struct {
  * \param[in] max_length maximum length.
  *
  */
-void edns_init(edns_data_type* data, uint16_t max_length);
+extern void edns_init(edns_data_type* data, uint16_t max_length);
 
 /**
  * Create new EDNS RR.
@@ -95,7 +95,7 @@ void edns_init(edns_data_type* data, uint16_t max_length);
  * \return edns_rr_type* EDNS RR.
  *
  */
-edns_rr_type* edns_rr_create(void);
+extern edns_rr_type* edns_rr_create(void);
 
 
 /**
@@ -103,7 +103,7 @@ edns_rr_type* edns_rr_create(void);
  * \param[in] err EDNS record.
  *
  */
-void edns_rr_reset(edns_rr_type* err);
+extern void edns_rr_reset(edns_rr_type* err);
 
 /**
  * Parse EDNS OPT RR.
@@ -112,7 +112,7 @@ void edns_rr_reset(edns_rr_type* err);
  * \return int 1 if EDNS and valid, 0 otherwise.
  *
  */
-int edns_rr_parse(edns_rr_type* err, buffer_type* buffer);
+extern int edns_rr_parse(edns_rr_type* err, buffer_type* buffer);
 
 /**
  * The amount of space to reserve in the response for the EDNS data.
@@ -120,9 +120,9 @@ int edns_rr_parse(edns_rr_type* err, buffer_type* buffer);
  * \return size_t amount of space to reserve.
  *
  */
-size_t edns_rr_reserved_space(edns_rr_type* err);
+extern size_t edns_rr_reserved_space(edns_rr_type* err);
 
-void edns_rr_cleanup(edns_rr_type* err);
+extern void edns_rr_cleanup(edns_rr_type* err);
 
 
 #endif /* WIRE_EDNS_H */

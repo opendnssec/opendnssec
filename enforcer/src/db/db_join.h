@@ -54,7 +54,7 @@ struct db_join {
  * \return a character pointer or NULL on error or if no from table name has
  * been set.
  */
-const char* db_join_from_table(const db_join_t* join);
+extern const char* db_join_from_table(const db_join_t* join);
 
 /**
  * Get the from field name of a database join.
@@ -62,7 +62,7 @@ const char* db_join_from_table(const db_join_t* join);
  * \return a character pointer or NULL on error or if no from field name has
  * been set.
  */
-const char* db_join_from_field(const db_join_t* join);
+extern const char* db_join_from_field(const db_join_t* join);
 
 /**
  * Get the to table name of a database join.
@@ -70,7 +70,7 @@ const char* db_join_from_field(const db_join_t* join);
  * \return a character pointer or NULL on error or if no to table name has been
  * set.
  */
-const char* db_join_to_table(const db_join_t* join);
+extern const char* db_join_to_table(const db_join_t* join);
 
 /**
  * Get the to field name of a database join.
@@ -78,7 +78,7 @@ const char* db_join_to_table(const db_join_t* join);
  * \return a character pointer or NULL on error or if no to field name has been
  * set.
  */
-const char* db_join_to_field(const db_join_t* join);
+extern const char* db_join_to_field(const db_join_t* join);
 
 /**
  * Get the next database join connected in a database join list.
@@ -86,7 +86,7 @@ const char* db_join_to_field(const db_join_t* join);
  * \return a db_join_t pointer or NULL on error or if there are no more database
  * joins in the list.
  */
-const db_join_t* db_join_next(const db_join_t* join);
+extern const db_join_t* db_join_next(const db_join_t* join);
 
 /**
  * A list of database joins.
@@ -101,6 +101,6 @@ struct db_join_list {
  * \param[in] join_list a db_join_list_t pointer.
  * \return a db_join_t pointer or NULL on error or if the list is empty.
  */
-const db_join_t* db_join_list_begin(const db_join_list_t* join_list);
+extern const db_join_t* db_join_list_begin(const db_join_list_t* join_list);
 
 #endif
