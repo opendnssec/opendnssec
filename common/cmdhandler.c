@@ -185,7 +185,12 @@ extract_msg(char* buf, int *pos, int buflen, int *exitcode, struct cmdhandler_ct
     while (1) {
         if (*pos < 3) return 0;
         opc = buf[0];
-        datalen = ntohs(*(uint16_t *)(buf+1));
+
+        /* Do a memcpy instead of a cast in order to not break memory alignment
+         * requirements on some targets. */
+        memcpy(&datalen, &buf[1], 2);
+        datalen = ntohs(datalen);
+
         if (datalen+3 <= *pos) {
             /* a complete message */
             memset(data, 0, ODS_SE_MAXLINE+1);
@@ -202,7 +207,12 @@ extract_msg(char* buf, int *pos, int buflen, int *exitcode, struct cmdhandler_ct
             /* Message is not going to fit! Discard the data already recvd */
             ods_log_error("[%s] Message received to big, truncating.", module_str);
             datalen -= *pos - 3;
-            *(uint16_t *)(buf+1) = htons(datalen);
+
+            /* Do a memcpy instead of a cast in order to not break memory
+             * alignment requirements on some targets. */
+            datalen = htons(datalen);
+            memcpy(&buf[1], &datalen, 2);
+
             *pos = 3;
             return 0;
         } else {
