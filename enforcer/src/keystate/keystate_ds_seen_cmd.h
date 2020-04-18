@@ -32,6 +32,6 @@
 
 #include "daemon/engine.h"
 
-struct cmd_func_block key_ds_seen_funcblock;
+extern struct cmd_func_block key_ds_seen_funcblock;
 
 #endif /* _KEYSTATE_DS_SEEN_CMD_H_ */
