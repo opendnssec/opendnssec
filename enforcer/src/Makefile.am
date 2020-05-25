@@ -7,7 +7,7 @@ CLEANFILES = $(BUILT_SOURCES)
 LIBHSM = ${top_builddir}/libhsm/src/lib/libhsm.a
 LIBCOMPAT = ${top_builddir}/common/libcompat.a
 
-SUBDIRS = db/test
+SUBDIRS = 
 
 AM_CFLAGS = \
 	-I$(top_srcdir)/common \

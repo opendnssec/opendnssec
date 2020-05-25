@@ -247,7 +247,6 @@ AC_CONFIG_FILES([
 	enforcer/Makefile
 	enforcer/src/Makefile
 	enforcer/man/Makefile
-	enforcer/src/db/test/Makefile
 	enforcer/man/ods-enforcer.8
 	enforcer/man/ods-enforcer-db-setup.8
 	enforcer/man/ods-enforcerd.8
