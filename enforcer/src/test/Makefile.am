@@ -24,16 +24,6 @@ BACKEND_SOURCES_CUSTOM =
 BACKEND_LDFLAGS_CUSTOM = -lm
 BACKEND_SCHEMA_CUSTOM =
 
-if USE_MYSQL
-BACKEND_SOURCES_CUSTOM += db/db_backend_mysql.o
-BACKEND_SCHEMA_CUSTOM += db/db_schema_mysql.o db/db_data_mysql.o
-endif
-
-if USE_SQLITE
-BACKEND_SOURCES_CUSTOM += ../db/db_backend_sqlite.o
-BACKEND_SCHEMA_CUSTOM += ../db/db_schema_sqlite.o ../db/db_data_sqlite.o
-endif
-
 enforcertest_SOURCES = enforcertest.c
 enforcertest_LDFLAGS = -rdynamic
 enforcertest_LDADD = \
