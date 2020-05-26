@@ -52,12 +52,6 @@ enforcer/src/ods-enforcer-db-setup
 enforcer/man/ods-ksmutil.1
 enforcer/src/ods-kaspcheck
 enforcer/src/utils/ods-kaspcheck.1
-libhsm/checks/conf-aepkeyper.xml
-libhsm/checks/conf-etoken.xml
-libhsm/checks/conf-multi.xml
-libhsm/checks/conf-ncipher.xml
-libhsm/checks/conf-opensc.xml
-libhsm/checks/conf-sca6000.xml
 libhsm/checks/conf-softhsm.xml
 libhsm/checks/hsmcheck
 libhsm/src/bin/ods-hsmspeed

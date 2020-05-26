@@ -34,33 +34,6 @@ tokens:
 	softhsm2-util --slot 1 --init-token --label xyzzy \
 		--so-pin 12345678 --pin 123456
 
-# FIXME disable this test, it takes a very long time and should be
-# part of integration/regression testing
-# check: regress-softhsm
-
-regress:
-	@echo use target 'regress-{aepkeyper,sca6000,softhsm,etoken,opensc,ncipher,multi}'
-
-regress-aepkeyper: hsmcheck
-	./hsmcheck -c conf-aepkeyper.xml -gsdr
-
-regress-sca6000: hsmcheck
-	./hsmcheck -c conf-sca6000.xml -gsdr
-
-regress-softhsm: hsmcheck tokens
+check: hsmcheck tokens
 	env $(SOFTHSM_ENV) \
 	./hsmcheck -c conf-softhsm.xml -gsdr
-
-regress-etoken: hsmcheck
-	./hsmcheck -c conf-etoken.xml -gsdr
-
-regress-opensc: hsmcheck
-	./hsmcheck -c conf-opensc.xml -gsdr
-
-regress-ncipher: hsmcheck
-	./hsmcheck -c conf-ncipher.xml -gsdr
-
-regress-multi: hsmcheck tokens
-	env $(SOFTHSM_ENV) \
-	./hsmcheck -c conf-multi.xml -gsdr
-

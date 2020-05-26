@@ -20,7 +20,7 @@ AM_CFLAGS = \
 enforcerdir =	@libdir@/opendnssec/enforcer
 
 bin_PROGRAMS = ods-kaspcheck
-sbin_PROGRAMS =	ods-enforcerd ods-enforcer ods-enforcer-db-setup
+sbin_PROGRAMS =	ods-enforcerd ods-enforcer
 #dist_man1_MANS = utils/ods-kaspcheck.1
 
 ods_enforcerd_SOURCES = \
@@ -119,20 +119,6 @@ ods_enforcer_LDADD = \
 	@LDNS_LIBS@ \
 	@XML2_LIBS@ \
 	@READLINE_LIBS@
-
-ods_enforcer_db_setup_SOURCES = \
-	ods-enforcer-db-setup.c \
-	daemon/cfg.c daemon/cfg.h \
-	parser/confparser.c parser/confparser.h
-
-ods_enforcer_db_setup_LDADD = \
-	$(LIBHSM) \
-	$(LIBCOMPAT) \
-	@LDNS_LIBS@ \
-	@XML2_LIBS@ \
-	@PTHREAD_LIBS@ \
-	@RT_LIBS@ \
-	@ENFORCER_DB_LIBS@
 
 ods_kaspcheck_SOURCES = utils/kaspcheck.c utils/kc_helper.c utils/kc_helper.h
 
