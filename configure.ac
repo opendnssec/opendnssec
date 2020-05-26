@@ -246,6 +246,7 @@ AC_CONFIG_FILES([
 	conf/zonelist.xml
 	enforcer/Makefile
 	enforcer/src/Makefile
+	enforcer/src/test/Makefile
 	enforcer/man/Makefile
 	enforcer/man/ods-enforcer.8
 	enforcer/man/ods-enforcer-db-setup.8

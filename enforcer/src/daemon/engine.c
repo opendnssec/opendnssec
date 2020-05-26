@@ -264,8 +264,8 @@ probe_database(engine_type* engine)
  * \param engine engine config where configuration list is stored
  * \return 0 on succes, 1 on failure
  */
-static int
-setup_database(engine_type* engine)
+int
+engine_setup_database(engine_type* engine)
 {
     db_configuration_t* dbcfg;
 
@@ -391,8 +391,8 @@ setup_database(engine_type* engine)
  * are closed.
  * \param engine engine config where configuration list is stored
  */
-static void
-desetup_database(engine_type* engine)
+void
+engine_desetup_database(engine_type* engine)
 {
     db_configuration_list_free(engine->dbcfg_list);
     engine->dbcfg_list = NULL;
@@ -445,7 +445,7 @@ engine_setup()
         return ODS_STATUS_WRITE_PIDFILE_ERR;
     }
     /* setup database configuration */
-    if (setup_database(engine)) return ODS_STATUS_DB_ERR;
+    if (engine_setup_database(engine)) return ODS_STATUS_DB_ERR;
     /* Probe the database, can we connect to it? */
     if (probe_database(engine)) {
         ods_log_crit("Could not connect to database or database not set"
@@ -606,7 +606,7 @@ engine_teardown(engine_type* engine)
         cmdhandler_cleanup(engine->cmdhandler);
         engine->cmdhandler = NULL;
     }
-    desetup_database(engine);
+    engine_desetup_database(engine);
 }
 
 void

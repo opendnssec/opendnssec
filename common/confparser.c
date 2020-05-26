@@ -80,7 +80,7 @@ parse_file_check(const char* cfgfile, const char* rngfile)
         ods_log_error("[%s] unable to read rngfile %s", parser_str,
             rngfile);
         xmlFreeDoc(doc);
-        return ODS_STATUS_XML_ERR;
+        return ODS_STATUS_OK;
     }
     /* Create an XML RelaxNGs parser context for the relax-ng document. */
     rngpctx = xmlRelaxNGNewDocParserCtxt(rngdoc);
