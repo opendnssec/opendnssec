@@ -160,6 +160,16 @@ static db_object_t* __key_state_new_object(const db_connection_t* connection) {
         return NULL;
     }
 
+#ifdef CHANGE
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "reason")
+        || db_object_field_set_type(object_field, DB_TYPE_TEXT)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+    }
+#endif
+
     if (db_object_set_object_field_list(object, object_field_list)) {
         db_object_field_list_free(object_field_list);
         db_object_free(object);
@@ -264,6 +274,9 @@ int key_state_copy(key_state_t* key_state, const key_state_t* key_state_copy) {
     key_state->last_change = key_state_copy->last_change;
     key_state->minimize = key_state_copy->minimize;
     key_state->ttl = key_state_copy->ttl;
+#ifdef CHANGE
+    key_state->reason = key_data_new_copy(key_state_copy->reason);
+#endif
     return DB_OK;
 }
 
@@ -291,7 +304,11 @@ int key_state_from_result(key_state_t* key_state, const db_result_t* result) {
         || db_value_to_enum_value(db_value_set_at(value_set, 4), &state, key_state_enum_set_state)
         || db_value_to_uint32(db_value_set_at(value_set, 5), &(key_state->last_change))
         || db_value_to_uint32(db_value_set_at(value_set, 6), &(key_state->minimize))
-        || db_value_to_uint32(db_value_set_at(value_set, 7), &(key_state->ttl)))
+        || db_value_to_uint32(db_value_set_at(value_set, 7), &(key_state->ttl))
+#ifdef CHANGE
+        || db_value_to_text(db_value_set_at(value_set, 8), &(key_state->reason))
+#endif
+)
     {
         return DB_ERROR_UNKNOWN;
     }
@@ -413,6 +430,16 @@ unsigned int key_state_ttl(const key_state_t* key_state) {
 
     return key_state->ttl;
 }
+
+#ifdef CHANGE
+unsigned char* key_state_reason(const key_state_t* key_state) {
+    if (!key_state) {
+        return "";
+    }
+
+    return key_state->reason ? key_state->reason : "";
+}
+#endif
 
 int key_state_set_key_data_id(key_state_t* key_state, const db_value_t* key_data_id) {
     if (!key_state) {
@@ -615,7 +642,11 @@ int key_state_create(key_state_t* key_state) {
         || db_value_from_enum_value(db_value_set_get(value_set, 2), key_state->state, key_state_enum_set_state)
         || db_value_from_uint32(db_value_set_get(value_set, 3), key_state->last_change)
         || db_value_from_uint32(db_value_set_get(value_set, 4), key_state->minimize)
-        || db_value_from_uint32(db_value_set_get(value_set, 5), key_state->ttl))
+        || db_value_from_uint32(db_value_set_get(value_set, 5), key_state->ttl)
+#ifdef CHANGE
+        || db_value_from_text(db_value_set_get(value_set, 6), key_state->reason)
+#endif
+)
     {
         db_value_set_free(value_set);
         db_object_field_list_free(object_field_list);
@@ -782,7 +813,11 @@ int key_state_update(key_state_t* key_state) {
         || db_value_from_enum_value(db_value_set_get(value_set, 2), key_state->state, key_state_enum_set_state)
         || db_value_from_uint32(db_value_set_get(value_set, 3), key_state->last_change)
         || db_value_from_uint32(db_value_set_get(value_set, 4), key_state->minimize)
-        || db_value_from_uint32(db_value_set_get(value_set, 5), key_state->ttl))
+        || db_value_from_uint32(db_value_set_get(value_set, 5), key_state->ttl)
+#ifdef CHANGE
+        || db_value_from_text(db_value_set_get(value_set, 6), key_state->reason)
+#endif
+)
     {
         db_value_set_free(value_set);
         db_object_field_list_free(object_field_list);

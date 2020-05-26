@@ -73,6 +73,9 @@ struct key_state {
     unsigned int last_change;
     unsigned int minimize;
     unsigned int ttl;
+#ifdef CHANGE
+    char* reason;
+#endif
 };
 
 /**

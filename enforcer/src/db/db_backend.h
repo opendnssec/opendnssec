@@ -170,20 +170,6 @@ typedef int (*db_backend_handle_transaction_rollback_t)(void* data);
  */
 struct db_backend_handle {
     void* data;
-    db_backend_handle_initialize_t initialize_function;
-    db_backend_handle_shutdown_t shutdown_function;
-    db_backend_handle_connect_t connect_function;
-    db_backend_handle_disconnect_t disconnect_function;
-    db_backend_handle_last_id_t last_id_function;
-    db_backend_handle_create_t create_function;
-    db_backend_handle_read_t read_function;
-    db_backend_handle_update_t update_function;
-    db_backend_handle_delete_t delete_function;
-    db_backend_handle_count_t count_function;
-    db_backend_handle_free_t free_function;
-    db_backend_handle_transaction_begin_t transaction_begin_function;
-    db_backend_handle_transaction_commit_t transaction_commit_function;
-    db_backend_handle_transaction_rollback_t transaction_rollback_function;
 };
 
 /**
@@ -396,7 +382,7 @@ struct db_backend {
  * Create a new database backend.
  * \return a db_backend_t pointer or NULL on error.
  */
-db_backend_t* db_backend_new(void);
+db_backend_t* db_backend_new(const char* name);
 
 /**
  * Delete a database backend.
@@ -411,14 +397,6 @@ void db_backend_free(db_backend_t* backend);
  * backend handle has been set.
  */
 const db_backend_handle_t* db_backend_handle(const db_backend_t* backend);
-
-/**
- * Set the name of a database backend.
- * \param[in] backend a db_backend_t pointer.
- * \param[in] name a character pointer.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-int db_backend_set_name(db_backend_t* backend, const char* name);
 
 /**
  * Det the database backend handle of a database backend, this takes over the

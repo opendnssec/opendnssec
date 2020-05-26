@@ -86,6 +86,9 @@ struct key_data {
     key_data_ds_at_parent_t ds_at_parent;
     unsigned int keytag;
     unsigned int minimize;
+#ifdef CHANGE
+    char* reason;
+#endif
     key_state_list_t* key_state_list;
 };
 

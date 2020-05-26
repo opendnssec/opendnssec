@@ -186,132 +186,6 @@ int db_backend_handle_count(const db_backend_handle_t* backend_handle, const db_
     return backend_handle->count_function((void*)backend_handle->data, object, join_list, clause_list, count);
 }
 
-int db_backend_handle_set_initialize(db_backend_handle_t* backend_handle, db_backend_handle_initialize_t initialize_function) {
-    if (!backend_handle) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    backend_handle->initialize_function = initialize_function;
-    return DB_OK;
-}
-
-int db_backend_handle_set_shutdown(db_backend_handle_t* backend_handle, db_backend_handle_shutdown_t shutdown_function) {
-    if (!backend_handle) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    backend_handle->shutdown_function = shutdown_function;
-    return DB_OK;
-}
-
-int db_backend_handle_set_connect(db_backend_handle_t* backend_handle, db_backend_handle_connect_t connect_function) {
-    if (!backend_handle) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    backend_handle->connect_function = connect_function;
-    return DB_OK;
-}
-
-int db_backend_handle_set_disconnect(db_backend_handle_t* backend_handle, db_backend_handle_disconnect_t disconnect_function) {
-    if (!backend_handle) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    backend_handle->disconnect_function = disconnect_function;
-    return DB_OK;
-}
-
-int db_backend_handle_set_last_id(db_backend_handle_t* backend_handle, db_backend_handle_last_id_t last_id_function) {
-    if (!backend_handle) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    backend_handle->last_id_function = last_id_function;
-    return DB_OK;
-}
-
-int db_backend_handle_set_create(db_backend_handle_t* backend_handle, db_backend_handle_create_t create_function) {
-    if (!backend_handle) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    backend_handle->create_function = create_function;
-    return DB_OK;
-}
-
-int db_backend_handle_set_read(db_backend_handle_t* backend_handle, db_backend_handle_read_t read_function) {
-    if (!backend_handle) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    backend_handle->read_function = read_function;
-    return DB_OK;
-}
-
-int db_backend_handle_set_update(db_backend_handle_t* backend_handle, db_backend_handle_update_t update_function) {
-    if (!backend_handle) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    backend_handle->update_function = update_function;
-    return DB_OK;
-}
-
-int db_backend_handle_set_delete(db_backend_handle_t* backend_handle, db_backend_handle_delete_t delete_function) {
-    if (!backend_handle) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    backend_handle->delete_function = delete_function;
-    return DB_OK;
-}
-
-int db_backend_handle_set_count(db_backend_handle_t* backend_handle, db_backend_handle_count_t count_function) {
-    if (!backend_handle) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    backend_handle->count_function = count_function;
-    return DB_OK;
-}
-
-int db_backend_handle_set_free(db_backend_handle_t* backend_handle, db_backend_handle_free_t free_function) {
-    if (!backend_handle) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    backend_handle->free_function = free_function;
-    return DB_OK;
-}
-
-int db_backend_handle_set_transaction_begin(db_backend_handle_t* backend_handle, db_backend_handle_transaction_begin_t transaction_begin_function) {
-    if (!backend_handle) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    backend_handle->transaction_begin_function = transaction_begin_function;
-    return DB_OK;
-}
-
-int db_backend_handle_set_transaction_commit(db_backend_handle_t* backend_handle, db_backend_handle_transaction_commit_t transaction_commit_function) {
-    if (!backend_handle) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    backend_handle->transaction_commit_function = transaction_commit_function;
-    return DB_OK;
-}
-
-int db_backend_handle_set_transaction_rollback(db_backend_handle_t* backend_handle, db_backend_handle_transaction_rollback_t transaction_rollback_function) {
-    if (!backend_handle) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    backend_handle->transaction_rollback_function = transaction_rollback_function;
-    return DB_OK;
-}
-
 int db_backend_handle_set_data(db_backend_handle_t* backend_handle, void* data) {
     if (!backend_handle) {
         return DB_ERROR_UNKNOWN;
@@ -328,9 +202,10 @@ int db_backend_handle_set_data(db_backend_handle_t* backend_handle, void* data) 
 
 
 
-db_backend_t* db_backend_new(void) {
+db_backend_t* db_backend_new(const char* name) {
     db_backend_t* backend =
         (db_backend_t*)calloc(1, sizeof(db_backend_t));
+    backend->name = strdup(name);
 
     return backend;
 }
@@ -340,29 +215,9 @@ void db_backend_free(db_backend_t* backend) {
         if (backend->handle) {
             db_backend_handle_free(backend->handle);
         }
-        if (backend->name) {
-            free(backend->name);
-        }
+        free(backend->name);
         free(backend);
     }
-}
-
-int db_backend_set_name(db_backend_t* backend, const char* name) {
-    char* new_name;
-
-    if (!backend) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    if (!(new_name = strdup(name))) {
-        return DB_ERROR_UNKNOWN;
-    }
-
-    if (backend->name) {
-        free(backend->name);
-    }
-    backend->name = new_name;
-    return DB_OK;
 }
 
 int db_backend_set_handle(db_backend_t* backend, db_backend_handle_t* handle) {
@@ -507,32 +362,7 @@ db_backend_t* db_backend_factory_get_backend(const char* name) {
         return NULL;
     }
 
-#if defined(ENFORCER_DATABASE_SQLITE3)
-    if (!strcmp(name, "sqlite")) {
-        if (!(backend = db_backend_new())
-            || db_backend_set_name(backend, "sqlite")
-            || db_backend_set_handle(backend, db_backend_sqlite_new_handle())
-            || db_backend_initialize(backend))
-        {
-            db_backend_free(backend);
-            return NULL;
-        }
-        return backend;
-    }
-#endif
-#if defined(ENFORCER_DATABASE_MYSQL)
-    if (!strcmp(name, "mysql")) {
-        if (!(backend = db_backend_new())
-            || db_backend_set_name(backend, "mysql")
-            || db_backend_set_handle(backend, db_backend_mysql_new_handle())
-            || db_backend_initialize(backend))
-        {
-            db_backend_free(backend);
-            return NULL;
-        }
-        return backend;
-    }
-#endif
+    db_backend_new(name);
 
     return backend;
 }

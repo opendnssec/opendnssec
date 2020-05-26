@@ -249,6 +249,16 @@ static db_object_t* __key_data_new_object(const db_connection_t* connection) {
         return NULL;
     }
 
+#ifdef CHANGE
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "reason")
+        || db_object_field_set_type(object_field, DB_TYPE_TEXT)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+    }
+#endif
+
     if (db_object_set_object_field_list(object, object_field_list)) {
         db_object_field_list_free(object_field_list);
         db_object_free(object);
@@ -320,6 +330,7 @@ void key_data_free(key_data_t* key_data) {
         if (key_data->key_state_list) {
             key_state_list_free(key_data->key_state_list);
         }
+        // BERRY free reason ?
         free(key_data);
     }
 }
@@ -397,6 +408,7 @@ int key_data_copy(key_data_t* key_data, const key_data_t* key_data_copy) {
     key_data->ds_at_parent = key_data_copy->ds_at_parent;
     key_data->keytag = key_data_copy->keytag;
     key_data->minimize = key_data_copy->minimize;
+    // BERRY strdup reason ??
     return DB_OK;
 }
 
@@ -508,7 +520,11 @@ int key_data_from_result(key_data_t* key_data, const db_result_t* result) {
         || db_value_to_uint32(db_value_set_at(value_set, 12), &(key_data->active_ksk))
         || db_value_to_enum_value(db_value_set_at(value_set, 13), &ds_at_parent, key_data_enum_set_ds_at_parent)
         || db_value_to_uint32(db_value_set_at(value_set, 14), &(key_data->keytag))
-        || db_value_to_uint32(db_value_set_at(value_set, 15), &(key_data->minimize)))
+        || db_value_to_uint32(db_value_set_at(value_set, 15), &(key_data->minimize))
+#ifdef CHANGE
+        || db_value_to_text(db_value_set_at(value_set, 16), &(key_data->reason))
+#endif
+)
     {
         return DB_ERROR_UNKNOWN;
     }
@@ -783,6 +799,16 @@ unsigned int key_data_minimize(const key_data_t* key_data) {
 
     return key_data->minimize;
 }
+
+#ifdef CHANGE
+const char* key_data_reason(const key_data_t* key_data) {
+    if (!key_data) {
+        return 0;
+    }
+
+    return key_data->reason ? key_data->reason : "";
+}
+#endif
 
 key_state_list_t* key_data_key_state_list(key_data_t* key_data) {
 
@@ -1266,7 +1292,17 @@ int key_data_create(key_data_t* key_data) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(value_set = db_value_set_new(14))) {
+#ifdef CHANGE
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "reason")
+        || db_object_field_set_type(object_field, DB_TYPE_TEXT)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+    }
+#endif
+
+    if (!(value_set = db_value_set_new(15))) {
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
@@ -1284,7 +1320,11 @@ int key_data_create(key_data_t* key_data) {
         || db_value_from_uint32(db_value_set_get(value_set, 10), key_data->active_ksk)
         || db_value_from_enum_value(db_value_set_get(value_set, 11), key_data->ds_at_parent, key_data_enum_set_ds_at_parent)
         || db_value_from_uint32(db_value_set_get(value_set, 12), key_data->keytag)
-        || db_value_from_uint32(db_value_set_get(value_set, 13), key_data->minimize))
+        || db_value_from_uint32(db_value_set_get(value_set, 13), key_data->minimize)
+#ifdef CHANGE
+        || db_value_from_text(db_value_set_get(value_set, 14), key_data->reason)
+#endif
+)
     {
         db_value_set_free(value_set);
         db_object_field_list_free(object_field_list);
@@ -1524,7 +1564,17 @@ int key_data_update(key_data_t* key_data) {
         return DB_ERROR_UNKNOWN;
     }
 
-    if (!(value_set = db_value_set_new(14))) {
+#ifdef CHANGE
+    if (!(object_field = db_object_field_new())
+        || db_object_field_set_name(object_field, "reason")
+        || db_object_field_set_type(object_field, DB_TYPE_TEXT)
+        || db_object_field_list_add(object_field_list, object_field))
+    {
+        db_object_field_free(object_field);
+    }
+#endif
+
+    if (!(value_set = db_value_set_new(15))) {
         db_object_field_list_free(object_field_list);
         return DB_ERROR_UNKNOWN;
     }
@@ -1542,7 +1592,11 @@ int key_data_update(key_data_t* key_data) {
         || db_value_from_uint32(db_value_set_get(value_set, 10), key_data->active_ksk)
         || db_value_from_enum_value(db_value_set_get(value_set, 11), key_data->ds_at_parent, key_data_enum_set_ds_at_parent)
         || db_value_from_uint32(db_value_set_get(value_set, 12), key_data->keytag)
-        || db_value_from_uint32(db_value_set_get(value_set, 13), key_data->minimize))
+        || db_value_from_uint32(db_value_set_get(value_set, 13), key_data->minimize)
+#ifdef CHANGE
+        || db_value_from_text(db_value_set_get(value_set, 14), key_data->reason)
+#endif
+)
     {
         db_value_set_free(value_set);
         db_object_field_list_free(object_field_list);
