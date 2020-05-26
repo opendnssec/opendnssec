@@ -49,6 +49,7 @@ enforcer/man/ods-enforcer-db-setup.8
 enforcer/src/ods-enforcer
 enforcer/src/ods-enforcerd
 enforcer/src/ods-enforcer-db-setup
+enforcer/man/ods-ksmutil.1
 enforcer/src/ods-kaspcheck
 enforcer/src/utils/ods-kaspcheck.1
 libhsm/checks/conf-aepkeyper.xml

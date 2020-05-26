@@ -15,8 +15,7 @@ AM_CFLAGS = \
 	-I$(srcdir)/../../libhsm/src/lib \
 	-I$(builddir)/../../libhsm/src/lib \
 	@XML2_INCLUDES@ \
-	@LDNS_INCLUDES@ \
-	@ENFORCER_DB_INCLUDES@
+	@LDNS_INCLUDES@
 
 enforcerdir =	@libdir@/opendnssec/enforcer
 
@@ -109,9 +108,7 @@ ods_enforcerd_LDADD = \
 	@LDNS_LIBS@ \
 	@XML2_LIBS@ \
 	@PTHREAD_LIBS@ \
-	@RT_LIBS@ \
-	@ENFORCER_DB_LIBS@
-
+	@RT_LIBS@
 
 ods_enforcer_SOURCES = \
 	ods-enforcer.c

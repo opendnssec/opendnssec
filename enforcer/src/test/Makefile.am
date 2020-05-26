@@ -120,7 +120,6 @@ enforcertest_LDADD = \
 	$(BACKEND_SOURCES_CUSTOM) \
 	$(LIBHSM) $(LIBCOMPAT) \
 	@LDNS_LIBS@ @XML2_LIBS@ @PTHREAD_LIBS@ @RT_LIBS@ @SSL_LIBS@ @C_LIBS@ \
-	@ENFORCER_DB_LIBS@ \
 	@CUNIT_LIBS@
 
 check: enforcertest conf.xml setup.sh
