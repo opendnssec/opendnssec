@@ -105,6 +105,9 @@ testing/test-cases.d/enforcer.ods-enforcer.zones_and_zonelist/zonelist.xml.temp*
 testing/test-cases.d/enforcer.ods-enforcer.zones_and_zonelist/zonelist.xml.test_local
 testing/test-cases.d/signer.adapters.bind_stress_test/bind9/ods
 nbproject
+enforcer/src/test/conf.xml
+enforcer/src/test/setup.sh
+enforcer/src/test/kasp.db
 **/CUnitAutomated-Listing.xml
 **/CUnitAutomated-Results.xml
 ROOT
