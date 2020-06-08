@@ -318,6 +318,11 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
         client_printf_err(sockfd, "specify keytype: ZSK, KSK or CSK\n");
         return -1;
     }
+    else {
+        ods_log_error("[%s] specify keytype for command %s", module_str, cmd);
+        client_printf_err(sockfd, "specify keytype: ZSK, KSK or CSK\n");
+        return -1;
+    }
 
     if (keystate) {
         if (strcasecmp(keystate, "generate") && strcasecmp(keystate, "publish") && strcasecmp(keystate, "ready") && strcasecmp(keystate, "active") && strcasecmp(keystate, "retire") && strcasecmp(keystate, "revoke")) {
@@ -379,6 +384,11 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
         ods_log_error("[%s] specify inception time for command %s", module_str, cmd);
         client_printf_err(sockfd, "specify inception time YYYY-MM-DD-HH:MM:SS\n");
         dbw_free(db);
+        return -1;
+    }
+    else {
+        ods_log_error("[%s] specify inception time for command %s", module_str, cmd);
+        client_printf_err(sockfd, "specify inception time YYYY-MM-DD-HH:MM:SS\n");
         return -1;
     }
     else {
