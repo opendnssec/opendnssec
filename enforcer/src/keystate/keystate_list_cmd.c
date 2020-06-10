@@ -311,7 +311,7 @@ printFullkey(int sockfd, zone_db_t* zone, key_data_t* key, char* tchange, hsm_ke
 }
 
 static void
-printverboseparsablekey(int sockfd, zone_db_t* zone, key_data_t* key, char* tchange, hsm_key_t* hsmkey) {
+printverboseparsablekey(int sockfd, zone_db_t* zone, struct dbw_key* key, char* tchange, hsm_key_t* hsmkey) {
     client_printf(sockfd,
         "%s;%s;%s;%s;%d;%d;%s;%s;%d\n",
         key->zone->name,

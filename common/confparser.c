@@ -897,23 +897,3 @@ parse_conf_signer_threads(const char* cfgfile)
     /* no SignerThreads value configured, look at WorkerThreads */
     return parse_conf_worker_threads(cfgfile, 0);
 }
-
-time_t
-parse_conf_rollover_notification(const char* cfgfile)
-{
-    time_t period = 0;
-    const char* str = parse_conf_string(cfgfile,
-                                        "//Configuration/Enforcer/RolloverNotification",
-                                        0);
-    if (str) {
-        if (strlen(str) > 0) {
-            duration_type* duration = duration_create_from_string(str);
-            if (duration) {
-                period = duration2time(duration);
-                duration_cleanup(duration);
-            }
-        }
-        free((void*)str);
-    }
-    return period;
-}

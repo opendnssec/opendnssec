@@ -294,15 +294,14 @@ runthread(void* data)
     int err;
     sigset_t sigset;
     struct janitor_thread_struct* info;
-    /** alt stack code was removed this commit (check git blame)
-     * Free of the stack caused libxml to crash. Probably had some static
-     * stuff pointing to the stack. But not freeing caused 8K leak for every
-     * cmd handle thread during lifetime of daemon.
-     *
-     * As a consequence janitor cannot handle running out of stackspace.
-     */
+    stack_t ss;
+    stack_t prevss;
     info = (struct janitor_thread_struct*) data;
     pthread_setspecific(threadlocator, info);
+    ss.ss_sp = malloc(SIGSTKSZ);
+    ss.ss_size = SIGSTKSZ;
+    ss.ss_flags = 0;
+    sigaltstack(&ss, &prevss);
     pthread_barrier_wait(&info->startbarrier);
     if (info->blocksignals) {
         sigfillset(&sigset);
