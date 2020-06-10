@@ -1,4 +1,4 @@
-OpenDNSSEC 2.2 - 2017-xx-xx
+OpenDNSSEC 2.2 - 2020-xx-xx
 
 * OPENDNSSEC-620: SocketFile and PidFile where not reconized in the signer config.
 * OPENDNSSEC-796: Improved separation of logic and database code.

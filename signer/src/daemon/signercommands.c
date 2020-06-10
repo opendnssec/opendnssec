@@ -206,15 +206,15 @@ cmdhandler_handle_cmd_update(int sockfd, cmdhandler_ctx_type* context, const cha
         command_update(engine, &zl_changed, &numadded, &numremoved, &numupdated);
         switch (zl_changed) {
             case ODS_STATUS_UNCHANGED:
-            (void)snprintf(buf, ODS_SE_MAXLINE, "Zone list has not changed."
-                " Signer configurations updated.\n");
+                (void)snprintf(buf, ODS_SE_MAXLINE, "Zone list has not changed."
+                       " Signer configurations updated.\n");
                 break;
             case ODS_STATUS_OK:
-                (void) snprintf(buf, ODS_SE_MAXLINE, "Zone list updated: %i removed, %i added, %i updated.\n",
+                (void)snprintf(buf, ODS_SE_MAXLINE, "Zone list updated: %i removed, %i added, %i updated.\n",
                         numremoved, numadded, numupdated);
                 break;
             default:
-            (void)snprintf(buf, ODS_SE_MAXLINE, "Zone list has errors.\n");
+                (void)snprintf(buf, ODS_SE_MAXLINE, "Zone list has errors.\n");
         }
         client_printf(sockfd, "%s", buf);
     } else {
@@ -230,8 +230,8 @@ cmdhandler_handle_cmd_update(int sockfd, cmdhandler_ctx_type* context, const cha
         pthread_mutex_unlock(&engine->zonelist->zl_lock);
 
         if (!zone) {
-            (void)snprintf(buf, ODS_SE_MAXLINE, "Error: Zone %s not found.\n",
-                cmdargument(cmd, NULL, ""));
+            (void) snprintf(buf, ODS_SE_MAXLINE, "Error: Zone %s not found.\n",
+                    cmdargument(cmd, NULL, ""));
             client_printf(sockfd, "%s", buf);
             /* update all */
             cmdhandler_handle_cmd_update(sockfd, context, "update --all");
@@ -242,8 +242,8 @@ cmdhandler_handle_cmd_update(int sockfd, cmdhandler_ctx_type* context, const cha
         schedule_scheduletask(engine->taskq, TASK_FORCESIGNCONF, zone->name, zone, &zone->zone_lock, schedule_PROMPTLY);
         pthread_mutex_unlock(&zone->zone_lock);
 
-        (void)snprintf(buf, ODS_SE_MAXLINE, "Zone %s config being updated.\n",
-        cmdargument(cmd, NULL, ""));
+        (void) snprintf(buf, ODS_SE_MAXLINE, "Zone %s config being updated.\n",
+                cmdargument(cmd, NULL, ""));
         client_printf(sockfd, "%s", buf);
         ods_log_verbose("[%s] zone %s scheduled for immediate update signconf",
                 cmdh_str, cmdargument(cmd, NULL, ""));
@@ -277,7 +277,7 @@ cmdhandler_handle_cmd_retransfer(int sockfd, cmdhandler_ctx_type* context, char 
     pthread_mutex_unlock(&engine->zonelist->zl_lock);
 
     if (!zone) {
-        (void)snprintf(buf, ODS_SE_MAXLINE, "Error: Zone %s not found.\n",
+        (void) snprintf(buf, ODS_SE_MAXLINE, "Error: Zone %s not found.\n",
             cmdargument(cmd, NULL, ""));
         client_printf(sockfd, "%s", buf);
     } else if (zone->adinbound->type != ADAPTER_DNS) {
@@ -511,7 +511,7 @@ cmdhandler_handle_cmd_stop(int sockfd, cmdhandler_ctx_type* context, char *cmd)
     char buf[ODS_SE_MAXLINE];
     engine = getglobalcontext(context);
     command_stop(engine);
-    (void)snprintf(buf, ODS_SE_MAXLINE, ODS_SE_STOP_RESPONSE);
+    (void) snprintf(buf, ODS_SE_MAXLINE, ODS_SE_STOP_RESPONSE);
     client_printf(sockfd, "%s", buf);
     return 0;
 }
@@ -556,7 +556,7 @@ cmdhandler_handle_cmd_verbosity(int sockfd, cmdhandler_ctx_type* context, char *
     int val;
     val = atoi(cmdargument(cmd, NULL, "1"));
     ods_log_setverbosity(val);
-    (void)snprintf(buf, ODS_SE_MAXLINE, "Verbosity level set to %i.\n", val);
+    (void) snprintf(buf, ODS_SE_MAXLINE, "Verbosity level set to %i.\n", val);
     client_printf(sockfd, "%s", buf);
     return 0;
 }

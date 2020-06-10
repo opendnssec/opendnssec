@@ -3103,6 +3103,11 @@ hsm_get_error(hsm_ctx_t *gctx)
             "%s: %s",
             ctx->error_action ? ctx->error_action : "unknown()",
             ctx->error_message[0] ? ctx->error_message : "unknown error");
+
+        /* Since both `message` and `ctx->error_message` have the same length,
+         * the snprintf statement above may be truncated. In this case the
+         * string wouldn't be null-terminated. */
+        message[HSM_ERROR_MSGSIZE - 1U] = '\0';
         return message;
     };
 

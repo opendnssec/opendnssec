@@ -104,6 +104,7 @@ writezone(names_view_type view, const char* filename)
     fp = fopen(filename,"w");
     if (!fp) {
         fprintf(stderr,"unable to open file \"%s\"\n",filename);
+        /* TODO: abort or otherwise handle this failure. */
     }
 
     names_viewgetapex(view, &origin);

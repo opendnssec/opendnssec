@@ -214,8 +214,9 @@ rrset_sign(signconf_type* signconf, names_view_type view, recordset_type record,
 
     /* Transmogrify rrset */
     if (ldns_rr_list_rr_count(rrset) <= 0) {
-        if(rrset) ldns_rr_list_free(rrset);
         /* Empty RRset, no signatures needed */
+        if(rrset) ldns_rr_list_free(rrset);
+        free(matchedsignatures);
         return 0;
     }
 
@@ -234,10 +235,12 @@ rrset_sign(signconf_type* signconf, names_view_type view, recordset_type record,
     /* Skip delegation, glue and occluded RRsets */
     if (dstatus != LDNS_RR_TYPE_SOA) {
         if(rrset) ldns_rr_list_free(rrset);
+        free(matchedsignatures);
         return 0;
     }
     if (delegpt != LDNS_RR_TYPE_SOA && rrtype != LDNS_RR_TYPE_DS) {
         if(rrset) ldns_rr_list_free(rrset);
+        free(matchedsignatures);
         return 0;
     }
     
@@ -249,7 +252,7 @@ rrset_sign(signconf_type* signconf, names_view_type view, recordset_type record,
             expiration = ldns_rdf2native_int32(ldns_rr_rrsig_expiration(matchedsignatures[i].signature->rr));
             inception = ldns_rdf2native_int32(ldns_rr_rrsig_inception(matchedsignatures[i].signature->rr));
         }
-        if (matchedsignatures[i].key && matchedsignatures[i].key->ksk && rrtype != LDNS_RR_TYPE_DNSKEY) {
+        if (matchedsignatures[i].key && matchedsignatures[i].key->ksk && !matchedsignatures[i].key->zsk && rrtype != LDNS_RR_TYPE_DNSKEY) {
             /* If KSK don't sign other RRsets */
             matchedsignatures[i].key = NULL;
             matchedsignatures[i].signature = NULL;
@@ -258,7 +261,7 @@ rrset_sign(signconf_type* signconf, names_view_type view, recordset_type record,
         } else if (matchedsignatures[i].key && !matchedsignatures[i].key->ksk && !matchedsignatures[i].key->zsk && rrtype != LDNS_RR_TYPE_DNSKEY && !matchedsignatures[i].key->publish) {
             matchedsignatures[i].key = NULL;
             matchedsignatures[i].signature = NULL;
-        } else if (matchedsignatures[i].key && !matchedsignatures[i].key->ksk && rrtype == LDNS_RR_TYPE_DNSKEY) {
+        } else if (matchedsignatures[i].key && !matchedsignatures[i].key->ksk && matchedsignatures[i].key->zsk && rrtype == LDNS_RR_TYPE_DNSKEY) {
             /* If not KSK don't sign DNSKEY RRset */
             matchedsignatures[i].key = NULL;
             matchedsignatures[i].signature = NULL;
@@ -315,10 +318,12 @@ rrset_sign(signconf_type* signconf, names_view_type view, recordset_type record,
     for (int i = 0; i < nmatchedsignatures; i++) {
         if (!matchedsignatures[i].signature && matchedsignatures[i].key) {
             /* Sign the RRset with this key */
-            logger_message(&cls,logger_noctx,logger_TRACE, "sign %s with key %s inception=%ld expiration=%ld delegation=%s occluded=%s\n",names_recordgetname(record),matchedsignatures[i].key->locator,(long)expiration,(long)expiration,(delegpt!=LDNS_RR_TYPE_SOA?"yes":"no"),(dstatus!=LDNS_RR_TYPE_SOA?"yes":"no"));
+            logger_message(&cls,logger_noctx,logger_TRACE, "sign %s with key %s inception=%ld expiration=%ld delegation=%s occluded=%s\n",names_recordgetname(record),matchedsignatures[i].key->locator,(long)inception,(long)expiration,(delegpt!=LDNS_RR_TYPE_SOA?"yes":"no"),(dstatus!=LDNS_RR_TYPE_SOA?"yes":"no"));
             rrsig = lhsm_sign(ctx, rrset, matchedsignatures[i].key, inception, expiration);
             if (rrsig == NULL) {
                 ods_log_crit("unable to sign RRset[%i]: lhsm_sign() failed", rrtype);
+                if(rrset) ldns_rr_list_free(rrset);
+                free(matchedsignatures);
                 return ODS_STATUS_HSM_ERR;
             }
             /* Add signature */
@@ -336,6 +341,7 @@ rrset_sign(signconf_type* signconf, names_view_type view, recordset_type record,
                     if(apex)
                         ldns_rdf_free(apex);
                     if(rrset) ldns_rr_list_free(rrset);
+                    free(matchedsignatures);
                     return status;
                 }
                 /* Add signature */
@@ -583,6 +589,8 @@ namedb_update_serial(zone_type* zone)
         serial = (uint32_t) time_now();
     } else if (!strcmp(format, "datecounter")) {
         serial = (uint32_t) time_datestamp(0, "%Y%m%d", NULL) * 100;
+        /* TODO: support 01-99 values of NN in YYYYmmddNN, e.g. if the YYYYmmdd
+           part of serial is the same as zone->inboundserial? */
     } else if (!strcmp(format, "counter")) {
         if(zone->inboundserial) {
             serial = *(zone->inboundserial) + 1;
