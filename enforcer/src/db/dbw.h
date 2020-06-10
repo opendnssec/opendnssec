@@ -146,7 +146,7 @@ struct dbrow {
 };
 
 struct dbw_policykey {
-    int id;
+    long id;
     int dirty;
     int revision;
     int scratch;
@@ -169,7 +169,7 @@ struct dbw_policykey {
 };
 
 struct dbw_policy {
-    int id;
+    long id;
     int dirty;
     int revision;
     int scratch;
@@ -219,7 +219,7 @@ struct dbw_policy {
 };
 
 struct dbw_key {
-    int id;
+    long id;
     int dirty;
     int revision;
     int scratch;
@@ -249,7 +249,7 @@ struct dbw_key {
 };
 
 struct dbw_keystate {
-    int id;
+    long id;
     int dirty;
     int revision;
     int scratch;
@@ -285,7 +285,7 @@ struct dbw_keydependency {
 };
 
 struct dbw_hsmkey {
-    int id;
+    long id;
     int dirty;
     int revision;
     int scratch;
@@ -310,7 +310,7 @@ struct dbw_hsmkey {
 };
 
 struct dbw_zone {
-    int id;
+    long id;
     int dirty;
     int revision;
     int scratch;
@@ -456,8 +456,7 @@ void dbw_policies_add_zone(struct dbw_list *policies, struct dbw_zone *zone);
 void sort_policies(const struct dbw_policy *arr[], int n);
 void sort_zones(const struct dbw_zone *arr[], int n);
 void sort_keys(const struct dbw_key *arr[], int n);
-static int compare_policies(const void *a, const void *b);
-static int compare_zones(const void *a, const void *b);
-static int compare_keys(const void *a, const void *b);
+
+long createuniqid(void);
 
 #endif /*DBW_H*/

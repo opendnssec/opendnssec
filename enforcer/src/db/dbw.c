@@ -1,5 +1,6 @@
 #include <string.h>
 #include <pthread.h>
+#include <stdlib.h>
 
 #include "config.h"
 
@@ -277,8 +278,8 @@ dbw_policy_update(const db_connection_t *dbconn, struct dbrow *row)
     if (row->dirty == DBW_UPDATE) {
         ret = policy_update(dbx_obj);
     } else {
+        policy->id = dbx_obj->id.primary_key = createuniqid();
         ret = policy_create(dbx_obj);
-        policy->id = dbx_obj->dbo->last_row_id;
     }
     policy_free(dbx_obj);
     return ret;
@@ -331,8 +332,8 @@ dbw_policykey_update(const db_connection_t *dbconn, struct dbrow *row)
         /*ret = policy_key_update(dbx_obj);*/
         ret = 1;
     } else {
+        policykey->id = dbx_obj->id.primary_key = createuniqid();
         ret = policy_key_create(dbx_obj);
-        policykey->id = dbx_obj->dbo->last_row_id;
     }
     policy_key_free(dbx_obj);
     return ret;
@@ -395,8 +396,8 @@ dbw_zone_update(const db_connection_t *dbconn, struct dbrow *row)
     if (row->dirty == DBW_UPDATE) {
         ret = zone_db_update(dbx_obj);
     } else {
+        zone->id = dbx_obj->id.primary_key = createuniqid();
         ret = zone_db_create(dbx_obj);
-        zone->id = dbx_obj->dbo->last_row_id;
     }
     zone_db_free(dbx_obj);
     return ret;
@@ -452,8 +453,8 @@ dbw_key_update(const db_connection_t *dbconn, struct dbrow *row)
     if (row->dirty == DBW_UPDATE) {
         ret = key_data_update(dbx_obj);
     } else {
+        key->id = dbx_obj->id.primary_key = createuniqid();
         ret = key_data_create(dbx_obj);
-        key->id = dbx_obj->dbo->last_row_id;
     }
     key_data_free(dbx_obj);
     return ret;
@@ -499,8 +500,8 @@ dbw_keystate_update(const db_connection_t *dbconn, struct dbrow *row)
     if (row->dirty == DBW_UPDATE) {
         ret = key_state_update(dbx_obj);
     } else {
+        keystate->id = dbx_obj->id.primary_key = createuniqid();
         ret = key_state_create(dbx_obj);
-        keystate->id = dbx_obj->dbo->last_row_id;
     }
 
     key_state_free(dbx_obj);
@@ -542,8 +543,8 @@ dbw_keydependency_update(const db_connection_t *dbconn, struct dbrow *row)
     dbx_obj->to_key_data_id.int32     = keydependency->tokey->id;
     dbx_obj->type                     = keydependency->type;
 
+    keydependency->id = dbx_obj->id.primary_key = createuniqid();
     ret = key_dependency_create(dbx_obj);
-    keydependency->id = dbx_obj->dbo->last_row_id;
     key_dependency_free(dbx_obj);
     return ret;
 }
@@ -601,8 +602,8 @@ dbw_hsmkey_update(const db_connection_t *dbconn, struct dbrow *row)
     if (row->dirty == DBW_UPDATE) {
         r = hsm_key_update(dbx_obj);
     } else {
+        hsmkey->id = dbx_obj->id.primary_key = createuniqid();
         r = hsm_key_create(dbx_obj);
-        hsmkey->id = dbx_obj->dbo->last_row_id;
     }
     hsm_key_free(dbx_obj);
     return r;
@@ -1711,4 +1712,10 @@ void
 sort_keys(const struct dbw_key *arr[], int n)
 {
     qsort(arr, n, sizeof(const struct dbw_key*), compare_keys);
+}
+
+long
+createuniqid(void)
+{
+    return random(); /* FIXME shold be better random and longer integer */
 }

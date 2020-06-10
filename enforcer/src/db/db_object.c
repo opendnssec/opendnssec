@@ -420,9 +420,6 @@ int db_object_create(db_object_t* object, const db_object_field_list_t* object_f
     } else {
         r = db_connection_create(object->connection, object, object->object_field_list, value_set);
     }
-    if (!r) {
-        r = db_connection_last_id(object->connection, &object->last_row_id);
-    }
     return r;
 }
 

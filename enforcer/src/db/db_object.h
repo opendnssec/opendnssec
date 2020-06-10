@@ -202,7 +202,6 @@ struct db_object {
     const db_connection_t* connection;
     const char* table;
     const char* primary_key_name;
-    int last_row_id;
     db_object_field_list_t* object_field_list;
 };
 

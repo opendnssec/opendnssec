@@ -423,8 +423,6 @@ int db_backend_initialize(const db_backend_t* backend);
  */
 int db_backend_connect(const db_backend_t* backend, const db_configuration_list_t* configuration_list);
 
-int db_backend_last_id(const db_backend_t* backend, int *last_id);
-
 /**
  * Create an object in the database. The `object` refer to the database object
  * begin created, the `object_field_list` describes the fields that should be
