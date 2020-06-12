@@ -3,8 +3,33 @@
 
 #include <time.h>
 
-#include "db/db_connection.h"
-#include "db/zone_db.h"
+struct db_connection_struct;
+typedef struct db_connection_struct db_connection_t;
+db_connection_t* db_connection_new(void);
+int db_connection_free(db_connection_t*conn);
+
+typedef enum key_data_role {
+  KEY_DATA_ROLE_INVALID = -1,
+  KEY_DATA_ROLE_KSK = 1,
+  KEY_DATA_ROLE_ZSK = 2,
+  KEY_DATA_ROLE_CSK = 3
+} key_data_role_t;
+
+typedef enum policy_key_role {
+  POLICY_KEY_ROLE_INVALID = -1,
+  POLICY_KEY_ROLE_KSK = 1,
+  POLICY_KEY_ROLE_ZSK = 2,
+  POLICY_KEY_ROLE_CSK = 3
+} policy_key_role_t;
+typedef enum policy_denial_type {
+  POLICY_DENIAL_TYPE_INVALID = -1,
+  POLICY_DENIAL_TYPE_NSEC = 0,
+  POLICY_DENIAL_TYPE_NSEC3 = 1
+} policy_denial_type_t;
+typedef enum hsm_key_key_type {
+  HSM_KEY_KEY_TYPE_INVALID = -1,
+  HSM_KEY_KEY_TYPE_RSA = 1
+} hsm_key_key_type_t;
 
 #define DBW_CLEAN    0
 #define DBW_DELETE   1
@@ -347,7 +372,7 @@ struct dbw_list {
     size_t n;
     void (*free)(struct dbrow *);
     int (*update)(const db_connection_t *, struct dbrow *);
-    int (*revision)(const db_connection_t *, struct db_value *);
+    int (*revision)(const db_connection_t *, ...); /* BERRY */
 };
 
 struct dbw_db {
@@ -457,6 +482,6 @@ void sort_policies(const struct dbw_policy *arr[], int n);
 void sort_zones(const struct dbw_zone *arr[], int n);
 void sort_keys(const struct dbw_key *arr[], int n);
 
-long createuniqid(void);
+long createuniqid(void); /* BERRY better name */
 
 #endif /*DBW_H*/

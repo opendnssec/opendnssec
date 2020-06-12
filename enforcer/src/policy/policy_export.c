@@ -208,7 +208,7 @@ static int __policy_export(int sockfd, const struct dbw_policy *policy, xmlNodeP
         || !(node4 = xmlNewChild(node3, NULL, (xmlChar*)"Minimum", (xmlChar*)duration_text))
         || __free(&duration_text)
         || !(error = 35)
-        || !(node4 = xmlNewChild(node3, NULL, (xmlChar*)"Serial", (xmlChar*)policy_zone_soa_serial_text2(policy->zone_soa_serial)))
+        || !(node4 = xmlNewChild(node3, NULL, (xmlChar*)"Serial", (xmlChar*)dbw_soa_serial_txt[policy->zone_soa_serial]))
 
         || !(error = 36)
         || !(node2 = xmlNewChild(node, NULL, (xmlChar*)"Parent", NULL))
@@ -278,13 +278,13 @@ static int __policy_export(int sockfd, const struct dbw_policy *policy, xmlNodeP
                 || (policykey->manual_rollover
                     && !(node3 = xmlNewChild(node2, NULL, (xmlChar*)"ManualRollover", NULL)))
                 || !(error = 107)
-                || (policykey->minimize == POLICY_KEY_MINIMIZE_NONE
+                || (policykey->minimize == DBW_MINIMIZE_NONE
                     && !(node3 = xmlNewChild(node2, NULL, (xmlChar*)"ZskRollType", (xmlChar*)"ZskDoubleSignature")))
                 || !(error = 108)
-                || (policykey->minimize == POLICY_KEY_MINIMIZE_RRSIG
+                || (policykey->minimize == DBW_MINIMIZE_RRSIG
                     && !(node3 = xmlNewChild(node2, NULL, (xmlChar*)"ZskRollType", (xmlChar*)"ZskPrePublication")))
                 || !(error = 109)
-                || (policykey->minimize == POLICY_KEY_MINIMIZE_DNSKEY
+                || (policykey->minimize == DBW_MINIMIZE_DNSKEY
                     && !(node3 = xmlNewChild(node2, NULL, (xmlChar*)"ZskRollType", (xmlChar*)"ZskDoubleRRsig")))
                 )
             {
@@ -320,13 +320,13 @@ static int __policy_export(int sockfd, const struct dbw_policy *policy, xmlNodeP
                 || (policykey->manual_rollover
                     && !(node3 = xmlNewChild(node2, NULL, (xmlChar*)"ManualRollover", NULL)))
                 || !(error = 207)
-                || (policykey->minimize == POLICY_KEY_MINIMIZE_NONE
+                || (policykey->minimize == DBW_MINIMIZE_NONE
                     && !(node3 = xmlNewChild(node2, NULL, (xmlChar*)"KskRollType", (xmlChar*)"KskDoubleRRset")))
                 || !(error = 208)
-                || (policykey->minimize == POLICY_KEY_MINIMIZE_DNSKEY
+                || (policykey->minimize == DBW_MINIMIZE_DNSKEY
                     && !(node3 = xmlNewChild(node2, NULL, (xmlChar*)"KskRollType", (xmlChar*)"KskDoubleDS")))
                 || !(error = 209)
-                || (policykey->minimize == POLICY_KEY_MINIMIZE_DS
+                || (policykey->minimize == DBW_MINIMIZE_DS
                     && !(node3 = xmlNewChild(node2, NULL, (xmlChar*)"KskRollType", (xmlChar*)"KskDoubleSignature")))
                 || !(error = 210)
                 || (policykey->rfc5011
@@ -365,19 +365,19 @@ static int __policy_export(int sockfd, const struct dbw_policy *policy, xmlNodeP
                 || (policykey->manual_rollover
                     && !(node3 = xmlNewChild(node2, NULL, (xmlChar*)"ManualRollover", NULL)))
                 || !(error = 307)
-                || (policykey->minimize == POLICY_KEY_MINIMIZE_NONE
+                || (policykey->minimize == DBW_MINIMIZE_NONE
                     && !(node3 = xmlNewChild(node2, NULL, (xmlChar*)"CskRollType", (xmlChar*)"CskDoubleRRset")))
                 || !(error = 308)
-                || (policykey->minimize == POLICY_KEY_MINIMIZE_RRSIG
+                || (policykey->minimize == DBW_MINIMIZE_RRSIG
                     && !(node3 = xmlNewChild(node2, NULL, (xmlChar*)"CskRollType", (xmlChar*)"CskSingleSignature")))
                 || !(error = 309)
-                || (policykey->minimize == POLICY_KEY_MINIMIZE_DNSKEY
+                || (policykey->minimize == DBW_MINIMIZE_DNSKEY
                     && !(node3 = xmlNewChild(node2, NULL, (xmlChar*)"CskRollType", (xmlChar*)"CskDoubleDS")))
                 || !(error = 310)
-                || (policykey->minimize == POLICY_KEY_MINIMIZE_DS
+                || (policykey->minimize == DBW_MINIMIZE_DS
                     && !(node3 = xmlNewChild(node2, NULL, (xmlChar*)"CskRollType", (xmlChar*)"CskDoubleSignature")))
                 || !(error = 311)
-                || (policykey->minimize == POLICY_KEY_MINIMIZE_DS_AND_RRSIG
+                || (policykey->minimize == DBW_MINIMIZE_DS_RRSIG
                     && !(node3 = xmlNewChild(node2, NULL, (xmlChar*)"CskRollType", (xmlChar*)"CskPrePublication")))
                 || !(error = 312)
                 || (policykey->rfc5011

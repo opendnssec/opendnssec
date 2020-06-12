@@ -235,8 +235,6 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
     time_t inception = 0;
     struct tm tm;
     int setmin;
-    db_value_t *hsmkey_id;
-    policy_key_t *policy_key;
     db_connection_t* dbconn = getconnectioncontext(context);
 
     static struct option long_options[] = {

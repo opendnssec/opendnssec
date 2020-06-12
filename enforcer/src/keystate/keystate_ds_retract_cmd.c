@@ -71,8 +71,8 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
         engine_type* engine = getglobalcontext(context);
 	/* TODO, this changes the state, but sbmt cmd is not exec. */
 	return run_ds_cmd(sockfd, cmd, dbconn,
-		KEY_DATA_DS_AT_PARENT_RETRACT,
-		KEY_DATA_DS_AT_PARENT_RETRACTED, engine);
+		DBW_DS_AT_PARENT_RETRACT,
+		DBW_DS_AT_PARENT_RETRACTED, engine);
 }
 
 struct cmd_func_block key_ds_retract_funcblock = {

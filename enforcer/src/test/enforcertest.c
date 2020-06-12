@@ -126,7 +126,6 @@ setUp(void)
     assert(engine->config);
     assert(engine->config->repositories);
     hsm_open2(engine->config->repositories, hsm_check_pin);
-    engine_setup_database(engine);
     dbconn = get_database_connection(engine);
     assert(dbconn);
     assert(engine);

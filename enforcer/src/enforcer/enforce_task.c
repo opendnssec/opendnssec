@@ -43,7 +43,6 @@
 #include "scheduler/schedule.h"
 #include "scheduler/task.h"
 #include "db/dbw.h"
-
 #include "enforcer/enforce_task.h"
 
 static const char *module_str = "enforce_task";
@@ -55,11 +54,11 @@ schedule_ds_tasks(engine_type *engine, struct dbw_zone *zone)
     int bRetractFromParent = 0;
     for (size_t i = 0; i < zone->key_count; i++) {
         struct dbw_key *key= zone->key[i];
-        if (key->ds_at_parent == KEY_DATA_DS_AT_PARENT_SUBMIT) {
+        if (key->ds_at_parent == DBW_DS_AT_PARENT_SUBMIT) {
             ods_log_warning("[%s] please submit DS with keytag %d for zone %s",
                 module_str, key->keytag&0xFFFF, zone->name);
             bSubmitToParent = 1;
-        } else if (key->ds_at_parent == KEY_DATA_DS_AT_PARENT_RETRACT) {
+        } else if (key->ds_at_parent == DBW_DS_AT_PARENT_RETRACT) {
             ods_log_warning("[%s] please retract DS with keytag %d for zone %s",
                 module_str, key->keytag&0xFFFF, zone->name);
             bRetractFromParent = 1;

@@ -212,7 +212,6 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
     const char *zonename = NULL;
     const char* keytype = NULL;
     const char* keystate = NULL;
-    zone_db_t * zone = NULL;
     int all = 0;
     int ds = 0;
     int bsha1 = 0;

@@ -41,8 +41,7 @@ typedef struct engine_struct engine_type;
 #include "cmdhandler.h"
 #include "scheduler/task.h"
 #include "scheduler/schedule.h"
-#include "db/db_configuration.h"
-#include "db/db_connection.h"
+#include "db/dbw.h"
 
 struct engine_struct {
     engineconfig_type* config;
@@ -63,8 +62,6 @@ struct engine_struct {
     /* Main thread blocks on this condition when there is nothing to do */
     pthread_cond_t signal_cond;
     pthread_mutex_t signal_lock;
-
-    db_configuration_list_t* dbcfg_list;
 };
 
 /**
@@ -73,10 +70,6 @@ struct engine_struct {
  * \return connection on success, NULL on failure.
  */
 db_connection_t* get_database_connection(engine_type* engine);
-
-
-int engine_setup_database(engine_type* engine);
-void engine_desetup_database(engine_type* engine);
 
 /**
  * Setup the engine started by engine_create

@@ -42,7 +42,7 @@ keystate_ds_retract_task_perform(task_type* task, char const *zonename, void *us
 {
     db_connection_t* dbconn = (db_connection_t*) context;
 	(void)change_keys_from_to(dbconn, -1, zonename, NULL, -1,
-		KEY_DATA_DS_AT_PARENT_RETRACT, KEY_DATA_DS_AT_PARENT_RETRACTED,
+		DBW_DS_AT_PARENT_RETRACT, DBW_DS_AT_PARENT_RETRACTED,
 		(engine_type*)userdata, 0);
 	return schedule_SUCCESS;
 }

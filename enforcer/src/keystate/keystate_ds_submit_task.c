@@ -44,7 +44,7 @@ keystate_ds_submit_task_perform(task_type* task, char const *zonename, void *use
 {
     db_connection_t* dbconn = (db_connection_t*) context;
 	(void)change_keys_from_to(dbconn, -1, zonename, NULL, -1,
-		KEY_DATA_DS_AT_PARENT_SUBMIT, KEY_DATA_DS_AT_PARENT_SUBMITTED,
+		DBW_DS_AT_PARENT_SUBMIT, DBW_DS_AT_PARENT_SUBMITTED,
 		(engine_type*)userdata, 0);
 	return schedule_SUCCESS;
 }

@@ -36,7 +36,7 @@ change_keys_from_to(db_connection_t *dbconn, int sockfd, const char *zonename,
     int state_to, engine_type *engine, int cmd);
 
 int run_ds_cmd(int sockfd, const char *cmd,
-    db_connection_t *dbconn, key_data_ds_at_parent_t state_from,
-    key_data_ds_at_parent_t state_to, engine_type* engine);
+    db_connection_t *dbconn, int ds_at_parent_state_from,
+    int ds_at_parent_state_to, engine_type* engine);
 
 #endif /* _KEYSTATE_DS_H_ */

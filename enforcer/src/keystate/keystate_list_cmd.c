@@ -46,11 +46,11 @@
 static const char *module_str = "keystate_list_task";
 
 /* shorter defines to keep keystate table more readable */
-#define HID KEY_STATE_STATE_HIDDEN
-#define RUM KEY_STATE_STATE_RUMOURED
-#define OMN KEY_STATE_STATE_OMNIPRESENT
-#define UNR KEY_STATE_STATE_UNRETENTIVE
-#define NAV KEY_STATE_STATE_NA
+#define HID  DBW_HIDDEN
+#define RUM  DBW_RUMOURED
+#define OMN  DBW_OMNIPRESENT
+#define UNR  DBW_UNRETENTIVE
+#define NAV  DBW_NA
 
 enum {KS_GEN = 0, KS_PUB, KS_RDY, KS_ACT, KS_RET, KS_UNK, KS_MIX, KS_DEAD};
 const char* statenames[] = {"generate", "publish", "ready",
@@ -65,8 +65,8 @@ const char* statenames[] = {"generate", "publish", "ready",
 static int
 keystate(int p, int c, int introducing, int dsstate)
 {
-	int dsseen    = (dsstate == KEY_DATA_DS_AT_PARENT_SEEN);
-	int dsretract = (dsstate == KEY_DATA_DS_AT_PARENT_RETRACT);
+	int dsseen    = (dsstate == DBW_DS_AT_PARENT_SEEN);
+	int dsretract = (dsstate == DBW_DS_AT_PARENT_RETRACT);
 
 	if (p == OMN && c == OMN) return KS_ACT;
 	if (p == RUM && dsseen && c == OMN) return KS_ACT;
@@ -142,13 +142,13 @@ map_keytime(const struct dbw_key *key, time_t now)
 	time_t t;
 
 	switch(key->ds_at_parent) {
-		case KEY_DATA_DS_AT_PARENT_SUBMIT:
+		case DBW_DS_AT_PARENT_SUBMIT:
 			return strdup("waiting for ds-submit");
-		case KEY_DATA_DS_AT_PARENT_SUBMITTED:
+		case DBW_DS_AT_PARENT_SUBMITTED:
 			return strdup("waiting for ds-seen");
-		case KEY_DATA_DS_AT_PARENT_RETRACT:
+		case DBW_DS_AT_PARENT_RETRACT:
 			return strdup("waiting for ds-retract");
-		case KEY_DATA_DS_AT_PARENT_RETRACTED:
+		case DBW_DS_AT_PARENT_RETRACTED:
 			return strdup("waiting for ds-gone");
                 default:
 			break;
@@ -292,26 +292,26 @@ printverbosekey(int sockfd, struct dbw_key * key, char* tchange)
 }
 
 static void
-printFullkey(int sockfd, zone_db_t* zone, key_data_t* key, char* tchange, hsm_key_t* hsmkey) {
+printFullkey(int sockfd, struct dbw_zone* zone, struct dbw_key* key, char* tchange) {
     (void)tchange;
     client_printf(sockfd,
             "%-31s %-8s %-9s %d %s %-12s %-12s %-12s %-12s %d %4d    %s\n",
-            zone_db_name(zone),
-            key_data_role_text(key),
+            zone->name,
+            dbw_enum2txt(dbw_key_role_txt, key->role),
             map_keystate(key),
-            key_data_keytag(key),
-            hsm_key_locator(hsmkey),
-            key_state_state_text(key_data_cached_ds(key)),
-            key_state_state_text(key_data_cached_dnskey(key)),
-            key_state_state_text(key_data_cached_rrsigdnskey(key)),
-            key_state_state_text(key_data_cached_rrsig(key)),
-            key_data_publish(key),
-            key_data_active_ksk(key) | key_data_active_zsk(key),
+            key->keytag,
+            key->hsmkey->locator,
+            dbw_enum2txt(dbw_keystate_state_txt, dbw_get_keystate(key, DBW_DS)->state),
+            dbw_enum2txt(dbw_keystate_state_txt, dbw_get_keystate(key, DBW_DNSKEY)->state),
+            dbw_enum2txt(dbw_keystate_state_txt, dbw_get_keystate(key, DBW_RRSIGDNSKEY)->state),
+            dbw_enum2txt(dbw_keystate_state_txt, dbw_get_keystate(key, DBW_RRSIG)->state),
+            key->publish,
+            key->active_ksk | key->active_zsk,
             tchange);
 }
 
 static void
-printverboseparsablekey(int sockfd, zone_db_t* zone, struct dbw_key* key, char* tchange, hsm_key_t* hsmkey) {
+printverboseparsablekey(int sockfd, struct dbw_zone* zone, struct dbw_key* key, char* tchange) {
     client_printf(sockfd,
         "%s;%s;%s;%s;%d;%d;%s;%s;%d\n",
         key->zone->name,

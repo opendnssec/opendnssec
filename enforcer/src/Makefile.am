@@ -81,26 +81,7 @@ ods_enforcerd_SOURCES = \
 	enforcer/update_conf_cmd.c enforcer/update_conf_cmd.h \
 	enforcer/lookahead_cmd.c enforcer/lookahead_cmd.h \
 	utils/kc_helper.c utils/kc_helper.h \
-	db/dbw.c db/dbw.h \
-	db/db_backend.c db/db_backend.h \
-	db/db_clause.c db/db_clause.h \
-	db/db_configuration.c db/db_configuration.h \
-	db/db_connection.c db/db_connection.h \
-	db/db_object.c db/db_object.h \
-	db/db_result.c db/db_result.h \
-	db/db_type.h \
-	db/db_value.c db/db_value.h \
-	db/db_join.c db/db_join.h \
-	db/db_error.h \
-	db/zone_db.c db/zone_db_ext.c db/zone_db_ext.h db/zone_db.h \
-	db/key_data.c db/key_data_ext.c db/key_data_ext.h db/key_data.h \
-	db/key_state.c db/key_state.h \
-	db/key_dependency.c db/key_dependency.h \
-	db/policy.c db/policy_ext.c db/policy_ext.h db/policy.h \
-	db/policy_key.c db/policy_key_ext.c db/policy_key_ext.h db/policy_key.h \
-	db/hsm_key.c db/hsm_key_ext.c db/hsm_key_ext.h db/hsm_key.h \
-	db/database_version.c db/database_version.h db/database_version_ext.c db/database_version_ext.h \
-	db/db_enum.h
+	db/dbw.c db/dbw.h
 
 ods_enforcerd_LDADD = \
 	$(LIBHSM) \

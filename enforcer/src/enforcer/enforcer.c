@@ -921,11 +921,11 @@ handle_ds_at_parent(struct dbw_key *key, enum dbw_keystate_state next_state)
 
             case DBW_DS_AT_PARENT_RETRACT:
                 /* Hypothetical case where we reintroduce keys. */
-                key->ds_at_parent = KEY_DATA_DS_AT_PARENT_SUBMITTED;
+                key->ds_at_parent = DBW_DS_AT_PARENT_SUBMITTED;
                 return 1;
 
             default:
-                key->ds_at_parent = KEY_DATA_DS_AT_PARENT_SUBMIT;
+                key->ds_at_parent = DBW_DS_AT_PARENT_SUBMIT;
                 return 1;
             }
     } else if (next_state == UNRETENTIVE) {
@@ -937,10 +937,10 @@ handle_ds_at_parent(struct dbw_key *key, enum dbw_keystate_state next_state)
                 key->ds_at_parent = DBW_DS_AT_PARENT_UNSUBMITTED;
                 return 1;
 
-            case KEY_DATA_DS_AT_PARENT_UNSUBMITTED:
-            case KEY_DATA_DS_AT_PARENT_GONE:
-            case KEY_DATA_DS_AT_PARENT_RETRACTED:
-            case KEY_DATA_DS_AT_PARENT_RETRACT:
+            case DBW_DS_AT_PARENT_UNSUBMITTED:
+            case DBW_DS_AT_PARENT_GONE:
+            case DBW_DS_AT_PARENT_RETRACTED:
+            case DBW_DS_AT_PARENT_RETRACT:
                 return 0;
 
             default:
@@ -1040,8 +1040,8 @@ updateZone(struct dbw_db *db, struct dbw_zone *zone, const time_t now,
 
                 /* A record can only reach Omnipresent if properly backed up. */
                 if (next_state == OMNIPRESENT
-                    && (key->hsmkey->backup == HSM_KEY_BACKUP_BACKUP_REQUIRED
-                    ||  key->hsmkey->backup == HSM_KEY_BACKUP_BACKUP_REQUESTED))
+                    && (key->hsmkey->backup == DBW_BACKUP_REQUIRED
+                    ||  key->hsmkey->backup == DBW_BACKUP_REQUESTED))
                 {
                     ods_log_crit("[%s] %s Ready for transition but key"
                         " material not backed up yet (%s)",
@@ -1359,7 +1359,7 @@ updatePolicy(engine_type *engine, struct dbw_db *db, struct dbw_zone *zone, cons
                 hkey->inception = now;
                 hkey->is_revoked = 0;
                 hkey->key_type = HSM_KEY_KEY_TYPE_RSA;
-                hkey->backup = HSM_KEY_BACKUP_NO_BACKUP;
+                hkey->backup = DBW_BACKUP_NO_BACKUP;
             }
         }
         if (!hkey) {
@@ -1536,22 +1536,22 @@ _update(engine_type *engine, struct dbw_db *db, struct dbw_zone *zone, time_t no
 {
     ods_log_info("[%s] update zone: %s", module_str, zone->name);
 
-	if (engine->config->rollover_notification && zone_db_next_ksk_roll(zone) > 0) {
-		if ((time_t)zone_db_next_ksk_roll(zone) - engine->config->rollover_notification <= now
-		    && (time_t)zone_db_next_ksk_roll(zone) != now) {
-			time_t t = (time_t) zone_db_next_ksk_roll(zone);
+	if (engine->config->rollover_notification && zone->next_ksk_roll > 0) {
+		if (zone->next_ksk_roll - engine->config->rollover_notification <= now
+		    && zone->next_ksk_roll != now) {
+			time_t t = zone->next_ksk_roll;
 			ods_log_info("[%s] KSK Rollover for zone %s is impending, "
 				     "rollover will happen at %s",
-				     module_str, zone_db_name(zone), ctime(&t));
+				     module_str, zone->name, ctime(&t));
 		}
 	}
-	else if (engine->config->rollover_notification && zone_db_next_csk_roll(zone) > 0) {
-		if ((time_t)zone_db_next_csk_roll(zone) - engine->config->rollover_notification <= now
-		    && (time_t)zone_db_next_csk_roll(zone) != now) {
-			time_t t = (time_t) zone_db_next_csk_roll(zone);
+	else if (engine->config->rollover_notification && zone->next_csk_roll > 0) {
+		if (zone->next_csk_roll - engine->config->rollover_notification <= now
+		    && zone->next_csk_roll != now) {
+			time_t t = zone->next_csk_roll;
 			ods_log_info("[%s] CSK Rollover for zone %s is impending, "
 				     "rollover will happen at %s",
-				     module_str, zone_db_name(zone), ctime(&t));
+				     module_str, zone->name, ctime(&t));
 		}
 	}
 

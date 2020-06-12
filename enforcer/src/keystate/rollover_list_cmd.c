@@ -57,13 +57,13 @@ map_keytime(const struct dbw_zone *zone, const struct dbw_key *key)
     struct tm srtm;
 
     switch(key->ds_at_parent) {
-        case KEY_DATA_DS_AT_PARENT_SUBMIT:
+        case DBW_DS_AT_PARENT_SUBMIT:
             return strdup("waiting for ds-submit");
-        case KEY_DATA_DS_AT_PARENT_SUBMITTED:
+        case DBW_DS_AT_PARENT_SUBMITTED:
             return strdup("waiting for ds-seen");
-        case KEY_DATA_DS_AT_PARENT_RETRACT:
+        case DBW_DS_AT_PARENT_RETRACT:
             return strdup("waiting for ds-retract");
-        case KEY_DATA_DS_AT_PARENT_RETRACTED:
+        case DBW_DS_AT_PARENT_RETRACTED:
             return strdup("waiting for ds-gone");
     }
 

@@ -246,7 +246,7 @@ create_hsmkey(struct dbw_policykey *policykey, char *locator, int require_backup
     hsmkey->policy_id = policykey->policy_id;
     hsmkey->repository = strdup(policykey->repository);
     hsmkey->role = policykey->role;
-    hsmkey->state = HSM_KEY_STATE_UNUSED;
+    hsmkey->state = DBW_HSMKEY_UNUSED;
     hsmkey->is_revoked = 0;
     hsmkey->dirty = DBW_INSERT;
     hsmkey->key_count = 0;
@@ -284,7 +284,7 @@ generate_one_key(engine_type *engine, struct dbw_db *db,
         return 1;
     }
     struct dbw_hsmkey *hsmkey = create_hsmkey(policykey, locator,
-            hsm->require_backup? HSM_KEY_BACKUP_BACKUP_REQUIRED : HSM_KEY_BACKUP_NO_BACKUP);
+            hsm->require_backup? DBW_BACKUP_REQUIRED : DBW_BACKUP_NO_BACKUP);
     if (!hsmkey) {
         ods_log_error("[hsm_key_factory_generate] hsm key creation"
                    " failed, database or memory error");

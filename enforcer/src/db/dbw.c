@@ -5,9 +5,6 @@
 #include "config.h"
 
 #include "log.h"
-#include "db/zone_db.h"
-#include "db/policy.h"
-#include "db/db_connection.h"
 
 #include "db/dbw.h"
 
@@ -1717,5 +1714,5 @@ sort_keys(const struct dbw_key *arr[], int n)
 long
 createuniqid(void)
 {
-    return random(); /* FIXME shold be better random and longer integer */
+    return random(); /* FIXME should be better random and longer integer */
 }
