@@ -10,6 +10,36 @@
 
 static pthread_rwlock_t db_lock = PTHREAD_RWLOCK_INITIALIZER;
 
+const char * dbw_key_role_txt[] = {
+    "(void)", "KSK", "ZSK", "CSK", NULL
+};
+
+const char * dbw_keystate_type_txt[] = {
+    "DS", "RRSIG", "DNSKEY", "RRSIGDNSKEY", NULL
+};
+
+const char * dbw_keystate_state_txt[] = {
+    "hidden", "rumoured", "omnipresent", "unretentive", "NA", NULL
+};
+
+const char * dbw_ds_at_parent_txt[] = {
+    "unsubmitted", "submit", "submitted", "seen", "retract", "retracted", "gone"
+, NULL
+};
+
+const char * dbw_backup_txt[] = {
+    "Not Required", "Required", "Prepared", "Done", NULL
+};
+
+const char * dbw_denial_type_txt[] = {
+    "NSEC", "NSEC3"
+};
+
+const char * dbw_soa_serial_txt[] = {
+    "counter", "datecounter", "unixtime", "keep", NULL
+};
+
+
 const char *
 dbw_enum2txt(const char *c[], int n)
 {
@@ -1351,7 +1381,6 @@ dbw_verify_list_revisions(const db_connection_t *conn, struct dbw_list *list)
     }
     return 0;
 }
-
 
 static int
 dbw_verify_revisions(struct dbw_db *db)

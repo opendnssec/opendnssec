@@ -5,6 +5,7 @@
 
 struct db_connection_struct;
 typedef struct db_connection_struct db_connection_t;
+
 db_connection_t* db_connection_new(void);
 int db_connection_free(db_connection_t*conn);
 
@@ -21,11 +22,13 @@ typedef enum policy_key_role {
   POLICY_KEY_ROLE_ZSK = 2,
   POLICY_KEY_ROLE_CSK = 3
 } policy_key_role_t;
+
 typedef enum policy_denial_type {
   POLICY_DENIAL_TYPE_INVALID = -1,
   POLICY_DENIAL_TYPE_NSEC = 0,
   POLICY_DENIAL_TYPE_NSEC3 = 1
 } policy_denial_type_t;
+
 typedef enum hsm_key_key_type {
   HSM_KEY_KEY_TYPE_INVALID = -1,
   HSM_KEY_KEY_TYPE_RSA = 1
@@ -49,9 +52,7 @@ enum dbw_key_role {
     DBW_CSK = 3
 };
 
-static const char * dbw_key_role_txt[] = {
-    "(void)", "KSK", "ZSK", "CSK", NULL
-};
+extern const char *dbw_key_role_txt[];
 
 enum dbw_keystate_type {
     DBW_DS          = 0,
@@ -60,9 +61,7 @@ enum dbw_keystate_type {
     DBW_RRSIGDNSKEY = 3
 };
 
-static const char * dbw_keystate_type_txt[] = {
-    "DS", "RRSIG", "DNSKEY", "RRSIGDNSKEY", NULL
-};
+extern const char *dbw_keystate_type_txt[];
 
 enum dbw_keystate_state {
     DBW_HIDDEN      = 0,
@@ -72,9 +71,7 @@ enum dbw_keystate_state {
     DBW_NA          = 4
 };
 
-static const char * dbw_keystate_state_txt[] = {
-    "hidden", "rumoured", "omnipresent", "unretentive", "NA", NULL
-};
+extern const char *dbw_keystate_state_txt[];
 
 enum dbw_ds_at_parent {
     DBW_DS_AT_PARENT_UNSUBMITTED = 0,
@@ -86,9 +83,7 @@ enum dbw_ds_at_parent {
     DBW_DS_AT_PARENT_GONE        = 6
 };
 
-static const char * dbw_ds_at_parent_txt[] = {
-    "unsubmitted", "submit", "submitted", "seen", "retract", "retracted", "gone", NULL
-};
+extern const char *dbw_ds_at_parent_txt[];
 
 enum dbw_hsmkey_state {
     DBW_HSMKEY_UNUSED  = 1,
@@ -104,9 +99,7 @@ enum dbw_backup {
     DBW_BACKUP_DONE      = 3
 };
 
-static const char * dbw_backup_txt[] = {
-    "Not Required", "Required", "Prepared", "Done", NULL
-};
+extern const char *dbw_backup_txt[];
 
 enum dbw_soa_serial {
     DBW_SOA_SERIAL_COUNTER     = 0,
@@ -115,18 +108,14 @@ enum dbw_soa_serial {
     DBW_SOA_SERIAL_KEEP        = 3
 };
 
-static const char * dbw_soa_serial_txt[] = {
-    "counter", "datecounter", "unixtime", "keep", NULL
-};
+extern const char *dbw_soa_serial_txt[];
 
 enum dbw_denial_type {
     DBW_NSEC = 0,
     DBW_NSEC3 = 1
 };
 
-static const char * dbw_denial_type_txt[] = {
-    "NSEC", "NSEC3"
-};
+extern const char *dbw_denial_type_txt[];
 
 /* Returns static string representation of constant.
  * \param c: array of strings indexed by constant

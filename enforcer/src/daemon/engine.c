@@ -64,6 +64,8 @@
 #include <unistd.h>
 #include <fcntl.h>
 
+#include "db/dbw.h"
+
 static const char* engine_str = "engine";
 
 static engine_type* engine = NULL;
