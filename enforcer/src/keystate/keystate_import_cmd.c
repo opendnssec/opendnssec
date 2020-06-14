@@ -341,6 +341,8 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
         dbw_free(db);
         return -1;
     }
+    free(zone);
+    zone = NULL;
 
     if (!algorithm) {
         ods_log_error("[%s] specify an algorithm for command %s", module_str, cmd);
@@ -357,7 +359,6 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
     if (!repository) {
         ods_log_error("[%s] specify repository for command %s", module_str, cmd);
         client_printf_err(sockfd, "specify repository \n");
-        dbw_free(db);
         return -1;
     }
 

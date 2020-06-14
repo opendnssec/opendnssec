@@ -164,7 +164,7 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 	//validation
 
 	zone_db_t* zone = zone_db_new_get_by_name(dbconn, zone_name);
-	free(zone_name);
+	free((void*)zone_name);
 	if (!zone) {
 		client_printf_err(sockfd, "Unable to update zone, zone does not exist!\n");
 		free(policy_name);

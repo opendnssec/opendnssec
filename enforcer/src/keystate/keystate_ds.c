@@ -167,7 +167,12 @@ exec_dnskey_by_id(int sockfd, struct dbw_key *key, const char* ds_command,
 				if (bytes_written < 0) {
 					status = 5;
 					ods_log_error_and_printf(sockfd,  module_str,
-						 "Failed to write to %s: %s", cp_ds,
+						 "Failed to write to %s: %s", ds_command,
+						 strerror(errno));
+				} else if (pclose(fp) == -1) {
+					status = 6;
+					ods_log_error_and_printf(sockfd, module_str,
+						 "[%s] Failed to write to %s: %s", cp_ds,
 						 strerror(errno));
 				} else {
                                         int s = pclose(fp);

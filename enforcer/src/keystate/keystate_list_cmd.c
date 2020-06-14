@@ -150,10 +150,7 @@ map_keytime(const struct dbw_key *key, time_t now)
 			return strdup("waiting for ds-retract");
 		case KEY_DATA_DS_AT_PARENT_RETRACTED:
 			return strdup("waiting for ds-gone");
-            case KEY_DATA_DS_AT_PARENT_INVALID: return strdup("ds-invalid");
-            case KEY_DATA_DS_AT_PARENT_UNSUBMITTED: return strdup("ds-unsubmitted");
-            case KEY_DATA_DS_AT_PARENT_SEEN: return strdup("ds-seen");
-            default:
+                default:
 			break;
 	}
 	if (key->zone->next_change < 0)
@@ -221,34 +218,32 @@ perform_keystate_list(int sockfd, db_connection_t *dbconn, const char* zonename,
 static void
 usage(int sockfd)
 {
-    client_printf(sockfd,
-        "key list\n"
-        "	[--verbose]				aka -v\n"
-        "	[--debug]				aka -d\n"
-        "	[--full]				aka -f\n"
-        "	[--parsable]				aka -p\n"
-        "	[--zone]				aka -z  \n"
-        "	[--keytype]				aka -t  \n"
-        "	[--keystate]				aka -e  \n"
-        "	[--all]                                 aka -a  \n"
-    );
+	client_printf(sockfd,
+		"key list\n"
+		"	[--verbose]				aka -v\n"
+		"	[--debug]				aka -d\n"
+		"	[--full]				aka -f\n"
+		"	[--parsable]				aka -p\n"
+		"	[--zone]				aka -z  \n"
+                "	[--keytype]				aka -t  \n"
+		"	[--keystate | --all]			aka -k | -a  \n"
+	);
 }
 
 static void
 help(int sockfd)
 {
-
-    client_printf(sockfd, 
-        "List the keys in the enforcer database.\n"
-        "\nOptions:\n"
-        "verbose		also show additional key parameters\n"
-        "debug		print information about the keystate\n"
-        "full		print information about the keystate and keytags\n"
-        "parsable	output machine parsable list\n"
-        "zone		limit the output to the specific zone\n"
-        "keytype	limit the output to the given type, can be ZSK, KSK, or CSK\n"
-        "keystate	limit the output to the given state\n"
-        "all		print keys in all states (including generate) \n\n");
+	client_printf(sockfd, 
+		"List the keys in the enforcer database.\n"
+		"\nOptions:\n"
+		"verbose		also show additional key parameters\n"
+		"debug		print information about the keystate\n"
+		"full		print information about the keystate and keytags\n"
+		"parsable	output machine parsable list\n"
+		"zone		limit the output to the specific zone\n"
+		"keytype	limit the output to the given type, can be ZSK, KSK, or CSK\n"
+		"keystate	limit the output to the given state\n"
+		"all		print keys in all states (including generate) \n\n");
 }
 
 static void
@@ -316,8 +311,7 @@ printFullkey(int sockfd, zone_db_t* zone, key_data_t* key, char* tchange, hsm_ke
 }
 
 static void
-printverboseparsablekey(int sockfd, struct dbw_key * key, char* tchange)
-{
+printverboseparsablekey(int sockfd, zone_db_t* zone, struct dbw_key* key, char* tchange, hsm_key_t* hsmkey) {
     client_printf(sockfd,
         "%s;%s;%s;%s;%d;%d;%s;%s;%d\n",
         key->zone->name,

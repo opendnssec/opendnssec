@@ -783,6 +783,7 @@ parse_conf_rollover_notification(const char* cfgfile)
     }
     return period;
 }
+
 /**
  * Parse the listener interfaces.
  *

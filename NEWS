@@ -1,4 +1,4 @@
-OpenDNSSEC 2.2 - 2019-xx-xx
+OpenDNSSEC 2.2 - 2020-xx-xx
 
 * OPENDNSSEC-620: SocketFile and PidFile where not reconized in the signer config.
 * OPENDNSSEC-796: Improved separation of logic and database code.
@@ -27,13 +27,14 @@ OpenDNSSEC 2.2 - 2019-xx-xx
                   the same zone back again.
 * SUPPORT-215:    Notify the signer after a zone was deleted.
 
-OpenDNSSEC 2.1.6 - 2020-02-05
+OpenDNSSEC 2.1.6 - 2020-02-10
 
 * OPENDNSSEC-913: verify database connection upon every use.
 * OPENDNSSEC-944: bad display of date of next transition (regression)
 * SUPPORT-250: missing signatures on using combined keys (CSK)
 * OPENDNSSEC-945: memory leak per command to enforcer.
 * OPENDNSSEC-946: unclean enforcer exit in case of certain config problems.
+* OPENDNSSEC-411: set-policy command to change policy of zone (experimental)
 
 OpenDNSSEC 2.1.5 - 2019-11-05
 
@@ -76,6 +77,21 @@ OpenDNSSEC 2.1.3 - 2017-08-10
 * OPENDNSSEC-906: Tag <AllowExtraction> tag included from late 1.4 development
 * OPENDNSSEC-894: repair configuration script to allow excluding the build of 
                   the enforcer.
+* OPENDNSSEC-886: Improper time calculation on 32 bits machine causes purge
+                  time to be skipped.
+* OPENDNSSEC-904 / SUPPORT-216 autoconfigure fails to properly identify
+                  functions in ssl library on certain distributions
+                  causing tsig unknown algorithm hmac-sha256
+* OPENDNSSEC-908: Warn when TTL exceeds KASP's MaxZoneTTL instead of capping.
+
+OpenDNSSEC 2.1.2 - 2017-08-03
+
+* OPENDNSSEC-508: Tag <RolloverNotification> was not functioning correctly
+* OPENDNSSEC-901: Enforcer would ignore <ManualKeyGeneration/> tag in conf.xml
+* OPENDNSSEC-906: Tag <AllowExtraction> tag included from late 1.4 development
+* OPENDNSSEC-894: repair configuration script to allow excluding the build of 
+                  the enforcer.
+* OPENDNSSEC-890: Mismatching TTLs in record sets would cause bogus signatures.
 * OPENDNSSEC-886: Improper time calculation on 32 bits machine causes purge
                   time to be skipped.
 * OPENDNSSEC-904 / SUPPORT-216 autoconfigure fails to properly identify

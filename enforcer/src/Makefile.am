@@ -129,6 +129,7 @@ ods_enforcerd_LDADD = \
 	@RT_LIBS@ \
 	@ENFORCER_DB_LIBS@
 
+
 ods_enforcerd_LDFLAGS = \
 	$(BACKEND_LDFLAGS_CUSTOM)
 

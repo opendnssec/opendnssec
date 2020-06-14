@@ -24,8 +24,10 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef DEBUG_H
-#define DEBUG_H
+#ifndef JANITOR_H
+#define JANITOR_H
+
+#include "config.h"
 
 #include <pthread.h>
 
@@ -70,7 +72,7 @@ extern void janitor_backtrace_all(void);
 extern void janitor_thread_signal(janitor_thread_t thread);
 
 /* in case of missing pthread barrier calls */
-#ifndef HAVE_PTHREAD_BARRIER
+#ifndef HAVE_PTHREAD_BARRIER_WAIT
 # ifdef pthread_barrier_init
 #  undef pthread_barrier_init
 # endif
@@ -86,6 +88,19 @@ extern void janitor_thread_signal(janitor_thread_t thread);
 # ifndef PTHREAD_BARRIER_SERIAL_THREAD
 #  define PTHREAD_BARRIER_SERIAL_THREAD 1
 # endif
+# ifdef pthread_barrier_t
+#  undef pthread_barrier_t
+# endif
+# define pthread_barrier_t struct janitor_pthread_barrier_struct*
+# ifdef pthread_barrierattr_t
+#  undef pthread_barrierattr_t
+# endif
+# define pthread_barrierattr_t void*
 #endif
+
+struct janitor_pthread_barrier_struct;
+extern int janitor_pthread_barrier_init(pthread_barrier_t* barrier, const pthread_barrierattr_t* attr, unsigned int count);
+extern int janitor_pthread_barrier_destroy(pthread_barrier_t* barrier);
+extern int janitor_pthread_barrier_wait(pthread_barrier_t* barrier);
 
 #endif
