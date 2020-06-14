@@ -32,7 +32,7 @@
 
 #include "db/dbw.h"
 
-struct cmd_func_block key_list_funcblock;
+extern struct cmd_func_block key_list_funcblock;
 
 const char*
 map_keystate(struct dbw_key *key);

@@ -29,6 +29,6 @@
 #ifndef HSMKEY_KEY_GENERATE_CMD_H_
 #define HSMKEY_KEY_GENERATE_CMD_H_
 
-struct cmd_func_block key_generate_funcblock;
+extern struct cmd_func_block key_generate_funcblock;
 
 #endif /* HSMKEY_KEY_GENERATE_CMD_H_ */
