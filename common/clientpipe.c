@@ -51,7 +51,11 @@ static void
 header(char *buf, enum msg_type opc, uint16_t datalen) {
 	assert(buf);
 	buf[0] = opc;
-        *(uint16_t *)(buf+1) = htons(datalen);
+
+	/* Do a memcpy instead of a cast in order to not break memory alignment
+	 * requirements on some targets. */
+	datalen = htons(datalen);
+	memcpy(&buf[1], &datalen, 2);
 }
 
 /* 1 on succes, 0 on fail */
