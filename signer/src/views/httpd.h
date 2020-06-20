@@ -90,6 +90,6 @@ void httpd_start(struct httpd *httpd);
 void httpd_stop(struct httpd *httpd);
 int httpd_dispatch(names_view_type view, struct rpc *rpc);
 
-http_interface_type* http_listener_push(http_listener_type* listener, char* address, int family, const char* port, char* user, char* pass);
+http_interface_type* http_listener_push(http_listener_type* listener, const char* address, int family, const char* port, char* user, char* pass);
 
 #endif /* DAEMON_HTTPD_H */
