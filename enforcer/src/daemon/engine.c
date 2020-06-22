@@ -222,7 +222,10 @@ get_database_connection(engine_type* engine)
 {
     db_connection_t* dbconn;
 
-    if (!(dbconn = db_connection_new(/*BERRY engine->config*/)))
+    if (!(dbconn = db_connection_new(engine->config->datastore,
+                                     engine->config->db_host,
+                                     engine->config->db_username,
+                                     engine->config->db_password)))
     {
         ods_log_crit("database connection failed");
         return NULL;

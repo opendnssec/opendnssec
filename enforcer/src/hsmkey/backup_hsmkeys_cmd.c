@@ -46,18 +46,15 @@ static int
 hsmkeys_from_to_state(db_connection_t *dbconn, char const *repository,
     int from_state, int to_state)
 {
-    struct dbw_db *db = dbw_fetch(dbconn);
-    if (!db) {
-        ods_log_error("[%s] database error", module_str);
-        return -1;
-    }
     int keys_marked = 0;
-    for (size_t h = 0; h < db->hsmkeys->n; h++) {
-        struct dbw_hsmkey *hsmkey = (struct dbw_hsmkey *)db->hsmkeys->set[h];
-        if (repository && strcmp(repository, hsmkey->repository)) continue;
-        if (hsmkey->backup != from_state) continue;
-        hsmkey->backup = to_state;
-        dbw_mark_dirty((struct dbrow *)hsmkey);
+    struct dbw_hsmkey** hsmkeys;
+    int hsmkeyscount;
+    struct dbw_db *db = dbw_fetch(dbconn, "hsmkeys in backup requested state DBW_BACKUP_REQUESTED", &hsmkeys, &hsmkeyscount);
+    for (int i = 0; i < hsmkeyscount; i++) {
+        if (repository && strcmp(repository, hsmkeys[i]->repository)) continue;
+        if (hsmkeys[i]->backup != from_state) continue;
+        hsmkeys[i]->backup = to_state;
+        dbw_mark_dirty(hsmkeys[i]);
         keys_marked++;
     }
     int r = dbw_commit(db);
@@ -108,18 +105,15 @@ rollback(int sockfd, db_connection_t *dbconn, char const *repository)
 static int
 list(int sockfd, db_connection_t *dbconn, char const *repository)
 {
-    struct dbw_db *db = dbw_fetch(dbconn);
-    if (!db) {
-        ods_log_error("[%s] database error", module_str);
-        return -1;
-    }
+    struct dbw_hsmkey** hsmkeys;
+    int hsmkeyscount;
+    struct dbw_db *db = dbw_fetch(dbconn, "hsmkeys in backup requested state DBW_BACKUP_REQUESTED", &hsmkeys, &hsmkeyscount);
     char const *fmt = "%-32s %-16s %-16s\n";
     client_printf_err(sockfd, fmt, "Locator:", "Repository:", "Backup state:");
-    for (size_t h = 0; h < db->hsmkeys->n; h++) {
-        struct dbw_hsmkey *hsmkey = (struct dbw_hsmkey *)db->hsmkeys->set[h];
-        if (repository && strcmp(repository, hsmkey->repository)) continue;
-        client_printf(sockfd, fmt, hsmkey->locator, hsmkey->repository,
-            dbw_backup_txt[hsmkey->backup]);
+    for (int i = 0; i < hsmkeyscount; i++) {
+        if (repository && strcmp(repository, hsmkeys[i]->repository)) continue;
+        client_printf(sockfd, fmt, hsmkeys[i]->locator, hsmkeys[i]->repository,
+            dbw_backup_txt[hsmkeys[i]->backup]);
     }
     dbw_free(db);
     return 0;

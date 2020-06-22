@@ -453,7 +453,7 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
 
     xmlDocPtr doc;
     xmlNodePtr root;
-    struct dbw_db *db = dbw_fetch(dbconn);
+    struct dbw_db *db = dbw_fetch(dbconn, "policies fully writeable, without zone access");
     if (!db) return POLICY_IMPORT_ERR_DATABASE;
 
     char **hsm_names;
@@ -488,8 +488,10 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
         dbw_free(db);
         return POLICY_IMPORT_ERR_XML;
     }
+    struct dbw_policy** policies;
+    int policycount;
     for (int i = 0; i < count; i++) {
-        struct dbw_policy *p = dbw_get_policy(db, (xpolicies+i)->name);
+        struct dbw_policy* p = dbw_FIND(struct dbw_policy*, db->policies, name, db->npolicies, (xpolicies+i)->name);
         if (p) {
             p->scratch |= POLICY_SEEN;
             if (!policy_xml_cmp(sockfd, p, xpolicies+i)) {
@@ -502,21 +504,24 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
                     p->scratch |= POLICY_RESALT;
                 }
             }
-        }
-        else {
-           p = dbw_new_policy(db);
+        } else {
+           struct dbw_policy *p = calloc(1, sizeof (struct dbw_policy));
+           dbw_add(&db->policies, &db->npolicies, p);
+           p->denial_salt = strdup("");
            p->scratch |= POLICY_SEEN|POLICY_CREATED;
         }
 
         xml2db(p, xpolicies+i);
-        dbw_mark_dirty((struct dbrow *)p);
+        dbw_mark_dirty(p);
         /* policykeys */
         for (int pk = 0; pk < p->policykey_count; pk++) {
-            p->policykey[pk]->dirty = DBW_DELETE;
+            p->policykey[pk] = NULL;
         }
         for (int j = 0; j < (xpolicies+i)->policykey_count; j++) {
-            struct dbw_policykey *policykey = dbw_new_policykey(db, p);
             struct xml_policykey *xpolicykey = (xpolicies+i)->policykey[j];
+            struct dbw_policykey *policykey = calloc(1, sizeof (struct dbw_policykey));
+            policykey->policy = p;
+            dbw_add(&p->policykey, &p->policykey_count, policykey);
             policykey->repository       = strdup(xpolicykey->repository?xpolicykey->repository:"");
             policykey->role             = xpolicykey->role;
             policykey->algorithm        = xpolicykey->algorithm;
@@ -541,40 +546,17 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
     free(xpolicies);
     /* delete unseen policies */
     if (do_delete) {
-        for (size_t p = 0; p < db->policies->n; p++) {
-            struct dbw_policy *policy = (struct dbw_policy *)db->policies->set[p];
-            if (policy->scratch || policy->dirty != DBW_CLEAN) continue;
-            policy->dirty = DBW_DELETE;
-            /* mark its policykeys as well */
-            for (int pk = 0; pk < policy->policykey_count; pk++) {
-                policy->policykey[pk]->dirty = DBW_DELETE;
+        for (int i = 0; i < policycount; i++) {
+            if (policies[i]->scratch & POLICY_RESALT) {
+                resalt_task_flush(engine, policies[i]);
+            }
+            if (!policies[i]->scratch) {
+                policies[i] = NULL;
             }
         }
     }
     if (dbw_commit(db)) {
         r = POLICY_IMPORT_ERR_DATABASE;
-    } else {
-        for (size_t p = 0; p < db->policies->n; p++) {
-            struct dbw_policy *policy = (struct dbw_policy *)db->policies->set[p];
-            if (!policy->scratch) {
-                if (do_delete) {
-                    ods_log_info("[policy_import] policy %s deleted", policy->name);
-                    client_printf(sockfd, "Deleted policy %s successfully\n", policy->name);
-                }
-                continue;
-            }
-            else if (policy->scratch&POLICY_CREATED) {
-                ods_log_info("[policy_import] policy %s created", policy->name);
-                client_printf(sockfd, "Created policy %s successfully\n", policy->name);
-            }
-            else if (policy->scratch&POLICY_UPDATED){
-                ods_log_info("[policy_import] policy %s updated", policy->name);
-                client_printf(sockfd, "Updated policy %s successfully\n", policy->name);
-            }
-            if (policy->scratch&POLICY_RESALT) {
-                resalt_task_flush(engine, dbconn, policy->name);
-            }
-        }
     }
     dbw_free(db);
     return r;

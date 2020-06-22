@@ -107,7 +107,6 @@ static int
 perform_rollover_list(int sockfd, const char *listed_zone,
     db_connection_t *dbconn)
 {
-    struct dbw_list *keys;
     const char* fmt = "%-31s %-8s %-30s\n";
 
     struct dbw_db *db = dbw_fetch(dbconn);
@@ -121,8 +120,8 @@ perform_rollover_list(int sockfd, const char *listed_zone,
     client_printf(sockfd, "Keys:\n");
     client_printf(sockfd, fmt, "Zone:", "Keytype:", "Rollover expected:");
 
-    for (size_t p = 0; p < db->policies->n; p++) {
-        struct dbw_policy *policy = (struct dbw_policy *)db->policies->set[p];
+    for (size_t p = 0; p < db->npolicies; p++) {
+        struct dbw_policy *policy = (struct dbw_policy *)db->policies[p];
         for (size_t z = 0; z < policy->zone_count; z++) {
             struct dbw_zone *zone = policy->zone[z];
             if (listed_zone && strcmp(listed_zone, zone->name)) continue;

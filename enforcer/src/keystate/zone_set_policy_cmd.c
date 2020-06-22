@@ -129,14 +129,12 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 		return -1;
 	} else if (!policy_name) {
 		client_printf_err(sockfd, "expected option --policy <policy>\n");
-		free(zone_name);
 		return -1;
 	}
 
-        struct dbw_db *db = dbw_fetch(dbconn);
-        struct dbw_zone *zone = dbw_get_zone(db, zone_name);
-        struct dbw_policy *policy = dbw_get_policy(db, policy_name);
-	free((void*)zone_name);
+        struct dbw_db *db = dbw_fetch(dbconn, "zones, one specific writable, and all policies ro without keys", zone_name);
+        struct dbw_zone *zone = dbw_FIND(struct dbw_zone*, db->zones, name, db->nzones, zone_name);
+        struct dbw_policy *policy = dbw_FIND(struct dbw_policy*, db->policies, name, db->npolicies, policy_name);
 	free((void*)policy_name);
 	if (!zone) {
 		client_printf_err(sockfd, "Unable to update zone, zone does not exist!\n");
@@ -144,7 +142,7 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 		client_printf_err(sockfd, "Unable to update zone, policy does not exist!\n");
 	} else {
             zone->policy_id = policy->id;
-            dbw_mark_dirty((struct dbrow *)zone);
+            dbw_mark_dirty(zone);
             dbw_commit(db);
         }
         dbw_free(db);

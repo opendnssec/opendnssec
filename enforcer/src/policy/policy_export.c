@@ -458,14 +458,13 @@ int policy_export_all(int sockfd, db_connection_t* connection, const char* filen
 
     xmlDocSetRootElement(doc, root);
 
-    struct dbw_db *db = dbw_fetch(connection);
+    struct dbw_db *db = dbw_fetch(connection, "all policies ro with policykeys but without zones or other keys");
     if (!db) {
         xmlFreeDoc(doc);
         return POLICY_EXPORT_ERR_MEMORY;
     }
-    for (size_t p = 0; p < db->policies->n; p++) {
-        struct dbw_policy *policy = (struct dbw_policy *)db->policies->set[p];
-        ret = __policy_export(sockfd, policy, root);
+    for (int i = 0; i < db->npolicies; i++) {
+        ret = __policy_export(sockfd, db->policies[i], root);
         if (ret != POLICY_EXPORT_OK) {
             dbw_free(db);
             xmlFreeDoc(doc);

@@ -69,35 +69,6 @@ help(int sockfd)
 }
 
 static int
-delete_zone(struct dbw_zone *zone)
-{
-    /*
-     * Get key data for the zone and for each key data get the key state
-     * and try to delete all key state then the key data
-     */
-    for (size_t ki = 0; ki < zone->key_count; ki++) {
-        struct dbw_key *key = zone->key[ki];
-        for (size_t si = 0; si < key->keystate_count; si++) {
-            struct dbw_keystate *keystate = key->keystate[si];
-            keystate->dirty = DBW_DELETE;
-        }
-        for (size_t fd = 0; fd < key->from_keydependency_count; fd++) {
-            struct dbw_keydependency *from_dep = key->from_keydependency[fd];
-            from_dep->dirty = DBW_DELETE;
-        }
-        for (size_t td = 0; td < key->to_keydependency_count; td++) {
-            struct dbw_keydependency *to_dep = key->to_keydependency[td];
-            to_dep->dirty = DBW_DELETE;
-        }
-        struct dbw_hsmkey *hsmkey = key->hsmkey;
-        hsm_key_factory_release_key(hsmkey, key);
-        key->dirty = DBW_DELETE;
-    }
-    zone->dirty = DBW_DELETE;
-    return 0; /* success */
-}
-
-static int
 run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 {
     #define NARGV 6
@@ -160,21 +131,16 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
         return 1;
     }
     int zones_deleted = 0;
-    for (size_t z = 0; z < db->zones->n; z++) {
-        struct dbw_zone *zone = (struct dbw_zone *)db->zones->set[z];
+    for (size_t z = 0; z < db->nzones; z++) {
+        struct dbw_zone *zone = (struct dbw_zone *)db->zones[z];
         if (!all && strcmp(zonename, zone->name)) continue;
-        if (delete_zone(zone)) {
-            client_printf(sockfd, "Error deleting zone %s.\n", zone->name);
-            dbw_free(db);
-            ret = 1;
-            continue;
-        }
         int len = strlen(zone->signconf_path) + strlen(".ZONE_DELETED") + 1;
         char *signconf_del = malloc(len);
         strcpy(signconf_del, zone->signconf_path);
         strncat(signconf_del, ".ZONE_DELETED", len);
         rename(zone->signconf_path, signconf_del);
         free(signconf_del);
+        db->zones[z] = NULL;
         zones_deleted++;
 
         /* Delete all 'zone' related tasks */

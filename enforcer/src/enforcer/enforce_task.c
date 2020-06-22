@@ -90,7 +90,7 @@ perform_enforce(int sockfd, engine_type *engine, char const *zonename,
         ods_log_error("[%s] Error reading database", module_str);
         return -1;
     }
-    struct dbw_zone *zone = dbw_get_zone(db, zonename);
+    struct dbw_zone *zone = dbw_FINDSTR(struct dbw_zone*, db->zones, name, db->nzones, zonename);
     if (!zone) {
         ods_log_error("[%s] Could not find zone %s in database", module_str, zonename);
         dbw_free(db);
@@ -107,7 +107,7 @@ perform_enforce(int sockfd, engine_type *engine, char const *zonename,
     /* Commit zone to database before we schedule signconf */
     if (zone->next_change != t_next && t_next >= 0) {
         zone_updated = 1;
-        dbw_mark_dirty((struct dbrow *)zone);
+        dbw_mark_dirty(zone);
     }
     if (zone_updated) {
         zone->next_change = t_next;
@@ -166,8 +166,8 @@ enforce_task_flush_all(engine_type *engine, db_connection_t *dbconn)
 {
     struct dbw_db *db = dbw_fetch(dbconn);
     if (!db) ods_fatal_exit("[%s] failed to list zones from DB", module_str);
-    for (size_t z = 0; z < db->zones->n; z++) {
-        struct dbw_zone *zone = (struct dbw_zone *)db->zones->set[z];
+    for (size_t z = 0; z < db->nzones; z++) {
+        struct dbw_zone *zone = db->zones[z];
         (void)schedule_task(engine->taskq, enforce_task(engine, zone->name), 1, 0);
     }
     dbw_free(db);

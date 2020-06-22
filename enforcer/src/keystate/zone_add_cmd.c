@@ -172,9 +172,6 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
     if (!zone_name) {
         client_printf_err(sockfd, "expected option --zone <zone>\n");
         return -1;
-    } else if (dbw_zone_exists(dbconn, zone_name)) {
-        client_printf_err(sockfd, "Unable to add zone, zone already exists!\n");
-        return 1;
     }
 
     //validation
@@ -249,6 +246,19 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
     client_printf(sockfd, "input is set to %s. \n", input);
     client_printf(sockfd, "output is set to %s. \n", output);
 
+    struct dbw_db *db = dbw_fetch(dbconn);
+    if (!db) {
+        client_printf_err(sockfd, "Error reading database\n");
+        return 1;
+    }
+    struct dbw_policy* policy = dbw_FINDSTR(struct dbw_policy*, db->policies, name, db->npolicies, policy_name);
+    if (!policy) {
+        client_printf_err(sockfd, "Unable to find policy %s needed for adding the zone!\n",
+            policy_name);
+        dbw_free(db);
+        return 1;
+    }
+
     /* input looks okay, lets add it to the database */
     struct dbw_zone *zone = calloc(1, sizeof (struct dbw_zone));
     if (!zone) {
@@ -261,24 +271,10 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
     zone->output_adapter_type = strdup(output_type);
     zone->signconf_path = strdup(signconf);
     zone->next_change = suspend?-1:0;
-
-    /* This should yield a single policy w/o zones */
-    struct dbw_db *db = dbw_fetch(dbconn);
-    if (!db) {
-        client_printf_err(sockfd, "Error reading database\n");
-        dbw_zone_free((struct dbrow *)zone);
-        return 1;
-    }
-    struct dbw_policy *policy = dbw_get_policy(db, policy_name);
-    if (!policy) {
-        client_printf_err(sockfd, "Unable to find policy %s needed for adding the zone!\n",
-            policy_name);
-        dbw_zone_free((struct dbrow *)zone);
-        dbw_free(db);
-        return 1;
-    }
     zone->policy_id = policy->id;
-    (void)dbw_add_zone(db, policy, zone); //TODO return val
+    zone->policy = policy;
+    dbw_add(&db->zones, &db->nzones, zone);
+    dbw_add(&policy->zone, &policy->zone_count, zone);
     if (dbw_commit(db)) {
         client_printf(sockfd, "Failed to add zone to database.\n");
         dbw_free(db);

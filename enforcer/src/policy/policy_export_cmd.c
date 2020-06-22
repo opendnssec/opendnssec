@@ -115,12 +115,8 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
             return 1;
         }
     } else if (policy_name) {
-        struct dbw_db *db = dbw_fetch(dbconn);
-        if (!db) {
-            client_printf_err(sockfd, "Unable to read from database!\n");
-            return 1;
-        }
-        struct dbw_policy *policy = dbw_get_policy(db, policy_name);
+        struct dbw_db *db = dbw_fetch(dbconn, "single policy ro with policykeys but without zone, or further keys");
+        struct dbw_policy *policy = dbw_FIND(struct dbw_policy*, db->policies, name, db->npolicies, policy_name);
         if (!policy) {
             client_printf_err(sockfd, "Unable to find policy %s!\n", policy_name);
             dbw_free(db);

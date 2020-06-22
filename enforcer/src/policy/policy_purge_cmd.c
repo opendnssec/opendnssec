@@ -64,19 +64,19 @@ static int
 purge_policies(int sockfd, db_connection_t *dbconn)
 {
     client_printf(sockfd, "Purging policies\n");
-    struct dbw_db *db = dbw_fetch(dbconn);
+    struct dbw_db *db = dbw_fetch(dbconn, "writable policies, with count of zones");
     if (!db) return 1;
-    for (size_t p = 0; p < db->policies->n; p++) {
-        struct dbw_policy *policy = (struct dbw_policy *)db->policies->set[p];
-        if (policy->zone_count) continue;
-        ods_log_info("[%s] No zones on policy %s; purging...", module_str, policy->name);
-        client_printf(sockfd, "No zones on policy %s; purging...\n", policy->name);
-        policy->dirty = DBW_DELETE;
-        for (size_t pk = 0; pk < policy->policykey_count; pk++) {
-            policy->policykey[pk]->dirty = DBW_DELETE;
-        }
-        for (size_t hk = 0; hk < policy->hsmkey_count; hk++) {
-            policy->hsmkey[hk]->dirty = DBW_DELETE;
+    for (int i = 0; i < db->npolicies; i++) {
+        if (db->policies[i]->zone_count == 0) {
+            ods_log_info("[%s] No zones on policy %s; purging...", module_str, db->policies[i]->name);
+            client_printf(sockfd, "No zones on policy %s; purging...\n", db->policies[i]->name);
+            for (size_t pk = 0; pk < db->policies[i]->policykey_count; pk++) {
+                db->policies[i]->policykey[pk] = NULL;
+            }
+            for (size_t hk = 0; hk < db->policies[i]->hsmkey_count; hk++) {
+                db->policies[i]->hsmkey[hk] = NULL;
+            }
+            db->policies[i] = NULL;
         }
     }
     if (dbw_commit(db)) {

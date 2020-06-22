@@ -302,7 +302,7 @@ signconf_xml_export(int sockfd, struct dbw_zone *zone, int force)
     }
 
     zone->signconf_needs_writing = 0;
-    dbw_mark_dirty((struct dbrow *)zone);
+    dbw_mark_dirty(zone);
 
     return SIGNCONF_EXPORT_OK;
 }
@@ -312,7 +312,7 @@ signconf_export_zone(char const *zonename, db_connection_t* dbconn)
 {
     struct dbw_db *db = dbw_fetch(dbconn);
     if (!db) return SIGNCONF_EXPORT_ERR_DATABASE;
-    struct dbw_zone *zone = dbw_get_zone(db, zonename);
+    struct dbw_zone *zone = dbw_FINDSTR(struct dbw_zone*, db->zones, name, db->nzones, zonename);
     if (!zone) {
         ods_log_error("[signconf_export] Unable to fetch zone %s from"
             " database", zonename);

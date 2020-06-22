@@ -137,8 +137,8 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
     struct dbw_db *db = dbw_fetch(dbconn);
     if (!db) return -1;
     int match = 0;
-    for (size_t p = 0; p < db->policies->n; p++) {
-        struct dbw_policy *policy = (struct dbw_policy *)db->policies->set[p];
+    for (size_t p = 0; p < db->npolicies; p++) {
+        struct dbw_policy *policy = db->policies[p];
         if (s_policy && strcasecmp(policy->name, s_policy)) continue;
         for (size_t z = 0; z < policy->zone_count; z++) {
             struct dbw_zone *zone = policy->zone[z];
@@ -149,7 +149,7 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
             zone->roll_ksk_now = (keytype_int == DBW_KSK) || !keytype_int;
             zone->roll_csk_now = (keytype_int == DBW_CSK) || !keytype_int;
             zone->scratch = 1; /* Flush this zone later */
-            zone->dirty = DBW_UPDATE;
+            dbw_mark_dirty(zone);
             client_printf(sockfd, "rolling %s for zone %s\n",
                 keytype_int?dbw_enum2txt(dbw_key_role_txt, keytype_int):"all keys",
                 zone->name);
@@ -168,8 +168,8 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
     } else {
         error = dbw_commit(db);
         if (!error) {
-            for (size_t z = 0; z < db->zones->n; z++) {
-                struct dbw_zone *zone = (struct dbw_zone *)db->zones->set[z];
+            for (size_t z = 0; z < db->nzones; z++) {
+                struct dbw_zone *zone = db->zones[z];
                 if (!zone->scratch) continue;
                 enforce_task_flush_zone(engine, zone->name);
             }

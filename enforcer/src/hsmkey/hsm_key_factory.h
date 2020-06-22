@@ -37,7 +37,7 @@
 void hsm_key_factory_deinit(void);
 
 void
-hsm_key_factory_schedule(engine_type *engine, int id, int count);
+hsm_key_factory_schedule(engine_type *engine, struct dbw_policykey* pkey, int count);
 
 /**
  * Allocate a private or shared HSM key for the policy key provided. This will
@@ -59,8 +59,8 @@ hsm_key_factory_get_key(engine_type *engine, struct dbw_db *db,
  * \param[in] key
  */
 void
-hsm_key_factory_release_key(struct dbw_hsmkey *hsmkey, struct dbw_key *key);
+hsm_key_factory_release_key(struct dbw_hsmkey **hsmkey, struct dbw_key *key);
 void
-hsm_key_factory_release_key_mockup(struct dbw_hsmkey *hsmkey, struct dbw_key *key, int mockup);
+hsm_key_factory_release_key_mockup(struct dbw_hsmkey **hsmkey, struct dbw_key *key, int mockup);
 
 #endif /* _HSM_KEY_FACTORY_H_ */

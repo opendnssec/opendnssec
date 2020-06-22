@@ -124,7 +124,16 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
         client_printf_err(sockfd, "Expected either --all or --policy.\n");
         return 1;
     }
-    return resalt_task_flush(engine, dbconn, policy);
+    struct dbw_db *db = dbw_fetch(dbconn, "all policies readonly");
+    if (policy) {
+        struct dbw_policy* policy = dbw_FINDSTR(struct dbw_policy*, db->policies, name, db->npolicies, policy);
+        resalt_task_flush(engine, policy);
+    } else {
+        for(int i=0; i<db->npolicies; i++)
+            resalt_task_flush(engine, db->policies[i]);
+    }
+    dbw_free(db);
+    return 0;
 }
 
 struct cmd_func_block resalt_funcblock = {
