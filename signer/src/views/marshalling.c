@@ -116,7 +116,7 @@ marshallself(marshall_handle h, void* member)
 int
 marshallinteger(marshall_handle h, void* member)
 {
-    int size;
+    int size = 0;
     switch(h->mode) {
         case COPY:
             break;
@@ -145,7 +145,7 @@ marshallinteger(marshall_handle h, void* member)
 int
 marshallint64(marshall_handle h, void* member)
 {
-    int size;
+    int size = 0;
     switch(h->mode) {
         case COPY:
             break;
@@ -174,7 +174,7 @@ marshallint64(marshall_handle h, void* member)
 int
 marshallbyte(marshall_handle h, void* member)
 {
-    int size;
+    int size = 0;
     switch(h->mode) {
         case COPY:
             break;
@@ -198,7 +198,7 @@ marshallbyte(marshall_handle h, void* member)
 int
 marshallstring(marshall_handle h, void* member)
 {
-    int size;
+    int size = 0;
     int len;
     char** str = member;
     switch(h->mode) {
@@ -263,7 +263,7 @@ int
 marshallldnsrr(marshall_handle h, void* member)
 {
     ldns_rr** rr = (ldns_rr**)member;
-    int size;
+    int size = 0;
     int len;
     char* str;
     switch(h->mode) {
@@ -359,7 +359,8 @@ marshalling(marshall_handle h, const char* name, void* members, int *membercount
 {
     char* array;
     char* dest;
-    int len, i, size;
+    int size = 0;
+    int len, i;
     int optional;
     if(membercount == marshall_OPTIONAL) {
         membercount = &optional;
