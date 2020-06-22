@@ -1,0 +1,21 @@
+#!/bin/sh
+
+PATH="@sbindir@:$PATH"
+PATH="@bindir@:$PATH"
+export PATH
+
+#
+# To force a clean token storage execute
+#   rm -rf @prefix@/var/lib/softhsm/tokens
+#
+
+if [ \! -d @prefix@/var/lib/softhsm/tokens ]; then
+  mkdir -p @prefix@/var/lib/softhsm/tokens
+fi
+softhsm2-util --show-slots | grep >/dev/null OpenDNSSEC
+if [ $? -ne 0 ]; then
+  softhsm2-util --init-token --label=OpenDNSSEC --free --pin=1234 --so-pin=1234
+
+fi
+
+exit 0

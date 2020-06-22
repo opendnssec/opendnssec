@@ -46,11 +46,11 @@
 static const char *module_str = "keystate_list_task";
 
 /* shorter defines to keep keystate table more readable */
-#define HID KEY_STATE_STATE_HIDDEN
-#define RUM KEY_STATE_STATE_RUMOURED
-#define OMN KEY_STATE_STATE_OMNIPRESENT
-#define UNR KEY_STATE_STATE_UNRETENTIVE
-#define NAV KEY_STATE_STATE_NA
+#define HID  DBW_HIDDEN
+#define RUM  DBW_RUMOURED
+#define OMN  DBW_OMNIPRESENT
+#define UNR  DBW_UNRETENTIVE
+#define NAV  DBW_NA
 
 enum {KS_GEN = 0, KS_PUB, KS_RDY, KS_ACT, KS_RET, KS_UNK, KS_MIX, KS_DEAD};
 const char* statenames[] = {"generate", "publish", "ready",
@@ -65,8 +65,8 @@ const char* statenames[] = {"generate", "publish", "ready",
 static int
 keystate(int p, int c, int introducing, int dsstate)
 {
-	int dsseen    = (dsstate == KEY_DATA_DS_AT_PARENT_SEEN);
-	int dsretract = (dsstate == KEY_DATA_DS_AT_PARENT_RETRACT);
+	int dsseen    = (dsstate == DBW_DS_AT_PARENT_SEEN);
+	int dsretract = (dsstate == DBW_DS_AT_PARENT_RETRACT);
 
 	if (p == OMN && c == OMN) return KS_ACT;
 	if (p == RUM && dsseen && c == OMN) return KS_ACT;
@@ -90,8 +90,8 @@ keystate(int p, int c, int introducing, int dsstate)
 static int
 zskstate(struct dbw_key *key)
 {
-    struct dbw_keystate *dnskey = dbw_get_keystate(key, DBW_DNSKEY);
-    struct dbw_keystate *rrsig = dbw_get_keystate(key, DBW_RRSIG);
+    struct dbw_keystate *dnskey = dbw_FIND(struct dbw_keystate*, key->keystate, state, key->keystate_count, DBW_DNSKEY);
+    struct dbw_keystate *rrsig = dbw_FIND(struct dbw_keystate*, key->keystate, state, key->keystate_count, DBW_RRSIG);
     if (!rrsig || !dnskey) return KS_UNK;
 
     return keystate(dnskey->state, rrsig->state, key->introducing, -1);
@@ -100,8 +100,8 @@ zskstate(struct dbw_key *key)
 static int
 kskstate(struct dbw_key *key)
 {
-    struct dbw_keystate *ds = dbw_get_keystate(key, DBW_DS);
-    struct dbw_keystate *dnskey = dbw_get_keystate(key, DBW_DNSKEY);
+    struct dbw_keystate *ds = dbw_FIND(struct dbw_keystate*, key->keystate, state, key->keystate_count, DBW_DS);
+    struct dbw_keystate *dnskey = dbw_FIND(struct dbw_keystate*, key->keystate, state, key->keystate_count, DBW_DNSKEY);
     if (!ds || !dnskey) return KS_UNK;
 
     return keystate(ds->state, dnskey->state, key->introducing, key->ds_at_parent);
@@ -142,13 +142,13 @@ map_keytime(const struct dbw_key *key, time_t now)
 	time_t t;
 
 	switch(key->ds_at_parent) {
-		case KEY_DATA_DS_AT_PARENT_SUBMIT:
+		case DBW_DS_AT_PARENT_SUBMIT:
 			return strdup("waiting for ds-submit");
-		case KEY_DATA_DS_AT_PARENT_SUBMITTED:
+		case DBW_DS_AT_PARENT_SUBMITTED:
 			return strdup("waiting for ds-seen");
-		case KEY_DATA_DS_AT_PARENT_RETRACT:
+		case DBW_DS_AT_PARENT_RETRACT:
 			return strdup("waiting for ds-retract");
-		case KEY_DATA_DS_AT_PARENT_RETRACTED:
+		case DBW_DS_AT_PARENT_RETRACTED:
 			return strdup("waiting for ds-gone");
                 default:
 			break;
@@ -167,7 +167,6 @@ map_keytime(const struct dbw_key *key, time_t now)
 static void
 print_sorted_keys(int sockfd, int keyrole, const char *keystate, struct dbw_zone *zone, void (printkey)(int sockfd, struct dbw_key *key, char *tchange))
 {
-    sort_keys((const struct dbw_key **)zone->key, zone->key_count);
     for (size_t k = 0; k < zone->key_count; k++) {
         struct dbw_key *key = zone->key[k];
         if (keyrole && key->role != keyrole) continue;
@@ -176,7 +175,6 @@ print_sorted_keys(int sockfd, int keyrole, const char *keystate, struct dbw_zone
         (*printkey)(sockfd, key, tchange);
         free(tchange);
     }
-
 }
 
 static int
@@ -184,34 +182,34 @@ perform_keystate_list(int sockfd, db_connection_t *dbconn, const char* zonename,
     int keyrole, const char* keystate, void (printheader)(int sockfd),
     void (printkey)(int sockfd, struct dbw_key *key, char* tchange))
 {
-    struct dbw_db *db = dbw_fetch(dbconn);
-    if (!db) {
-        client_printf_err(sockfd, "Unable to get list of keys, memory "
-            "allocation or database error!\n");
-        return 1;
-    }
     if (printheader) (*printheader)(sockfd);
 
-    if (zonename) {
-        struct dbw_zone *zone = dbw_get_zone(db, zonename);
+    char** zonenames = NULL;
+    int nzonenames;
+    if (!zonename) {
+        struct dbw_db *db = dbw_fetch(dbconn, "policies and zone names ro");
+        nzonenames = 0;
+        int k = 0;
+        for (int i = 0; i < db->npolicies; i++)
+            nzonenames += db->policies[i]->zone_count;
+        zonenames = malloc(sizeof(char*)*nzonenames);
+        for (int i = 0; i < db->npolicies; i++)
+            for (int j = 0; j < db->policies[i]->zone_count; j++)
+                zonenames[k++] = strdup(db->policies[i]->zone[j]->name);
+        dbw_free(db);
+    } else {
+        zonenames = malloc(sizeof(char*));
+        zonenames[0] = strdup(zonename);
+        nzonenames = 1;
+    }
+    for(int i=0; i<nzonenames; i++) {
+        struct dbw_db *db = dbw_fetch(dbconn, "zone with keys ro", zonenames[i]);
+        struct dbw_zone *zone = dbw_FIND(struct dbw_zone*, db->zones, name, db->nzones, zonenames[i]);
         if (zone)
             print_sorted_keys(sockfd, keyrole, keystate, zone, printkey);
-        else
-            client_printf_err(sockfd, "Unable to get zone %s from database!\n", zonename);
+        dbw_free(db);
+        free(zonenames[i]);
     }
-    else {
-        sort_policies((const struct dbw_policy **)db->policies->set, db->policies->n);
-
-        for (size_t i = 0; i < db->policies->n; i++) {
-            struct dbw_policy *policy = (struct dbw_policy *) db->policies->set[i];
-            sort_zones((const struct dbw_zone **)policy->zone, policy->zone_count);
-            for (size_t z = 0; z < policy->zone_count; z++) {
-                struct dbw_zone *zone = policy->zone[z];
-                print_sorted_keys(sockfd, keyrole, keystate, zone, printkey);
-            }
-        }
-    }
-    dbw_free(db);
     return 0;
 }
 
@@ -292,26 +290,26 @@ printverbosekey(int sockfd, struct dbw_key * key, char* tchange)
 }
 
 static void
-printFullkey(int sockfd, zone_db_t* zone, key_data_t* key, char* tchange, hsm_key_t* hsmkey) {
+printFullkey(int sockfd, struct dbw_zone* zone, struct dbw_key* key, char* tchange) {
     (void)tchange;
     client_printf(sockfd,
             "%-31s %-8s %-9s %d %s %-12s %-12s %-12s %-12s %d %4d    %s\n",
-            zone_db_name(zone),
-            key_data_role_text(key),
+            zone->name,
+            dbw_enum2txt(dbw_key_role_txt, key->role),
             map_keystate(key),
-            key_data_keytag(key),
-            hsm_key_locator(hsmkey),
-            key_state_state_text(key_data_cached_ds(key)),
-            key_state_state_text(key_data_cached_dnskey(key)),
-            key_state_state_text(key_data_cached_rrsigdnskey(key)),
-            key_state_state_text(key_data_cached_rrsig(key)),
-            key_data_publish(key),
-            key_data_active_ksk(key) | key_data_active_zsk(key),
+            key->keytag,
+            key->hsmkey->locator,
+            dbw_enum2txt(dbw_keystate_state_txt, dbw_FIND(struct dbw_keystate*, key->keystate, state, key->keystate_count, DBW_DS)->state),
+            dbw_enum2txt(dbw_keystate_state_txt, dbw_FIND(struct dbw_keystate*, key->keystate, state, key->keystate_count, DBW_DNSKEY)->state),
+            dbw_enum2txt(dbw_keystate_state_txt, dbw_FIND(struct dbw_keystate*, key->keystate, state, key->keystate_count, DBW_RRSIGDNSKEY)->state),
+            dbw_enum2txt(dbw_keystate_state_txt, dbw_FIND(struct dbw_keystate*, key->keystate, state, key->keystate_count, DBW_RRSIG)->state),
+            key->publish,
+            key->active_ksk | key->active_zsk,
             tchange);
 }
 
 static void
-printverboseparsablekey(int sockfd, zone_db_t* zone, struct dbw_key* key, char* tchange, hsm_key_t* hsmkey) {
+printverboseparsablekey(int sockfd, struct dbw_zone* zone, struct dbw_key* key, char* tchange) {
     client_printf(sockfd,
         "%s;%s;%s;%s;%d;%d;%s;%s;%d\n",
         key->zone->name,
@@ -340,10 +338,11 @@ printdebugkey_fmt(int sockfd, char const *fmt, struct dbw_key *key, char const  
     client_printf(sockfd, fmt,
         key->zone->name,
         dbw_enum2txt(dbw_key_role_txt, key->role),
-        dbw_enum2txt(dbw_keystate_state_txt, dbw_get_keystate(key, DBW_DS)->state), /*  TODO */
-        dbw_enum2txt(dbw_keystate_state_txt, dbw_get_keystate(key, DBW_DNSKEY)->state),
-        dbw_enum2txt(dbw_keystate_state_txt, dbw_get_keystate(key, DBW_RRSIGDNSKEY)->state),
-        dbw_enum2txt(dbw_keystate_state_txt, dbw_get_keystate(key, DBW_RRSIG)->state),
+
+        dbw_enum2txt(dbw_keystate_state_txt, dbw_FIND(struct dbw_keystate*, key->keystate, state, key->keystate_count, DBW_DS)->state),
+        dbw_enum2txt(dbw_keystate_state_txt, dbw_FIND(struct dbw_keystate*, key->keystate, state, key->keystate_count, DBW_DNSKEY)->state),
+        dbw_enum2txt(dbw_keystate_state_txt, dbw_FIND(struct dbw_keystate*, key->keystate, state, key->keystate_count, DBW_RRSIGDNSKEY)->state),
+        dbw_enum2txt(dbw_keystate_state_txt, dbw_FIND(struct dbw_keystate*, key->keystate, state, key->keystate_count, DBW_RRSIG)->state),
         key->publish,
         key->active_ksk | key->active_zsk,
         key->hsmkey->locator);
@@ -452,7 +451,7 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
     }
 
     if (bFull) {
-        success = perform_keystate_list(sockfd, dbconn, zonename, keytype, keystate, NULL, &printFullkey);
+        success = perform_keystate_list(sockfd, dbconn, zonename, keyrole, keystate, NULL, &printFullkey);
     } else if (bDebug) {
         if (bParsable) {
             success = perform_keystate_list(sockfd, dbconn, zonename, keyrole,

@@ -86,12 +86,12 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 
     ods_log_debug("[%s] %s command", module_str, zone_list_funcblock.cmdname);
 
-    struct dbw_db *db = dbw_fetch_filtered(dbconn, DBW_F_POLICY|DBW_F_ZONE);
+    struct dbw_db *db = dbw_fetch(dbconn, "policies and zones ro without any keys");
     if (!db) return 1;
 
     client_printf(sockfd, "Database set to: %s\n", engine->config->datastore);
 
-    if (!db->zones->n) {
+    if (!db->nzones) {
         client_printf(sockfd, "No zones in database.\n");
         dbw_free(db);
         return 0;
@@ -100,13 +100,9 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
     client_printf(sockfd, fmt, "Zone:", "Policy:", "Next change:",
         "Signer Configuration:");
 
-    sort_policies((const struct dbw_policy **)db->policies->set, db->policies->n);
-    for (size_t p = 0; p < db->policies->n; p++) {
-        struct dbw_policy *policy = (struct dbw_policy *)db->policies->set[p];
-
-        sort_zones((const struct dbw_zone **)policy->zone, policy->zone_count);
-
-        for (size_t i = 0; i < policy->zone_count; i++) {
+    for (int p = 0; p < db->npolicies; p++) {
+        struct dbw_policy *policy = (struct dbw_policy *)db->policies[p];
+        for (int i = 0; i < policy->zone_count; i++) {
             struct dbw_zone *z = policy->zone[i];
             client_printf(sockfd, fmt, z->name, z->policy->name,
                 time_to_human(z->next_change, buf, sizeof(buf)), z->signconf_path);

@@ -246,10 +246,9 @@ AC_CONFIG_FILES([
 	conf/zonelist.xml
 	enforcer/Makefile
 	enforcer/src/Makefile
+	enforcer/src/test/Makefile
 	enforcer/man/Makefile
-	enforcer/src/db/test/Makefile
 	enforcer/man/ods-enforcer.8
-	enforcer/man/ods-enforcer-db-setup.8
 	enforcer/man/ods-enforcerd.8
 	enforcer/src/utils/Makefile
 	enforcer/src/utils/ods-kaspcheck.1
@@ -261,12 +260,6 @@ AC_CONFIG_FILES([
 	libhsm/src/lib/Makefile
 	libhsm/checks/Makefile
 	libhsm/checks/conf-softhsm.xml
-	libhsm/checks/conf-sca6000.xml
-	libhsm/checks/conf-etoken.xml
-	libhsm/checks/conf-multi.xml
-	libhsm/checks/conf-opensc.xml
-	libhsm/checks/conf-ncipher.xml
-	libhsm/checks/conf-aepkeyper.xml
 	signer/Makefile
 	signer/man/Makefile
 	signer/man/ods-signer.8

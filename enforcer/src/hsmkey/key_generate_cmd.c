@@ -165,16 +165,15 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
         client_printf_err(sockfd, "Either --all or --policy needs to be given!\n");
         return 1;
     }
-    struct dbw_db *db = dbw_fetch(dbconn);
-    if (!db) return 1;
-
-    for (size_t pk = 0; pk < db->policykeys->n; pk++) {
+    struct dbw_db *db = dbw_fetch(dbconn, "all policies, ro, but the policykeys writeable and zonecount");
+    for(int policyidx=0; policyidx<db->npolicies; policyidx++) {
+      for(int policykeyidx=0; policykeyidx<db->policies[policyidx]->policykey_count; policykeyidx++) {
+        struct dbw_policykey *pkey = db->policies[policyidx]->policykey[policykeyidx];
         int nr_keys = (int)count;
-        struct dbw_policykey *pkey = (struct dbw_policykey *)db->policykeys->set[pk];
         if (policy_name && strcasecmp(policy_name, pkey->policy->name)) continue;
         if (!duration_time && !count) {
             /* use default duration, factory will figure out amount of keys */
-            hsm_key_factory_schedule(engine, pkey->id, -1);
+            hsm_key_factory_schedule(engine, pkey, -1);
             continue;
         }
         if (!duration_time)
@@ -188,7 +187,8 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
         if (nr_keys <= 0) continue;
         client_printf(sockfd, "Scheduled generation of %d %s's for policy %s.\n",
             nr_keys, dbw_enum2txt(dbw_key_role_txt, pkey->role), pkey->policy->name);
-        hsm_key_factory_schedule(engine, pkey->id, nr_keys);
+        hsm_key_factory_schedule(engine, pkey, nr_keys);
+      }
     }
     dbw_free(db);
     return 0;

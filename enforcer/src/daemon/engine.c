@@ -46,9 +46,6 @@
 #include "privdrop.h"
 #include "status.h"
 #include "util.h"
-#include "db/db_configuration.h"
-#include "db/db_connection.h"
-#include "db/database_version.h"
 #include "hsmkey/hsm_key_factory.h"
 #include "libhsm.h"
 #include "locks.h"
@@ -67,6 +64,8 @@
 #include <unistd.h>
 #include <fcntl.h>
 
+#include "db/dbw.h"
+
 static const char* engine_str = "engine";
 
 static engine_type* engine = NULL;
@@ -84,7 +83,6 @@ engine_alloc(void)
     pthread_mutex_init(&engine->signal_lock, NULL);
     pthread_cond_init(&engine->signal_cond, NULL);
 
-    engine->dbcfg_list = NULL;
     engine->taskq = schedule_create();
     if (!engine->taskq) {
         free(engine);
@@ -99,9 +97,6 @@ engine_dealloc(engine_type* engine)
     schedule_cleanup(engine->taskq);
     pthread_mutex_destroy(&engine->signal_lock);
     pthread_cond_destroy(&engine->signal_cond);
-    if (engine->dbcfg_list) {
-        db_configuration_list_free(engine->dbcfg_list);
-    }
     hsm_key_factory_deinit();
     free(engine);
 }
@@ -227,12 +222,11 @@ get_database_connection(engine_type* engine)
 {
     db_connection_t* dbconn;
 
-    if (!(dbconn = db_connection_new())
-        || db_connection_set_configuration_list(dbconn, engine->dbcfg_list)
-        || db_connection_setup(dbconn)
-        || db_connection_connect(dbconn))
+    if (!(dbconn = db_connection_new(engine->config->datastore,
+                                     engine->config->db_host,
+                                     engine->config->db_username,
+                                     engine->config->db_password)))
     {
-        db_connection_free(dbconn);
         ods_log_crit("database connection failed");
         return NULL;
     }
@@ -255,147 +249,6 @@ probe_database(engine_type* engine)
     version = database_version_get_version(conn);
     db_connection_free(conn);
     return !version;
-}
-
-/*
- * Prepare for database connections and store dbcfg_list in engine
- * if successfull the counterpart desetup_database() must be called
- * when quitting the daemon.
- * \param engine engine config where configuration list is stored
- * \return 0 on succes, 1 on failure
- */
-static int
-setup_database(engine_type* engine)
-{
-    db_configuration_t* dbcfg;
-
-    if (!(engine->dbcfg_list = db_configuration_list_new())) {
-        fprintf(stderr, "db_configuraiton_list_new failed\n");
-        return 1;
-    }
-    if (engine->config->db_type == ENFORCER_DATABASE_TYPE_SQLITE) {
-        if (!(dbcfg = db_configuration_new())
-            || db_configuration_set_name(dbcfg, "backend")
-            || db_configuration_set_value(dbcfg, "sqlite")
-            || db_configuration_list_add(engine->dbcfg_list, dbcfg))
-        {
-            db_configuration_free(dbcfg);
-            db_configuration_list_free(engine->dbcfg_list);
-            engine->dbcfg_list = NULL;
-            fprintf(stderr, "setup configuration backend failed\n");
-            return 1;
-        }
-        if (!(dbcfg = db_configuration_new())
-            || db_configuration_set_name(dbcfg, "file")
-            || db_configuration_set_value(dbcfg, engine->config->datastore)
-            || db_configuration_list_add(engine->dbcfg_list, dbcfg))
-        {
-            db_configuration_free(dbcfg);
-            db_configuration_list_free(engine->dbcfg_list);
-            engine->dbcfg_list = NULL;
-            fprintf(stderr, "setup configuration file failed\n");
-            return 1;
-        }
-        dbcfg = NULL;
-    }
-    else if (engine->config->db_type == ENFORCER_DATABASE_TYPE_MYSQL) {
-        if (!(dbcfg = db_configuration_new())
-            || db_configuration_set_name(dbcfg, "backend")
-            || db_configuration_set_value(dbcfg, "mysql")
-            || db_configuration_list_add(engine->dbcfg_list, dbcfg))
-        {
-            db_configuration_free(dbcfg);
-            db_configuration_list_free(engine->dbcfg_list);
-            engine->dbcfg_list = NULL;
-            fprintf(stderr, "setup configuration backend failed\n");
-            return 1;
-        }
-        if (!(dbcfg = db_configuration_new())
-            || db_configuration_set_name(dbcfg, "host")
-            || db_configuration_set_value(dbcfg, engine->config->db_host)
-            || db_configuration_list_add(engine->dbcfg_list, dbcfg))
-        {
-            db_configuration_free(dbcfg);
-            db_configuration_list_free(engine->dbcfg_list);
-            engine->dbcfg_list = NULL;
-            fprintf(stderr, "setup configuration file failed\n");
-            return 1;
-        }
-        dbcfg = NULL;
-        if (engine->config->db_port) {
-            char str[32];
-            if (snprintf(&str[0], sizeof(str), "%d", engine->config->db_port) >= (int)sizeof(str)) {
-                db_configuration_list_free(engine->dbcfg_list);
-                engine->dbcfg_list = NULL;
-                fprintf(stderr, "setup configuration file failed\n");
-                return 1;
-            }
-            if (!(dbcfg = db_configuration_new())
-                || db_configuration_set_name(dbcfg, "port")
-                || db_configuration_set_value(dbcfg, str)
-                || db_configuration_list_add(engine->dbcfg_list, dbcfg))
-            {
-                db_configuration_free(dbcfg);
-                db_configuration_list_free(engine->dbcfg_list);
-                engine->dbcfg_list = NULL;
-                fprintf(stderr, "setup configuration file failed\n");
-                return 1;
-            }
-            dbcfg = NULL;
-        }
-        if (!(dbcfg = db_configuration_new())
-            || db_configuration_set_name(dbcfg, "user")
-            || db_configuration_set_value(dbcfg, engine->config->db_username)
-            || db_configuration_list_add(engine->dbcfg_list, dbcfg))
-        {
-            db_configuration_free(dbcfg);
-            db_configuration_list_free(engine->dbcfg_list);
-            engine->dbcfg_list = NULL;
-            fprintf(stderr, "setup configuration file failed\n");
-            return 1;
-        }
-        dbcfg = NULL;
-        if (!(dbcfg = db_configuration_new())
-            || db_configuration_set_name(dbcfg, "pass")
-            || db_configuration_set_value(dbcfg, engine->config->db_password)
-            || db_configuration_list_add(engine->dbcfg_list, dbcfg))
-        {
-            db_configuration_free(dbcfg);
-            db_configuration_list_free(engine->dbcfg_list);
-            engine->dbcfg_list = NULL;
-            fprintf(stderr, "setup configuration file failed\n");
-            return 1;
-        }
-        dbcfg = NULL;
-        if (!(dbcfg = db_configuration_new())
-            || db_configuration_set_name(dbcfg, "db")
-            || db_configuration_set_value(dbcfg, engine->config->datastore)
-            || db_configuration_list_add(engine->dbcfg_list, dbcfg))
-        {
-            db_configuration_free(dbcfg);
-            db_configuration_list_free(engine->dbcfg_list);
-            engine->dbcfg_list = NULL;
-            fprintf(stderr, "setup configuration file failed\n");
-            return 1;
-        }
-        dbcfg = NULL;
-    }
-    else {
-        return 1;
-    }
-    return 0;
-}
-
-/*
- * destroy database configuration. Call only after all connections
- * are closed.
- * \param engine engine config where configuration list is stored
- */
-static void
-desetup_database(engine_type* engine)
-{
-    db_configuration_list_free(engine->dbcfg_list);
-    engine->dbcfg_list = NULL;
 }
 
 static void
@@ -444,8 +297,6 @@ engine_setup()
         ods_log_error("[%s] Pidfile exists and process with PID is running", engine_str);
         return ODS_STATUS_WRITE_PIDFILE_ERR;
     }
-    /* setup database configuration */
-    if (setup_database(engine)) return ODS_STATUS_DB_ERR;
     /* Probe the database, can we connect to it? */
     if (probe_database(engine)) {
         ods_log_crit("Could not connect to database or database not set"
@@ -606,7 +457,6 @@ engine_teardown(engine_type* engine)
         cmdhandler_cleanup(engine->cmdhandler);
         engine->cmdhandler = NULL;
     }
-    desetup_database(engine);
 }
 
 void
@@ -632,7 +482,6 @@ engine_init(engine_type* engine, int daemonize)
     sigaction(SIGTERM, &action, NULL);
     sigaction(SIGINT, &action, NULL);
     sigaction(SIGPIPE, &action, NULL);
-    engine->dbcfg_list = NULL;
     action.sa_handler = SIG_IGN;
     sigaction(SIGPIPE, &action, NULL);
 }

@@ -187,13 +187,13 @@ process_xml(int sockfd, xmlNodePtr root, struct dbw_db *db)
                 xml_zone_scrub(&xz);
                 return 1;
             }
-            struct dbw_policy *p = dbw_get_policy(db, xz.policy);
+            struct dbw_policy *p = dbw_FINDSTR(struct dbw_policy*, db->policies, name, db->npolicies, xz.policy);
             if (!p) {
                 client_printf_err(sockfd, "Can't find policy %s in database.\n", xz.policy);
                 xml_zone_scrub(&xz);
                 return 1;
             }
-            struct dbw_zone *zone = dbw_get_zone(db, xz.name);
+            struct dbw_zone *zone = dbw_FINDSTR(struct dbw_zone*, db->zones, name, db->nzones, xz.name);
             if (!zone) { /* create new  */
                 zone = calloc(1, sizeof (struct dbw_zone));
                 if (!zone) {
@@ -201,7 +201,6 @@ process_xml(int sockfd, xmlNodePtr root, struct dbw_db *db)
                     xml_zone_scrub(&xz);
                     return 1;
                 }
-                zone->dirty = DBW_INSERT;
                 zone->scratch = 2;
                 zone->name                = xz.name;
                 zone->policy              = p;
@@ -210,33 +209,29 @@ process_xml(int sockfd, xmlNodePtr root, struct dbw_db *db)
                 zone->input_adapter_type  = xz.inadapter_type;
                 zone->output_adapter_uri  = xz.outadapter_uri;
                 zone->output_adapter_type = xz.outadapter_type;
-                if (dbw_add_zone(db, p, zone)) {
-                    client_printf_err(sockfd, "zonelist import memory error.\n");
-                    dbw_zone_free((struct dbrow *)zone);
-                    return 1;
-                }
+                dbw_add(&p->zone, &p->zone_count, zone);
+                dbw_add(&db->zones, &db->nzones, zone);
             } else {
-                zone->scratch = 1;
                 if (!zone_xml_cmp(db, zone, &xz)) {
-                    zone->dirty = DBW_CLEAN;
+                    zone->scratch = 1;
                     xml_zone_scrub(&xz);
                     client_printf(sockfd, "Zone %s already up-to-date\n", zone->name);
-                    continue;
+                } else {
+                    zone->scratch = 3;
+                    dbw_mark_dirty(&zone);
+                    free(zone->signconf_path);
+                    free(zone->input_adapter_uri);
+                    free(zone->input_adapter_type);
+                    free(zone->output_adapter_uri);
+                    free(zone->output_adapter_type);
+                    free(xz.name);
+                    zone->policy              = p;
+                    zone->signconf_path       = xz.signconf;
+                    zone->input_adapter_uri   = xz.inadapter_uri;
+                    zone->input_adapter_type  = xz.inadapter_type;
+                    zone->output_adapter_uri  = xz.outadapter_uri;
+                    zone->output_adapter_type = xz.outadapter_type;
                 }
-                zone->scratch = 3;
-                zone->dirty = DBW_UPDATE;
-                free(zone->signconf_path);
-                free(zone->input_adapter_uri);
-                free(zone->input_adapter_type);
-                free(zone->output_adapter_uri);
-                free(zone->output_adapter_type);
-                free(xz.name);
-                zone->policy              = p;
-                zone->signconf_path       = xz.signconf;
-                zone->input_adapter_uri   = xz.inadapter_uri;
-                zone->input_adapter_type  = xz.inadapter_type;
-                zone->output_adapter_uri  = xz.outadapter_uri;
-                zone->output_adapter_type = xz.outadapter_type;
             }
         }
     }
@@ -271,9 +266,9 @@ int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
         return ZONELIST_IMPORT_ERR_XML;
     }
 
-    for (size_t z = 0; z < db->zones->n; z++) {
+    for (size_t z = 0; z < db->nzones; z++) {
         /* All zones not mentioned xml will be deleted */
-        db->zones->set[z]->scratch = 0;
+        db->zones[z]->scratch = 0;
     }
     int r = process_xml(sockfd, root, db);
     xmlFreeDoc(doc);
@@ -282,24 +277,20 @@ int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
         return ZONELIST_IMPORT_ERR_XML;
     }
     int updates = 0; /* did anything change at all?  */
-    for (size_t z = 0; z < db->zones->n; z++) {
-        struct dbw_zone *zone = (struct dbw_zone *)db->zones->set[z];
+    for (size_t z = 0; z < db->nzones; z++) {
+        struct dbw_zone *zone = db->zones[z];
         updates |= zone->scratch;
-        if (do_delete && !zone->scratch && zone->dirty == DBW_CLEAN) {
+        if (do_delete && !zone->scratch) {
             /* This zone is not visited at all, therefore must be deleted */
-            zone->dirty = DBW_DELETE;
-            for (size_t k = 0; k < zone->key_count; k++) {
-                struct dbw_key *key = zone->key[k];
-                key->dirty = DBW_DELETE;
-                for (size_t s = 0; s < key->keystate_count; s++) {
-                    struct dbw_keystate *keystate = key->keystate[s];
-                    keystate->dirty = DBW_DELETE;
-                }
-                hsm_key_factory_release_key(key->hsmkey, key);
-            }
+            db->zones[z] = NULL;
+            /* The previous code removes any/all keys from the HSM as well, regardless of purge strategy, using
+             * hsm_key_factory_release_key(&key->hsmkey, key);
+             * lets not do that now.
+             */
         }
     }
     if (dbw_commit(db)) {
+        /* If the import failed, but deleted the keys from the HSM anyway.  Lovely broken. */
         r = ZONELIST_IMPORT_ERR_DATABASE;
     } else if (updates) {
         /** export zonelist */
@@ -312,8 +303,8 @@ int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
 
         /*hsm_key_factory_schedule_generate_all(engine, 0);*/
         /* schedule all changed zones */
-        for (size_t z = 0; z < db->zones->n; z++) {
-            struct dbw_zone *zone = (struct dbw_zone *)db->zones->set[z];
+        for (size_t z = 0; z < db->nzones; z++) {
+            struct dbw_zone *zone = db->zones[z];
             if (!zone->scratch) {
                 if (do_delete)
                     client_printf(sockfd, "Deleted zone %s successfully\n", zone->name);
@@ -339,4 +330,3 @@ int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
     dbw_free(db);
     return r;
 }
-

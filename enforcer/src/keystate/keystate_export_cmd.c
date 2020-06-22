@@ -109,15 +109,15 @@ print_ds_from_id(int sockfd, struct dbw_key *key, int bind_style, int print_sha1
     ldns_rr *dnskey_rr;
     ldns_rr *ds_sha_rr;
     char *rrstr;
-    
-    struct dbw_keystate *dnskey = dbw_get_keystate(key, DBW_DNSKEY);
+
+    struct dbw_keystate *dnskey = dbw_FIND(struct dbw_keystate*, key->keystate, state, key->keystate_count, DBW_DNSKEY);
     if (!dnskey) return 1;
     dnskey_rr = get_dnskey(key->hsmkey->locator, key->zone->name,
         key->role & DBW_KSK, key->algorithm, dnskey->ttl);
     if (!dnskey_rr) return 1;
 
     if (bind_style) {
-        struct dbw_keystate *ds = dbw_get_keystate(key, DBW_DS);
+        struct dbw_keystate *ds = dbw_FIND(struct dbw_keystate*, key->keystate, state, key->keystate_count, DBW_DS);
         if (!ds) return 1;
         ldns_rr_set_ttl(dnskey_rr, ds->ttl);
         if (print_sha1) {
@@ -212,7 +212,6 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
     const char *zonename = NULL;
     const char* keytype = NULL;
     const char* keystate = NULL;
-    zone_db_t * zone = NULL;
     int all = 0;
     int ds = 0;
     int bsha1 = 0;
@@ -304,8 +303,8 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
     if (!db) return -1;
     int r = 0;
     int exports = 0;
-    for (size_t z = 0; z < db->zones->n; z++) {
-        struct dbw_zone *zone = (struct dbw_zone *)db->zones->set[z];
+    for (size_t z = 0; z < db->nzones; z++) {
+        struct dbw_zone *zone = db->zones[z];
         if (zonename && strcmp(zonename, zone->name)) continue;
         r |= perform_keystate_export(sockfd, zone, keytype_int, keystate, ds, bsha1);
         exports++;

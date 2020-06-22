@@ -34,11 +34,10 @@
 #include "scheduler/task.h"
 
 /**
- * reschedule resalt tasks for *now*. If policyname not given flush *all*
+ * reschedule resalt tasks for *now*.
  */
-int
-resalt_task_flush(engine_type *engine, db_connection_t *dbconn,
-    const char *policy);
+void
+resalt_task_flush(engine_type *engine, struct dbw_policy* policy);
 
 /**
  * Schedule all resalt tasks

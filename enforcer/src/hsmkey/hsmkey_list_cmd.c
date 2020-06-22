@@ -37,6 +37,8 @@
 
 #include "hsmkey/hsmkey_list_cmd.h"
 
+#include "db/dbw.h"
+
 static void
 usage(int sockfd)
 {
@@ -63,8 +65,8 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
     struct dbw_db *db = dbw_fetch(dbconn);
     if (!db) return 1;
 
-    for (size_t p = 0; p < db->policies->n; p++) {
-        struct dbw_policy *policy = (struct dbw_policy *)db->policies->set[p];
+    for (int i = 0; i < db->npolicies; i++) {
+        struct dbw_policy *policy = (struct dbw_policy *)db->policies[i];
         for (size_t hk = 0; hk < policy->hsmkey_count; hk++) {
             struct dbw_hsmkey *hsmkey = policy->hsmkey[hk];
             if (hsmkey->state != DBW_HSMKEY_UNUSED) continue;

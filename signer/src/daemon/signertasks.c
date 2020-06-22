@@ -611,7 +611,7 @@ do_outputzonefile(zone_type* zone)
     tmpname = ods_build_path(zone->adoutbound->configstr, ".tmp", 0, 0);
     if(writezone(outputview, tmpname)) {
         if (zone->adoutbound->error) {
-            ods_log_error("unable to write zone %s file %s", zone->name, filename);
+            ods_log_error("unable to write zone %s file %s", zone->name, tmpname);
             zone->adoutbound->error = 0;
             // status = ODS_STATUS_FWRITE_ERR;
         }
@@ -640,7 +640,7 @@ do_purgezone(zone_type* zone)
      * outdated for too long (ie their last valid serial number is too far
      * in the past.
      */
-    serial = zone->outboundserial - (zone->operatingconf ? zone->operatingconf->ixfr_history : 4);
+    serial = *(zone->outboundserial) - (zone->operatingconf ? zone->operatingconf->ixfr_history : 4);
     for(iter=names_viewiterator(baseview,names_iteratoroutdated,serial); names_iterate(&iter,&record); names_advance(&iter, NULL)) {
         names_remove(baseview, record);
     }

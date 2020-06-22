@@ -122,8 +122,8 @@ int zonelist_export(int sockfd, db_connection_t* dbconn, const char* filename, i
     }
     xmlDocSetRootElement(doc, root);
 
-    for (size_t z = 0; z < db->zones->n; z++) {
-        struct dbw_zone *zone = (struct dbw_zone *)db->zones->set[z];
+    for (size_t z = 0; z < db->nzones; z++) {
+        struct dbw_zone *zone = (struct dbw_zone *)db->zones[z];
         if (!(node = xmlNewChild(root, NULL, (xmlChar*)"Zone", NULL))
             || !xmlNewProp(node, (xmlChar*)"name", (xmlChar*)zone->name)
             || !xmlNewChild(node, NULL, (xmlChar*)"Policy", (xmlChar*)zone->policy->name)

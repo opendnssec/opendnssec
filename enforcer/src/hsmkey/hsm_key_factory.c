@@ -62,6 +62,7 @@ struct generate_request {
     int policykey_id;
     int count;
     char *zonename;
+    char* policyname;
     struct generate_request *next;
 };
 
@@ -106,18 +107,20 @@ void hsm_key_factory_deinit(void)
 static void
 genq_free(struct generate_request *req)
 {
+    free(req->policyname);
     free(req->zonename);
     free(req);
 }
 
 static void
-genq_push(int policykey_id, const char *zonename, int count)
+genq_push(struct dbw_policykey* pkey, const char *zonename, int count)
 {
     pthread_once(&__hsm_key_factory_once, hsm_key_factory_init);
     struct generate_request *req = calloc(1, sizeof (struct generate_request));
     if (!req) return;
     if (zonename) req->zonename = strdup(zonename);
-    req->policykey_id = policykey_id;
+    req->policyname = strdup(pkey->policy->name);
+    req->policykey_id = pkey->id;
     req->count = count;
 
     (void) pthread_mutex_lock(__hsm_key_factory_lock);
@@ -125,7 +128,7 @@ genq_push(int policykey_id, const char *zonename, int count)
         struct generate_request *p = genq;
         while (p) {
             if (((zonename && p->zonename && !strcmp(zonename, p->zonename)) ||
-                (!zonename && !p->zonename)) && p->policykey_id == policykey_id)
+                (!zonename && !p->zonename)) && p->policykey_id == req->policykey_id)
             {
                 genq_free(req);
                 (void) pthread_mutex_unlock(__hsm_key_factory_lock);
@@ -243,12 +246,10 @@ create_hsmkey(struct dbw_policykey *policykey, char *locator, int require_backup
     hsmkey->inception = time_now();
     hsmkey->key_type = HSM_KEY_KEY_TYPE_RSA; /* I don't think we need this, also it is incorrect */
     hsmkey->locator = locator;
-    hsmkey->policy_id = policykey->policy_id;
     hsmkey->repository = strdup(policykey->repository);
     hsmkey->role = policykey->role;
-    hsmkey->state = HSM_KEY_STATE_UNUSED;
+    hsmkey->state = DBW_HSMKEY_UNUSED;
     hsmkey->is_revoked = 0;
-    hsmkey->dirty = DBW_INSERT;
     hsmkey->key_count = 0;
     return hsmkey;
 }
@@ -284,7 +285,7 @@ generate_one_key(engine_type *engine, struct dbw_db *db,
         return 1;
     }
     struct dbw_hsmkey *hsmkey = create_hsmkey(policykey, locator,
-            hsm->require_backup? HSM_KEY_BACKUP_BACKUP_REQUIRED : HSM_KEY_BACKUP_NO_BACKUP);
+            hsm->require_backup? DBW_BACKUP_REQUIRED : DBW_BACKUP_NO_BACKUP);
     if (!hsmkey) {
         ods_log_error("[hsm_key_factory_generate] hsm key creation"
                    " failed, database or memory error");
@@ -292,8 +293,7 @@ generate_one_key(engine_type *engine, struct dbw_db *db,
         hsm_destroy_context(hsm_ctx);
         return 1;
     }
-    if (!dbw_add_hsmkey(db, policykey->policy, hsmkey))//TODO return val
-        ods_log_debug("[hsm_key_factory_generate] generated key %s successfully", locator);
+    dbw_add(&policykey->policy->hsmkey, &policykey->policy->hsmkey_count, hsmkey);
 
     hsm_destroy_context(hsm_ctx);
     return 0;
@@ -321,19 +321,15 @@ generate_cb(task_type* task, char const *owner, void *userdata,
     void *context)
 {
     db_connection_t* dbconn = (db_connection_t*) context;
-    struct dbw_db *db = dbw_fetch(dbconn);
-    if (!db) return schedule_DEFER;
     engine_type* engine = userdata;
 
     int duration_time = engine->config->automatic_keygen_duration;
 
     while (genq) {
         struct generate_request *req = genq_pop();
-        struct dbw_policykey *pkey = dbw_get_policykey(db, req->policykey_id);
-        if (!pkey) {
-            genq_free(req);
-            continue;
-        }
+        struct dbw_db *db = dbw_fetch(dbconn, "single policy with the policykeys writable", req->policyname);
+        struct dbw_policy* policy = dbw_FINDSTR(struct dbw_policy*, db->policies, name, db->npolicies, req->policyname);
+        struct dbw_policykey* pkey = dbw_FIND(struct dbw_policykey*, policy->policykey, id, policy->policykey_count, req->policykey_id);
         if (req->count == -1 && duration_time) {
             /* generate as much as needed to satisfy policy */
             int multiplier = pkey->policy->keys_shared? 1 : pkey->policy->zone_count;
@@ -351,26 +347,14 @@ generate_cb(task_type* task, char const *owner, void *userdata,
         }
         if (!error && keys_generated) {
             if (req->zonename) {
-                struct dbw_zone *zone = dbw_get_zone(db, req->zonename);
-                if (zone) zone->scratch = 1;
+                enforce_task_flush_zone(engine, req->zonename);
             } else {
-                pkey->policy->scratch = 1;
+                enforce_task_flush_policy(engine, policy);
             }
         }
+        (void)dbw_commit(db);
+        dbw_free(db);
     }
-    (void)dbw_commit(db);
-    for (size_t p = 0; p < db->policies->n; p++) {
-        struct dbw_policy *policy = (struct dbw_policy *)db->policies->set[p];
-        if (policy->scratch)
-            enforce_task_flush_policy(engine, policy);
-    }
-    for (size_t z = 0; z < db->zones->n; z++) {
-        struct dbw_zone *zone = (struct dbw_zone *)db->zones->set[z];
-        if (zone->scratch && !zone->policy->scratch) {
-            enforce_task_flush_zone(engine, zone->name);
-        }
-    }
-    dbw_free(db);
     (void) pthread_mutex_lock(__hsm_key_factory_lock);
         struct generate_request *req = genq;
     (void) pthread_mutex_unlock(__hsm_key_factory_lock);
@@ -397,9 +381,9 @@ schedule_generate(engine_type* engine)
 }
 
 void
-hsm_key_factory_schedule(engine_type *engine, int id, int count)
+hsm_key_factory_schedule(engine_type *engine, struct dbw_policykey* pkey, int count)
 {
-    genq_push(id, NULL, count);
+    genq_push(pkey, NULL, count);
     schedule_generate(engine);
 }
 
@@ -450,33 +434,33 @@ hsm_key_factory_get_key(engine_type *engine, struct dbw_db *db,
         ods_log_warning("[hsm_key_factory_get_key] no keys available");
         if (!engine->config->manual_keygen) {
             if (!policy->keys_shared) {
-                genq_push(pkey->id, zone->name, 1);
+                genq_push(pkey, zone->name, 1);
             } else {
-                genq_push(pkey->id, NULL, 1);
+                genq_push(pkey, NULL, 1);
             }
             schedule_generate(engine);
         }
     } else {
          /*Update the state of the returned HSM key*/
         hkey->state = policy->keys_shared? DBW_HSMKEY_SHARED : DBW_HSMKEY_PRIVATE;
-        dbw_mark_dirty((struct dbrow *)hkey);
+        dbw_mark_dirty(hkey);
         ods_log_debug("[hsm_key_factory_get_key] key allocated");
     }
     if (!engine->config->manual_keygen)
-        hsm_key_factory_schedule(engine, pkey->id, -1);
+        hsm_key_factory_schedule(engine, pkey, -1);
     return hkey;
 }
 
 void
-hsm_key_factory_release_key_mockup(struct dbw_hsmkey *hsmkey, struct dbw_key *key, int mockup)
+hsm_key_factory_release_key_mockup(struct dbw_hsmkey **hsmkeyptr, struct dbw_key *key, int mockup)
 {
+    struct dbw_hsmkey *hsmkey = *hsmkeyptr;
     int c = hsmkey->key_count;
     if (c == 1 && hsmkey->key[0] == key) c--;
     if (c > 0) {
         ods_log_debug("[hsm_key_factory_release_key] unable to release hsm_key, in use");
     } else {
         ods_log_debug("[hsm_key_factory_release_key] key %s marked DELETE", hsmkey->locator);
-        hsmkey->dirty = DBW_DELETE;
         /* state will not be committed to the database but will prevent this 
          * key to be used in the current iteration. */
         hsmkey->state = DBW_HSMKEY_DELETE;
@@ -491,11 +475,12 @@ hsm_key_factory_release_key_mockup(struct dbw_hsmkey *hsmkey, struct dbw_key *ke
             }
             hsm_destroy_context(hsm_ctx);
         }
+        *hsmkeyptr = NULL;
     }
 }
 
 void
-hsm_key_factory_release_key(struct dbw_hsmkey *hsmkey, struct dbw_key *key)
+hsm_key_factory_release_key(struct dbw_hsmkey **hsmkeyptr, struct dbw_key *key)
 {
-    hsm_key_factory_release_key_mockup(hsmkey, key, 0);
+    hsm_key_factory_release_key_mockup(hsmkeyptr, key, 0);
 }

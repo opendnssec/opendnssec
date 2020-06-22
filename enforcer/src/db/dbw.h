@@ -3,8 +3,39 @@
 
 #include <time.h>
 
-#include "db/db_connection.h"
-#include "db/zone_db.h"
+struct db_connection_struct;
+typedef struct db_connection_struct db_connection_t;
+
+db_connection_t* db_connection_new(const char* database, const char* hostname, const char*username, const char*password);
+int db_connection_free(db_connection_t*conn);
+
+#define dbw_FIND(T,V,F,C,K)  __extension__  ({ T R=NULL; for (int I=0; I<C; I++) { if(V[I]->F == K) { R = V[I]; break; } } R; })
+#define dbw_FINDSTR(T,V,F,C,K) __extension__  ({ T R=NULL; for (int I=0; I<C; I++) { if(!strcmp(V[I]->F, K)) { R = V[I]; break; } } R; })
+
+typedef enum key_data_role {
+  KEY_DATA_ROLE_INVALID = -1,
+  KEY_DATA_ROLE_KSK = 1,
+  KEY_DATA_ROLE_ZSK = 2,
+  KEY_DATA_ROLE_CSK = 3
+} key_data_role_t;
+
+typedef enum policy_key_role {
+  POLICY_KEY_ROLE_INVALID = -1,
+  POLICY_KEY_ROLE_KSK = 1,
+  POLICY_KEY_ROLE_ZSK = 2,
+  POLICY_KEY_ROLE_CSK = 3
+} policy_key_role_t;
+
+typedef enum policy_denial_type {
+  POLICY_DENIAL_TYPE_INVALID = -1,
+  POLICY_DENIAL_TYPE_NSEC = 0,
+  POLICY_DENIAL_TYPE_NSEC3 = 1
+} policy_denial_type_t;
+
+typedef enum hsm_key_key_type {
+  HSM_KEY_KEY_TYPE_INVALID = -1,
+  HSM_KEY_KEY_TYPE_RSA = 1
+} hsm_key_key_type_t;
 
 #define DBW_CLEAN    0
 #define DBW_DELETE   1
@@ -24,9 +55,7 @@ enum dbw_key_role {
     DBW_CSK = 3
 };
 
-static const char * dbw_key_role_txt[] = {
-    "(void)", "KSK", "ZSK", "CSK", NULL
-};
+extern const char *dbw_key_role_txt[];
 
 enum dbw_keystate_type {
     DBW_DS          = 0,
@@ -35,9 +64,7 @@ enum dbw_keystate_type {
     DBW_RRSIGDNSKEY = 3
 };
 
-static const char * dbw_keystate_type_txt[] = {
-    "DS", "RRSIG", "DNSKEY", "RRSIGDNSKEY", NULL
-};
+extern const char *dbw_keystate_type_txt[];
 
 enum dbw_keystate_state {
     DBW_HIDDEN      = 0,
@@ -47,9 +74,7 @@ enum dbw_keystate_state {
     DBW_NA          = 4
 };
 
-static const char * dbw_keystate_state_txt[] = {
-    "hidden", "rumoured", "omnipresent", "unretentive", "NA", NULL
-};
+extern const char *dbw_keystate_state_txt[];
 
 enum dbw_ds_at_parent {
     DBW_DS_AT_PARENT_UNSUBMITTED = 0,
@@ -61,9 +86,7 @@ enum dbw_ds_at_parent {
     DBW_DS_AT_PARENT_GONE        = 6
 };
 
-static const char * dbw_ds_at_parent_txt[] = {
-    "unsubmitted", "submit", "submitted", "seen", "retract", "retracted", "gone", NULL
-};
+extern const char *dbw_ds_at_parent_txt[];
 
 enum dbw_hsmkey_state {
     DBW_HSMKEY_UNUSED  = 1,
@@ -79,9 +102,7 @@ enum dbw_backup {
     DBW_BACKUP_DONE      = 3
 };
 
-static const char * dbw_backup_txt[] = {
-    "Not Required", "Required", "Prepared", "Done", NULL
-};
+extern const char *dbw_backup_txt[];
 
 enum dbw_soa_serial {
     DBW_SOA_SERIAL_COUNTER     = 0,
@@ -90,18 +111,14 @@ enum dbw_soa_serial {
     DBW_SOA_SERIAL_KEEP        = 3
 };
 
-static const char * dbw_soa_serial_txt[] = {
-    "counter", "datecounter", "unixtime", "keep", NULL
-};
+extern const char *dbw_soa_serial_txt[];
 
 enum dbw_denial_type {
     DBW_NSEC = 0,
     DBW_NSEC3 = 1
 };
 
-static const char * dbw_denial_type_txt[] = {
-    "NSEC", "NSEC3"
-};
+extern const char *dbw_denial_type_txt[];
 
 /* Returns static string representation of constant.
  * \param c: array of strings indexed by constant
@@ -117,46 +134,9 @@ const char * dbw_enum2txt(const char *c[], int n);
  */
 int dbw_txt2enum(const char *c[], const char *txt);
 
-/* This is a bit icky - sorry
- * In my defense: this is temporary code.
- *
- * This structure corespondents with each row of any table. The first int is
- * the primary id for the row. The following 3 (int, ptr) tuples either mean
- * (foreign key, pointer to parent dbrow object) or (count, pointer to list of
- * of dbrow objects). In the latter case these are actually pointer pointers.
- *
- * This is the base object the merge and filter functions operate on. Anywhere
- * else in the program the dbw_* structs are used.
- */
-struct dbrow {
-    int id;
-    int dirty;
-    int revision;
-    int scratch; /* convenience field for caller to temporarely mark objects  */
-    int int0;   /* In derived structs these are padded if unused to ensure */
-    void *ptr0; /* each is at least as big as a struct dbrow */
-    int int1;
-    void *ptr1;
-    int int2;
-    void *ptr2;
-    int int3;
-    void *ptr3;
-    int int4;
-    void *ptr4;
-};
-
 struct dbw_policykey {
-    int id;
-    int dirty;
-    int revision;
-    int scratch;
-    int policy_id;
+    long id;
     struct dbw_policy *policy;
-    int _padding1; void *__padding1;
-    int _padding2; void *__padding2;
-    int _padding3; void *__padding3;
-    int _padding4; void *__padding4;
-
     char* repository;
     unsigned int role;
     unsigned int algorithm;
@@ -169,9 +149,7 @@ struct dbw_policykey {
 };
 
 struct dbw_policy {
-    int id;
-    int dirty;
-    int revision;
+    long id;
     int scratch;
     int policykey_count;
     struct dbw_policykey **policykey;
@@ -179,8 +157,6 @@ struct dbw_policy {
     struct dbw_hsmkey **hsmkey;
     int zone_count;
     struct dbw_zone **zone;
-    int _padding3; void *__padding3;
-    int _padding4; void *__padding4;
 
     char *name;
     char *description;
@@ -219,13 +195,8 @@ struct dbw_policy {
 };
 
 struct dbw_key {
-    int id;
-    int dirty;
-    int revision;
-    int scratch;
-    int zone_id;
+    long id;
     struct dbw_zone *zone; /** Only valid when joined */
-    int hsmkey_id;
     struct dbw_hsmkey *hsmkey; /** Only valid when joined */
     int keystate_count;
     struct dbw_keystate **keystate;
@@ -249,18 +220,9 @@ struct dbw_key {
 };
 
 struct dbw_keystate {
-    int id;
-    int dirty;
-    int revision;
-    int scratch;
-    int key_id;
-    struct dbw_key *key; /** Only valid when joined */
-    int _padding1; void *__padding1;
-    int _padding2; void *__padding2;
-    int _padding3; void *__padding3;
-    int _padding4; void *__padding4;
-
-    unsigned int type;
+    long id;
+    struct dbw_key *key;
+    unsigned int type; // should this be the enum
     unsigned int state;
     time_t last_change;
     unsigned int minimize;
@@ -269,33 +231,15 @@ struct dbw_keystate {
 
 struct dbw_keydependency {
     int id;
-    int dirty;
-    int revision;
-    int scratch;
-    int zone_id;
-    struct dbw_zone *zone; /** Only valid when joined */
-    int fromkey_id;
     struct dbw_key *fromkey; /** Only valid when joined */
-    int tokey_id;
     struct dbw_key *tokey; /** Only valid when joined */
-    int _padding3; void *__padding3;
-    int _padding4; void *__padding4;
-
     unsigned int type;
 };
 
 struct dbw_hsmkey {
-    int id;
-    int dirty;
-    int revision;
-    int scratch;
-    int policy_id;
-    struct dbw_policy *policy; /** Only valid when joined */
+    long id;
     int key_count;
     struct dbw_key **key;
-    int _padding2; void *__padding2;
-    int _padding3; void *__padding3;
-    int _padding4; void *__padding4;
 
     char *locator;
     char *repository;
@@ -310,18 +254,13 @@ struct dbw_hsmkey {
 };
 
 struct dbw_zone {
-    int id;
-    int dirty;
-    int revision;
+    long id;
     int scratch;
     int policy_id;
     struct dbw_policy *policy; /** Only valid when joined */
     int key_count;
     struct dbw_key **key;
     int keydependency_count;
-    struct dbw_keydependency **keydependency;
-    int _padding3; void *__padding3;
-    int _padding4; void *__padding4;
 
     char *name;
     time_t next_change;
@@ -342,31 +281,14 @@ struct dbw_zone {
     unsigned int roll_csk_now;
 };
 
-struct dbw_list {
-    struct dbrow **set;
-    size_t n;
-    void (*free)(struct dbrow *);
-    int (*update)(const db_connection_t *, struct dbrow *);
-    int (*revision)(const db_connection_t *, struct db_value *);
-};
-
 struct dbw_db {
-    const db_connection_t *conn;
-    struct dbw_list *policies;
-    struct dbw_list *policykeys;
-    struct dbw_list *zones;
-    struct dbw_list *keys;
-    struct dbw_list *hsmkeys;
-    struct dbw_list *keystates;
-    struct dbw_list *keydependencies;
+    int npolicies;
+    struct dbw_policy** policies;
+    int nzones;
+    struct dbw_zone** zones;
 };
 
 /* DB operations */
-
-/**
- * The three following functions are the only two operations that will access
- * the database.
- */
 
 /**
  * Read the entire database to memory. No further access to the database is
@@ -374,21 +296,7 @@ struct dbw_db {
  *
  * return NULL on failure
  */
-struct dbw_db *dbw_fetch(db_connection_t *conn);
-
-/* Filter flags for fetch function */
-#define DBW_F_POLICY        (1<<0)
-#define DBW_F_ZONE          (1<<1)
-#define DBW_F_KEY           (1<<2)
-#define DBW_F_KEYSTATE      (1<<3)
-#define DBW_F_HSMKEY        (1<<4)
-#define DBW_F_POLICYKEY     (1<<5)
-#define DBW_F_KEYDEPENDENCY (1<<6)
-#define DBW_F_ALL           (127)
-/**
- * Same as above but now only tables included in the mask are fetched
- */
-struct dbw_db *dbw_fetch_filtered(db_connection_t *conn, int mask);
+struct dbw_db *dbw_fetch(db_connection_t *conn, ...);
 
 /**
  * Commit changes to the database. Guarded by a R/W lock. Only records marked
@@ -407,57 +315,10 @@ void dbw_free(struct dbw_db *db);
  * Mark database object as dirty. Clean objects will never be written to the
  * database
  */
-void dbw_mark_dirty(struct dbrow *row);
+void dbw_mark_dirty(void *obj);
 
-/**
- * convenience functions to get a specific zone or policy from a fetched
- * database.
- *
- * Return NULL if no such object exists
- */
-struct dbw_zone * dbw_get_zone(struct dbw_db *db, char const *zonename);
-struct dbw_policy * dbw_get_policy(struct dbw_db *db, char const *policyname);
-struct dbw_policykey * dbw_get_policykey(struct dbw_db *db, int id);
-struct dbw_hsmkey * dbw_get_hsmkey(struct dbw_db *db, char const *locator);
-struct dbw_keystate * dbw_get_keystate(struct dbw_key *key, int type);
+int database_version_get_version(db_connection_t* connection);
 
-/* TODO functions below this need to be cleaned up / evaluated*/
-
-void dbw_zone_free(struct dbrow *row);
-
-int dbw_add_keystate(struct dbw_db *db, struct dbw_key *key, struct dbw_keystate *keystate);
-int dbw_add_zone(struct dbw_db *db, struct dbw_policy *policy, struct dbw_zone *zone);
-int dbw_add_hsmkey(struct dbw_db *db, struct dbw_policy *policy, struct dbw_hsmkey *hsmkey);
-
-/**
- * The dbw_new_* functions create new records and add them to the database
- * structure. The properties are all initialized to zero.
- */
-struct dbw_keydependency * dbw_new_keydependency(struct dbw_db *db,
-    struct dbw_key *fromkey, struct dbw_key *tokey, int type,
-    struct dbw_zone *zone);
-struct dbw_key * dbw_new_key(struct dbw_db *db, struct dbw_zone *zone,
-    struct dbw_hsmkey *hsmkey);
-struct dbw_keystate* dbw_new_keystate(struct dbw_db *db, struct dbw_zone *zone,
-    struct dbw_key *key);
-struct dbw_hsmkey* dbw_new_hsmkey(struct dbw_db *db, struct dbw_policy *policy);
-struct dbw_policykey* dbw_new_policykey(struct dbw_db *db, struct dbw_policy *policy);
-struct dbw_policy* dbw_new_policy(struct dbw_db *db);
-
-/** ALL */
-
-int dbw_zone_exists(db_connection_t *dbconn, char const *zonename);
-
-void dbw_policies_add_hsmkey(struct dbw_list *policies, struct dbw_hsmkey *hsmkey);
-void dbw_policies_add_zone(struct dbw_list *policies, struct dbw_zone *zone);
-
-//void dbw_dump_db(struct dbw_db *db);
-
-void sort_policies(const struct dbw_policy *arr[], int n);
-void sort_zones(const struct dbw_zone *arr[], int n);
-void sort_keys(const struct dbw_key *arr[], int n);
-static int compare_policies(const void *a, const void *b);
-static int compare_zones(const void *a, const void *b);
-static int compare_keys(const void *a, const void *b);
+void dbw_add(void*array,int*count,void*item);
 
 #endif /*DBW_H*/

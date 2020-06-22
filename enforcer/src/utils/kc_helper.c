@@ -117,7 +117,7 @@ int check_rng(const char *filename, const char *rngfilename, int verbose)
 
 		xmlFreeDoc(doc);
 		
-		return(1);
+		return(0);
 	}
 
 	/* Create an XML RelaxNGs parser context for the relax-ng document. */

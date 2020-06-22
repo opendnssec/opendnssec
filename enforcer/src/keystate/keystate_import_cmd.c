@@ -94,17 +94,14 @@ perform_hsmkey_import(int sockfd, struct dbw_db *db,
     libhsm_key_free(libhsmkey);
     hsm_destroy_context(hsm_ctx);
 
-    struct dbw_hsmkey *hsmkey = dbw_get_hsmkey(db, ckaid);
-    if (hsmkey) {
-        ods_log_error("[%s] Error: Already used this key with this locator: %s", module_str, ckaid);
-        client_printf_err(sockfd, "Already used this key with this locator: %s\n", ckaid);
-        return NULL;
-    }
-    hsmkey = dbw_new_hsmkey(db, zone->policy);
-    if (!hsmkey) {
-        ods_log_error("[%s] hsm key creation failed, database or memory error", module_str);
-        return NULL;
-    }
+    /* note that there was a check here to find out if there wasn't a pre-existing cka_id,
+     * however this check isn't that proper.  duplicate cka_ids must exists for CSKs
+     */
+    
+    struct dbw_hsmkey *hsmkey = calloc(1, sizeof (struct dbw_hsmkey));
+    dbw_add(&zone->policy->hsmkey, &zone->policy->hsmkey_count, hsmkey);
+    hsmkey->key_count = 0;
+    hsmkey->key = NULL;
     hsmkey->locator = strdup(ckaid);
     hsmkey->repository = strdup(rep);
     hsmkey->state = DBW_HSMKEY_PRIVATE;
@@ -130,16 +127,17 @@ perform_keydata_import(int sockfd, struct dbw_db *db,
         ods_log_error("[%s] Error: Keytag for this key %s is not correct",
             module_str, hsmkey->locator);
     }
-    struct dbw_key *key = dbw_new_key(db, zone, hsmkey);
-    struct dbw_keystate *keystate_ds = dbw_new_keystate(db, zone, key);
-    struct dbw_keystate *keystate_dk = dbw_new_keystate(db, zone, key);
-    struct dbw_keystate *keystate_rd = dbw_new_keystate(db, zone, key);
-    struct dbw_keystate *keystate_rs = dbw_new_keystate(db, zone, key);
-    if (!key || !keystate_ds || !keystate_dk || !keystate_rd || !keystate_rs) {
-        ods_log_error("[%s] key data creation failed, database or memory error",
-            module_str);
-        return 1;
-    }
+    struct dbw_key *key = calloc(1, sizeof (struct dbw_key));
+    dbw_add(&zone->key, zone->key_count, key);
+    dbw_add(&hsmkey->key, hsmkey->key_count, key);
+    key->zone = zone;
+    key->hsmkey = hsmkey;
+    key->keystate_count = 0;
+    key->keystate = NULL;
+    key->zone = zone;
+    key->hsmkey = hsmkey;
+    key->keystate_count = 0;
+    key->keystate = NULL;
     key->algorithm = alg;
     key->inception = time;
     key->introducing = keystate_14 < RETIRE;
@@ -150,6 +148,20 @@ perform_keydata_import(int sockfd, struct dbw_db *db,
     key->ds_at_parent = (keytype&DBW_KSK) ? ds_at_parent[keystate_14] : 0;
     key->keytag = tag;
     key->minimize = setmin;
+
+    struct dbw_keystate *keystate_ds = calloc(1, sizeof (struct dbw_keystate));
+    struct dbw_keystate *keystate_dk = calloc(1, sizeof (struct dbw_keystate));
+    struct dbw_keystate *keystate_rd = calloc(1, sizeof (struct dbw_keystate));
+    struct dbw_keystate *keystate_rs = calloc(1, sizeof (struct dbw_keystate));
+
+    keystate_ds->key = key;
+    keystate_dk->key = key;
+    keystate_rd->key = key;
+    keystate_rs->key = key;
+    dbw_add(&key->keystate, &key->keystate_count, keystate_ds);
+    dbw_add(&key->keystate, &key->keystate_count, keystate_dk);
+    dbw_add(&key->keystate, &key->keystate_count, keystate_rd);
+    dbw_add(&key->keystate, &key->keystate_count, keystate_rs);
 
     keystate_ds->type = DBW_DS;
     keystate_ds->last_change = time;
@@ -235,8 +247,6 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
     time_t inception = 0;
     struct tm tm;
     int setmin;
-    db_value_t *hsmkey_id;
-    policy_key_t *policy_key;
     db_connection_t* dbconn = getconnectioncontext(context);
 
     static struct option long_options[] = {
@@ -334,7 +344,7 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
     }
     struct dbw_db *db = dbw_fetch(dbconn);
     if (!db) return 1;
-    struct dbw_zone *zone = dbw_get_zone(db, zonename);
+    struct dbw_zone *zone = dbw_FINDSTR(struct dbw_zone*, db->zones, name, db->nzones, zonename);
     if (!zone) {
         ods_log_error("[%s] Unknown zone: %s", module_str, zonename);
         client_printf_err(sockfd, "Unknown zone: %s\n", zonename);

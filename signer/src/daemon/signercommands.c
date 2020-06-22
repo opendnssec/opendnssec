@@ -192,7 +192,7 @@ command_update(engine_type* engine, ods_status* zonelistchangestatus, int* added
  *
  */
 static int
-cmdhandler_handle_cmd_update(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+cmdhandler_handle_cmd_update(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 {
     engine_type* engine;
     char buf[ODS_SE_MAXLINE];

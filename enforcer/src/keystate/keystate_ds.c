@@ -103,7 +103,7 @@ exec_dnskey_by_id(int sockfd, struct dbw_key *key, const char* ds_command,
 
 	assert(key);
 	char *locator = key->hsmkey->locator;
-	struct dbw_keystate *dnskey = dbw_get_keystate(key, DBW_DNSKEY);
+	struct dbw_keystate *dnskey = dbw_FIND(struct dbw_keystate*, key->keystate, state, key->keystate_count, DBW_DNSKEY);
 	if (!dnskey) return 1;
 	dnskey_rr = get_dnskey(locator, key->zone->name, key->algorithm, dnskey->ttl);
 	if (!dnskey_rr) return 2;
@@ -228,8 +228,8 @@ ds_list_keys(db_connection_t *dbconn, int sockfd, enum dbw_ds_at_parent state)
     if (!db) return 1;
 
     client_printf(sockfd, fmth, "Zone:", "Key role:", "Keytag:", "Id:");
-    for (size_t z = 0; z < db->zones->n; z++) {
-        struct dbw_zone *zone = (struct dbw_zone *)db->zones->set[z];
+    for (size_t z = 0; z < db->nzones; z++) {
+        struct dbw_zone *zone = db->zones[z];
         for (size_t k = 0; k < zone->key_count; k++) {
             struct dbw_key *key = zone->key[k];
             if (!(key->role & DBW_KSK)) continue;
@@ -256,8 +256,8 @@ change_keys_from_to(db_connection_t *dbconn, int sockfd, const char *zonename,
     int key_match = 0;
     int status = 0;
     int need_commit = 0;
-    for (size_t z = 0; z < db->zones->n; z++) {
-        struct dbw_zone *zone = (struct dbw_zone *)db->zones->set[z];
+    for (size_t z = 0; z < db->nzones; z++) {
+        struct dbw_zone *zone = db->zones[z];
         if (zonename && strcmp(zonename, zone->name)) continue;
         for (size_t k = 0; k < zone->key_count; k++) {
             struct dbw_key *key = zone->key[k];
@@ -281,11 +281,11 @@ change_keys_from_to(db_connection_t *dbconn, int sockfd, const char *zonename,
 
             if (status == 0) {
                 key->ds_at_parent = state_to;
-                key->dirty = DBW_UPDATE;
+                dbw_mark_dirty(key);
                 zone->scratch = 1;
-                struct dbw_keystate *dnskey = dbw_get_keystate(key, DBW_DS);
+                struct dbw_keystate *dnskey = dbw_FIND(struct dbw_keystate*, key->keystate, state,key->keystate_count, DBW_DS);
                 dnskey->last_change = time_now();
-                dnskey->dirty = DBW_UPDATE;
+                dbw_mark_dirty(dnskey);
                 need_commit = 1;
             }
         }
@@ -296,8 +296,8 @@ change_keys_from_to(db_connection_t *dbconn, int sockfd, const char *zonename,
             client_printf_err(sockfd, "Error committing to database");
             return 1;
         }
-        for (size_t z = 0; z < db->zones->n; z++) {
-            struct dbw_zone *zone = (struct dbw_zone *)db->zones->set[z];
+        for (int z = 0; z < db->nzones; z++) {
+            struct dbw_zone *zone = db->zones[z];
             if (!zone->scratch) continue;
             enforce_task_flush_zone(engine, zone->name);
         }

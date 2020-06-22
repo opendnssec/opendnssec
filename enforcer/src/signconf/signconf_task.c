@@ -91,8 +91,8 @@ signconf_task_flush_policy(engine_type *engine, db_connection_t *dbconn,
             module_str, policyname);
         return;
     }
-    for (size_t p = 0; p < db->policies->n; p++) {
-        struct dbw_policy *policy = (struct dbw_policy *)db->policies->set[p];
+    for (size_t p = 0; p < db->npolicies; p++) {
+        struct dbw_policy *policy = db->policies[p];
         if (policyname && strcmp(policyname, policy->name)) continue;
         for (size_t z = 0; z < policy->zone_count; z++) {
             struct dbw_zone *zone = policy->zone[z];

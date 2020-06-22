@@ -81,10 +81,10 @@ printdebugkey_fmt(int sockfd, char const *fmt, struct dbw_key *key, char const  
     (void)tchange;
     client_printf(sockfd, fmt, step,
         dbw_enum2txt(dbw_key_role_txt, key->role),
-        dbw_enum2txt(dbw_keystate_state_txt, dbw_get_keystate(key, DBW_DS)->state), /*  TODO */
-        dbw_enum2txt(dbw_keystate_state_txt, dbw_get_keystate(key, DBW_DNSKEY)->state),
-        dbw_enum2txt(dbw_keystate_state_txt, dbw_get_keystate(key, DBW_RRSIGDNSKEY)->state),
-        dbw_enum2txt(dbw_keystate_state_txt, dbw_get_keystate(key, DBW_RRSIG)->state),
+        dbw_enum2txt(dbw_keystate_state_txt, dbw_FIND(struct dbw_keystate*, key->keystate, state, key->keystate_count, DBW_DS)->state),
+        dbw_enum2txt(dbw_keystate_state_txt, dbw_FIND(struct dbw_keystate*, key->keystate, state, key->keystate_count, DBW_DNSKEY)->state),
+        dbw_enum2txt(dbw_keystate_state_txt, dbw_FIND(struct dbw_keystate*, key->keystate, state, key->keystate_count, DBW_RRSIGDNSKEY)->state),
+        dbw_enum2txt(dbw_keystate_state_txt, dbw_FIND(struct dbw_keystate*, key->keystate, state, key->keystate_count, DBW_RRSIG)->state),
         tchange,
         key->publish,
         key->active_ksk | key->active_zsk,
@@ -105,127 +105,12 @@ perform_keystate_list(int sockfd, int step, struct dbw_zone *zone,
     if (printheader) (*printheader)(sockfd);
     for (size_t k = 0; k < zone->key_count; k++) {
         struct dbw_key *key = zone->key[k];
-        if (key->dirty == DBW_DELETE) continue;
-        char* tchange = map_keytime(key, now); /* allocs */
+        if (key) {
+            char* tchange = map_keytime(key, now); /* allocs */
             (*printkey)(sockfd, key, tchange, step);
-        free(tchange);
-    }
-}
-
-static void
-get_ref(struct dbrow *r, int ci, int **val, void **ptr)
-{
-    switch (ci) {
-        case 0:
-            *ptr = &r->ptr0;
-            *val = &r->int0;
-            return;
-        case 1:
-            *ptr = &r->ptr1;
-            *val = &r->int1;
-            return;
-        case 2:
-            *ptr = &r->ptr2;
-            *val = &r->int2;
-            return;
-        case 3:
-            *ptr = &r->ptr3;
-            *val = &r->int3;
-            return;
-        case 4:
-            *ptr = &r->ptr4;
-            *val = &r->int4;
-            return;
-    }
-    ods_log_assert(0);
-}
-
-/**
- * Break all ties between parents and children for deleted children.
- * ci: Index of parent pointer in the child structure.
- * pi: Index of the childlist pointer at the parent
- */
-static void
-disown(struct dbw_list *list, int ci, int pi)
-{
-    for (size_t i = 0; i < list->n; i++) {
-        struct dbrow *child = list->set[i];
-        if (child->dirty != DBW_DELETE) continue;
-
-        /*Find the parent*/
-        struct dbrow **parent = NULL;
-        int *id;
-        get_ref(child, ci, &id, (void **)&parent);
-
-        /*Find the list of children*/
-        struct dbrow **chldr = NULL;
-        int *count;
-        get_ref(*parent, pi, &count, (void **)&chldr);
-        struct dbrow **children = (struct dbrow **)*chldr;
-
-        /*Find the child in the list (it MUST be there!) and move tail
-         * to the new empty spot. */
-        if (*count == 0) return;
-        for (int j = 0; j < *count; j++) {
-            if (children[j] != child) continue;
-            children[j] = children[--(*count)];
-            break;
+            free(tchange);
         }
     }
-}
-
-/**
- * Delete all rows in this list marked as DELETE and assign an ID to any new
- * rows. List is safe to iterate over afterwards. Deleted items are freed.
- */
-static void
-purge(struct dbw_list *list)
-{
-    /* find max ID in table to we can give new rows a free ID */
-    int max_id = 0;
-    for (int n = 0; n < list->n; n++) {
-        if (list->set[n]->id > max_id) max_id = list->set[n]->id;
-    }
-
-    int left = 0;
-    while (left < list->n) {
-        if (list->set[left]->dirty == DBW_DELETE) {
-            list->free(list->set[left]);
-            list->set[left] = list->set[--list->n];
-        } else {
-            if (list->set[left]->dirty == DBW_INSERT) {
-                list->set[left]->id = ++max_id;
-                list->set[left]->dirty = DBW_CLEAN;
-            }
-            left++;
-        }
-    }
-}
-
-static void
-scrub_deleted(struct dbw_db *db)
-{
-    /* First break all references from the parents of these items. 
-     * Number magic: the index of the child list and the index of the parent
-     * in the dbrow structure. see dbw.c */
-    disown(db->policykeys,      0, 0);
-    disown(db->hsmkeys,         0, 1);
-    disown(db->zones,           0, 2);
-    disown(db->keys,            0, 1);
-    disown(db->keystates,       0, 2);
-    disown(db->keys,            1, 1);
-    disown(db->keydependencies, 0, 2);
-    disown(db->keydependencies, 1, 3);
-    disown(db->keydependencies, 2, 4);
-
-    /* The 'deleted' items are no longer referenced. Delete them for real. */
-    purge(db->zones);
-    purge(db->policies);
-    purge(db->policykeys);
-    purge(db->hsmkeys);
-    purge(db->keys);
-    purge(db->keydependencies);
-    purge(db->keystates);
 }
 
 /**
@@ -280,7 +165,7 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 
     struct dbw_db *db = dbw_fetch(dbconn);
     if (!db) return 1;
-    struct dbw_zone *zone = dbw_get_zone(db, zonename);
+    struct dbw_zone *zone = dbw_FIND(struct dbw_zone*, db->zones, name, db->nzones, zonename);
     if (!zone) {
         client_printf_err(sockfd, "Could not find zone %s in database\n", zonename);
         dbw_free(db);
@@ -348,10 +233,6 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
         }
         if (t_next == -1) break; /* nothing to be done ever */
         now = t_next;
-        /* Since we are not updating the database but will use this structure
-         * for further enforces we must cleanup everything that is marked
-         * as deleted. */
-        scrub_deleted(db);
         /*dbw_dump_db(db);*/
     }
     dbw_free(db);

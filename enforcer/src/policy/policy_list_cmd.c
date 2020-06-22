@@ -64,13 +64,12 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
     engine_type* engine = getglobalcontext(context);
     (void)cmd;
 
-    struct dbw_db *db = dbw_fetch(dbconn);
+    struct dbw_db *db = dbw_fetch(dbconn, "all policies, shallow ro");
     if (!db) return 1;
     client_printf(sockfd, fmt, "Policy:", "Description:");
 
-    for (size_t p = 0; p < db->policies->n; p++) {
-        struct dbw_policy *policy = (struct dbw_policy *)db->policies->set[p];
-        client_printf(sockfd, fmt, policy->name, policy->description);
+    for (int i = 0; i < db->npolicies; i++) {
+        client_printf(sockfd, fmt, db->policies[i]->name, db->policies[i]->description);
     }
     dbw_free(db);
     return 0;

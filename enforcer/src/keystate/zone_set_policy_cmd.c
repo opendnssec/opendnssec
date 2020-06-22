@@ -35,7 +35,6 @@
 #include "str.h"
 #include "log.h"
 #include "clientpipe.h"
-#include "db/zone_db.h"
 #include "keystate/zonelist_export.h"
 
 #include "keystate/zone_set_policy_cmd.h"
@@ -68,33 +67,6 @@ help(int sockfd)
 		"policy		name of the new policy\n"
 		"xml		update the zonelist.xml file\n\n"
 	);
-}
-
-static int set_zone_policy(int sockfd, db_connection_t* dbconn, zone_db_t* zone, policy_t* policy) {
-	const db_value_t* wanted_policy_id = policy_id(policy);
-	int cmp;
-
-	if (db_value_cmp(zone_db_policy_id(zone), wanted_policy_id, &cmp)) {
-		client_printf_err(sockfd, "Unable to update zone, database error!\n");
-		return 1;
-	}
-	if (!cmp) {
-		client_printf_err(sockfd, "Policy same as before, not updating.\n");
-		return 0;
-	}
-
-	if (zone_db_set_policy_id(zone, wanted_policy_id)) {
-		client_printf_err(sockfd, "Unable to update zone, database error!\n");
-		return 1;
-	}
-
-	if (zone_db_update(zone)) {
-		client_printf(sockfd, "Failed to update zone in database.\n");
-		return 1;
-	}
-	ods_log_info("[%s] zone %s policy updated to %s", module_str, zone_db_name(zone), policy_name(policy));
-	client_printf(sockfd, "Zone %s policy successfully set to %s\n", zone_db_name(zone), policy_name(policy));
-	return 0;
 }
 
 static int
@@ -157,33 +129,23 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 		return -1;
 	} else if (!policy_name) {
 		client_printf_err(sockfd, "expected option --policy <policy>\n");
-		free(zone_name);
 		return -1;
 	}
 
-	//validation
-
-	zone_db_t* zone = zone_db_new_get_by_name(dbconn, zone_name);
-	free((void*)zone_name);
+        struct dbw_db *db = dbw_fetch(dbconn, "zones, one specific writable, and all policies ro without keys", zone_name);
+        struct dbw_zone *zone = dbw_FIND(struct dbw_zone*, db->zones, name, db->nzones, zone_name);
+        struct dbw_policy *policy = dbw_FIND(struct dbw_policy*, db->policies, name, db->npolicies, policy_name);
+	free((void*)policy_name);
 	if (!zone) {
 		client_printf_err(sockfd, "Unable to update zone, zone does not exist!\n");
-		free(policy_name);
-		return 1;
-	}
-
-	policy_t* policy = policy_new_get_by_name(dbconn, policy_name);
-	free(policy_name);
-	if (!policy) {
+	} else if (!policy) {
 		client_printf_err(sockfd, "Unable to update zone, policy does not exist!\n");
-		zone_db_free(zone);
-		return 1;
-	}
-
-	/* input looks okay, lets update the database */
-	ret = set_zone_policy(sockfd, dbconn, zone, policy);
-
-	zone_db_free(zone);
-	policy_free(policy);
+	} else {
+            zone->policy_id = policy->id;
+            dbw_mark_dirty(zone);
+            dbw_commit(db);
+        }
+        dbw_free(db);
 
 	if (write_xml) {
 		if (zonelist_export(sockfd, dbconn, engine->config->zonelist_filename_enforcer, 1) != ZONELIST_EXPORT_OK) {

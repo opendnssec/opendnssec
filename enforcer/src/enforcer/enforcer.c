@@ -113,7 +113,7 @@ addtime(const time_t t, const int seconds)
 static inline enum dbw_keystate_state
 getState(struct dbw_key* key, enum dbw_keystate_type type)
 {
-    return dbw_get_keystate(key, type)->state;
+    return dbw_FIND(struct dbw_keystate*, key->keystate, type, key->keystate_count, type)->state;
 }
 
 /**
@@ -212,7 +212,7 @@ isPotentialSuccessor(struct dbw_key *succkey, struct dbw_key *predkey,
     /* You can't be a successor of yourself */
     if (succkey->id == predkey->id) return 0;
     /* Only rumoured keys can be successor. */
-    if (getState(succkey, type) != RUMOURED) return 0;
+    if (dbw_FIND(struct dbw_keystate*, succkey->keystate, type, succkey->keystate_count, type)) return 0;
     /* key of different algorithms may not be in successor relation */
     if (succkey->algorithm != predkey->algorithm) return 0;
 
@@ -505,7 +505,7 @@ dnssecApproval(struct dbw_zone *zone, struct dbw_key *key, enum dbw_keystate_typ
     before_change |= ( rule3(zone, key->algorithm) << 2 );
 
     /* safe current state, apply change and test again.*/
-    struct dbw_keystate *keystate = dbw_get_keystate(key, type);
+    struct dbw_keystate *keystate = dbw_FIND(struct dbw_keystate*, key->keystate, type, key->keystate_count, type);
     int current_state = keystate->state;
     keystate->state = next_state;
         /* if we make the rules more sophisticated by using the timing information
@@ -603,10 +603,10 @@ policyApproval(struct dbw_zone *zone, struct dbw_key *key, enum dbw_keystate_typ
     /* Once the record is introduced the policy has no influence. */
     if (next_state != RUMOURED) return 1;
 
-    struct dbw_keystate *ks_ds = dbw_get_keystate(key, DBW_DS);
-    struct dbw_keystate *ks_dnskey = dbw_get_keystate(key, DBW_DNSKEY);
-    struct dbw_keystate *ks_sigkey = dbw_get_keystate(key, DBW_RRSIGDNSKEY);
-    struct dbw_keystate *ks_rrsig = dbw_get_keystate(key, DBW_RRSIG);
+    struct dbw_keystate *ks_ds = dbw_FIND(struct dbw_keystate*, key->keystate, type, key->keystate_count, DBW_DS);
+    struct dbw_keystate *ks_dnskey = dbw_FIND(struct dbw_keystate*, key->keystate, type, key->keystate_count, DBW_DNSKEY);
+    struct dbw_keystate *ks_sigkey = dbw_FIND(struct dbw_keystate*, key->keystate, type, key->keystate_count, DBW_RRSIGDNSKEY);
+    struct dbw_keystate *ks_rrsig = dbw_FIND(struct dbw_keystate*, key->keystate, type, key->keystate_count, DBW_RRSIG);
     /* Check if policy prevents transition if the next state is rumoured.  */
     switch (type) {
 
@@ -738,6 +738,19 @@ isSuccessable(struct dbw_key *key, enum dbw_keystate_type type,
     }
 }
 
+static struct dbw_keydependency *
+newdependency(struct dbw_db *db, struct dbw_key *fromkey, 
+    struct dbw_key *tokey, int type, struct dbw_zone *zone)
+{
+    struct dbw_keydependency *dep = calloc(1, sizeof (struct dbw_keydependency));
+    dep->tokey = tokey;
+    dep->fromkey = fromkey;
+    dep->type = type;
+    dbw_add(&fromkey->from_keydependency, fromkey->from_keydependency_count, dep);
+    dbw_add(&tokey->to_keydependency,     tokey->to_keydependency_count, dep);
+    return dep;
+}
+
 /**
  * Establish relationships between keys in keylist and the future_key.
  * Also remove relationships not longer relevant for future_key.
@@ -754,9 +767,9 @@ markSuccessors(struct dbw_db *db, struct dbw_zone *zone, struct dbw_key *key,
     if (next_state == OMNIPRESENT) {
         for (size_t d = 0; d < fromkey->to_keydependency_count; d++) {
             struct dbw_keydependency *dep = fromkey->to_keydependency[d];
-            if (type != dep->type) continue;
-            dep->dirty = DBW_DELETE; /*unconditionally delete*/
-            //TODO WE NEED a keydep delete func 
+            if (fromkey->to_keydependency[d]->type == type) {
+                fromkey->to_keydependency[d] = NULL;
+            }
         }
     }
 
@@ -771,14 +784,14 @@ markSuccessors(struct dbw_db *db, struct dbw_zone *zone, struct dbw_key *key,
         int exists = 0;
         for (size_t kd = 0; kd < fromkey->from_keydependency_count; kd++) {
             struct dbw_keydependency *keydep = fromkey->from_keydependency[kd];
-            if (keydep->tokey_id == tokey->id && type == keydep->type) {
+            if (keydep->tokey == tokey && type == keydep->type) {
                 exists = 1;
                 break;
             }
         }
         /* From now on key will depend on futurekey.*/
         if (!exists)
-            (void) dbw_new_keydependency(db, fromkey, tokey, type, zone);
+            (void) newdependency(db, fromkey, tokey, type, zone);
     }
 }
 
@@ -805,7 +818,7 @@ track_ttls(struct dbw_zone *zone, const time_t now)
      */
     if (zone->ttl_end_ds <= now) { /*DS*/
         zone->ttl_end_ds = addtime(now, policy->parent_ds_ttl);
-        dbw_mark_dirty((struct dbrow *)zone);
+        dbw_mark_dirty(zone);
     }
     if (zone->ttl_end_dk <= now) { /*DNSKEY*/
         unsigned int ttl;
@@ -817,7 +830,7 @@ track_ttls(struct dbw_zone *zone, const time_t now)
                 policy->zone_soa_minimum));
         }
         zone->ttl_end_dk = addtime(now, ttl);
-        dbw_mark_dirty((struct dbrow *)zone);
+        dbw_mark_dirty(zone);
     }
     if (zone->ttl_end_rs <= now) { /*RRSIG*/
         unsigned int ttl;
@@ -828,7 +841,7 @@ track_ttls(struct dbw_zone *zone, const time_t now)
         }
         zone->ttl_end_rs = addtime(now, max(ttl,
             min(policy->zone_soa_ttl, policy->zone_soa_minimum)));
-        dbw_mark_dirty((struct dbrow *)zone);
+        dbw_mark_dirty(zone);
     }
 }
 
@@ -874,17 +887,14 @@ generate_missing_keystates(struct dbw_db *db, struct dbw_zone *zone, time_t now)
                 ods_log_error("[%s] %s memory allocation error", module_str, scmd);
                 continue;
             }
-            keystate->key_id = zone->key[k]->id;
             keystate->type = i;
             keystate->minimize = minimize(zone->key[k], i);
             /* We might consider not generating non relevant key states. */
             keystate->state = initial_state(i, zone->key[k]->role);
             keystate->last_change = now;
             keystate->ttl = getZoneTTL(zone, i, now);
-            if (dbw_add_keystate(db, zone->key[k], keystate)) {
-                ods_log_error("[%s] %s memory allocation error", module_str, scmd);
-                continue;
-            }
+            keystate->key = zone->key[k];
+            dbw_add(&zone->key[k]->keystate, &zone->key[k]->keystate_count, keystate);
         }
     }
 }
@@ -921,11 +931,11 @@ handle_ds_at_parent(struct dbw_key *key, enum dbw_keystate_state next_state)
 
             case DBW_DS_AT_PARENT_RETRACT:
                 /* Hypothetical case where we reintroduce keys. */
-                key->ds_at_parent = KEY_DATA_DS_AT_PARENT_SUBMITTED;
+                key->ds_at_parent = DBW_DS_AT_PARENT_SUBMITTED;
                 return 1;
 
             default:
-                key->ds_at_parent = KEY_DATA_DS_AT_PARENT_SUBMIT;
+                key->ds_at_parent = DBW_DS_AT_PARENT_SUBMIT;
                 return 1;
             }
     } else if (next_state == UNRETENTIVE) {
@@ -937,10 +947,10 @@ handle_ds_at_parent(struct dbw_key *key, enum dbw_keystate_state next_state)
                 key->ds_at_parent = DBW_DS_AT_PARENT_UNSUBMITTED;
                 return 1;
 
-            case KEY_DATA_DS_AT_PARENT_UNSUBMITTED:
-            case KEY_DATA_DS_AT_PARENT_GONE:
-            case KEY_DATA_DS_AT_PARENT_RETRACTED:
-            case KEY_DATA_DS_AT_PARENT_RETRACT:
+            case DBW_DS_AT_PARENT_UNSUBMITTED:
+            case DBW_DS_AT_PARENT_GONE:
+            case DBW_DS_AT_PARENT_RETRACTED:
+            case DBW_DS_AT_PARENT_RETRACT:
                 return 0;
 
             default:
@@ -1040,8 +1050,8 @@ updateZone(struct dbw_db *db, struct dbw_zone *zone, const time_t now,
 
                 /* A record can only reach Omnipresent if properly backed up. */
                 if (next_state == OMNIPRESENT
-                    && (key->hsmkey->backup == HSM_KEY_BACKUP_BACKUP_REQUIRED
-                    ||  key->hsmkey->backup == HSM_KEY_BACKUP_BACKUP_REQUESTED))
+                    && (key->hsmkey->backup == DBW_BACKUP_REQUIRED
+                    ||  key->hsmkey->backup == DBW_BACKUP_REQUESTED))
                 {
                     ods_log_crit("[%s] %s Ready for transition but key"
                         " material not backed up yet (%s)",
@@ -1053,7 +1063,7 @@ updateZone(struct dbw_db *db, struct dbw_zone *zone, const time_t now,
                 }
 
                 if (keystate->type == DBW_DS && handle_ds_at_parent(key, next_state))
-                    dbw_mark_dirty((struct dbrow *)key);
+                    dbw_mark_dirty(key);
 
                 /* We've passed all tests! Make the transition. */
                 ods_log_verbose("[%s] %s: Transitioning %s %s %s from %s to %s", module_str, scmd,
@@ -1067,14 +1077,14 @@ updateZone(struct dbw_db *db, struct dbw_zone *zone, const time_t now,
                 keystate->last_change = now;
                 keystate->ttl = getZoneTTL(zone, keystate->type, now);
                 /* we don't want DELETED or INSERTED to be marked UPDATE */
-                dbw_mark_dirty((struct dbrow *)keystate);
+                dbw_mark_dirty(keystate);
                 stable = 0; /* There have been changes. Keep processing */
                 /* Let the caller know there have been changes to the zone */
                 *zone_updated = 1;
 
                 if (!zone->signconf_needs_writing) {
                     zone->signconf_needs_writing = 1;
-                    dbw_mark_dirty((struct dbrow *)zone);
+                    dbw_mark_dirty(zone);
                 }
                 markSuccessors(db, zone, key, keystate->type, next_state);
             }
@@ -1089,7 +1099,7 @@ hsmkey_in_use_by_zone(const struct dbw_hsmkey *hsmkey, const struct dbw_zone *zo
     /* a hsmkey is indirectly linked to a zone via a key */
     for (size_t k = 0; k < hsmkey->key_count; k++) {
         struct dbw_key *key = hsmkey->key[k];
-        if (key->zone_id == zone->id) return 1;
+        if (key->zone == zone) return 1;
     }
     return 0;
 }
@@ -1202,7 +1212,7 @@ setnextroll(struct dbw_zone *zone, enum dbw_key_role role, time_t t)
         default:
             ods_log_assert(0);
     }
-    dbw_mark_dirty((struct dbrow *)zone);
+    dbw_mark_dirty(zone);
 }
 
 static int
@@ -1234,7 +1244,7 @@ set_roll(struct dbw_zone *zone, enum dbw_key_role role, int roll_flag)
         default:
             ods_log_assert(0);
     }
-    dbw_mark_dirty((struct dbrow *)zone);
+    dbw_mark_dirty(zone);
 }
 
 static int
@@ -1288,7 +1298,7 @@ updatePolicy(engine_type *engine, struct dbw_db *db, struct dbw_zone *zone, cons
         if (!key->introducing) continue; /* already know as old */
         if (!existsPolicyForKey(policy, key)) {
             key->introducing = 0;
-            dbw_mark_dirty((struct dbrow *)key);
+            dbw_mark_dirty(key);
         }
     }
 
@@ -1301,7 +1311,7 @@ updatePolicy(engine_type *engine, struct dbw_db *db, struct dbw_zone *zone, cons
         if (!zone->signconf_needs_writing) {
             zone->signconf_needs_writing = 1;
             *zone_updated = 1;
-            dbw_mark_dirty((struct dbrow *)zone);
+            dbw_mark_dirty(zone);
         }
     } else {
         *allow_unsigned = 0;
@@ -1349,7 +1359,10 @@ updatePolicy(engine_type *engine, struct dbw_db *db, struct dbw_zone *zone, cons
             if (!mockup) {
                 hkey = hsm_key_factory_get_key(engine, db, pkey, zone);
             } else {
-                hkey = dbw_new_hsmkey(db, policy);
+                struct dbw_hsmkey *hsmkey = calloc(1, sizeof (struct dbw_hsmkey));
+                hsmkey->key_count = 0;
+                hsmkey->key = NULL;
+                dbw_add(&policy->hsmkey, policy->hsmkey_count, hsmkey);
                 hkey->locator = strdup("[Not generated yet]");
                 hkey->repository = strdup(pkey->repository);
                 hkey->state = DBW_HSMKEY_PRIVATE;
@@ -1359,7 +1372,7 @@ updatePolicy(engine_type *engine, struct dbw_db *db, struct dbw_zone *zone, cons
                 hkey->inception = now;
                 hkey->is_revoked = 0;
                 hkey->key_type = HSM_KEY_KEY_TYPE_RSA;
-                hkey->backup = HSM_KEY_BACKUP_NO_BACKUP;
+                hkey->backup = DBW_BACKUP_NO_BACKUP;
             }
         }
         if (!hkey) {
@@ -1381,20 +1394,19 @@ updatePolicy(engine_type *engine, struct dbw_db *db, struct dbw_zone *zone, cons
             if (err) {
                 /* TODO: better log error */
                 ods_log_error("[%s] %s: error keytag", module_str, scmd);
-                hsm_key_factory_release_key(hkey, NULL);
                 return now + 60;
             }
         } else {
             tag = 0xFFFF;
         }
 
-        struct dbw_key *key = dbw_new_key(db, zone, hkey);
-        if (!key) {
-            ods_log_error("[%s] %s: error new key", module_str, scmd);
-            if (!mockup)
-                hsm_key_factory_release_key(hkey, NULL);
-            return now + 60;
-        }
+        struct dbw_key *key = calloc(1, sizeof (struct dbw_key));
+        dbw_add(&zone->key, &zone->key_count, key);
+        dbw_add(&hkey->key, &hkey->key_count, key);
+        key->zone = zone;
+        key->hsmkey = hkey;
+        key->keystate_count = 0;
+        key->keystate = NULL;
         key->algorithm = pkey->algorithm;
         key->inception = now;
         key->role = pkey->role;
@@ -1425,7 +1437,7 @@ updatePolicy(engine_type *engine, struct dbw_db *db, struct dbw_zone *zone, cons
             if (oldkey == key) continue;
 
             oldkey->introducing = 0;
-            dbw_mark_dirty((struct dbrow *)oldkey);
+            dbw_mark_dirty(oldkey);
             *zone_updated = 1;
             ods_log_verbose("[%s] %s: decommissioning old key: %s",
                 module_str, scmd, oldkey->hsmkey->locator);
@@ -1435,7 +1447,7 @@ updatePolicy(engine_type *engine, struct dbw_db *db, struct dbw_zone *zone, cons
         if (enforce_roll(zone, pkey)) {
             set_roll(zone, pkey->role, 0);
             *zone_updated = 1;
-            dbw_mark_dirty((struct dbrow *)zone);
+            dbw_mark_dirty(zone);
         }
     }
     return return_at;
@@ -1448,8 +1460,9 @@ removeDeadKeys(struct dbw_zone *zone, const time_t now, int mockup)
     time_t first_purge = -1;
     for (size_t k = 0; k < zone->key_count; k++) {
         struct dbw_key *key = zone->key[k];
+        if (key == NULL)
+            continue;
         if (key->introducing) continue;
-        if (key->dirty == DBW_DELETE) continue;
         time_t key_time = -1;
         int purgable = 1;
         for (size_t s = 0; s < key->keystate_count; s++) {
@@ -1470,21 +1483,14 @@ removeDeadKeys(struct dbw_zone *zone, const time_t now, int mockup)
         }
         ods_log_info("[%s] %s deleting key: %s", module_str, scmd, key->hsmkey->locator);
         for (size_t s = 0; s < key->keystate_count; s++) {
-            key->keystate[s]->dirty = DBW_DELETE;
+            key->keystate[s] = NULL;
         }
-        key->dirty = DBW_DELETE;
-        hsm_key_factory_release_key_mockup(key->hsmkey, key, mockup);
-        /* we can clean up dependency because key is purgable */
-        for (size_t d = 0; d < key->from_keydependency_count; d++) {
-            key->from_keydependency[d]->dirty = DBW_DELETE;
-        }
-        for (size_t t = 0; t < key->to_keydependency_count; t++) {
-            key->to_keydependency[t]->dirty = DBW_DELETE;
-        }
+        zone->key[k] = NULL;
+        hsm_key_factory_release_key_mockup(&key->hsmkey, key, mockup);
 
         if (!zone->signconf_needs_writing) {
             zone->signconf_needs_writing = 1;
-            dbw_mark_dirty((struct dbrow *)zone);
+            dbw_mark_dirty(zone);
         }
     }
     return first_purge;
@@ -1504,19 +1510,19 @@ set_key_flags(struct dbw_zone *zone)
         int mod_key = 0;
         int in_use;
 
-        state = dbw_get_keystate(key, DBW_DNSKEY)->state;
+        state = dbw_FIND(struct dbw_keystate*, key->keystate, type, key->keystate_count, DBW_DNSKEY)->state;
         in_use = state == OMNIPRESENT || state == RUMOURED;
         if (key->publish != in_use) {
             key->publish = in_use;
             mod_key = 1;
         }
-        state = dbw_get_keystate(key, DBW_RRSIGDNSKEY)->state;
+        state = dbw_FIND(struct dbw_keystate*, key->keystate, type, key->keystate_count, DBW_RRSIGDNSKEY)->state;
         in_use = state == OMNIPRESENT || state == RUMOURED;
         if (key->active_ksk != in_use) {
             key->active_ksk = in_use;
             mod_key = 1;
         }
-        state = dbw_get_keystate(key, DBW_RRSIG)->state;
+        state = dbw_FIND(struct dbw_keystate*, key->keystate, type, key->keystate_count, DBW_RRSIG)->state;
         in_use = state == OMNIPRESENT || state == RUMOURED;
         if (key->active_zsk != in_use) {
             key->active_zsk = in_use;
@@ -1524,7 +1530,7 @@ set_key_flags(struct dbw_zone *zone)
         }
         if (mod_key) {
             mod_zone = 1;
-            dbw_mark_dirty((struct dbrow *)key);
+            dbw_mark_dirty(key);
         }
     }
     return mod_zone;
@@ -1536,22 +1542,22 @@ _update(engine_type *engine, struct dbw_db *db, struct dbw_zone *zone, time_t no
 {
     ods_log_info("[%s] update zone: %s", module_str, zone->name);
 
-	if (engine->config->rollover_notification && zone_db_next_ksk_roll(zone) > 0) {
-		if ((time_t)zone_db_next_ksk_roll(zone) - engine->config->rollover_notification <= now
-		    && (time_t)zone_db_next_ksk_roll(zone) != now) {
-			time_t t = (time_t) zone_db_next_ksk_roll(zone);
+	if (engine->config->rollover_notification && zone->next_ksk_roll > 0) {
+		if (zone->next_ksk_roll - engine->config->rollover_notification <= now
+		    && zone->next_ksk_roll != now) {
+			time_t t = zone->next_ksk_roll;
 			ods_log_info("[%s] KSK Rollover for zone %s is impending, "
 				     "rollover will happen at %s",
-				     module_str, zone_db_name(zone), ctime(&t));
+				     module_str, zone->name, ctime(&t));
 		}
 	}
-	else if (engine->config->rollover_notification && zone_db_next_csk_roll(zone) > 0) {
-		if ((time_t)zone_db_next_csk_roll(zone) - engine->config->rollover_notification <= now
-		    && (time_t)zone_db_next_csk_roll(zone) != now) {
-			time_t t = (time_t) zone_db_next_csk_roll(zone);
+	else if (engine->config->rollover_notification && zone->next_csk_roll > 0) {
+		if (zone->next_csk_roll - engine->config->rollover_notification <= now
+		    && zone->next_csk_roll != now) {
+			time_t t = zone->next_csk_roll;
 			ods_log_info("[%s] CSK Rollover for zone %s is impending, "
 				     "rollover will happen at %s",
-				     module_str, zone_db_name(zone), ctime(&t));
+				     module_str, zone->name, ctime(&t));
 		}
 	}
 

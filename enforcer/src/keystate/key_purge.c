@@ -41,21 +41,17 @@ removeDeadKeysNow_zone(int sockfd, struct dbw_db *db, struct dbw_zone *zone)
         int purgeable = 1;
         for (size_t s = 0; s < key->keystate_count; s++) {
             struct dbw_keystate *keystate = key->keystate[s];
-            if (keystate->state == DBW_NA) continue;
-            purgeable &= (keystate->state == DBW_HIDDEN);
+            if (keystate->state != DBW_NA) {
+                purgeable &= (keystate->state == DBW_HIDDEN);
+            }
         }
-        if (!purgeable) continue;
-        ods_log_info("[%s] deleting key: %s", scmd, key->hsmkey->locator);
-        client_printf (sockfd, "deleting key: %s\n", key->hsmkey->locator);
-        for (size_t s = 0; s < key->keystate_count; s++) {
-            key->keystate[s]->dirty = DBW_DELETE;
+        if (purgeable) {
+            ods_log_info("[%s] deleting key: %s", scmd, key->hsmkey->locator);
+            client_printf (sockfd, "deleting key: %s\n", key->hsmkey->locator);
+            hsm_key_factory_release_key(&key->hsmkey, key);
+            zone->key[k] = NULL;
+            purged++;
         }
-        key->dirty = DBW_DELETE;
-        hsm_key_factory_release_key(key->hsmkey, key);
-        for (size_t d = 0; d < key->from_keydependency_count; d++) {
-            key->from_keydependency[d]->dirty = DBW_DELETE;
-        }
-        purged++;
     }
 
     if (!purged)
