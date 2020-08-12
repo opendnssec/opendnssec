@@ -172,7 +172,7 @@ perform_keydata_import(int sockfd, db_connection_t *dbconn,
         hsm_destroy_context(hsm_ctx);
         return -1;
     }
-    if (hsm_keytag(ckaid, alg, keytype == 1 ? 1 : 0, &tag)) {
+    if (hsm_keytag(ckaid, alg, KEY_DATA_ROLE_SEP(keytype), &tag)) {
         ods_log_error("[%s] Error: Keytag for this key %s is not correct", module_str, ckaid);
     }
 

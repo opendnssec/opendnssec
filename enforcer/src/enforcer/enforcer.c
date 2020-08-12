@@ -2463,10 +2463,7 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t const *polic
 		 * Generate keytag for the new key and set it.
 		 */
 		err = hsm_keytag(hsm_key_locator(hsmkey), hsm_key_algorithm(hsmkey),
-			((hsm_key_role(hsmkey) == HSM_KEY_ROLE_KSK
-				|| hsm_key_role(hsmkey) == HSM_KEY_ROLE_CSK)
-				? 1 : 0),
-			&tag);
+			HSM_KEY_ROLE_SEP(hsm_key_role(hsmkey)), &tag);
 		if (err || key_data_set_keytag(mutkey, tag))
 		{
 			/* TODO: better log error */
