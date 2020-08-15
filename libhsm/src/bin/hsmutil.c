@@ -503,6 +503,46 @@ cmd_dnskey (int argc, char *argv[])
             }
             break;
 #endif
+#ifdef USE_ED25519
+        case LDNS_SIGN_ED25519:
+            if (strcmp(key_info->algorithm_name, "EDDSA") != 0) {
+                printf("Not an EDDSA key, the key is of algorithm %s.\n", key_info->algorithm_name);
+                libhsm_key_info_free(key_info);
+                free(key);
+                free(name);
+                free(id);
+                return -1;
+            }
+            if (key_info->keysize != 255) {
+                printf("The key is EDDSA/%lu, expecting EDDSA/255 for this algorithm.\n", key_info->keysize);
+                libhsm_key_info_free(key_info);
+                free(key);
+                free(name);
+                free(id);
+                return -1;
+            }
+            break;
+#endif
+#ifdef USE_ED448
+        case LDNS_SIGN_ED448:
+            if (strcmp(key_info->algorithm_name, "EDDSA") != 0) {
+                printf("Not an EDDSA key, the key is of algorithm %s.\n", key_info->algorithm_name);
+                libhsm_key_info_free(key_info);
+                free(key);
+                free(name);
+                free(id);
+                return -1;
+            }
+            if (key_info->keysize != 448) {
+                printf("The key is EDDSA/%lu, expecting EDDSA/448 for this algorithm.\n", key_info->keysize);
+                libhsm_key_info_free(key_info);
+                free(key);
+                free(name);
+                free(id);
+                return -1;
+            }
+            break;
+#endif
         default:
             printf("Invalid algorithm: %i\n", algo);
             libhsm_key_info_free(key_info);

@@ -357,6 +357,7 @@ typedef unsigned long ck_key_type_t;
 #define CKK_BLOWFISH		(0x20)
 #define CKK_TWOFISH		(0x21)
 #define CKK_GOSTR3410		(0x30)	/* From PKCS#11 v2.30 - draft 7 */
+#define CKK_EC_EDWARDS		(0x40)
 #define CKK_VENDOR_DEFINED	((unsigned long) (1 << 31))
 
 
@@ -659,6 +660,8 @@ typedef unsigned long ck_mechanism_type_t;
 #define CKM_ECDH1_DERIVE		(0x1050)
 #define CKM_ECDH1_COFACTOR_DERIVE	(0x1051)
 #define CKM_ECMQV_DERIVE		(0x1052)
+#define CKM_EC_EDWARDS_KEY_PAIR_GEN	(0x1055)
+#define CKM_EDDSA			(0x1057)
 #define CKM_JUNIPER_KEY_GEN		(0x1060)
 #define CKM_JUNIPER_ECB128		(0x1061)
 #define CKM_JUNIPER_CBC128		(0x1062)

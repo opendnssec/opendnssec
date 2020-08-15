@@ -116,8 +116,18 @@ hsm_test (const char *repository, hsm_ctx_t* ctx)
         LDNS_ECDSAP256SHA256,
         LDNS_ECDSAP384SHA384
     };
-    ldns_algorithm curve;
 #endif
+    const ldns_algorithm ed_curves[] = {
+#ifdef USE_ED25519
+        LDNS_ED25519,
+#endif
+#ifdef USE_ED448
+        LDNS_ED448,
+#endif
+        // placeholder to ensure the array is not empty
+        LDNS_INDIRECT
+    };
+    ldns_algorithm curve;
 
     libhsm_key_t *key = NULL;
     char *id;
@@ -362,6 +372,51 @@ hsm_test (const char *repository, hsm_ctx_t* ctx)
         } else {
             printf("Signing with key... ");
         }
+    }
+#endif
+
+    for (i=0; i<(sizeof(ed_curves)/sizeof(ldns_algorithm)); i++) {
+        curve = ed_curves[i];
+
+        switch(curve) {
+#ifdef USE_ED25519
+        case LDNS_ED25519:
+            printf("Generating ED25519 key... ");
+            key = hsm_generate_eddsa_key(ctx, repository, "edwards25519");
+            break;
+#endif
+#ifdef USE_ED448
+         case LDNS_ED448:
+            printf("Generating ED448 key... ");
+            key = hsm_generate_eddsa_key(ctx, repository, "edwards448");
+            break;
+#endif
+        default:
+            continue;
+        }
+        if (!key) {
+            errors++;
+            printf("Failed\n");
+            hsm_print_error(ctx);
+            printf("\n");
+            continue;
+        } else {
+            printf("OK\n");
+        }
+
+        printf("Extracting key identifier... ");
+        id = hsm_get_key_id(ctx, key);
+        if (!id) {
+            errors++;
+            printf("Failed\n");
+            hsm_print_error(ctx);
+            printf("\n");
+        } else {
+            printf("OK, %s\n", id);
+        }
+        free(id);
+
+        printf("Signing with key... ");
         result = hsm_test_sign(ctx, key, curve);
         if (result) {
             errors++;
@@ -385,7 +440,6 @@ hsm_test (const char *repository, hsm_ctx_t* ctx)
 
         printf("\n");
     }
-#endif
 
     if (hsm_test_random(ctx)) {
         errors++;
