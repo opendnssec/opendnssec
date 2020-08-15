@@ -463,8 +463,6 @@ cmd_dnskey (int argc, char *argv[])
                 return -1;
             }
             break;
-/* TODO: We can remove the directive if we require LDNS >= 1.6.13 */
-#if !defined LDNS_BUILD_CONFIG_USE_ECDSA || LDNS_BUILD_CONFIG_USE_ECDSA
         case LDNS_SIGN_ECDSAP256SHA256:
             if (strcmp(key_info->algorithm_name, "ECDSA") != 0) {
                 printf("Not an ECDSA key, the key is of algorithm %s.\n", key_info->algorithm_name);
@@ -501,8 +499,6 @@ cmd_dnskey (int argc, char *argv[])
                 return -1;
             }
             break;
-#endif
-#ifdef USE_ED25519
         case LDNS_SIGN_ED25519:
             if (strcmp(key_info->algorithm_name, "EDDSA") != 0) {
                 printf("Not an EDDSA key, the key is of algorithm %s.\n", key_info->algorithm_name);
@@ -521,8 +517,6 @@ cmd_dnskey (int argc, char *argv[])
                 return -1;
             }
             break;
-#endif
-#ifdef USE_ED448
         case LDNS_SIGN_ED448:
             if (strcmp(key_info->algorithm_name, "EDDSA") != 0) {
                 printf("Not an EDDSA key, the key is of algorithm %s.\n", key_info->algorithm_name);
@@ -541,7 +535,6 @@ cmd_dnskey (int argc, char *argv[])
                 return -1;
             }
             break;
-#endif
         default:
             printf("Invalid algorithm: %i\n", algo);
             libhsm_key_info_free(key_info);
