@@ -2044,11 +2044,8 @@ hsm_create_prefix(CK_ULONG digest_len,
         case LDNS_SIGN_DSA:
         case LDNS_SIGN_DSA_NSEC3:
         case LDNS_SIGN_ECC_GOST:
-/* TODO: We can remove the directive if we require LDNS >= 1.6.13 */
-#if !defined LDNS_BUILD_CONFIG_USE_ECDSA || LDNS_BUILD_CONFIG_USE_ECDSA
         case LDNS_SIGN_ECDSAP256SHA256:
         case LDNS_SIGN_ECDSAP384SHA384:
-#endif
             *data_size = digest_len;
             data = malloc(*data_size);
             break;
@@ -2139,18 +2136,13 @@ hsm_sign_buffer(hsm_ctx_t *ctx,
             break;
 
         case LDNS_SIGN_RSASHA256:
-/* TODO: We can remove the directive if we require LDNS >= 1.6.13 */
-#if !defined LDNS_BUILD_CONFIG_USE_ECDSA || LDNS_BUILD_CONFIG_USE_ECDSA
         case LDNS_SIGN_ECDSAP256SHA256:
-#endif
             digest_len = LDNS_SHA256_DIGEST_LENGTH;
             digest = malloc(digest_len);
             digest = ldns_sha256(ldns_buffer_begin(sign_buf),
                                  ldns_buffer_position(sign_buf),
                                  digest);
             break;
-/* TODO: We can remove the directive if we require LDNS >= 1.6.13 */
-#if !defined LDNS_BUILD_CONFIG_USE_ECDSA || LDNS_BUILD_CONFIG_USE_ECDSA
         case LDNS_SIGN_ECDSAP384SHA384:
             digest_len = LDNS_SHA384_DIGEST_LENGTH;
             digest = malloc(digest_len);
@@ -2158,7 +2150,6 @@ hsm_sign_buffer(hsm_ctx_t *ctx,
                                  ldns_buffer_position(sign_buf),
                                  digest);
             break;
-#endif
         case LDNS_SIGN_RSASHA512:
             digest_len = LDNS_SHA512_DIGEST_LENGTH;
             digest = malloc(digest_len);
@@ -2172,16 +2163,12 @@ hsm_sign_buffer(hsm_ctx_t *ctx,
                                             CKM_GOSTR3411, digest_len,
                                             sign_buf);
             break;
-#ifdef USE_ED25519
         case LDNS_SIGN_ED25519:
             data_direct = 1;
             break;
-#endif
-#ifdef USE_ED448
         case LDNS_SIGN_ED448:
             data_direct = 1;
             break;
-#endif
         default:
             /* log error? or should we not even get here for
              * unsupported algorithms? */
@@ -2220,23 +2207,16 @@ hsm_sign_buffer(hsm_ctx_t *ctx,
         case LDNS_SIGN_ECC_GOST:
             sign_mechanism.mechanism = CKM_GOSTR3410;
             break;
-/* TODO: We can remove the directive if we require LDNS >= 1.6.13 */
-#if !defined LDNS_BUILD_CONFIG_USE_ECDSA || LDNS_BUILD_CONFIG_USE_ECDSA
         case LDNS_SIGN_ECDSAP256SHA256:
         case LDNS_SIGN_ECDSAP384SHA384:
             sign_mechanism.mechanism = CKM_ECDSA;
             break;
-#endif
-#ifdef USE_ED25519
         case LDNS_SIGN_ED25519:
             sign_mechanism.mechanism = CKM_EDDSA;
             break;
-#endif
-#ifdef USE_ED448
         case LDNS_SIGN_ED448:
             sign_mechanism.mechanism = CKM_EDDSA;
             break;
-#endif
         default:
             /* log error? or should we not even get here for
              * unsupported algorithms? */

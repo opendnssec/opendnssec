@@ -262,16 +262,12 @@ hsm_key_factory_generate(engine_type* engine, const db_connection_t* connection,
             case LDNS_ECDSAP384SHA384:
                 key = hsm_generate_ecdsa_key(hsm_ctx, policy_key_repository(policy_key), "P-384");
                 break;
-#ifdef USE_ED25519
             case LDNS_ED25519:
                 key = hsm_generate_eddsa_key(hsm_ctx, policy_key_repository(policy_key), "edwards25519");
                 break;
-#endif
-#ifdef USE_ED448
             case LDNS_ED448:
                 key = hsm_generate_eddsa_key(hsm_ctx, policy_key_repository(policy_key), "edwards448");
                 break;
-#endif
             default:
                 key = NULL;
         }
