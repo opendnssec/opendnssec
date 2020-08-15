@@ -150,15 +150,17 @@ print_ds_from_id(int sockfd, struct dbw_key *key, int bind_style, int print_sha1
 
 static int
 perform_keystate_export(int sockfd, struct dbw_zone *zone, int role,
-    const char *keystate, int bind_style, int print_sha1)
+    const char *keystate, const struct dbw_hsmkey *hsmkey, int bind_style,
+    int print_sha1)
 {
     int keys_exported = 0;
     for (size_t k = 0; k < zone->key_count; k++) {
         struct dbw_key *key = zone->key[k];
         if (role != -1 && key->role != role) continue;
         if (keystate && strcasecmp(map_keystate(key), keystate)) continue;
+        if (hsmkey && key->hsmkey != hsmkey) continue;
         /* Don't export keys in stable DS states unless explicitly asked. */
-        if (role == -1 && !keystate &&
+        if (role == -1 && !keystate && !hsmkey &&
               key->ds_at_parent != DBW_DS_AT_PARENT_SUBMIT &&
               key->ds_at_parent != DBW_DS_AT_PARENT_SUBMITTED &&
               key->ds_at_parent != DBW_DS_AT_PARENT_RETRACT   &&
@@ -184,6 +186,7 @@ usage(int sockfd)
          "	--zone <zone> | --all			aka -z | -a \n"
          "	--keystate <state>			aka -e\n"
          "	--keytype <type>			aka -t \n"
+         "	--cka_id <CKA_ID>			aka -k \n"
          "	[--ds [--sha1]]				aka -d [-s]\n"
     );
 }
@@ -194,11 +197,13 @@ help(int sockfd)
     client_printf(sockfd,
          "Export DNSKEY(s) for a given zone or all of them from the database.\n"
          "If keytype and keystate are not specified, KSKs which are waiting for command ds-submit, ds-seen, ds-retract and ds-gone are shown. Otherwise both keystate and keytype must be given.\n"
+         "If cka_id is specified then that key is output for the specified zones.\n"
 
          "\nOptions:\n"
          "zone|all	specify a zone or all of them\n"
          "keystate	limit the output to a given state\n"
          "keytype		limit the output to a given type, can be ZSK, KSK, or CSK\n"
+         "cka_id		limit the output to the given key locator\n"
          "ds		export DS in BIND format which can be used for upload to a registry\n"
          "sha1		When outputting DS print sha1 instead of sha256\n");
 }
@@ -212,7 +217,9 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
     const char *zonename = NULL;
     const char* keytype = NULL;
     const char* keystate = NULL;
+    const char* cka_id = NULL;
     zone_db_t * zone = NULL;
+    struct dbw_hsmkey *hsmkey = NULL;
     int all = 0;
     int ds = 0;
     int bsha1 = 0;
@@ -223,6 +230,7 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
         {"zone", required_argument, 0, 'z'},
         {"keytype", required_argument, 0, 't'},
         {"keystate", required_argument, 0, 'e'},
+        {"cka_id", required_argument, 0, 'k'},
         {"all", no_argument, 0, 'a'},
         {"ds", no_argument, 0, 'd'},
         {"sha1", no_argument, 0, 's'},
@@ -241,7 +249,7 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
     }
 
     optind = 0;
-    while ((opt = getopt_long(argc, (char* const*)argv, "z:t:e:ads", long_options, &long_index)) != -1) {
+    while ((opt = getopt_long(argc, (char* const*)argv, "z:t:e:k:ads", long_options, &long_index)) != -1) {
         switch (opt) {
             case 'z':
                 zonename = optarg;
@@ -251,6 +259,9 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
                 break;
             case 'e':
                 keystate = optarg;
+                break;
+            case 'k':
+                cka_id = optarg;
                 break;
             case 'a':
                 all = 1;
@@ -302,12 +313,19 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 
     struct dbw_db *db = dbw_fetch(dbconn);
     if (!db) return -1;
+
+    if (cka_id && !(hsmkey = dbw_get_hsmkey(db, cka_id))) {
+        ods_log_error("[%s] CKA_ID %s can not be found!", module_str, cka_id);
+        client_printf_err(sockfd, "CKA_ID %s can not be found!\n", cka_id);
+        return -1;
+    }
+
     int r = 0;
     int exports = 0;
     for (size_t z = 0; z < db->zones->n; z++) {
         struct dbw_zone *zone = (struct dbw_zone *)db->zones->set[z];
         if (zonename && strcmp(zonename, zone->name)) continue;
-        r |= perform_keystate_export(sockfd, zone, keytype_int, keystate, ds, bsha1);
+        r |= perform_keystate_export(sockfd, zone, keytype_int, keystate, hsmkey, ds, bsha1);
         exports++;
     }
     dbw_free(db);
