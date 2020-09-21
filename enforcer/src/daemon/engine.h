@@ -72,7 +72,7 @@ struct engine_struct {
  * \param engine, the engine containing database configuration
  * \return connection on success, NULL on failure.
  */
-db_connection_t* get_database_connection(engine_type* engine);
+extern db_connection_t* get_database_connection(engine_type* engine);
 
 
 /**
@@ -84,16 +84,16 @@ db_connection_t* get_database_connection(engine_type* engine);
  *            for the command to a socket.
  */
 
-ods_status engine_setup(void);
+extern ods_status engine_setup(void);
 
 /**
  * Clean up engine.
  * \param[in] engine engine
  *
  */
-void engine_teardown(engine_type* engine);
+extern void engine_teardown(engine_type* engine);
 
-void engine_init(engine_type* engine, int daemonize);
+extern void engine_init(engine_type* engine, int daemonize);
 
 typedef void (*start_cb_t)(engine_type* engine);
 
@@ -106,29 +106,29 @@ typedef void (*start_cb_t)(engine_type* engine);
  * \return 0 if terminated normally, 1 on unrecoverable error.
  *
  */
-int engine_run(engine_type* engine, start_cb_t start, int single_run);
+extern int engine_run(engine_type* engine, start_cb_t start, int single_run);
 
 /**
  * Stop the engine after engine_runloop returns.
  * \param[in] engine engine
  *
  */
-void engine_stop(engine_type* engine);
+extern void engine_stop(engine_type* engine);
 
 /**
  * Wake up workers.
  * \param[in] engine engine
  *
  */
-void engine_wakeup_workers(engine_type* engine);
+extern void engine_wakeup_workers(engine_type* engine);
 /** signal all workers to stop. Blocks until all workers are joined.
  * \param[in] engine engine */
-void engine_stop_workers(engine_type* engine);
+extern void engine_stop_workers(engine_type* engine);
 /** start all workers.
  * \param[in] engine engine */
-void engine_start_workers(engine_type* engine);
+extern void engine_start_workers(engine_type* engine);
 
-engine_type* engine_alloc(void);
-void engine_dealloc(engine_type* engine);
+extern engine_type* engine_alloc(void);
+extern void engine_dealloc(engine_type* engine);
 
 #endif /* DAEMON_ENGINE_H */

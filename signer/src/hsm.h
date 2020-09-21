@@ -51,7 +51,7 @@
  * \return ods_status status
  *
  */
-ods_status lhsm_get_key(hsm_ctx_t* ctx, ldns_rdf* owner, key_type* key_id, int skip_hsm_access);
+extern ods_status lhsm_get_key(hsm_ctx_t* ctx, ldns_rdf* owner, key_type* key_id, int skip_hsm_access);
 
 /**
  * Get RRSIG from one of the HSMs, given a RRset and a key.
@@ -64,7 +64,7 @@ ods_status lhsm_get_key(hsm_ctx_t* ctx, ldns_rdf* owner, key_type* key_id, int s
  * \return ldns_rr* RRSIG record
  *
  */
-ldns_rr* lhsm_sign(hsm_ctx_t* ctx, ldns_rr_list* rrset, key_type* key_id,
+extern ldns_rr* lhsm_sign(hsm_ctx_t* ctx, ldns_rr_list* rrset, key_type* key_id,
     time_t inception, time_t expiration);
 
 #endif /* SHARED_HSM_H */

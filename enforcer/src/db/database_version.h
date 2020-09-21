@@ -54,13 +54,13 @@ struct database_version {
  * \param[in] connection a db_connection_t pointer.
  * \return a database_version_t pointer or NULL on error.
  */
-database_version_t* database_version_new(const db_connection_t* connection);
+extern database_version_t* database_version_new(const db_connection_t* connection);
 
 /**
  * Delete a database version object, this does not delete it from the database.
  * \param[in] database_version a database_version_t pointer.
  */
-void database_version_free(database_version_t* database_version);
+extern void database_version_free(database_version_t* database_version);
 
 /**
  * Set the content of a database version object based on a database result.
@@ -68,14 +68,14 @@ void database_version_free(database_version_t* database_version);
  * \param[in] result a db_result_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int database_version_from_result(database_version_t* database_version, const db_result_t* result);
+extern int database_version_from_result(database_version_t* database_version, const db_result_t* result);
 
 /**
  * Get the version of a database version object. Undefined behavior if `database_version` is NULL.
  * \param[in] database_version a database_version_t pointer.
  * \return an unsigned integer.
  */
-unsigned int database_version_version(const database_version_t* database_version);
+extern unsigned int database_version_version(const database_version_t* database_version);
 
 /**
  * A list of database version objects.
@@ -98,27 +98,27 @@ struct database_version_list {
  * \param[in] connection a db_connection_t pointer.
  * \return a database_version_list_t pointer or NULL on error.
  */
-database_version_list_t* database_version_list_new(const db_connection_t* connection);
+extern database_version_list_t* database_version_list_new(const db_connection_t* connection);
 
 /**
  * Delete a database version object list.
  * \param[in] database_version_list a database_version_list_t pointer.
  */
-void database_version_list_free(database_version_list_t* database_version_list);
+extern void database_version_list_free(database_version_list_t* database_version_list);
 
 /**
  * Get all database version objects.
  * \param[in] database_version_list a database_version_list_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int database_version_list_get(database_version_list_t* database_version_list);
+extern int database_version_list_get(database_version_list_t* database_version_list);
 
 /**
  * Get a new list with all database version objects.
  * \param[in] connection a db_connection_t pointer.
  * \return a database_version_list_t pointer or NULL on error.
  */
-database_version_list_t* database_version_list_new_get(const db_connection_t* connection);
+extern database_version_list_t* database_version_list_new_get(const db_connection_t* connection);
 
 /**
  * Get the next database version object in a database version object list.
@@ -128,6 +128,6 @@ database_version_list_t* database_version_list_new_get(const db_connection_t* co
  * \return a database_version_t pointer or NULL on error or if there are no more
  * database version objects in the database version object list.
  */
-const database_version_t* database_version_list_next(database_version_list_t* database_version_list);
+extern const database_version_t* database_version_list_next(database_version_list_t* database_version_list);
 
 #endif

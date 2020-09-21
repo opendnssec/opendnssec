@@ -30,6 +30,6 @@
 #ifndef __test_hsm_key_h
 #define __test_hsm_key_h
 
-int test_hsm_key_add_suite(void);
+extern int test_hsm_key_add_suite(void);
 
 #endif

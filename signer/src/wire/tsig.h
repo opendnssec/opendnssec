@@ -150,27 +150,27 @@ struct tsig_rr_struct {
  * \return ods_status status
  *
  */
-ods_status tsig_handler_init(void);
+extern ods_status tsig_handler_init(void);
 
 /**
  * Clean up TSIG handler.
  *
  */
-void tsig_handler_cleanup(void);
+extern void tsig_handler_cleanup(void);
 
 /**
  * Add key to TSIG handler.
  * \param[in] key tsig key
  *
  */
-void tsig_handler_add_key(tsig_key_type* key);
+extern void tsig_handler_add_key(tsig_key_type* key);
 
 /**
  * Add algorithm to TSIG handler.
  * \param[in] algo tsig algorithm
  *
  */
-void tsig_handler_add_algo(tsig_algo_type* algo);
+extern void tsig_handler_add_algo(tsig_algo_type* algo);
 
 /**
  * Create new TSIG.
@@ -181,7 +181,7 @@ void tsig_handler_add_algo(tsig_algo_type* algo);
  * \return tsig_type* TSIG
  *
  */
-tsig_type* tsig_create(char* name, char* algo,
+extern tsig_type* tsig_create(char* name, char* algo,
     char* secret);
 
 /**
@@ -191,7 +191,7 @@ tsig_type* tsig_create(char* name, char* algo,
  * \return tsig_type* TSIG
  *
  */
-tsig_type* tsig_lookup_by_name(tsig_type* tsig, const char* name);
+extern tsig_type* tsig_lookup_by_name(tsig_type* tsig, const char* name);
 
 /**
  * Lookup TSIG algorithm by name.
@@ -199,7 +199,7 @@ tsig_type* tsig_lookup_by_name(tsig_type* tsig, const char* name);
  * \return tsig_algo_type* TSIG algorithm
  *
  */
-tsig_algo_type* tsig_lookup_algo(const char* name);
+extern tsig_algo_type* tsig_lookup_algo(const char* name);
 
 /**
  * Create new TSIG RR.
@@ -207,7 +207,7 @@ tsig_algo_type* tsig_lookup_algo(const char* name);
  * \return tsig_rr_type* TSIG RR
  *
  */
-tsig_rr_type* tsig_rr_create(void);
+extern tsig_rr_type* tsig_rr_create(void);
 
 /**
  * Reset TSIG RR.
@@ -216,7 +216,7 @@ tsig_rr_type* tsig_rr_create(void);
  * \param[in] key tsig key
  *
  */
-void tsig_rr_reset(tsig_rr_type* trr, tsig_algo_type* algo, tsig_key_type* key);
+extern void tsig_rr_reset(tsig_rr_type* trr, tsig_algo_type* algo, tsig_key_type* key);
 
 /**
  * Find TSIG RR.
@@ -225,7 +225,7 @@ void tsig_rr_reset(tsig_rr_type* trr, tsig_algo_type* algo, tsig_key_type* key);
  * \return int 1 if not present or present and valid, 0 otherwise.
  *
  */
-int tsig_rr_find(tsig_rr_type* trr, buffer_type* buffer);
+extern int tsig_rr_find(tsig_rr_type* trr, buffer_type* buffer);
 
 /**
  * Parse TSIG RR.
@@ -234,7 +234,7 @@ int tsig_rr_find(tsig_rr_type* trr, buffer_type* buffer);
  * \return int 1 if not TSIG RR or TSIG RR and valid, 0 otherwise.
  *
  */
-int tsig_rr_parse(tsig_rr_type* trr, buffer_type* buffer);
+extern int tsig_rr_parse(tsig_rr_type* trr, buffer_type* buffer);
 
 /**
  * Lookup TSIG RR.
@@ -242,14 +242,14 @@ int tsig_rr_parse(tsig_rr_type* trr, buffer_type* buffer);
  * \return int 1 if succeeded, 0 if unknown
  *
  */
-int tsig_rr_lookup(tsig_rr_type* trr);
+extern int tsig_rr_lookup(tsig_rr_type* trr);
 
 /**
  * Prepare TSIG RR.
  * \param[in] trr TSIG RR
  *
  */
-void tsig_rr_prepare(tsig_rr_type* trr);
+extern void tsig_rr_prepare(tsig_rr_type* trr);
 
 /**
  * Update TSIG RR.
@@ -260,14 +260,14 @@ void tsig_rr_prepare(tsig_rr_type* trr);
  *                   query idfrom TSIG.
  *
  */
-void tsig_rr_update(tsig_rr_type* trr, buffer_type* buffer, size_t length);
+extern void tsig_rr_update(tsig_rr_type* trr, buffer_type* buffer, size_t length);
 
 /**
  * Sign TSIG RR.
  * \param[in] trr TSIG RR
  *
  */
-void tsig_rr_sign(tsig_rr_type* trr);
+extern void tsig_rr_sign(tsig_rr_type* trr);
 
 /**
  * Verify TSIG RR.
@@ -275,7 +275,7 @@ void tsig_rr_sign(tsig_rr_type* trr);
  * \return int 1 if verified, 0 on error
  *
  */
-int tsig_rr_verify(tsig_rr_type* trr);
+extern int tsig_rr_verify(tsig_rr_type* trr);
 
 /**
  * Append TSIG RR.
@@ -283,7 +283,7 @@ int tsig_rr_verify(tsig_rr_type* trr);
  * \param[in] buffer packet buffer
  *
  */
-void tsig_rr_append(tsig_rr_type* trr, buffer_type* buffer);
+extern void tsig_rr_append(tsig_rr_type* trr, buffer_type* buffer);
 
 /*
  * The amount of space to reserve in the response for the TSIG data.
@@ -291,14 +291,14 @@ void tsig_rr_append(tsig_rr_type* trr, buffer_type* buffer);
  * \return size_t reserved space size
  *
  */
-size_t tsig_rr_reserved_space(tsig_rr_type *trr);
+extern size_t tsig_rr_reserved_space(tsig_rr_type *trr);
 
 /**
  * Reply with error TSIG RR.
  * \param[in] trr TSIG RR
  *
  */
-void tsig_rr_error(tsig_rr_type* trr);
+extern void tsig_rr_error(tsig_rr_type* trr);
 
 /**
  * Get human readable TSIG error code.
@@ -306,7 +306,7 @@ void tsig_rr_error(tsig_rr_type* trr);
  * \return const char* TSIG status
  *
  */
-const char* tsig_status2str(tsig_status status);
+extern const char* tsig_status2str(tsig_status status);
 
 /**
  * Get human readable TSIG error code.
@@ -314,21 +314,21 @@ const char* tsig_status2str(tsig_status status);
  * \return const char* readable error code
  *
  */
-const char* tsig_strerror(uint16_t error);
+extern const char* tsig_strerror(uint16_t error);
 
 /**
  * Free TSIG RR.
  * \param[in] trr TSIG RR
  *
  */
-void tsig_rr_free(tsig_rr_type* trr);
+extern void tsig_rr_free(tsig_rr_type* trr);
 
 /**
  * Cleanup TSIG RR
  * \param[in] trr TSIG RR
  *
  */
-void tsig_rr_cleanup(tsig_rr_type* trr);
+extern void tsig_rr_cleanup(tsig_rr_type* trr);
 
 /**
  * Clean up TSIG.
@@ -336,6 +336,6 @@ void tsig_rr_cleanup(tsig_rr_type* trr);
  * \param[in] allocator memory allocator
  *
  */
-void tsig_cleanup(tsig_type* tsig);
+extern void tsig_cleanup(tsig_type* tsig);
 
 #endif /* WIRE_TSIG_H */

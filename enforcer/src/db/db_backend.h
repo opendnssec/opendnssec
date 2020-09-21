@@ -190,21 +190,21 @@ struct db_backend_handle {
  * Create a new database backend handle.
  * \return a db_backend_handle_t pointer or NULL on error.
  */
-db_backend_handle_t* db_backend_handle_new(void);
+extern db_backend_handle_t* db_backend_handle_new(void);
 
 /**
  * Delete a database backend handle, disconnecting the backend and freeing the
  * backend specific data.
  * \param[in] backend_handle a db_backend_handle_t pointer.
  */
-void db_backend_handle_free(db_backend_handle_t* backend_handle);
+extern void db_backend_handle_free(db_backend_handle_t* backend_handle);
 
 /**
  * Initiate the backend of a database backend.
  * \param[in] backend_handle a db_backend_handle_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_backend_handle_initialize(const db_backend_handle_t* backend_handle);
+extern int db_backend_handle_initialize(const db_backend_handle_t* backend_handle);
 
 /**
  * Connect to the database of a database backend, the connection specific
@@ -213,7 +213,7 @@ int db_backend_handle_initialize(const db_backend_handle_t* backend_handle);
  * \param[in] configuration_list a db_configuration_list_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_backend_handle_connect(const db_backend_handle_t* backend_handle, const db_configuration_list_t* configuration_list);
+extern int db_backend_handle_connect(const db_backend_handle_t* backend_handle, const db_configuration_list_t* configuration_list);
 
 /**
  * Create an object in the database. The `object` refer to the database object
@@ -225,7 +225,7 @@ int db_backend_handle_connect(const db_backend_handle_t* backend_handle, const d
  * \param[in] value_set a db_value_set_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_backend_handle_create(const db_backend_handle_t* backend_handle, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set);
+extern int db_backend_handle_create(const db_backend_handle_t* backend_handle, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set);
 
 /**
  * Read an object or objects from the database.
@@ -236,7 +236,7 @@ int db_backend_handle_create(const db_backend_handle_t* backend_handle, const db
  * \return a db_result_list_t pointer or NULL on error or if no objects where
  * read.
  */
-db_result_list_t* db_backend_handle_read(const db_backend_handle_t* backend_handle, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list);
+extern db_result_list_t* db_backend_handle_read(const db_backend_handle_t* backend_handle, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list);
 
 /**
  * Update an object or objects in the database.
@@ -247,7 +247,7 @@ db_result_list_t* db_backend_handle_read(const db_backend_handle_t* backend_hand
  * \param[in] clause_list a db_clause_list_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_backend_handle_update(const db_backend_handle_t* backend_handle, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set, const db_clause_list_t* clause_list);
+extern int db_backend_handle_update(const db_backend_handle_t* backend_handle, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set, const db_clause_list_t* clause_list);
 
 /**
  * Delete an object or objects from the database.
@@ -256,7 +256,7 @@ int db_backend_handle_update(const db_backend_handle_t* backend_handle, const db
  * \param[in] clause_list a db_clause_list_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_backend_handle_delete(const db_backend_handle_t* backend_handle, const db_object_t* object, const db_clause_list_t* clause_list);
+extern int db_backend_handle_delete(const db_backend_handle_t* backend_handle, const db_object_t* object, const db_clause_list_t* clause_list);
 
 /**
  * Count objects from the database. Return the count in `count`.
@@ -267,7 +267,7 @@ int db_backend_handle_delete(const db_backend_handle_t* backend_handle, const db
  * \param[out] count a size_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_backend_handle_count(const db_backend_handle_t* backend_handle, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list, size_t* count);
+extern int db_backend_handle_count(const db_backend_handle_t* backend_handle, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list, size_t* count);
 
 /**
  * Set the initialize function of a database backend handle.
@@ -275,7 +275,7 @@ int db_backend_handle_count(const db_backend_handle_t* backend_handle, const db_
  * \param[in] initialize_function a db_backend_handle_initialize_t.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_backend_handle_set_initialize(db_backend_handle_t* backend_handle, db_backend_handle_initialize_t initialize_function);
+extern int db_backend_handle_set_initialize(db_backend_handle_t* backend_handle, db_backend_handle_initialize_t initialize_function);
 
 /**
  * Set the shutdown function of a database backend handle.
@@ -283,7 +283,7 @@ int db_backend_handle_set_initialize(db_backend_handle_t* backend_handle, db_bac
  * \param[in] shutdown_function a db_backend_handle_shutdown_t.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_backend_handle_set_shutdown(db_backend_handle_t* backend_handle, db_backend_handle_shutdown_t shutdown_function);
+extern int db_backend_handle_set_shutdown(db_backend_handle_t* backend_handle, db_backend_handle_shutdown_t shutdown_function);
 
 /**
  * Set the connect function of a database backend handle.
@@ -291,7 +291,7 @@ int db_backend_handle_set_shutdown(db_backend_handle_t* backend_handle, db_backe
  * \param[in] connect_function a db_backend_handle_connect_t.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_backend_handle_set_connect(db_backend_handle_t* backend_handle, db_backend_handle_connect_t connect_function);
+extern int db_backend_handle_set_connect(db_backend_handle_t* backend_handle, db_backend_handle_connect_t connect_function);
 
 /**
  * Set the disconnect function of a database backend handle.
@@ -299,7 +299,7 @@ int db_backend_handle_set_connect(db_backend_handle_t* backend_handle, db_backen
  * \param[in] disconnect_function a db_backend_handle_disconnect_t.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_backend_handle_set_disconnect(db_backend_handle_t* backend_handle, db_backend_handle_disconnect_t disconnect_function);
+extern int db_backend_handle_set_disconnect(db_backend_handle_t* backend_handle, db_backend_handle_disconnect_t disconnect_function);
 
 int db_backend_handle_set_last_id(db_backend_handle_t* backend_handle, db_backend_handle_last_id_t last_id_function);
 
@@ -309,7 +309,7 @@ int db_backend_handle_set_last_id(db_backend_handle_t* backend_handle, db_backen
  * \param[in] create_function a db_backend_handle_create_t.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_backend_handle_set_create(db_backend_handle_t* backend_handle, db_backend_handle_create_t create_function);
+extern int db_backend_handle_set_create(db_backend_handle_t* backend_handle, db_backend_handle_create_t create_function);
 
 /**
  * Set the read function of a database backend handle.
@@ -317,7 +317,7 @@ int db_backend_handle_set_create(db_backend_handle_t* backend_handle, db_backend
  * \param[in] read_function a db_backend_handle_read_t.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_backend_handle_set_read(db_backend_handle_t* backend_handle, db_backend_handle_read_t read_function);
+extern int db_backend_handle_set_read(db_backend_handle_t* backend_handle, db_backend_handle_read_t read_function);
 
 /**
  * Set the update function of a database backend handle.
@@ -325,7 +325,7 @@ int db_backend_handle_set_read(db_backend_handle_t* backend_handle, db_backend_h
  * \param[in] update_function a db_backend_handle_update_t.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_backend_handle_set_update(db_backend_handle_t* backend_handle, db_backend_handle_update_t update_function);
+extern int db_backend_handle_set_update(db_backend_handle_t* backend_handle, db_backend_handle_update_t update_function);
 
 /**
  * Set the delete function of a database backend handle.
@@ -333,7 +333,7 @@ int db_backend_handle_set_update(db_backend_handle_t* backend_handle, db_backend
  * \param[in] delete_function a db_backend_handle_delete_t.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_backend_handle_set_delete(db_backend_handle_t* backend_handle, db_backend_handle_delete_t delete_function);
+extern int db_backend_handle_set_delete(db_backend_handle_t* backend_handle, db_backend_handle_delete_t delete_function);
 
 /**
  * Set the count function of a database backend handle.
@@ -341,7 +341,7 @@ int db_backend_handle_set_delete(db_backend_handle_t* backend_handle, db_backend
  * \param[in] count_function a db_backend_handle_count_t.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_backend_handle_set_count(db_backend_handle_t* backend_handle, db_backend_handle_count_t count_function);
+extern int db_backend_handle_set_count(db_backend_handle_t* backend_handle, db_backend_handle_count_t count_function);
 
 /**
  * Set the free function of a database backend handle.
@@ -349,7 +349,7 @@ int db_backend_handle_set_count(db_backend_handle_t* backend_handle, db_backend_
  * \param[in] free_function a db_backend_handle_free_t.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_backend_handle_set_free(db_backend_handle_t* backend_handle, db_backend_handle_free_t free_function);
+extern int db_backend_handle_set_free(db_backend_handle_t* backend_handle, db_backend_handle_free_t free_function);
 
 /**
  * Set the transaction begin function of a database backend handle.
@@ -357,7 +357,7 @@ int db_backend_handle_set_free(db_backend_handle_t* backend_handle, db_backend_h
  * \param[in] transaction_begin_function a db_backend_handle_transaction_begin_t.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_backend_handle_set_transaction_begin(db_backend_handle_t* backend_handle, db_backend_handle_transaction_begin_t transaction_begin_function);
+extern int db_backend_handle_set_transaction_begin(db_backend_handle_t* backend_handle, db_backend_handle_transaction_begin_t transaction_begin_function);
 
 /**
  * Set the transaction commit function of a database backend handle.
@@ -365,7 +365,7 @@ int db_backend_handle_set_transaction_begin(db_backend_handle_t* backend_handle,
  * \param[in] transaction_commit_function a db_backend_handle_transaction_commit_t.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_backend_handle_set_transaction_commit(db_backend_handle_t* backend_handle, db_backend_handle_transaction_commit_t transaction_commit_function);
+extern int db_backend_handle_set_transaction_commit(db_backend_handle_t* backend_handle, db_backend_handle_transaction_commit_t transaction_commit_function);
 
 /**
  * Set the transaction rollback function of a database backend handle.
@@ -373,7 +373,7 @@ int db_backend_handle_set_transaction_commit(db_backend_handle_t* backend_handle
  * \param[in] transaction_rollback_function a db_backend_handle_transaction_rollback_t.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_backend_handle_set_transaction_rollback(db_backend_handle_t* backend_handle, db_backend_handle_transaction_rollback_t transaction_rollback_function);
+extern int db_backend_handle_set_transaction_rollback(db_backend_handle_t* backend_handle, db_backend_handle_transaction_rollback_t transaction_rollback_function);
 
 /**
  * Set the backend specific data of a database backend handle.
@@ -381,7 +381,7 @@ int db_backend_handle_set_transaction_rollback(db_backend_handle_t* backend_hand
  * \param[in] data a void pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_backend_handle_set_data(db_backend_handle_t* backend_handle, void* data);
+extern int db_backend_handle_set_data(db_backend_handle_t* backend_handle, void* data);
 
 /**
  * A database backend.
@@ -396,13 +396,13 @@ struct db_backend {
  * Create a new database backend.
  * \return a db_backend_t pointer or NULL on error.
  */
-db_backend_t* db_backend_new(void);
+extern db_backend_t* db_backend_new(void);
 
 /**
  * Delete a database backend.
  * \param[in] backend a db_backend_t pointer.
  */
-void db_backend_free(db_backend_t* backend);
+extern void db_backend_free(db_backend_t* backend);
 
 /**
  * Get the database backend handle of a database backend.
@@ -410,7 +410,7 @@ void db_backend_free(db_backend_t* backend);
  * \return a db_backend_handle_t pointer or NULL on error or if no database
  * backend handle has been set.
  */
-const db_backend_handle_t* db_backend_handle(const db_backend_t* backend);
+extern const db_backend_handle_t* db_backend_handle(const db_backend_t* backend);
 
 /**
  * Set the name of a database backend.
@@ -418,7 +418,7 @@ const db_backend_handle_t* db_backend_handle(const db_backend_t* backend);
  * \param[in] name a character pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_backend_set_name(db_backend_t* backend, const char* name);
+extern int db_backend_set_name(db_backend_t* backend, const char* name);
 
 /**
  * Det the database backend handle of a database backend, this takes over the
@@ -427,14 +427,14 @@ int db_backend_set_name(db_backend_t* backend, const char* name);
  * \param[in] handle a db_backend_handle_t.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_backend_set_handle(db_backend_t* backend, db_backend_handle_t* handle);
+extern int db_backend_set_handle(db_backend_t* backend, db_backend_handle_t* handle);
 
 /**
  * Initiate the backend of a database backend.
  * \param[in] backend a db_backend_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_backend_initialize(const db_backend_t* backend);
+extern int db_backend_initialize(const db_backend_t* backend);
 
 /**
  * Connect to the database of a database backend, the connection specific
@@ -443,7 +443,7 @@ int db_backend_initialize(const db_backend_t* backend);
  * \param[in] configuration_list a db_configuration_list_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_backend_connect(const db_backend_t* backend, const db_configuration_list_t* configuration_list);
+extern int db_backend_connect(const db_backend_t* backend, const db_configuration_list_t* configuration_list);
 
 int db_backend_last_id(const db_backend_t* backend, int *last_id);
 
@@ -457,7 +457,7 @@ int db_backend_last_id(const db_backend_t* backend, int *last_id);
  * \param[in] value_set a db_value_set_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_backend_create(const db_backend_t* backend, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set);
+extern int db_backend_create(const db_backend_t* backend, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set);
 
 /**
  * Read an object or objects from the database.
@@ -468,7 +468,7 @@ int db_backend_create(const db_backend_t* backend, const db_object_t* object, co
  * \return a db_result_list_t pointer or NULL on error or if no objects where
  * read.
  */
-db_result_list_t* db_backend_read(const db_backend_t* backend, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list);
+extern db_result_list_t* db_backend_read(const db_backend_t* backend, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list);
 
 /**
  * Update an object or objects in the database.
@@ -479,7 +479,7 @@ db_result_list_t* db_backend_read(const db_backend_t* backend, const db_object_t
  * \param[in] clause_list a db_clause_list_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_backend_update(const db_backend_t* backend, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set, const db_clause_list_t* clause_list);
+extern int db_backend_update(const db_backend_t* backend, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set, const db_clause_list_t* clause_list);
 
 /**
  * Delete an object or objects from the database.
@@ -488,7 +488,7 @@ int db_backend_update(const db_backend_t* backend, const db_object_t* object, co
  * \param[in] clause_list a db_clause_list_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_backend_delete(const db_backend_t* backend, const db_object_t* object, const db_clause_list_t* clause_list);
+extern int db_backend_delete(const db_backend_t* backend, const db_object_t* object, const db_clause_list_t* clause_list);
 
 /**
  * Count objects from the database. Return the count in `count`.
@@ -499,7 +499,7 @@ int db_backend_delete(const db_backend_t* backend, const db_object_t* object, co
  * \param[out] count a size_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_backend_count(const db_backend_t* backend, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list, size_t* count);
+extern int db_backend_count(const db_backend_t* backend, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list, size_t* count);
 
 /**
  * Get a new database backend by the name supplied in `name`.
@@ -507,6 +507,6 @@ int db_backend_count(const db_backend_t* backend, const db_object_t* object, con
  * \return a db_backend_t pointer or NULL on error or if the database backend
  * does not exist.
  */
-db_backend_t* db_backend_factory_get_backend(const char* name);
+extern db_backend_t* db_backend_factory_get_backend(const char* name);
 
 #endif

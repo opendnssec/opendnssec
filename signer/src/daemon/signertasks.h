@@ -44,14 +44,14 @@ struct worker_context {
     names_view_type view;
 };
 
-void drudge(worker_type* worker);
+extern void drudge(worker_type* worker);
 
-time_t do_readsignconf(task_type* task, const char* zonename, void* zonearg, void *contextarg);
-time_t do_forcereadsignconf(task_type* task, const char* zonename, void* zonearg, void *contextarg);
-time_t do_signzone(task_type* task, const char* zonename, void* zonearg, void *contextarg);
-time_t do_readzone(task_type* task, const char* zonename, void* zonearg, void *contextarg);
-time_t do_forcereadzone(task_type* task, const char* zonename, void* zonearg, void *contextarg);
-void do_purgezone(zone_type* zone);
-time_t do_writezone(task_type* task, const char* zonename, void* zonearg, void *contextarg);
+extern time_t do_readsignconf(task_type* task, const char* zonename, void* zonearg, void *contextarg);
+extern time_t do_forcereadsignconf(task_type* task, const char* zonename, void* zonearg, void *contextarg);
+extern time_t do_signzone(task_type* task, const char* zonename, void* zonearg, void *contextarg);
+extern time_t do_readzone(task_type* task, const char* zonename, void* zonearg, void *contextarg);
+extern time_t do_forcereadzone(task_type* task, const char* zonename, void* zonearg, void *contextarg);
+extern void do_purgezone(zone_type* zone);
+extern time_t do_writezone(task_type* task, const char* zonename, void* zonearg, void *contextarg);
 
 #endif /* SIGNERTASKS_H */

@@ -30,6 +30,6 @@
 #ifndef __test_zone_h
 #define __test_zone_h
 
-int test_zone_add_suite(void);
+extern int test_zone_add_suite(void);
 
 #endif

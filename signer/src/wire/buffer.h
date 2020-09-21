@@ -124,7 +124,7 @@ struct buffer_struct {
  * \return buffer_type* buffer
  *
  */
-buffer_type* buffer_create(size_t capacity);
+extern buffer_type* buffer_create(size_t capacity);
 
 /**
  * Clear the buffer and make it ready for writing.
@@ -132,7 +132,7 @@ buffer_type* buffer_create(size_t capacity);
  * \param[in] buffer buffer
  *
  */
-void buffer_clear(buffer_type* buffer);
+extern void buffer_clear(buffer_type* buffer);
 
 /**
  * Flip the buffer and make it ready for reading.
@@ -150,7 +150,7 @@ void buffer_flip(buffer_type* buffer);
  * \return size_t position
  *
  */
-size_t buffer_position(buffer_type* buffer);
+extern size_t buffer_position(buffer_type* buffer);
 
 /**
  * Set the buffer's position.
@@ -159,7 +159,7 @@ size_t buffer_position(buffer_type* buffer);
  * \param[in] pos position
  *
  */
-void buffer_set_position(buffer_type* buffer, size_t pos);
+extern void buffer_set_position(buffer_type* buffer, size_t pos);
 
 /**
  * Change the buffer's position.
@@ -169,7 +169,7 @@ void buffer_set_position(buffer_type* buffer, size_t pos);
  * \param[in] count number of bytes to skip
  *
  */
-void buffer_skip(buffer_type* buffer, ssize_t count);
+extern void buffer_skip(buffer_type* buffer, ssize_t count);
 
 /**
  * Change the buffer's position so that one dname is skipped.
@@ -178,7 +178,7 @@ void buffer_skip(buffer_type* buffer, ssize_t count);
  *             1 otherwise
  *
  */
-int buffer_skip_dname(buffer_type* buffer);
+extern int buffer_skip_dname(buffer_type* buffer);
 
 /**
  * Change the buffer's position so that one RR is skipped.
@@ -188,7 +188,7 @@ int buffer_skip_dname(buffer_type* buffer);
  *             1 otherwise
  *
  */
-int buffer_skip_rr(buffer_type* buffer, unsigned qrr);
+extern int buffer_skip_rr(buffer_type* buffer, unsigned qrr);
 
 /**
  * Get the buffer's limit.
@@ -196,7 +196,7 @@ int buffer_skip_rr(buffer_type* buffer, unsigned qrr);
  * \return size_t limit
  *
  */
-size_t buffer_limit(buffer_type* buffer);
+extern size_t buffer_limit(buffer_type* buffer);
 
 /**
  * Set the buffer's limit. If the buffer's position is greater
@@ -205,7 +205,7 @@ size_t buffer_limit(buffer_type* buffer);
  * \param[in] limit limit
  *
  */
-void buffer_set_limit(buffer_type* buffer, size_t limit);
+extern void buffer_set_limit(buffer_type* buffer, size_t limit);
 
 /**
  * Get the buffer's capacity.
@@ -213,7 +213,7 @@ void buffer_set_limit(buffer_type* buffer, size_t limit);
  * \return size_t capacity
  *
  */
-size_t buffer_capacity(buffer_type* buffer);
+extern size_t buffer_capacity(buffer_type* buffer);
 
 /**
  * Return a pointer to the data at the indicated position.
@@ -222,7 +222,7 @@ size_t buffer_capacity(buffer_type* buffer);
  * \return uint8_t* pointer to the data at the indicated position
  *
  */
-uint8_t* buffer_at(buffer_type* buffer, size_t at);
+extern uint8_t* buffer_at(buffer_type* buffer, size_t at);
 
 /**
  * Return a pointer to the data at the beginning of the buffer.
@@ -230,7 +230,7 @@ uint8_t* buffer_at(buffer_type* buffer, size_t at);
  * \return uint8_t* pointer to the data at the begin of the buffer
  *
  */
-uint8_t* buffer_begin(buffer_type* buffer);
+extern uint8_t* buffer_begin(buffer_type* buffer);
 
 /**
  * Return a pointer to the data at the buffer's current position.
@@ -238,7 +238,7 @@ uint8_t* buffer_begin(buffer_type* buffer);
  * \return uint8_t* pointer to the data at the buffer's current position
  *
  */
-uint8_t* buffer_current(buffer_type* buffer);
+extern uint8_t* buffer_current(buffer_type* buffer);
 
 /**
  * The number of bytes remaining between the buffer's position and limit.
@@ -246,7 +246,7 @@ uint8_t* buffer_current(buffer_type* buffer);
  * \return size_t remaining number of bytes
  *
  */
-size_t buffer_remaining(buffer_type* buffer);
+extern size_t buffer_remaining(buffer_type* buffer);
 
 /**
  * Check if the buffer has enough bytes available.
@@ -256,7 +256,7 @@ size_t buffer_remaining(buffer_type* buffer);
  *             1 otherwise
  *
  */
-int buffer_available(buffer_type* buffer, size_t count);
+extern int buffer_available(buffer_type* buffer, size_t count);
 
 /**
  * Write to buffer.
@@ -265,7 +265,7 @@ int buffer_available(buffer_type* buffer, size_t count);
  * \param[in] count number of bytes to write
  *
  */
-void buffer_write(buffer_type* buffer, const void* data, size_t count);
+extern void buffer_write(buffer_type* buffer, const void* data, size_t count);
 
 /**
  * Write uint8_t to buffer.
@@ -273,7 +273,7 @@ void buffer_write(buffer_type* buffer, const void* data, size_t count);
  * \param[in] data data to write
  *
  */
-void buffer_write_u8(buffer_type* buffer, uint8_t data);
+extern void buffer_write_u8(buffer_type* buffer, uint8_t data);
 
 /**
  * Write uint16_t to buffer.
@@ -281,7 +281,7 @@ void buffer_write_u8(buffer_type* buffer, uint8_t data);
  * \param[in] data data to write
  *
  */
-void buffer_write_u16(buffer_type* buffer, uint16_t data);
+extern void buffer_write_u16(buffer_type* buffer, uint16_t data);
 
 /**
  * Write uint16_t to buffer at indicated position.
@@ -290,7 +290,7 @@ void buffer_write_u16(buffer_type* buffer, uint16_t data);
  * \param[in] data data to write
  *
  */
-void buffer_write_u16_at(buffer_type* buffer, size_t at, uint16_t data);
+extern void buffer_write_u16_at(buffer_type* buffer, size_t at, uint16_t data);
 
 /**
  * Write uint32_t to buffer.
@@ -298,7 +298,7 @@ void buffer_write_u16_at(buffer_type* buffer, size_t at, uint16_t data);
  * \param[in] data data to write
  *
  */
-void buffer_write_u32(buffer_type* buffer, uint32_t data);
+extern void buffer_write_u32(buffer_type* buffer, uint32_t data);
 
 /**
  * Write rdf to buffer.
@@ -306,7 +306,7 @@ void buffer_write_u32(buffer_type* buffer, uint32_t data);
  * \param[in] rdf data to write
  *
  */
-void buffer_write_rdf(buffer_type* buffer, ldns_rdf* rdf);
+extern void buffer_write_rdf(buffer_type* buffer, ldns_rdf* rdf);
 
 /**
  * Write rr to buffer.
@@ -315,7 +315,7 @@ void buffer_write_rdf(buffer_type* buffer, ldns_rdf* rdf);
  * \return int 1 if rr fits, 0 otherwise
  *
  */
-int buffer_write_rr(buffer_type* buffer, ldns_rr* rr);
+extern int buffer_write_rr(buffer_type* buffer, ldns_rr* rr);
 
 /**
  * Read from buffer.
@@ -324,7 +324,7 @@ int buffer_write_rr(buffer_type* buffer, ldns_rr* rr);
  * \param[in] count number of bytes to read
  *
  */
-void buffer_read(buffer_type* buffer, void* data, size_t count);
+extern void buffer_read(buffer_type* buffer, void* data, size_t count);
 
 /**
  * Read uint8_t from buffer.
@@ -332,7 +332,7 @@ void buffer_read(buffer_type* buffer, void* data, size_t count);
  * \return uint8_t read data
  *
  */
-uint8_t buffer_read_u8(buffer_type* buffer);
+extern uint8_t buffer_read_u8(buffer_type* buffer);
 
 /**
  * Read uint16_t from buffer.
@@ -340,7 +340,7 @@ uint8_t buffer_read_u8(buffer_type* buffer);
  * \return uint16_t read data
  *
  */
-uint16_t buffer_read_u16(buffer_type* buffer);
+extern uint16_t buffer_read_u16(buffer_type* buffer);
 
 /**
  * Read uint32_t from buffer.
@@ -348,7 +348,7 @@ uint16_t buffer_read_u16(buffer_type* buffer);
  * \return uint32_t read data
  *
  */
-uint32_t buffer_read_u32(buffer_type* buffer);
+extern uint32_t buffer_read_u32(buffer_type* buffer);
 
 /**
  * Read dname from buffer.
@@ -358,7 +358,7 @@ uint32_t buffer_read_u32(buffer_type* buffer);
  * \return int dname length
  *
  */
-size_t buffer_read_dname(buffer_type* buffer, uint8_t* dname,
+extern size_t buffer_read_dname(buffer_type* buffer, uint8_t* dname,
     unsigned allow_pointers);
 
 /**
@@ -367,14 +367,14 @@ size_t buffer_read_dname(buffer_type* buffer, uint8_t* dname,
  * \return uint16_t query id
  *
  */
-uint16_t buffer_pkt_id(buffer_type* buffer);
+extern uint16_t buffer_pkt_id(buffer_type* buffer);
 
 /**
  * Set random query id in buffer.
  * \param[in] buffer buffer
  *
  */
-void buffer_pkt_set_random_id(buffer_type* buffer);
+extern void buffer_pkt_set_random_id(buffer_type* buffer);
 
 /**
  * Get flags from buffer.
@@ -382,7 +382,7 @@ void buffer_pkt_set_random_id(buffer_type* buffer);
  * \return uint16_t flags
  *
  */
-uint16_t buffer_pkt_flags(buffer_type* buffer);
+extern uint16_t buffer_pkt_flags(buffer_type* buffer);
 
 /**
  * Set flags in buffer.
@@ -390,7 +390,7 @@ uint16_t buffer_pkt_flags(buffer_type* buffer);
  * \param[in] flags flags
  *
  */
-void buffer_pkt_set_flags(buffer_type* buffer, uint16_t flags);
+extern void buffer_pkt_set_flags(buffer_type* buffer, uint16_t flags);
 
 /**
  * Get QR bit from buffer.
@@ -399,21 +399,21 @@ void buffer_pkt_set_flags(buffer_type* buffer, uint16_t flags);
  *             1 if QR bit is set
  *
  */
-int buffer_pkt_qr(buffer_type* buffer);
+extern int buffer_pkt_qr(buffer_type* buffer);
 
 /**
  * Set QR bit in buffer.
  * \param[in] buffer buffer
  *
  */
-void buffer_pkt_set_qr(buffer_type* buffer);
+extern void buffer_pkt_set_qr(buffer_type* buffer);
 
 /**
  * Clear QR bit in buffer.
  * \param[in] buffer buffer
  *
  */
-void buffer_pkt_clear_qr(buffer_type* buffer);
+extern void buffer_pkt_clear_qr(buffer_type* buffer);
 
 /**
  * Get AA bit from buffer.
@@ -422,14 +422,14 @@ void buffer_pkt_clear_qr(buffer_type* buffer);
  *             1 if AA bit is set
  *
  */
-int buffer_pkt_aa(buffer_type* buffer);
+extern int buffer_pkt_aa(buffer_type* buffer);
 
 /**
  * Set AA bit in buffer.
  * \param[in] buffer buffer
  *
  */
-void buffer_pkt_set_aa(buffer_type* buffer);
+extern void buffer_pkt_set_aa(buffer_type* buffer);
 
 /**
  * Get TC bit from buffer.
@@ -438,7 +438,7 @@ void buffer_pkt_set_aa(buffer_type* buffer);
  *             1 if TC bit is set
  *
  */
-int buffer_pkt_tc(buffer_type* buffer);
+extern int buffer_pkt_tc(buffer_type* buffer);
 
 /**
  * Get RD bit from buffer.
@@ -447,7 +447,7 @@ int buffer_pkt_tc(buffer_type* buffer);
  *             1 if RD bit is set
  *
  */
-int buffer_pkt_rd(buffer_type* buffer);
+extern int buffer_pkt_rd(buffer_type* buffer);
 
 /**
  * Get RA bit from buffer.
@@ -456,7 +456,7 @@ int buffer_pkt_rd(buffer_type* buffer);
  *             1 if RA bit is set
  *
  */
-int buffer_pkt_ra(buffer_type* buffer);
+extern int buffer_pkt_ra(buffer_type* buffer);
 
 /**
  * Get AD bit from buffer.
@@ -465,7 +465,7 @@ int buffer_pkt_ra(buffer_type* buffer);
  *             1 if AD bit is set
  *
  */
-int buffer_pkt_ad(buffer_type* buffer);
+extern int buffer_pkt_ad(buffer_type* buffer);
 
 /**
  * Get CD bit from buffer.
@@ -474,7 +474,7 @@ int buffer_pkt_ad(buffer_type* buffer);
  *             1 if CD bit is set
  *
  */
-int buffer_pkt_cd(buffer_type* buffer);
+extern int buffer_pkt_cd(buffer_type* buffer);
 
 /**
  * Get OPCODE from buffer.
@@ -482,7 +482,7 @@ int buffer_pkt_cd(buffer_type* buffer);
  * \return ldns_pkt_opcode OPCODE
  *
  */
-ldns_pkt_opcode buffer_pkt_opcode(buffer_type* buffer);
+extern ldns_pkt_opcode buffer_pkt_opcode(buffer_type* buffer);
 
 /**
  * Set OPCODE in buffer.
@@ -490,7 +490,7 @@ ldns_pkt_opcode buffer_pkt_opcode(buffer_type* buffer);
  * \param[in] opcode OPCODE
  *
  */
-void buffer_pkt_set_opcode(buffer_type* buffer, ldns_pkt_opcode opcode);
+extern void buffer_pkt_set_opcode(buffer_type* buffer, ldns_pkt_opcode opcode);
 
 /**
  * Get RCODE from buffer.
@@ -498,7 +498,7 @@ void buffer_pkt_set_opcode(buffer_type* buffer, ldns_pkt_opcode opcode);
  * \return ldns_pkt_rcode RCODE
  *
  */
-ldns_pkt_rcode buffer_pkt_rcode(buffer_type* buffer);
+extern ldns_pkt_rcode buffer_pkt_rcode(buffer_type* buffer);
 
 /**
  * Set RCODE in buffer.
@@ -506,7 +506,7 @@ ldns_pkt_rcode buffer_pkt_rcode(buffer_type* buffer);
  * \param[in] rcode RCODE
  *
  */
-void buffer_pkt_set_rcode(buffer_type* buffer, ldns_pkt_rcode rcode);
+extern void buffer_pkt_set_rcode(buffer_type* buffer, ldns_pkt_rcode rcode);
 
 /**
  * Look up a descriptive text by each rcode.
@@ -514,7 +514,7 @@ void buffer_pkt_set_rcode(buffer_type* buffer, ldns_pkt_rcode rcode);
  * \return const char* descriptive text
  *
  */
-const char* buffer_rcode2str(ldns_pkt_rcode rcode);
+extern const char* buffer_rcode2str(ldns_pkt_rcode rcode);
 
 /**
  * Get QDCOUNT from buffer.
@@ -522,7 +522,7 @@ const char* buffer_rcode2str(ldns_pkt_rcode rcode);
  * \return uint16_t QDCOUNT
  *
  */
-uint16_t buffer_pkt_qdcount(buffer_type* buffer);
+extern uint16_t buffer_pkt_qdcount(buffer_type* buffer);
 
 /**
  * Set QDCOUNT in buffer.
@@ -530,7 +530,7 @@ uint16_t buffer_pkt_qdcount(buffer_type* buffer);
  * \param[in] count QDCOUNT
  *
  */
-void buffer_pkt_set_qdcount(buffer_type* buffer, uint16_t count);
+extern void buffer_pkt_set_qdcount(buffer_type* buffer, uint16_t count);
 
 /**
  * Get ANCOUNT from buffer.
@@ -538,7 +538,7 @@ void buffer_pkt_set_qdcount(buffer_type* buffer, uint16_t count);
  * \return uint16_t ANCOUNT
  *
  */
-uint16_t buffer_pkt_ancount(buffer_type* buffer);
+extern uint16_t buffer_pkt_ancount(buffer_type* buffer);
 
 /**
  * Set ANCOUNT in buffer.
@@ -546,7 +546,7 @@ uint16_t buffer_pkt_ancount(buffer_type* buffer);
  * \param[in] count ANCOUNT
  *
  */
-void buffer_pkt_set_ancount(buffer_type* buffer, uint16_t count);
+extern void buffer_pkt_set_ancount(buffer_type* buffer, uint16_t count);
 
 /**
  * Get NSCOUNT from buffer.
@@ -554,7 +554,7 @@ void buffer_pkt_set_ancount(buffer_type* buffer, uint16_t count);
  * \return uint16_t NSCOUNT
  *
  */
-uint16_t buffer_pkt_nscount(buffer_type* buffer);
+extern uint16_t buffer_pkt_nscount(buffer_type* buffer);
 
 /**
  * Set NSCOUNT in buffer.
@@ -562,7 +562,7 @@ uint16_t buffer_pkt_nscount(buffer_type* buffer);
  * \param[in] count NSCOUNT
  *
  */
-void buffer_pkt_set_nscount(buffer_type* buffer, uint16_t count);
+extern void buffer_pkt_set_nscount(buffer_type* buffer, uint16_t count);
 
 /**
  * Get ARCOUNT from buffer.
@@ -570,7 +570,7 @@ void buffer_pkt_set_nscount(buffer_type* buffer, uint16_t count);
  * \return uint16_t ARCOUNT
  *
  */
-uint16_t buffer_pkt_arcount(buffer_type* buffer);
+extern uint16_t buffer_pkt_arcount(buffer_type* buffer);
 
 /**
  * Set ARCOUNT in buffer.
@@ -578,7 +578,7 @@ uint16_t buffer_pkt_arcount(buffer_type* buffer);
  * \param[in] count ARCOUNT
  *
  */
-void buffer_pkt_set_arcount(buffer_type* buffer, uint16_t count);
+extern void buffer_pkt_set_arcount(buffer_type* buffer, uint16_t count);
 
 /**
  * Make a new query.
@@ -588,7 +588,7 @@ void buffer_pkt_set_arcount(buffer_type* buffer, uint16_t count);
  * \param[in] qclass qclass
  *
  */
-void
+extern void
 buffer_pkt_query(buffer_type* buffer, ldns_rdf* qname, ldns_rr_type qtype,
    ldns_rr_class qclass);
 
@@ -599,7 +599,7 @@ buffer_pkt_query(buffer_type* buffer, ldns_rdf* qname, ldns_rr_type qtype,
  * \param[in] qclass qclass
  *
  */
-void
+extern void
 buffer_pkt_notify(buffer_type* buffer, ldns_rdf* qname, ldns_rr_class qclass);
 
 /**
@@ -608,7 +608,7 @@ buffer_pkt_notify(buffer_type* buffer, ldns_rdf* qname, ldns_rr_class qclass);
  * \param[in] allocator memory allocator
  *
  */
-void buffer_cleanup(buffer_type* buffer);
+extern void buffer_cleanup(buffer_type* buffer);
 
 /** UTIL **/
 

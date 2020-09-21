@@ -71,14 +71,14 @@ struct dnsout_struct {
  * \return dnsin_type* DNS input adapter
  *
  */
-dnsin_type* dnsin_create(void);
+extern dnsin_type* dnsin_create(void);
 
 /**
  * Create DNS output adapter.
  * \return dnsout_type* DNS output adapter
  *
  */
-dnsout_type* dnsout_create(void);
+extern dnsout_type* dnsout_create(void);
 
 /**
  * Update DNS input adapter.
@@ -88,7 +88,7 @@ dnsout_type* dnsout_create(void);
  * \return ods_status status
  *
  */
-ods_status dnsin_update(dnsin_type** addns, const char* filename,
+extern ods_status dnsin_update(dnsin_type** addns, const char* filename,
     time_t* last_mod);
 
 /**
@@ -99,7 +99,7 @@ ods_status dnsin_update(dnsin_type** addns, const char* filename,
  * \return ods_status status
  *
  */
-ods_status dnsout_update(dnsout_type** addns, const char* filename,
+extern ods_status dnsout_update(dnsout_type** addns, const char* filename,
     time_t* last_mod);
 
 /**
@@ -114,7 +114,7 @@ ods_status dnsout_update(dnsout_type** addns, const char* filename,
  * \return ldns_rr* RR
  *
  */
-ldns_rr* addns_read_rr(FILE* fd, char* line, ldns_rdf** orig, ldns_rdf** prev,
+extern ldns_rr* addns_read_rr(FILE* fd, char* line, ldns_rdf** orig, ldns_rdf** prev,
     uint32_t* ttl, ldns_status* status, unsigned int* l);
 
 
@@ -124,7 +124,7 @@ ldns_rr* addns_read_rr(FILE* fd, char* line, ldns_rdf** orig, ldns_rdf** prev,
  * \return ods_status status
  *
  */
-ods_status addns_read(zone_type* zone, names_view_type view);
+extern ods_status addns_read(zone_type* zone, names_view_type view);
 
 /**
  * Write zone to DNS output adapter.
@@ -132,7 +132,7 @@ ods_status addns_read(zone_type* zone, names_view_type view);
  * \return ods_status status
  *
  */
-ods_status addns_write(zone_type* zone, names_view_type view);
+extern ods_status addns_write(zone_type* zone, names_view_type view);
 
 /**
  * Clean up DNS input adapter.

@@ -71,7 +71,7 @@ struct adapter_struct {
  * \return adapter_type* created adapter
  *
  */
-adapter_type* adapter_create(const char* str, adapter_mode type, unsigned in);
+extern adapter_type* adapter_create(const char* str, adapter_mode type, unsigned in);
 
 /**
  * Load configuration.
@@ -79,7 +79,7 @@ adapter_type* adapter_create(const char* str, adapter_mode type, unsigned in);
  * \return ods_status status
  *
  */
-ods_status adapter_load_config(adapter_type* adapter);
+extern ods_status adapter_load_config(adapter_type* adapter);
 
 /**
  * Compare adapters.
@@ -88,7 +88,7 @@ ods_status adapter_load_config(adapter_type* adapter);
  * \return int 0 on equal, -1 if a1 < a2, 1 if a1 > a2
  *
  */
-int adapter_compare(adapter_type* a1, adapter_type* a2);
+extern int adapter_compare(adapter_type* a1, adapter_type* a2);
 
 /**
  * Read zone from input adapter.
@@ -96,7 +96,7 @@ int adapter_compare(adapter_type* a1, adapter_type* a2);
  * \return ods_status status
  *
  */
-ods_status adapter_read(zone_type* zone, names_view_type view);
+extern ods_status adapter_read(zone_type* zone, names_view_type view);
 
 /**
  * Write zone to output adapter.
@@ -104,13 +104,13 @@ ods_status adapter_read(zone_type* zone, names_view_type view);
  * \return ods_status status
  *
  */
-ods_status adapter_write(zone_type* zone);
+extern ods_status adapter_write(zone_type* zone);
 
 /**
  * Clean up adapter.
  * \param[in] adapter adapter to cleanup
  *
  */
-void adapter_cleanup(adapter_type* adapter);
+extern void adapter_cleanup(adapter_type* adapter);
 
 #endif /* ADAPTER_ADAPTER_H */

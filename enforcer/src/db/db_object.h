@@ -60,20 +60,20 @@ struct db_object_field {
  * Create a database object field.
  * \return a db_object_field_t pointer or NULL on error.
  */
-db_object_field_t* db_object_field_new(void);
+extern db_object_field_t* db_object_field_new(void);
 
 /**
  * Create a database object field that is a copy of another.
  * \param[in] from_object_field a db_object_field_t pointer.
  * \return a db_object_field_t pointer or NULL on error.
  */
-db_object_field_t* db_object_field_new_copy(const db_object_field_t* from_object_field);
+extern db_object_field_t* db_object_field_new_copy(const db_object_field_t* from_object_field);
 
 /**
  * Delete a database object field.
  * \param[in] object_field a db_object_field_t pointer.
  */
-void db_object_field_free(db_object_field_t* object_field);
+extern void db_object_field_free(db_object_field_t* object_field);
 
 /**
  * Copy the content of a database object field.
@@ -81,21 +81,21 @@ void db_object_field_free(db_object_field_t* object_field);
  * \param[in] from_object_field a db_object_field_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_object_field_copy(db_object_field_t* object_field, const db_object_field_t* from_object_field);
+extern int db_object_field_copy(db_object_field_t* object_field, const db_object_field_t* from_object_field);
 
 /**
  * Get the name of a database object field.
  * \param[in] object_field a db_object_field_t pointer.
  * \return a character pointer or NULL on error or if no field name has been set.
  */
-const char* db_object_field_name(const db_object_field_t* object_field);
+extern const char* db_object_field_name(const db_object_field_t* object_field);
 
 /**
  * Get the type of a database object field.
  * \param[in] object_field a db_object_field_t pointer.
  * \return a db_type_t.
  */
-db_type_t db_object_field_type(const db_object_field_t* object_field);
+extern db_type_t db_object_field_type(const db_object_field_t* object_field);
 
 /**
  * Set the name of a database object field.
@@ -103,7 +103,7 @@ db_type_t db_object_field_type(const db_object_field_t* object_field);
  * \param[in] name a character pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_object_field_set_name(db_object_field_t* object_field, const char* name);
+extern int db_object_field_set_name(db_object_field_t* object_field, const char* name);
 
 /**
  * Set the type of a database object field.
@@ -111,7 +111,7 @@ int db_object_field_set_name(db_object_field_t* object_field, const char* name);
  * \param[in] type a db_type_t.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_object_field_set_type(db_object_field_t* object_field, db_type_t type);
+extern int db_object_field_set_type(db_object_field_t* object_field, db_type_t type);
 
 /**
  * Set the enumerate set of a database object field.
@@ -119,14 +119,14 @@ int db_object_field_set_type(db_object_field_t* object_field, db_type_t type);
  * \param[in] enum_set a NULL terminated db_enum_t list.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_object_field_set_enum_set(db_object_field_t* object_field, const db_enum_t* enum_set);
+extern int db_object_field_set_enum_set(db_object_field_t* object_field, const db_enum_t* enum_set);
 
 /**
  * Check if the object field is not empty.
  * \param[in] object_field a db_object_field_t pointer.
  * \return DB_ERROR_* if empty, otherwise DB_OK.
  */
-int db_object_field_not_empty(const db_object_field_t* object_field);
+extern int db_object_field_not_empty(const db_object_field_t* object_field);
 
 /**
  * Get the next object field connected in a database object field list.
@@ -134,7 +134,7 @@ int db_object_field_not_empty(const db_object_field_t* object_field);
  * \return a db_object_field_t pointer or NULL on error or if there are no more
  * object fields in the list.
  */
-const db_object_field_t* db_object_field_next(const db_object_field_t* object_field);
+extern const db_object_field_t* db_object_field_next(const db_object_field_t* object_field);
 
 /**
  * A list of object fields.
@@ -149,20 +149,20 @@ struct db_object_field_list {
  * Create a new object field list.
  * \return a db_object_field_list_t pointer or NULL on error.
  */
-db_object_field_list_t* db_object_field_list_new(void);
+extern db_object_field_list_t* db_object_field_list_new(void);
 
 /**
  * Create a new object field list that is a copy of another.
  * \param[in] from_object_field_list a db_object_field_list_t pointer.
  * \return a db_object_field_list_t pointer or NULL on error.
  */
-db_object_field_list_t* db_object_field_list_new_copy(const db_object_field_list_t* from_object_field_list);
+extern db_object_field_list_t* db_object_field_list_new_copy(const db_object_field_list_t* from_object_field_list);
 
 /**
  * Delete a object field list and all object fields within the list.
  * \param[in] object_field_list a db_object_field_list_t pointer.
  */
-void db_object_field_list_free(db_object_field_list_t* object_field_list);
+extern void db_object_field_list_free(db_object_field_list_t* object_field_list);
 
 /**
  * Copy the content of a database object field list.
@@ -170,7 +170,7 @@ void db_object_field_list_free(db_object_field_list_t* object_field_list);
  * \param[in] from_object_field_list a db_object_field_list_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_object_field_list_copy(db_object_field_list_t* object_field_list, const db_object_field_list_t* from_object_field_list);
+extern int db_object_field_list_copy(db_object_field_list_t* object_field_list, const db_object_field_list_t* from_object_field_list);
 
 /**
  * Add a database object field to a database object field list, this will takes
@@ -179,21 +179,21 @@ int db_object_field_list_copy(db_object_field_list_t* object_field_list, const d
  * \param[in] object_field a db_object_field_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_object_field_list_add(db_object_field_list_t* object_field_list, db_object_field_t* object_field);
+extern int db_object_field_list_add(db_object_field_list_t* object_field_list, db_object_field_t* object_field);
 
 /**
  * Return the first database object field in a database object field list.
  * \param[in] object_field_list a db_object_field_list_t pointer.
  * \return a db_object_field_t pointer or NULL on error or if the list is empty.
  */
-const db_object_field_t* db_object_field_list_begin(const db_object_field_list_t* object_field_list);
+extern const db_object_field_t* db_object_field_list_begin(const db_object_field_list_t* object_field_list);
 
 /**
  * Return the size of a object field list.
  * \param[in] object_field_list a db_object_field_list_t pointer.
  * \return a size_t, may be zero on error.
  */
-size_t db_object_field_list_size(const db_object_field_list_t* object_field_list);
+extern size_t db_object_field_list_size(const db_object_field_list_t* object_field_list);
 
 /**
  * A database object.
@@ -210,14 +210,14 @@ struct db_object {
  * Create a new database object.
  * \return a db_object_t pointer or NULL on error.
  */
-db_object_t* db_object_new(void);
+extern db_object_t* db_object_new(void);
 
 /**
  * Delete a database object and the object field list and backend meta data list
  * if set.
  * \param[in] object a db_object_t pointer.
  */
-void db_object_free(db_object_t* object);
+extern void db_object_free(db_object_t* object);
 
 /**
  * Get the database connection of a database object.
@@ -225,7 +225,7 @@ void db_object_free(db_object_t* object);
  * \return a db_connection_t pointer or NULL on error or if no connection has
  * been set.
  */
-const db_connection_t* db_object_connection(const db_object_t* object);
+extern const db_connection_t* db_object_connection(const db_object_t* object);
 
 /**
  * Get the table name of a database object.
@@ -233,7 +233,7 @@ const db_connection_t* db_object_connection(const db_object_t* object);
  * \return a character pointer or NULL on error or if no table name has been
  * set.
  */
-const char* db_object_table(const db_object_t* object);
+extern const char* db_object_table(const db_object_t* object);
 
 /**
  * Get the object field list of a database object.
@@ -241,7 +241,7 @@ const char* db_object_table(const db_object_t* object);
  * \return a db_object_field_list_t pointer or NULL on error or if no object
  * field list has been set.
  */
-const db_object_field_list_t* db_object_object_field_list(const db_object_t* object);
+extern const db_object_field_list_t* db_object_object_field_list(const db_object_t* object);
 
 /**
  * Set the database connection of a database object.
@@ -249,7 +249,7 @@ const db_object_field_list_t* db_object_object_field_list(const db_object_t* obj
  * \param[in] connection a db_connection_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_object_set_connection(db_object_t* object, const db_connection_t* connection);
+extern int db_object_set_connection(db_object_t* object, const db_connection_t* connection);
 
 /**
  * Set the table name of a database object.
@@ -257,7 +257,7 @@ int db_object_set_connection(db_object_t* object, const db_connection_t* connect
  * \param[in] table a character pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_object_set_table(db_object_t* object, const char* table);
+extern int db_object_set_table(db_object_t* object, const char* table);
 
 /**
  * Set the primary key name of a database object.
@@ -265,7 +265,7 @@ int db_object_set_table(db_object_t* object, const char* table);
  * \param[in] primary_key_name a character pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_object_set_primary_key_name(db_object_t* object, const char* primary_key_name);
+extern int db_object_set_primary_key_name(db_object_t* object, const char* primary_key_name);
 
 /**
  * Set the object field list of a database object, this takes over the ownership
@@ -274,7 +274,7 @@ int db_object_set_primary_key_name(db_object_t* object, const char* primary_key_
  * \param[in] object_field_list a db_object_field_list_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_object_set_object_field_list(db_object_t* object, db_object_field_list_t* object_field_list);
+extern int db_object_set_object_field_list(db_object_t* object, db_object_field_list_t* object_field_list);
 
 /**
  * Create an object in the database. The `object_field_list` describes the
@@ -295,7 +295,7 @@ int db_object_create(db_object_t* object, const db_object_field_list_t* object_f
  * \return a db_result_list_t pointer or NULL on error or if no objects where
  * read.
  */
-db_result_list_t* db_object_read(const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list);
+extern db_result_list_t* db_object_read(const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list);
 
 /**
  * Update an object or objects in the database.
@@ -305,7 +305,7 @@ db_result_list_t* db_object_read(const db_object_t* object, const db_join_list_t
  * \param[in] clause_list a db_clause_list_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_object_update(const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set, const db_clause_list_t* clause_list);
+extern int db_object_update(const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set, const db_clause_list_t* clause_list);
 
 /**
  * Delete an object or objects from the database.
@@ -313,7 +313,7 @@ int db_object_update(const db_object_t* object, const db_object_field_list_t* ob
  * \param[in] clause_list a db_clause_list_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_object_delete(const db_object_t* object, const db_clause_list_t* clause_list);
+extern int db_object_delete(const db_object_t* object, const db_clause_list_t* clause_list);
 
 /**
  * Count objects from the database. Return the count in `count`.
@@ -323,6 +323,6 @@ int db_object_delete(const db_object_t* object, const db_clause_list_t* clause_l
  * \param[out] count a size_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_object_count(const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list, size_t* count);
+extern int db_object_count(const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list, size_t* count);
 
 #endif

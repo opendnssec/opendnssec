@@ -36,13 +36,13 @@
 /**
  * reschedule resalt tasks for *now*. If policyname not given flush *all*
  */
-int
+extern int
 resalt_task_flush(engine_type *engine, db_connection_t *dbconn,
     const char *policy);
 
 /**
  * Schedule all resalt tasks
  */
-int resalt_task_schedule(engine_type *engine, db_connection_t *dbconn);
+extern int resalt_task_schedule(engine_type *engine, db_connection_t *dbconn);
 
 #endif

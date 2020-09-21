@@ -64,6 +64,6 @@
  * \param[in] comment if non-zero include a comment about the zonelist file.
  * \return ZONELIST_EXPORT_ERR_* on error otherwise ZONELIST_EXPORT_OK.
  */
-int zonelist_export(int sockfd, db_connection_t* connection, const char* filename, int comment);
+extern int zonelist_export(int sockfd, db_connection_t* connection, const char* filename, int comment);
 
 #endif /* _KEYSTATE_ZONELIST_EXPORT_H_ */

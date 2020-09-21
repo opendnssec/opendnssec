@@ -32,6 +32,6 @@
 
 #include "daemon/engine.h"
 
-void autostart(engine_type* engine);
+extern void autostart(engine_type* engine);
 
 #endif

@@ -49,7 +49,7 @@
  * \return int number of characters read
  *
  */
-int adutil_readline_frm_file(FILE* fd, char* line, unsigned int* l,
+extern int adutil_readline_frm_file(FILE* fd, char* line, unsigned int* l,
     int keep_comments);
 
 /*
@@ -58,7 +58,7 @@ int adutil_readline_frm_file(FILE* fd, char* line, unsigned int* l,
  * \param[out] line_len maintain line length
  *
  */
-void adutil_rtrim_line(char* line, int* line_len);
+extern void adutil_rtrim_line(char* line, int* line_len);
 
 /**
  * Check for white space.
@@ -66,7 +66,7 @@ void adutil_rtrim_line(char* line, int* line_len);
  * \param[in] line_len line length
  *
  */
-int adutil_whitespace_line(char* line, int line_len);
+extern int adutil_whitespace_line(char* line, int line_len);
 
 /**
  * Produce an AXFR or IXFR file, the file is immediately deleted, but an

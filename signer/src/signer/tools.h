@@ -38,7 +38,7 @@
  * \return ods_status status
  *
  */
-ods_status tools_signconf(zone_type* zone);
+extern ods_status tools_signconf(zone_type* zone);
 
 /**
  * Read zone from input adapter.
@@ -46,7 +46,7 @@ ods_status tools_signconf(zone_type* zone);
  * \return ods_status status
  *
  */
-ods_status tools_input(zone_type* zone);
+extern ods_status tools_input(zone_type* zone);
 
 /**
  * Write zone to output adapter.
@@ -55,6 +55,6 @@ ods_status tools_input(zone_type* zone);
  * \return ods_status status
  *
  */
-ods_status tools_output(zone_type* zone, engine_type* engine);
+extern ods_status tools_output(zone_type* zone, engine_type* engine);
 
 #endif /* SIGNER_TOOLS_H */

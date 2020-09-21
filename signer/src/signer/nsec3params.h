@@ -62,7 +62,7 @@ struct nsec3params_struct {
  * \return ods_status status
  *
  */
-ods_status nsec3params_create_salt(const char* salt_str, uint8_t* salt_len,
+extern ods_status nsec3params_create_salt(const char* salt_str, uint8_t* salt_len,
     uint8_t** salt);
 
 /**
@@ -75,7 +75,7 @@ ods_status nsec3params_create_salt(const char* salt_str, uint8_t* salt_len,
  * \return nsec3params_type* the created nsec3params
  *
  */
-nsec3params_type* nsec3params_create(void* sc, uint8_t algo, uint8_t flags,
+extern nsec3params_type* nsec3params_create(void* sc, uint8_t algo, uint8_t flags,
     uint16_t iter, const char* salt);
 
 /**
@@ -83,6 +83,6 @@ nsec3params_type* nsec3params_create(void* sc, uint8_t algo, uint8_t flags,
  * \param[in] nsec3params the nsec3param to be deleted
  *
  */
-void nsec3params_cleanup(nsec3params_type* nsec3params);
+extern void nsec3params_cleanup(nsec3params_type* nsec3params);
 
 #endif /* SIGNER_NSEC3PARAMS_H */

@@ -119,7 +119,7 @@ struct zone_struct {
  * \return zone_type* zone
  *
  */
-zone_type* zone_create(char* name, ldns_rr_class klass);
+extern zone_type* zone_create(char* name, ldns_rr_class klass);
 
 /**
  * Load signer configuration for zone.
@@ -131,7 +131,7 @@ zone_type* zone_create(char* name, ldns_rr_class klass);
  *         other: signer configuration not loaded, error occurred
  *
  */
-ods_status zone_load_signconf(zone_type* zone, signconf_type** new_signconf);
+extern ods_status zone_load_signconf(zone_type* zone, signconf_type** new_signconf);
 
 /**
  * Reschedule task for zone.
@@ -141,7 +141,7 @@ ods_status zone_load_signconf(zone_type* zone, signconf_type** new_signconf);
  * \return ods_status status
  *
  */
-ods_status zone_reschedule_task(zone_type* zone, schedule_type* taskq,
+extern ods_status zone_reschedule_task(zone_type* zone, schedule_type* taskq,
     task_id what);
 
 /**
@@ -150,7 +150,7 @@ ods_status zone_reschedule_task(zone_type* zone, schedule_type* taskq,
  * \return ods_status status
  *
  */
-ods_status zone_publish_dnskeys(zone_type* zone, names_view_type view, int skip_hsm_access);
+extern ods_status zone_publish_dnskeys(zone_type* zone, names_view_type view, int skip_hsm_access);
 
 /**
  * Publish the NSEC3 parameters as indicated by the signer configuration.
@@ -158,7 +158,7 @@ ods_status zone_publish_dnskeys(zone_type* zone, names_view_type view, int skip_
  * \return ods_status status
  *
  */
-ods_status zone_publish_nsec3param(zone_type* zone, names_view_type view);
+extern ods_status zone_publish_nsec3param(zone_type* zone, names_view_type view);
 
 /**
  * Prepare keys for signing.
@@ -166,7 +166,7 @@ ods_status zone_publish_nsec3param(zone_type* zone, names_view_type view);
  * \return ods_status status
  *
  */
-ods_status zone_prepare_keys(zone_type* zone);
+extern ods_status zone_prepare_keys(zone_type* zone);
 
 /**
  * Update serial.
@@ -174,7 +174,7 @@ ods_status zone_prepare_keys(zone_type* zone);
  * \return ods_status status
  *
  */
-ods_status zone_update_serial(zone_type* zone, names_view_type view);
+extern ods_status zone_update_serial(zone_type* zone, names_view_type view);
 
 /**
  * Lookup RRset.
@@ -184,7 +184,7 @@ ods_status zone_update_serial(zone_type* zone, names_view_type view);
  * \return rrset_type* RRset, if found
  *
  */
-ldns_rr* zone_lookup_apex_rrset(names_view_type view, ldns_rr_type type,ldns_rr*);
+extern ldns_rr* zone_lookup_apex_rrset(names_view_type view, ldns_rr_type type,ldns_rr*);
 
 /**
  * Add RR.
@@ -197,7 +197,7 @@ ldns_rr* zone_lookup_apex_rrset(names_view_type view, ldns_rr_type type,ldns_rr*
  *         other: rr not added to zone, error occurred
  *
  */
-ods_status zone_add_rr(zone_type* zone, names_view_type view, ldns_rr* rr);
+extern ods_status zone_add_rr(zone_type* zone, names_view_type view, ldns_rr* rr);
 
 /**
  * Delete RR.
@@ -210,13 +210,13 @@ ods_status zone_add_rr(zone_type* zone, names_view_type view, ldns_rr* rr);
  *         other: rr not removed from zone, error occurred
  *
  */
-ods_status zone_del_rr(zone_type* zone, names_view_type view, ldns_rr* rr);
+extern ods_status zone_del_rr(zone_type* zone, names_view_type view, ldns_rr* rr);
 
 /**
  * Remove all NSEC3PARAM RRs from the zone
  * \return ODS_STATUS_UNCHANGED or ODS_STATUS_OK
  */ 
-ods_status zone_del_nsec3params(zone_type* zone, names_view_type view);
+extern ods_status zone_del_nsec3params(zone_type* zone, names_view_type view);
 
 /**
  * Merge zones. Values that are merged:
@@ -228,14 +228,14 @@ ods_status zone_del_nsec3params(zone_type* zone, names_view_type view);
  * \param[in] z2 zone with new values
  *
  */
-void zone_merge(zone_type* z1, zone_type* z2);
+extern void zone_merge(zone_type* z1, zone_type* z2);
 
 /**
  * Clean up zone.
  * \param[in] zone zone
  *
  */
-void zone_cleanup(zone_type* zone);
+extern void zone_cleanup(zone_type* zone);
 
 /**
  * Mark the zone ready to be used.
@@ -243,7 +243,7 @@ void zone_cleanup(zone_type* zone);
  * \param[in] zone zone
  *
  */
-void zone_start(zone_type* zone);
+extern void zone_start(zone_type* zone);
 
 /**
  * recover from old-style backup file format.
@@ -251,7 +251,7 @@ void zone_start(zone_type* zone);
  * @param view the input view of the zone
  * @return returns whether the recvering was successfull
  */
-ods_status
+extern ods_status
 zone_recover(zone_type* zone);
 
 #endif /* SIGNER_ZONE_H */
