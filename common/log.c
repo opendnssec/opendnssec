@@ -111,7 +111,6 @@ ods_log_init(const char *programname, int use_syslog, const char *targetname, in
 #else
        openlog(programname, LOG_NDELAY, facility);
 #endif
-       log_ident = strdup(programname);
        logging_to_syslog = 1;
        if (error == 1) {
         ods_log_warning("[%s] syslog facility %s not supported, logging to "
@@ -123,6 +122,7 @@ ods_log_init(const char *programname, int use_syslog, const char *targetname, in
     }
 #endif /* HAVE_SYSLOG_H */
 
+    log_ident = strdup(programname);
     if(targetname && targetname[0]) {
         logfile = ods_fopen(targetname, NULL, "a");
         if (logfile) {
