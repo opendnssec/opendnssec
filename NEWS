@@ -1,8 +1,13 @@
 OpenDNSSEC 2.1.6 - 2020-09-??
 
+* Load libsqlite3.so.0 and fall back on libsqlite3.so.0 to allow to run
+  migration tool on systems without libsqlite3.so.0 soft link.
+  (Thanks to Paul Wouters)
 * Some compilation warnings, o.a. gcc10 related, code quality and
   initialization improvements.
   (Thanks to Jonas Berlin, and Mathieu MirMont, and Paul Wouters).
+* SUPPORT-253: Incorrect keytag used when using Combined Signing keys (CSK)
+  (Thanks to Simon Arlott)
 
 OpenDNSSEC 2.1.6 - 2020-02-10
 
