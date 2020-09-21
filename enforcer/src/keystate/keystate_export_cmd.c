@@ -78,7 +78,7 @@ get_dnskey(const char *id, const char *zone, const char *keytype, int alg, uint3
     sign_params->algorithm = (ldns_algorithm) alg;
     sign_params->flags = LDNS_KEY_ZONE_KEY;
 
-    if (keytype && !strcasecmp(keytype, "KSK"))
+    if (keytype && (!strcasecmp(keytype, "KSK") || !strcasecmp(keytype, "CSK")))
         sign_params->flags = sign_params->flags | LDNS_KEY_SEP_KEY;
 		
     /* Get the DNSKEY record */

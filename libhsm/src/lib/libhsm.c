@@ -3011,7 +3011,7 @@ hsm_sign_rrset(hsm_ctx_t *ctx,
 }
 
 int
-hsm_keytag(const char* loc, int alg, int ksk, uint16_t* keytag)
+hsm_keytag(const char* loc, int alg, int sep, uint16_t* keytag)
 {
 	uint16_t tag;
 	hsm_ctx_t *hsm_ctx;
@@ -3036,7 +3036,7 @@ hsm_keytag(const char* loc, int alg, int ksk, uint16_t* keytag)
 	sign_params->owner = ldns_rdf_new_frm_str(LDNS_RDF_TYPE_DNAME, "dummy");
 	sign_params->algorithm = (ldns_algorithm) alg;
 	sign_params->flags = LDNS_KEY_ZONE_KEY;
-	if (ksk)
+	if (sep)
 		sign_params->flags |= LDNS_KEY_SEP_KEY;
 
 	hsmkey = hsm_find_key_by_id(hsm_ctx, loc);

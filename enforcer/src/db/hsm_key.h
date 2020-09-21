@@ -54,6 +54,8 @@ typedef enum hsm_key_role {
 } hsm_key_role_t;
 extern const db_enum_t hsm_key_enum_set_role[];
 
+#define HSM_KEY_ROLE_SEP(role) ((role) == HSM_KEY_ROLE_KSK || (role) == HSM_KEY_ROLE_CSK)
+
 typedef enum hsm_key_key_type {
     HSM_KEY_KEY_TYPE_INVALID = -1,
     HSM_KEY_KEY_TYPE_RSA = 1
