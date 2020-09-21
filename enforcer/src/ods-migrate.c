@@ -97,10 +97,13 @@ dblayer_sqlite3_initialize(void)
     char const *error;
 
     dlerror();
-    handle = dlopen("libsqlite3.so", RTLD_NOW);
+    handle = dlopen("libsqlite3.so.0", RTLD_NOW);
     if ((error = dlerror()) != NULL) {
-	    printf("Failed to load sqlite3 library. dlerror(): %s\n", error);
-	    exit(1);
+          handle = dlopen("libsqlite3.so", RTLD_NOW); /* unversioned is a -devel package file on some distros */
+          if ((error = dlerror()) != NULL) {
+             printf("Failed to load sqlite3 library. dlerror(): %s\n", error);
+             exit(1);
+          }
     }
 
     dblayer_sqlite3.sqlite3_prepare_v2 = (int(*)(sqlite3*, const char*, int, sqlite3_stmt**, const char **))functioncast(dlsym(handle, "sqlite3_prepare_v2"));
