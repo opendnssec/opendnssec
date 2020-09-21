@@ -1,3 +1,9 @@
+OpenDNSSEC 2.1.6 - 2020-09-??
+
+* Some compilation warnings, o.a. gcc10 related, code quality and
+  initialization improvements.
+  (Thanks to Jonas Berlin, and Mathieu MirMont, and Paul Wouters).
+
 OpenDNSSEC 2.1.6 - 2020-02-10
 
 * OPENDNSSEC-913: verify database connection upon every use.
