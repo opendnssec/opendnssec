@@ -30,6 +30,6 @@
 #ifndef __test_policy_h
 #define __test_policy_h
 
-int test_policy_add_suite(void);
+extern int test_policy_add_suite(void);
 
 #endif

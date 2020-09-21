@@ -77,7 +77,7 @@ struct signconf_struct {
  * \return signconf_type* signer configuration
  *
  */
-signconf_type* signconf_create(void);
+extern signconf_type* signconf_create(void);
 
 /**
  * Update signer configuration.
@@ -87,7 +87,7 @@ signconf_type* signconf_create(void);
  * \return ods_status status
  *
  */
-ods_status signconf_update(signconf_type** signconf, const char* scfile,
+extern ods_status signconf_update(signconf_type** signconf, const char* scfile,
     time_t last_modified);
 
 /**
@@ -105,7 +105,7 @@ void signconf_backup(FILE* fd, signconf_type* sc, const char* version);
  * \return ods_status status
  *
  */
-ods_status signconf_check(signconf_type* signconf);
+extern ods_status signconf_check(signconf_type* signconf);
 
 /**
  * Compare signer configurations on denial of existence material.
@@ -114,7 +114,7 @@ ods_status signconf_check(signconf_type* signconf);
  * \return task_id what task needs to be scheduled
  *
  */
-task_id signconf_compare_denial(signconf_type* a, signconf_type* b);
+extern task_id signconf_compare_denial(signconf_type* a, signconf_type* b);
 
 /**
  * Log signer configuration.
@@ -122,13 +122,13 @@ task_id signconf_compare_denial(signconf_type* a, signconf_type* b);
  * \param[in] name zone name
  *
  */
-void signconf_log(signconf_type* sc, const char* name);
+extern void signconf_log(signconf_type* sc, const char* name);
 
 /**
  * Clean up signer configuration.
  * \param[in] sc signconf to cleanup
  *
  */
-void signconf_cleanup(signconf_type* sc);
+extern void signconf_cleanup(signconf_type* sc);
 
 #endif /* SIGNER_SIGNCONF_H */

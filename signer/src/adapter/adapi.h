@@ -60,7 +60,7 @@ void adapi_set_serial(zone_type* zone, uint32_t serial);
  * \return ldns_rdf* origin
  *
  */
-ldns_rdf* adapi_get_origin(zone_type* zone);
+extern ldns_rdf* adapi_get_origin(zone_type* zone);
 
 /**
  * Get ttl.
@@ -68,7 +68,7 @@ ldns_rdf* adapi_get_origin(zone_type* zone);
  * \return uint32_t ttl
  *
  */
-uint32_t adapi_get_ttl(zone_type* zone);
+extern uint32_t adapi_get_ttl(zone_type* zone);
 
 /*
  * Do full zone transaction.
@@ -76,7 +76,7 @@ uint32_t adapi_get_ttl(zone_type* zone);
  * \param[in] more_coming more transactions are possible
  *
  */
-void adapi_trans_full(zone_type* zone, unsigned more_coming);
+extern void adapi_trans_full(zone_type* zone, unsigned more_coming);
 
 /*
  * Do incremental zone transaction.
@@ -84,7 +84,7 @@ void adapi_trans_full(zone_type* zone, unsigned more_coming);
  * \param[in] more_coming more transactions are possible
  *
  */
-void adapi_trans_diff(zone_type* zone, unsigned more_coming);
+extern void adapi_trans_diff(zone_type* zone, unsigned more_coming);
 
 /**
  * Add RR.
@@ -94,7 +94,7 @@ void adapi_trans_diff(zone_type* zone, unsigned more_coming);
  * \return ods_status status
  *
  */
-ods_status adapi_add_rr(zone_type* zone, ldns_rr* rr, int backup);
+extern ods_status adapi_add_rr(zone_type* zone, ldns_rr* rr, int backup);
 
 /**
  * Delete RR.
@@ -104,7 +104,7 @@ ods_status adapi_add_rr(zone_type* zone, ldns_rr* rr, int backup);
  * \return ods_status status
  *
  */
-ods_status adapi_del_rr(zone_type* zone, ldns_rr* rr, int backup);
+extern ods_status adapi_del_rr(zone_type* zone, ldns_rr* rr, int backup);
 
 /**
  * Print zonefile.
@@ -113,7 +113,7 @@ ods_status adapi_del_rr(zone_type* zone, ldns_rr* rr, int backup);
  * \return ods_status status
  *
  */
-ods_status adapi_printzone(FILE* fd, zone_type* zone);
+extern ods_status adapi_printzone(FILE* fd, zone_type* zone);
 
 /**
  * Print axfr.
@@ -122,7 +122,7 @@ ods_status adapi_printzone(FILE* fd, zone_type* zone);
  * \return ods_status status
  *
  */
-ods_status adapi_printaxfr(FILE* fd, zone_type* zone);
+extern ods_status adapi_printaxfr(FILE* fd, zone_type* zone);
 
 /**
  * Print ixfr.
@@ -131,6 +131,6 @@ ods_status adapi_printaxfr(FILE* fd, zone_type* zone);
  * \return ods_status status
  *
  */
-ods_status adapi_printixfr(FILE* fd, zone_type* zone);
+extern ods_status adapi_printixfr(FILE* fd, zone_type* zone);
 
 #endif /* ADAPTER_ADAPI_H */

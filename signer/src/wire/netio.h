@@ -162,7 +162,7 @@ struct netio_struct {
  * \return netio_type* netio instance
  *
  */
-netio_type* netio_create(void);
+extern netio_type* netio_create(void);
 
 /*
  * Add a new handler to netio.
@@ -170,7 +170,7 @@ netio_type* netio_create(void);
  * \param[in] handler handler
  *
  */
-void netio_add_handler(netio_type* netio, netio_handler_type* handler);
+extern void netio_add_handler(netio_type* netio, netio_handler_type* handler);
 
 /*
  * Remove the handler from netio.
@@ -178,7 +178,7 @@ void netio_add_handler(netio_type* netio, netio_handler_type* handler);
  * \param[in] handler handler
  *
  */
-void netio_remove_handler(netio_type* netio, netio_handler_type* handler);
+extern void netio_remove_handler(netio_type* netio, netio_handler_type* handler);
 
 /*
  * Retrieve the current time (using gettimeofday(2)).
@@ -186,7 +186,7 @@ void netio_remove_handler(netio_type* netio, netio_handler_type* handler);
  * \return const struct timespec* current time
  *
  */
-const struct timespec* netio_current_time(netio_type* netio);
+extern const struct timespec* netio_current_time(netio_type* netio);
 
 /*
  * Check for events and dispatch them to the handlers.
@@ -198,7 +198,7 @@ const struct timespec* netio_current_time(netio_type* netio);
  *             and -1 on error (with errno set appropriately).
  *
  */
-int netio_dispatch(netio_type* netio, const struct timespec* timeout,
+extern int netio_dispatch(netio_type* netio, const struct timespec* timeout,
    const sigset_t* sigmask);
 
 /**
@@ -206,8 +206,8 @@ int netio_dispatch(netio_type* netio, const struct timespec* timeout,
  * \param[in] netio netio instance
  *
  */
-void netio_cleanup(netio_type* netio);
-void netio_cleanup_shallow(netio_type* netio);
+extern void netio_cleanup(netio_type* netio);
+extern void netio_cleanup_shallow(netio_type* netio);
 
 /**
  * Add timespecs.
@@ -215,7 +215,7 @@ void netio_cleanup_shallow(netio_type* netio);
  * \param[in] right right
  *
  */
-void timespec_add(struct timespec* left, const struct timespec* right);
+extern void timespec_add(struct timespec* left, const struct timespec* right);
 
 
 #ifdef __cplusplus

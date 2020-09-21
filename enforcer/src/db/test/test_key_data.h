@@ -30,6 +30,6 @@
 #ifndef __test_key_data_h
 #define __test_key_data_h
 
-int test_key_data_add_suite(void);
+extern int test_key_data_add_suite(void);
 
 #endif

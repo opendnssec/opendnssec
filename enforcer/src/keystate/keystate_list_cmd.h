@@ -34,6 +34,6 @@
 
 extern struct cmd_func_block key_list_funcblock;
 
-const char* map_keystate(key_data_t *key);
+extern const char* map_keystate(key_data_t *key);
 
 #endif /* _KEYSTATE_LIST_CMD_H_ */

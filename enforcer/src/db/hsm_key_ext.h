@@ -35,13 +35,13 @@
 /**
  * Return the human readable backup state of hsm_key as static string.
  */
-char const *
+extern char const *
 hsm_key_to_backup_state(hsm_key_t const *hsm_key);
 
 /**
  * Get all HSM keys for policy/algorithm/bits/repository.
  * NULL on failure
  */
-hsm_key_list_t* hsm_key_list_new_get_by_policy_key(const policy_key_t *pkey);
+extern hsm_key_list_t* hsm_key_list_new_get_by_policy_key(const policy_key_t *pkey);
 
 #endif

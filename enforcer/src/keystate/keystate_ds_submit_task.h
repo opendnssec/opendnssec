@@ -30,7 +30,7 @@
 #ifndef _KEYSTATE_DS_SUBMIT_TASK_H_
 #define _KEYSTATE_DS_SUBMIT_TASK_H_
 
-task_type *
+extern task_type *
 keystate_ds_submit_task(engine_type *engine, char const *owner);
 
 #endif

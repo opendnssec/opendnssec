@@ -70,14 +70,14 @@ struct dnsout_struct {
  * \return dnsin_type* DNS input adapter
  *
  */
-dnsin_type* dnsin_create(void);
+extern dnsin_type* dnsin_create(void);
 
 /**
  * Create DNS output adapter.
  * \return dnsout_type* DNS output adapter
  *
  */
-dnsout_type* dnsout_create(void);
+extern dnsout_type* dnsout_create(void);
 
 /**
  * Update DNS input adapter.
@@ -87,7 +87,7 @@ dnsout_type* dnsout_create(void);
  * \return ods_status status
  *
  */
-ods_status dnsin_update(dnsin_type** addns, const char* filename,
+extern ods_status dnsin_update(dnsin_type** addns, const char* filename,
     time_t* last_mod);
 
 /**
@@ -98,7 +98,7 @@ ods_status dnsin_update(dnsin_type** addns, const char* filename,
  * \return ods_status status
  *
  */
-ods_status dnsout_update(dnsout_type** addns, const char* filename,
+extern ods_status dnsout_update(dnsout_type** addns, const char* filename,
     time_t* last_mod);
 
 /**
@@ -113,7 +113,7 @@ ods_status dnsout_update(dnsout_type** addns, const char* filename,
  * \return ldns_rr* RR
  *
  */
-ldns_rr* addns_read_rr(FILE* fd, char* line, ldns_rdf** orig, ldns_rdf** prev,
+extern ldns_rr* addns_read_rr(FILE* fd, char* line, ldns_rdf** orig, ldns_rdf** prev,
     uint32_t* ttl, ldns_status* status, unsigned int* l);
 
 
@@ -123,7 +123,7 @@ ldns_rr* addns_read_rr(FILE* fd, char* line, ldns_rdf** orig, ldns_rdf** prev,
  * \return ods_status status
  *
  */
-ods_status addns_read(void* zone);
+extern ods_status addns_read(void* zone);
 
 /**
  * Write zone to DNS output adapter.
@@ -131,20 +131,20 @@ ods_status addns_read(void* zone);
  * \return ods_status status
  *
  */
-ods_status addns_write(void* zone);
+extern ods_status addns_write(void* zone);
 
 /**
  * Clean up DNS input adapter.
  * \param[in] addns DNS input adapter
  *
  */
-void dnsin_cleanup(dnsin_type* addns);
+extern void dnsin_cleanup(dnsin_type* addns);
 
 /**
  * Clean up DNS output adapter.
  * \param[in] addns DNS output adapter
  *
  */
-void dnsout_cleanup(dnsout_type* addns);
+extern void dnsout_cleanup(dnsout_type* addns);
 
 #endif /* ADAPTER_ADDNS_H */

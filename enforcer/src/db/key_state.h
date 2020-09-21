@@ -81,20 +81,20 @@ struct key_state {
  * \param[in] connection a db_connection_t pointer.
  * \return a key_state_t pointer or NULL on error.
  */
-key_state_t* key_state_new(const db_connection_t* connection);
+extern key_state_t* key_state_new(const db_connection_t* connection);
 
 /**
  * Create a new key state object that is a copy of another key state object.
  * \param[in] key_state a key_state_t pointer.
  * \return a key_state_t pointer or NULL on error.
  */
-key_state_t* key_state_new_copy(const key_state_t* key_state);
+extern key_state_t* key_state_new_copy(const key_state_t* key_state);
 
 /**
  * Delete a key state object, this does not delete it from the database.
  * \param[in] key_state a key_state_t pointer.
  */
-void key_state_free(key_state_t* key_state);
+extern void key_state_free(key_state_t* key_state);
 
 /**
  * Copy the content of a key state object.
@@ -102,7 +102,7 @@ void key_state_free(key_state_t* key_state);
  * \param[in] key_state_copy a key_state_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_state_copy(key_state_t* key_state, const key_state_t* key_state_copy);
+extern int key_state_copy(key_state_t* key_state, const key_state_t* key_state_copy);
 
 /**
  * Set the content of a key state object based on a database result.
@@ -110,63 +110,63 @@ int key_state_copy(key_state_t* key_state, const key_state_t* key_state_copy);
  * \param[in] result a db_result_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_state_from_result(key_state_t* key_state, const db_result_t* result);
+extern int key_state_from_result(key_state_t* key_state, const db_result_t* result);
 
 /**
  * Get the key_data_id of a key state object.
  * \param[in] key_state a key_state_t pointer.
  * \return a db_value_t pointer or NULL on error.
  */
-const db_value_t* key_state_key_data_id(const key_state_t* key_state);
+extern const db_value_t* key_state_key_data_id(const key_state_t* key_state);
 
 /**
  * Get the type of a key state object.
  * \param[in] key_state a key_state_t pointer.
  * \return a key_state_type_t which may be KEY_STATE_TYPE_INVALID on error or if no type has been set.
  */
-key_state_type_t key_state_type(const key_state_t* key_state);
+extern key_state_type_t key_state_type(const key_state_t* key_state);
 
 /**
  * Get the type as text of a key state object.
  * \param[in] key_state a key_state_t pointer.
  * \return a character pointer or NULL on error or if no type has been set.
  */
-const char* key_state_type_text(const key_state_t* key_state);
+extern const char* key_state_type_text(const key_state_t* key_state);
 
 /**
  * Get the state of a key state object.
  * \param[in] key_state a key_state_t pointer.
  * \return a key_state_state_t which may be KEY_STATE_STATE_INVALID on error or if no state has been set.
  */
-key_state_state_t key_state_state(const key_state_t* key_state);
+extern key_state_state_t key_state_state(const key_state_t* key_state);
 
 /**
  * Get the state as text of a key state object.
  * \param[in] key_state a key_state_t pointer.
  * \return a character pointer or NULL on error or if no state has been set.
  */
-const char* key_state_state_text(const key_state_t* key_state);
+extern const char* key_state_state_text(const key_state_t* key_state);
 
 /**
  * Get the last_change of a key state object. Undefined behavior if `key_state` is NULL.
  * \param[in] key_state a key_state_t pointer.
  * \return an unsigned integer.
  */
-unsigned int key_state_last_change(const key_state_t* key_state);
+extern unsigned int key_state_last_change(const key_state_t* key_state);
 
 /**
  * Get the minimize of a key state object. Undefined behavior if `key_state` is NULL.
  * \param[in] key_state a key_state_t pointer.
  * \return an unsigned integer.
  */
-unsigned int key_state_minimize(const key_state_t* key_state);
+extern unsigned int key_state_minimize(const key_state_t* key_state);
 
 /**
  * Get the ttl of a key state object. Undefined behavior if `key_state` is NULL.
  * \param[in] key_state a key_state_t pointer.
  * \return an unsigned integer.
  */
-unsigned int key_state_ttl(const key_state_t* key_state);
+extern unsigned int key_state_ttl(const key_state_t* key_state);
 
 /**
  * Set the key_data_id of a key state object. If this fails the original value may have been lost.
@@ -174,7 +174,7 @@ unsigned int key_state_ttl(const key_state_t* key_state);
  * \param[in] key_data_id a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_state_set_key_data_id(key_state_t* key_state, const db_value_t* key_data_id);
+extern int key_state_set_key_data_id(key_state_t* key_state, const db_value_t* key_data_id);
 
 /**
  * Set the type of a key state object.
@@ -182,7 +182,7 @@ int key_state_set_key_data_id(key_state_t* key_state, const db_value_t* key_data
  * \param[in] type a key_state_type_t.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_state_set_type(key_state_t* key_state, key_state_type_t type);
+extern int key_state_set_type(key_state_t* key_state, key_state_type_t type);
 
 /**
  * Set the state of a key state object.
@@ -190,7 +190,7 @@ int key_state_set_type(key_state_t* key_state, key_state_type_t type);
  * \param[in] state a key_state_state_t.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_state_set_state(key_state_t* key_state, key_state_state_t state);
+extern int key_state_set_state(key_state_t* key_state, key_state_state_t state);
 
 /**
  * Set the last_change of a key state object.
@@ -198,7 +198,7 @@ int key_state_set_state(key_state_t* key_state, key_state_state_t state);
  * \param[in] last_change an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_state_set_last_change(key_state_t* key_state, unsigned int last_change);
+extern int key_state_set_last_change(key_state_t* key_state, unsigned int last_change);
 
 /**
  * Set the minimize of a key state object.
@@ -206,7 +206,7 @@ int key_state_set_last_change(key_state_t* key_state, unsigned int last_change);
  * \param[in] minimize an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_state_set_minimize(key_state_t* key_state, unsigned int minimize);
+extern int key_state_set_minimize(key_state_t* key_state, unsigned int minimize);
 
 /**
  * Set the ttl of a key state object.
@@ -214,7 +214,7 @@ int key_state_set_minimize(key_state_t* key_state, unsigned int minimize);
  * \param[in] ttl an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_state_set_ttl(key_state_t* key_state, unsigned int ttl);
+extern int key_state_set_ttl(key_state_t* key_state, unsigned int ttl);
 
 /**
  * Create a clause for key_data_id of a key state object and add it to a database clause list.
@@ -225,14 +225,14 @@ int key_state_set_ttl(key_state_t* key_state, unsigned int ttl);
  * \param[in] key_data_id a db_value_t pointer.
  * \return a db_clause_t pointer to the added clause or NULL on error.
  */
-db_clause_t* key_state_key_data_id_clause(db_clause_list_t* clause_list, const db_value_t* key_data_id);
+extern db_clause_t* key_state_key_data_id_clause(db_clause_list_t* clause_list, const db_value_t* key_data_id);
 
 /**
  * Create a key state object in the database.
  * \param[in] key_state a key_state_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_state_create(key_state_t* key_state);
+extern int key_state_create(key_state_t* key_state);
 
 /**
  * Get a key state object from the database by a id specified in `id`.
@@ -240,21 +240,21 @@ int key_state_create(key_state_t* key_state);
  * \param[in] id a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_state_get_by_id(key_state_t* key_state, const db_value_t* id);
+extern int key_state_get_by_id(key_state_t* key_state, const db_value_t* id);
 
 /**
  * Update a key state object in the database.
  * \param[in] key_state a key_state_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_state_update(key_state_t* key_state);
+extern int key_state_update(key_state_t* key_state);
 
 /**
  * Delete a key state object from the database.
  * \param[in] key_state a key_state_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_state_delete(const key_state_t* key_state);
+extern int key_state_delete(const key_state_t* key_state);
 
 /**
  * A list of key state objects.
@@ -278,14 +278,14 @@ struct key_state_list {
  * \param[in] connection a db_connection_t pointer.
  * \return a key_state_list_t pointer or NULL on error.
  */
-key_state_list_t* key_state_list_new(const db_connection_t* connection);
+extern key_state_list_t* key_state_list_new(const db_connection_t* connection);
 
 /**
  * Create a new key state object list that is a copy of another.
  * \param[in] key_state_list a key_state_list_t pointer.
  * \return a key_state_list_t pointer or NULL on error.
  */
-key_state_list_t* key_state_list_new_copy(const key_state_list_t* key_state_copy);
+extern key_state_list_t* key_state_list_new_copy(const key_state_list_t* key_state_copy);
 
 /**
  * Specify that objects should be stored within the list as they are fetch,
@@ -293,13 +293,13 @@ key_state_list_t* key_state_list_new_copy(const key_state_list_t* key_state_copy
  * \param[in] key_state_list a key_state_list_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_state_list_object_store(key_state_list_t* key_state_list);
+extern int key_state_list_object_store(key_state_list_t* key_state_list);
 
 /**
  * Delete a key state object list.
  * \param[in] key_state_list a key_state_list_t pointer.
  */
-void key_state_list_free(key_state_list_t* key_state_list);
+extern void key_state_list_free(key_state_list_t* key_state_list);
 
 /**
  * Copy the content of another key state object list.
@@ -307,7 +307,7 @@ void key_state_list_free(key_state_list_t* key_state_list);
  * \param[in] from_key_state_list a key_state_list_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_state_list_copy(key_state_list_t* key_state_list, const key_state_list_t* from_key_state_list);
+extern int key_state_list_copy(key_state_list_t* key_state_list, const key_state_list_t* from_key_state_list);
 
 
 /**
@@ -316,7 +316,7 @@ int key_state_list_copy(key_state_list_t* key_state_list, const key_state_list_t
  * \param[in] clause_list a db_clause_list_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_state_list_get_by_clauses(key_state_list_t* key_state_list, const db_clause_list_t* clause_list);
+extern int key_state_list_get_by_clauses(key_state_list_t* key_state_list, const db_clause_list_t* clause_list);
 
 /**
  * Get key state objects from the database by a key_data_id specified in `key_data_id`.
@@ -324,7 +324,7 @@ int key_state_list_get_by_clauses(key_state_list_t* key_state_list, const db_cla
  * \param[in] key_data_id a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int key_state_list_get_by_key_data_id(key_state_list_t* key_state_list, const db_value_t* key_data_id);
+extern int key_state_list_get_by_key_data_id(key_state_list_t* key_state_list, const db_value_t* key_data_id);
 
 /**
  * Get a new list of key state objects from the database by a key_data_id specified in `key_data_id`.
@@ -332,7 +332,7 @@ int key_state_list_get_by_key_data_id(key_state_list_t* key_state_list, const db
  * \param[in] key_data_id a db_value_t pointer.
  * \return a key_state_list_t pointer or NULL on error.
  */
-key_state_list_t* key_state_list_new_get_by_key_data_id(const db_connection_t* connection, const db_value_t* key_data_id);
+extern key_state_list_t* key_state_list_new_get_by_key_data_id(const db_connection_t* connection, const db_value_t* key_data_id);
 
 /**
  * Get the first key state object in a key state object list and reset the
@@ -341,7 +341,7 @@ key_state_list_t* key_state_list_new_get_by_key_data_id(const db_connection_t* c
  * \return a key_state_t pointer or NULL on error or if there are no
  * key state objects in the key state object list.
  */
-const key_state_t* key_state_list_begin(key_state_list_t* key_state_list);
+extern const key_state_t* key_state_list_begin(key_state_list_t* key_state_list);
 
 /**
  * Get the first key state object in a key state object list and reset the
@@ -351,7 +351,7 @@ const key_state_t* key_state_list_begin(key_state_list_t* key_state_list);
  * \return a key_state_t pointer or NULL on error or if there are no
  * key state objects in the key state object list.
  */
-key_state_t* key_state_list_get_begin(key_state_list_t* key_state_list);
+extern key_state_t* key_state_list_get_begin(key_state_list_t* key_state_list);
 
 /**
  * Get the next key state object in a key state object list.
@@ -361,7 +361,7 @@ key_state_t* key_state_list_get_begin(key_state_list_t* key_state_list);
  * \return a key_state_t pointer or NULL on error or if there are no more
  * key state objects in the key state object list.
  */
-const key_state_t* key_state_list_next(key_state_list_t* key_state_list);
+extern const key_state_t* key_state_list_next(key_state_list_t* key_state_list);
 
 /**
  * Get the next key state object in a key state object list.
@@ -371,6 +371,6 @@ const key_state_t* key_state_list_next(key_state_list_t* key_state_list);
  * \return a key_state_t pointer or NULL on error or if there are no more
  * key state objects in the key state object list.
  */
-key_state_t* key_state_list_get_next(key_state_list_t* key_state_list);
+extern key_state_t* key_state_list_get_next(key_state_list_t* key_state_list);
 
 #endif

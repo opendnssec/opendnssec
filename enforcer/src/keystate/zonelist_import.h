@@ -68,7 +68,7 @@
  * \return ZONELIST_IMPORT_ERR_* on error otherwise ZONELIST_IMPORT_OK or
  * ZONELIST_IMPORT_NO_CHANGE.
  */
-int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
+extern int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
     int do_delete, const char* zonelist_path);
 
 #endif /* _KEYSTATE_ZONELIST_IMPORT_H_ */

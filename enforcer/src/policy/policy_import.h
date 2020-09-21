@@ -62,7 +62,7 @@
  * in the KASP if non-zero.
  * \return POLICY_IMPORT_ERR_* on error otherwise POLICY_IMPORT_OK.
  */
-int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
+extern int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
     int do_delete);
 
 #endif /* _POLICY_POLICY_IMPORT_H_ */

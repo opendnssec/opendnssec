@@ -104,14 +104,14 @@ struct response_struct {
  * \return query_type* query
  *
  */
-query_type* query_create(void);
+extern query_type* query_create(void);
 
 /**
  * Prepare response.
  * \param[in] q query
  *
  */
-void query_prepare(query_type* q);
+extern void query_prepare(query_type* q);
 
 /**
  * Process query.
@@ -120,7 +120,7 @@ void query_prepare(query_type* q);
  * \return query_state state of the query
  *
  */
-query_state query_process(query_type* q, engine_type* engine);
+extern query_state query_process(query_type* q, engine_type* engine);
 
 /**
  * Reset query.
@@ -129,7 +129,7 @@ query_state query_process(query_type* q, engine_type* engine);
  * \param[in] is_tcp 1 if tcp query
  *
  */
-void query_reset(query_type* q, size_t maxlen, int is_tcp);
+extern void query_reset(query_type* q, size_t maxlen, int is_tcp);
 
 /**
  * Add optional RRs to query.
@@ -137,7 +137,7 @@ void query_reset(query_type* q, size_t maxlen, int is_tcp);
  * \param[in] engine signer engine
  *
  */
-void query_add_optional(query_type* q, engine_type* engine);
+extern void query_add_optional(query_type* q, engine_type* engine);
 
 /**
  * Add RR to query.
@@ -146,13 +146,13 @@ void query_add_optional(query_type* q, engine_type* engine);
  * \return int 1 if ok, 0 if overflow.
  *
  */
-int query_add_rr(query_type* q, ldns_rr* rr);
+extern int query_add_rr(query_type* q, ldns_rr* rr);
 
 /**
  * Cleanup query.
  * \param[in] q query
  *
  */
-void query_cleanup(query_type* q);
+extern void query_cleanup(query_type* q);
 
 #endif /* WIRE_QUERY_H */

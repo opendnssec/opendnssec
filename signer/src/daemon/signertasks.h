@@ -42,14 +42,14 @@ struct worker_context {
     time_t clock_in;
 };
 
-void drudge(worker_type* worker);
-void task_schedule_easy(const char* zonename, task_id class, task_id type, time_t(*fn)(task_type*,const char*,void*,void*), void*, time_t time);
+extern void drudge(worker_type* worker);
+extern void task_schedule_easy(const char* zonename, task_id class, task_id type, time_t(*fn)(task_type*,const char*,void*,void*), void*, time_t time);
 
-time_t do_readsignconf(task_type* task, const char* zonename, void* zonearg, void *contextarg);
-time_t do_forcereadsignconf(task_type* task, const char* zonename, void* zonearg, void *contextarg);
-time_t do_signzone(task_type* task, const char* zonename, void* zonearg, void *contextarg);
-time_t do_readzone(task_type* task, const char* zonename, void* zonearg, void *contextarg);
-time_t do_forcereadzone(task_type* task, const char* zonename, void* zonearg, void *contextarg);
-time_t do_writezone(task_type* task, const char* zonename, void* zonearg, void *contextarg);
+extern time_t do_readsignconf(task_type* task, const char* zonename, void* zonearg, void *contextarg);
+extern time_t do_forcereadsignconf(task_type* task, const char* zonename, void* zonearg, void *contextarg);
+extern time_t do_signzone(task_type* task, const char* zonename, void* zonearg, void *contextarg);
+extern time_t do_readzone(task_type* task, const char* zonename, void* zonearg, void *contextarg);
+extern time_t do_forcereadzone(task_type* task, const char* zonename, void* zonearg, void *contextarg);
+extern time_t do_writezone(task_type* task, const char* zonename, void* zonearg, void *contextarg);
 
 #endif /* SIGNERTASKS_H */

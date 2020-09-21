@@ -75,7 +75,7 @@ struct keylist_struct {
  * \return keylist_type* key list
  *
  */
-keylist_type* keylist_create(signconf_type* sc);
+extern keylist_type* keylist_create(signconf_type* sc);
 
 /**
  * Lookup a key in the key list by locator.
@@ -84,7 +84,7 @@ keylist_type* keylist_create(signconf_type* sc);
  * \return key_type* key if it exists, NULL otherwise
  *
  */
-key_type* keylist_lookup_by_locator(keylist_type* kl, const char* locator);
+extern key_type* keylist_lookup_by_locator(keylist_type* kl, const char* locator);
 
 /**
  * Push a key to the keylist.
@@ -98,7 +98,7 @@ key_type* keylist_lookup_by_locator(keylist_type* kl, const char* locator);
  * \return key_type* key
  *
  */
-key_type* keylist_push(keylist_type* kl, const char* locator, const char* resourcerecord,
+extern key_type* keylist_push(keylist_type* kl, const char* locator, const char* resourcerecord,
     uint8_t algorithm, uint32_t flags, int publish, int ksk, int zsk);
 
 /**
@@ -107,14 +107,14 @@ key_type* keylist_push(keylist_type* kl, const char* locator, const char* resour
  * \param[in] name zone name
  *
  */
-void keylist_log(keylist_type* kl, const char* name);
+extern void keylist_log(keylist_type* kl, const char* name);
 
 /**
  * Clean up key list.
  * \param[in] kl key list to clean up
  *
  */
-void keylist_cleanup(keylist_type* kl);
+extern void keylist_cleanup(keylist_type* kl);
 
 /**
  * Recover key from backup.
