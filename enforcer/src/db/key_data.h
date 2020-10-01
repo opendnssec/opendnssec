@@ -45,6 +45,8 @@ typedef enum key_data_role {
 } key_data_role_t;
 extern const db_enum_t key_data_enum_set_role[];
 
+#define KEY_DATA_ROLE_SEP(role) ((role) == KEY_DATA_ROLE_KSK || (role) == KEY_DATA_ROLE_CSK)
+
 typedef enum key_data_ds_at_parent {
     KEY_DATA_DS_AT_PARENT_INVALID = -1,
     KEY_DATA_DS_AT_PARENT_UNSUBMITTED = 0,

@@ -41,6 +41,7 @@
 #include "libhsm.h"
 #include "daemon/cfg.h"
 #include "libhsmdns.h"
+#include "db/key_data.h"
 extern hsm_repository_t* parse_conf_repositories(const char* cfgfile);
 
 int verbosity;
@@ -311,14 +312,14 @@ compute(char **argv, int* id, uint16_t* keytag)
 {
     char *locator;
     int algorithm;
-    int ksk;
+    int sep;
 
     *id = atoi(argv[0]);
     algorithm = atoi(argv[1]);
-    ksk = (atoi(argv[2]) == 1);
+    sep = KEY_DATA_ROLE_SEP(atoi(argv[2]));
     *keytag = atoi(argv[3]);
     locator = argv[4];
-    hsm_keytag(locator, algorithm, ksk, keytag);
+    hsm_keytag(locator, algorithm, sep, keytag);
     keytagcount += 1;
     
     return 0;

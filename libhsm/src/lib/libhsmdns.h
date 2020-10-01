@@ -99,10 +99,10 @@ hsm_get_dnskey(hsm_ctx_t *ctx,
  * Calculate keytag
  * @param loc: Locator of keydata on HSM
  * @param alg: Algorithm of key
- * @param ksk: 0 for zsk, positive int for ksk|csk
+ * @param sep: 0 for zsk, positive int for ksk|csk (DNSKEY Secure Entry Point)
  * @param[out] keytag: the calculated keytag
  * return: non-zero in case of failure
  */
-extern int hsm_keytag(const char* loc, int alg, int ksk, uint16_t* keytag);
+extern int hsm_keytag(const char* loc, int alg, int sep, uint16_t* keytag);
 
 #endif /* HSMDNS_H */
