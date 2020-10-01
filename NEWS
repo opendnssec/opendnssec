@@ -8,6 +8,10 @@ OpenDNSSEC 2.1.6 - 2020-09-??
   (Thanks to Jonas Berlin, and Mathieu MirMont, and Paul Wouters).
 * SUPPORT-253: Incorrect keytag used when using Combined Signing keys (CSK)
   (Thanks to Simon Arlott)
+* SUPPORT-257: Export keys by locator (Thansk to Simon Arlott)
+* SUPPORT-222: Support ED25519/ED448 keys (Thanks again to Simon Arlott)
+* OPENDNSSEC-948: do not recreate signatures for keys that are moving out
+  this fixes unexpected double signatures in the zone.
 
 OpenDNSSEC 2.1.6 - 2020-02-10
 
