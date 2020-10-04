@@ -680,7 +680,7 @@ hsm_ctx_new()
     hsm_ctx_t *ctx;
     ctx = malloc(sizeof(hsm_ctx_t));
     if (ctx) {
-        memset(ctx->session, 0, HSM_MAX_SESSIONS);
+        memset(ctx->session, 0, sizeof(ctx->session));
         ctx->session_count = 0;
         ctx->error = 0;
     }
@@ -1121,6 +1121,156 @@ hsm_get_key_size_ecdsa(hsm_ctx_t *ctx, const hsm_session_t *session,
     return bits;
 }
 
+/* Returns the DER decoded value of the EDDSA public key
+ * Byte string with b-bit public key in little endian order
+ */
+static unsigned char *
+hsm_get_key_eddsa_value(hsm_ctx_t *ctx, const hsm_session_t *session,
+                     const libhsm_key_t *key, CK_ULONG *data_len)
+{
+    CK_RV rv;
+    CK_BYTE_PTR value = NULL;
+    CK_BYTE_PTR data = NULL;
+    CK_ULONG value_len = 0;
+    CK_ULONG header_len = 0;
+
+    CK_ATTRIBUTE template[] = {
+        {CKA_EC_POINT, NULL, 0},
+    };
+
+    if (!session || !session->module || !key || !data_len) {
+        return NULL;
+    }
+
+    rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_GetAttributeValue(
+                                      session->session,
+                                      key->public_key,
+                                      template,
+                                      1);
+    if (hsm_pkcs11_check_error(ctx, rv, "C_GetAttributeValue")) {
+        return NULL;
+    }
+    value_len = template[0].ulValueLen;
+
+    value = template[0].pValue = malloc(value_len);
+    if (!value) {
+        hsm_ctx_set_error(ctx, -1, "hsm_get_key_eddsa_value()",
+            "Error allocating memory for value");
+        return NULL;
+    }
+    memset(value, 0, value_len);
+
+    rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_GetAttributeValue(
+                                      session->session,
+                                      key->public_key,
+                                      template,
+                                      1);
+    if (hsm_pkcs11_check_error(ctx, rv, "get attribute value")) {
+        free(value);
+        return NULL;
+    }
+
+    if(value_len != template[0].ulValueLen) {
+        hsm_ctx_set_error(ctx, -1, "hsm_get_key_eddsa_value()",
+           "HSM returned two different length for the same CKA_EC_POINT. " \
+            "Abnormal behaviour detected.");
+        free(value);
+        return NULL;
+    }
+
+    /* Check that we have the first two octets */
+    if (value_len < 2) {
+        hsm_ctx_set_error(ctx, -1, "hsm_get_key_eddsa_value()",
+            "The DER value is too short");
+        free(value);
+        return NULL;
+    }
+
+    /* Check the identifier octet, PKCS#11 requires octet string */
+    if (value[0] != 0x04) {
+        hsm_ctx_set_error(ctx, -1, "hsm_get_key_eddsa_value()",
+            "Invalid identifier octet in the DER value");
+        free(value);
+        return NULL;
+    }
+    header_len++;
+
+    /* Check the length octets, but we do not validate the length */
+    if (value[1] <= 0x7F) {
+        header_len++;
+    } else if (value[1] == 0x80) {
+        hsm_ctx_set_error(ctx, -1, "hsm_get_key_eddsa_value()",
+            "Indefinite length is not supported in DER values");
+        free(value);
+        return NULL;
+    } else {
+        header_len++;
+        header_len += value[1] & 0x80;
+    }
+
+    /* Check that we have more data than the header */
+    if (value_len - header_len < 2) {
+        hsm_ctx_set_error(ctx, -1, "hsm_get_key_eddsa_value()",
+            "The value is too short");
+        free(value);
+        return NULL;
+    }
+
+    *data_len = value_len - header_len;
+    data = malloc(*data_len);
+    if (data == NULL) {
+        hsm_ctx_set_error(ctx, -1, "hsm_get_key_eddsa_value()",
+            "Error allocating memory for data");
+        free(value);
+        return NULL;
+    }
+
+    memcpy(data, value + header_len, *data_len);
+    free(value);
+
+    return data;
+}
+
+/* returns a CK_ULONG with the key size of the given EDDSA key. The
+ * key is not checked for type. For EDDSA, the key size is the number
+ * of bits in the curve not the size of the public key representation,
+ * which is larger.
+ */
+static CK_ULONG
+hsm_get_key_size_eddsa(hsm_ctx_t *ctx, const hsm_session_t *session,
+                     const libhsm_key_t *key)
+{
+    CK_ULONG value_len;
+    unsigned char* value = hsm_get_key_eddsa_value(ctx, session, key, &value_len);
+    CK_ULONG bits = 0;
+
+    if (value == NULL) return 0;
+
+    if( ((CK_ULONG) - 1) / 8 < value_len) {
+        free(value);
+        return 0;
+    }
+
+    bits = value_len * 8;
+    free(value);
+
+    switch (bits) {
+        // ED25519 keys are 255 bits represented as 256 bits (RFC8080 section 3)
+        case 256:
+            bits = 255;
+            break;
+        // ED448 keys are 448 bits represented as 456 bits (RFC8080 section 3)
+        case 456:
+            bits = 448;
+            break;
+        default:
+            bits = 0;
+            break;
+    }
+
+    return bits;
+}
+
 /* Wrapper for specific key size functions */
 static CK_ULONG
 hsm_get_key_size(hsm_ctx_t *ctx, const hsm_session_t *session,
@@ -1138,6 +1288,8 @@ hsm_get_key_size(hsm_ctx_t *ctx, const hsm_session_t *session,
             return 512;
         case CKK_EC:
             return hsm_get_key_size_ecdsa(ctx, session, key);
+        case CKK_EC_EDWARDS:
+            return hsm_get_key_size_eddsa(ctx, session, key);
         default:
             return 0;
     }
@@ -1816,6 +1968,20 @@ hsm_get_key_rdata_ecdsa(hsm_ctx_t *ctx, hsm_session_t *session,
 }
 
 static ldns_rdf *
+hsm_get_key_rdata_eddsa(hsm_ctx_t *ctx, hsm_session_t *session,
+                  const libhsm_key_t *key)
+{
+    CK_ULONG value_len;
+    unsigned char* value = hsm_get_key_eddsa_value(ctx, session, key, &value_len);
+
+    if (value == NULL) return NULL;
+
+    ldns_rdf *rdf = ldns_rdf_new(LDNS_RDF_TYPE_B64, value_len, value);
+
+    return rdf;
+}
+
+static ldns_rdf *
 hsm_get_key_rdata(hsm_ctx_t *ctx, hsm_session_t *session,
                   const libhsm_key_t *key)
 {
@@ -1831,6 +1997,8 @@ hsm_get_key_rdata(hsm_ctx_t *ctx, hsm_session_t *session,
             break;
         case CKK_EC:
             return hsm_get_key_rdata_ecdsa(ctx, session, key);
+        case CKK_EC_EDWARDS:
+            return hsm_get_key_rdata_eddsa(ctx, session, key);
         default:
             return 0;
     }
@@ -1876,11 +2044,8 @@ hsm_create_prefix(CK_ULONG digest_len,
         case LDNS_SIGN_DSA:
         case LDNS_SIGN_DSA_NSEC3:
         case LDNS_SIGN_ECC_GOST:
-/* TODO: We can remove the directive if we require LDNS >= 1.6.13 */
-#if !defined LDNS_BUILD_CONFIG_USE_ECDSA || LDNS_BUILD_CONFIG_USE_ECDSA
         case LDNS_SIGN_ECDSAP256SHA256:
         case LDNS_SIGN_ECDSAP384SHA384:
-#endif
             *data_size = digest_len;
             data = malloc(*data_size);
             break;
@@ -1935,9 +2100,11 @@ hsm_sign_buffer(hsm_ctx_t *ctx,
     CK_BYTE signature[HSM_MAX_SIGNATURE_LENGTH];
     CK_MECHANISM sign_mechanism;
 
+    int data_direct = 0; // don't pre-create digest, use data directly
+
     ldns_rdf *sig_rdf;
     CK_BYTE *digest = NULL;
-    CK_ULONG digest_len;
+    CK_ULONG digest_len = 0;
 
     CK_BYTE *data = NULL;
     CK_ULONG data_len = 0;
@@ -1969,18 +2136,13 @@ hsm_sign_buffer(hsm_ctx_t *ctx,
             break;
 
         case LDNS_SIGN_RSASHA256:
-/* TODO: We can remove the directive if we require LDNS >= 1.6.13 */
-#if !defined LDNS_BUILD_CONFIG_USE_ECDSA || LDNS_BUILD_CONFIG_USE_ECDSA
         case LDNS_SIGN_ECDSAP256SHA256:
-#endif
             digest_len = LDNS_SHA256_DIGEST_LENGTH;
             digest = malloc(digest_len);
             digest = ldns_sha256(ldns_buffer_begin(sign_buf),
                                  ldns_buffer_position(sign_buf),
                                  digest);
             break;
-/* TODO: We can remove the directive if we require LDNS >= 1.6.13 */
-#if !defined LDNS_BUILD_CONFIG_USE_ECDSA || LDNS_BUILD_CONFIG_USE_ECDSA
         case LDNS_SIGN_ECDSAP384SHA384:
             digest_len = LDNS_SHA384_DIGEST_LENGTH;
             digest = malloc(digest_len);
@@ -1988,7 +2150,6 @@ hsm_sign_buffer(hsm_ctx_t *ctx,
                                  ldns_buffer_position(sign_buf),
                                  digest);
             break;
-#endif
         case LDNS_SIGN_RSASHA512:
             digest_len = LDNS_SHA512_DIGEST_LENGTH;
             digest = malloc(digest_len);
@@ -2002,21 +2163,32 @@ hsm_sign_buffer(hsm_ctx_t *ctx,
                                             CKM_GOSTR3411, digest_len,
                                             sign_buf);
             break;
+        case LDNS_SIGN_ED25519:
+            data_direct = 1;
+            break;
+        case LDNS_SIGN_ED448:
+            data_direct = 1;
+            break;
         default:
             /* log error? or should we not even get here for
              * unsupported algorithms? */
             return NULL;
     }
 
-    if (!digest) {
+    if (!data_direct && !digest) {
         return NULL;
     }
 
-    /* CKM_RSA_PKCS does the padding, but cannot know the identifier
-     * prefix, so we need to add that ourselves.
-     * The other algorithms will just get the digest buffer returned. */
-    data = hsm_create_prefix(digest_len, algorithm, &data_len);
-    memcpy(data + data_len - digest_len, digest, digest_len);
+    if (data_direct) {
+        data = ldns_buffer_begin(sign_buf);
+        data_len = ldns_buffer_position(sign_buf);
+    } else {
+        /* CKM_RSA_PKCS does the padding, but cannot know the identifier
+         * prefix, so we need to add that ourselves.
+         * The other algorithms will just get the digest buffer returned. */
+        data = hsm_create_prefix(digest_len, algorithm, &data_len);
+        memcpy(data + data_len - digest_len, digest, digest_len);
+    }
 
     sign_mechanism.pParameter = NULL;
     sign_mechanism.ulParameterLen = 0;
@@ -2035,13 +2207,16 @@ hsm_sign_buffer(hsm_ctx_t *ctx,
         case LDNS_SIGN_ECC_GOST:
             sign_mechanism.mechanism = CKM_GOSTR3410;
             break;
-/* TODO: We can remove the directive if we require LDNS >= 1.6.13 */
-#if !defined LDNS_BUILD_CONFIG_USE_ECDSA || LDNS_BUILD_CONFIG_USE_ECDSA
         case LDNS_SIGN_ECDSAP256SHA256:
         case LDNS_SIGN_ECDSAP384SHA384:
             sign_mechanism.mechanism = CKM_ECDSA;
             break;
-#endif
+        case LDNS_SIGN_ED25519:
+            sign_mechanism.mechanism = CKM_EDDSA;
+            break;
+        case LDNS_SIGN_ED448:
+            sign_mechanism.mechanism = CKM_EDDSA;
+            break;
         default:
             /* log error? or should we not even get here for
              * unsupported algorithms? */
@@ -2055,8 +2230,10 @@ hsm_sign_buffer(hsm_ctx_t *ctx,
                                       &sign_mechanism,
                                       key->private_key);
     if (hsm_pkcs11_check_error(ctx, rv, "sign init")) {
-        free(data);
-        free(digest);
+        if (!data_direct) {
+            free(data);
+            free(digest);
+        }
         return NULL;
     }
 
@@ -2064,8 +2241,10 @@ hsm_sign_buffer(hsm_ctx_t *ctx,
                                       signature,
                                       &signatureLen);
     if (hsm_pkcs11_check_error(ctx, rv, "sign final")) {
-        free(data);
-        free(digest);
+        if (!data_direct) {
+            free(data);
+            free(digest);
+        }
         return NULL;
     }
 
@@ -2073,8 +2252,10 @@ hsm_sign_buffer(hsm_ctx_t *ctx,
                                     signatureLen,
                                     signature);
 
-    free(data);
-    free(digest);
+    if (!data_direct) {
+        free(data);
+        free(digest);
+    }
 
     return sig_rdf;
 
@@ -2822,6 +3003,102 @@ hsm_generate_ecdsa_key(hsm_ctx_t *ctx,
     return new_key;
 }
 
+libhsm_key_t *
+hsm_generate_eddsa_key(hsm_ctx_t *ctx,
+                       const char *repository,
+                       const char *curve)
+{
+    CK_RV rv;
+    libhsm_key_t *new_key;
+    hsm_session_t *session;
+    CK_OBJECT_HANDLE publicKey, privateKey;
+    CK_BBOOL ctrue = CK_TRUE;
+    CK_BBOOL cfalse = CK_FALSE;
+    CK_BBOOL cextractable = CK_FALSE;
+
+    /* ids we create are 16 bytes of data */
+    unsigned char id[16];
+    /* that's 33 bytes in string (16*2 + 1 for \0) */
+    char id_str[33];
+
+    session = hsm_find_repository_session(ctx, repository);
+    if (!session) return NULL;
+    cextractable = session->module->config->allow_extract ? CK_TRUE : CK_FALSE;
+
+    generate_unique_id(ctx, id, 16);
+
+    /* the CKA_LABEL will contain a hexadecimal string representation
+     * of the id */
+    hsm_hex_unparse(id_str, id, 16);
+
+    CK_KEY_TYPE keyType = CKK_EC_EDWARDS;
+    CK_MECHANISM mechanism = {
+        CKM_EC_EDWARDS_KEY_PAIR_GEN, NULL_PTR, 0
+    };
+
+    CK_BYTE oid25519[] = { 0x06, 0x03, 0x2B, 0x65, 0x70 };
+    CK_BYTE oid448[] = { 0x06, 0x03, 0x2B, 0x65, 0x71 };
+
+    CK_ATTRIBUTE publicKeyTemplate[] = {
+        { CKA_EC_PARAMS,           NULL,     0               },
+        { CKA_LABEL,(CK_UTF8CHAR*) id_str,   strlen(id_str)  },
+        { CKA_ID,                  id,       16              },
+        { CKA_KEY_TYPE,            &keyType, sizeof(keyType) },
+        { CKA_VERIFY,              &ctrue,   sizeof(ctrue)   },
+        { CKA_ENCRYPT,             &cfalse,  sizeof(cfalse)  },
+        { CKA_WRAP,                &cfalse,  sizeof(cfalse)  },
+        { CKA_TOKEN,               &ctrue,   sizeof(ctrue)   }
+    };
+
+    CK_ATTRIBUTE privateKeyTemplate[] = {
+        { CKA_LABEL,(CK_UTF8CHAR*) id_str,   strlen (id_str) },
+        { CKA_ID,                  id,       16              },
+        { CKA_KEY_TYPE,            &keyType, sizeof(keyType) },
+        { CKA_SIGN,                &ctrue,   sizeof(ctrue)   },
+        { CKA_DECRYPT,             &cfalse,  sizeof(cfalse)  },
+        { CKA_UNWRAP,              &cfalse,  sizeof(cfalse)  },
+        { CKA_SENSITIVE,           &ctrue,   sizeof(ctrue)   },
+        { CKA_TOKEN,               &ctrue,   sizeof(ctrue)   },
+        { CKA_PRIVATE,             &ctrue,   sizeof(ctrue)   },
+        { CKA_EXTRACTABLE,         &cextractable,  sizeof (cextractable) }
+    };
+
+    /* Select the curve */
+    if (strcmp(curve, "edwards25519") == 0)
+    {
+        publicKeyTemplate[0].pValue = oid25519;
+        publicKeyTemplate[0].ulValueLen = sizeof(oid25519);
+    }
+    else if (strcmp(curve, "edwards448") == 0)
+    {
+        publicKeyTemplate[0].pValue = oid448;
+        publicKeyTemplate[0].ulValueLen = sizeof(oid448);
+    }
+    else
+    {
+        return NULL;
+    }
+
+    /* Generate key pair */
+
+    rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_GenerateKeyPair(session->session,
+                                                 &mechanism,
+                                                 publicKeyTemplate, 8,
+                                                 privateKeyTemplate, 10,
+                                                 &publicKey,
+                                                 &privateKey);
+    if (hsm_pkcs11_check_error(ctx, rv, "generate key pair")) {
+        return NULL;
+    }
+
+    new_key = libhsm_key_new();
+    new_key->modulename = strdup(session->module->name);
+    new_key->public_key = publicKey;
+    new_key->private_key = privateKey;
+
+    return new_key;
+}
+
 int
 hsm_remove_key(hsm_ctx_t *ctx, libhsm_key_t *key)
 {
@@ -2928,6 +3205,9 @@ hsm_get_key_info(hsm_ctx_t *ctx,
             break;
         case CKK_EC:
             key_info->algorithm_name = strdup("ECDSA");
+            break;
+        case CKK_EC_EDWARDS:
+            key_info->algorithm_name = strdup("EDDSA");
             break;
         default:
             key_info->algorithm_name = malloc(HSM_MAX_ALGONAME);
