@@ -91,7 +91,7 @@ SET signaturesValidityDenial = (
 
 UPDATE policy
 SET denialType = (
-	SELECT (~value)&1
+	SELECT (CASE value WHEN 0 THEN 0 WHEN 1 THEN 0 WHEN 3 THEN 1 ELSE 1 END)
 	FROM  REMOTE.parameters_policies
 	INNER JOIN REMOTE.parameters
 	ON REMOTE.parameters_policies.parameter_id = REMOTE.parameters.id 
@@ -110,14 +110,14 @@ SET denialOptout = (
 	WHERE REMOTE.parameters_policies.policy_id = policy.id 
 		AND REMOTE.parameters.category_id = 2
 		AND REMOTE.parameters.name = 'optout')
-WHERE null !=  (
+WHERE NOT (
 	SELECT value
 	FROM  REMOTE.parameters_policies
 	INNER JOIN REMOTE.parameters
 	ON REMOTE.parameters_policies.parameter_id = REMOTE.parameters.id 
 	WHERE REMOTE.parameters_policies.policy_id = policy.id 
 		AND REMOTE.parameters.category_id = 2
-		AND REMOTE.parameters.name = 'optout');
+		AND REMOTE.parameters.name = 'optout') IS NULL;
 
 UPDATE policy
 SET denialTtl = (
@@ -128,14 +128,14 @@ SET denialTtl = (
 	WHERE REMOTE.parameters_policies.policy_id = policy.id 
 		AND REMOTE.parameters.category_id = 2
 		AND REMOTE.parameters.name = 'ttl')
-WHERE null != (
+WHERE NOT (
 	SELECT value
 	FROM  REMOTE.parameters_policies
 	INNER JOIN REMOTE.parameters
 	ON REMOTE.parameters_policies.parameter_id = REMOTE.parameters.id 
 	WHERE REMOTE.parameters_policies.policy_id = policy.id 
 		AND REMOTE.parameters.category_id = 2
-		AND REMOTE.parameters.name = 'ttl');
+		AND REMOTE.parameters.name = 'ttl') IS NULL;
 
 UPDATE policy
 SET denialResalt = (
@@ -146,14 +146,14 @@ SET denialResalt = (
 	WHERE REMOTE.parameters_policies.policy_id = policy.id 
 		AND REMOTE.parameters.category_id = 2
 		AND REMOTE.parameters.name = 'resalt')
-WHERE null != (
+WHERE NOT (
 	SELECT value
 	FROM  REMOTE.parameters_policies
 	INNER JOIN REMOTE.parameters
 	ON REMOTE.parameters_policies.parameter_id = REMOTE.parameters.id 
 	WHERE REMOTE.parameters_policies.policy_id = policy.id 
 		AND REMOTE.parameters.category_id = 2
-		AND REMOTE.parameters.name = 'resalt');
+		AND REMOTE.parameters.name = 'resalt') IS NULL;
 
 UPDATE policy
 SET denialAlgorithm = (
@@ -164,14 +164,14 @@ SET denialAlgorithm = (
 	WHERE REMOTE.parameters_policies.policy_id = policy.id 
 		AND REMOTE.parameters.category_id = 2
 		AND REMOTE.parameters.name = 'algorithm')
-WHERE null != (
+WHERE NOT (
 	SELECT value
 	FROM  REMOTE.parameters_policies
 	INNER JOIN REMOTE.parameters
 	ON REMOTE.parameters_policies.parameter_id = REMOTE.parameters.id 
 	WHERE REMOTE.parameters_policies.policy_id = policy.id 
 		AND REMOTE.parameters.category_id = 2
-		AND REMOTE.parameters.name = 'algorithm');
+		AND REMOTE.parameters.name = 'algorithm') IS NULL;
 
 UPDATE policy
 SET denialIterations = (
@@ -182,14 +182,15 @@ SET denialIterations = (
 	WHERE REMOTE.parameters_policies.policy_id = policy.id 
 		AND REMOTE.parameters.category_id = 2
 		AND REMOTE.parameters.name = 'iterations')
-WHERE null != (
+WHERE NOT (
 	SELECT value
 	FROM  REMOTE.parameters_policies
 	INNER JOIN REMOTE.parameters
 	ON REMOTE.parameters_policies.parameter_id = REMOTE.parameters.id 
 	WHERE REMOTE.parameters_policies.policy_id = policy.id 
 		AND REMOTE.parameters.category_id = 2
-		AND REMOTE.parameters.name = 'iterations');
+		AND REMOTE.parameters.name = 'iterations') IS NULL;
+
 
 UPDATE policy
 SET denialSaltLength = (
@@ -200,14 +201,14 @@ SET denialSaltLength = (
 	WHERE REMOTE.parameters_policies.policy_id = policy.id 
 		AND REMOTE.parameters.category_id = 2
 		AND REMOTE.parameters.name = 'saltlength')
-WHERE null != (
+WHERE NOT (
 	SELECT value
 	FROM  REMOTE.parameters_policies
 	INNER JOIN REMOTE.parameters
 	ON REMOTE.parameters_policies.parameter_id = REMOTE.parameters.id 
 	WHERE REMOTE.parameters_policies.policy_id = policy.id 
 		AND REMOTE.parameters.category_id = 2
-		AND REMOTE.parameters.name = 'saltlength');
+		AND REMOTE.parameters.name = 'saltlength') IS NULL;
 
 -- clumsy salt update. salt is optional in 1.4 but required in 2.0
 -- sqlite is limited in what it can do in an update. I hope there is a

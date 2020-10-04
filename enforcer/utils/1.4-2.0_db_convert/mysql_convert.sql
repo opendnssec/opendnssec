@@ -94,7 +94,7 @@ SET signaturesValidityDenial = (
 -- 3 -> 0
 
 UPDATE policy, REMOTE.parameters_policies, REMOTE.parameters
-SET policy.denialType = (~REMOTE.parameters_policies.value)&1
+SET policy.denialType = (CASE REMOTE.parameters_policies.value WHEN 0 THEN 0 WHEN 1 THEN 0 WHEN 3 THEN 1 ELSE 1 END)
 WHERE REMOTE.parameters_policies.parameter_id = REMOTE.parameters.id
 	AND REMOTE.parameters_policies.policy_id = policy.id
 	AND REMOTE.parameters.category_id = 2
