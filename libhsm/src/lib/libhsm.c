@@ -34,6 +34,7 @@
 #include <unistd.h>
 #include <dlfcn.h>
 #include <ldns/ldns.h>
+#include <ldns/util.h>
 
 #include <libxml/tree.h>
 #include <libxml/parser.h>
@@ -2163,12 +2164,14 @@ hsm_sign_buffer(hsm_ctx_t *ctx,
                                             CKM_GOSTR3411, digest_len,
                                             sign_buf);
             break;
+#if (LDNS_REVISION >= ((1<<16)|(7<<8)|(0)))
         case LDNS_SIGN_ED25519:
             data_direct = 1;
             break;
         case LDNS_SIGN_ED448:
             data_direct = 1;
             break;
+#endif
         default:
             /* log error? or should we not even get here for
              * unsupported algorithms? */
@@ -2211,12 +2214,14 @@ hsm_sign_buffer(hsm_ctx_t *ctx,
         case LDNS_SIGN_ECDSAP384SHA384:
             sign_mechanism.mechanism = CKM_ECDSA;
             break;
+#if (LDNS_REVISION >= ((1<<16)|(7<<8)|(0)))
         case LDNS_SIGN_ED25519:
             sign_mechanism.mechanism = CKM_EDDSA;
             break;
         case LDNS_SIGN_ED448:
             sign_mechanism.mechanism = CKM_EDDSA;
             break;
+#endif
         default:
             /* log error? or should we not even get here for
              * unsupported algorithms? */

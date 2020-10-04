@@ -30,6 +30,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <ldns/ldns.h>
+#include <ldns/util.h>
 
 #include "libhsm.h"
 #include <libhsmdns.h>
@@ -114,10 +116,12 @@ hsm_test (const char *repository, hsm_ctx_t* ctx)
         LDNS_ECDSAP256SHA256,
         LDNS_ECDSAP384SHA384
     };
+#if (LDNS_REVISION >= ((1<<16)|(7<<8)|(0)))
     const ldns_algorithm ed_curves[] = {
         LDNS_ED25519,
         LDNS_ED448,
     };
+#endif
     ldns_algorithm curve;
 
     libhsm_key_t *key = NULL;
@@ -137,7 +141,7 @@ hsm_test (const char *repository, hsm_ctx_t* ctx)
     for (i=0; i<(sizeof(rsa_keysizes)/sizeof(unsigned int)); i++) {
         keysize = rsa_keysizes[i];
 
-        printf("Generating %d-bit RSA key... ", keysize);
+        printf("Generating %u-bit RSA key... ", keysize);
         key = hsm_generate_rsa_key(ctx, repository, keysize);
         if (!key) {
             errors++;
@@ -214,7 +218,7 @@ hsm_test (const char *repository, hsm_ctx_t* ctx)
     for (i=0; i<(sizeof(dsa_keysizes)/sizeof(unsigned int)); i++) {
         keysize = dsa_keysizes[i];
 
-        printf("Generating %d-bit DSA key... ", keysize);
+        printf("Generating %u-bit DSA key... ", keysize);
         key = hsm_generate_dsa_key(ctx, repository, keysize);
         if (!key) {
             errors++;
@@ -363,6 +367,7 @@ hsm_test (const char *repository, hsm_ctx_t* ctx)
         }
     }
 
+#if (LDNS_REVISION >= ((1<<16)|(7<<8)|(0)))
     for (i=0; i<(sizeof(ed_curves)/sizeof(ldns_algorithm)); i++) {
         curve = ed_curves[i];
 
@@ -424,6 +429,7 @@ hsm_test (const char *repository, hsm_ctx_t* ctx)
 
         printf("\n");
     }
+#endif
 
     if (hsm_test_random(ctx)) {
         errors++;
