@@ -214,6 +214,12 @@ generate_libhsm_key(hsm_ctx_t *ctx, struct dbw_policykey *policykey)
         case LDNS_ECDSAP384SHA384:
             key = hsm_generate_ecdsa_key(ctx, policykey->repository, "P-384");
             break;
+        case LDNS_ED25519:
+            key = hsm_generate_eddsa_key(ctx, policykey->repository, "edwards25519");
+            break;
+        case LDNS_ED448:
+            key = hsm_generate_eddsa_key(ctx, policykey->repository, "edwards448");
+            break;
         default:
             ods_log_error("[hsmkey_factory] Unsupported algorithm (%d) requested.", policykey->algorithm);
             key = NULL;
