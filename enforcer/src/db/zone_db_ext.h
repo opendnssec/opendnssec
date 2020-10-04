@@ -39,7 +39,7 @@
  * Convert zone ID to name, caller must free resulting string.
  * return NULL on error
  */
-char *
+extern char *
 zone_db_ext_zonename_from_id(const db_connection_t* connection,
     const db_value_t* id);
 
@@ -48,14 +48,14 @@ zone_db_ext_zonename_from_id(const db_connection_t* connection,
  * \param[in] zone an zone_db_t pointer.
  * \return a key_data_list_t pointer or NULL on error.
  */
-key_data_list_t* zone_db_get_keys(const zone_db_t* zone);
+extern key_data_list_t* zone_db_get_keys(const zone_db_t* zone);
 
 /**
  * Get a list of key dependencies for an enforcer zone object.
  * \param[in] zone an zone_db_t pointer.
  * \return a key_dependency_list_t pointer or NULL on error.
  */
-key_dependency_list_t* zone_db_get_key_dependencies(const zone_db_t* zone);
+extern key_dependency_list_t* zone_db_get_key_dependencies(const zone_db_t* zone);
 
 /**
  * Create a zone object from XML.
@@ -63,7 +63,7 @@ key_dependency_list_t* zone_db_get_key_dependencies(const zone_db_t* zone);
  * \param[in] zone_node a xmlNodePtr to the XML for the zone.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int zone_db_create_from_xml(zone_db_t* zone, xmlNodePtr zone_node);
+extern int zone_db_create_from_xml(zone_db_t* zone, xmlNodePtr zone_node);
 
 /**
  * Update a zone object from XML.
@@ -73,6 +73,6 @@ int zone_db_create_from_xml(zone_db_t* zone, xmlNodePtr zone_node);
  * values in the zone was updated.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int zone_db_update_from_xml(zone_db_t* zone, xmlNodePtr zone_node, int* updated);
+extern int zone_db_update_from_xml(zone_db_t* zone, xmlNodePtr zone_node, int* updated);
 
 #endif

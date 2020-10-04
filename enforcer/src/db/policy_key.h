@@ -74,26 +74,26 @@ struct policy_key {
  * \param[in] connection a db_connection_t pointer.
  * \return a policy_key_t pointer or NULL on error.
  */
-policy_key_t* policy_key_new(const db_connection_t* connection);
+extern policy_key_t* policy_key_new(const db_connection_t* connection);
 
 /**
  * Create a new policy key object that is a copy of another policy key object.
  * \param[in] policy_key a policy_key_t pointer.
  * \return a policy_key_t pointer or NULL on error.
  */
-policy_key_t* policy_key_new_copy(const policy_key_t* policy_key);
+extern policy_key_t* policy_key_new_copy(const policy_key_t* policy_key);
 
 /**
  * Delete a policy key object, this does not delete it from the database.
  * \param[in] policy_key a policy_key_t pointer.
  */
-void policy_key_free(policy_key_t* policy_key);
+extern void policy_key_free(policy_key_t* policy_key);
 
 /**
  * Reset the content of a policy key object making it as if its new. This does not change anything in the database.
  * \param[in] policy_key a policy_key_t pointer.
  */
-void policy_key_reset(policy_key_t* policy_key);
+extern void policy_key_reset(policy_key_t* policy_key);
 
 /**
  * Copy the content of a policy key object.
@@ -101,7 +101,7 @@ void policy_key_reset(policy_key_t* policy_key);
  * \param[in] policy_key_copy a policy_key_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_key_copy(policy_key_t* policy_key, const policy_key_t* policy_key_copy);
+extern int policy_key_copy(policy_key_t* policy_key, const policy_key_t* policy_key_copy);
 
 /**
  * Compare two policy key objects and return less than, equal to,
@@ -112,7 +112,7 @@ int policy_key_copy(policy_key_t* policy_key, const policy_key_t* policy_key_cop
  * \return less than, equal to, or greater than zero if A is found, respectively,
  * to be less than, to match, or be greater than B.
  */
-int policy_key_cmp(const policy_key_t* policy_key_a, const policy_key_t* policy_key_b);
+extern int policy_key_cmp(const policy_key_t* policy_key_a, const policy_key_t* policy_key_b);
 
 /**
  * Set the content of a policy key object based on a database result.
@@ -120,21 +120,21 @@ int policy_key_cmp(const policy_key_t* policy_key_a, const policy_key_t* policy_
  * \param[in] result a db_result_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_key_from_result(policy_key_t* policy_key, const db_result_t* result);
+extern int policy_key_from_result(policy_key_t* policy_key, const db_result_t* result);
 
 /**
  * Get the policy_id of a policy key object.
  * \param[in] policy_key a policy_key_t pointer.
  * \return a db_value_t pointer or NULL on error.
  */
-const db_value_t* policy_key_policy_id(const policy_key_t* policy_key);
+extern const db_value_t* policy_key_policy_id(const policy_key_t* policy_key);
 
 /**
  * Get the policy_id object related to a policy key object.
  * \param[in] policy_key a policy_key_t pointer.
  * \return a policy_t pointer or NULL on error or if no object could be found.
  */
-const policy_t* policy_key_policy(const policy_key_t* policy_key);
+extern const policy_t* policy_key_policy(const policy_key_t* policy_key);
 
 /**
  * Get the policy_id object related to a policy key object.
@@ -142,77 +142,77 @@ const policy_t* policy_key_policy(const policy_key_t* policy_key);
  * \param[in] policy_key a policy_key_t pointer.
  * \return a policy_t pointer or NULL on error or if no object could be found.
  */
-policy_t* policy_key_get_policy(const policy_key_t* policy_key);
+extern policy_t* policy_key_get_policy(const policy_key_t* policy_key);
 
 /**
  * Get the role of a policy key object.
  * \param[in] policy_key a policy_key_t pointer.
  * \return a policy_key_role_t which may be POLICY_KEY_ROLE_INVALID on error or if no role has been set.
  */
-policy_key_role_t policy_key_role(const policy_key_t* policy_key);
+extern policy_key_role_t policy_key_role(const policy_key_t* policy_key);
 
 /**
  * Get the role as text of a policy key object.
  * \param[in] policy_key a policy_key_t pointer.
  * \return a character pointer or NULL on error or if no role has been set.
  */
-const char* policy_key_role_text(const policy_key_t* policy_key);
+extern const char* policy_key_role_text(const policy_key_t* policy_key);
 
 /**
  * Get the algorithm of a policy key object. Undefined behavior if `policy_key` is NULL.
  * \param[in] policy_key a policy_key_t pointer.
  * \return an unsigned integer.
  */
-unsigned int policy_key_algorithm(const policy_key_t* policy_key);
+extern unsigned int policy_key_algorithm(const policy_key_t* policy_key);
 
 /**
  * Get the bits of a policy key object. Undefined behavior if `policy_key` is NULL.
  * \param[in] policy_key a policy_key_t pointer.
  * \return an unsigned integer.
  */
-unsigned int policy_key_bits(const policy_key_t* policy_key);
+extern unsigned int policy_key_bits(const policy_key_t* policy_key);
 
 /**
  * Get the lifetime of a policy key object. Undefined behavior if `policy_key` is NULL.
  * \param[in] policy_key a policy_key_t pointer.
  * \return an unsigned integer.
  */
-unsigned int policy_key_lifetime(const policy_key_t* policy_key);
+extern unsigned int policy_key_lifetime(const policy_key_t* policy_key);
 
 /**
  * Get the repository of a policy key object.
  * \param[in] policy_key a policy_key_t pointer.
  * \return a character pointer or NULL on error or if no repository has been set.
  */
-const char* policy_key_repository(const policy_key_t* policy_key);
+extern const char* policy_key_repository(const policy_key_t* policy_key);
 
 /**
  * Get the standby of a policy key object. Undefined behavior if `policy_key` is NULL.
  * \param[in] policy_key a policy_key_t pointer.
  * \return an integer.
  */
-int policy_key_standby(const policy_key_t* policy_key);
+extern int policy_key_standby(const policy_key_t* policy_key);
 
 /**
  * Get the manual_rollover of a policy key object. Undefined behavior if `policy_key` is NULL.
  * \param[in] policy_key a policy_key_t pointer.
  * \return an unsigned integer.
  */
-unsigned int policy_key_manual_rollover(const policy_key_t* policy_key);
+extern unsigned int policy_key_manual_rollover(const policy_key_t* policy_key);
 
 /**
  * Get the rfc5011 of a policy key object. Undefined behavior if `policy_key` is NULL.
  * \param[in] policy_key a policy_key_t pointer.
  * \return an unsigned integer.
  */
-unsigned int policy_key_rfc5011(const policy_key_t* policy_key);
+extern unsigned int policy_key_rfc5011(const policy_key_t* policy_key);
 
 /**
  * Get the minimize of a policy key object. Undefined behavior if `policy_key` is NULL.
  * \param[in] policy_key a policy_key_t pointer.
  * \return an unsigned integer.
  */
-unsigned int policy_key_minimize(const policy_key_t* policy_key);
+extern unsigned int policy_key_minimize(const policy_key_t* policy_key);
 
 /**
  * Set the policy_id of a policy key object. If this fails the original value may have been lost.
@@ -220,7 +220,7 @@ unsigned int policy_key_minimize(const policy_key_t* policy_key);
  * \param[in] policy_id a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_key_set_policy_id(policy_key_t* policy_key, const db_value_t* policy_id);
+extern int policy_key_set_policy_id(policy_key_t* policy_key, const db_value_t* policy_id);
 
 /**
  * Set the role of a policy key object.
@@ -228,7 +228,7 @@ int policy_key_set_policy_id(policy_key_t* policy_key, const db_value_t* policy_
  * \param[in] role a policy_key_role_t.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_key_set_role(policy_key_t* policy_key, policy_key_role_t role);
+extern int policy_key_set_role(policy_key_t* policy_key, policy_key_role_t role);
 
 /**
  * Set the algorithm of a policy key object.
@@ -236,7 +236,7 @@ int policy_key_set_role(policy_key_t* policy_key, policy_key_role_t role);
  * \param[in] algorithm an unsigned integer with a maximum value of 255.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_key_set_algorithm(policy_key_t* policy_key, unsigned int algorithm);
+extern int policy_key_set_algorithm(policy_key_t* policy_key, unsigned int algorithm);
 
 /**
  * Set the bits of a policy key object.
@@ -244,7 +244,7 @@ int policy_key_set_algorithm(policy_key_t* policy_key, unsigned int algorithm);
  * \param[in] bits an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_key_set_bits(policy_key_t* policy_key, unsigned int bits);
+extern int policy_key_set_bits(policy_key_t* policy_key, unsigned int bits);
 
 /**
  * Set the lifetime of a policy key object.
@@ -252,7 +252,7 @@ int policy_key_set_bits(policy_key_t* policy_key, unsigned int bits);
  * \param[in] lifetime an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_key_set_lifetime(policy_key_t* policy_key, unsigned int lifetime);
+extern int policy_key_set_lifetime(policy_key_t* policy_key, unsigned int lifetime);
 
 /**
  * Set the repository of a policy key object.
@@ -260,7 +260,7 @@ int policy_key_set_lifetime(policy_key_t* policy_key, unsigned int lifetime);
  * \param[in] repository_text a character pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_key_set_repository(policy_key_t* policy_key, const char* repository_text);
+extern int policy_key_set_repository(policy_key_t* policy_key, const char* repository_text);
 
 /**
  * Set the standby of a policy key object.
@@ -268,7 +268,7 @@ int policy_key_set_repository(policy_key_t* policy_key, const char* repository_t
  * \param[in] standby an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_key_set_standby(policy_key_t* policy_key, unsigned int standby);
+extern int policy_key_set_standby(policy_key_t* policy_key, unsigned int standby);
 
 /**
  * Set the manual_rollover of a policy key object.
@@ -276,7 +276,7 @@ int policy_key_set_standby(policy_key_t* policy_key, unsigned int standby);
  * \param[in] manual_rollover an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_key_set_manual_rollover(policy_key_t* policy_key, unsigned int manual_rollover);
+extern int policy_key_set_manual_rollover(policy_key_t* policy_key, unsigned int manual_rollover);
 
 /**
  * Set the rfc5011 of a policy key object.
@@ -284,7 +284,7 @@ int policy_key_set_manual_rollover(policy_key_t* policy_key, unsigned int manual
  * \param[in] rfc5011 an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_key_set_rfc5011(policy_key_t* policy_key, unsigned int rfc5011);
+extern int policy_key_set_rfc5011(policy_key_t* policy_key, unsigned int rfc5011);
 
 /**
  * Set the minimize of a policy key object.
@@ -292,14 +292,14 @@ int policy_key_set_rfc5011(policy_key_t* policy_key, unsigned int rfc5011);
  * \param[in] minimize an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_key_set_minimize(policy_key_t* policy_key, unsigned int minimize);
+extern int policy_key_set_minimize(policy_key_t* policy_key, unsigned int minimize);
 
 /**
  * Create a policy key object in the database.
  * \param[in] policy_key a policy_key_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_key_create(policy_key_t* policy_key);
+extern int policy_key_create(policy_key_t* policy_key);
 
 /**
  * Get a policy key object from the database by a id specified in `id`.
@@ -307,14 +307,14 @@ int policy_key_create(policy_key_t* policy_key);
  * \param[in] id a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_key_get_by_id(policy_key_t* policy_key, const db_value_t* id);
+extern int policy_key_get_by_id(policy_key_t* policy_key, const db_value_t* id);
 
 /**
  * Delete a policy key object from the database.
  * \param[in] policy_key a policy_key_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_key_delete(policy_key_t* policy_key);
+extern int policy_key_delete(policy_key_t* policy_key);
 
 /**
  * A list of policy key objects.
@@ -338,14 +338,14 @@ struct policy_key_list {
  * \param[in] connection a db_connection_t pointer.
  * \return a policy_key_list_t pointer or NULL on error.
  */
-policy_key_list_t* policy_key_list_new(const db_connection_t* connection);
+extern policy_key_list_t* policy_key_list_new(const db_connection_t* connection);
 
 /**
  * Create a new policy key object list that is a copy of another.
  * \param[in] policy_key_list a policy_key_list_t pointer.
  * \return a policy_key_list_t pointer or NULL on error.
  */
-policy_key_list_t* policy_key_list_new_copy(const policy_key_list_t* policy_key_copy);
+extern policy_key_list_t* policy_key_list_new_copy(const policy_key_list_t* policy_key_copy);
 
 /**
  * Specify that objects should be stored within the list as they are fetch,
@@ -353,13 +353,13 @@ policy_key_list_t* policy_key_list_new_copy(const policy_key_list_t* policy_key_
  * \param[in] policy_key_list a policy_key_list_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_key_list_object_store(policy_key_list_t* policy_key_list);
+extern int policy_key_list_object_store(policy_key_list_t* policy_key_list);
 
 /**
  * Delete a policy key object list.
  * \param[in] policy_key_list a policy_key_list_t pointer.
  */
-void policy_key_list_free(policy_key_list_t* policy_key_list);
+extern void policy_key_list_free(policy_key_list_t* policy_key_list);
 
 /**
  * Copy the content of another policy key object list.
@@ -367,7 +367,7 @@ void policy_key_list_free(policy_key_list_t* policy_key_list);
  * \param[in] from_policy_key_list a policy_key_list_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_key_list_copy(policy_key_list_t* policy_key_list, const policy_key_list_t* from_policy_key_list);
+extern int policy_key_list_copy(policy_key_list_t* policy_key_list, const policy_key_list_t* from_policy_key_list);
 
 /**
  * Get policy key objects from the database by a clause list.
@@ -375,7 +375,7 @@ int policy_key_list_copy(policy_key_list_t* policy_key_list, const policy_key_li
  * \param[in] clause_list a db_clause_list_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_key_list_get_by_clauses(policy_key_list_t* policy_key_list, const db_clause_list_t* clause_list);
+extern int policy_key_list_get_by_clauses(policy_key_list_t* policy_key_list, const db_clause_list_t* clause_list);
 
 /**
  * Get policy key objects from the database by a policy_id specified in `policy_id`.
@@ -383,7 +383,7 @@ int policy_key_list_get_by_clauses(policy_key_list_t* policy_key_list, const db_
  * \param[in] policy_id a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_key_list_get_by_policy_id(policy_key_list_t* policy_key_list, const db_value_t* policy_id);
+extern int policy_key_list_get_by_policy_id(policy_key_list_t* policy_key_list, const db_value_t* policy_id);
 
 /**
  * Get a new list of policy key objects from the database by a policy_id specified in `policy_id`.
@@ -391,7 +391,7 @@ int policy_key_list_get_by_policy_id(policy_key_list_t* policy_key_list, const d
  * \param[in] policy_id a db_value_t pointer.
  * \return a policy_key_list_t pointer or NULL on error.
  */
-policy_key_list_t* policy_key_list_new_get_by_policy_id(const db_connection_t* connection, const db_value_t* policy_id);
+extern policy_key_list_t* policy_key_list_new_get_by_policy_id(const db_connection_t* connection, const db_value_t* policy_id);
 
 /**
  * Get the first policy key object in a policy key object list and reset the
@@ -400,7 +400,7 @@ policy_key_list_t* policy_key_list_new_get_by_policy_id(const db_connection_t* c
  * \return a policy_key_t pointer or NULL on error or if there are no
  * policy key objects in the policy key object list.
  */
-const policy_key_t* policy_key_list_begin(policy_key_list_t* policy_key_list);
+extern const policy_key_t* policy_key_list_begin(policy_key_list_t* policy_key_list);
 
 /**
  * Get the next policy key object in a policy key object list.
@@ -410,7 +410,7 @@ const policy_key_t* policy_key_list_begin(policy_key_list_t* policy_key_list);
  * \return a policy_key_t pointer or NULL on error or if there are no more
  * policy key objects in the policy key object list.
  */
-const policy_key_t* policy_key_list_next(policy_key_list_t* policy_key_list);
+extern const policy_key_t* policy_key_list_next(policy_key_list_t* policy_key_list);
 
 /**
  * Get the next policy key object in a policy key object list.
@@ -420,7 +420,7 @@ const policy_key_t* policy_key_list_next(policy_key_list_t* policy_key_list);
  * \return a policy_key_t pointer or NULL on error or if there are no more
  * policy key objects in the policy key object list.
  */
-policy_key_t* policy_key_list_get_next(policy_key_list_t* policy_key_list);
+extern policy_key_t* policy_key_list_get_next(policy_key_list_t* policy_key_list);
 
 /**
  * Get the size of a policy key object list.
@@ -428,9 +428,9 @@ policy_key_t* policy_key_list_get_next(policy_key_list_t* policy_key_list);
  * \return a size_t with the size of the list or zero on error, if the list is
  * empty or if the backend does not support returning the size.
  */
-size_t policy_key_list_size(policy_key_list_t* policy_key_list);
+extern size_t policy_key_list_size(policy_key_list_t* policy_key_list);
 
-policy_key_t * policy_key_new_get_by_policyid_and_role (const db_connection_t* connection, const db_value_t* policyid, const policy_key_role_t role);
+extern policy_key_t * policy_key_new_get_by_policyid_and_role (const db_connection_t* connection, const db_value_t* policyid, const policy_key_role_t role);
 
-int policy_key_get_by_policyid_and_role(policy_key_t* policy_key, const db_value_t* policyid , const policy_key_role_t role);
+extern int policy_key_get_by_policyid_and_role(policy_key_t* policy_key, const db_value_t* policyid , const policy_key_role_t role);
 #endif

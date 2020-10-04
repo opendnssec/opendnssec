@@ -62,20 +62,20 @@ struct db_result {
  * Create a new database result.
  * \return a db_result_t pointer or NULL on error.
  */
-db_result_t* db_result_new(void);
+extern db_result_t* db_result_new(void);
 
 /**
  * Create a new database result that is a copy of another.
  * \param[in] from_result a db_result_t pointer.
  * \return a db_result_t pointer or NULL on error.
  */
-db_result_t* db_result_new_copy(const db_result_t* from_result);
+extern db_result_t* db_result_new_copy(const db_result_t* from_result);
 
 /**
  * Delete a database result and the backend meta data list if set.
  * \param[in] result a db_result_t pointer.
  */
-void db_result_free(db_result_t* result);
+extern void db_result_free(db_result_t* result);
 
 /**
  * Copy the content of another database result.
@@ -83,7 +83,7 @@ void db_result_free(db_result_t* result);
  * \param[in] from_result a db_result_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_result_copy(db_result_t* result, const db_result_t* from_result);
+extern int db_result_copy(db_result_t* result, const db_result_t* from_result);
 
 /**
  * Get the value set of a database result.
@@ -91,7 +91,7 @@ int db_result_copy(db_result_t* result, const db_result_t* from_result);
  * \return a db_value_set_t pointer or NULL on error or if no value set has
  * been set.
  */
-const db_value_set_t* db_result_value_set(const db_result_t* result);
+extern const db_value_set_t* db_result_value_set(const db_result_t* result);
 
 /**
  * Set the value set of a database result.
@@ -99,14 +99,14 @@ const db_value_set_t* db_result_value_set(const db_result_t* result);
  * \param[in] value_set a db_value_set_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_result_set_value_set(db_result_t* result, db_value_set_t* value_set);
+extern int db_result_set_value_set(db_result_t* result, db_value_set_t* value_set);
 
 /**
  * Check if a database result is not empty.
  * \param[in] result a db_result_t pointer.
  * \return DB_ERROR_* if empty, otherwise DB_OK.
  */
-int db_result_not_empty(const db_result_t* result);
+extern int db_result_not_empty(const db_result_t* result);
 
 /**
  * A list of database results.
@@ -125,20 +125,20 @@ struct db_result_list {
  * Create a new database result list.
  * \return a db_result_list_t pointer or NULL on error.
  */
-db_result_list_t* db_result_list_new(void);
+extern db_result_list_t* db_result_list_new(void);
 
 /**
  * Create a new database result list that is a copy of another.
  * \param[in] from_result_list a db_result_list_t pointer.
  * \return a db_result_list_t pointer or NULL on error.
  */
-db_result_list_t* db_result_list_new_copy(const db_result_list_t* from_result_list);
+extern db_result_list_t* db_result_list_new_copy(const db_result_list_t* from_result_list);
 
 /**
  * Delete a database result list and all database results within the list.
  * \param[in] result_list a db_result_list_t pointer.
  */
-void db_result_list_free(db_result_list_t* result_list);
+extern void db_result_list_free(db_result_list_t* result_list);
 
 /**
  * free global allocator. 
@@ -149,7 +149,7 @@ void db_result_list_free(db_result_list_t* result_list);
  * \param[in] result_list a db_result_list_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_result_list_copy(db_result_list_t* result_list, const db_result_list_t* from_result_list);
+extern int db_result_list_copy(db_result_list_t* result_list, const db_result_list_t* from_result_list);
 
 /**
  * Set the function pointer for fetching the next database result for a database
@@ -161,7 +161,7 @@ int db_result_list_copy(db_result_list_t* result_list, const db_result_list_t* f
  * \param[in] size a size_t.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_result_list_set_next(db_result_list_t* result_list, db_result_list_next_t next_function, void* next_data, size_t size);
+extern int db_result_list_set_next(db_result_list_t* result_list, db_result_list_next_t next_function, void* next_data, size_t size);
 
 /**
  * Add a database result to a database result list, this will takes over the
@@ -170,7 +170,7 @@ int db_result_list_set_next(db_result_list_t* result_list, db_result_list_next_t
  * \param[in] result a db_result_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_result_list_add(db_result_list_t* result_list, db_result_t* result);
+extern int db_result_list_add(db_result_list_t* result_list, db_result_t* result);
 
 /**
  * Return the first database result in a database result list and reset the
@@ -178,7 +178,7 @@ int db_result_list_add(db_result_list_t* result_list, db_result_t* result);
  * \param[in] result_list a db_result_list_t pointer.
  * \return a db_result_t pointer or NULL on error or if the list is empty.
  */
-const db_result_t* db_result_list_begin(db_result_list_t* result_list);
+extern const db_result_t* db_result_list_begin(db_result_list_t* result_list);
 
 /**
  * Return the next database result in a database result list.
@@ -186,7 +186,7 @@ const db_result_t* db_result_list_begin(db_result_list_t* result_list);
  * \return a db_result_t pointer or NULL on error or if the end of the list has
  * been reached.
  */
-const db_result_t* db_result_list_next(db_result_list_t* result_list);
+extern const db_result_t* db_result_list_next(db_result_list_t* result_list);
 
 /**
  * Return the size of the database result list.
@@ -195,7 +195,7 @@ const db_result_t* db_result_list_next(db_result_list_t* result_list);
  * , if the database result list is empty or if the backend does not support
  * returning the size.
  */
-size_t db_result_list_size(const db_result_list_t* result_list);
+extern size_t db_result_list_size(const db_result_list_t* result_list);
 
 /**
  * Make sure that all objects in this database result list is loaded into memory
@@ -204,6 +204,6 @@ size_t db_result_list_size(const db_result_list_t* result_list);
  * \param[in] result_list a db_result_list_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_result_list_fetch_all(db_result_list_t* result_list);
+extern int db_result_list_fetch_all(db_result_list_t* result_list);
 
 #endif

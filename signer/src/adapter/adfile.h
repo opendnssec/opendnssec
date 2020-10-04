@@ -49,7 +49,7 @@
  * \return ods_status status
  *
  */
-ods_status adfile_read(void* zone);
+extern ods_status adfile_read(void* zone);
 
 /**
  * Write zone to output file adapter.
@@ -58,6 +58,6 @@ ods_status adfile_read(void* zone);
  * \return ods_status status
  *
  */
-ods_status adfile_write(void* zone, const char* filename);
+extern ods_status adfile_write(void* zone, const char* filename);
 
 #endif /* ADAPTER_ADFILE_H */

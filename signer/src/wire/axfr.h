@@ -49,7 +49,7 @@
  * \return query_state state of the query
  *
  */
-query_state soa_request(query_type* q, engine_type* engine);
+extern query_state soa_request(query_type* q, engine_type* engine);
 
 /**
  * Do AXFR.
@@ -59,7 +59,7 @@ query_state soa_request(query_type* q, engine_type* engine);
  * \return query_state state of the query
  *
  */
-query_state axfr(query_type* q, engine_type* engine, int fallback);
+extern query_state axfr(query_type* q, engine_type* engine, int fallback);
 
 /**
  * Do IXFR.
@@ -68,6 +68,6 @@ query_state axfr(query_type* q, engine_type* engine, int fallback);
  * \return query_state state of the query
  *
  */
-query_state ixfr(query_type* q, engine_type* engine);
+extern query_state ixfr(query_type* q, engine_type* engine);
 
 #endif /* WIRE_AXFR_H */

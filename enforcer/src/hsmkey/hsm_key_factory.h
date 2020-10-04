@@ -35,7 +35,7 @@
 
 #include <time.h>
 
-void hsm_key_factory_deinit(void);
+extern void hsm_key_factory_deinit(void);
 /**
  * TODO
  * \return 0 success, 1 error
@@ -92,7 +92,7 @@ int hsm_key_factory_schedule_generate_all(engine_type* engine, time_t duration);
  * \return an allocated HSM key or NULL on error or if there are no unused keys
  * available for allocation right now.
  */
-hsm_key_t* hsm_key_factory_get_key(engine_type* engine,
+extern hsm_key_t* hsm_key_factory_get_key(engine_type* engine,
     const db_connection_t* connection, const policy_key_t* policy_key,
     hsm_key_state_t hsm_key_state);
 
@@ -101,7 +101,7 @@ hsm_key_t* hsm_key_factory_get_key(engine_type* engine,
  * \param[in] hsm_key_id a db_value_t pointer with the hsm_key database id.
  * \return non-zero on error.
  */
-int hsm_key_factory_release_key_id(const db_value_t* hsm_key_id,
+extern int hsm_key_factory_release_key_id(const db_value_t* hsm_key_id,
     const db_connection_t* connection);
 
 /**
@@ -109,7 +109,7 @@ int hsm_key_factory_release_key_id(const db_value_t* hsm_key_id,
  * \param[in] hsm_key a hsm_key_t pointer with the hsm_key to release.
  * \return non-zero on error.
  */
-int hsm_key_factory_release_key(hsm_key_t* hsm_key,
+extern int hsm_key_factory_release_key(hsm_key_t* hsm_key,
     const db_connection_t* connection);
 
 #endif /* _HSM_KEY_FACTORY_H_ */

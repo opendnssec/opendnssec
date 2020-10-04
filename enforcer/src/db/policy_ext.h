@@ -41,7 +41,7 @@
  * \param[in] policy_node a xmlNodePtr to the XML for the policy.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_create_from_xml(policy_t* policy, xmlNodePtr policy_node);
+extern int policy_create_from_xml(policy_t* policy, xmlNodePtr policy_node);
 
 /**
  * Update a policy object from XML.
@@ -51,13 +51,13 @@ int policy_create_from_xml(policy_t* policy, xmlNodePtr policy_node);
  * values in the policy was updated.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_update_from_xml(policy_t* policy, xmlNodePtr policy_node, int* updated);
+extern int policy_update_from_xml(policy_t* policy, xmlNodePtr policy_node, int* updated);
 
 /**
  * Get the policy keys for a policy.
  * \param[in] policy a policy_t object.
  * \return a policy_key_list_t pointer or NULL on error.
  */
-policy_key_list_t* policy_get_policy_keys(const policy_t* policy);
+extern policy_key_list_t* policy_get_policy_keys(const policy_t* policy);
 
 #endif

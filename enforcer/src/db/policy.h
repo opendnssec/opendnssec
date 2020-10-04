@@ -107,20 +107,20 @@ struct policy {
  * \param[in] connection a db_connection_t pointer.
  * \return a policy_t pointer or NULL on error.
  */
-policy_t* policy_new(const db_connection_t* connection);
+extern policy_t* policy_new(const db_connection_t* connection);
 
 /**
  * Create a new policy object that is a copy of another policy object.
  * \param[in] policy a policy_t pointer.
  * \return a policy_t pointer or NULL on error.
  */
-policy_t* policy_new_copy(const policy_t* policy);
+extern policy_t* policy_new_copy(const policy_t* policy);
 
 /**
  * Delete a policy object, this does not delete it from the database.
  * \param[in] policy a policy_t pointer.
  */
-void policy_free(policy_t* policy);
+extern void policy_free(policy_t* policy);
 
 /**
  * Copy the content of a policy object.
@@ -128,7 +128,7 @@ void policy_free(policy_t* policy);
  * \param[in] policy_copy a policy_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_copy(policy_t* policy, const policy_t* policy_copy);
+extern int policy_copy(policy_t* policy, const policy_t* policy_copy);
 
 /**
  * Set the content of a policy object based on a database result.
@@ -136,259 +136,259 @@ int policy_copy(policy_t* policy, const policy_t* policy_copy);
  * \param[in] result a db_result_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_from_result(policy_t* policy, const db_result_t* result);
+extern int policy_from_result(policy_t* policy, const db_result_t* result);
 
 /**
  * Get the id of a policy object.
  * \param[in] policy a policy_t pointer.
  * \return a db_value_t pointer or NULL on error.
  */
-const db_value_t* policy_id(const policy_t* policy);
+extern const db_value_t* policy_id(const policy_t* policy);
 
 /**
  * Get the name of a policy object.
  * \param[in] policy a policy_t pointer.
  * \return a character pointer or NULL on error or if no name has been set.
  */
-const char* policy_name(const policy_t* policy);
+extern const char* policy_name(const policy_t* policy);
 
 /**
  * Get the passthrough of a policy object. Undefined behavior if `policy` is NULL.
  * \param[in] policy a policy_t pointer.
  * \return an unsigned integer.
  */
-unsigned int policy_passthrough(const policy_t* policy);
+extern unsigned int policy_passthrough(const policy_t* policy);
 
 /**
  * Get the description of a policy object.
  * \param[in] policy a policy_t pointer.
  * \return a character pointer or NULL on error or if no description has been set.
  */
-const char* policy_description(const policy_t* policy);
+extern const char* policy_description(const policy_t* policy);
 
 /**
  * Get the signatures_resign of a policy object. Undefined behavior if `policy` is NULL.
  * \param[in] policy a policy_t pointer.
  * \return an unsigned integer.
  */
-unsigned int policy_signatures_resign(const policy_t* policy);
+extern unsigned int policy_signatures_resign(const policy_t* policy);
 
 /**
  * Get the signatures_refresh of a policy object. Undefined behavior if `policy` is NULL.
  * \param[in] policy a policy_t pointer.
  * \return an unsigned integer.
  */
-unsigned int policy_signatures_refresh(const policy_t* policy);
+extern unsigned int policy_signatures_refresh(const policy_t* policy);
 
 /**
  * Get the signatures_jitter of a policy object. Undefined behavior if `policy` is NULL.
  * \param[in] policy a policy_t pointer.
  * \return an unsigned integer.
  */
-unsigned int policy_signatures_jitter(const policy_t* policy);
+extern unsigned int policy_signatures_jitter(const policy_t* policy);
 
 /**
  * Get the signatures_inception_offset of a policy object. Undefined behavior if `policy` is NULL.
  * \param[in] policy a policy_t pointer.
  * \return an unsigned integer.
  */
-unsigned int policy_signatures_inception_offset(const policy_t* policy);
+extern unsigned int policy_signatures_inception_offset(const policy_t* policy);
 
 /**
  * Get the signatures_validity_default of a policy object. Undefined behavior if `policy` is NULL.
  * \param[in] policy a policy_t pointer.
  * \return an unsigned integer.
  */
-unsigned int policy_signatures_validity_default(const policy_t* policy);
+extern unsigned int policy_signatures_validity_default(const policy_t* policy);
 
 /**
  * Get the signatures_validity_denial of a policy object. Undefined behavior if `policy` is NULL.
  * \param[in] policy a policy_t pointer.
  * \return an unsigned integer.
  */
-unsigned int policy_signatures_validity_denial(const policy_t* policy);
+extern unsigned int policy_signatures_validity_denial(const policy_t* policy);
 
 /**
  * Get the signatures_validity_keyset of a policy object. Undefined behavior if `policy` is NULL.
  * \param[in] policy a policy_t pointer.
  * \return an unsigned integer.
  */
-unsigned int policy_signatures_validity_keyset(const policy_t* policy);
+extern unsigned int policy_signatures_validity_keyset(const policy_t* policy);
 
 /**
  * Get the signatures_max_zone_ttl of a policy object. Undefined behavior if `policy` is NULL.
  * \param[in] policy a policy_t pointer.
  * \return an unsigned integer.
  */
-unsigned int policy_signatures_max_zone_ttl(const policy_t* policy);
+extern unsigned int policy_signatures_max_zone_ttl(const policy_t* policy);
 
 /**
  * Get the denial_type of a policy object.
  * \param[in] policy a policy_t pointer.
  * \return a policy_denial_type_t which may be POLICY_DENIAL_TYPE_INVALID on error or if no denial_type has been set.
  */
-policy_denial_type_t policy_denial_type(const policy_t* policy);
+extern policy_denial_type_t policy_denial_type(const policy_t* policy);
 
 /**
  * Get the denial_optout of a policy object. Undefined behavior if `policy` is NULL.
  * \param[in] policy a policy_t pointer.
  * \return an unsigned integer.
  */
-unsigned int policy_denial_optout(const policy_t* policy);
+extern unsigned int policy_denial_optout(const policy_t* policy);
 
 /**
  * Get the denial_ttl of a policy object. Undefined behavior if `policy` is NULL.
  * \param[in] policy a policy_t pointer.
  * \return an unsigned integer.
  */
-unsigned int policy_denial_ttl(const policy_t* policy);
+extern unsigned int policy_denial_ttl(const policy_t* policy);
 
 /**
  * Get the denial_resalt of a policy object. Undefined behavior if `policy` is NULL.
  * \param[in] policy a policy_t pointer.
  * \return an unsigned integer.
  */
-unsigned int policy_denial_resalt(const policy_t* policy);
+extern unsigned int policy_denial_resalt(const policy_t* policy);
 
 /**
  * Get the denial_algorithm of a policy object. Undefined behavior if `policy` is NULL.
  * \param[in] policy a policy_t pointer.
  * \return an unsigned integer.
  */
-unsigned int policy_denial_algorithm(const policy_t* policy);
+extern unsigned int policy_denial_algorithm(const policy_t* policy);
 
 /**
  * Get the denial_iterations of a policy object. Undefined behavior if `policy` is NULL.
  * \param[in] policy a policy_t pointer.
  * \return an unsigned integer.
  */
-unsigned int policy_denial_iterations(const policy_t* policy);
+extern unsigned int policy_denial_iterations(const policy_t* policy);
 
 /**
  * Get the denial_salt_length of a policy object. Undefined behavior if `policy` is NULL.
  * \param[in] policy a policy_t pointer.
  * \return an unsigned integer.
  */
-unsigned int policy_denial_salt_length(const policy_t* policy);
+extern unsigned int policy_denial_salt_length(const policy_t* policy);
 
 /**
  * Get the denial_salt of a policy object.
  * \param[in] policy a policy_t pointer.
  * \return a character pointer or NULL on error or if no denial_salt has been set.
  */
-const char* policy_denial_salt(const policy_t* policy);
+extern const char* policy_denial_salt(const policy_t* policy);
 
 /**
  * Get the denial_salt_last_change of a policy object. Undefined behavior if `policy` is NULL.
  * \param[in] policy a policy_t pointer.
  * \return an unsigned integer.
  */
-unsigned int policy_denial_salt_last_change(const policy_t* policy);
+extern unsigned int policy_denial_salt_last_change(const policy_t* policy);
 
 /**
  * Get the keys_ttl of a policy object. Undefined behavior if `policy` is NULL.
  * \param[in] policy a policy_t pointer.
  * \return an unsigned integer.
  */
-unsigned int policy_keys_ttl(const policy_t* policy);
+extern unsigned int policy_keys_ttl(const policy_t* policy);
 
 /**
  * Get the keys_retire_safety of a policy object. Undefined behavior if `policy` is NULL.
  * \param[in] policy a policy_t pointer.
  * \return an unsigned integer.
  */
-unsigned int policy_keys_retire_safety(const policy_t* policy);
+extern unsigned int policy_keys_retire_safety(const policy_t* policy);
 
 /**
  * Get the keys_publish_safety of a policy object. Undefined behavior if `policy` is NULL.
  * \param[in] policy a policy_t pointer.
  * \return an unsigned integer.
  */
-unsigned int policy_keys_publish_safety(const policy_t* policy);
+extern unsigned int policy_keys_publish_safety(const policy_t* policy);
 
 /**
  * Get the keys_shared of a policy object. Undefined behavior if `policy` is NULL.
  * \param[in] policy a policy_t pointer.
  * \return an unsigned integer.
  */
-unsigned int policy_keys_shared(const policy_t* policy);
+extern unsigned int policy_keys_shared(const policy_t* policy);
 
 /**
  * Get the keys_purge_after of a policy object. Undefined behavior if `policy` is NULL.
  * \param[in] policy a policy_t pointer.
  * \return an unsigned integer.
  */
-unsigned int policy_keys_purge_after(const policy_t* policy);
+extern unsigned int policy_keys_purge_after(const policy_t* policy);
 
 /**
  * Get the zone_propagation_delay of a policy object. Undefined behavior if `policy` is NULL.
  * \param[in] policy a policy_t pointer.
  * \return an unsigned integer.
  */
-unsigned int policy_zone_propagation_delay(const policy_t* policy);
+extern unsigned int policy_zone_propagation_delay(const policy_t* policy);
 
 /**
  * Get the zone_soa_ttl of a policy object. Undefined behavior if `policy` is NULL.
  * \param[in] policy a policy_t pointer.
  * \return an unsigned integer.
  */
-unsigned int policy_zone_soa_ttl(const policy_t* policy);
+extern unsigned int policy_zone_soa_ttl(const policy_t* policy);
 
 /**
  * Get the zone_soa_minimum of a policy object. Undefined behavior if `policy` is NULL.
  * \param[in] policy a policy_t pointer.
  * \return an unsigned integer.
  */
-unsigned int policy_zone_soa_minimum(const policy_t* policy);
+extern unsigned int policy_zone_soa_minimum(const policy_t* policy);
 
 /**
  * Get the zone_soa_serial as text of a policy object.
  * \param[in] policy a policy_t pointer.
  * \return a character pointer or NULL on error or if no zone_soa_serial has been set.
  */
-const char* policy_zone_soa_serial_text(const policy_t* policy);
+extern const char* policy_zone_soa_serial_text(const policy_t* policy);
 
 /**
  * Get the parent_registration_delay of a policy object. Undefined behavior if `policy` is NULL.
  * \param[in] policy a policy_t pointer.
  * \return an unsigned integer.
  */
-unsigned int policy_parent_registration_delay(const policy_t* policy);
+extern unsigned int policy_parent_registration_delay(const policy_t* policy);
 
 /**
  * Get the parent_propagation_delay of a policy object. Undefined behavior if `policy` is NULL.
  * \param[in] policy a policy_t pointer.
  * \return an unsigned integer.
  */
-unsigned int policy_parent_propagation_delay(const policy_t* policy);
+extern unsigned int policy_parent_propagation_delay(const policy_t* policy);
 
 /**
  * Get the parent_ds_ttl of a policy object. Undefined behavior if `policy` is NULL.
  * \param[in] policy a policy_t pointer.
  * \return an unsigned integer.
  */
-unsigned int policy_parent_ds_ttl(const policy_t* policy);
+extern unsigned int policy_parent_ds_ttl(const policy_t* policy);
 
 /**
  * Get the parent_soa_ttl of a policy object. Undefined behavior if `policy` is NULL.
  * \param[in] policy a policy_t pointer.
  * \return an unsigned integer.
  */
-unsigned int policy_parent_soa_ttl(const policy_t* policy);
+extern unsigned int policy_parent_soa_ttl(const policy_t* policy);
 
 /**
  * Get the parent_soa_minimum of a policy object. Undefined behavior if `policy` is NULL.
  * \param[in] policy a policy_t pointer.
  * \return an unsigned integer.
  */
-unsigned int policy_parent_soa_minimum(const policy_t* policy);
+extern unsigned int policy_parent_soa_minimum(const policy_t* policy);
 
 /**
  * Get the zone objects related to a policy object.
  * \param[in] policy a policy_t pointer.
  * \return a zone_list_db_t pointer or NULL on error.
  */
-zone_list_db_t* policy_zone_list(policy_t* policy);
+extern zone_list_db_t* policy_zone_list(policy_t* policy);
 
 /**
  * Retrieve zone objects related to a policy object.
@@ -397,7 +397,7 @@ zone_list_db_t* policy_zone_list(policy_t* policy);
  * \param[in] policy a policy_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_retrieve_zone_list(policy_t* policy);
+extern int policy_retrieve_zone_list(policy_t* policy);
 
 /**
  * Set the name of a policy object.
@@ -405,7 +405,7 @@ int policy_retrieve_zone_list(policy_t* policy);
  * \param[in] name_text a character pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_set_name(policy_t* policy, const char* name_text);
+extern int policy_set_name(policy_t* policy, const char* name_text);
 
 /**
  * Set the passthrough of a policy object.
@@ -413,7 +413,7 @@ int policy_set_name(policy_t* policy, const char* name_text);
  * \param[in] passthrough an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_set_passthrough(policy_t* policy, unsigned int passthrough);
+extern int policy_set_passthrough(policy_t* policy, unsigned int passthrough);
 
 /**
  * Set the description of a policy object.
@@ -421,7 +421,7 @@ int policy_set_passthrough(policy_t* policy, unsigned int passthrough);
  * \param[in] description_text a character pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_set_description(policy_t* policy, const char* description_text);
+extern int policy_set_description(policy_t* policy, const char* description_text);
 
 /**
  * Set the signatures_resign of a policy object.
@@ -429,7 +429,7 @@ int policy_set_description(policy_t* policy, const char* description_text);
  * \param[in] signatures_resign an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_set_signatures_resign(policy_t* policy, unsigned int signatures_resign);
+extern int policy_set_signatures_resign(policy_t* policy, unsigned int signatures_resign);
 
 /**
  * Set the signatures_refresh of a policy object.
@@ -437,7 +437,7 @@ int policy_set_signatures_resign(policy_t* policy, unsigned int signatures_resig
  * \param[in] signatures_refresh an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_set_signatures_refresh(policy_t* policy, unsigned int signatures_refresh);
+extern int policy_set_signatures_refresh(policy_t* policy, unsigned int signatures_refresh);
 
 /**
  * Set the signatures_jitter of a policy object.
@@ -445,7 +445,7 @@ int policy_set_signatures_refresh(policy_t* policy, unsigned int signatures_refr
  * \param[in] signatures_jitter an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_set_signatures_jitter(policy_t* policy, unsigned int signatures_jitter);
+extern int policy_set_signatures_jitter(policy_t* policy, unsigned int signatures_jitter);
 
 /**
  * Set the signatures_inception_offset of a policy object.
@@ -453,7 +453,7 @@ int policy_set_signatures_jitter(policy_t* policy, unsigned int signatures_jitte
  * \param[in] signatures_inception_offset an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_set_signatures_inception_offset(policy_t* policy, unsigned int signatures_inception_offset);
+extern int policy_set_signatures_inception_offset(policy_t* policy, unsigned int signatures_inception_offset);
 
 /**
  * Set the signatures_validity_default of a policy object.
@@ -461,7 +461,7 @@ int policy_set_signatures_inception_offset(policy_t* policy, unsigned int signat
  * \param[in] signatures_validity_default an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_set_signatures_validity_default(policy_t* policy, unsigned int signatures_validity_default);
+extern int policy_set_signatures_validity_default(policy_t* policy, unsigned int signatures_validity_default);
 
 /**
  * Set the signatures_validity_denial of a policy object.
@@ -469,7 +469,7 @@ int policy_set_signatures_validity_default(policy_t* policy, unsigned int signat
  * \param[in] signatures_validity_denial an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_set_signatures_validity_denial(policy_t* policy, unsigned int signatures_validity_denial);
+extern int policy_set_signatures_validity_denial(policy_t* policy, unsigned int signatures_validity_denial);
 
 /**
  * Set the signatures_validity_keyset of a policy object.
@@ -477,7 +477,7 @@ int policy_set_signatures_validity_denial(policy_t* policy, unsigned int signatu
  * \param[in] signatures_validity_keyset an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_set_signatures_validity_keyset(policy_t* policy, unsigned int signatures_validity_keyset);
+extern int policy_set_signatures_validity_keyset(policy_t* policy, unsigned int signatures_validity_keyset);
 
 /**
  * Set the signatures_max_zone_ttl of a policy object.
@@ -485,7 +485,7 @@ int policy_set_signatures_validity_keyset(policy_t* policy, unsigned int signatu
  * \param[in] signatures_max_zone_ttl an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_set_signatures_max_zone_ttl(policy_t* policy, unsigned int signatures_max_zone_ttl);
+extern int policy_set_signatures_max_zone_ttl(policy_t* policy, unsigned int signatures_max_zone_ttl);
 
 /**
  * Set the denial_type of a policy object.
@@ -493,7 +493,7 @@ int policy_set_signatures_max_zone_ttl(policy_t* policy, unsigned int signatures
  * \param[in] denial_type a policy_denial_type_t.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_set_denial_type(policy_t* policy, policy_denial_type_t denial_type);
+extern int policy_set_denial_type(policy_t* policy, policy_denial_type_t denial_type);
 
 /**
  * Set the denial_optout of a policy object.
@@ -501,7 +501,7 @@ int policy_set_denial_type(policy_t* policy, policy_denial_type_t denial_type);
  * \param[in] denial_optout an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_set_denial_optout(policy_t* policy, unsigned int denial_optout);
+extern int policy_set_denial_optout(policy_t* policy, unsigned int denial_optout);
 
 /**
  * Set the denial_ttl of a policy object.
@@ -509,7 +509,7 @@ int policy_set_denial_optout(policy_t* policy, unsigned int denial_optout);
  * \param[in] denial_ttl an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_set_denial_ttl(policy_t* policy, unsigned int denial_ttl);
+extern int policy_set_denial_ttl(policy_t* policy, unsigned int denial_ttl);
 
 /**
  * Set the denial_resalt of a policy object.
@@ -517,7 +517,7 @@ int policy_set_denial_ttl(policy_t* policy, unsigned int denial_ttl);
  * \param[in] denial_resalt an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_set_denial_resalt(policy_t* policy, unsigned int denial_resalt);
+extern int policy_set_denial_resalt(policy_t* policy, unsigned int denial_resalt);
 
 /**
  * Set the denial_algorithm of a policy object.
@@ -525,7 +525,7 @@ int policy_set_denial_resalt(policy_t* policy, unsigned int denial_resalt);
  * \param[in] denial_algorithm an unsigned integer with a maximum value of 255.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_set_denial_algorithm(policy_t* policy, unsigned int denial_algorithm);
+extern int policy_set_denial_algorithm(policy_t* policy, unsigned int denial_algorithm);
 
 /**
  * Set the denial_iterations of a policy object.
@@ -533,7 +533,7 @@ int policy_set_denial_algorithm(policy_t* policy, unsigned int denial_algorithm)
  * \param[in] denial_iterations an unsigned integer with a maximum value of 65535.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_set_denial_iterations(policy_t* policy, unsigned int denial_iterations);
+extern int policy_set_denial_iterations(policy_t* policy, unsigned int denial_iterations);
 
 /**
  * Set the denial_salt_length of a policy object.
@@ -541,7 +541,7 @@ int policy_set_denial_iterations(policy_t* policy, unsigned int denial_iteration
  * \param[in] denial_salt_length an unsigned integer with a maximum value of 255.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_set_denial_salt_length(policy_t* policy, unsigned int denial_salt_length);
+extern int policy_set_denial_salt_length(policy_t* policy, unsigned int denial_salt_length);
 
 /**
  * Set the denial_salt of a policy object.
@@ -549,7 +549,7 @@ int policy_set_denial_salt_length(policy_t* policy, unsigned int denial_salt_len
  * \param[in] denial_salt_text a character pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_set_denial_salt(policy_t* policy, const char* denial_salt_text);
+extern int policy_set_denial_salt(policy_t* policy, const char* denial_salt_text);
 
 /**
  * Set the denial_salt_last_change of a policy object.
@@ -557,7 +557,7 @@ int policy_set_denial_salt(policy_t* policy, const char* denial_salt_text);
  * \param[in] denial_salt_last_change an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_set_denial_salt_last_change(policy_t* policy, unsigned int denial_salt_last_change);
+extern int policy_set_denial_salt_last_change(policy_t* policy, unsigned int denial_salt_last_change);
 
 /**
  * Set the keys_ttl of a policy object.
@@ -565,7 +565,7 @@ int policy_set_denial_salt_last_change(policy_t* policy, unsigned int denial_sal
  * \param[in] keys_ttl an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_set_keys_ttl(policy_t* policy, unsigned int keys_ttl);
+extern int policy_set_keys_ttl(policy_t* policy, unsigned int keys_ttl);
 
 /**
  * Set the keys_retire_safety of a policy object.
@@ -573,7 +573,7 @@ int policy_set_keys_ttl(policy_t* policy, unsigned int keys_ttl);
  * \param[in] keys_retire_safety an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_set_keys_retire_safety(policy_t* policy, unsigned int keys_retire_safety);
+extern int policy_set_keys_retire_safety(policy_t* policy, unsigned int keys_retire_safety);
 
 /**
  * Set the keys_publish_safety of a policy object.
@@ -581,7 +581,7 @@ int policy_set_keys_retire_safety(policy_t* policy, unsigned int keys_retire_saf
  * \param[in] keys_publish_safety an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_set_keys_publish_safety(policy_t* policy, unsigned int keys_publish_safety);
+extern int policy_set_keys_publish_safety(policy_t* policy, unsigned int keys_publish_safety);
 
 /**
  * Set the keys_shared of a policy object.
@@ -589,7 +589,7 @@ int policy_set_keys_publish_safety(policy_t* policy, unsigned int keys_publish_s
  * \param[in] keys_shared an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_set_keys_shared(policy_t* policy, unsigned int keys_shared);
+extern int policy_set_keys_shared(policy_t* policy, unsigned int keys_shared);
 
 /**
  * Set the keys_purge_after of a policy object.
@@ -597,7 +597,7 @@ int policy_set_keys_shared(policy_t* policy, unsigned int keys_shared);
  * \param[in] keys_purge_after an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_set_keys_purge_after(policy_t* policy, unsigned int keys_purge_after);
+extern int policy_set_keys_purge_after(policy_t* policy, unsigned int keys_purge_after);
 
 /**
  * Set the zone_propagation_delay of a policy object.
@@ -605,7 +605,7 @@ int policy_set_keys_purge_after(policy_t* policy, unsigned int keys_purge_after)
  * \param[in] zone_propagation_delay an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_set_zone_propagation_delay(policy_t* policy, unsigned int zone_propagation_delay);
+extern int policy_set_zone_propagation_delay(policy_t* policy, unsigned int zone_propagation_delay);
 
 /**
  * Set the zone_soa_ttl of a policy object.
@@ -613,7 +613,7 @@ int policy_set_zone_propagation_delay(policy_t* policy, unsigned int zone_propag
  * \param[in] zone_soa_ttl an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_set_zone_soa_ttl(policy_t* policy, unsigned int zone_soa_ttl);
+extern int policy_set_zone_soa_ttl(policy_t* policy, unsigned int zone_soa_ttl);
 
 /**
  * Set the zone_soa_minimum of a policy object.
@@ -621,7 +621,7 @@ int policy_set_zone_soa_ttl(policy_t* policy, unsigned int zone_soa_ttl);
  * \param[in] zone_soa_minimum an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_set_zone_soa_minimum(policy_t* policy, unsigned int zone_soa_minimum);
+extern int policy_set_zone_soa_minimum(policy_t* policy, unsigned int zone_soa_minimum);
 
 /**
  * Set the zone_soa_serial of a policy object from text.
@@ -629,7 +629,7 @@ int policy_set_zone_soa_minimum(policy_t* policy, unsigned int zone_soa_minimum)
  * \param[in] zone_soa_serial a character pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_set_zone_soa_serial_text(policy_t* policy, const char* zone_soa_serial);
+extern int policy_set_zone_soa_serial_text(policy_t* policy, const char* zone_soa_serial);
 
 /**
  * Set the parent_registration_delay of a policy object.
@@ -637,7 +637,7 @@ int policy_set_zone_soa_serial_text(policy_t* policy, const char* zone_soa_seria
  * \param[in] parent_registration_delay an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_set_parent_registration_delay(policy_t* policy, unsigned int parent_registration_delay);
+extern int policy_set_parent_registration_delay(policy_t* policy, unsigned int parent_registration_delay);
 
 /**
  * Set the parent_propagation_delay of a policy object.
@@ -645,7 +645,7 @@ int policy_set_parent_registration_delay(policy_t* policy, unsigned int parent_r
  * \param[in] parent_propagation_delay an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_set_parent_propagation_delay(policy_t* policy, unsigned int parent_propagation_delay);
+extern int policy_set_parent_propagation_delay(policy_t* policy, unsigned int parent_propagation_delay);
 
 /**
  * Set the parent_ds_ttl of a policy object.
@@ -653,7 +653,7 @@ int policy_set_parent_propagation_delay(policy_t* policy, unsigned int parent_pr
  * \param[in] parent_ds_ttl an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_set_parent_ds_ttl(policy_t* policy, unsigned int parent_ds_ttl);
+extern int policy_set_parent_ds_ttl(policy_t* policy, unsigned int parent_ds_ttl);
 
 /**
  * Set the parent_soa_ttl of a policy object.
@@ -661,7 +661,7 @@ int policy_set_parent_ds_ttl(policy_t* policy, unsigned int parent_ds_ttl);
  * \param[in] parent_soa_ttl an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_set_parent_soa_ttl(policy_t* policy, unsigned int parent_soa_ttl);
+extern int policy_set_parent_soa_ttl(policy_t* policy, unsigned int parent_soa_ttl);
 
 /**
  * Set the parent_soa_minimum of a policy object.
@@ -669,7 +669,7 @@ int policy_set_parent_soa_ttl(policy_t* policy, unsigned int parent_soa_ttl);
  * \param[in] parent_soa_minimum an unsigned integer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_set_parent_soa_minimum(policy_t* policy, unsigned int parent_soa_minimum);
+extern int policy_set_parent_soa_minimum(policy_t* policy, unsigned int parent_soa_minimum);
 
 /**
  * Create a clause for denial_type of a policy object and add it to a database clause list.
@@ -680,14 +680,14 @@ int policy_set_parent_soa_minimum(policy_t* policy, unsigned int parent_soa_mini
  * \param[in] denial_type a policy_denial_type_t.
  * \return a db_clause_t pointer to the added clause or NULL on error.
  */
-db_clause_t* policy_denial_type_clause(db_clause_list_t* clause_list, policy_denial_type_t denial_type);
+extern db_clause_t* policy_denial_type_clause(db_clause_list_t* clause_list, policy_denial_type_t denial_type);
 
 /**
  * Create a policy object in the database.
  * \param[in] policy a policy_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_create(policy_t* policy);
+extern int policy_create(policy_t* policy);
 
 /**
  * Get a policy object from the database by a id specified in `id`.
@@ -695,7 +695,7 @@ int policy_create(policy_t* policy);
  * \param[in] id a db_value_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_get_by_id(policy_t* policy, const db_value_t* id);
+extern int policy_get_by_id(policy_t* policy, const db_value_t* id);
 
 /**
  * Get a policy object from the database by a name specified in `name`.
@@ -703,7 +703,7 @@ int policy_get_by_id(policy_t* policy, const db_value_t* id);
  * \param[in] name a character pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_get_by_name(policy_t* policy, const char* name);
+extern int policy_get_by_name(policy_t* policy, const char* name);
 
 /**
  * Get a new policy object from the database by a name specified in `name`.
@@ -711,21 +711,21 @@ int policy_get_by_name(policy_t* policy, const char* name);
  * \param[in] name a character pointer.
  * \return a policy_t pointer or NULL on error or if it does not exist.
  */
-policy_t* policy_new_get_by_name(const db_connection_t* connection, const char* name);
+extern policy_t* policy_new_get_by_name(const db_connection_t* connection, const char* name);
 
 /**
  * Update a policy object in the database.
  * \param[in] policy a policy_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_update(policy_t* policy);
+extern int policy_update(policy_t* policy);
 
 /**
  * Delete a policy object from the database.
  * \param[in] policy a policy_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_delete(policy_t* policy);
+extern int policy_delete(policy_t* policy);
 
 /**
  * A list of policy objects.
@@ -748,14 +748,14 @@ struct policy_list {
  * \param[in] connection a db_connection_t pointer.
  * \return a policy_list_t pointer or NULL on error.
  */
-policy_list_t* policy_list_new(const db_connection_t* connection);
+extern policy_list_t* policy_list_new(const db_connection_t* connection);
 
 /**
  * Create a new policy object list that is a copy of another.
  * \param[in] policy_list a policy_list_t pointer.
  * \return a policy_list_t pointer or NULL on error.
  */
-policy_list_t* policy_list_new_copy(const policy_list_t* policy_copy);
+extern policy_list_t* policy_list_new_copy(const policy_list_t* policy_copy);
 
 /**
  * Specify that objects should be stored within the list as they are fetch,
@@ -763,13 +763,13 @@ policy_list_t* policy_list_new_copy(const policy_list_t* policy_copy);
  * \param[in] policy_list a policy_list_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_list_object_store(policy_list_t* policy_list);
+extern int policy_list_object_store(policy_list_t* policy_list);
 
 /**
  * Delete a policy object list.
  * \param[in] policy_list a policy_list_t pointer.
  */
-void policy_list_free(policy_list_t* policy_list);
+extern void policy_list_free(policy_list_t* policy_list);
 
 /**
  * Copy the content of another policy object list.
@@ -777,21 +777,21 @@ void policy_list_free(policy_list_t* policy_list);
  * \param[in] from_policy_list a policy_list_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_list_copy(policy_list_t* policy_list, const policy_list_t* from_policy_list);
+extern int policy_list_copy(policy_list_t* policy_list, const policy_list_t* from_policy_list);
 
 /**
  * Get all policy objects.
  * \param[in] policy_list a policy_list_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_list_get(policy_list_t* policy_list);
+extern int policy_list_get(policy_list_t* policy_list);
 
 /**
  * Get a new list with all policy objects.
  * \param[in] connection a db_connection_t pointer.
  * \return a policy_list_t pointer or NULL on error.
  */
-policy_list_t* policy_list_new_get(const db_connection_t* connection);
+extern policy_list_t* policy_list_new_get(const db_connection_t* connection);
 
 /**
  * Get policy objects from the database by a clause list.
@@ -799,7 +799,7 @@ policy_list_t* policy_list_new_get(const db_connection_t* connection);
  * \param[in] clause_list a db_clause_list_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_list_get_by_clauses(policy_list_t* policy_list, const db_clause_list_t* clause_list);
+extern int policy_list_get_by_clauses(policy_list_t* policy_list, const db_clause_list_t* clause_list);
 
 /**
  * Get a new list of policy objects from the database by a clause list.
@@ -807,7 +807,7 @@ int policy_list_get_by_clauses(policy_list_t* policy_list, const db_clause_list_
  * \param[in] clause_list a db_clause_list_t pointer.
  * \return a policy_list_t pointer or NULL on error.
  */
-policy_list_t* policy_list_new_get_by_clauses(const db_connection_t* connection, const db_clause_list_t* clause_list);
+extern policy_list_t* policy_list_new_get_by_clauses(const db_connection_t* connection, const db_clause_list_t* clause_list);
 
 /**
  * Get the first policy object in a policy object list and reset the
@@ -816,7 +816,7 @@ policy_list_t* policy_list_new_get_by_clauses(const db_connection_t* connection,
  * \return a policy_t pointer or NULL on error or if there are no
  * policy objects in the policy object list.
  */
-const policy_t* policy_list_begin(policy_list_t* policy_list);
+extern const policy_t* policy_list_begin(policy_list_t* policy_list);
 
 /**
  * Get the next policy object in a policy object list.
@@ -826,7 +826,7 @@ const policy_t* policy_list_begin(policy_list_t* policy_list);
  * \return a policy_t pointer or NULL on error or if there are no more
  * policy objects in the policy object list.
  */
-const policy_t* policy_list_next(policy_list_t* policy_list);
+extern const policy_t* policy_list_next(policy_list_t* policy_list);
 
 /**
  * Get the next policy object in a policy object list.
@@ -836,6 +836,6 @@ const policy_t* policy_list_next(policy_list_t* policy_list);
  * \return a policy_t pointer or NULL on error or if there are no more
  * policy objects in the policy object list.
  */
-policy_t* policy_list_get_next(policy_list_t* policy_list);
+extern policy_t* policy_list_get_next(policy_list_t* policy_list);
 
 #endif

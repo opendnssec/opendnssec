@@ -81,7 +81,7 @@ struct acl_struct {
  * \return acl_type* ACL
  *
  */
-acl_type* acl_create(char* address,
+extern acl_type* acl_create(char* address,
     char* port, char* tsig_name, tsig_type* tsig);
 
 /**
@@ -92,7 +92,7 @@ acl_type* acl_create(char* address,
  * \return acl_type* ACL that matches
  *
  */
-acl_type* acl_find(acl_type* acl, struct sockaddr_storage* addr,
+extern acl_type* acl_find(acl_type* acl, struct sockaddr_storage* addr,
     tsig_rr_type* tsig);
 
 /**
@@ -101,7 +101,7 @@ acl_type* acl_find(acl_type* acl, struct sockaddr_storage* addr,
  * \return int address family
  *
  */
-int acl_parse_family(const char* a);
+extern int acl_parse_family(const char* a);
 
 /**
  * Address storage to IP string.
@@ -111,7 +111,7 @@ int acl_parse_family(const char* a);
  * \return int 0 if failed, 1 otherwise
  *
  */
-int addr2ip(struct sockaddr_storage addr, char* ip, size_t len);
+extern int addr2ip(struct sockaddr_storage addr, char* ip, size_t len);
 
 /**
  * Clean up ACL.
@@ -119,6 +119,6 @@ int addr2ip(struct sockaddr_storage addr, char* ip, size_t len);
  * \param[in] allocator memory allocator
  *
  */
-void acl_cleanup(acl_type* acl);
+extern void acl_cleanup(acl_type* acl);
 
 #endif /* WIRE_ACL_H */

@@ -67,7 +67,7 @@ struct dnshandler_struct {
  * \return dnshandler_type* created dns handler
  *
  */
-dnshandler_type* dnshandler_create(listener_type* interfaces);
+extern dnshandler_type* dnshandler_create(listener_type* interfaces);
 
 /**
  * Start dns handler listener.
@@ -75,21 +75,21 @@ dnshandler_type* dnshandler_create(listener_type* interfaces);
  * \return ods_status status
  *
  */
-ods_status dnshandler_listen(dnshandler_type* dnshandler);
+extern ods_status dnshandler_listen(dnshandler_type* dnshandler);
 
 /**
  * Start dns handler.
  * \param[in] dnshandler_type* dns handler
  *
  */
-void dnshandler_start(dnshandler_type* dnshandler);
+extern void dnshandler_start(dnshandler_type* dnshandler);
 
 /**
  * Signal dns handler.
  * \param[in] dnshandler_type* dns handler
  *
  */
-void dnshandler_signal(dnshandler_type* dnshandler);
+extern void dnshandler_signal(dnshandler_type* dnshandler);
 
 /**
  * Forward notify to zone transfer handler.
@@ -98,7 +98,7 @@ void dnshandler_signal(dnshandler_type* dnshandler);
  * \param[in] len packet length
  *
  */
-void dnshandler_fwd_notify(dnshandler_type* dnshandler,
+extern void dnshandler_fwd_notify(dnshandler_type* dnshandler,
     uint8_t* pkt, size_t len);
 
 /**
@@ -106,6 +106,6 @@ void dnshandler_fwd_notify(dnshandler_type* dnshandler,
  * \param[in] dnshandler_type* dns handler
  *
  */
-void dnshandler_cleanup(dnshandler_type* dnshandler);
+extern void dnshandler_cleanup(dnshandler_type* dnshandler);
 
 #endif /* DAEMON_DNSHANDLER_H */

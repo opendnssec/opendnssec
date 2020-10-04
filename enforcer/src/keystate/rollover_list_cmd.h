@@ -30,6 +30,6 @@
 #ifndef _ROLLOVER_LIST_CMD_H_
 #define _ROLLOVER_LIST_CMD_H_
 
-struct cmd_func_block rollover_list_funcblock;
+extern struct cmd_func_block rollover_list_funcblock;
 
 #endif /* _ROLLOVER_LIST_CMD_H_ */

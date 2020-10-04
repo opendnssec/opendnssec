@@ -1,3 +1,24 @@
+OpenDNSSEC 2.1.7 - 2020-10-05
+
+* OPENDNSSEC-949: Fix for migration bug not keeping proper parameters of NSEC3
+  signed zones. Amongst others the zone become NSEC.  Loading the policies
+  fixes the situation, migration scripts now corrected.  Since 1.4 does not
+  require a salt, a resalt might be automatic after migrating, as this is
+  a required parameter.
+* OPENDNSSEC-948: do not recreate signatures for keys that are moving out
+  this fixes unexpected double signatures in the zone.
+* SUPPORT-253: Incorrect keytag used when using Combined Signing keys (CSK)
+  (Thanks to Simon Arlott)
+* SUPPORT-257: Export keys by locator (Thansk to Simon Arlott)
+* SUPPORT-222: Support ED25519/ED448 keys.  This requires library ldns 1.7.0
+  or better, otherwise unavailable.  (Thanks again to Simon Arlott)
+* Load libsqlite3.so.0 and fall back on libsqlite3.so.0 to allow to run
+  migration tool on systems without libsqlite3.so.0 soft link.
+  (Thanks to Paul Wouters)
+* Some compilation warnings, o.a. gcc10 related, code quality and
+  initialization improvements.
+  (Thanks to Jonas Berlin, and Mathieu MirMont, and Paul Wouters).
+
 OpenDNSSEC 2.1.6 - 2020-02-10
 
 * OPENDNSSEC-913: verify database connection upon every use.
