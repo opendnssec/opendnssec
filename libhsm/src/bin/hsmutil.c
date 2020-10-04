@@ -32,6 +32,8 @@
 #include <stdlib.h>
 #include <syslog.h>
 #include <unistd.h>
+#include <ldns/ldns.h>
+#include <ldns/util.h>
 
 #include "libhsm.h"
 #include "hsmtest.h"
@@ -500,6 +502,7 @@ cmd_dnskey (int argc, char *argv[])
                 return -1;
             }
             break;
+#if (LDNS_REVISION >= ((1<<16)|(7<<8)|(0)))
         case LDNS_SIGN_ED25519:
             if (strcmp(key_info->algorithm_name, "EDDSA") != 0) {
                 printf("Not an EDDSA key, the key is of algorithm %s.\n", key_info->algorithm_name);
@@ -536,6 +539,7 @@ cmd_dnskey (int argc, char *argv[])
                 return -1;
             }
             break;
+#endif
         default:
             printf("Invalid algorithm: %i\n", algo);
             libhsm_key_info_free(key_info);
