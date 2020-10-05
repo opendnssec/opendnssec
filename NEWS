@@ -12,6 +12,8 @@ OpenDNSSEC 2.1.7 - 2020-10-05
 * SUPPORT-257: Export keys by locator (Thansk to Simon Arlott)
 * SUPPORT-222: Support ED25519/ED448 keys.  This requires library ldns 1.7.0
   or better, otherwise unavailable.  (Thanks again to Simon Arlott)
+* SUPPORT-260: Crash on OpenBSD systems in ixfr_del_rr; possible unverified
+  fix.
 * Load libsqlite3.so.0 and fall back on libsqlite3.so.0 to allow to run
   migration tool on systems without libsqlite3.so.0 soft link.
   (Thanks to Paul Wouters)

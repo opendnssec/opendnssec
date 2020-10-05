@@ -755,14 +755,20 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
     /* For each of the existing signatures, if they are no longer present in the output, delete them
      * The rrsigs array is guaranteed to line up with the mathcedsignatures array
      */
+    if (zone->db->is_initialized) {
+        pthread_mutex_lock(&zone->ixfr->ixfr_lock);
+        for(i=0; i<nrrsigs; i++) {
+            if(matchedsignatures[i].signature == NULL) {
+                if (rrsigs[i] != NULL) {
+                    ixfr_del_rr(zone->ixfr, rrsigs[i]->rr);
+                }
+            }
+        }
+        pthread_mutex_unlock(&zone->ixfr->ixfr_lock);
+    }
     for(i=0; i<nrrsigs; i++) {
         if(matchedsignatures[i].signature == NULL) {
             if (rrsigs[i] != NULL) {
-                if (zone->db->is_initialized) {
-                    pthread_mutex_lock(&zone->ixfr->ixfr_lock);
-                    ixfr_del_rr(zone->ixfr, rrsigs[i]->rr);
-                    pthread_mutex_unlock(&zone->ixfr->ixfr_lock);
-                }
                 while((signature = collection_iterator(rrset->rrsigs))) {
                     if(signature == rrsigs[i]) {
                         collection_del_cursor(rrset->rrsigs);
