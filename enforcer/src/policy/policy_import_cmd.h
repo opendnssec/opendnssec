@@ -30,6 +30,6 @@
 #ifndef _POLICY_POLICY_IMPORT_CMD_H_
 #define _POLICY_POLICY_IMPORT_CMD_H_
 
-struct cmd_func_block policy_import_funcblock;
+extern struct cmd_func_block policy_import_funcblock;
 
 #endif /* _POLICY_POLICY_IMPORT_CMD_H_ */

@@ -41,6 +41,7 @@
 #include "libhsm.h"
 #include "daemon/cfg.h"
 #include "libhsmdns.h"
+#include "db/key_data.h"
 extern hsm_repository_t* parse_conf_repositories(const char* cfgfile);
 
 int verbosity;
@@ -97,10 +98,13 @@ dblayer_sqlite3_initialize(void)
     char const *error;
 
     dlerror();
-    handle = dlopen("libsqlite3.so", RTLD_NOW);
+    handle = dlopen("libsqlite3.so.0", RTLD_NOW);
     if ((error = dlerror()) != NULL) {
-	    printf("Failed to load sqlite3 library. dlerror(): %s\n", error);
-	    exit(1);
+          handle = dlopen("libsqlite3.so", RTLD_NOW); /* unversioned is a -devel package file on some distros */
+          if ((error = dlerror()) != NULL) {
+             printf("Failed to load sqlite3 library. dlerror(): %s\n", error);
+             exit(1);
+          }
     }
 
     dblayer_sqlite3.sqlite3_prepare_v2 = (int(*)(sqlite3*, const char*, int, sqlite3_stmt**, const char **))functioncast(dlsym(handle, "sqlite3_prepare_v2"));
@@ -308,14 +312,14 @@ compute(char **argv, int* id, uint16_t* keytag)
 {
     char *locator;
     int algorithm;
-    int ksk;
+    int sep;
 
     *id = atoi(argv[0]);
     algorithm = atoi(argv[1]);
-    ksk = (atoi(argv[2]) == 1);
+    sep = KEY_DATA_ROLE_SEP(atoi(argv[2]));
     *keytag = atoi(argv[3]);
     locator = argv[4];
-    hsm_keytag(locator, algorithm, ksk, keytag);
+    hsm_keytag(locator, algorithm, sep, keytag);
     keytagcount += 1;
     
     return 0;

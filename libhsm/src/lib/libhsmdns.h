@@ -50,7 +50,7 @@ typedef struct {
 /*!
  * Returns an allocated hsm_sign_params_t with some defaults
  */
-hsm_sign_params_t * hsm_sign_params_new(void);
+extern hsm_sign_params_t * hsm_sign_params_new(void);
 
 
 /*!
@@ -61,7 +61,7 @@ on it.
 
 \param params The signer parameters to free
 */
-void
+extern void
 hsm_sign_params_free(hsm_sign_params_t *params);
 
 
@@ -74,7 +74,7 @@ The returned ldns_rr structure can be freed with ldns_rr_free()
 \param key Key pair used to sign
 \return ldns_rr* Signed RRset
 */
-ldns_rr*
+extern ldns_rr*
 hsm_sign_rrset(hsm_ctx_t *ctx,
                const ldns_rr_list* rrset,
                const libhsm_key_t *key,
@@ -90,7 +90,7 @@ The returned ldns_rr structure can be freed with ldns_rr_free()
 \param sign_params the signing parameters (flags, algorithm, etc)
 \return ldns_rr*
 */
-ldns_rr*
+extern ldns_rr*
 hsm_get_dnskey(hsm_ctx_t *ctx,
                const libhsm_key_t *key,
                const hsm_sign_params_t *sign_params);
@@ -99,10 +99,10 @@ hsm_get_dnskey(hsm_ctx_t *ctx,
  * Calculate keytag
  * @param loc: Locator of keydata on HSM
  * @param alg: Algorithm of key
- * @param ksk: 0 for zsk, positive int for ksk|csk
+ * @param sep: 0 for zsk, positive int for ksk|csk (DNSKEY Secure Entry Point)
  * @param[out] keytag: the calculated keytag
  * return: non-zero in case of failure
  */
-int hsm_keytag(const char* loc, int alg, int ksk, uint16_t* keytag);
+extern int hsm_keytag(const char* loc, int alg, int sep, uint16_t* keytag);
 
 #endif /* HSMDNS_H */

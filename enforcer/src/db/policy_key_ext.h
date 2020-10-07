@@ -44,6 +44,6 @@
  * \param[in] key_node a xmlNodePtr to the XML for the policy key.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int policy_key_create_from_xml(policy_key_t* policy_key, xmlNodePtr key_node);
+extern int policy_key_create_from_xml(policy_key_t* policy_key, xmlNodePtr key_node);
 
 #endif

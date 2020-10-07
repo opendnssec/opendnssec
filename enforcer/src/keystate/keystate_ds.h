@@ -30,7 +30,7 @@
 
 #include "db/key_data.h"
 
-int
+extern int
 change_keys_from_to(db_connection_t *dbconn, int sockfd,
 	const char *zonename, const hsm_key_t* hsmkey, int keytag,
 	key_data_ds_at_parent_t state_from,

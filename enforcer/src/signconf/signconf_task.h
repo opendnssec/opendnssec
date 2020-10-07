@@ -33,12 +33,12 @@
 #include "db/db_connection.h"
 #include "db/policy.h"
 
-void signconf_task_flush_zone(engine_type *engine, db_connection_t *dbconn,
+extern void signconf_task_flush_zone(engine_type *engine, db_connection_t *dbconn,
     const char* zonename);
 
-void signconf_task_flush_policy(engine_type *engine, db_connection_t *dbconn,
+extern void signconf_task_flush_policy(engine_type *engine, db_connection_t *dbconn,
     policy_t const *policy);
 
-void signconf_task_flush_all(engine_type *engine, db_connection_t *dbconn);
+extern void signconf_task_flush_all(engine_type *engine, db_connection_t *dbconn);
 
 #endif

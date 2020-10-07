@@ -147,6 +147,9 @@ ACX_LIBC
 ACX_SSL
 ACX_CUNIT
 
+AC_DEFINE(USE_ED25519, 1, [Enable ldns ED25519 support])
+AC_DEFINE(USE_ED448, 1, [Enable ldns ED448 support])
+
 # cunit
 AM_CONDITIONAL([WITH_CUNIT], [test "${with_cunit}" != "no" -a -n "$CUNIT_LIBS"])
 

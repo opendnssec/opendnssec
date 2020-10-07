@@ -45,44 +45,44 @@ typedef struct {
 	char *TokenLabel;
 } KC_REPO;
 
-int check_conf(const char *conf, char **kasp, char **zonelist, 
+extern int check_conf(const char *conf, char **kasp, char **zonelist, 
 	char ***repo_listout, int *repo_countout, int verbose);
-int check_kasp(const char *kasp, char **repo_list, int repo_count, int verbose,
+extern int check_kasp(const char *kasp, char **repo_list, int repo_count, int verbose,
     char ***policy_names_out, int *policy_count_out);
-int check_zonelist(const char *zonelist, int verbose, char **policy_names,
+extern int check_zonelist(const char *zonelist, int verbose, char **policy_names,
     int policy_count);
 
-void log_init(int facility, const char *program_name);
-void log_switch(int facility, const char *program_name);
-void dual_log(const char *format, ...)
+extern void log_init(int facility, const char *program_name);
+extern void log_switch(int facility, const char *program_name);
+extern void dual_log(const char *format, ...)
 #ifdef HAVE___ATTRIBUTE__
      __attribute__ ((format (printf, 1, 2)))
 #endif
      ;
 
 
-int check_rng(const char *filename, const char *rngfilename, int verbose);
+extern int check_rng(const char *filename, const char *rngfilename, int verbose);
 
-int check_file(const char *filename, const char *log_string);
-int check_file_from_xpath(xmlXPathContextPtr xpath_ctx, const char *log_string, const xmlChar *file_xexpr);
+extern int check_file(const char *filename, const char *log_string);
+extern int check_file_from_xpath(xmlXPathContextPtr xpath_ctx, const char *log_string, const xmlChar *file_xexpr);
 
-int check_path(const char *pathname, const char *log_string);
-int check_path_from_xpath(xmlXPathContextPtr xpath_ctx, const char *log_string, const xmlChar *path_xexpr);
+extern int check_path(const char *pathname, const char *log_string);
+extern int check_path_from_xpath(xmlXPathContextPtr xpath_ctx, const char *log_string, const xmlChar *path_xexpr);
 
-int check_user_group(xmlXPathContextPtr xpath_ctx, const xmlChar *user_xexpr, const xmlChar *group_xexpr);
+extern int check_user_group(xmlXPathContextPtr xpath_ctx, const xmlChar *user_xexpr, const xmlChar *group_xexpr);
 
-int check_time_def(const char *time_expr, const char *location, const char *field, const char *filename, int* interval);
-int check_time_def_from_xpath(xmlXPathContextPtr xpath_ctx, const xmlChar *time_xexpr, const char *location, const char *field, const char *filename);
+extern int check_time_def(const char *time_expr, const char *location, const char *field, const char *filename, int* interval);
+extern int check_time_def_from_xpath(xmlXPathContextPtr xpath_ctx, const xmlChar *time_xexpr, const char *location, const char *field, const char *filename);
 
 /* if repo_list NULL, will skip the check to see all repositories in kasp are available in conf */
-int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, int repo_count, const char *kasp);
+extern int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, int repo_count, const char *kasp);
 
-int DtXMLIntervalSeconds(const char* text, int* interval);
-int StrStrtoi(const char* string, int* value);
-int StrStrtol(const char* string, long* value);
-char* StrStrdup(const char* string);
-void StrTrimR(char *text);
-char* StrTrimL(char* text);
-void* MemCalloc(size_t nmemb, size_t size);
+extern int DtXMLIntervalSeconds(const char* text, int* interval);
+extern int StrStrtoi(const char* string, int* value);
+extern int StrStrtol(const char* string, long* value);
+extern char* StrStrdup(const char* string);
+extern void StrTrimR(char *text);
+extern char* StrTrimL(char* text);
+extern void* MemCalloc(size_t nmemb, size_t size);
 
 #endif /* KC_HELPER_H */

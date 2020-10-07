@@ -42,6 +42,8 @@
 
 #include <math.h>
 #include <pthread.h>
+#include <ldns/ldns.h>
+#include <ldns/util.h>
 
 #include "hsmkey/hsm_key_factory.h"
 
@@ -262,6 +264,14 @@ hsm_key_factory_generate(engine_type* engine, const db_connection_t* connection,
             case LDNS_ECDSAP384SHA384:
                 key = hsm_generate_ecdsa_key(hsm_ctx, policy_key_repository(policy_key), "P-384");
                 break;
+#if (LDNS_REVISION >= ((1<<16)|(7<<8)|(0)))
+            case LDNS_ED25519:
+                key = hsm_generate_eddsa_key(hsm_ctx, policy_key_repository(policy_key), "edwards25519");
+                break;
+            case LDNS_ED448:
+                key = hsm_generate_eddsa_key(hsm_ctx, policy_key_repository(policy_key), "edwards448");
+                break;
+#endif
             default:
                 key = NULL;
         }

@@ -30,6 +30,6 @@
 #ifndef __test_database_version_h
 #define __test_database_version_h
 
-int test_database_version_add_suite(void);
+extern int test_database_version_add_suite(void);
 
 #endif

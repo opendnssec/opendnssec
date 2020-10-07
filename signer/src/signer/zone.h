@@ -98,7 +98,7 @@ struct zone_struct {
  * \return zone_type* zone
  *
  */
-zone_type* zone_create(char* name, ldns_rr_class klass);
+extern zone_type* zone_create(char* name, ldns_rr_class klass);
 
 /**
  * Load signer configuration for zone.
@@ -110,7 +110,7 @@ zone_type* zone_create(char* name, ldns_rr_class klass);
  *         other: signer configuration not loaded, error occurred
  *
  */
-ods_status zone_load_signconf(zone_type* zone, signconf_type** new_signconf);
+extern ods_status zone_load_signconf(zone_type* zone, signconf_type** new_signconf);
 
 /**
  * Reschedule task for zone.
@@ -120,7 +120,7 @@ ods_status zone_load_signconf(zone_type* zone, signconf_type** new_signconf);
  * \return ods_status status
  *
  */
-ods_status zone_reschedule_task(zone_type* zone, schedule_type* taskq,
+extern ods_status zone_reschedule_task(zone_type* zone, schedule_type* taskq,
     task_id what);
 
 /**
@@ -129,14 +129,14 @@ ods_status zone_reschedule_task(zone_type* zone, schedule_type* taskq,
  * \return ods_status status
  *
  */
-ods_status zone_publish_dnskeys(zone_type* zone, int skip_hsm_access);
+extern ods_status zone_publish_dnskeys(zone_type* zone, int skip_hsm_access);
 
 /**
  * Unlink DNSKEY RRs.
  * \param[in] zone zone
  *
  */
-void zone_rollback_dnskeys(zone_type* zone);
+extern void zone_rollback_dnskeys(zone_type* zone);
 
 /**
  * Publish the NSEC3 parameters as indicated by the signer configuration.
@@ -144,14 +144,14 @@ void zone_rollback_dnskeys(zone_type* zone);
  * \return ods_status status
  *
  */
-ods_status zone_publish_nsec3param(zone_type* zone);
+extern ods_status zone_publish_nsec3param(zone_type* zone);
 
 /**
  * Unlink NSEC3PARAM RR.
  * \param[in] zone zone
  *
  */
-void zone_rollback_nsec3param(zone_type* zone);
+extern void zone_rollback_nsec3param(zone_type* zone);
 
 /**
  * Prepare keys for signing.
@@ -159,7 +159,7 @@ void zone_rollback_nsec3param(zone_type* zone);
  * \return ods_status status
  *
  */
-ods_status zone_prepare_keys(zone_type* zone);
+extern ods_status zone_prepare_keys(zone_type* zone);
 
 /**
  * Update serial.
@@ -167,7 +167,7 @@ ods_status zone_prepare_keys(zone_type* zone);
  * \return ods_status status
  *
  */
-ods_status zone_update_serial(zone_type* zone);
+extern ods_status zone_update_serial(zone_type* zone);
 
 /**
  * Lookup RRset.
@@ -177,7 +177,7 @@ ods_status zone_update_serial(zone_type* zone);
  * \return rrset_type* RRset, if found
  *
  */
-rrset_type* zone_lookup_rrset(zone_type* zone, ldns_rdf* owner,
+extern rrset_type* zone_lookup_rrset(zone_type* zone, ldns_rdf* owner,
     ldns_rr_type type);
 
 /**
@@ -191,7 +191,7 @@ rrset_type* zone_lookup_rrset(zone_type* zone, ldns_rdf* owner,
  *         other: rr not added to zone, error occurred
  *
  */
-ods_status zone_add_rr(zone_type* zone, ldns_rr* rr, int do_stats);
+extern ods_status zone_add_rr(zone_type* zone, ldns_rr* rr, int do_stats);
 
 /**
  * Delete RR.
@@ -204,13 +204,13 @@ ods_status zone_add_rr(zone_type* zone, ldns_rr* rr, int do_stats);
  *         other: rr not removed from zone, error occurred
  *
  */
-ods_status zone_del_rr(zone_type* zone, ldns_rr* rr, int do_stats);
+extern ods_status zone_del_rr(zone_type* zone, ldns_rr* rr, int do_stats);
 
 /**
  * Remove all NSEC3PARAM RRs from the zone
  * \return ODS_STATUS_UNCHANGED or ODS_STATUS_OK
  */ 
-ods_status zone_del_nsec3params(zone_type* zone);
+extern ods_status zone_del_nsec3params(zone_type* zone);
 
 /**
  * Merge zones. Values that are merged:
@@ -222,14 +222,14 @@ ods_status zone_del_nsec3params(zone_type* zone);
  * \param[in] z2 zone with new values
  *
  */
-void zone_merge(zone_type* z1, zone_type* z2);
+extern void zone_merge(zone_type* z1, zone_type* z2);
 
 /**
  * Clean up zone.
  * \param[in] zone zone
  *
  */
-void zone_cleanup(zone_type* zone);
+extern void zone_cleanup(zone_type* zone);
 
 /**
  * Backup zone.
@@ -237,13 +237,13 @@ void zone_cleanup(zone_type* zone);
  * \return ods_status status
  *
  */
-ods_status zone_backup2(zone_type* zone, time_t nextResign);
+extern ods_status zone_backup2(zone_type* zone, time_t nextResign);
 
 /**
  * Recover zone from backup.
  * \param[in] zone corresponding zone
  *
  */
-ods_status zone_recover2(engine_type* engine, zone_type* zone);
+extern ods_status zone_recover2(engine_type* engine, zone_type* zone);
 
 #endif /* SIGNER_ZONE_H */

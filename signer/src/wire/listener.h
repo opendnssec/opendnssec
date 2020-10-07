@@ -89,7 +89,7 @@ struct listener_struct {
  * \return listener_type* listener
  *
  */
-listener_type* listener_create(void);
+extern listener_type* listener_create(void);
 
 /**
  * Push an interface to the listener.
@@ -100,7 +100,7 @@ listener_type* listener_create(void);
  * \return interface_type* added interface
  *
  */
-interface_type* listener_push(listener_type* list, char* address, int family,
+extern interface_type* listener_push(listener_type* list, char* address, int family,
     const char* port);
 
 /**
@@ -108,13 +108,13 @@ interface_type* listener_push(listener_type* list, char* address, int family,
  * \param[in] i interface
  *
  */
-void interface_cleanup(interface_type* i);
+extern void interface_cleanup(interface_type* i);
 
 /**
  * Clean up listener.
  * \param[in] listener listener to clean up
  *
  */
-void listener_cleanup(listener_type* listener);
+extern void listener_cleanup(listener_type* listener);
 
 #endif /* WIRE_LISTENER_H */

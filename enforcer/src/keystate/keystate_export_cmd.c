@@ -78,7 +78,7 @@ get_dnskey(const char *id, const char *zone, const char *keytype, int alg, uint3
     sign_params->algorithm = (ldns_algorithm) alg;
     sign_params->flags = LDNS_KEY_ZONE_KEY;
 
-    if (keytype && !strcasecmp(keytype, "KSK"))
+    if (keytype && (!strcasecmp(keytype, "KSK") || !strcasecmp(keytype, "CSK")))
         sign_params->flags = sign_params->flags | LDNS_KEY_SEP_KEY;
 		
     /* Get the DNSKEY record */
@@ -163,7 +163,7 @@ print_ds_from_id(int sockfd, key_data_t *key, const char *zone,
 static int
 perform_keystate_export(int sockfd, db_connection_t *dbconn,
 	const char *zonename, const char *keytype, const char *keystate,
-        int all, int bind_style, int print_sha1)
+        const hsm_key_t *hsmkey, int all, int bind_style, int print_sha1)
 {
     key_data_list_t *key_list = NULL;
     key_data_t *key;
@@ -177,8 +177,9 @@ perform_keystate_export(int sockfd, db_connection_t *dbconn,
               !(clause_list = db_clause_list_new()) ||
               !(zone = zone_db_new_get_by_name(dbconn, zonename)) ||
               !key_data_zone_id_clause(clause_list, zone_db_id(zone)) ||
+              (hsmkey && !key_data_hsm_key_id_clause(clause_list, hsm_key_id(hsmkey))) ||
               key_data_list_get_by_clauses(key_list, clause_list))
-	{
+        {
             key_data_list_free(key_list);
             db_clause_list_free(clause_list);
             zone_db_free(zone);
@@ -187,10 +188,18 @@ perform_keystate_export(int sockfd, db_connection_t *dbconn,
         }
         db_clause_list_free(clause_list);
         zone_db_free(zone);
-    }
-    if (all && !(key_list = key_data_list_new_get(dbconn))) {
-        client_printf_err(sockfd, "Unable to get list of keys, memory allocation or database error!\n");
-        return 1;
+    } else {
+        if (!(key_list = key_data_list_new_get(dbconn)) ||
+                !(clause_list = db_clause_list_new()) ||
+                (hsmkey && !key_data_hsm_key_id_clause(clause_list, hsm_key_id(hsmkey))) ||
+                key_data_list_get_by_clauses(key_list, clause_list))
+        {
+            key_data_list_free(key_list);
+            db_clause_list_free(clause_list);
+            ods_log_error("[%s] Error fetching from database", module_str);
+            return 1;
+        }
+        db_clause_list_free(clause_list);
     }
 	
     /* Print data*/
@@ -203,7 +212,7 @@ perform_keystate_export(int sockfd, db_connection_t *dbconn,
             key_data_free(key);
             continue;
         }
-        if (!keytype && !keystate &&
+        if (!keytype && !keystate && !hsmkey &&
               key_data_ds_at_parent(key) != KEY_DATA_DS_AT_PARENT_SUBMIT &&
               key_data_ds_at_parent(key) != KEY_DATA_DS_AT_PARENT_SUBMITTED &&
               key_data_ds_at_parent(key) != KEY_DATA_DS_AT_PARENT_RETRACT   &&
@@ -245,6 +254,7 @@ usage(int sockfd)
          "	--zone <zone> | --all			aka -z | -a \n"
          "	--keystate <state>			aka -e\n"
          "	--keytype <type>			aka -t \n"
+         "	--cka_id <CKA_ID>			aka -k \n"
          "	[--ds [--sha1]]				aka -d [-s]\n"
     );
 }
@@ -255,11 +265,13 @@ help(int sockfd)
     client_printf(sockfd,
          "Export DNSKEY(s) for a given zone or all of them from the database.\n"
          "If keytype and keystate are not specified, KSKs which are waiting for command ds-submit, ds-seen, ds-retract and ds-gone are shown. Otherwise both keystate and keytype must be given.\n"
+         "If cka_id is specified then that key is output for the specified zones.\n"
 
          "\nOptions:\n"
          "zone|all	specify a zone or all of them\n"
          "keystate	limit the output to a given state\n"
          "keytype		limit the output to a given type, can be ZSK, KSK, or CSK\n"
+         "cka_id		limit the output to the given key locator\n"
          "ds		export DS in BIND format which can be used for upload to a registry\n"
          "sha1		When outputting DS print sha1 instead of sha256\n");
 }
@@ -274,7 +286,9 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
     const char *zonename = NULL;
     const char* keytype = NULL;
     const char* keystate = NULL;
+    const char* cka_id = NULL;
     zone_db_t * zone = NULL;
+    hsm_key_t *hsmkey = NULL;
     int all = 0;
     int ds = 0;
     int bsha1 = 0;
@@ -285,6 +299,7 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
         {"zone", required_argument, 0, 'z'},
         {"keytype", required_argument, 0, 't'},
         {"keystate", required_argument, 0, 'e'},
+        {"cka_id", required_argument, 0, 'k'},
         {"all", no_argument, 0, 'a'},
         {"ds", no_argument, 0, 'd'},
         {"sha1", no_argument, 0, 's'},
@@ -307,7 +322,7 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
     }
 
     optind = 0;
-    while ((opt = getopt_long(argc, (char* const*)argv, "z:t:e:ads", long_options, &long_index)) != -1) {
+    while ((opt = getopt_long(argc, (char* const*)argv, "z:t:e:k:ads", long_options, &long_index)) != -1) {
         switch (opt) {
             case 'z':
                 zonename = optarg;
@@ -317,6 +332,9 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
                 break;
             case 'e':
                 keystate = optarg;
+                break;
+            case 'k':
+                cka_id = optarg;
                 break;
             case 'a':
                 all = 1;
@@ -375,8 +393,13 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
         return -1;
     }
 
+    if (cka_id && !(hsmkey = hsm_key_new_get_by_locator(dbconn, cka_id))) {
+        client_printf_err(sockfd, "CKA_ID %s can not be found!\n", cka_id);
+        return -1;
+    }
+
     /* perform task immediately */
-    return perform_keystate_export(sockfd, dbconn, zonename, (const char*) keytype, (const char*) keystate, all, ds, bsha1);
+    return perform_keystate_export(sockfd, dbconn, zonename, (const char*) keytype, (const char*) keystate, hsmkey, all, ds, bsha1);
 }
 
 struct cmd_func_block key_export_funcblock = {

@@ -147,7 +147,7 @@ struct xfrd_struct
  * \return xfrd_type* zone transfer structure.
  *
  */
-xfrd_type* xfrd_create(xfrhandler_type* xfrhandler, zone_type* zone);
+extern xfrd_type* xfrd_create(xfrhandler_type* xfrhandler, zone_type* zone);
 
 /**
  * Set timeout for zone transfer to now.
@@ -177,7 +177,7 @@ void xfrd_set_timer_refresh(xfrd_type* xfrd);
  * \return socklen_t length of address
  *
  */
-socklen_t xfrd_acl_sockaddr_to(acl_type* acl,
+extern socklen_t xfrd_acl_sockaddr_to(acl_type* acl,
     struct sockaddr_storage* to);
 
 /**
@@ -186,6 +186,6 @@ socklen_t xfrd_acl_sockaddr_to(acl_type* acl,
  * \param[in] backup backup transfer variables.
  *
  */
-void xfrd_cleanup(xfrd_type* xfrd, int backup);
+extern void xfrd_cleanup(xfrd_type* xfrd, int backup);
 
 #endif /* WIRE_XFRD_H */

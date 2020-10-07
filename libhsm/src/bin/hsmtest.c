@@ -30,6 +30,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <ldns/ldns.h>
+#include <ldns/util.h>
 
 #include "libhsm.h"
 #include <libhsmdns.h>
@@ -110,14 +112,17 @@ hsm_test (const char *repository, hsm_ctx_t* ctx)
     const unsigned int rsa_keysizes[] = { 512, 768, 1024, 1536, 2048, 4096 };
     const unsigned int dsa_keysizes[] = { 512, 768, 1024 };
     unsigned int keysize;
-/* TODO: We can remove the directive if we require LDNS >= 1.6.13 */
-#if !defined LDNS_BUILD_CONFIG_USE_ECDSA || LDNS_BUILD_CONFIG_USE_ECDSA
     const ldns_algorithm ec_curves[] = {
         LDNS_ECDSAP256SHA256,
         LDNS_ECDSAP384SHA384
     };
-    ldns_algorithm curve;
+#if (LDNS_REVISION >= ((1<<16)|(7<<8)|(0)))
+    const ldns_algorithm ed_curves[] = {
+        LDNS_ED25519,
+        LDNS_ED448,
+    };
 #endif
+    ldns_algorithm curve;
 
     libhsm_key_t *key = NULL;
     char *id;
@@ -136,7 +141,7 @@ hsm_test (const char *repository, hsm_ctx_t* ctx)
     for (i=0; i<(sizeof(rsa_keysizes)/sizeof(unsigned int)); i++) {
         keysize = rsa_keysizes[i];
 
-        printf("Generating %d-bit RSA key... ", keysize);
+        printf("Generating %u-bit RSA key... ", keysize);
         key = hsm_generate_rsa_key(ctx, repository, keysize);
         if (!key) {
             errors++;
@@ -213,7 +218,7 @@ hsm_test (const char *repository, hsm_ctx_t* ctx)
     for (i=0; i<(sizeof(dsa_keysizes)/sizeof(unsigned int)); i++) {
         keysize = dsa_keysizes[i];
 
-        printf("Generating %d-bit DSA key... ", keysize);
+        printf("Generating %u-bit DSA key... ", keysize);
         key = hsm_generate_dsa_key(ctx, repository, keysize);
         if (!key) {
             errors++;
@@ -318,8 +323,6 @@ hsm_test (const char *repository, hsm_ctx_t* ctx)
     /*
      * Test key generation, signing and deletion for a number of key size
      */
-/* TODO: We can remove the directive if we require LDNS >= 1.6.13 */
-#if !defined LDNS_BUILD_CONFIG_USE_ECDSA || LDNS_BUILD_CONFIG_USE_ECDSA
     for (i=0; i<(sizeof(ec_curves)/sizeof(ldns_algorithm)); i++) {
         curve = ec_curves[i];
 
@@ -362,6 +365,47 @@ hsm_test (const char *repository, hsm_ctx_t* ctx)
         } else {
             printf("Signing with key... ");
         }
+    }
+
+#if (LDNS_REVISION >= ((1<<16)|(7<<8)|(0)))
+    for (i=0; i<(sizeof(ed_curves)/sizeof(ldns_algorithm)); i++) {
+        curve = ed_curves[i];
+
+        switch(curve) {
+        case LDNS_ED25519:
+            printf("Generating ED25519 key... ");
+            key = hsm_generate_eddsa_key(ctx, repository, "edwards25519");
+            break;
+         case LDNS_ED448:
+            printf("Generating ED448 key... ");
+            key = hsm_generate_eddsa_key(ctx, repository, "edwards448");
+            break;
+        default:
+            continue;
+        }
+        if (!key) {
+            errors++;
+            printf("Failed\n");
+            hsm_print_error(ctx);
+            printf("\n");
+            continue;
+        } else {
+            printf("OK\n");
+        }
+
+        printf("Extracting key identifier... ");
+        id = hsm_get_key_id(ctx, key);
+        if (!id) {
+            errors++;
+            printf("Failed\n");
+            hsm_print_error(ctx);
+            printf("\n");
+        } else {
+            printf("OK, %s\n", id);
+        }
+        free(id);
+
+        printf("Signing with key... ");
         result = hsm_test_sign(ctx, key, curve);
         if (result) {
             errors++;

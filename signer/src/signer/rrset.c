@@ -674,7 +674,7 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
         refresh = (uint32_t) (signtime + duration2time(zone->signconf->sig_refresh_interval));
     }
 
-    /* for each signature,key pair, dettermin whether the signature is valid and/or the key
+    /* for each signature-key pair, determine whether the signature is valid and/or the key
      * should produce a signature.
      */
     for (int i = 0; i < nmatchedsignatures; i++) {
@@ -684,10 +684,11 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
             inception = ldns_rdf2native_int32(ldns_rr_rrsig_inception(matchedsignatures[i].signature->rr));
         }
         if (matchedsignatures[i].key && matchedsignatures[i].key->ksk && !matchedsignatures[i].key->zsk && rrset->rrtype != LDNS_RR_TYPE_DNSKEY) {
-            /* If KSK don't sign other RRsets */
+            /* If KSK (not CSK) don't sign non-DNSKEY RRsets */
             matchedsignatures[i].key = NULL;
             matchedsignatures[i].signature = NULL;
         } else if (matchedsignatures[i].key && !matchedsignatures[i].key->ksk && !matchedsignatures[i].key->zsk && rrset->rrtype != LDNS_RR_TYPE_DNSKEY && !matchedsignatures[i].signature) {
+            /* Drop keys that aren't ZSK or KSK and still have signatures */
             matchedsignatures[i].key = NULL;
         } else if (matchedsignatures[i].key && !matchedsignatures[i].key->ksk && !matchedsignatures[i].key->zsk && rrset->rrtype != LDNS_RR_TYPE_DNSKEY && !matchedsignatures[i].key->publish) {
             matchedsignatures[i].key = NULL;
@@ -696,7 +697,7 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
             matchedsignatures[i].key = NULL;
             matchedsignatures[i].signature = NULL;
         } else if (matchedsignatures[i].key && !matchedsignatures[i].key->ksk && matchedsignatures[i].key->zsk && rrset->rrtype == LDNS_RR_TYPE_DNSKEY) {
-            /* If not KSK don't sign DNSKEY RRset */
+            /* If ZSK (not CSK) don't sign DNSKEY RRset */
             matchedsignatures[i].key = NULL;
             matchedsignatures[i].signature = NULL;
         } else if (matchedsignatures[i].key && matchedsignatures[i].key->ksk && matchedsignatures[i].key->locator == NULL) {
@@ -705,6 +706,10 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
         } else if (refresh <= (uint32_t) signtime) {
             /* If Refresh is disabled, drop all signatures */
             matchedsignatures[i].signature = NULL;
+        } else if (matchedsignatures[i].signature && expiration < refresh && !matchedsignatures[i].key->ksk && !matchedsignatures[i].key->zsk) {
+            /* Signature has expired but key not used for signing anymore */
+            matchedsignatures[i].signature = NULL;
+            matchedsignatures[i].key = NULL;
         } else if (matchedsignatures[i].signature && expiration < refresh) {
             /* Expiration - Refresh has passed */
             matchedsignatures[i].signature = NULL;
@@ -750,14 +755,20 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
     /* For each of the existing signatures, if they are no longer present in the output, delete them
      * The rrsigs array is guaranteed to line up with the mathcedsignatures array
      */
+    if (zone->db->is_initialized) {
+        pthread_mutex_lock(&zone->ixfr->ixfr_lock);
+        for(i=0; i<nrrsigs; i++) {
+            if(matchedsignatures[i].signature == NULL) {
+                if (rrsigs[i] != NULL) {
+                    ixfr_del_rr(zone->ixfr, rrsigs[i]->rr);
+                }
+            }
+        }
+        pthread_mutex_unlock(&zone->ixfr->ixfr_lock);
+    }
     for(i=0; i<nrrsigs; i++) {
         if(matchedsignatures[i].signature == NULL) {
             if (rrsigs[i] != NULL) {
-                if (zone->db->is_initialized) {
-                    pthread_mutex_lock(&zone->ixfr->ixfr_lock);
-                    ixfr_del_rr(zone->ixfr, rrsigs[i]->rr);
-                    pthread_mutex_unlock(&zone->ixfr->ixfr_lock);
-                }
                 while((signature = collection_iterator(rrset->rrsigs))) {
                     if(signature == rrsigs[i]) {
                         collection_del_cursor(rrset->rrsigs);

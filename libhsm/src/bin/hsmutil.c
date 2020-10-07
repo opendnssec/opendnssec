@@ -32,6 +32,8 @@
 #include <stdlib.h>
 #include <syslog.h>
 #include <unistd.h>
+#include <ldns/ldns.h>
+#include <ldns/util.h>
 
 #include "libhsm.h"
 #include "hsmtest.h"
@@ -464,8 +466,6 @@ cmd_dnskey (int argc, char *argv[])
                 return -1;
             }
             break;
-/* TODO: We can remove the directive if we require LDNS >= 1.6.13 */
-#if !defined LDNS_BUILD_CONFIG_USE_ECDSA || LDNS_BUILD_CONFIG_USE_ECDSA
         case LDNS_SIGN_ECDSAP256SHA256:
             if (strcmp(key_info->algorithm_name, "ECDSA") != 0) {
                 printf("Not an ECDSA key, the key is of algorithm %s.\n", key_info->algorithm_name);
@@ -495,6 +495,43 @@ cmd_dnskey (int argc, char *argv[])
             }
             if (key_info->keysize != 384) {
                 printf("The key is a ECDSA/%lu, expecting ECDSA/384 for this algorithm.\n", key_info->keysize);
+                libhsm_key_info_free(key_info);
+                free(key);
+                free(name);
+                free(id);
+                return -1;
+            }
+            break;
+#if (LDNS_REVISION >= ((1<<16)|(7<<8)|(0)))
+        case LDNS_SIGN_ED25519:
+            if (strcmp(key_info->algorithm_name, "EDDSA") != 0) {
+                printf("Not an EDDSA key, the key is of algorithm %s.\n", key_info->algorithm_name);
+                libhsm_key_info_free(key_info);
+                free(key);
+                free(name);
+                free(id);
+                return -1;
+            }
+            if (key_info->keysize != 255) {
+                printf("The key is EDDSA/%lu, expecting EDDSA/255 for this algorithm.\n", key_info->keysize);
+                libhsm_key_info_free(key_info);
+                free(key);
+                free(name);
+                free(id);
+                return -1;
+            }
+            break;
+        case LDNS_SIGN_ED448:
+            if (strcmp(key_info->algorithm_name, "EDDSA") != 0) {
+                printf("Not an EDDSA key, the key is of algorithm %s.\n", key_info->algorithm_name);
+                libhsm_key_info_free(key_info);
+                free(key);
+                free(name);
+                free(id);
+                return -1;
+            }
+            if (key_info->keysize != 448) {
+                printf("The key is EDDSA/%lu, expecting EDDSA/448 for this algorithm.\n", key_info->keysize);
                 libhsm_key_info_free(key_info);
                 free(key);
                 free(name);

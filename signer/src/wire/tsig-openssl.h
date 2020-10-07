@@ -44,13 +44,13 @@
  * \return ods_status status
  *
  */
-ods_status tsig_handler_openssl_init(void);
+extern ods_status tsig_handler_openssl_init(void);
 
 /**
  * Finalize OpenSSL support for TSIG.
  *
  */
-void tsig_handler_openssl_finalize(void);
+extern void tsig_handler_openssl_finalize(void);
 
 #endif /* HAVE_SSL */
 #endif /* WIRE_TSIG_OPENSSL_H */

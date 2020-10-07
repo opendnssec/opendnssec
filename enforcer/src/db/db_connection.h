@@ -52,13 +52,13 @@ struct db_connection {
  * Create a new database connection.
  * \return a db_connection_t pointer or NULL on error.
  */
-db_connection_t* db_connection_new(void);
+extern db_connection_t* db_connection_new(void);
 
 /**
  * Delete a database connection and the database backend within.
  * \param[in] connection a db_connection_t pointer.
  */
-void db_connection_free(db_connection_t* connection);
+extern void db_connection_free(db_connection_t* connection);
 
 /**
  * Set the database configuration list for a database connection.
@@ -66,7 +66,7 @@ void db_connection_free(db_connection_t* connection);
  * \param[in] configuration_list a db_configuration_list_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_connection_set_configuration_list(db_connection_t* connection, const db_configuration_list_t* configuration_list);
+extern int db_connection_set_configuration_list(db_connection_t* connection, const db_configuration_list_t* configuration_list);
 
 /**
  * Setup the database connection, this verifies the information in the database
@@ -74,14 +74,14 @@ int db_connection_set_configuration_list(db_connection_t* connection, const db_c
  * \param[in] connection a db_connection_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_connection_setup(db_connection_t* connection);
+extern int db_connection_setup(db_connection_t* connection);
 
 /**
  * Connect to the database.
  * \param[in] connection a db_connection_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_connection_connect(const db_connection_t* connection);
+extern int db_connection_connect(const db_connection_t* connection);
 
 /**
  * Create an object in the database. The `object` refer to the database object
@@ -93,7 +93,7 @@ int db_connection_connect(const db_connection_t* connection);
  * \param[in] value_set a db_value_set_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_connection_create(const db_connection_t* connection, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set);
+extern int db_connection_create(const db_connection_t* connection, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set);
 
 /**
  * Read an object or objects from the database.
@@ -104,7 +104,7 @@ int db_connection_create(const db_connection_t* connection, const db_object_t* o
  * \return a db_result_list_t pointer or NULL on error or if no objects where
  * read.
  */
-db_result_list_t* db_connection_read(const db_connection_t* connection, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list);
+extern db_result_list_t* db_connection_read(const db_connection_t* connection, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list);
 
 /**
  * Update an object or objects in the database.
@@ -115,7 +115,7 @@ db_result_list_t* db_connection_read(const db_connection_t* connection, const db
  * \param[in] clause_list a db_clause_list_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_connection_update(const db_connection_t* connection, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set, const db_clause_list_t* clause_list);
+extern int db_connection_update(const db_connection_t* connection, const db_object_t* object, const db_object_field_list_t* object_field_list, const db_value_set_t* value_set, const db_clause_list_t* clause_list);
 
 /**
  * Delete an object or objects from the database.
@@ -124,7 +124,7 @@ int db_connection_update(const db_connection_t* connection, const db_object_t* o
  * \param[in] clause_list a db_clause_list_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_connection_delete(const db_connection_t* connection, const db_object_t* object, const db_clause_list_t* clause_list);
+extern int db_connection_delete(const db_connection_t* connection, const db_object_t* object, const db_clause_list_t* clause_list);
 
 /**
  * Count objects from the database. Return the count in `count`.
@@ -135,6 +135,6 @@ int db_connection_delete(const db_connection_t* connection, const db_object_t* o
  * \param[out] count a size_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_connection_count(const db_connection_t* connection, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list, size_t* count);
+extern int db_connection_count(const db_connection_t* connection, const db_object_t* object, const db_join_list_t* join_list, const db_clause_list_t* clause_list, size_t* count);
 
 #endif

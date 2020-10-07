@@ -129,41 +129,41 @@ struct db_clause {
  * Create a new database clause.
  * \return a db_clause_t pointer or NULL on error.
  */
-db_clause_t* db_clause_new(void);
+extern db_clause_t* db_clause_new(void);
 
 /**
  * Delete a database clause.
  * \param[in] clause a db_clause_t pointer.
  */
-void db_clause_free(db_clause_t* clause);
+extern void db_clause_free(db_clause_t* clause);
 
 /**
  * Get the field name of a database clause.
  * \param[in] a db_clause_t pointer.
  * \return a character pointer or NULL on error or if no field name has been set.
  */
-const char* db_clause_field(const db_clause_t* clause);
+extern const char* db_clause_field(const db_clause_t* clause);
 
 /**
  * Get the database clause type of a database clause.
  * \param[in] a db_clause_t pointer.
  * \return a db_clause_type_t.
  */
-db_clause_type_t db_clause_type(const db_clause_t* clause);
+extern db_clause_type_t db_clause_type(const db_clause_t* clause);
 
 /**
  * Get the database value of a database value.
  * \param[in] a db_clause_t pointer.
  * \return a db_value_t pointer or NULL on error.
  */
-const db_value_t* db_clause_value(const db_clause_t* clause);
+extern const db_value_t* db_clause_value(const db_clause_t* clause);
 
 /**
  * Get the database clause operator of a database clause.
  * \param[in] a db_clause_t pointer.
  * \return a db_clause_operator_t.
  */
-db_clause_operator_t db_clause_operator(const db_clause_t* clause);
+extern db_clause_operator_t db_clause_operator(const db_clause_t* clause);
 
 /**
  * Get the database clause list of a database clause, this is used for nested
@@ -172,7 +172,7 @@ db_clause_operator_t db_clause_operator(const db_clause_t* clause);
  * \return a db_clause_list_t pointer or NULL on error or if no database clause
  * list has been set.
  */
-const db_clause_list_t* db_clause_list(const db_clause_t* clause);
+extern const db_clause_list_t* db_clause_list(const db_clause_t* clause);
 
 /**
  * Set the field name of a database clause.
@@ -180,7 +180,7 @@ const db_clause_list_t* db_clause_list(const db_clause_t* clause);
  * \param[in] field a character pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_clause_set_field(db_clause_t* clause, const char* field);
+extern int db_clause_set_field(db_clause_t* clause, const char* field);
 
 /**
  * Set the database clause type of a database clause.
@@ -188,7 +188,7 @@ int db_clause_set_field(db_clause_t* clause, const char* field);
  * \param[in] type a db_clause_type_t.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_clause_set_type(db_clause_t* clause, db_clause_type_t type);
+extern int db_clause_set_type(db_clause_t* clause, db_clause_type_t type);
 
 /**
  * Set the database clause operator of a database clause.
@@ -196,14 +196,14 @@ int db_clause_set_type(db_clause_t* clause, db_clause_type_t type);
  * \param[in] clause_operator a db_clause_operator_t.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_clause_set_operator(db_clause_t* clause, db_clause_operator_t clause_operator);
+extern int db_clause_set_operator(db_clause_t* clause, db_clause_operator_t clause_operator);
 
 /**
  * Check if the database clause is not empty.
  * \param[in] a db_clause_t pointer.
  * \return DB_ERROR_* if empty, otherwise DB_OK.
  */
-int db_clause_not_empty(const db_clause_t* clause);
+extern int db_clause_not_empty(const db_clause_t* clause);
 
 /**
  * Return the next database clause connected in a database clause list.
@@ -211,14 +211,14 @@ int db_clause_not_empty(const db_clause_t* clause);
  * \return a db_clause_t pointer or NULL on error or if there are no more
  * database clauses in the list.
  */
-const db_clause_t* db_clause_next(const db_clause_t* clause);
+extern const db_clause_t* db_clause_next(const db_clause_t* clause);
 
 /**
  * Get the writable database value of a database clause.
  * \param[in] a db_clause_t pointer.
  * \return a db_value_t pointer or NULL on error.
  */
-db_value_t* db_clause_get_value(db_clause_t* clause);
+extern db_value_t* db_clause_get_value(db_clause_t* clause);
 
 /**
  * A list of database clauses.
@@ -232,13 +232,13 @@ struct db_clause_list {
  * Create a new database clause list.
  * \return a db_clause_list_t pointer or NULL on error.
  */
-db_clause_list_t* db_clause_list_new(void);
+extern db_clause_list_t* db_clause_list_new(void);
 
 /**
  * Delete a database clause list and all database clauses in the list.
  * \param[in] clause_list a db_clause_list_t pointer.
  */
-void db_clause_list_free(db_clause_list_t* clause_list);
+extern void db_clause_list_free(db_clause_list_t* clause_list);
 
 /**
  * Add a database clause to a database clause list, this takes over the
@@ -247,13 +247,13 @@ void db_clause_list_free(db_clause_list_t* clause_list);
  * \param[in] a db_clause_t pointer.
  * \return DB_ERROR_* on failure, otherwise DB_OK.
  */
-int db_clause_list_add(db_clause_list_t* clause_list, db_clause_t* clause);
+extern int db_clause_list_add(db_clause_list_t* clause_list, db_clause_t* clause);
 
 /**
  * Return the first database clause of a database clause list.
  * \param[in] clause_list a db_clause_list_t pointer.
  * \return a db_clause_t pointer or NULL on error or if the list is empty.
  */
-const db_clause_t* db_clause_list_begin(const db_clause_list_t* clause_list);
+extern const db_clause_t* db_clause_list_begin(const db_clause_list_t* clause_list);
 
 #endif

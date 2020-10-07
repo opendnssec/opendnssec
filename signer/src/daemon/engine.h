@@ -82,7 +82,7 @@ struct engine_struct {
  * \return 0 if successful, 1 on error
  *
  */
-int engine_start(const char* cfgfile, int cmdline_verbosity,
+extern int engine_start(const char* cfgfile, int cmdline_verbosity,
     int daemonize, int info);
 
 /**
@@ -90,7 +90,7 @@ int engine_start(const char* cfgfile, int cmdline_verbosity,
  * \param[in] engine engine
  *
  */
-void engine_wakeup_workers(engine_type* engine);
+extern void engine_wakeup_workers(engine_type* engine);
 
 /**
  * Update zones.
@@ -98,13 +98,13 @@ void engine_wakeup_workers(engine_type* engine);
  * \param[in] zl_changed whether the zonelist has changed or not
  *
  */
-void engine_update_zones(engine_type* engine, ods_status zl_changed);
+extern void engine_update_zones(engine_type* engine, ods_status zl_changed);
 
 /**
  * Clean up engine.
  * \param[in] engine engine
  *
  */
-void engine_cleanup(engine_type* engine);
+extern void engine_cleanup(engine_type* engine);
 
 #endif /* DAEMON_ENGINE_H */
