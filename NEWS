@@ -1,5 +1,7 @@
 OpenDNSSEC 2.1.8 - T.B.A.
 
+* OPENDNSSEC-951: Modify the purging of keys, to make it automatic to purge
+  keys from the HSM.
 * OPENDNSSEC-950: Fix that caused crash when signer was offline for a
   prolonged period (but the enforcer wasn't) in the middle of a ZSK roll.
 

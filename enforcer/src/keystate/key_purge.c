@@ -38,7 +38,7 @@ static void free_all(key_data_list_t *key_list, key_data_t** keylist,
 
 
 int removeDeadKeysNow(int sockfd, db_connection_t *dbconn,
-	policy_t *policy, zone_db_t *rzone)
+	policy_t *policy, zone_db_t *rzone, int purge)
 {
     static const char *scmd = "removeDeadKeysNow";
     size_t i, deplist2_size = 0;
@@ -209,7 +209,14 @@ int removeDeadKeysNow(int sockfd, db_connection_t *dbconn,
         }
     }
 
+    if(purge) {
+        int deleteCount = hsm_key_factory_delete_key(dbconn);
+        if(deleteCount > 0)
+            client_printf (sockfd, "Number of keys deleted from HSM is %d\n", deleteCount);
+        else
+            client_printf (sockfd, "Found no keys to delete from HSM\n");
+    } else
+        client_printf (sockfd, "Refrained from deleting keys from HSM\n");
+
     return 0;
 }
-
-
