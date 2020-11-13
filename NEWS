@@ -1,5 +1,8 @@
 OpenDNSSEC 2.1.8 - T.B.A.
 
+* OPENDNSSEC-950: Fix that caused crash when signer was offline for a
+  prolonged period (but the enforcer wasn't) in the middle of a ZSK roll.
+
 OpenDNSSEC 2.1.7 - 2020-10-05
 
 * OPENDNSSEC-949: Fix for migration bug not keeping proper parameters of NSEC3
