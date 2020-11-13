@@ -1,3 +1,5 @@
+OpenDNSSEC 2.1.8 - T.B.A.
+
 OpenDNSSEC 2.1.7 - 2020-10-05
 
 * OPENDNSSEC-949: Fix for migration bug not keeping proper parameters of NSEC3
