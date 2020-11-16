@@ -706,7 +706,7 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
         } else if (refresh <= (uint32_t) signtime) {
             /* If Refresh is disabled, drop all signatures */
             matchedsignatures[i].signature = NULL;
-        } else if (matchedsignatures[i].signature && expiration < refresh && !matchedsignatures[i].key->ksk && !matchedsignatures[i].key->zsk) {
+        } else if (matchedsignatures[i].signature && expiration < refresh && matchedsignatures[i].key && !matchedsignatures[i].key->ksk && !matchedsignatures[i].key->zsk) {
             /* Signature has expired but key not used for signing anymore */
             matchedsignatures[i].signature = NULL;
             matchedsignatures[i].key = NULL;

@@ -6,7 +6,6 @@
 #include "db/zone_db.h"
 #include "db/policy.h"
 
-extern int removeDeadKeysNow(int sockfd, db_connection_t *dbconn, policy_t *policy, zone_db_t *rzone);
+extern int removeDeadKeysNow(int sockfd, db_connection_t *dbconn, policy_t *policy, zone_db_t *rzone, int purge);
 
 #endif
-

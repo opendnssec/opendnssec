@@ -21,18 +21,20 @@ usage(int sockfd)
 {
 	client_printf(sockfd,
 		"key purge\n"
-		"	--policy <policy> | --zone <zone>	aka -p | -z\n");
+		"	--policy <policy> | --zone <zone>	aka -p | -z\n"
+                "       --delete or -d");
 }
 
 static void
 help(int sockfd)
 {
 	client_printf(sockfd,
-		"This command will remove keys from the database and HSM that "
+		"This command will remove keys from the database (and HSM) that "
 		"are dead. Use with caution.\n"
 		"\nOptions:\n"
 		"policy		limit the purge to the given policy\n"
-		"zone		limit the purge to the given zone\n\n"
+		"zone		limit the purge to the given zone\n"
+                "the -d flag will cause the keys to be deleted from the HSM\n\n"
 	);
 }
 
@@ -56,11 +58,13 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 	const char *argv[MAX_ARGS];
 	int long_index = 0, opt = 0;
 	int error = 0;
+        int hsmPurge = 0;
         db_connection_t* dbconn = getconnectioncontext(context);
 
 	static struct option long_options[] = {
 		{"zone", required_argument, 0, 'z'},
 		{"policy", required_argument, 0, 'p'},
+		{"delete", no_argument, 0, 'd'},
 		{0, 0, 0, 0}
 	};
 
@@ -83,13 +87,16 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 	}
 
 	optind = 0;
-	while ((opt = getopt_long(argc, (char* const*)argv, "z:p:", long_options, &long_index)) != -1) {
+	while ((opt = getopt_long(argc, (char* const*)argv, "z:p:d", long_options, &long_index)) != -1) {
 		switch (opt) {
 			case 'z':
 				zone_name = optarg;
 				break;
 			case 'p':
 				policy_name = optarg;
+				break;
+			case 'd':
+				hsmPurge = 1;
 				break;
 			default:
 				client_printf_err(sockfd, "unknown arguments\n");
@@ -116,7 +123,7 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 			free(buf);
 			return -1;
 		}
-		error = removeDeadKeysNow(sockfd, dbconn, NULL, zone);
+		error = removeDeadKeysNow(sockfd, dbconn, NULL, zone, hsmPurge);
 		zone_db_free(zone);
 		zone = NULL;
 		free(buf);
@@ -132,7 +139,7 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 		client_printf_err(sockfd, "unknown policy %s\n", policy_name);
 		return -1;
 	}
-	error = removeDeadKeysNow(sockfd, dbconn, policy, NULL);
+	error = removeDeadKeysNow(sockfd, dbconn, policy, NULL, hsmPurge);
 	policy_free(policy);
 	policy = NULL;
 	free(buf);

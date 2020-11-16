@@ -2662,6 +2662,10 @@ removeDeadKeys(db_connection_t *dbconn, key_data_t** keylist,
 	key_dependency_free(deplist2[i]);
     }
 	free(deplist2);
+        
+    int deleteCount = hsm_key_factory_delete_key(dbconn);
+    ods_log_info("[%s] %s: keys deleted from HSM: %d", module_str, scmd, deleteCount);
+
 	return first_purge;
 }
 

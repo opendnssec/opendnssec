@@ -805,3 +805,61 @@ int hsm_key_factory_release_key(hsm_key_t* hsm_key, const db_connection_t* conne
 
     return 0;
 }
+
+int
+hsm_key_factory_delete_key(const db_connection_t* connection)
+{
+    db_clause_list_t* clause_list;
+    hsm_key_list_t* hsm_key_list;
+    libhsm_key_t* hsmkey;
+    hsm_key_t* hsm_key;
+    hsm_ctx_t *hsm_ctx;
+    int count = 0;
+
+    if (!(hsm_ctx = hsm_create_context())) {
+        /* might be a transient error, not important for this action so do not log */
+        return -1;
+    }
+    
+    ods_log_error("[hsm_key_factory_delete_key] looking for keys to purge from HSM");
+    if (!(clause_list = db_clause_list_new())
+        || !hsm_key_state_clause(clause_list, HSM_KEY_STATE_DELETE)
+        //|| !hsm_key_is_revoked_clause(clause_list, 0)
+        || !(hsm_key_list = hsm_key_list_new_get_by_clauses(connection, clause_list)))
+    {
+        ods_log_error("[hsm_key_factory_delete_key] unable to list keys, database or memory allocation error");
+        db_clause_list_free(clause_list);
+        return -2;
+    }
+    db_clause_list_free(clause_list);
+
+    while((hsm_key = hsm_key_list_get_next(hsm_key_list))) {
+        hsmkey = hsm_find_key_by_id(hsm_ctx, hsm_key_locator(hsm_key));
+        if(hsm_remove_key(hsm_ctx, hsmkey)) {
+            // report on error
+            ods_log_error("[hsm_key_factory_delete_key] unable to remove key %s", hsm_key_locator(hsm_key));
+        } else {
+            clause_list = db_clause_list_new();
+            db_clause_t* clause;
+            clause = db_clause_new();
+            db_clause_set_field(clause, "locator");
+            db_clause_set_type(clause, DB_CLAUSE_EQUAL);
+            db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND);
+            db_value_from_text(db_clause_get_value(clause), hsm_key_locator(hsm_key));
+            db_clause_list_add(clause_list, clause);
+            clause = db_clause_new();
+            db_clause_set_field(clause, "rev");
+            db_clause_set_type(clause, DB_CLAUSE_EQUAL);
+            db_clause_set_operator(clause, DB_CLAUSE_OPERATOR_AND);
+            db_value_copy(db_clause_get_value(clause), &(hsm_key->rev));
+            db_clause_list_add(clause_list, clause);
+            db_object_delete(hsm_key->dbo, clause_list);
+            db_clause_list_free(clause_list);
+            ods_log_info("[hsm_key_factory_get_key] removing key %s from HSM", hsm_key_locator(hsm_key));
+            ++count;
+        }
+    }
+    hsm_key_list_free(hsm_key_list);
+    hsm_destroy_context(hsm_ctx);
+    return count;
+}
