@@ -112,4 +112,10 @@ extern int hsm_key_factory_release_key_id(const db_value_t* hsm_key_id,
 extern int hsm_key_factory_release_key(hsm_key_t* hsm_key,
     const db_connection_t* connection);
 
+/**
+ * Delete keys that are marked DELETE from the database and the HSM itself,
+ * \return The number of keys actually purged from the HSM.
+ */
+extern int hsm_key_factory_delete_key(const db_connection_t* connection);
+
 #endif /* _HSM_KEY_FACTORY_H_ */
