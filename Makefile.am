@@ -25,6 +25,8 @@ EXTRA_DIST =	$(srcdir)/LICENSE \
 		$(srcdir)/contrib/ods-sequencer/ods-sequencer \
 		$(srcdir)/contrib/ods-sequencer/ods-sequencer.md \
 		$(srcdir)/contrib/ods-sequencer/ods-sequencer-submit.sh \
+		$(srcdir)/contrib/ods-migratekeytool/ods-migratekeytool.py \
+		$(srcdir)/contrib/ods-migratekeytool/ods-migratekeytool.md \
 		$(srcdir)/contrib/simple-dnskey-mailer/simple-dnskey-mailer.sh
 
 
