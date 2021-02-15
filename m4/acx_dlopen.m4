@@ -25,19 +25,6 @@ AC_DEFUN([ACX_DLOPEN],[
 	if test "$tmp_SUCCESS" = "no"
 	then
 		AC_MSG_CHECKING([for LoadLibrary])
-		AC_TRY_LINK(
-			[#include <windows.h>],
-			[LoadLibrary(NULL);],
-			[
-				AC_DEFINE(HAVE_LOADLIBRARY, 1, [Define if you have LoadLibrary])
-				tmp_SUCCESS="yes"
-			]
-		)
-		AC_MSG_RESULT([$tmp_SUCCESS])
-	fi
-
-	if test "$tmp_SUCCESS" = "no"
-	then
-		AC_MSG_ERROR([No dynamic library loading support])
+		AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <windows.h>]],[[LoadLibrary(NULL);]])], [AC_DEFINE([HAVE_LOADLIBRARY], [1], [Define if you have LoadLibrary])], [])
 	fi
 ])

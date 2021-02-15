@@ -1,6 +1,6 @@
-# ============================================================================
-#  http://www.gnu.org/software/autoconf-archive/ax_compiler_flags_cflags.html
-# ============================================================================
+# =============================================================================
+#  https://www.gnu.org/software/autoconf-archive/ax_compiler_flags_cflags.html
+# =============================================================================
 #
 # SYNOPSIS
 #
@@ -19,13 +19,14 @@
 # LICENSE
 #
 #   Copyright (c) 2014, 2015 Philip Withnall <philip@tecnocode.co.uk>
+#   Copyright (c) 2017, 2018 Reini Urban <rurban@cpan.org>
 #
 #   Copying and distribution of this file, with or without modification, are
 #   permitted in any medium without royalty provided the copyright notice
 #   and this notice are preserved.  This file is offered as-is, without any
 #   warranty.
 
-#serial 11
+#serial 17
 
 AC_DEFUN([AX_COMPILER_FLAGS_CFLAGS],[
     AC_REQUIRE([AC_PROG_SED])
@@ -34,10 +35,17 @@ AC_DEFUN([AX_COMPILER_FLAGS_CFLAGS],[
     AX_REQUIRE_DEFINED([AX_CHECK_COMPILE_FLAG])
 
     # Variable names
-    m4_define(ax_warn_cflags_variable,
+    m4_define([ax_warn_cflags_variable],
               [m4_normalize(ifelse([$1],,[WARN_CFLAGS],[$1]))])
 
     AC_LANG_PUSH([C])
+
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([
+      [#ifndef __cplusplus
+       #error "no C++"
+       #endif]])],
+      [ax_compiler_cxx=yes;],
+      [ax_compiler_cxx=no;])
 
     # Always pass -Werror=unknown-warning-option to get Clang to fail on bad
     # flags, otherwise they are always appended to the warn_cflags variable, and
@@ -50,6 +58,13 @@ AC_DEFUN([AX_COMPILER_FLAGS_CFLAGS],[
         ax_compiler_flags_test=""
     ])
 
+    # Check that -Wno-suggest-attribute=format is supported
+    AX_CHECK_COMPILE_FLAG([-Wno-suggest-attribute=format],[
+        ax_compiler_no_suggest_attribute_flags="-Wno-suggest-attribute=format"
+    ],[
+        ax_compiler_no_suggest_attribute_flags=""
+    ])
+
     # Base flags
     AX_APPEND_COMPILE_FLAGS([ dnl
         -fno-strict-aliasing dnl
@@ -57,28 +72,55 @@ AC_DEFUN([AX_COMPILER_FLAGS_CFLAGS],[
     ],ax_warn_cflags_variable,[$ax_compiler_flags_test])
 
     AS_IF([test "$ax_enable_compile_warnings" != "no"],[
+        if test "$ax_compiler_cxx" = "no" ; then
+            # C-only flags. Warn in C++
+            AX_APPEND_COMPILE_FLAGS([ dnl
+                -Wnested-externs dnl
+                -Wmissing-prototypes dnl
+                -Wstrict-prototypes dnl
+                -Wdeclaration-after-statement dnl
+                -Wimplicit-function-declaration dnl
+                -Wold-style-definition dnl
+                -Wjump-misses-init dnl
+            ],ax_warn_cflags_variable,[$ax_compiler_flags_test])
+        fi
+
         # "yes" flags
         AX_APPEND_COMPILE_FLAGS([ dnl
             -Wall dnl
             -Wextra dnl
+            -Wundef dnl
             -Wwrite-strings dnl
             -Wpointer-arith dnl
+            -Wmissing-declarations dnl
+            -Wredundant-decls dnl
             -Wno-unused-parameter dnl
             -Wno-missing-field-initializers dnl
             -Wformat=2 dnl
             -Wcast-align dnl
+            -Wformat-nonliteral dnl
             -Wformat-security dnl
+            -Wsign-compare dnl
             -Wstrict-aliasing dnl
+            -Wshadow dnl
+            -Winline dnl
             -Wpacked dnl
+            -Wmissing-format-attribute dnl
+            -Wmissing-noreturn dnl
             -Winit-self dnl
+            -Wredundant-decls dnl
             -Wmissing-include-dirs dnl
+            -Wunused-but-set-variable dnl
             -Warray-bounds dnl
             -Wreturn-type dnl
-            -Wno-format-nonliteral dnl
-            -Wno-format-y2k dnl
-            -Wno-unused-function dnl
-            -Wno-unused-variable dnl
-            -Wno-sign-compare dnl
+            -Wswitch-enum dnl
+            -Wswitch-default dnl
+            -Wduplicated-cond dnl
+            -Wduplicated-branches dnl
+            -Wlogical-op dnl
+            -Wrestrict dnl
+            -Wnull-dereference dnl
+            -Wdouble-promotion dnl
             $4 dnl
             $5 dnl
             $6 dnl
@@ -94,7 +136,7 @@ AC_DEFUN([AX_COMPILER_FLAGS_CFLAGS],[
         AX_APPEND_FLAG([-Werror],ax_warn_cflags_variable)
 
         AX_APPEND_COMPILE_FLAGS([ dnl
-            -Wno-suggest-attribute=format dnl
+            [$ax_compiler_no_suggest_attribute_flags] dnl
         ],ax_warn_cflags_variable,[$ax_compiler_flags_test])
     ])
 
