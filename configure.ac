@@ -1,6 +1,6 @@
 m4_sinclude([version.m4])
 
-AC_PREREQ([2.70])
+AC_PREREQ([2.69])
 AC_INIT([opendnssec],[OPENDNSSEC_VERSION],[http://bugs.opendnssec.org/])
 AM_DEFAULT_VERBOSITY="0"
 AC_SUBST([AM_DEFAULT_VERBOSITY])
