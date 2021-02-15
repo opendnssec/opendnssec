@@ -168,8 +168,10 @@ Issue a ds-gone to the enforcer for a KSK.
 .B key generate --duration <duration> (--policy <policy> | --all)
 Pre-generate keys for all or a given policy, the duration to pre-generate for can be specified or otherwise its taken from the conf.xml. 
 .TP
-.B key purge (--policy <policy> | --zone <zone>)
+.B key purge (--policy <policy> | --zone <zone> | --delete)
 This command will remove keys from the database and HSM that are dead.
+If the --delete (or -d) flag is given, the keys are also purged from the HSM.
+Keys are always purged from the HSM if the <Purge>  
 .TP
 .B key rollover (--zone <zone> | --policy <policy>) [--keytype <keytype> | --all]
 Start a key rollover of the desired type *now* or all of them. The process is the same as for the scheduled automated rollovers however it does not wait for the keys lifetime to expire before rolling. The next rollover is due after the newest key aged passed its lifetime.
