@@ -1,40 +1,40 @@
 AC_DEFUN([ACX_ENFORCER_DATABASE],[
 	AC_ARG_WITH(enforcer-database,
-        AC_HELP_STRING([--with-enforcer-database=BACKEND],
+        AS_HELP_STRING([--with-enforcer-database=BACKEND],
         	[Select database backend: sqlite3 (default), mysql]),
 		[database_backend="${withval}"],
 		[database_backend="sqlite3"])
 	
 	AC_ARG_WITH([enforcer-database-test-host],
-		AC_HELP_STRING([--with-enforcer-database-test-host=HOST],
+		AS_HELP_STRING([--with-enforcer-database-test-host=HOST],
 			[Host to use when testing the Enforcer database backend]),
 		[database_host="${withval}"],
 		[database_host=""]
 		)
 		
 	AC_ARG_WITH([enforcer-database-test-port],
-		AC_HELP_STRING([--with-enforcer-database-test-port=PORT],
+		AS_HELP_STRING([--with-enforcer-database-test-port=PORT],
 			[Port to use when testing the Enforcer database backend]),
 		[database_port="${withval}"],
 		[database_port="0"]
 		)
 		
 	AC_ARG_WITH([enforcer-database-test-database],
-		AC_HELP_STRING([--with-enforcer-database-test-database=DATABASE],
+		AS_HELP_STRING([--with-enforcer-database-test-database=DATABASE],
 			[Database to use when testing the Enforcer database backend]),
 		[database_database="${withval}"],
 		[database_database=""]
 		)
 		
 	AC_ARG_WITH([enforcer-database-test-username],
-		AC_HELP_STRING([--with-enforcer-database-test-username=USERNAME],
+		AS_HELP_STRING([--with-enforcer-database-test-username=USERNAME],
 			[Username to use when testing the Enforcer database backend]),
 		[database_username="${withval}"],
 		[database_username=""]
 		)
 		
 	AC_ARG_WITH([enforcer-database-test-password],
-		AC_HELP_STRING([--with-enforcer-database-test-password=PASSWORD],
+		AS_HELP_STRING([--with-enforcer-database-test-password=PASSWORD],
 			[Password to use when testing the Enforcer database backend]),
 		[database_password="${withval}"],
 		[database_password=""]

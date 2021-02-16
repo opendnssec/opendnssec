@@ -1,7 +1,7 @@
 m4_sinclude([version.m4])
 
-AC_PREREQ(2.61)
-AC_INIT([opendnssec], OPENDNSSEC_VERSION, [http://bugs.opendnssec.org/])
+AC_PREREQ([2.69])
+AC_INIT([opendnssec],[OPENDNSSEC_VERSION],[http://bugs.opendnssec.org/])
 AM_DEFAULT_VERBOSITY="0"
 AC_SUBST([AM_DEFAULT_VERBOSITY])
 AM_INIT_AUTOMAKE([foreign subdir-objects])
@@ -16,7 +16,7 @@ AC_USE_SYSTEM_EXTENSIONS
 # standard programs
 AC_PROG_CC
 AC_PROG_INSTALL
-AC_PROG_LIBTOOL
+LT_INIT
 AC_PROG_MAKE_SET
 AC_PROG_CXX
 
@@ -28,8 +28,7 @@ AC_PATH_PROG(CP, cp)
 AC_DEFINE_UNQUOTED(CP_COMMAND, "$CP", [System cp(3) command])
 
 # building, compiler flags
-AC_PROG_CC_STDC
-#AC_PROG_CC_C99
+AC_PROG_CC
 ACX_PEDANTIC
 AX_COMPILER_FLAGS_CFLAGS
 AX_C___ATTRIBUTE__
@@ -38,9 +37,7 @@ ACX_RUNTIME_PATH_ADD
 AX_CFLAGS_WARN_ALL
 
 # checks for header files
-AC_HEADER_STDC
 AC_HEADER_STDBOOL
-AC_HEADER_TIME
 AC_CHECK_HEADERS([fcntl.h inttypes.h stdio.h stdlib.h string.h syslog.h unistd.h])
 AC_CHECK_HEADERS(getopt.h,, [AC_INCLUDES_DEFAULT])
 AC_CHECK_HEADERS([errno.h getopt.h pthread.h signal.h stdarg.h stdint.h strings.h])
@@ -54,13 +51,10 @@ AC_TYPE_SIZE_T
 AC_TYPE_UID_T
 AC_TYPE_UINT16_T
 AC_MSG_CHECKING(for union semun)
-AC_TRY_COMPILE([#include <sys/types.h>
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <sys/types.h>
                 #include <sys/ipc.h>
-                #include <sys/sem.h>],
-               [union semun arg;],
-               [have_union_semun=1],
-               [have_union_semun=0]
-)
+                #include <sys/sem.h>]], [[union semun arg;]])],[have_union_semun=1],[have_union_semun=0
+])
 if test $have_union_semun = 1; then
   AC_MSG_RESULT(yes)
   AC_DEFINE(HAVE_UNION_SEMUN, 1, [union semun is defined])
@@ -68,15 +62,16 @@ else
   AC_MSG_RESULT(no)
 fi
 
-# pthread
-ACX_PTHREAD(
-  [AC_DEFINE([HAVE_PTHREAD], [1],
-    [Define if you have POSIX threads libraries and header files.])
-    LDFLAGS="$CFLAGS $PTHREAD_CFLAGS $LDFLAGS $PTHREAD_LIBS $LIBS"])
+AX_PTHREAD
 
-LIBS="$PTHREAD_LIBS $LIBS"
-CFLAGS="$CFLAGS $PTHREAD_CFLAGS $WARN_CFLAGS"
-CC="$PTHREAD_CC"
+# pthread
+# AX_PTHREAD([AC_DEFINE([HAVE_PTHREAD], [1],
+#     AS_ECHO(["Define if you have POSIX threads libraries and header files."])
+#     LDFLAGS="$CFLAGS $PTHREAD_CFLAGS $LDFLAGS $PTHREAD_LIBS $LIBS"])
+
+# LIBS="$PTHREAD_LIBS $LIBS"
+# CFLAGS="$CFLAGS $PTHREAD_CFLAGS $WARN_CFLAGS"
+# CC="$PTHREAD_CC"
 
 # checks for library functions
 AC_CHECK_FUNCS([arc4random arc4random_uniform])
@@ -159,7 +154,7 @@ AC_DEFINE_UNQUOTED([HSM_DEFAULT_CONFIG],["$OPENDNSSEC_CONFIG_FILE"],[Default con
 
 # enforcer
 AC_ARG_ENABLE(enforcer,
-	AC_HELP_STRING([--disable-enforcer],
+	AS_HELP_STRING([--disable-enforcer],
 		[Disable enforcer build (default enabled)]),
 		[enable_enforcer="${enableval}"],
 		[enable_enforcer="yes"])
@@ -172,7 +167,7 @@ AM_CONDITIONAL([ENABLE_ENFORCER], [test "${enable_enforcer}" = "yes"])
 
 # signer
 AC_ARG_ENABLE(signer,
-	AC_HELP_STRING([--disable-signer],
+	AS_HELP_STRING([--disable-signer],
 		[Disable signer build (default enabled)]),
 		[enable_signer="${enableval}"],
 		[enable_signer="yes"])
@@ -180,12 +175,12 @@ AM_CONDITIONAL([ENABLE_SIGNER], [test "${enable_signer}" = "yes"])
 
 INSTALLATIONCOND=""
 AC_ARG_ENABLE(installation-user,
-	AC_HELP_STRING([--enable-installation-user],
+	AS_HELP_STRING([--enable-installation-user],
 		[Install for usage by specific user (default=disabled)]),
 		[enable_installationuser=$enableval],
 		[enable_installationuser="no"])
 AC_ARG_ENABLE(installation-group,
-	AC_HELP_STRING([--enable-installation-group],
+	AS_HELP_STRING([--enable-installation-group],
 		[Install for usage by specific group (default=disabled)]),
 		[enable_installationgroup=$enableval],
 		[enable_installationgroup="no"])
@@ -231,7 +226,7 @@ AC_SUBST([LIBUNWIND_CFLAGS])
 AC_SUBST([LIBUNWIND_LIBS])
 LIBS="$LIBS $LIBUNWIND_LIBS"
 
-AC_CONFIG_HEADER([common/config.h])
+AC_CONFIG_HEADERS([common/config.h])
 
 AC_CONFIG_FILES([
 	Makefile

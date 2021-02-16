@@ -22,7 +22,7 @@ usage(int sockfd)
 	client_printf(sockfd,
 		"key purge\n"
 		"	--policy <policy> | --zone <zone>	aka -p | -z\n"
-                "       --delete or -d");
+                "       --delete or -d\n");
 }
 
 static void

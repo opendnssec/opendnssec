@@ -288,12 +288,11 @@ zone_rollback_dnskeys(zone_type* zone)
     /* unlink dnskey rrs */
     for (i=0; i < zone->signconf->keys->count; i++) {
         if (rrset && zone->signconf->keys->keys[i].dnskey) {
-            dnskey = rrset_lookup_rr(rrset,
-                zone->signconf->keys->keys[i].dnskey);
-            if (dnskey && !dnskey->exists &&
-                dnskey->rr == zone->signconf->keys->keys[i].dnskey) {
-                zone->signconf->keys->keys[i].dnskey = NULL;
-            }
+            dnskey = rrset_lookup_rr(rrset, zone->signconf->keys->keys[i].dnskey);
+            /* always remove the DNSKEY record when rollback is requested, as we don't know how to
+             * distinguish reading an empty file or reading a failed input set.
+             */
+            zone->signconf->keys->keys[i].dnskey = NULL;
         }
     }
 }

@@ -1,4 +1,13 @@
-OpenDNSSEC 2.1.8 - T.B.A.
+OpenDNSSEC 2.1.8rc1
+
+* SUPPORT-261: Fix crash on set-policy command.
+* Upgrade autoconf/automake configuration chain for version 2.69/1.16.2.
+* Fix to crash when using ods-enforcer set-policy command.
+* Upgrade purge related documentation
+* Fix to crash in case zone file not present while getting a signconf
+  update and state flush command.
+
+OpenDNSSEC 2.1.8rc1
 
 * OPENDNSSEC-951: Modify the purging of keys, to make it automatic to purge
   keys from the HSM.
