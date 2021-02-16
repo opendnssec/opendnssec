@@ -12,5 +12,10 @@ if [ `dirname $0` = ".." ]; then
 	fi
 fi &&
 
-echo "Running autoreconf" &&
-autoreconf --install --force
+case `uname` in Darwin*) glibtoolize --copy ;;
+  *) libtoolize --copy ;; esac
+
+aclocal -I m4 --install
+autoheader
+autoconf
+automake --foreign --add-missing --force-missing --copy

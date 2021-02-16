@@ -35,7 +35,7 @@
 #include "str.h"
 #include "log.h"
 #include "clientpipe.h"
-#include "db/zone_db.h"
+#include "db/zone_db.h" 
 #include "keystate/zonelist_export.h"
 
 #include "keystate/zone_set_policy_cmd.h"
@@ -157,14 +157,12 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 		return -1;
 	} else if (!policy_name) {
 		client_printf_err(sockfd, "expected option --policy <policy>\n");
-		free(zone_name);
 		return -1;
 	}
 
 	//validation
 
 	zone_db_t* zone = zone_db_new_get_by_name(dbconn, zone_name);
-	free((void*)zone_name);
 	if (!zone) {
 		client_printf_err(sockfd, "Unable to update zone, zone does not exist!\n");
 		free(policy_name);

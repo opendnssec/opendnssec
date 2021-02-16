@@ -2,7 +2,7 @@
 # http://www.gnu.org/software/ac-archive/htmldoc/check_ssl.html and
 # modified for OpenDNSSEC.
 AC_DEFUN([ACX_SSL], [
-    AC_ARG_WITH(ssl, AC_HELP_STRING([--with-ssl=pathname],
+    AC_ARG_WITH(ssl, AS_HELP_STRING([--with-ssl=pathname],
                 [enable SSL (will check /usr/local/ssl
                 /usr/lib/ssl /usr/ssl /usr/pkg /usr/sfw /usr/local /usr)]),[
         ],[

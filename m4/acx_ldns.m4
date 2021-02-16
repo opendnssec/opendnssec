@@ -1,6 +1,6 @@
 AC_DEFUN([ACX_LDNS],[
 	AC_ARG_WITH(ldns, 
-		[AC_HELP_STRING([--with-ldns=PATH],[specify prefix of path of ldns library to use])],
+		[AS_HELP_STRING([--with-ldns=PATH],[specify prefix of path of ldns library to use])],
         	[
 			LDNS_PATH="$withval"
 			AC_PATH_PROGS(LDNS_CONFIG, ldns-config, ldns-config, $LDNS_PATH/bin)
@@ -69,7 +69,7 @@ AC_DEFUN([ACX_LDNS],[
 
 AC_DEFUN([ACX_LDNS_NOT],[
 	AC_ARG_WITH(ldns, 
-		[AC_HELP_STRING([--with-ldns=PATH],[specify prefix of path of ldns library to use])],
+		[AS_HELP_STRING([--with-ldns=PATH],[specify prefix of path of ldns library to use])],
         	[
 			LDNS_PATH="$withval"
 			AC_PATH_PROGS(LDNS_CONFIG, ldns-config, ldns-config, $LDNS_PATH/bin)
