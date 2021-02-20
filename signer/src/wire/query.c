@@ -869,6 +869,7 @@ query_process(query_type* q, engine_type* engine)
     rr = ldns_rr_list_rr(ldns_pkt_question(pkt), 0);
     if (!rr) {
         ods_log_debug("[%s] no RRset in query section, ignoring", query_str);
+        ldns_pkt_free(pkt);
         return QUERY_DISCARDED; /* no RRset in query */
     }
     pthread_mutex_lock(&engine->zonelist->zl_lock);
@@ -886,10 +887,12 @@ query_process(query_type* q, engine_type* engine)
     pthread_mutex_unlock(&engine->zonelist->zl_lock);
     if (!q->zone) {
         ods_log_debug("[%s] zone not found", query_str);
+        ldns_pkt_free(pkt);
         return query_servfail(q);
     }
     /* see if it is tsig signed */
     if (!query_find_tsig(q)) {
+        ldns_pkt_free(pkt);
         return query_formerr(q);
     }
     /* else: valid tsig, or no tsig present */
@@ -902,12 +905,14 @@ query_process(query_type* q, engine_type* engine)
         ods_log_debug("[%s] incoming ixfr request for zone %s",
             query_str, q->zone->name);
         if (query_process_ixfr(q) != QUERY_PROCESSED) {
+            ldns_pkt_free(pkt);
             return query_formerr(q);
         }
     }
     /* process tsig */
     rcode = query_process_tsig(q);
     if (rcode != LDNS_RCODE_NOERROR) {
+        ldns_pkt_free(pkt);
         return query_error(q, rcode);
     }
     /* process edns */
@@ -917,6 +922,7 @@ query_process(query_type* q, engine_type* engine)
          * BADVERS is created with Ext. RCODE, followed by RCODE.
          * Ext. RCODE is set to 1, RCODE must be 0 (getting 0x10 = 16).
          * Thus RCODE = NOERROR = NSD_RC_OK. */
+        ldns_pkt_free(pkt);
         return query_error(q, LDNS_RCODE_NOERROR);
     }
     /* handle incoming request */
