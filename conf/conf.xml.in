@@ -31,7 +31,9 @@
 		<Logging>
 			<!-- Command line verbosity will overwrite configure file -->
 			<Verbosity>3</Verbosity>
+			<!-- Choose either Syslog or File for output, but not both -->
 			<Syslog><Facility>local0</Facility></Syslog>
+			<!-- <File><Filename>/var/log/opendnssec.log</Filename></File> -->
 		</Logging>
 		
 		<PolicyFile>@OPENDNSSEC_CONFIG_DIR@/kasp.xml</PolicyFile>
