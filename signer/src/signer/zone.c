@@ -393,6 +393,7 @@ ods_status
 zone_prepare_keys(zone_type* zone)
 {
     hsm_ctx_t* ctx = NULL;
+    int skip_hsm_access;
     uint16_t i = 0;
     ods_status status = ODS_STATUS_OK;
 
@@ -403,8 +404,7 @@ zone_prepare_keys(zone_type* zone)
     /* hsm access */
     ctx = hsm_create_context();
     if (ctx == NULL) {
-        ods_log_error("[%s] unable to prepare signing keys for zone %s: "
-            "error creating libhsm context", zone_str, zone->name);
+        ods_log_error("[%s] unable to prepare signing keys for zone %s: error creating libhsm context", zone_str, zone->name);
         return ODS_STATUS_HSM_ERR;
     }
     /* prepare keys */
@@ -412,13 +412,12 @@ zone_prepare_keys(zone_type* zone)
         if(zone->signconf->dnskey_signature != NULL && zone->signconf->keys->keys[i].ksk)
             continue;
         /* get dnskey */
-        status = lhsm_get_key(ctx, zone->apex, &zone->signconf->keys->keys[i], 0);
+        skip_hsm_access = (zone->signconf->keys->keys[i].publish || zone->signconf->keys->keys[i].zsk || zone->signconf->keys->keys[i].ksk ? 0 : 1);
+        status = lhsm_get_key(ctx, zone->apex, &zone->signconf->keys->keys[i], skip_hsm_access);
         if (status != ODS_STATUS_OK) {
-            ods_log_error("[%s] unable to prepare signing keys for zone %s: "
-                "error getting dnskey", zone_str, zone->name);
+            ods_log_error("[%s] unable to prepare signing keys for zone %s: error getting dnskey", zone_str, zone->name);
             break;
         }
-        ods_log_assert(zone->signconf->keys->keys[i].dnskey);
         ods_log_assert(zone->signconf->keys->keys[i].params);
     }
     /* done */
