@@ -1,8 +1,13 @@
-OpenDNSSEC 2.1.9 - 20210-04-??
+OpenDNSSEC 2.1.9rc1 - 20210-04-16
 
 * OPENDNSSEC-955: Prevent concurrency between C_Login/C_OpenSession and
   C_FindObject in PKCS#11 operations as some HSMs do not like this and
   the key may (transiently) not be available.
+* OPENDNSSEC-956: Harden the signing procedure to still sign zones for
+  which there are unused keys specified in the signconf.  These are
+  included by the enforcer because there may be (outdated) signatures
+  for them, but the signer doesn't need this reference anymore in 2.1.
+  However this was left in for backwards compatibility (probably).
 
 OpenDNSSEC 2.1.8 - 2021-02-20
 
