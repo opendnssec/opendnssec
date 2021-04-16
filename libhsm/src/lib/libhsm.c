@@ -1639,10 +1639,20 @@ hsm_find_key_by_id_bin(hsm_ctx_t *ctx,
 
     if (!id) return NULL;
 
+    /* OPENDNSSEC-955: This procedure is mutexed to prevent a C_Login or
+     * C_OpenSession happening at the same * time as looking up a key with
+     * C_FindObject.  Some HSMs like SoftHSM in database backend mode don't
+     * like this.
+     */
+    pthread_mutex_lock(&_hsm_ctx_mutex);
     for (i = 0; i < ctx->session_count; i++) {
         key = hsm_find_key_by_id_session(ctx, ctx->session[i], id, len);
-        if (key) return key;
+        if (key) {
+            pthread_mutex_unlock(&_hsm_ctx_mutex);
+            return key;
+        }
     }
+    pthread_mutex_unlock(&_hsm_ctx_mutex);
     return NULL;
 }
 
