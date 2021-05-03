@@ -1,4 +1,4 @@
-OpenDNSSEC 2.1.9rc1 - 20210-04-16
+OpenDNSSEC 2.1.9 - 2021-05-03
 
 * OPENDNSSEC-955: Prevent concurrency between C_Login/C_OpenSession and
   C_FindObject in PKCS#11 operations as some HSMs do not like this and
