@@ -1,3 +1,7 @@
+OpenDNSSEC 2.1.10 - T.B.D.
+
+* OPENDNSSEC-957: Fix exit code signer daemon to not always report failure.
+
 OpenDNSSEC 2.1.9 - 2021-05-03
 
 * OPENDNSSEC-955: Prevent concurrency between C_Login/C_OpenSession and
