@@ -74,6 +74,7 @@ usage ()
     fprintf(stderr,"  logout\n");
     fprintf(stderr,"  list [repository]\n");
     fprintf(stderr,"  generate <repository> rsa|dsa|gost|ecdsa [keysize]\n");
+    fprintf(stderr,"  copy <id> <repository> <newid>\n");
     fprintf(stderr,"  remove <id>\n");
     fprintf(stderr,"  purge <repository>\n");
     fprintf(stderr,"  dnskey <id> <name> <type> <algo>\n");
@@ -272,6 +273,44 @@ cmd_generate (int argc, char *argv[])
     }
 
     return 0;
+}
+
+static int
+cmd_copy (int argc, char *argv[])
+{
+    char* id;
+    char* newid;
+    char* repository;
+    int result;
+
+    libhsm_key_t *key = NULL;
+
+    if (argc != 2) {
+        usage();
+        return -1;
+    }
+
+    id = argv[0];
+    newid = argv[1];
+
+    key = hsm_find_key_by_id(ctx, id);
+
+    if (!key) {
+        printf("Key not found: %s\n", id);
+        return -1;
+    }
+
+    result = hsm_copy_key(ctx, key, newid);
+
+    if (!result) {
+        printf("Key copy successful.\n");
+    } else {
+        printf("Key copy failed.\n");
+    }
+
+    libhsm_key_free(key);
+
+    return result;
 }
 
 static int
@@ -683,6 +722,10 @@ main (int argc, char *argv[])
         argc --;
         argv ++;
         result = cmd_remove(argc, argv);
+    } else if (!strcasecmp(argv[0], "copy")) {
+        argc --;
+        argv ++;
+        result = cmd_copy(argc, argv);
     } else if (!strcasecmp(argv[0], "purge")) {
         argc --;
         argv ++;
