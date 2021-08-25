@@ -1,3 +1,8 @@
+OpenDNSSEC 2.1.10 - T.B.D.
+* Fix immediate resalting after migration from 1.4
+* Emit warning on ods-kaspcheck for NSEC iteration count that is deemed too
+  high.
+
 OpenDNSSEC 2.1.9 - 2021-05-03
 
 * OPENDNSSEC-955: Prevent concurrency between C_Login/C_OpenSession and
