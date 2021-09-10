@@ -1,0 +1,12 @@
+[Unit]
+Description=OpenDNSSEC signer daemon
+After=syslog.target network.target
+[Service]
+Type=simple
+User=root
+Group=root
+PIDFile=/run/opendnssec/signerd.pid
+EnvironmentFile=-/etc/sysconfig/ods
+ExecStart=/usr/sbin/ods-signerd -d $ODS_SIGNERD_OPT
+[Install]
+WantedBy=multi-user.target

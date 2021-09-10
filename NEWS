@@ -1,7 +1,13 @@
-OpenDNSSEC 2.1.10 - T.B.D.
-* Fix immediate resalting after migration from 1.4
-* Emit warning on ods-kaspcheck for NSEC iteration count that is deemed too
-  high.
+OpenDNSSEC 2.1.10 - 2021-09-10
+
+* OPENDNSSEC-957: Fix exit code signer daemon to not always report failure.
+* OPENDNSSEC-958: Fix immediate resalting after migration from 1.4.
+* OPENDNSSEC-959: Emit warning on ods-kaspcheck for NSEC iteration count
+  that is deemed too high.
+* SUPPORT-265: Resolve conflict when deleting keys from HSM whilst
+  also performing step in key roll process.  Typically a message
+  "key_data_update failed" is present in logs.
+* Provided RedHat/CentOS spec file in contrib directory.
 
 OpenDNSSEC 2.1.9 - 2021-05-03
 
