@@ -865,7 +865,7 @@ earlyexit:
     engine_cleanup(engine);
     engine = NULL;
 
-    return 1;
+    return status;
 }
 
 
