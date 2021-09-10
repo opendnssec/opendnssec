@@ -849,7 +849,12 @@ query_process(query_type* q, engine_type* engine)
     }
     pthread_mutex_unlock(&engine->zonelist->zl_lock);
     if (!q->zone) {
-        ods_log_debug("[%s] zone not found", query_str);
+	char *zn = ldns_rdf2str(ldns_rr_owner(rr));
+	if (zn) {
+            ods_log_debug("[%s] zone %s not found", query_str, zn);
+	} else {
+            ods_log_debug("[%s] zone (unknown?) not found", query_str);
+	}
         return query_servfail(q);
     }
     /* see if it is tsig signed */
