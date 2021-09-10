@@ -222,17 +222,17 @@ SET denialSalt = (
 WHERE (
 	SELECT salt
 	FROM  REMOTE.policies
-	WHERE REMOTE.policies.id = policy.id) != null;
+	WHERE REMOTE.policies.id = policy.id) IS NOT NULL;
 
 UPDATE policy
 SET denialSaltLastChange = (
-	SELECT salt_stamp
+	SELECT strftime("%s",salt_stamp)
 	FROM  REMOTE.policies
 	WHERE REMOTE.policies.id = policy.id)
 WHERE (
 	SELECT salt_stamp
 	FROM  REMOTE.policies
-	WHERE REMOTE.policies.id = policy.id) != null;
+	WHERE REMOTE.policies.id = policy.id) IS NOT NULL;
 
 UPDATE policy
 SET keysTtl = (

@@ -2794,11 +2794,6 @@ update(engine_type *engine, db_connection_t *dbconn, zone_db_t *zone, policy_t c
     }
     key_data_list_free(key_list);
 
-    /*
-     * Update zone.
-     */
-    zone_return_time = updateZone(dbconn, policy, zone, now, allow_unsigned, zone_updated,
-	    keylist, keylist_size, deplist);
 
     /*
      * Only purge old keys if the policy says so.
@@ -2807,6 +2802,14 @@ update(engine_type *engine, db_connection_t *dbconn, zone_db_t *zone, policy_t c
 	    purge_return_time = removeDeadKeys(dbconn, keylist, keylist_size, deplist, now,
 	        policy_keys_purge_after(policy));
 	}
+    
+    
+    /*
+     * Update zone.
+     */
+    zone_return_time = updateZone(dbconn, policy, zone, now, allow_unsigned, zone_updated,
+	    keylist, keylist_size, deplist);
+
 
     /*
      * Always set these flags. Normally this needs to be done _only_ when the
@@ -2880,7 +2883,7 @@ update(engine_type *engine, db_connection_t *dbconn, zone_db_t *zone, policy_t c
             }
         }
 	}
-
+            
     /*
      * Release cached objects.
      */

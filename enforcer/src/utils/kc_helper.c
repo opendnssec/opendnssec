@@ -428,6 +428,7 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 	int nsec = 0;
 	int resalt = 0;
 	int hash_algo = 0;
+	int hash_iters = 0;
         int find_alg = 0;
 	
 	enum {KSK = 1, ZSK, CSK};
@@ -511,7 +512,7 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 							StrFree(temp_char);
 						} else if (xmlStrEqual(childNode2->name, (const xmlChar *)"Hash")) {
 							childNode3 = childNode2->children;
-							while (childNode3) {								
+							while (childNode3) {
 								if (xmlStrEqual(childNode3->name, (const xmlChar *)"Algorithm")) {
 									temp_char = (char *) xmlNodeGetContent(childNode3);
 									/* we know temp_char is a number */
@@ -521,6 +522,14 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 											"in %s is %d but should be 1", policy_name,
 											kasp, hash_algo);
 										status++;
+									}
+									StrFree(temp_char);
+								} else if (xmlStrEqual(childNode3->name, (const xmlChar *)"Iterations")) {
+									temp_char = (char *) xmlNodeGetContent(childNode3);
+									/* we know temp_char is a number */
+									hash_iters = atoi(temp_char);
+									if (hash_iters > 100) {
+										dual_log("WARNING: NSEC3 Hash iterations for %s Policy in %s is %d which is larger than the recommended maximum of 100", policy_name, kasp, hash_iters);
 									}
 									StrFree(temp_char);
 								}
