@@ -30,8 +30,7 @@
 #include "str.h"
 #include "clientpipe.h"
 #include "duration.h"
-#include "db/key_data.h"
-#include "db/hsm_key.h"
+#include "db/dbw.h"
 #include "utils/kc_helper.h"
 
 #include "signconf/signconf_xml.h"

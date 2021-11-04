@@ -29,7 +29,7 @@
 #ifndef _KEYSTATE_ZONELIST_UPDATE_H_
 #define _KEYSTATE_ZONELIST_UPDATE_H_
 
-#include "db/zone_db.h"
+#include "db/dbw.h"
 
 /**
  * Indicates a successful zonelist update.

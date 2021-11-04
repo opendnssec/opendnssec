@@ -38,10 +38,7 @@
 #include "str.h"
 #include "clientpipe.h"
 #include "duration.h"
-#include "db/key_data.h"
-#include "db/zone_db.h"
-#include "db/db_error.h"
-#include "db/hsm_key.h"
+#include "db/dbw.h"
 #include "libhsm.h"
 #include "libhsmdns.h"
 

@@ -52,14 +52,7 @@
 #include "duration.h"
 #include "log.h"
 #include "daemon/engine.h"
-
-#include "db/zone_db.h"
-#include "db/policy.h"
-#include "db/policy_key.h"
-#include "db/hsm_key.h"
-#include "db/key_data.h"
-#include "db/key_dependency.h"
-#include "db/db_error.h"
+#include "db/dbw.h"
 
 #include "enforcer/enforcer.h"
 
@@ -92,7 +85,7 @@ static int min(int a, int b) { return a<b?a:b; }
  * 
  * \param t[in], some time to test
  * \param min[in,out], smallest of t and min.
- * */
+ */
 static inline void
 minTime(const time_t t, time_t* min)
 {
@@ -108,7 +101,7 @@ minTime(const time_t t, time_t* min)
  * \param[in] t, base time
  * \param[in] seconds, seconds to add to base
  * \return sum
- * */
+ */
 static time_t
 addtime(const time_t t, const int seconds)
 {

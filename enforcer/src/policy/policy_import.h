@@ -30,7 +30,7 @@
 #define _POLICY_POLICY_IMPORT_H_
 
 #include "daemon/engine.h"
-#include "db/db_connection.h"
+#include "db/dbw.h"
 
 /**
  * Indicates a successful policy import.
@@ -52,6 +52,12 @@
  * Indicates a memory allocation error or generic internal error.
  */
 #define POLICY_IMPORT_ERR_MEMORY 4
+
+
+#define POLICY_SEEN (1<<0)
+#define POLICY_CREATED (1<<1)
+#define POLICY_UPDATED (1<<2)
+#define POLICY_RESALT (1<<3)
 
 /*
  * Import policies from the configured KASP XML and sync it with the database.

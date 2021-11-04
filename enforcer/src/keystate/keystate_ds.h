@@ -28,7 +28,7 @@
 #ifndef _KEYSTATE_DS_H_
 #define _KEYSTATE_DS_H_
 
-#include "db/key_data.h"
+#include "db/dbw.h"
 
 extern int
 change_keys_from_to(db_connection_t *dbconn, int sockfd,
@@ -36,7 +36,7 @@ change_keys_from_to(db_connection_t *dbconn, int sockfd,
 	key_data_ds_at_parent_t state_from,
 	key_data_ds_at_parent_t state_to, engine_type* engine);
 
-int run_ds_cmd(int sockfd, const char *cmd,
+extern int run_ds_cmd(int sockfd, const char *cmd,
 	db_connection_t *dbconn, key_data_ds_at_parent_t state_from,
 	key_data_ds_at_parent_t state_to, engine_type* engine);
 

@@ -26,6 +26,8 @@
  *
  */
 #include <getopt.h>
+#include <math.h>
+#include <limits.h>
 
 #include "daemon/engine.h"
 #include "cmdhandler.h"
@@ -34,7 +36,6 @@
 #include "str.h"
 #include "clientpipe.h"
 #include "hsmkey/hsm_key_factory.h"
-#include "db/policy.h"
 #include "duration.h"
 
 #include "hsmkey/key_generate_cmd.h"
@@ -64,10 +65,9 @@ help(int sockfd)
 }
 
 static int
-run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 {
     #define NARGV 6
-    char* buf;
     const char* argv[NARGV];
     int argc = 0, long_index =0, opt = 0;
     const char* policy_name = NULL;
@@ -75,6 +75,7 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
     time_t duration_time = 0;
     duration_type* duration = NULL;
     int all = 0;
+    long count = 0;
     policy_t* policy;
     db_connection_t* dbconn = getconnectioncontext(context);
     engine_type* engine = getglobalcontext(context);
@@ -83,33 +84,42 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
         {"policy", required_argument, 0, 'p'},
         {"all", no_argument, 0, 'a'},
         {"duration", required_argument, 0, 'd'},
+        {"count", required_argument, 0, 'c'},
         {0, 0, 0, 0}
     };
 
     ods_log_debug("[%s] %s command", module_str, key_generate_funcblock.cmdname);
 
-    if (!(buf = strdup(cmd))) {
-        client_printf_err(sockfd, "memory error\n");
-        return -1;
-    }
-
-    argc = ods_str_explode(buf, NARGV, argv);
+    argc = ods_str_explode(cmd, NARGV, argv);
     if (argc == -1) {
         client_printf_err(sockfd, "too many arguments\n");
         ods_log_error("[%s] too many arguments for %s command",
                       module_str, key_generate_funcblock.cmdname);
-        free(buf);
         return -1;
     }
 
     optind = 0;
-    while ((opt = getopt_long(argc, (char* const*)argv, "p:ad:", long_options, &long_index)) != -1) {
+    while ((opt = getopt_long(argc, (char* const*)argv, "p:ad:c:", long_options, &long_index)) != -1) {
         switch (opt) {
             case 'd':
                 duration_text = optarg;
                 break;
             case 'p':
                 policy_name = optarg;
+                break;
+            case 'c':
+                errno = 0;
+                count = strtol(optarg, NULL, 10);
+                if (errno) {
+                    client_printf_err(sockfd, "Unable to parse number.\n");
+                    return 1;
+                } else if (count < 1) {
+                    client_printf_err(sockfd, "count must be >= 1.\n");
+                    return 1;
+                } else if (count > INT_MAX) {
+                    client_printf_err(sockfd, "count must be <= %d.\n", INT_MAX);
+                    return 1;
+                }
                 break;
             case 'a':
                 all = 1;
@@ -118,18 +128,15 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
                 client_printf_err(sockfd, "unknown arguments\n");
                 ods_log_error("[%s] unknown arguments for %s command",
                                 module_str, key_generate_funcblock.cmdname);
-                free(buf);
                 return -1;
         }
     }
-
     if (duration_text) {
         if (!(duration = duration_create_from_string(duration_text))
             || !(duration_time = duration2time(duration)))
         {
             client_printf_err(sockfd, "Error parsing the specified duration!\n");
             duration_cleanup(duration);
-            free(buf);
             return 1;
         }
         duration_cleanup(duration);
@@ -141,7 +148,6 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
     else if (policy_name) {
         if (!(policy = policy_new_get_by_name(dbconn, policy_name))) {
             client_printf_err(sockfd, "Unable to find policy %s!\n", policy_name);
-            free(buf);
             return 1;
         }
         hsm_key_factory_schedule_generate_policy(engine, policy, duration_time);
@@ -149,12 +155,10 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
     }
     else {
         client_printf_err(sockfd, "Either --all or --policy needs to be given!\n");
-        free(buf);
         return 1;
     }
 
     client_printf(sockfd, "Key generation task scheduled.\n");
-    free(buf);
     return 0;
 }
 

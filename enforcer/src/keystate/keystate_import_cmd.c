@@ -38,8 +38,7 @@
 #include "duration.h"
 #include "libhsm.h"
 #include "libhsmdns.h"
-#include "db/key_data.h"
-#include "db/db_error.h"
+#include "db/dbw.h"
 
 #include "keystate/keystate_import_cmd.h"
 #include "keystate/keystate_list_cmd.h"

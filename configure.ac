@@ -1,9 +1,10 @@
 m4_sinclude([version.m4])
 
 AC_PREREQ([2.69])
-AC_INIT([opendnssec],[OPENDNSSEC_VERSION],[http://bugs.opendnssec.org/])
+AC_INIT([opendnssec],[OPENDNSSEC_VERSION],[https://issues.opendnssec.org/])
 AM_DEFAULT_VERBOSITY="0"
 AC_SUBST([AM_DEFAULT_VERBOSITY])
+AC_CANONICAL_TARGET
 AM_INIT_AUTOMAKE([foreign subdir-objects])
 AC_CONFIG_MACRO_DIR([m4])
 ACX_PREFIXHACK
@@ -16,7 +17,7 @@ AC_USE_SYSTEM_EXTENSIONS
 # standard programs
 AC_PROG_CC
 AC_PROG_INSTALL
-LT_INIT
+AC_PROG_LIBTOOL
 AC_PROG_MAKE_SET
 AC_PROG_CXX
 
@@ -24,11 +25,13 @@ AC_PROG_CXX
 AC_PATH_PROG(XMLLINT, xmllint)
 AC_PATH_PROG(XSLTPROC, xsltproc)
 AC_PATH_PROG(JAVA, java)
+PKG_CHECK_MODULES([XML2],[libxml-2.0])
 AC_PATH_PROG(CP, cp)
 AC_DEFINE_UNQUOTED(CP_COMMAND, "$CP", [System cp(3) command])
 
 # building, compiler flags
-AC_PROG_CC
+AC_PROG_CC_STDC
+#AC_PROG_CC_C99
 ACX_PEDANTIC
 AX_COMPILER_FLAGS_CFLAGS
 AX_C___ATTRIBUTE__
@@ -37,7 +40,9 @@ ACX_RUNTIME_PATH_ADD
 AX_CFLAGS_WARN_ALL
 
 # checks for header files
+AC_HEADER_STDC
 AC_HEADER_STDBOOL
+AC_HEADER_TIME
 AC_CHECK_HEADERS([fcntl.h inttypes.h stdio.h stdlib.h string.h syslog.h unistd.h])
 AC_CHECK_HEADERS(getopt.h,, [AC_INCLUDES_DEFAULT])
 AC_CHECK_HEADERS([errno.h getopt.h pthread.h signal.h stdarg.h stdint.h strings.h])
@@ -153,6 +158,8 @@ ACX_DLOPEN
 AC_DEFINE_UNQUOTED([HSM_DEFAULT_CONFIG],["$OPENDNSSEC_CONFIG_FILE"],[Default configuration file.])
 
 # enforcer
+ACX_LIBREADLINE
+ACX_ENFORCER_DATABASE
 AC_ARG_ENABLE(enforcer,
 	AS_HELP_STRING([--disable-enforcer],
 		[Disable enforcer build (default enabled)]),
@@ -160,7 +167,6 @@ AC_ARG_ENABLE(enforcer,
 		[enable_enforcer="yes"])
 if test "x${enable_enforcer}" = "xyes"; then
 	AC_DEFINE_UNQUOTED(SIGNER_CLI_UPDATE, "$OPENDNSSEC_SIGNER_CLI update", [Path to the OpenDNSSEC signer engine cli])
-	ACX_ENFORCER_DATABASE
 	ACX_LIBREADLINE
 fi
 AM_CONDITIONAL([ENABLE_ENFORCER], [test "${enable_enforcer}" = "yes"])
@@ -235,16 +241,14 @@ AC_CONFIG_FILES([
 	conf/Makefile
 	conf/addns.xml
 	conf/conf.xml
-	conf/enforcerstate.xml
 	conf/kasp.xml
 	conf/signconf.xml
 	conf/zonelist.xml
 	enforcer/Makefile
 	enforcer/src/Makefile
+	enforcer/src/test/Makefile
 	enforcer/man/Makefile
-	enforcer/src/db/test/Makefile
 	enforcer/man/ods-enforcer.8
-	enforcer/man/ods-enforcer-db-setup.8
 	enforcer/man/ods-enforcerd.8
 	enforcer/src/utils/Makefile
 	enforcer/src/utils/ods-kaspcheck.1
@@ -256,12 +260,6 @@ AC_CONFIG_FILES([
 	libhsm/src/lib/Makefile
 	libhsm/checks/Makefile
 	libhsm/checks/conf-softhsm.xml
-	libhsm/checks/conf-sca6000.xml
-	libhsm/checks/conf-etoken.xml
-	libhsm/checks/conf-multi.xml
-	libhsm/checks/conf-opensc.xml
-	libhsm/checks/conf-ncipher.xml
-	libhsm/checks/conf-aepkeyper.xml
 	signer/Makefile
 	signer/man/Makefile
 	signer/man/ods-signer.8

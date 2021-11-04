@@ -29,10 +29,7 @@
 #ifndef SIGNCONF_SIGNCONF_XML_H_
 #define SIGNCONF_SIGNCONF_XML_H_
 
-#include "daemon/engine.h"
-#include "db/db_connection.h"
-#include "db/zone_db.h"
-#include "db/policy.h"
+#include "db/dbw.h"
 
 /**
  * Indicates a successful signconf export.

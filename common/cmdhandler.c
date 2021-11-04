@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2009 NLNet Labs. All rights reserved.
+ * Copyright (c) 2009-2018 NLNet Labs.
+ * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -21,7 +22,6 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
 /**
@@ -125,8 +125,13 @@ cmdhandler_perform_command(const char *cmd, struct cmdhandler_ctx_struct* contex
 
     /* Find function claiming responsibility */
     if ((fb = get_funcblock(cmd, context->cmdhandler))) {
+        char *buf;
+        if (!(buf = strdup(cmd))) {
+            client_printf_err(sockfd, "memory error\n");
+            return 1;
+        }
         ods_log_debug("[%s] %s command", module_str, fb->cmdname);
-        ret = fb->run(sockfd, context, cmd);
+        ret = fb->run(sockfd, context, buf);
         if (ret == -1) {
             /* Syntax error, print usage for cmd */
             client_printf_err(sockfd, "Error parsing arguments %s command line %s\n",
@@ -137,6 +142,7 @@ cmdhandler_perform_command(const char *cmd, struct cmdhandler_ctx_struct* contex
             }
         }
         ods_log_debug("[%s] done handling command %s", module_str, cmd);
+        free(buf);
         return ret;
     } else {
         /* Unhandled command, print general error */
@@ -177,7 +183,7 @@ extract_msg(char* buf, int *pos, int buflen, int *exitcode, struct cmdhandler_ct
     assert(*pos <= buflen);
     assert(ODS_SE_MAXLINE >= buflen);
     
-    while (1) {
+    for(;;) {
         if (*pos < 3) return 0;
         opc = buf[0];
 

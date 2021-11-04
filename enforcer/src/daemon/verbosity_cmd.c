@@ -59,18 +59,15 @@ help(int sockfd)
 }
 
 static int
-run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 {
 	const int NARGV = MAX_ARGS;
 	const char *argv[MAX_ARGS];
-	char buf[ODS_SE_MAXLINE];
 	int argc;
 	long val;
 	char *endptr, *errorstr;
 
-	strncpy(buf, cmd, sizeof(buf));
-	buf[sizeof(buf)-1] = '\0';
-	argc = ods_str_explode(buf, NARGV, argv);
+	argc = ods_str_explode(cmd, NARGV, argv);
 
 	ods_log_debug("[%s] verbosity command", module_str);
 	if (argc == 1) {

@@ -32,15 +32,12 @@
 #include <stdlib.h>
 #include <syslog.h>
 #include <unistd.h>
-#include <ldns/ldns.h>
-#include <ldns/util.h>
 
 #include "libhsm.h"
 #include "hsmtest.h"
 
 #include <libhsmdns.h>
-
-extern hsm_repository_t* parse_conf_repositories(const char* cfgfile);
+#include "confparser.h"
 
 extern char *optarg;
 char *progname = NULL;

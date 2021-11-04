@@ -30,9 +30,7 @@
 
 #include "log.h"
 #include "clientpipe.h"
-#include "db/zone_db.h"
-#include "db/key_data.h"
-#include "db/key_state.h"
+#include "db/dbw.h"
 #include "utils/kc_helper.h"
 #include "hsmkey/hsm_key_factory.h"
 

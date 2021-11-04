@@ -35,9 +35,9 @@
 #include "config.h"
 #include "cmdhandler.h"
 #include "engine.h"
-#include "db/db_connection.h"
+#include "db/dbw.h"
 
-extern struct cmd_func_block** enforcercommands;
+struct cmd_func_block** enforcercommands;
 
 extern engine_type* getglobalcontext(cmdhandler_ctx_type*);
 extern db_connection_t* getconnectioncontext(cmdhandler_ctx_type*);

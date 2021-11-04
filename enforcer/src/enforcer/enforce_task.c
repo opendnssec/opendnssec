@@ -42,9 +42,7 @@
 #include "log.h"
 #include "scheduler/schedule.h"
 #include "scheduler/task.h"
-#include "db/zone_db.h"
-#include "db/db_clause.h"
-
+#include "db/dbw.h"
 #include "enforcer/enforce_task.h"
 
 static const char *module_str = "enforce_task";

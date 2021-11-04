@@ -32,7 +32,7 @@
 #ifndef PARSER_SIGNCONFPARSER_H
 #define PARSER_SIGNCONFPARSER_H
 
-#include "parser/confparser.h"
+#include "confparser.h"
 #include "status.h"
 #include "duration.h"
 #include "signer/keys.h"

@@ -66,7 +66,7 @@ help(int sockfd)
 }
 
 static int
-run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 {
 	struct tm strtime_struct;
 	char strtime[64]; /* at least 26 according to docs plus a long integer */
@@ -141,7 +141,7 @@ help_flush(int sockfd)
 }
 
 static int
-run_flush(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+run_flush(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 {
         engine_type* engine = getglobalcontext(context);
 	(void)cmd;

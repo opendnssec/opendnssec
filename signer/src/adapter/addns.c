@@ -35,7 +35,7 @@
 #include "adapter/addns.h"
 #include "adapter/adutil.h"
 #include "parser/addnsparser.h"
-#include "parser/confparser.h"
+#include "confparser.h"
 #include "duration.h"
 #include "file.h"
 #include "log.h"

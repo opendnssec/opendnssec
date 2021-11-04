@@ -35,8 +35,7 @@
 #include "str.h"
 #include "log.h"
 #include "clientpipe.h"
-#include "db/policy.h"
-#include "db/zone_db.h"
+#include "db/dbw.h"
 #include "keystate/zonelist_update.h"
 #include "enforcer/enforce_task.h"
 #include "hsmkey/hsm_key_factory.h"
@@ -63,6 +62,8 @@ usage(int sockfd)
 		"	[--out-type <type>]			aka -q\n"
 		"	[--output <path>]			aka -o\n"
 		"	[--xml]					aka -u\n"
+                /* Don't document suspend, for testing only. */
+		/*"	[--suspend]				aka -n\n"*/
 	);
 }
 
@@ -80,14 +81,14 @@ help(int sockfd)
         "out-type	specify the type of output, should be DNS or File, default is File\n"
         "output		specify a location for the signed zone, this location is set in conf.xml, default path for File Adapter is /var/opendnssec/signed/ and for DNS Adapter is /etc/opendnssec/addns.xml \n"
         "xml		update the zonelist.xml file\n\n"
+        /*"suspend		suspend this zone until running enforce command\n\n"*/
     );
 }
 
 static int
-run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 {
     #define NARGV 18
-    char* buf;
     const char* argv[NARGV];
     int argc = 0;
     const char *zone_name = NULL;
@@ -122,16 +123,11 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 
     ods_log_debug("[%s] %s command", module_str, zone_add_funcblock.cmdname);
 
-    if (!(buf = strdup(cmd))) {
-        client_printf_err(sockfd, "memory error\n");
-        return -1;
-    }
-    argc = ods_str_explode(buf, NARGV, argv);
+    argc = ods_str_explode(cmd, NARGV, argv);
     if (argc == -1) {
         client_printf_err(sockfd, "too many arguments\n");
         ods_log_error("[%s] too many arguments for %s command",
                       module_str, zone_add_funcblock.cmdname);
-        free(buf);
         return -1;
     }
 
@@ -169,14 +165,12 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
                 client_printf_err(sockfd, "unknown arguments\n");
                 ods_log_error("[%s] unknown arguments for %s command",
                                 module_str, zone_add_funcblock.cmdname);
-                free(buf);
                 return -1;
         }
     }
 
     if (!zone_name) {
         client_printf_err(sockfd, "expected option --zone <zone>\n");
-        free(buf);
         return -1;
     }
 

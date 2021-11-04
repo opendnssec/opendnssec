@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<KASP>
+	<Policy name="default">
+		<Description>A default policy that will amaze you and your friends</Description>
+		<Signatures>
+			<Resign>PT2H</Resign>
+			<Refresh>P7D</Refresh>
+			<Validity>
+				<Default>P14D</Default>
+				<Denial>P14D</Denial>
+			</Validity>
+			<Jitter>PT12H</Jitter>
+			<InceptionOffset>PT3600S</InceptionOffset>
+			<MaxZoneTTL>P1D</MaxZoneTTL>
+		</Signatures>
+		<Denial>
+			<NSEC3>
+				<Resalt>P10Y</Resalt>
+				<Hash>
+					<Algorithm>1</Algorithm>
+					<Iterations>5</Iterations>
+					<Salt length="8"/>
+				</Hash>
+			</NSEC3>
+		</Denial>
+		<Keys>
+			<TTL>PT3600S</TTL>
+			<RetireSafety>PT3600S</RetireSafety>
+			<PublishSafety>PT3600S</PublishSafety>
+			<Purge>P14D</Purge>
+			<KSK>
+				<Algorithm length="2048">8</Algorithm>
+				<Lifetime>P1Y</Lifetime>
+				<Repository>SoftHSM</Repository>
+			</KSK>
+			<ZSK>
+				<Algorithm length="1024">8</Algorithm>
+				<Lifetime>P90D</Lifetime>
+				<Repository>SoftHSM</Repository>
+				<!-- ZskRollType>ZskPrePublication</ZskRollType -->
+			</ZSK>
+		</Keys>
+		<Zone>
+			<PropagationDelay>PT43200S</PropagationDelay>
+			<SOA>
+				<TTL>PT3600S</TTL>
+				<Minimum>PT3600S</Minimum>
+				<Serial>unixtime</Serial>
+			</SOA>
+		</Zone>
+		<Parent>
+			<PropagationDelay>PT9999S</PropagationDelay>
+			<DS>
+				<TTL>PT3600S</TTL>
+			</DS>
+			<SOA>
+				<TTL>PT172800S</TTL>
+				<Minimum>PT10800S</Minimum>
+			</SOA>
+		</Parent>
+	</Policy>
+	<Policy name="pass">
+		<Passthrough/>
+		<Description>Passthrough policy</Description>
+		<Signatures>
+			<Resign>PT10M</Resign>
+			<Refresh>PT30M</Refresh>
+			<Validity>
+				<Default>PT1H</Default>
+				<Denial>PT1H</Denial>
+			</Validity>
+			<Jitter>PT1M</Jitter>
+			<InceptionOffset>PT3600S</InceptionOffset>
+			<MaxZoneTTL>PT300S</MaxZoneTTL>
+		</Signatures>
+		<Denial>
+			<NSEC/>
+		</Denial>
+		<Keys>
+			<TTL>PT300S</TTL>
+			<RetireSafety>PT360S</RetireSafety>
+			<PublishSafety>PT360S</PublishSafety>
+			<Purge>P14D</Purge>
+		</Keys>
+		<Zone>
+			<PropagationDelay>PT300S</PropagationDelay>
+			<SOA>
+				<TTL>PT300S</TTL>
+				<Minimum>PT300S</Minimum>
+				<Serial>unixtime</Serial>
+			</SOA>
+		</Zone>
+		<Parent>
+			<PropagationDelay>PT9999S</PropagationDelay>
+			<DS>
+				<TTL>PT3600S</TTL>
+			</DS>
+			<SOA>
+				<TTL>PT172800S</TTL>
+				<Minimum>PT10800S</Minimum>
+			</SOA>
+		</Parent>
+	</Policy>	
+</KASP>

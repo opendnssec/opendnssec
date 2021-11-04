@@ -37,7 +37,6 @@
 #include "log.h"
 #include "str.h"
 #include "clientpipe.h"
-#include "db/key_data.h"
 #include "keystate/keystate_ds.h"
 
 #include "keystate/keystate_ds_seen_cmd.h"

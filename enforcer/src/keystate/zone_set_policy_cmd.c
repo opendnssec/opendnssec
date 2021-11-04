@@ -35,7 +35,6 @@
 #include "str.h"
 #include "log.h"
 #include "clientpipe.h"
-#include "db/zone_db.h" 
 #include "keystate/zonelist_export.h"
 
 #include "keystate/zone_set_policy_cmd.h"

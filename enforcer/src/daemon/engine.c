@@ -33,7 +33,7 @@
 
 #include <pthread.h>
 
-#include "daemon/cfg.h"
+#include "cfg.h"
 #include "daemon/enforcercommands.h"
 #include "clientpipe.h"
 #include "cmdhandler.h"
@@ -46,9 +46,6 @@
 #include "privdrop.h"
 #include "status.h"
 #include "util.h"
-#include "db/db_configuration.h"
-#include "db/db_connection.h"
-#include "db/database_version.h"
 #include "hsmkey/hsm_key_factory.h"
 #include "libhsm.h"
 #include "locks.h"
@@ -67,6 +64,8 @@
 #include <unistd.h>
 #include <fcntl.h>
 
+#include "db/dbw.h"
+
 static const char* engine_str = "engine";
 
 static engine_type* engine = NULL;
@@ -84,7 +83,6 @@ engine_alloc(void)
     pthread_mutex_init(&engine->signal_lock, NULL);
     pthread_cond_init(&engine->signal_cond, NULL);
 
-    engine->dbcfg_list = NULL;
     engine->taskq = schedule_create();
     if (!engine->taskq) {
         free(engine);
@@ -99,9 +97,6 @@ engine_dealloc(engine_type* engine)
     schedule_cleanup(engine->taskq);
     pthread_mutex_destroy(&engine->signal_lock);
     pthread_cond_destroy(&engine->signal_cond);
-    if (engine->dbcfg_list) {
-        db_configuration_list_free(engine->dbcfg_list);
-    }
     hsm_key_factory_deinit();
     free(engine);
 }
@@ -129,25 +124,25 @@ engine_privdrop(engine_type* engine)
     ods_log_assert(engine->config);
     ods_log_debug("[%s] drop privileges", engine_str);
 
-    if (engine->config->username && engine->config->group) {
+    if (engine->config->username_enforcer && engine->config->group_enforcer) {
         ods_log_verbose("[%s] drop privileges to user %s, group %s",
-           engine_str, engine->config->username, engine->config->group);
-    } else if (engine->config->username) {
+           engine_str, engine->config->username_enforcer, engine->config->group_enforcer);
+    } else if (engine->config->username_enforcer) {
         ods_log_verbose("[%s] drop privileges to user %s", engine_str,
-           engine->config->username);
-    } else if (engine->config->group) {
+           engine->config->username_enforcer);
+    } else if (engine->config->group_enforcer) {
         ods_log_verbose("[%s] drop privileges to group %s", engine_str,
-           engine->config->group);
+           engine->config->group_enforcer);
     }
-    if (engine->config->chroot) {
+    if (engine->config->chroot_enforcer) {
         ods_log_verbose("[%s] chroot to %s", engine_str,
-            engine->config->chroot);
+            engine->config->chroot_enforcer);
     }
-    status = privdrop(engine->config->username, engine->config->group,
-        engine->config->chroot, &uid, &gid);
+    status = privdrop(engine->config->username_enforcer, engine->config->group_enforcer,
+        engine->config->chroot_enforcer, &uid, &gid);
     engine->uid = uid;
     engine->gid = gid;
-    privclose(engine->config->username, engine->config->group);
+    privclose(engine->config->username_enforcer, engine->config->group_enforcer);
     return status;
 }
 
@@ -163,8 +158,8 @@ engine_create_workers(engine_type* engine)
     ods_log_assert(engine);
     ods_log_assert(engine->config);
     engine->workers = (worker_type**) malloc(
-        (size_t)engine->config->num_worker_threads * sizeof(worker_type*));
-    for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
+        (size_t)engine->config->num_worker_threads_enforcer * sizeof(worker_type*));
+    for (i=0; i < (size_t) engine->config->num_worker_threads_enforcer; i++) {
         asprintf(&name, "worker[%d]", i+1);
         engine->workers[i] = worker_create(name, engine->taskq);
     }
@@ -178,7 +173,7 @@ engine_start_workers(engine_type* engine)
     ods_log_assert(engine);
     ods_log_assert(engine->config);
     ods_log_debug("[%s] start workers", engine_str);
-    for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
+    for (i=0; i < (size_t) engine->config->num_worker_threads_enforcer; i++) {
         engine->workers[i]->need_to_exit = 0;
         engine->workers[i]->context = get_database_connection(engine);
         if (!engine->workers[i]->context) {
@@ -198,12 +193,12 @@ engine_stop_workers(engine_type* engine)
     ods_log_assert(engine->config);
     ods_log_debug("[%s] stop workers", engine_str);
     /* tell them to exit and wake up sleepyheads */
-    for (i=0; i < engine->config->num_worker_threads; i++) {
+    for (i=0; i < engine->config->num_worker_threads_enforcer; i++) {
         engine->workers[i]->need_to_exit = 1;
     }
     engine_wakeup_workers(engine);
     /* head count */
-    for (i=0; i < engine->config->num_worker_threads; i++) {
+    for (i=0; i < engine->config->num_worker_threads_enforcer; i++) {
         ods_log_debug("[%s] join worker %i", engine_str, i+1);
         janitor_thread_join(engine->workers[i]->thread_id);
         db_connection_free(engine->workers[i]->context);
@@ -227,12 +222,11 @@ get_database_connection(engine_type* engine)
 {
     db_connection_t* dbconn;
 
-    if (!(dbconn = db_connection_new())
-        || db_connection_set_configuration_list(dbconn, engine->dbcfg_list)
-        || db_connection_setup(dbconn)
-        || db_connection_connect(dbconn))
+    if (!(dbconn = db_connection_new(engine->config->datastore,
+                                     engine->config->db_host,
+                                     engine->config->db_username,
+                                     engine->config->db_password)))
     {
-        db_connection_free(dbconn);
         ods_log_crit("database connection failed");
         return NULL;
     }
@@ -257,148 +251,7 @@ probe_database(engine_type* engine)
     return !version;
 }
 
-/*
- * Prepare for database connections and store dbcfg_list in engine
- * if successfull the counterpart desetup_database() must be called
- * when quitting the daemon.
- * \param engine engine config where configuration list is stored
- * \return 0 on succes, 1 on failure
- */
-static int
-setup_database(engine_type* engine)
-{
-    db_configuration_t* dbcfg;
-
-    if (!(engine->dbcfg_list = db_configuration_list_new())) {
-        fprintf(stderr, "db_configuraiton_list_new failed\n");
-        return 1;
-    }
-    if (engine->config->db_type == ENFORCER_DATABASE_TYPE_SQLITE) {
-        if (!(dbcfg = db_configuration_new())
-            || db_configuration_set_name(dbcfg, "backend")
-            || db_configuration_set_value(dbcfg, "sqlite")
-            || db_configuration_list_add(engine->dbcfg_list, dbcfg))
-        {
-            db_configuration_free(dbcfg);
-            db_configuration_list_free(engine->dbcfg_list);
-            engine->dbcfg_list = NULL;
-            fprintf(stderr, "setup configuration backend failed\n");
-            return 1;
-        }
-        if (!(dbcfg = db_configuration_new())
-            || db_configuration_set_name(dbcfg, "file")
-            || db_configuration_set_value(dbcfg, engine->config->datastore)
-            || db_configuration_list_add(engine->dbcfg_list, dbcfg))
-        {
-            db_configuration_free(dbcfg);
-            db_configuration_list_free(engine->dbcfg_list);
-            engine->dbcfg_list = NULL;
-            fprintf(stderr, "setup configuration file failed\n");
-            return 1;
-        }
-        dbcfg = NULL;
-    }
-    else if (engine->config->db_type == ENFORCER_DATABASE_TYPE_MYSQL) {
-        if (!(dbcfg = db_configuration_new())
-            || db_configuration_set_name(dbcfg, "backend")
-            || db_configuration_set_value(dbcfg, "mysql")
-            || db_configuration_list_add(engine->dbcfg_list, dbcfg))
-        {
-            db_configuration_free(dbcfg);
-            db_configuration_list_free(engine->dbcfg_list);
-            engine->dbcfg_list = NULL;
-            fprintf(stderr, "setup configuration backend failed\n");
-            return 1;
-        }
-        if (!(dbcfg = db_configuration_new())
-            || db_configuration_set_name(dbcfg, "host")
-            || db_configuration_set_value(dbcfg, engine->config->db_host)
-            || db_configuration_list_add(engine->dbcfg_list, dbcfg))
-        {
-            db_configuration_free(dbcfg);
-            db_configuration_list_free(engine->dbcfg_list);
-            engine->dbcfg_list = NULL;
-            fprintf(stderr, "setup configuration file failed\n");
-            return 1;
-        }
-        dbcfg = NULL;
-        if (engine->config->db_port) {
-            char str[32];
-            if (snprintf(&str[0], sizeof(str), "%d", engine->config->db_port) >= (int)sizeof(str)) {
-                db_configuration_list_free(engine->dbcfg_list);
-                engine->dbcfg_list = NULL;
-                fprintf(stderr, "setup configuration file failed\n");
-                return 1;
-            }
-            if (!(dbcfg = db_configuration_new())
-                || db_configuration_set_name(dbcfg, "port")
-                || db_configuration_set_value(dbcfg, str)
-                || db_configuration_list_add(engine->dbcfg_list, dbcfg))
-            {
-                db_configuration_free(dbcfg);
-                db_configuration_list_free(engine->dbcfg_list);
-                engine->dbcfg_list = NULL;
-                fprintf(stderr, "setup configuration file failed\n");
-                return 1;
-            }
-            dbcfg = NULL;
-        }
-        if (!(dbcfg = db_configuration_new())
-            || db_configuration_set_name(dbcfg, "user")
-            || db_configuration_set_value(dbcfg, engine->config->db_username)
-            || db_configuration_list_add(engine->dbcfg_list, dbcfg))
-        {
-            db_configuration_free(dbcfg);
-            db_configuration_list_free(engine->dbcfg_list);
-            engine->dbcfg_list = NULL;
-            fprintf(stderr, "setup configuration file failed\n");
-            return 1;
-        }
-        dbcfg = NULL;
-        if (!(dbcfg = db_configuration_new())
-            || db_configuration_set_name(dbcfg, "pass")
-            || db_configuration_set_value(dbcfg, engine->config->db_password)
-            || db_configuration_list_add(engine->dbcfg_list, dbcfg))
-        {
-            db_configuration_free(dbcfg);
-            db_configuration_list_free(engine->dbcfg_list);
-            engine->dbcfg_list = NULL;
-            fprintf(stderr, "setup configuration file failed\n");
-            return 1;
-        }
-        dbcfg = NULL;
-        if (!(dbcfg = db_configuration_new())
-            || db_configuration_set_name(dbcfg, "db")
-            || db_configuration_set_value(dbcfg, engine->config->datastore)
-            || db_configuration_list_add(engine->dbcfg_list, dbcfg))
-        {
-            db_configuration_free(dbcfg);
-            db_configuration_list_free(engine->dbcfg_list);
-            engine->dbcfg_list = NULL;
-            fprintf(stderr, "setup configuration file failed\n");
-            return 1;
-        }
-        dbcfg = NULL;
-    }
-    else {
-        return 1;
-    }
-    return 0;
-}
-
-/*
- * destroy database configuration. Call only after all connections
- * are closed.
- * \param engine engine config where configuration list is stored
- */
 static void
-desetup_database(engine_type* engine)
-{
-    db_configuration_list_free(engine->dbcfg_list);
-    engine->dbcfg_list = NULL;
-}
-
-static void *
 signal_handler(sig_atomic_t sig)
 {
     switch (sig) {
@@ -422,7 +275,6 @@ signal_handler(sig_atomic_t sig)
         default:
             break;
     }
-    return NULL;
 }
 
 /**
@@ -440,12 +292,10 @@ engine_setup()
 
     engine->pid = getpid(); /* We need to do this again after fork() */
 
-    if (!util_pidfile_avail(engine->config->pid_filename)) {
+    if (!util_pidfile_avail(engine->config->pid_filename_enforcer)) {
         ods_log_error("[%s] Pidfile exists and process with PID is running", engine_str);
         return ODS_STATUS_WRITE_PIDFILE_ERR;
     }
-    /* setup database configuration */
-    if (setup_database(engine)) return ODS_STATUS_DB_ERR;
     /* Probe the database, can we connect to it? */
     if (probe_database(engine)) {
         ods_log_crit("Could not connect to database or database not set"
@@ -454,10 +304,10 @@ engine_setup()
     }
 
     /* create command handler (before chowning socket file) */
-    engine->cmdhandler = cmdhandler_create(engine->config->clisock_filename, enforcercommands, engine, (void*(*)(void*)) (void(*)(void*))&get_database_connection, (void(*)(void*))&db_connection_free);
+    engine->cmdhandler = cmdhandler_create(engine->config->clisock_filename_enforcer, enforcercommands, engine, (void*(*)(void*)) &get_database_connection, (void(*)(void*))&db_connection_free);
     if (!engine->cmdhandler) {
         ods_log_error("[%s] create command handler to %s failed",
-            engine_str, engine->config->clisock_filename);
+            engine_str, engine->config->clisock_filename_enforcer);
         return ODS_STATUS_CMDHANDLER_ERR;
     }
 
@@ -468,20 +318,20 @@ engine_setup()
 
     if (!engine->init_setup_done) {
         /* privdrop */
-        engine->uid = privuid(engine->config->username);
-        engine->gid = privgid(engine->config->group);
+        engine->uid = privuid(engine->config->username_enforcer);
+        engine->gid = privgid(engine->config->group_enforcer);
         /* TODO: does piddir exists? */
         /* remove the chown stuff: piddir? */
-        ods_chown(engine->config->pid_filename, engine->uid, engine->gid, 1);
-        ods_chown(engine->config->clisock_filename, engine->uid, engine->gid, 0);
-        ods_chown(engine->config->working_dir, engine->uid, engine->gid, 0);
+        ods_chown(engine->config->pid_filename_enforcer, engine->uid, engine->gid, 1);
+        ods_chown(engine->config->clisock_filename_enforcer, engine->uid, engine->gid, 0);
+        ods_chown(engine->config->working_dir_enforcer, engine->uid, engine->gid, 0);
         if (engine->config->log_filename && !engine->config->use_syslog) {
             ods_chown(engine->config->log_filename, engine->uid, engine->gid, 0);
         }
-        if (engine->config->working_dir &&
-            chdir(engine->config->working_dir) != 0) {
+        if (engine->config->working_dir_enforcer &&
+            chdir(engine->config->working_dir_enforcer) != 0) {
             ods_log_error("[%s] chdir to %s failed: %s", engine_str,
-                engine->config->working_dir, strerror(errno));
+                engine->config->working_dir_enforcer, strerror(errno));
             return ODS_STATUS_CHDIR_ERR;
         }
         if (engine_privdrop(engine) != ODS_STATUS_OK) {
@@ -542,7 +392,7 @@ engine_setup()
     engine_create_workers(engine);
 
     /* write pidfile */
-    if (util_write_pidfile(engine->config->pid_filename, engine->pid) == -1) {
+    if (util_write_pidfile(engine->config->pid_filename_enforcer, engine->pid) == -1) {
         hsm_close();
         ods_log_error("[%s] unable to write pid file", engine_str);
         if (engine->daemonize) {
@@ -589,15 +439,15 @@ engine_teardown(engine_type* engine)
 
     if (!engine) return;
     if (engine->config) {
-        if (engine->config->pid_filename) {
-            (void)unlink(engine->config->pid_filename);
+        if (engine->config->pid_filename_enforcer) {
+            (void)unlink(engine->config->pid_filename_enforcer);
         }
-        if (engine->config->clisock_filename) {
-            (void)unlink(engine->config->clisock_filename);
+        if (engine->config->clisock_filename_enforcer) {
+            (void)unlink(engine->config->clisock_filename_enforcer);
         }
     }
     if (engine->workers && engine->config) {
-        for (i=0; i < (size_t) engine->config->num_worker_threads; i++) {
+        for (i=0; i < (size_t) engine->config->num_worker_threads_enforcer; i++) {
             worker_cleanup(engine->workers[i]);
         }
         free(engine->workers);
@@ -607,7 +457,6 @@ engine_teardown(engine_type* engine)
         cmdhandler_cleanup(engine->cmdhandler);
         engine->cmdhandler = NULL;
     }
-    desetup_database(engine);
 }
 
 void
@@ -626,13 +475,12 @@ engine_init(engine_type* engine, int daemonize)
     engine->need_to_reload = 0;
     engine->daemonize = daemonize;
     /* catch signals */
-    action.sa_handler = (void (*)(int))signal_handler;
+    action.sa_handler = signal_handler;
     sigfillset(&action.sa_mask);
     action.sa_flags = 0;
     sigaction(SIGHUP, &action, NULL);
     sigaction(SIGTERM, &action, NULL);
     sigaction(SIGINT, &action, NULL);
-    engine->dbcfg_list = NULL;
     action.sa_handler = SIG_IGN;
     sigaction(SIGPIPE, &action, NULL);
 }

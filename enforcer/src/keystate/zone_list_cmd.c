@@ -36,9 +36,7 @@
 #include "str.h"
 #include "duration.h"
 #include "clientpipe.h"
-#include "db/zone_db.h"
-#include "db/policy.h"
-#include "db/db_value.h"
+#include "db/dbw.h"
 
 #include "keystate/zone_list_cmd.h"
 
@@ -47,8 +45,7 @@ static const char *module_str = "zone_list_cmd";
 static void
 usage(int sockfd)
 {
-	client_printf(sockfd,
-		"zone list\n");
+    client_printf(sockfd, "zone list\n");
 }
 
 static void
@@ -60,7 +57,7 @@ help(int sockfd)
 }
 
 static int
-run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 {
     const char* fmt = "%-31s %-13s %-26s %-34s\n";
     zone_list_db_t* zone_list;

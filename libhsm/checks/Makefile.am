@@ -9,7 +9,7 @@ AM_CPPFLAGS = \
 		-I$(top_srcdir)/common \
 		-I$(top_builddir)/common \
 		-I$(srcdir)/../src/lib \
-		@LDNS_INCLUDES@ @XML2_INCLUDES@
+		@LDNS_INCLUDES@ @XML2_CFLAGS@
 
 AM_CFLAGS =	-std=c99
 

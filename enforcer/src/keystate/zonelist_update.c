@@ -29,7 +29,7 @@
 #include "log.h"
 #include "str.h"
 #include "utils/kc_helper.h"
-#include "db/policy.h"
+#include "db/dbw.h"
 #include "clientpipe.h"
 
 #include "keystate/zonelist_update.h"

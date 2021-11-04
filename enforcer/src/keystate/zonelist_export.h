@@ -29,7 +29,7 @@
 #ifndef _KEYSTATE_ZONELIST_EXPORT_H_
 #define _KEYSTATE_ZONELIST_EXPORT_H_
 
-#include "db/db_connection.h"
+#include "db/dbw.h"
 
 /**
  * Indicates a successful zonelist export.

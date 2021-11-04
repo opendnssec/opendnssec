@@ -4,7 +4,7 @@ AM_CPPFLAGS = \
 		-I$(top_srcdir)/common \
 		-I$(top_builddir)/common \
 		-I$(srcdir)/cryptoki_compat \
-		@LDNS_INCLUDES@ @XML2_INCLUDES@
+		@LDNS_INCLUDES@ @XML2_CFLAGS@
 
 AM_CFLAGS =	-std=c99
 

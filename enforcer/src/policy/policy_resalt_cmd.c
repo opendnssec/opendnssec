@@ -29,6 +29,8 @@
 
 #include "config.h"
 
+#include "getopt.h"
+
 #include "cmdhandler.h"
 #include "daemon/enforcercommands.h"
 #include "policy/policy_resalt_task.h"

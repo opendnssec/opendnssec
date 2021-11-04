@@ -28,10 +28,7 @@
 
 #include "config.h"
 
-#include "db/hsm_key.h"
-#include "db/policy.h"
-#include "db/policy_key.h"
-#include "db/key_data.h"
+#include "db/dbw.h"
 #include "log.h"
 #include "scheduler/schedule.h"
 #include "scheduler/task.h"
@@ -40,6 +37,7 @@
 #include "duration.h"
 #include "libhsm.h"
 
+#include <pthread.h>
 #include <math.h>
 #include <pthread.h>
 #include <ldns/ldns.h>

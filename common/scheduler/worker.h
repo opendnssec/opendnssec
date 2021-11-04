@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2009 NLNet Labs. All rights reserved.
+ * Copyright (c) 2009-2018 NLNet Labs.
+ * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -21,7 +22,6 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
 /**
@@ -35,13 +35,11 @@
 #include "janitor.h"
 #include "scheduler/task.h"
 
-//~ #include <time.h>
-
 struct engine_struct;
 
 typedef struct worker_struct worker_type;
 struct worker_struct {
-    char* name;
+    const char* name;
     schedule_type* taskq;
     janitor_thread_t thread_id;
     int need_to_exit;
@@ -58,7 +56,7 @@ struct worker_struct {
  * \return worker_type* created worker
  *
  */
-worker_type* worker_create(char* name, schedule_type* taskq);
+worker_type* worker_create(const char* name, schedule_type* taskq);
 
 /**
  * Start working.
