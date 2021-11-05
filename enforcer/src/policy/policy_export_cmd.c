@@ -66,11 +66,9 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 {
     #define NARGV 4
     const char* argv[NARGV];
-    int returnCode;
     int argc = 0, long_index = 0, opt = 0;
     const char* policy_name = NULL;
     int all = 0;
-    policy_t* policy;
     db_connection_t* dbconn = getconnectioncontext(context);;
     engine_type* engine = getglobalcontext(context);
 
@@ -116,15 +114,18 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
             return 1;
         }
     } else if (policy_name) {
-        if (!(policy = policy_new_get_by_name(dbconn, policy_name))) {
+        struct dbw_db *db = dbw_fetch(dbconn, "single policy ro with policykeys but without zone, or further keys");
+        struct dbw_policy *policy = dbw_FIND(struct dbw_policy*, db->policies, name, db->npolicies, policy_name);
+        if (!policy) {
             client_printf_err(sockfd, "Unable to find policy %s!\n", policy_name);
+            dbw_free(db);
             return 1;
         }
         if (policy_export(sockfd, policy, NULL) != POLICY_EXPORT_OK) {
-            policy_free(policy);
+            dbw_free(db);
             return 1;
         }
-        policy_free(policy);
+        dbw_free(db);
     } else {
         client_printf_err(sockfd, "Either --all or --policy needs to be given!\n");
         return 1;

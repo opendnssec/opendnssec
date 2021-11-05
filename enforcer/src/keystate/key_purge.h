@@ -3,6 +3,7 @@
 
 #include "db/dbw.h"
 
-extern int removeDeadKeysNow(int sockfd, db_connection_t *dbconn, policy_t *policy, zone_db_t *rzone, int purge);
+extern int removeDeadKeysNow_zone(int sockfd, struct dbw_db *db, struct dbw_zone *zone);
+extern int removeDeadKeysNow_policy(int sockfd, struct dbw_db *db, struct dbw_policy *policy, int purge);
 
 #endif

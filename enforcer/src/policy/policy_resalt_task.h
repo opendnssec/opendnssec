@@ -33,6 +33,15 @@
 #include "daemon/engine.h"
 #include "scheduler/task.h"
 
-extern int flush_resalt_task_all(engine_type *engine, db_connection_t *dbconn);
+/**
+ * reschedule resalt tasks for *now*.
+ */
+extern void
+resalt_task_flush(engine_type *engine, struct dbw_policy* policy);
+
+/**
+ * Schedule all resalt tasks
+ */
+extern int resalt_task_schedule(engine_type *engine, db_connection_t *dbconn);
 
 #endif

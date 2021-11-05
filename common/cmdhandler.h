@@ -54,7 +54,7 @@ struct cmd_func_block {
     /* print help, more elaborate than usage. Allowed to be
      * NULL to indicate no help is available */
     void (*help)(int sockfd);
-    /* 1 if module claims responibility for command
+    /* 1 if module claims responsibility for command
      * 0 otherwise */
     int (*handles)(const char *cmd);
     /** Run the handler
@@ -68,7 +68,7 @@ struct cmd_func_block {
      *      -1 Errors parsing commandline / missing params
      *       positive error code to return to user.
      */
-    int (*run)(int sockfd, cmdhandler_ctx_type*, const char *cmd);
+    int (*run)(int sockfd, cmdhandler_ctx_type*, char *cmd);
 };
 
 struct cmdhandler_struct {

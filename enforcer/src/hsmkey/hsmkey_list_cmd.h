@@ -28,6 +28,6 @@
 #ifndef HSMKEY_LIST_CMD_H_
 #define HSMKEY_LIST_CMD_H_
 
-struct cmd_func_block hsmkey_list_funcblock;
+extern struct cmd_func_block hsmkey_list_funcblock;
 
 #endif /* HSMKEY_LIST_CMD_H_ */

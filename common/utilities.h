@@ -84,4 +84,14 @@ extern char* argv0;
 typedef void (*functioncast_t)(void);
 extern functioncast_t functioncast(void*generic);
 
+static inline void*
+ralloc(void** ptr, size_t size)
+{
+    void* nptr;
+    nptr = realloc(*ptr, size);
+    if(nptr)
+        *ptr = nptr;
+    return nptr;
+}
+
 #endif

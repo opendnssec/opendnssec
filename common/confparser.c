@@ -792,7 +792,7 @@ parse_conf_rollover_notification(const char* cfgfile)
 struct engineconfig_listener*
 parse_conf_listener(const char* cfgfile)
 {
-    struct engineconfig_listener *listener = NULL, *head = NULL, *cur = NULL, *prev = NULL;
+    struct engineconfig_listener *head = NULL, *cur = NULL, *prev = NULL;
     int i = 0;
     xmlDocPtr doc = NULL;
     xmlXPathContextPtr xpathCtx = NULL;

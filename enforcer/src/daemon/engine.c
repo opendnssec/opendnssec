@@ -287,6 +287,7 @@ engine_setup()
     int fd, error;
     int pipefd[2];
     char buff = '\0';
+    const char *err = "unable to setsid daemon: ";
 
     ods_log_debug("[%s] enforcer setup", engine_str);
 
@@ -373,7 +374,6 @@ engine_setup()
             if (setsid() == -1) {
                 ods_log_error("[%s] unable to setsid daemon (%s)",
                     engine_str, strerror(errno));
-                const char *err = "unable to setsid daemon: ";
                 ods_writen(pipefd[1], err, strlen(err));
                 ods_writeln(pipefd[1], strerror(errno));
                 write(pipefd[1], "\0", 1);
@@ -492,7 +492,6 @@ engine_init(engine_type* engine, int daemonize)
 int
 engine_run(engine_type* engine, start_cb_t start, int single_run)
 {
-    int error;
     ods_log_assert(engine);
 
     engine_start_workers(engine);

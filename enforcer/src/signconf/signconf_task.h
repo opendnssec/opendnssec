@@ -37,7 +37,7 @@ extern void signconf_task_flush_zone(engine_type *engine, db_connection_t *dbcon
     const char* zonename);
 
 extern void signconf_task_flush_policy(engine_type *engine, db_connection_t *dbconn,
-    policy_t const *policy);
+    char const *policyname);
 
 extern void signconf_task_flush_all(engine_type *engine, db_connection_t *dbconn);
 

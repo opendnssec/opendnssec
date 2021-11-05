@@ -47,6 +47,7 @@
 #include "duration.h"
 #include "status.h"
 #include "utilities.h"
+#include "cfg.h"
 
 #include <pkcs11.h>
 #include <pthread.h>
@@ -2295,13 +2296,22 @@ hsm_create_empty_rrsig(const ldns_rr_list *rrset,
 /*
  *  API functions
  */
+struct engineconfig_repository *
+hsm_find_repository(struct engineconfig_repository *rlist, char const *name)
+{
+    while (rlist) {
+        if (!strcmp(name, rlist->name)) return rlist;
+        rlist = rlist->next;
+    }
+    return NULL;
+}
 
 int
-hsm_open2(hsm_repository_t* rlist,
+hsm_open2(struct engineconfig_repository* rlist,
          char *(pin_callback)(unsigned int, const char *, unsigned int))
 {
     hsm_config_t module_config;
-    hsm_repository_t* repo = NULL;
+    struct engineconfig_repository* repo = NULL;
     char* module_pin = NULL;
     int result = HSM_OK;
     int tries;
@@ -3607,3 +3617,21 @@ keycache_lookup(hsm_ctx_t* ctx, const char* locator)
     else
         return node->data;
 }
+
+
+
+#ifdef NOTDEFINED
+
+x()
+{
+    int* indices = malloc(sizeof(int)*count);
+    while(x) {
+        for(int i=0; i<l; i++) {
+            if(comparename(items[i], x)) {
+                
+            }
+        }
+    }
+}
+
+#endif

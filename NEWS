@@ -1,3 +1,8 @@
+OpenDNSSEC 2.2.0 - 2021-11-01
+
+* Require arguments with ods-enforcer resalt.  Fixes issue where this
+  command never really resalted but only rescheduled the task.
+
 OpenDNSSEC 2.1.10 - 2021-09-10
 
 * OPENDNSSEC-957: Fix exit code signer daemon to not always report failure.

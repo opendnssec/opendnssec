@@ -43,8 +43,6 @@
 #include <unistd.h>
 #include <getopt.h>
 
-static const char *module_str = "str";
-
 int
 ods_str_explode(char *buf, int argc, const char *argv[])
 {

@@ -82,6 +82,6 @@ worker_start(worker_type* worker)
 void
 worker_cleanup(worker_type* worker)
 {
-    free(worker->name);
+    free((void*)worker->name);
     free(worker);
 }

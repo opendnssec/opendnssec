@@ -59,10 +59,10 @@ dbw_free(struct dbw_db *db)
 {
 }
 
+
 struct dbw_db *
 dbw_fetch(db_connection_t *conn, ...)
 {
-    return NULL;
 }
 
 int
@@ -100,15 +100,12 @@ database_version_get_version(db_connection_t* connection)
     return 1;
 }
 
-int dbw_object_fetch_(void* resultdata, int* resultcount, int fetchplan, const char* fetchname, ...)
+void dbw_add(void*array,...)
 {
-    return 0;
+    //void** newarray;
+    //newarray = realloc(array, sizeof(void*)*(*count+1));
+    //newarray[*count] = item;
+    //++(*count);
 }
 
-void dbw_add(void*array,int*count,void*item)
-{
-    void** newarray;
-    newarray = realloc(array, sizeof(void*)*(*count+1));
-    newarray[*count] = item;
-    ++(*count);
-}
+#include "dbsimple.c"

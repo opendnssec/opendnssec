@@ -63,41 +63,31 @@ help(int sockfd)
 static int
 purge_policies(int sockfd, db_connection_t *dbconn)
 {
-	policy_list_t* policy_list;
-	policy_t* policy;
-	zone_list_db_t* zonelist;
-	const char* name;
-	size_t listsize;
-	int result = 0;
-
-	client_printf(sockfd, "Purging policies\n");
-
-	policy_list = policy_list_new_get(dbconn);
-	if (!policy_list) return 1;
-
-	while ((policy = policy_list_get_next(policy_list))) {
-		name = policy_name(policy);
-		/*fetch zonelist from db, owned by policy*/
-		if (policy_retrieve_zone_list(policy)) {
-			result = 1;
-			client_printf(sockfd, "Error fetching zones\n");
-			break;
-		}
-		zonelist = policy_zone_list(policy);
-		listsize = zone_list_db_size(zonelist);
-		if (listsize == 0) {
-			ods_log_info("[%s] No zones on policy %s; purging...", module_str, name);
-			client_printf(sockfd, "No zones on policy %s; purging...\n", name);
-			if (policy_delete(policy)) {
-				ods_log_crit("[%s] Error while purging policy from database", module_str);
-				client_printf(sockfd, "Error while updating database\n", name);
-				result++;
-			}
-		}
-		policy_free(policy);
-	}
-	policy_list_free(policy_list);
-	return result;
+    client_printf(sockfd, "Purging policies\n");
+    struct dbw_db *db = dbw_fetch(dbconn, "writable policies, with count of zones");
+    if (!db) return 1;
+    for (int i = 0; i < db->npolicies; i++) {
+        if (db->policies[i]->zone_count == 0) {
+            ods_log_info("[%s] No zones on policy %s; purging...", module_str, db->policies[i]->name);
+            client_printf(sockfd, "No zones on policy %s; purging...\n", db->policies[i]->name);
+            for (size_t pk = 0; pk < db->policies[i]->policykey_count; pk++) {
+                db->policies[i]->policykey[pk] = NULL;
+            }
+            for (size_t hk = 0; hk < db->policies[i]->hsmkey_count; hk++) {
+                db->policies[i]->hsmkey[hk] = NULL;
+                // FIXME should we also delete these keys?
+            }
+            db->policies[i] = NULL;
+        }
+    }
+    if (dbw_commit(db)) {
+        ods_log_crit("[%s] Failed to apply changes to the database", module_str);
+        client_printf(sockfd, "Failed to apply changes to the database\n");
+        dbw_free(db);
+        return 1;
+    }
+    dbw_free(db);
+    return 0;
 }
 
 static int
@@ -106,7 +96,7 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
     db_connection_t* dbconn = getconnectioncontext(context);
     (void) cmd;
     ods_log_debug("[%s] %s command", module_str, policy_purge_funcblock.cmdname);
-	return purge_policies(sockfd, dbconn);
+    return purge_policies(sockfd, dbconn);
 }
 
 struct cmd_func_block policy_purge_funcblock = {

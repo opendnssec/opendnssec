@@ -159,13 +159,6 @@ engine_config(const char* cfgfile,
         ods_fclose(cfgfd);
     }
 
-    int verbosity, count;
-    char* name;
-    int defaultverbosity = 1;
-    int target = -1;
-    int defaulttarget = -1;
-    logger_procedure targetproc;
-    
     if(!ecfg) {
         ods_log_error("[%s] failed to read: unable to open file %s", conf_str, cfgfile);
     }
@@ -318,7 +311,6 @@ engine_config_print(FILE* out, engineconfig_type* config)
             fprintf(out, "\t\t</Privileges>\n");
         }
         if (config->interfaces) {
-            size_t i = 0;
             fprintf(out, "\t\t<Listener>\n");
 
             struct engineconfig_listener *listener;

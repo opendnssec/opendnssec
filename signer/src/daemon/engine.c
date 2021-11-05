@@ -289,7 +289,6 @@ engine_stop_threads(engine_type* engine)
 void
 engine_wakeup_workers(engine_type* engine)
 {
-    size_t i = 0;
     ods_log_assert(engine);
     ods_log_assert(engine->config);
     ods_log_debug("[%s] wake up workers", engine_str);

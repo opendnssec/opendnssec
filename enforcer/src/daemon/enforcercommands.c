@@ -49,8 +49,6 @@
 #include "hsmkey/key_generate_cmd.h"
 #include "hsmkey/hsmkey_list_cmd.h"
 
-static char const * cmdh_str = "cmdhandler";
-
 static struct cmd_func_block* enforcecommands[] = {
         /* Thoughts has gone into the ordering of this list, it affects 
          * the output of the help command */

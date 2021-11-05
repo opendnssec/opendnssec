@@ -580,11 +580,10 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
     const char* locator = NULL;
     time_t inception = 0;
     time_t expiration = 0;
-    size_t i = 0, j;
+    size_t i = 0;
     domain_type* domain = NULL;
     ldns_rr_type dstatus = LDNS_RR_TYPE_FIRST;
     ldns_rr_type delegpt = LDNS_RR_TYPE_FIRST;
-    uint8_t algorithm = 0;
 
     ods_log_assert(ctx);
     ods_log_assert(rrset);

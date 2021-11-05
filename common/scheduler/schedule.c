@@ -77,7 +77,6 @@ static task_type*
 schedule_get_first_task(schedule_type* schedule)
 {
     ldns_rbnode_t* first_node = LDNS_RBTREE_NULL;
-    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     task_type* pop = NULL;
     if (!schedule || !schedule->tasks) {
         return NULL;
@@ -192,7 +191,7 @@ schedule_create()
 
     schedule->tasks = ldns_rbtree_create(task_compare_time_then_ttuple);
     schedule->tasks_by_name = ldns_rbtree_create(task_compare_ttuple);
-    schedule->locks_by_name = ldns_rbtree_create(task_compare_ttuple);
+    schedule->locks_by_name = ldns_rbtree_create(task_compare_ttuple_lock);
 
     pthread_mutex_init(&schedule->schedule_lock, NULL);
     pthread_cond_init(&schedule->schedule_cond, NULL);
@@ -458,6 +457,7 @@ schedule_pop_task(schedule_type* schedule)
         timeout = clamp((task ? (task->due_date - now) : 0),
                         ((task && !strcmp(task->class, TASK_CLASS_ENFORCER)) ? 0 : 60),
                         ODS_SE_MAX_BACKOFF);
+        if (time_leaped()) timeout = -1;
         ods_thread_wait(&schedule->schedule_cond, &schedule->schedule_lock, timeout);
         schedule->num_waiting -= 1;
         task = NULL;
@@ -568,15 +568,19 @@ schedule_describetask(task_type* task)
     time_t time;
 
     if (task) {
-	time = (task->due_date < time_now()) ? time_now() : task->due_date;
+        time = (task->due_date < time_now()) ? time_now() : task->due_date;
         strtime = ctime_r(&time, ctimebuf);
         if (strtime) {
             strtime[strlen(strtime)-1] = '\0';
+        } else {
+            strtime = (char *)"(null)";
         }
         strtask = (char*) calloc(ODS_SE_MAXLINE, sizeof(char));
         if (strtask) {
-            snprintf(strtask, ODS_SE_MAXLINE, "On %s I will %s zone %s\n",
-                    strtime ? strtime : "(null)", task->type, task->owner);
+            // FIXME entity should be part of the actual task type
+            char const *entity = strcmp(TASK_TYPE_RESALT, task->type) ? "zone" : "policy";
+            snprintf(strtask, ODS_SE_MAXLINE, "On %s I will %s %s %s\n",
+                strtime, task->type, entity, task->owner);
             return strtask;
         } else {
             ods_log_error("unable to convert task to string: malloc error");

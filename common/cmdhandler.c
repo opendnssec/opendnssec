@@ -273,7 +273,6 @@ cmdhandler_handle_client_conversation(struct cmdhandler_ctx_struct* context)
 static void
 cmdhandler_accept_client(void* arg)
 {
-    int err;
     cmdhandler_ctx_type* context = (cmdhandler_ctx_type*) arg;
 
     ods_log_debug("[%s] accept client %i", module_str, context->sockfd);
@@ -396,7 +395,6 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
     janitor_thread_t cmdclientthread;
     fd_set rset;
     int flags, connfd = 0, ret = 0;
-    ssize_t i;
 
     ods_log_assert(cmdhandler);
     ods_log_debug("[%s] start", module_str);

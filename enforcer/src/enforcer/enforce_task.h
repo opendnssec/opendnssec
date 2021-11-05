@@ -44,7 +44,7 @@ extern time_t enforce_task_perform(task_type* task, char const *owner, void *con
 extern void enforce_task_flush_zone(engine_type *engine, char const *zonename);
 
 /* Schedule enforce tasks for *now* for ALL zones of policy. */
-extern void enforce_task_flush_policy(engine_type *engine, db_connection_t *dbconn, policy_t const *policy);
+extern void enforce_task_flush_policy(engine_type *engine, struct dbw_policy *policy);
 
 /* Schedule enforce tasks for *now* for ALL zones. */
 extern void enforce_task_flush_all(engine_type *engine, db_connection_t *dbconn);

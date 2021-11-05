@@ -44,45 +44,35 @@
 static void
 usage(int sockfd)
 {
-	client_printf(sockfd,
-		"policy list\n");
+    client_printf(sockfd,
+        "policy list\n");
 }
 
 static void
 help(int sockfd)
 {
-	client_printf(sockfd,
-		"List all policies in the database.\n\n"
-	);
+    client_printf(sockfd,
+        "List all policies in the database.\n\n"
+    );
 }
 
 static int
 run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 {
     const char *fmt = "%-31s %-48s\n";
-    policy_list_t *pol_list;
-    const policy_t *policy;
     db_connection_t* dbconn = getconnectioncontext(context);;
-    engine_type* engine = getglobalcontext(context);
     (void)cmd;
 
-	if (!(pol_list = policy_list_new_get(dbconn)))
-		return 1;
+    struct dbw_db *db = dbw_fetch(dbconn, "all policies, shallow ro");
+    if (!db) return 1;
+    client_printf(sockfd, fmt, "Policy:", "Description:");
 
-	/* May want to keep this for compatibility?
-	 * client_printf(sockfd, "Database set to: %s\nPolicies:\n",
-		engine->config->datastore);*/
-	client_printf(sockfd, fmt, "Policy:", "Description:");
-
-	policy = policy_list_next(pol_list);
-	while (policy) {
-		client_printf(sockfd, fmt, policy_name(policy),
-			policy_description(policy));
-		policy = policy_list_next(pol_list);
-	}
-        policy_list_free(pol_list);
-	return 0;
+    for (int i = 0; i < db->npolicies; i++) {
+        client_printf(sockfd, fmt, db->policies[i]->name, db->policies[i]->description);
     }
+    dbw_free(db);
+    return 0;
+}
 
 struct cmd_func_block policy_list_funcblock = {
 	"policy list", &usage, &help, NULL, &run

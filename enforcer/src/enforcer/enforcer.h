@@ -47,6 +47,6 @@
  * @return time_t Time the function wishes to be called again.
  * */
 extern time_t
-update(engine_type *engine, struct dbw_db *db, struct dbw_zone *zone, policy_t const *policy, time_t now, int *zone_updated);
+update(engine_type *engine, struct dbw_db *db, struct dbw_zone *zone, time_t now, int *zone_updated);
 
 #endif /* _ENFORCER_ENFORCER_H_ */

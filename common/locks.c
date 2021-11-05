@@ -106,7 +106,7 @@ alertinteger(struct alertbuffer_struct* buffer, unsigned long value, int base)
 static void
 valert(struct alertbuffer_struct* buffer, const char* format, va_list args)
 {
-    int idx, len;
+    int idx;
     const char* stringarg;
     void* pointerarg;
     int integerarg;

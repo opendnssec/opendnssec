@@ -16,6 +16,7 @@ AM_CFLAGS = \
 	-I$(builddir)/../../libhsm/src/lib \
 	@XML2_CFLAGS@ \
 	@LDNS_INCLUDES@
+AM_LDFLAGS = -lm
 
 enforcerdir =	@libdir@/opendnssec/enforcer
 
@@ -41,9 +42,9 @@ ods_enforcerd_SOURCES = \
 	policy/policy_resalt_cmd.c policy/policy_resalt_cmd.h \
 	policy/policy_resalt_task.c policy/policy_resalt_task.h \
 	hsmkey/backup_hsmkeys_cmd.c hsmkey/backup_hsmkeys_cmd.h \
+	hsmkey/hsmkey_list_cmd.c hsmkey/hsmkey_list_cmd.h \
 	hsmkey/hsm_key_factory.c hsmkey/hsm_key_factory.h \
 	hsmkey/key_generate_cmd.c hsmkey/key_generate_cmd.h \
-	hsmkey/hsmkey_list_cmd.c hsmkey/hsmkey_list_cmd.h \
 	keystate/zone_list_cmd.c keystate/zone_list_cmd.h \
 	keystate/zone_add_cmd.c keystate/zone_add_cmd.h \
 	keystate/zone_del_cmd.c keystate/zone_del_cmd.h \
@@ -79,7 +80,6 @@ ods_enforcerd_SOURCES = \
 	enforcer/repositorylist_cmd.c enforcer/repositorylist_cmd.h \
 	enforcer/update_all_cmd.c enforcer/update_all_cmd.h \
 	enforcer/update_conf_cmd.c enforcer/update_conf_cmd.h \
-	enforcer/lookahead_cmd.c enforcer/lookahead_cmd.h \
 	utils/kc_helper.c utils/kc_helper.h \
 	db/dbw.c db/dbw.h
 

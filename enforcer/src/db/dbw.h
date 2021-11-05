@@ -9,9 +9,6 @@ typedef struct db_connection_struct db_connection_t;
 db_connection_t* db_connection_new(const char* database, const char* hostname, const char*username, const char*password);
 int db_connection_free(db_connection_t*conn);
 
-#define dbw_FIND(T,V,F,C,K)  __extension__  ({ T R=NULL; for (int I=0; I<C; I++) { if(V[I]->F == K) { R = V[I]; break; } } R; })
-#define dbw_FINDSTR(T,V,F,C,K) __extension__  ({ T R=NULL; for (int I=0; I<C; I++) { if(!strcmp(V[I]->F, K)) { R = V[I]; break; } } R; })
-
 typedef enum key_data_role {
   KEY_DATA_ROLE_INVALID = -1,
   KEY_DATA_ROLE_KSK = 1,
@@ -134,6 +131,10 @@ const char * dbw_enum2txt(const char *c[], int n);
  */
 int dbw_txt2enum(const char *c[], const char *txt);
 
+#define dbw_FIND(T,V,F,C,K)  __extension__  ({ T R=NULL; for (int I=0; I<C; I++) { if(V[I]->F == K) { R = V[I]; break; } } R; })
+#define dbw_FINDSTR(T,V,F,C,K) __extension__  ({ T R=NULL; for (int I=0; I<C; I++) { if(!strcmp(V[I]->F, K)) { R = V[I]; break; } } R; })
+
+
 struct dbw_policykey {
     long id;
     struct dbw_policy *policy;
@@ -150,7 +151,6 @@ struct dbw_policykey {
 
 struct dbw_policy {
     long id;
-    int scratch;
     int policykey_count;
     struct dbw_policykey **policykey;
     int hsmkey_count;
@@ -251,16 +251,14 @@ struct dbw_hsmkey {
     unsigned int is_revoked;
     unsigned int key_type;
     unsigned int backup;
+    // FIXME no policyId or backreference used
 };
 
 struct dbw_zone {
     long id;
-    int scratch;
-    int policy_id;
     struct dbw_policy *policy; /** Only valid when joined */
     int key_count;
     struct dbw_key **key;
-    int keydependency_count;
 
     char *name;
     time_t next_change;
@@ -279,6 +277,7 @@ struct dbw_zone {
     unsigned int roll_ksk_now;
     unsigned int roll_zsk_now;
     unsigned int roll_csk_now;
+    int scratch;
 };
 
 struct dbw_db {
@@ -286,6 +285,8 @@ struct dbw_db {
     struct dbw_policy** policies;
     int nzones;
     struct dbw_zone** zones;
+    int nhsmkeys;
+    struct dbw_hsmkey** hsmkeys;
 };
 
 /* DB operations */
@@ -319,6 +320,6 @@ void dbw_mark_dirty(void *obj);
 
 int database_version_get_version(db_connection_t* connection);
 
-void dbw_add(void*array,int*count,void*item);
+void dbw_add(void*,...);
 
 #endif /*DBW_H*/
