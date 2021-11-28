@@ -2174,10 +2174,12 @@ hsm_sign_buffer(hsm_ctx_t *ctx,
                                             CKM_GOSTR3411, digest_len,
                                             sign_buf);
             break;
-#if (LDNS_REVISION >= ((1<<16)|(7<<8)|(0)))
+#if USE_ED25519
         case LDNS_SIGN_ED25519:
             data_direct = 1;
             break;
+#endif
+#if USE_ED448
         case LDNS_SIGN_ED448:
             data_direct = 1;
             break;
