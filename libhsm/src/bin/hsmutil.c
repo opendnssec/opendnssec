@@ -502,7 +502,7 @@ cmd_dnskey (int argc, char *argv[])
                 return -1;
             }
             break;
-#if (LDNS_REVISION >= ((1<<16)|(7<<8)|(0)))
+#if USE_ED25519
         case LDNS_SIGN_ED25519:
             if (strcmp(key_info->algorithm_name, "EDDSA") != 0) {
                 printf("Not an EDDSA key, the key is of algorithm %s.\n", key_info->algorithm_name);
@@ -521,6 +521,8 @@ cmd_dnskey (int argc, char *argv[])
                 return -1;
             }
             break;
+#endif
+#if USE_ED448
         case LDNS_SIGN_ED448:
             if (strcmp(key_info->algorithm_name, "EDDSA") != 0) {
                 printf("Not an EDDSA key, the key is of algorithm %s.\n", key_info->algorithm_name);

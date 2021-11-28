@@ -29,6 +29,7 @@
 #define HSM_H 1
 
 #include <stdint.h>
+#include <ldns/common.h>
 #include <ldns/rbtree.h>
 #include <pthread.h>
 
@@ -75,6 +76,17 @@
 #define HSM_PIN_RETRY	1	/* Used when we failed to login the first time. */
 #define HSM_PIN_SAVE	2	/* The latest PIN can be saved for future use. Called
 				   after a successful login. */
+
+#if (LDNS_REVISION >= ((1<<16)|(8<<8)|(0)))
+#  define USE_ED25519 LDNS_BUILD_CONFIG_USE_ED25519
+#  define USE_ED448 LDNS_BUILD_CONFIG_USE_ED448
+#elif (LDNS_REVISION >= ((1<<16)|(7<<8)|(0)))
+#  define USE_ED25519 1
+#  define USE_ED448 1
+#else
+#  define USE_ED25519 0
+#  define USE_ED448 0
+#endif
 
 /*! HSM configuration */
 typedef struct {
