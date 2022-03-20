@@ -468,6 +468,25 @@ schedule_pop_task(schedule_type* schedule)
 }
 
 task_type*
+schedule_pop_task_nowait(schedule_type* schedule)
+{
+    time_t timeout, now = time_now();
+    task_type* task;
+
+    pthread_mutex_lock(&schedule->schedule_lock);
+    task = schedule_get_first_task(schedule);
+    if(task) {
+        if(task->due_date <= now) {
+            ods_log_debug("[%s] pop task for zone %s", schedule_str, task->owner);
+            task = unschedule_task(schedule, task);
+        } else
+            task = NULL;
+    }
+    pthread_mutex_unlock(&schedule->schedule_lock);
+    return task;
+}
+
+task_type*
 schedule_pop_first_task(schedule_type* schedule)
 {
     task_type *task;

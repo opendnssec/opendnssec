@@ -290,7 +290,6 @@ engine_stop_threads(engine_type* engine)
 void
 engine_wakeup_workers(engine_type* engine)
 {
-    size_t i = 0;
     ods_log_assert(engine);
     ods_log_assert(engine->config);
     ods_log_debug("[%s] wake up workers", engine_str);
@@ -337,7 +336,6 @@ engine_setup(void)
     int sockets[2] = {0,0};
     int pipefd[2];
     char buff = '\0';
-    int fd, error;
 
     ods_log_debug("[%s] setup signer engine", engine_str);
     if (!engine || !engine->config) {
@@ -480,27 +478,49 @@ engine_setup(void)
 static void
 engine_run(engine_type* engine)
 {
-    if (!engine) {
-        return;
-    }
-    engine_start_workers(engine);
-
-    while (!engine->need_to_exit && !engine->need_to_reload) {
-        /* We must use locking here to avoid race conditions. We want
-         * to sleep indefinitely and want to wake up on signal. This
-         * is to make sure we never mis the signal. */
-        pthread_mutex_lock(&engine->signal_lock);
-        if (!engine->need_to_exit && !engine->need_to_reload) {
-            /* TODO: this silly. We should be handling the commandhandler
-             * connections. No reason to spawn that as a thread.
-             * Also it would be easier to wake up the command hander
-             * as signals will reach it if it is the main thread! */
-            ods_log_debug("[%s] taking a break", engine_str);
-            pthread_cond_wait(&engine->signal_cond, &engine->signal_lock);
+    if (engine->config->num_worker_threads == 0) {
+        task_type* task;
+        worker_type singleworker;
+        struct worker_context singleworkercontext;
+        engine_start_workers(engine);
+        singleworker.context = &singleworkercontext;
+        singleworker.name = "single";
+        singleworker.need_to_exit = 0;
+        singleworker.taskq = engine->taskq;
+        singleworker.thread_id = 0;
+        singleworker.tasksOutstanding = 0;
+        singleworker.tasksFailed = 0;
+        pthread_cond_init(&singleworker.tasksBlocker, NULL);
+        singleworkercontext.engine = engine;
+        singleworkercontext.worker = &singleworker;
+        singleworkercontext.signq  = engine->taskq->signq;
+        do {
+            task = schedule_pop_task_nowait(engine->taskq);
+            if(task) {
+                task_perform(engine->taskq, task, &singleworkercontext);
+            }
+        } while(task && !engine->need_to_reload);
+        if(!task)
+            engine->need_to_exit = 1;
+    } else {
+        engine_start_workers(engine);
+        while (!engine->need_to_exit && !engine->need_to_reload) {
+            /* We must use locking here to avoid race conditions. We want
+             * to sleep indefinitely and want to wake up on signal. This
+             * is to make sure we never mis the signal. */
+            pthread_mutex_lock(&engine->signal_lock);
+            if (!engine->need_to_exit && !engine->need_to_reload) {
+                /* TODO: this silly. We should be handling the commandhandler
+                 * connections. No reason to spawn that as a thread.
+                 * Also it would be easier to wake up the command hander
+                 * as signals will reach it if it is the main thread! */
+                ods_log_debug("[%s] taking a break", engine_str);
+                pthread_cond_wait(&engine->signal_cond, &engine->signal_lock);
+            }
+            pthread_mutex_unlock(&engine->signal_lock);
         }
-        pthread_mutex_unlock(&engine->signal_lock);
+        ods_log_debug("[%s] signer halted", engine_str);
     }
-    ods_log_debug("[%s] signer halted", engine_str);
     engine_stop_threads(engine);
 }
 
@@ -785,7 +805,7 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize, int info
         ods_log_error("[%s] cfgfile %s has errors", engine_str, cfgfile);
         goto earlyexit;
     }
-    if (info) {
+    if (info == 1) {
         char* stacktrace;
         char* stacktraceptr;
         stacktrace = janitor_backtrace_string();
@@ -800,6 +820,8 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize, int info
         fprintf(stdout, "Configuration:\n");
         engine_config_print(stdout, engine->config); /* for debugging */
         goto earlyexit;
+    } else if (info == 2) {
+        engine->config->num_worker_threads = 0;
     }
     /* check pidfile */
     if (!util_check_pidfile(engine->config->pid_filename)) {
