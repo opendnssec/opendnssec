@@ -131,6 +131,7 @@ main(int argc, char* argv[])
         {"help", no_argument, 0, 'h'},
         {"info", no_argument, 0, 'i'},
         {"verbose", no_argument, 0, 'v'},
+        {"single-run", no_argument, 0, '1'},
         {"version", no_argument, 0, 'V'},
         {"set-time", required_argument, 0, 256},
         { 0, 0, 0, 0}
@@ -145,7 +146,7 @@ main(int argc, char* argv[])
     }
 
     /* parse the commandline */
-    while ((c=getopt_long(argc, argv, "c:dhivV",
+    while ((c=getopt_long(argc, argv, "c:dh1ivV",
         long_options, &options_index)) != -1) {
         switch (c) {
             case 'c':
@@ -159,7 +160,17 @@ main(int argc, char* argv[])
                 exit(0);
                 break;
             case 'i':
-                info = 1;
+                if(info == 0)
+                    info = 1;
+                else
+                    fprintf(stderr, "Error: Option -1|--single-run and -i|--info are mutually exclusive.\n");
+                break;
+            case '1':
+                if(info == 0) {
+                    daemonize = 0;
+                    info = 2;
+                } else
+                    fprintf(stderr, "Error: Option -1|--single-run and -i|--info are mutually exclusive.\n");
                 break;
             case 'v':
                 cmdline_verbosity++;
