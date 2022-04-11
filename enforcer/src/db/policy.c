@@ -700,7 +700,7 @@ int policy_copy(policy_t* policy, const policy_t* policy_copy) {
     policy->parent_ds_ttl = policy_copy->parent_ds_ttl;
     policy->parent_soa_ttl = policy_copy->parent_soa_ttl;
     policy->parent_soa_minimum = policy_copy->parent_soa_minimum;
-    policy->passthrough = policy_copy->passthrough;
+    policy->zonemodus = policy_copy->zonemodus;
     return DB_OK;
 }
 
@@ -768,7 +768,7 @@ int policy_from_result(policy_t* policy, const db_result_t* result) {
         || db_value_to_uint32(db_value_set_at(value_set, 32), &(policy->parent_ds_ttl))
         || db_value_to_uint32(db_value_set_at(value_set, 33), &(policy->parent_soa_ttl))
         || db_value_to_uint32(db_value_set_at(value_set, 34), &(policy->parent_soa_minimum))
-        || db_value_to_uint32(db_value_set_at(value_set, 35), &(policy->passthrough)))
+        || db_value_to_uint32(db_value_set_at(value_set, 35), &(policy->zonemodus)))
     {
         return DB_ERROR_UNKNOWN;
     }
@@ -1087,7 +1087,7 @@ unsigned int policy_passthrough(const policy_t* policy) {
         return 0;
     }
 
-    return policy->passthrough;
+    return policy->zonemodus;
 }
 
 zone_list_db_t* policy_zone_list(policy_t* policy) {
@@ -1532,7 +1532,7 @@ int policy_set_passthrough(policy_t* policy, unsigned int passthrough) {
         return DB_ERROR_UNKNOWN;
     }
 
-    policy->passthrough = passthrough;
+    policy->zonemodus = passthrough;
 
     return DB_OK;
 }
@@ -1971,7 +1971,7 @@ int policy_create(policy_t* policy) {
         || db_value_from_uint32(db_value_set_get(value_set, 30), policy->parent_ds_ttl)
         || db_value_from_uint32(db_value_set_get(value_set, 31), policy->parent_soa_ttl)
         || db_value_from_uint32(db_value_set_get(value_set, 32), policy->parent_soa_minimum)
-        || db_value_from_uint32(db_value_set_get(value_set, 33), policy->passthrough))
+        || db_value_from_uint32(db_value_set_get(value_set, 33), policy->zonemodus))
     {
         db_value_set_free(value_set);
         db_object_field_list_free(object_field_list);
@@ -2522,7 +2522,7 @@ int policy_update(policy_t* policy) {
         || db_value_from_uint32(db_value_set_get(value_set, 30), policy->parent_ds_ttl)
         || db_value_from_uint32(db_value_set_get(value_set, 31), policy->parent_soa_ttl)
         || db_value_from_uint32(db_value_set_get(value_set, 32), policy->parent_soa_minimum)
-        || db_value_from_uint32(db_value_set_get(value_set, 33), policy->passthrough))
+        || db_value_from_uint32(db_value_set_get(value_set, 33), policy->zonemodus))
     {
         db_value_set_free(value_set);
         db_object_field_list_free(object_field_list);

@@ -548,7 +548,7 @@ namedb_add_denial_trigger(namedb_type* db, domain_type* domain)
         zone = domain->zone;
         ods_log_assert(zone);
         ods_log_assert(zone->signconf);
-        if (!zone->signconf->passthrough) {
+        if (!(zone->signconf->zonemodus & 0x01)) {
             if (zone->signconf->nsec_type == LDNS_RR_TYPE_NSEC) {
                 namedb_add_nsec_trigger(db, domain);
             } else {

@@ -49,7 +49,7 @@ signconf_create(void)
     signconf_type* sc = NULL;
     CHECKALLOC(sc = (signconf_type*) malloc(sizeof(signconf_type)));
     sc->filename = NULL;
-    sc->passthrough = 0;
+    sc->zonemodus = 0;
     /* Signatures */
     sc->sig_resign_interval = NULL;
     sc->sig_refresh_interval = NULL;
@@ -105,7 +105,7 @@ signconf_read(signconf_type* signconf, const char* scfile)
     fd = ods_fopen(scfile, NULL, "r");
     if (fd) {
         signconf->filename = strdup(scfile);
-        signconf->passthrough = parse_sc_passthrough(scfile);
+        signconf->zonemodus = parse_sc_passthrough(scfile) | (parse_sc_zonemd(scfile) << 1);
         signconf->sig_resign_interval = parse_sc_sig_resign_interval(scfile);
         signconf->sig_refresh_interval = parse_sc_sig_refresh_interval(scfile);
         signconf->sig_validity_default = parse_sc_sig_validity_default(scfile);
@@ -319,7 +319,7 @@ signconf_check(signconf_type* sc)
             sc->nsec_type);
         status = ODS_STATUS_CFG_ERR;
     }
-    if ((!sc->keys || sc->keys->count == 0) && !sc->passthrough) {
+    if ((!sc->keys || sc->keys->count == 0) && !(sc->zonemodus & 0x01)) {
         ods_log_error("[%s] check failed: no keys found", sc_str);
         status = ODS_STATUS_CFG_ERR;
     }
@@ -421,7 +421,7 @@ signconf_log(signconf_type* sc, const char* name)
             name?name:"(null)",
             resign?resign:"(null)",
             refresh?refresh:"(null)",
-            sc->passthrough?"PASSTHROUGH ":"",
+            (sc->zonemodus&0x01)?"PASSTHROUGH ":"",
             validity?validity:"(null)",
             denial?denial:"(null)",
             keyset?keyset:"(null)",

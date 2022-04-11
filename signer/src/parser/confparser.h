@@ -67,6 +67,9 @@ const char* parse_conf_string(const char* cfgfile, const char* expr,
  */
 hsm_repository_t* parse_conf_repositories(const char* cfgfile);
 
+
+extern int parse_conf_zonemds(const char* cfgfile);
+
 /**
  * Parse the listener interfaces.
  * \param[in] allocator the allocator
