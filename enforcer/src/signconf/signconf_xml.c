@@ -213,8 +213,10 @@ static int signconf_xml_export(int sockfd, const policy_t* policy, zone_db_t* zo
     error = 1;
     if (!xmlNewProp(node, (xmlChar*)"name", (xmlChar*)zone_db_name(zone))
         || !(error = 26)
-        || (policy_passthrough(policy) && !(node2 = xmlNewChild(node, NULL, (xmlChar*)"Passthrough", NULL)))
+        || ((policy_passthrough(policy)&0x01) && !(node2 = xmlNewChild(node, NULL, (xmlChar*)"Passthrough", NULL)))
         || !(error = 2)
+        || ((policy_passthrough(policy)&0x02) && !((node2 = xmlNewChild(node, NULL, (xmlChar*)"ZoneMD", NULL)) && xmlNewProp(node2,(xmlChar*)"algorithm",(xmlChar*)"1")))
+        || ((policy_passthrough(policy)&0x04) && !((node2 = xmlNewChild(node, NULL, (xmlChar*)"ZoneMD", NULL)) && xmlNewProp(node2,(xmlChar*)"algorithm",(xmlChar*)"2")))
         || !(node2 = xmlNewChild(node, NULL, (xmlChar*)"Signatures", NULL))
         || !(error = 3)
         || duration_set_time(duration, policy_signatures_resign(policy))

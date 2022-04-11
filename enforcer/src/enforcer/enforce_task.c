@@ -78,7 +78,7 @@ perform_enforce(int sockfd, engine_type *engine, char const *zonename,
 		return -1;
 	}
 
-	if (policy_passthrough(policy)) {
+	if (policy_passthrough(policy) & 0x01) {
 		ods_log_info("Passing through zone %s.\n", zone_db_name(zone));
 		bSignerConfNeedsWriting = 1;
 		t_next = schedule_SUCCESS;

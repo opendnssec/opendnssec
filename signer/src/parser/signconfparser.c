@@ -515,6 +515,22 @@ parse_sc_passthrough(const char* cfgfile)
     return ret;
 }
 
+int
+parse_sc_zonemd(const char* cfgfile)
+{
+    int ret = 0;
+    const char* str = parse_conf_string(cfgfile,
+        "//SignerConfiguration/Zone/ZoneMD/@algorithm",
+        0);
+    if (str) {
+        ret = atoi(str);
+        if(ret == 0)
+            ret = 1;
+        free((void*)str);
+    }
+    return ret;
+} 
+
 /**
  * Parse elements from the configuration file.
  *

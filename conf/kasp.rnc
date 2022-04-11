@@ -121,6 +121,9 @@ start = element KASP {
 		},
 
 		element Zone {
+			# Add or update ZoneMD scheme
+			element ZoneMD { attribute algorithm { xsd:nonNegativeInteger } }*,
+
 			# Expected propagation delay in child publication
 			propagationdelay,
 
