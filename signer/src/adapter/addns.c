@@ -35,7 +35,7 @@
 #include "adapter/addns.h"
 #include "adapter/adutil.h"
 #include "parser/addnsparser.h"
-#include "parser/confparser.h"
+#include "confparser.h"
 #include "duration.h"
 #include "file.h"
 #include "log.h"
@@ -567,7 +567,6 @@ dnsin_read(dnsin_type* addns, const char* filename)
 ods_status
 dnsin_update(dnsin_type** addns, const char* filename, time_t* last_mod)
 {
-    dnsin_type* new_addns = NULL;
     time_t st_mtime = 0;
     ods_status status = ODS_STATUS_OK;
 

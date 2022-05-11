@@ -68,7 +68,7 @@ struct cmd_func_block {
      *      -1 Errors parsing commandline / missing params
      *       positive error code to return to user.
      */
-    int (*run)(int sockfd, cmdhandler_ctx_type*, const char *cmd);
+    int (*run)(int sockfd, cmdhandler_ctx_type*, char *cmd);
 };
 
 struct cmdhandler_struct {

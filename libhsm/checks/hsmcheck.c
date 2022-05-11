@@ -33,11 +33,10 @@
 
 #include "libhsm.h"
 #include <libhsmdns.h>
+#include "confparser.h"
 
 extern char *optarg;
 char *progname = NULL;
-
-extern hsm_repository_t* parse_conf_repositories(const char* cfgfile);
 
 
 static void

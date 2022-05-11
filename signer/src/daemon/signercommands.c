@@ -40,7 +40,7 @@ cmdargument(const char* cmd, const char* matchValue, const char* defaultValue)
  *
  */
 static int
-cmdhandler_handle_cmd_help(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+cmdhandler_handle_cmd_help(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 {
     char buf[ODS_SE_MAXLINE];
 
@@ -89,7 +89,7 @@ cmdhandler_handle_cmd_help(int sockfd, cmdhandler_ctx_type* context, const char 
  *
  */
 static int
-cmdhandler_handle_cmd_zones(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+cmdhandler_handle_cmd_zones(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 {
     engine_type* engine;
     char buf[ODS_SE_MAXLINE];
@@ -128,11 +128,10 @@ cmdhandler_handle_cmd_zones(int sockfd, cmdhandler_ctx_type* context, const char
  *
  */
 static int
-cmdhandler_handle_cmd_update(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+cmdhandler_handle_cmd_update(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 {
     engine_type* engine;
     char buf[ODS_SE_MAXLINE];
-    ods_status status = ODS_STATUS_OK;
     zone_type* zone = NULL;
     ods_status zl_changed = ODS_STATUS_OK;
     engine = getglobalcontext(context);
@@ -140,7 +139,7 @@ cmdhandler_handle_cmd_update(int sockfd, cmdhandler_ctx_type* context, const cha
     if (cmdargument(cmd, "--all", NULL)) {
         pthread_mutex_lock(&engine->zonelist->zl_lock);
         zl_changed = zonelist_update(engine->zonelist,
-            engine->config->zonelist_filename);
+            engine->config->zonelist_filename_signer);
         if (zl_changed == ODS_STATUS_UNCHANGED) {
             (void)snprintf(buf, ODS_SE_MAXLINE, "Zone list has not changed."
                 " Signer configurations updated.\n");
@@ -210,7 +209,7 @@ cmdhandler_handle_cmd_update(int sockfd, cmdhandler_ctx_type* context, const cha
  *
  */
 static int
-cmdhandler_handle_cmd_retransfer(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+cmdhandler_handle_cmd_retransfer(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 {
     engine_type* engine;
     char buf[ODS_SE_MAXLINE];
@@ -282,11 +281,10 @@ forceread(engine_type* engine, zone_type *zone, int force_serial, uint32_t seria
  *
  */
 static int
-cmdhandler_handle_cmd_sign(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+cmdhandler_handle_cmd_sign(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 {
     engine_type* engine;
     zone_type *zone = NULL;
-    ods_status status = ODS_STATUS_OK;
     char buf[ODS_SE_MAXLINE];
 
     engine = getglobalcontext(context);
@@ -377,7 +375,7 @@ unlink_backup_file(const char* filename, const char* extension)
  *
  */
 static int
-cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 {
     engine_type* engine;
     char buf[ODS_SE_MAXLINE];
@@ -443,7 +441,7 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_ctx_type* context, const char
  *
  */
 static int
-cmdhandler_handle_cmd_queue(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+cmdhandler_handle_cmd_queue(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 {
     engine_type* engine;
     char* strtime = NULL;
@@ -493,7 +491,7 @@ cmdhandler_handle_cmd_queue(int sockfd, cmdhandler_ctx_type* context, const char
  *
  */
 static int
-cmdhandler_handle_cmd_flush(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+cmdhandler_handle_cmd_flush(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 {
     engine_type* engine;
     char buf[ODS_SE_MAXLINE];
@@ -513,7 +511,7 @@ cmdhandler_handle_cmd_flush(int sockfd, cmdhandler_ctx_type* context, const char
  *
  */
 static int
-cmdhandler_handle_cmd_reload(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+cmdhandler_handle_cmd_reload(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 {
     engine_type* engine;
     char buf[ODS_SE_MAXLINE];
@@ -534,7 +532,7 @@ cmdhandler_handle_cmd_reload(int sockfd, cmdhandler_ctx_type* context, const cha
  *
  */
 static int
-cmdhandler_handle_cmd_stop(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+cmdhandler_handle_cmd_stop(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 {
     engine_type* engine;
     char buf[ODS_SE_MAXLINE];
@@ -554,7 +552,7 @@ cmdhandler_handle_cmd_stop(int sockfd, cmdhandler_ctx_type* context, const char 
  *
  */
 static int
-cmdhandler_handle_cmd_start(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+cmdhandler_handle_cmd_start(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 {
     char buf[ODS_SE_MAXLINE];
     (void)snprintf(buf, ODS_SE_MAXLINE, "Engine already running.\n");
@@ -568,7 +566,7 @@ cmdhandler_handle_cmd_start(int sockfd, cmdhandler_ctx_type* context, const char
  *
  */
 static int
-cmdhandler_handle_cmd_running(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+cmdhandler_handle_cmd_running(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 {
     char buf[ODS_SE_MAXLINE];
     (void)snprintf(buf, ODS_SE_MAXLINE, "Engine running.\n");
@@ -582,7 +580,7 @@ cmdhandler_handle_cmd_running(int sockfd, cmdhandler_ctx_type* context, const ch
  *
  */
 static int
-cmdhandler_handle_cmd_verbosity(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+cmdhandler_handle_cmd_verbosity(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 {
     char buf[ODS_SE_MAXLINE];
     int val;

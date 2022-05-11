@@ -39,10 +39,10 @@
 
 #include "log.h"
 #include "libhsm.h"
-#include "daemon/cfg.h"
+#include "cfg.h"
 #include "libhsmdns.h"
 #include "db/key_data.h"
-extern hsm_repository_t* parse_conf_repositories(const char* cfgfile);
+extern struct engineconfig_repository* parse_conf_repositories(const char* cfgfile);
 
 int verbosity;
 char* argv0;

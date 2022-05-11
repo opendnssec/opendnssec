@@ -1,6 +1,6 @@
 m4_sinclude([version.m4])
 
-AC_PREREQ([2.69])
+AC_PREREQ([2.71])
 AC_INIT([opendnssec],[OPENDNSSEC_VERSION],[http://bugs.opendnssec.org/])
 AM_DEFAULT_VERBOSITY="0"
 AC_SUBST([AM_DEFAULT_VERBOSITY])
@@ -24,6 +24,7 @@ AC_PROG_CXX
 AC_PATH_PROG(XMLLINT, xmllint)
 AC_PATH_PROG(XSLTPROC, xsltproc)
 AC_PATH_PROG(JAVA, java)
+PKG_CHECK_MODULES([XML2],[libxml-2.0])
 AC_PATH_PROG(CP, cp)
 AC_DEFINE_UNQUOTED(CP_COMMAND, "$CP", [System cp(3) command])
 

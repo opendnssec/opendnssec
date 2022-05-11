@@ -218,7 +218,7 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
     int xml_error = 0;
     char **repositories = NULL;
     int repository_count = 0;
-    hsm_repository_t* hsm;
+    struct engineconfig_repository* hsm;
     int i;
     struct __policy_import_policy* policies = NULL;
     struct __policy_import_policy* policy2;

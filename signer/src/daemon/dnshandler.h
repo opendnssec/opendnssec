@@ -67,7 +67,7 @@ struct dnshandler_struct {
  * \return dnshandler_type* created dns handler
  *
  */
-extern dnshandler_type* dnshandler_create(listener_type* interfaces);
+extern dnshandler_type* dnshandler_create(struct engineconfig_listener* interfaces);
 
 /**
  * Start dns handler listener.

@@ -38,8 +38,8 @@
 #include "log.h"
 #include "duration.h"
 #include "locks.h"
+#include "confparser.h"
 #include "enforcer/autostart_cmd.h"
-#include "parser/confparser.h"
 
 #define AUTHOR_NAME "Matthijs Mekking, Yuri Schaeffer, René Post"
 #define COPYRIGHT_STR "Copyright (C) 2010-2011 NLnet Labs OpenDNSSEC"

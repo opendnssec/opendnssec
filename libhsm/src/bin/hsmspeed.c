@@ -34,8 +34,7 @@
 
 #include "libhsm.h"
 #include <libhsmdns.h>
-
-extern hsm_repository_t* parse_conf_repositories(const char* cfgfile);
+#include "confparser.h"
 
 #define HSMSPEED_THREADS_MAX 2048
 
