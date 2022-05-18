@@ -329,14 +329,3 @@ util_pidfile_avail(const char* pidfile)
 	(void) close(fd);
 	return available;
 }
-
-int
-clamp(int value, int lbnd, int ubnd)
-{
-    if(value < lbnd)
-        return lbnd;
-    else if(value > ubnd)
-        return ubnd;
-    else
-        return value;
-}

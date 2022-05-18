@@ -29,12 +29,12 @@
  *
  */
 
-#include "parser/signconfparser.h"
 #include "duration.h"
 #include "file.h"
 #include "log.h"
 #include "status.h"
 #include "signer/signconf.h"
+#include "settings.h"
 
 static const char* sc_str = "signconf";
 
@@ -81,70 +81,97 @@ signconf_create(void)
 }
 
 
-/**
- * Read signer configuration.
- *
- */
 static ods_status
-signconf_read(signconf_type* signconf, const char* scfile)
+parse_conf_signconf(signconf_type* signconf, const char* scfile)
 {
-    const char* rngfile = ODS_SE_RNGDIR "/signconf.rng";
-    ods_status status = ODS_STATUS_OK;
-    FILE* fd = NULL;
+    settings_handle handle;
+    int passthrough;
+    int zonemd;
+    int nsec;
+    int count;
+    int intvalue;
+    int valid = 0;
 
-    if (!scfile || !signconf) {
-        return ODS_STATUS_ASSERT_ERR;
+    settings_access(&handle, -1, scfile);
+    signconf->filename = strdup(scfile);
+
+    settings_getbool(handle, &passthrough, "//SignerConfiguration/Zone/Passthrough");
+    settings_getbool(handle, &zonemd, "//SignerConfiguration/Zone/ZoneMD/@algorithm");
+    signconf->zonemodus = passthrough|(zonemd<<1);
+    settings_getduration2(handle, &signconf->sig_resign_interval, "//SignerConfiguration/Zone/Signatures/Resign");
+    settings_getduration2(handle, &signconf->sig_refresh_interval, "//SignerConfiguration/Zone/Signatures/Refresh");
+    settings_getduration2(handle, &signconf->sig_validity_default, "//SignerConfiguration/Zone/Signatures/Validity/Default");
+    settings_getduration2(handle, &signconf->sig_validity_denial, "//SignerConfiguration/Zone/Signatures/Validity/Denial");
+    settings_getduration2(handle, &signconf->sig_validity_keyset, "//SignerConfiguration/Zone/Signatures/Validity/Keyset");
+    settings_getduration2(handle, &signconf->sig_jitter, "//SignerConfiguration/Zone/Signatures/Jitter");
+    settings_getduration2(handle, &signconf->sig_inception_offset, "//SignerConfiguration/Zone/Signatures/InceptionOffset");
+
+    signconf->nsec_type = LDNS_RR_TYPE_FIRST;
+    settings_getbool(handle, &nsec, "//SignerConfiguration/Zone/Denial/NSEC");
+    if(nsec) signconf->nsec_type = LDNS_RR_TYPE_NSEC;
+    settings_getbool(handle, &nsec, "//SignerConfiguration/Zone/Denial/NSEC3");
+    if(nsec) signconf->nsec_type = LDNS_RR_TYPE_NSEC3;
+    if(signconf->nsec_type==LDNS_RR_TYPE_NSEC3) {
+        settings_getduration2(handle, &signconf->nsec3param_ttl, "//SignerConfiguration/Zone/Denial/NSEC3/TTL");
+        settings_getbool(handle, &signconf->nsec3_optout, "//SignerConfiguration/Zone/Denial/NSEC3/OptOut");
+        settings_getint(handle, &intvalue, NULL, "//SignerConfiguration/Zone/Denial/NSEC3/Hash/Algorithm");
+        signconf->nsec3_algo = intvalue;
+        settings_getint(handle, &intvalue, NULL, "//SignerConfiguration/Zone/Denial/NSEC3/Hash/Iterations");
+        signconf->nsec3_iterations = intvalue;
+        settings_getstring(handle, (char**)&signconf->nsec3_salt, settings_value_NULL, "//SignerConfiguration/Zone/Denial/NSEC3/Hash/Salt");
+        signconf->nsec3params = nsec3params_create((void*)signconf, (uint8_t)signconf->nsec3_algo, (uint8_t)signconf->nsec3_optout, (uint16_t)signconf->nsec3_iterations, signconf->nsec3_salt);
+
+        settings_getduration2(handle, &signconf->dnskey_ttl, "//SignerConfiguration/Zone/Keys/TTL");
+        settings_getduration2(handle, &signconf->soa_ttl, "//SignerConfiguration/Zone/SOA/TTL");
+        settings_getduration2(handle, &signconf->soa_min, "//SignerConfiguration/Zone/SOA/Minimum");
+        settings_getstring(handle, (char**)&signconf->soa_serial, NULL, "//SignerConfiguration/Zone/SOA/Serial");
+        settings_getduration2(handle, &signconf->max_zone_ttl, "//SignerConfiguration/Zone/Signatures/MaxZoneTTL");
+        settings_getcompound(handle, &count, "//SignerConfiguration/Zone/Keys/SignatureResourceRecord");
+        if(count>0) {
+            signconf->dnskey_signature = malloc(sizeof (char*) * count+1);
+            for(int i = 0; i<count; i++)
+                settings_getstringdefault(handle, (char**)&signconf->dnskey_signature[i], "", "SignerConfiguration/Zone/Keys/SignatureResourceRecord[%d]", i+1);
+            signconf->dnskey_signature[count] = NULL;
+        } else
+            signconf->dnskey_signature = NULL;
+
+
     }
-    ods_log_debug("[%s] read signconf file %s", sc_str, scfile);
-    status = parse_file_check(scfile, rngfile);
-    if (status != ODS_STATUS_OK) {
-        ods_log_error("[%s] unable to read signconf: parse error in "
-            "file %s (%s)", sc_str, scfile, ods_status2str(status));
-        return status;
-    }
-    fd = ods_fopen(scfile, NULL, "r");
-    if (fd) {
-        signconf->filename = strdup(scfile);
-        signconf->zonemodus = parse_sc_passthrough(scfile) | (parse_sc_zonemd(scfile) << 1);
-        signconf->sig_resign_interval = parse_sc_sig_resign_interval(scfile);
-        signconf->sig_refresh_interval = parse_sc_sig_refresh_interval(scfile);
-        signconf->sig_validity_default = parse_sc_sig_validity_default(scfile);
-        signconf->sig_validity_denial = parse_sc_sig_validity_denial(scfile);
-        signconf->sig_validity_keyset = parse_sc_sig_validity_keyset(scfile);
-        signconf->sig_jitter = parse_sc_sig_jitter(scfile);
-        signconf->sig_inception_offset = parse_sc_sig_inception_offset(scfile);
-        signconf->nsec_type = parse_sc_nsec_type(scfile);
-        if (signconf->nsec_type == LDNS_RR_TYPE_NSEC3) {
-            signconf->nsec3param_ttl = parse_sc_nsec3param_ttl(scfile);
-            signconf->nsec3_optout = parse_sc_nsec3_optout(scfile);
-            signconf->nsec3_algo = parse_sc_nsec3_algorithm(scfile);
-            signconf->nsec3_iterations = parse_sc_nsec3_iterations(scfile);
-            signconf->nsec3_salt = parse_sc_nsec3_salt(scfile);
-            signconf->nsec3params = nsec3params_create((void*) signconf,
-            (uint8_t) signconf->nsec3_algo, (uint8_t) signconf->nsec3_optout,
-            (uint16_t)signconf->nsec3_iterations, signconf->nsec3_salt);
-            if (!signconf->nsec3params) {
-                ods_log_error("[%s] unable to read signconf %s: "
-                    "nsec3params_create() failed", sc_str, scfile);
-                ods_fclose(fd);
-                return ODS_STATUS_MALLOC_ERR;
+    settings_getcompound(handle, &count, "//SignerConfiguration/Zone/Keys/Key");
+    signconf->keys = keylist_create(signconf);
+    for(int i = 0; i<count; i++) {
+        int flags;
+        int algorithm;
+        char* locator;
+        int ksk;
+        int zsk;
+        int publish;
+        char* resourcerecord;
+        settings_getstring(handle, &locator, settings_value_NULL, "//SignerConfiguration/Zone/Keys/Key[%d]/Locator");
+        settings_getint(handle, &algorithm, NULL, "//SignerConfiguration/Zone/Keys/Key[%d]/Algorithm");
+        settings_getint(handle, &flags, NULL, "//SignerConfiguration/Zone/Keys/Key[%d]/Flags");
+        settings_getbool(handle, &ksk, "//SignerConfiguration/Zone/Keys/Key[%d]/KSK");
+        settings_getbool(handle, &zsk, "//SignerConfiguration/Zone/Keys/Key[%d]/ZSK");
+        settings_getbool(handle, &publish, "//SignerConfiguration/Zone/Keys/Key[%d]/Publish");
+        settings_getstring(handle, &resourcerecord, settings_value_NULL, "//SignerConfiguration/Zone/Keys/Key[%d]/ResourceRecord");
+        if(!locator && !resourcerecord)
+            valid |= 1;
+        if(!valid) {
+            key_type* new_key = keylist_lookup_by_locator(signconf->keys, locator);
+            if(new_key&&
+                    new_key->algorithm==algorithm && new_key->flags==flags && new_key->publish==publish && new_key->ksk==ksk && new_key->zsk==zsk) {
+                /* duplicate */
+                ods_log_warning("[%s] unable to push duplicate key %s "
+                                "to keylist, skipping", "parser", locator);
+            } else {
+                keylist_push(signconf->keys, locator, resourcerecord, algorithm, flags, publish, ksk, zsk);
             }
         }
-        signconf->keys = parse_sc_keys((void*) signconf, scfile);
-        signconf->dnskey_ttl = parse_sc_dnskey_ttl(scfile);
-        signconf->dnskey_signature = parse_sc_dnskey_sigrrs(scfile);
-        signconf->soa_ttl = parse_sc_soa_ttl(scfile);
-        signconf->soa_min = parse_sc_soa_min(scfile);
-        signconf->soa_serial = parse_sc_soa_serial(scfile);
-        signconf->max_zone_ttl = parse_sc_max_zone_ttl(scfile);
-        ods_fclose(fd);
-        return ODS_STATUS_OK;
     }
-    ods_log_error("[%s] unable to read signconf: failed to open file %s",
-        sc_str, scfile);
-    return ODS_STATUS_ERR;
-}
 
+    settings_access(&handle, -1, NULL);
+    return (valid ? ODS_STATUS_ERR : ODS_STATUS_OK);
+}
 
 /**
  * Update signer configuration.
@@ -173,7 +200,7 @@ signconf_update(signconf_type** signconf, const char* scfile,
             "failed", sc_str);
         return ODS_STATUS_ERR;
     }
-    status = signconf_read(new_sc, scfile);
+    status = parse_conf_signconf(new_sc, scfile);
     if (status == ODS_STATUS_OK) {
         new_sc->last_modified = st_mtime;
         if (signconf_check(new_sc) != ODS_STATUS_OK) {

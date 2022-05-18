@@ -36,12 +36,6 @@
 #include <ldns/ldns.h>
 #include <ldns/util.h>
 
-#include <libxml/tree.h>
-#include <libxml/parser.h>
-#include <libxml/xpath.h>
-#include <libxml/xpathInternals.h>
-#include <libxml/relaxng.h>
-
 #include "libhsm.h"
 #include "libhsmdns.h"
 #include "compat.h"
@@ -368,52 +362,6 @@ hsm_pkcs11_check_token_name(hsm_ctx_t *ctx,
                     HSM_TOKEN_LABEL_LENGTH) == 0;
 
     return result;
-}
-
-hsm_repository_t *
-hsm_repository_new(char* name, char* module, char* tokenlabel, char* pin,
-    uint8_t use_pubkey, uint8_t allowextract, uint8_t require_backup)
-{
-    hsm_repository_t* r;
-
-    if (!name || !module || !tokenlabel) return NULL;
-
-    r = malloc(sizeof(hsm_repository_t));
-    if (!r) return NULL;
-
-    r->next = NULL;
-    r->pin = NULL;
-    r->name = strdup(name);
-    r->module = strdup(module);
-    r->tokenlabel = strdup(tokenlabel);
-    if (!r->name || !r->module || !r->tokenlabel) {
-        hsm_repository_free(r);
-        return NULL;
-    }
-    if (pin) {
-        r->pin = strdup(pin);
-        if (!r->pin) {
-            hsm_repository_free(r);
-            return NULL;
-        }
-    }
-    r->use_pubkey = use_pubkey;
-    r->allow_extract = allowextract; 
-    r->require_backup = require_backup;
-    return r;
-}
-
-void
-hsm_repository_free(hsm_repository_t *r)
-{
-    if (r) {
-        if (r->next) hsm_repository_free(r->next);
-        if (r->name) free(r->name);
-        if (r->module) free(r->module);
-        if (r->tokenlabel) free(r->tokenlabel);
-        if (r->pin) free(r->pin);
-    }
-    free(r);
 }
 
 static int

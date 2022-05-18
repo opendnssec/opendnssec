@@ -33,39 +33,184 @@
 
 #include <errno.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <libxml/xpath.h>
+#include <libxml/relaxng.h>
+#include <libxml/xmlreader.h>
+#include <sys/un.h>
 
-#include "confparser.h"
 #include "file.h"
 #include "log.h"
 #include "status.h"
 #include "log.h"
 #include "cfg.h"
+#include "utilities.h"
+#include "settings.h"
 
 static const char* conf_str = "config";
 
-/**
- * duplicate string but don't ignore NULL ptrs
- */
-static const char *
-strdup_or_null(const char *s)
+ods_status
+parse_file_check(const char* cfgfile, const char* rngfile)
 {
-    return s?strdup(s):s;
+    const char* parser_str = "parser";
+    xmlDocPtr doc = NULL;
+    xmlDocPtr rngdoc = NULL;
+    xmlRelaxNGParserCtxtPtr rngpctx = NULL;
+    xmlRelaxNGValidCtxtPtr rngctx = NULL;
+    xmlRelaxNGPtr schema = NULL;
+    int status;
+
+    if (!cfgfile || !rngfile) {
+        ods_log_error("[%s] no cfgfile or rngfile", parser_str);
+        return ODS_STATUS_ASSERT_ERR;
+    }
+    ods_log_assert(cfgfile);
+    ods_log_assert(rngfile);
+    ods_log_debug("[%s] check cfgfile %s with rngfile %s", parser_str,
+        cfgfile, rngfile);
+
+    /* Load XML document */
+    doc = xmlParseFile(cfgfile);
+    if (doc == NULL) {
+        ods_log_error("[%s] unable to read cfgfile %s", parser_str,
+            cfgfile);
+        return ODS_STATUS_XML_ERR;
+    }
+    /* Load rng document */
+    rngdoc = xmlParseFile(rngfile);
+    if (rngdoc == NULL) {
+        ods_log_error("[%s] unable to read rngfile %s", parser_str,
+            rngfile);
+        xmlFreeDoc(doc);
+        return ODS_STATUS_OK;
+    }
+    /* Create an XML RelaxNGs parser context for the relax-ng document. */
+    rngpctx = xmlRelaxNGNewDocParserCtxt(rngdoc);
+    if (rngpctx == NULL) {
+        xmlFreeDoc(rngdoc);
+        xmlFreeDoc(doc);
+        ods_log_error("[%s] unable to create XML RelaxNGs parser context",
+           parser_str);
+        return ODS_STATUS_XML_ERR;
+    }
+    /* Parse a schema definition resource and
+     * build an internal XML schema structure.
+     */
+    schema = xmlRelaxNGParse(rngpctx);
+    if (schema == NULL) {
+        ods_log_error("[%s] unable to parse a schema definition resource",
+            parser_str);
+        xmlRelaxNGFreeParserCtxt(rngpctx);
+        xmlFreeDoc(rngdoc);
+        xmlFreeDoc(doc);
+        return ODS_STATUS_PARSE_ERR;
+    }
+    /* Create an XML RelaxNGs validation context. */
+    rngctx = xmlRelaxNGNewValidCtxt(schema);
+    if (rngctx == NULL) {
+        ods_log_error("[%s] unable to create RelaxNGs validation context",
+            parser_str);
+        xmlRelaxNGFree(schema);
+        xmlRelaxNGFreeParserCtxt(rngpctx);
+        xmlFreeDoc(rngdoc);
+        xmlFreeDoc(doc);
+        return ODS_STATUS_RNG_ERR;
+    }
+    /* Validate a document tree in memory. */
+    status = xmlRelaxNGValidateDoc(rngctx,doc);
+    if (status != 0) {
+        ods_log_error("[%s] cfgfile validation failed %s", parser_str,
+            cfgfile);
+        xmlRelaxNGFreeValidCtxt(rngctx);
+        xmlRelaxNGFree(schema);
+        xmlRelaxNGFreeParserCtxt(rngpctx);
+        xmlFreeDoc(rngdoc);
+        xmlFreeDoc(doc);
+        return ODS_STATUS_RNG_ERR;
+    }
+
+    xmlRelaxNGFreeValidCtxt(rngctx);
+    xmlRelaxNGFree(schema);
+    xmlRelaxNGFreeParserCtxt(rngpctx);
+    xmlFreeDoc(rngdoc);
+    xmlFreeDoc(doc);
+    return ODS_STATUS_OK;
 }
 
-/**
- * Configure engine.
- *
- */
+int
+engine_config_repositories(settings_handle h, struct engineconfig_repository** target)
+{
+    int count;
+    int valid = 0;
+    int intvalue;
+    struct engineconfig_repository* cur;
+    valid |= settings_getcompound(h, &count, "//Configuration/RepositoryList/Repository");
+    for(int i=0; i<count; i++) {
+        cur = (struct engineconfig_repository*) malloc(sizeof (struct engineconfig_repository));
+        valid |= settings_getstring(h, &cur->name, NULL, "//Configuration/RepositoryList/Repository[%d]/@name", i + 1);
+        valid |= settings_getstring(h, &cur->module, NULL, "//Configuration/RepositoryList/Repository[%d]/Module", i + 1);
+        valid |= settings_getstring(h, &cur->tokenlabel, NULL, "//Configuration/RepositoryList/Repository[%d]/TokenLabel", i + 1);
+        valid |= settings_getstring(h, &cur->pin, settings_value_NULL, "//Configuration/RepositoryList/Repository[%d]/PIN", i + 1);
+        valid |= settings_getbool(h, (int*)&cur->allow_extract, "//Configuration/RepositoryList/Repository[%d]/AllowExtraction", i + 1);
+        valid |= settings_getbool(h, &intvalue, "//Configuration/RepositoryList/Repository[%d]/RequireBackup", i + 1);
+        cur->require_backup = intvalue;
+        valid |= settings_getbool(h, &intvalue, "//Configuration/RepositoryList/Repository[%d]/SkipPublicKey", i + 1);
+        cur->use_pubkey = (intvalue ? 0 : 1);
+        *target = cur;
+        target = &(cur->next);
+    }
+    *target = NULL;
+    return valid;
+}
+
+int
+engine_config_listener(settings_handle h, struct engineconfig_listener** target)
+{
+    int count;
+    int valid = 0;
+    char* defaultport = "15354";
+    struct engineconfig_listener* cur;
+    valid |= settings_getcompound(h, &count, "//Configuration/Signer/Listener/Interface");
+    for(int i=0; i<count; i++) {
+        cur = (struct engineconfig_listener*) malloc(sizeof(struct engineconfig_listener));
+        valid |= settings_getstring(h, &cur->address, NULL, "//Configuration/Signer/Listener/Interface[%d]/Address",i+1);
+        valid |= settings_getstring(h, &cur->port, &defaultport, "//Configuration/Signer/Listener/Interface[%d]/Port",i+1);
+        *target = cur;
+        target = &(cur->next);
+    }
+    *target = NULL;
+    return valid;
+}
+
+static int
+engine_config_logging(settings_handle cfghandle, int cmdline_verbosity, int* verbosity, int* use_syslog, char**log_filename)
+{
+    int intvalue;
+    int valid = 0;
+    /* this part also used within startup sequence */
+    valid |= settings_getstring(cfghandle, (char**)log_filename, settings_value_NULL, "//Configuration/Common/Logging/File/Filename");
+    valid |= settings_getstring(cfghandle, (char**)log_filename, log_filename, "//Configuration/Common/Logging/Syslog/Facility");
+    settings_getbool(cfghandle, use_syslog, "//Configuration/Common/Logging/Syslog/Facility");
+    if (cmdline_verbosity <= 0) {
+        intvalue = ODS_EN_VERBOSITY;
+        valid |= settings_getint(cfghandle, verbosity, &intvalue, "//Configuration/Common/Logging/Verbosity");
+    } else
+        *verbosity = cmdline_verbosity;
+    return valid;
+}
+
 engineconfig_type*
 engine_config(const char* cfgfile,
     int cmdline_verbosity, engineconfig_type* oldcfg)
 {
+    int valid, intvalue;
+    char* strvalue;
     engineconfig_type* ecfg = NULL;
-    FILE* cfgfd = NULL;
+    settings_handle cfghandle = NULL;
 
     if (!cfgfile || cfgfile[0] == 0) {
         ods_log_error("[%s] failed to read: no filename given", conf_str);
@@ -73,93 +218,99 @@ engine_config(const char* cfgfile,
     }
     ods_log_verbose("[%s] read cfgfile: %s", conf_str, cfgfile);
 
-    /* open cfgfile */
-    cfgfd = ods_fopen(cfgfile, NULL, "r");
-    if (cfgfd) {
-        ecfg = malloc(sizeof(engineconfig_type));
-        if (!ecfg) {
-            ods_log_error("[%s] failed to read: malloc failed", conf_str);
-            ods_fclose(cfgfd);
-            return NULL;
-        }
-        if (oldcfg) {
-            /* This is a reload */
-            ecfg->cfg_filename = strdup(oldcfg->cfg_filename);
-            ecfg->clisock_filename_enforcer = strdup(oldcfg->clisock_filename_enforcer);
-            ecfg->clisock_filename_signer = strdup(oldcfg->clisock_filename_signer);
-            ecfg->working_dir_enforcer = strdup(oldcfg->working_dir_enforcer);
-            ecfg->working_dir_signer = strdup(oldcfg->working_dir_signer);
-            ecfg->username_enforcer = strdup_or_null(oldcfg->username_enforcer);
-            ecfg->username_signer = strdup_or_null(oldcfg->username_signer);
-            ecfg->group_enforcer = strdup_or_null(oldcfg->group_enforcer);
-            ecfg->group_signer = strdup_or_null(oldcfg->group_signer);
-            ecfg->chroot_enforcer = strdup_or_null(oldcfg->chroot_enforcer);
-            ecfg->chroot_signer = strdup_or_null(oldcfg->chroot_signer);
-            ecfg->pid_filename_enforcer = strdup(oldcfg->pid_filename_enforcer);
-            ecfg->pid_filename_signer = strdup(oldcfg->pid_filename_signer);
-            ecfg->datastore = strdup(oldcfg->datastore);
-            ecfg->db_host = strdup_or_null(oldcfg->db_host);
-            ecfg->db_username = strdup_or_null(oldcfg->db_username);
-            ecfg->db_password = strdup_or_null(oldcfg->db_password);
-            ecfg->db_port = oldcfg->db_port;
-            ecfg->db_type = oldcfg->db_type;
-        } else {
-            ecfg->cfg_filename = strdup(cfgfile);
-            ecfg->clisock_filename_enforcer = parse_conf_clisock_filename(cfgfile, 1);
-            ecfg->clisock_filename_signer = parse_conf_clisock_filename(cfgfile, 0);
-            ecfg->working_dir_enforcer = parse_conf_working_dir(cfgfile, 1);
-            ecfg->working_dir_signer = parse_conf_working_dir(cfgfile, 0);
-            ecfg->username_enforcer = parse_conf_username(cfgfile, 1);
-            ecfg->username_signer = parse_conf_username(cfgfile, 0);
-            ecfg->group_enforcer = parse_conf_group(cfgfile, 1);
-            ecfg->group_signer = parse_conf_group(cfgfile, 0);
-            ecfg->chroot_enforcer = parse_conf_chroot(cfgfile, 1);
-            ecfg->chroot_signer = parse_conf_chroot(cfgfile, 0);
-            ecfg->pid_filename_enforcer = parse_conf_pid_filename(cfgfile, 1);
-            ecfg->pid_filename_signer = parse_conf_pid_filename(cfgfile, 0);
-            ecfg->datastore = parse_conf_datastore(cfgfile);
-            ecfg->db_host = parse_conf_db_host(cfgfile);
-            ecfg->db_username = parse_conf_db_username(cfgfile);
-            ecfg->db_password = parse_conf_db_password(cfgfile);
-            ecfg->db_port = parse_conf_db_port(cfgfile);
-            ecfg->db_type = parse_conf_db_type(cfgfile);
-        }
-        /* get values */
-        ecfg->policy_filename = parse_conf_policy_filename(cfgfile);
-        ecfg->zonelist_filename_enforcer = parse_conf_zonelist_filename_enforcer(cfgfile);
-        ecfg->zonelist_filename_signer = parse_conf_zonelist_filename_signer(cfgfile);
-        ecfg->zonefetch_filename = parse_conf_zonefetch_filename(cfgfile);
-        ecfg->log_filename = parse_conf_log_filename(cfgfile);
-        ecfg->delegation_signer_submit_command =
-            parse_conf_delegation_signer_submit_command(cfgfile);
-        ecfg->delegation_signer_retract_command =
-            parse_conf_delegation_signer_retract_command(cfgfile);
-        ecfg->use_syslog = parse_conf_use_syslog(cfgfile);
-        ecfg->num_worker_threads_enforcer = parse_conf_worker_threads(cfgfile, 1);
-        ecfg->num_worker_threads_signer = parse_conf_worker_threads(cfgfile, 0);
-        ecfg->num_signer_threads = parse_conf_signer_threads(cfgfile);
-        ecfg->manual_keygen = parse_conf_manual_keygen(cfgfile);
-        ecfg->repositories = parse_conf_repositories(cfgfile);
-        /* If any verbosity has been specified at cmd line we will use that */
-        ecfg->verbosity = cmdline_verbosity > 0 ?
-            cmdline_verbosity : parse_conf_verbosity(cfgfile);
-        ecfg->automatic_keygen_duration =
-            parse_conf_automatic_keygen_period(cfgfile);
-        ecfg->rollover_notification =
-            parse_conf_rollover_notification(cfgfile);
-        ecfg->interfaces = parse_conf_listener(cfgfile);
-        ecfg->notify_command = parse_conf_notify_command(cfgfile);
-
-        /* done */
-        ods_fclose(cfgfd);
-    }
-
-    if(!ecfg) {
+    if (settings_access(&cfghandle, -1, cfgfile)) {
         ods_log_error("[%s] failed to read: unable to open file %s", conf_str, cfgfile);
+        return NULL;
     }
+    CHECKALLOC(ecfg = malloc(sizeof (engineconfig_type)));
+    if (oldcfg) {
+        /* This is a reload */
+        ecfg->cfg_filename = dupstr(oldcfg->cfg_filename);
+        ecfg->clisock_filename_enforcer = dupstr(oldcfg->clisock_filename_enforcer);
+        ecfg->clisock_filename_signer = dupstr(oldcfg->clisock_filename_signer);
+        ecfg->working_dir_enforcer = dupstr(oldcfg->working_dir_enforcer);
+        ecfg->working_dir_signer = dupstr(oldcfg->working_dir_signer);
+        ecfg->username_enforcer = dupstr(oldcfg->username_enforcer);
+        ecfg->username_signer = dupstr(oldcfg->username_signer);
+        ecfg->group_enforcer = dupstr(oldcfg->group_enforcer);
+        ecfg->group_signer = dupstr(oldcfg->group_signer);
+        ecfg->chroot_enforcer = dupstr(oldcfg->chroot_enforcer);
+        ecfg->chroot_signer = dupstr(oldcfg->chroot_signer);
+        ecfg->pid_filename_enforcer = dupstr(oldcfg->pid_filename_enforcer);
+        ecfg->pid_filename_signer = dupstr(oldcfg->pid_filename_signer);
+        ecfg->datastore = dupstr(oldcfg->datastore);
+        ecfg->db_host = dupstr(oldcfg->db_host);
+        ecfg->db_username = dupstr(oldcfg->db_username);
+        ecfg->db_password = dupstr(oldcfg->db_password);
+        ecfg->db_port = oldcfg->db_port;
+        ecfg->db_type = oldcfg->db_type;
+    } else {
+        ecfg->cfg_filename = strdup(cfgfile);
+        valid |= settings_getstringdefault(cfghandle, (char**)&ecfg->clisock_filename_enforcer, OPENDNSSEC_ENFORCER_SOCKETFILE, "//Configuration/Enforcer/SocketFile");
+        valid |= settings_getstringdefault(cfghandle, (char**)&ecfg->clisock_filename_signer, ODS_SE_SOCKFILE, "//Configuration/Signer/SocketFile");
+        if (strlen(ecfg->clisock_filename_enforcer) >= sizeof (((struct sockaddr_un*) 0)->sun_path)) {
+            ((char*) ecfg->clisock_filename_enforcer)[sizeof (((struct sockaddr_un*) 0)->sun_path) - 1] = '\0';
+            ods_log_warning("SocketFile path too long, truncated to %s", ecfg->clisock_filename_enforcer);
+        }
+        if (strlen(ecfg->clisock_filename_signer) >= sizeof (((struct sockaddr_un*) 0)->sun_path)) {
+            ((char*) ecfg->clisock_filename_signer)[sizeof (((struct sockaddr_un*) 0)->sun_path) - 1] = '\0';
+            ods_log_warning("SocketFile path too long, truncated to %s", ecfg->clisock_filename_signer);
+        }
+        valid |= settings_getstringdefault(cfghandle, (char**)&ecfg->working_dir_enforcer, OPENDNSSEC_ENFORCER_WORKINGDIR, "//Configuration/Enforcer/WorkingDirectory");
+        valid |= settings_getstringdefault(cfghandle, (char**)&ecfg->working_dir_signer, ODS_SE_WORKDIR, "//Configuration/Signer/WorkingDirectory");
+        valid |= settings_getstring(cfghandle, (char**)&ecfg->username_enforcer, settings_value_NULL, "//Configuration/Enforcer/Privileges/User");
+        valid |= settings_getstring(cfghandle, (char**)&ecfg->username_signer, settings_value_NULL, "//Configuration/Signer/Privileges/User");
+        valid |= settings_getstring(cfghandle, (char**)&ecfg->group_enforcer, settings_value_NULL, "//Configuration/Enforcer/Privileges/Group");
+        valid |= settings_getstring(cfghandle, (char**)&ecfg->group_signer, settings_value_NULL, "//Configuration/Signer/Privileges/Group");
+        valid |= settings_getstring(cfghandle, (char**)&ecfg->chroot_enforcer, settings_value_NULL, "//Configuration/Enforcer/Privileges/Directory");
+        valid |= settings_getstring(cfghandle, (char**)&ecfg->chroot_signer, settings_value_NULL, "//Configuration/Signer/Privileges/Directory");
+        valid |= settings_getstringdefault(cfghandle, (char**)&ecfg->pid_filename_enforcer, OPENDNSSEC_ENFORCER_PIDFILE, "//Configuration/Enforcer/PidFile");
+        valid |= settings_getstringdefault(cfghandle, (char**)&ecfg->pid_filename_signer, ODS_SE_PIDFILE, "//Configuration/Signer/PidFile");
+        valid |= settings_getstringdefault(cfghandle, (char**)&ecfg->datastore, "KASP", "//Configuration/Enforcer/Datastore/MySQL/Database");
+        valid |= settings_getstring(cfghandle, (char**)&ecfg->db_host, settings_value_NULL, "//Configuration/Enforcer/Datastore/MySQL/Host");
+        valid |= settings_getstring(cfghandle, (char**)&ecfg->db_username, settings_value_NULL, "//Configuration/Enforcer/Datastore/MySQL/Username");
+        valid |= settings_getstring(cfghandle, (char**)&ecfg->db_password, settings_value_NULL, "//Configuration/Enforcer/Datastore/MySQL/Password");
+        valid |= settings_getint(cfghandle, &ecfg->db_port, settings_value_NULL, "//Configuration/Enforcer/Datastore/MySQL/Host/@Port");
+        intvalue = 0;
+        settings_getbool(cfghandle, &intvalue, "//Configuration/Enforcer/Datastore/MySQL/Database");
+        if (!intvalue) {
+            settings_getbool(cfghandle, &intvalue, "//Configuration/Enforcer/Datastore/SQLite");
+            if (intvalue) {
+                valid |= settings_getstring(cfghandle, (char**)&ecfg->datastore, NULL, "//Configuration/Enforcer/Datastore/SQLite");
+                intvalue = ENFORCER_DATABASE_TYPE_SQLITE;
+            } else
+                intvalue = ENFORCER_DATABASE_TYPE_NONE;
+        } else
+            intvalue = ENFORCER_DATABASE_TYPE_MYSQL;
+        ecfg->db_type = intvalue;
+    }
+
+    /* get values */
+    valid |= settings_getstring(cfghandle, (char**)&ecfg->policy_filename, NULL, "//Configuration/Common/PolicyFile");
+    valid |= settings_getstring(cfghandle, (char**)&ecfg->zonelist_filename_enforcer, NULL, "//Configuration/Common/ZoneListFile");
+    valid |= settings_getstringdefault(cfghandle, &strvalue, OPENDNSSEC_ENFORCER_WORKINGDIR, "//Configuration/Enforcer/WorkingDirectory");
+    asprintf((char**)&ecfg->zonelist_filename_signer, "%s%s%s", strvalue, ((strlen(strvalue) > 0 && strvalue[strlen(strvalue) - 1] != '/') ? "/" : ""), OPENDNSSEC_ENFORCER_ZONELIST);
+    valid |= settings_getstring(cfghandle, (char**)&ecfg->zonefetch_filename, settings_value_NULL, "//Configuration/Common/ZoneFetchFile");
+
+    engine_config_logging(cfghandle, cmdline_verbosity, &ecfg->verbosity, &ecfg->use_syslog, (char**)&ecfg->log_filename);
+
+    valid |= settings_getstring(cfghandle, (char**)&ecfg->delegation_signer_submit_command, settings_value_NULL, "//Configuration/Enforcer/DelegationSignerSubmitCommand");
+    valid |= settings_getstring(cfghandle, (char**)&ecfg->delegation_signer_retract_command, settings_value_NULL, "//Configuration/Enforcer/DelegationSignerRetractCommand");
+    valid |= settings_getstring(cfghandle, (char**)&ecfg->notify_command, settings_value_NULL, "//Configuration/Signer/NotifyCommand");
+    intvalue = ODS_SE_WORKERTHREADS;
+    valid |= settings_getint(cfghandle, &ecfg->num_worker_threads_enforcer, &intvalue, "//Configuration/Enforcer/WorkerThreads");
+    valid |= settings_getint(cfghandle, &ecfg->num_worker_threads_signer, &intvalue, "//Configuration/Signer/WorkerThreads");
+    valid |= settings_getint(cfghandle, &ecfg->num_signer_threads, &ecfg->num_worker_threads_signer, "//Configuration/Signer/SignerThreads");
+
+    valid |= settings_getbool(cfghandle, &ecfg->manual_keygen, "//Configuration/Enforcer/ManualKeyGeneration");
+    valid |= engine_config_repositories(cfghandle, &ecfg->repositories);
+    valid |= engine_config_listener(cfghandle, &ecfg->interfaces);
+    valid |= settings_getduration(cfghandle, &ecfg->automatic_keygen_duration, 365 * 24 * 3600, "//Configuration/Enforcer/AutomaticKeyGenerationPeriod");
+    valid |= settings_getduration(cfghandle, &ecfg->rollover_notification, 0, "//Configuration/Enforcer/RolloverNotification");
+
+    settings_access(&cfghandle, -1, NULL);
     return ecfg;
 }
-
 
 /**
  * Check configuration.
@@ -227,6 +378,27 @@ engine_config_print(FILE* out, engineconfig_type* config)
 
         fprintf(out, "<Configuration>\n");
 
+        if(config->repositories) {
+            fprintf(out, "\t<RepositoryList>\n");
+            for(struct engineconfig_repository* repo = config->repositories; repo; repo=repo->next) {
+                fprintf(out, "\t\t<Repository name=\"%s\">\n", repo->name);
+                fprintf(out, "\t\t\t<Module>%s</Module>\n",repo->module);
+                fprintf(out, "\t\t\t<TokenLabel>%s</Module>\n",repo->tokenlabel);
+                if(repo->pin)
+                    fprintf(out, "\t\t\t<PIN>%s</Module>\n",repo->pin);
+                //if(repo->capacity)
+                //    fprintf(out, "\t\t\t<Capacity>%d</Capacity>\n",repo->capacity);
+                if(repo->require_backup)
+                    fprintf(out, "\t\t\t<RequireBackup/>\n");
+                if(!repo->use_pubkey)
+                    fprintf(out, "\t\t\t<SkipPublicKey/>\n");
+                if(repo->allow_extract)
+                    fprintf(out, "\t\t\t<AllowExtraction/>\n");
+                fprintf(out, "\t\t</Repository>\n");
+            }
+            fprintf(out, "\t</RepositoryList>\n");
+        }
+
         /* Common */
         fprintf(out, "\t<Common>\n");
         if (config->use_syslog && config->log_filename) {
@@ -278,6 +450,14 @@ engine_config_print(FILE* out, engineconfig_type* config)
             config->num_worker_threads_enforcer);
         if (config->manual_keygen) {
             fprintf(out, "\t\t<ManualKeyGeneration/>\n");
+        }
+        if (config->automatic_keygen_duration) {
+            duration_type* period = duration_create();
+            duration_set_time(period, config->automatic_keygen_duration);
+            char* periodstr = duration2string(period);
+            fprintf(out, "\t\t<AutomaticKeyGenerationPeriod>%s</AutomaticKeyGenerationPeriod>\n",periodstr);
+            free(periodstr);
+            duration_cleanup(period);
         }
         if (config->delegation_signer_submit_command) {
             fprintf(out, "\t\t<DelegationSignerSubmitCommand>%s</DelegationSignerSubmitCommand>\n",
@@ -418,4 +598,29 @@ engine_config_cleanup(engineconfig_type* config)
     config->interfaces = NULL;    
     free((void*) config->notify_command);
     free(config);
+}
+
+struct engineconfig_repository*
+parse_conf_repositories(const char* cfgfile)
+{
+    struct engineconfig_repository* repositories;
+    settings_handle cfghandle;
+    if (settings_access(&cfghandle, -1, cfgfile)) {
+        ods_log_error("[%s] failed to read: unable to open file %s", conf_str, cfgfile);
+        return NULL;
+    }
+    engine_config_repositories(cfghandle, &repositories);
+    settings_access(&cfghandle, -1, NULL);
+    return repositories;
+}
+
+int
+parse_conf_logging(const char* cfgfile, int cmdline_verbosity, int* verbosity, int* use_syslog, char**log_filename)
+{
+    int valid = 0;
+    settings_handle cfghandle;
+    settings_access(&cfghandle, -1, cfgfile);
+    valid |= engine_config_logging(cfghandle, cmdline_verbosity, verbosity, use_syslog, log_filename);
+    settings_access(&cfghandle, -1, NULL);
+    return valid;
 }

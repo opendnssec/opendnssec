@@ -29,8 +29,8 @@
  *
  */
 
-#ifndef SHARED_CONFIG_H
-#define SHARED_CONFIG_H
+#ifndef CFG_H
+#define CFG_H
 
 #include "config.h"
 #include "status.h"
@@ -38,6 +38,8 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <time.h>
+
+#include "settings.h"
 
 struct engineconfig_repository {
     struct engineconfig_repository* next;
@@ -155,5 +157,17 @@ void engine_config_freelistener(struct engineconfig_listener* listener);
  */
 void engine_config_cleanup(engineconfig_type* config);
 
-#endif /* SHARED_CONFIG_H */
+/**
+ * Check config file with rng file.
+ * \param[in] cfgfile the configuration file name
+ * \param[in] rngfile the rng file name
+ * \return ods_status status
+ *
+ */
+extern ods_status parse_file_check(const char* cfgfile, const char* rngfile);
+
+extern struct engineconfig_repository* parse_conf_repositories(const char* cfgfile);
+extern int parse_conf_logging(const char* cfgfile, int cmdline_verbosity, int* verbosity, int* use_syslog, char**log_filename);
+
+#endif /* CFG_CONFIG_H */
 

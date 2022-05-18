@@ -45,6 +45,6 @@
  * \return ods_status status
  *
  */
-extern ods_status parse_zonelist_zones(void* zlist, const char* zlfile);
+extern ods_status parse_conf_zonelist(struct zonelist_struct* zlist, const char* zlfile);
 
 #endif /* PARSER_ZONELISTPARSER_H */

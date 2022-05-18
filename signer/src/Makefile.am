@@ -28,7 +28,6 @@ ods_signerd_SOURCES=		ods-signerd.c \
 				daemon/engine.c daemon/engine.h \
 				daemon/signertasks.c daemon/signertasks.h \
 				parser/addnsparser.c parser/addnsparser.h \
-				parser/signconfparser.c parser/signconfparser.h \
 				parser/zonelistparser.c parser/zonelistparser.h \
 				signer/backup.c signer/backup.h \
 				hsm.c hsm.h \

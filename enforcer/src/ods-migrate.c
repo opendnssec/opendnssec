@@ -42,6 +42,8 @@
 #include "cfg.h"
 #include "libhsmdns.h"
 #include "db/key_data.h"
+#include "utilities.h"
+
 extern struct engineconfig_repository* parse_conf_repositories(const char* cfgfile);
 
 int verbosity;
@@ -51,15 +53,6 @@ static void
 usage(void)
 {
     fprintf(stderr, "%s [-h] [-v] [-c <alternate-configuration>]\n", argv0);
-}
-
-typedef void (*functioncast_t)(void);
-extern functioncast_t functioncast(void*generic);
-
-functioncast_t
-functioncast(void*generic) {
-    functioncast_t* function = (functioncast_t*)&generic;
-    return *function;
 }
 
 /****************************************************************************/

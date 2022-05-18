@@ -40,10 +40,10 @@
 #include "clientpipe.h"
 #include "status.h"
 #include "cfg.h"
-#include "confparser.h"
 #include "utils/kc_helper.h"
 #include "daemon/engine.h"
 #include "libhsm.h"
+#include "cfg.h"
 
 #include "enforcer/update_repositorylist_cmd.h"
 

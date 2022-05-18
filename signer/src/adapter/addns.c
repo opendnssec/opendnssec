@@ -35,7 +35,6 @@
 #include "adapter/addns.h"
 #include "adapter/adutil.h"
 #include "parser/addnsparser.h"
-#include "confparser.h"
 #include "duration.h"
 #include "file.h"
 #include "log.h"
@@ -48,6 +47,8 @@
 #include <ldns/ldns.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+#include "cfg.h"
 
 static const char* adapter_str = "adapter";
 static ods_status addns_read_pkt(FILE* fd, zone_type* zone);

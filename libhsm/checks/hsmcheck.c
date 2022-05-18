@@ -33,7 +33,6 @@
 
 #include "libhsm.h"
 #include <libhsmdns.h>
-#include "confparser.h"
 
 extern char *optarg;
 char *progname = NULL;

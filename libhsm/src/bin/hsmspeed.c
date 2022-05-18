@@ -34,7 +34,7 @@
 
 #include "libhsm.h"
 #include <libhsmdns.h>
-#include "confparser.h"
+#include "cfg.h"
 
 #define HSMSPEED_THREADS_MAX 2048
 

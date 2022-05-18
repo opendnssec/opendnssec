@@ -39,7 +39,7 @@
 #include "hsmtest.h"
 
 #include <libhsmdns.h>
-#include "confparser.h"
+#include "cfg.h"
 
 extern char *optarg;
 char *progname = NULL;

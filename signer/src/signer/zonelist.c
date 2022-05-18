@@ -30,7 +30,6 @@
  */
 
 #include "config.h"
-#include "confparser.h"
 #include "parser/zonelistparser.h"
 #include "duration.h"
 #include "file.h"
@@ -41,6 +40,8 @@
 
 #include <ldns/ldns.h>
 #include <stdlib.h>
+
+#include "cfg.h"
 
 static const char* zl_str = "zonelist";
 
@@ -110,7 +111,7 @@ zonelist_read(zonelist_type* zl, const char* zlfile)
             zlfile);
         return status;
     }
-    return parse_zonelist_zones((struct zonelist_struct*) zl, zlfile);
+    return parse_conf_zonelist(zl, zlfile);
 }
 
 

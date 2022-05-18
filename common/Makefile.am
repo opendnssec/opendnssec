@@ -28,4 +28,5 @@ libcompat_a_SOURCES = \
 	cmdhandler.c cmdhandler.h \
 	janitor.c janitor.h \
 	cfg.c cfg.h \
-	confparser.c confparser.h
+	utilities.c utilities.h \
+	settings_xml.c settings.c settings.h

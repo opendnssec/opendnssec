@@ -37,7 +37,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <libxml/parser.h>
-#include "confparser.h"
+#include "cfg.h"
 
 
 #define AUTHOR_NAME "Matthijs Mekking"
@@ -87,9 +87,12 @@ static void
 program_setup(const char* cfgfile, int cmdline_verbosity)
 {
     const char* file = NULL;
-    /* open log */
-    file = parse_conf_log_filename(cfgfile);
-    ods_log_init("ods-signerd", parse_conf_use_syslog(cfgfile), file, cmdline_verbosity?cmdline_verbosity:parse_conf_verbosity(cfgfile));
+    int logverbosity;
+    int logmode;
+    char* logfilename;
+
+    parse_conf_logging(cfgfile, cmdline_verbosity, &logverbosity, &logmode, &logfilename);
+    ods_log_init("ods-signerd", logmode, logfilename, logverbosity);
 
     ods_log_verbose("[engine] starting signer");
 
