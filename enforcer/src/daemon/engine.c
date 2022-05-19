@@ -448,8 +448,7 @@ engine_setup()
     if (setup_database(engine)) return ODS_STATUS_DB_ERR;
     /* Probe the database, can we connect to it? */
     if (probe_database(engine)) {
-        ods_log_crit("Could not connect to database or database not set"
-            " up properly.");
+        ods_log_crit("Could not connect to database or database not set up properly.");
         return ODS_STATUS_DB_ERR;
     }
 

@@ -378,7 +378,7 @@ help(int sockfd)
 }
 
 static int
-run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 {
     #define NARGV 18
     char buf[ODS_SE_MAXLINE];
@@ -520,8 +520,7 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
     if (time && strptime(time, "%Y-%m-%d-%H:%M:%S", &tm)) {
         tm.tm_isdst = -1;
         inception = mktime(&tm);
-    }
-    else {
+    } else {
         ods_log_error("[%s] specify inception time for command %s", module_str, cmd);
         client_printf_err(sockfd, "specify inception time YYYY-MM-DD-HH:MM:SS\n");
         return -1;

@@ -207,7 +207,8 @@ engineconfig_type*
 engine_config(const char* cfgfile,
     int cmdline_verbosity, engineconfig_type* oldcfg)
 {
-    int valid, intvalue;
+    int valid = 0;
+    int intvalue;
     char* strvalue;
     engineconfig_type* ecfg = NULL;
     settings_handle cfghandle = NULL;

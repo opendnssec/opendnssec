@@ -54,7 +54,7 @@ struct cmd_func_block {
     /* print help, more elaborate than usage. Allowed to be
      * NULL to indicate no help is available */
     void (*help)(int sockfd);
-    /* 1 if module claims responibility for command
+    /* 1 if module claims responsibility for command
      * 0 otherwise */
     int (*handles)(const char *cmd);
     /** Run the handler

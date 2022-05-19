@@ -32,8 +32,6 @@
 #include <stdlib.h>
 #include <syslog.h>
 #include <unistd.h>
-#include <ldns/ldns.h>
-#include <ldns/util.h>
 
 #include "libhsm.h"
 #include "hsmtest.h"

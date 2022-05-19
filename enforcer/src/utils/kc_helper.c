@@ -429,7 +429,10 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 	int resalt = 0;
 	int hash_algo = 0;
 	int hash_iters = 0;
+	int iter = 0;
         int find_alg = 0;
+	int smallest_key_size = 0;
+	int max_iter = 0;
 	
 	enum {KSK = 1, ZSK, CSK};
 	struct key {
@@ -527,6 +530,7 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 								} else if (xmlStrEqual(childNode3->name, (const xmlChar *)"Iterations")) {
 									temp_char = (char *) xmlNodeGetContent(childNode3);
 									/* we know temp_char is a number */
+                                                                        iter = atoi(temp_char);
 									hash_iters = atoi(temp_char);
 									if (hash_iters > 100) {
 										dual_log("WARNING: NSEC3 Hash iterations for %s Policy in %s is %d which is larger than the recommended maximum of 100", policy_name, kasp, hash_iters);
@@ -617,6 +621,8 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 
 							temp_char = (char *)xmlGetProp(childNode2, (const xmlChar *)"length");
 							StrStrtoi(temp_char, &curkey->length);
+							if (smallest_key_size == 0 || curkey->length < smallest_key_size)
+								smallest_key_size = curkey->length;
 							StrFree(temp_char);
 
 						}
@@ -652,6 +658,8 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 
 							temp_char = (char *)xmlGetProp(childNode2, (const xmlChar *)"length");
 							StrStrtoi(temp_char, &curkey->length);
+							if (smallest_key_size == 0 || curkey->length < smallest_key_size)
+                                                                smallest_key_size = curkey->length;
 							StrFree(temp_char);
 
 						}
@@ -844,7 +852,22 @@ int check_policy(xmlNode *curNode, const char *policy_name, char **repo_list, in
 					"signature resign interval (%d secs) for %s Policy",
 					resalt, resign, policy_name);
 		}
-
+		/* RFC 5155 #section-10.3
+		   -----------+------------
+		   | Key Size | Iteration |
+		   +----------+-----------+
+		   | 1024     | 150       |
+		   | 2048     | 500       |
+		   | 4096     | 2,500     |
+		   +----------+-----------+
+		 */
+		if (!(max_iter = 150) || (smallest_key_size <= 1024 && iter > 150) ||
+		    !(max_iter = 500) || (smallest_key_size > 1024 && smallest_key_size <= 2048 && iter > 500) ||
+		    !(max_iter = 2500) || (smallest_key_size > 2048 && iter > 2500)) {
+			dual_log("WARNING: In policy %s for the given key size (%d) for zone signing key, "
+					"iteration should not be higher than %d",
+                                        policy_name, smallest_key_size, max_iter);
+		}
 	}
 
 	/* If datecounter is used for serial, then no more than 99 signings 

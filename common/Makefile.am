@@ -25,8 +25,8 @@ libcompat_a_SOURCES = \
 	scheduler/fifoq.c scheduler/fifoq.h \
 	scheduler/worker.c scheduler/worker.h \
 	scheduler/task.c scheduler/task.h \
+	utilities.c utilities.h \
 	cmdhandler.c cmdhandler.h \
 	janitor.c janitor.h \
 	cfg.c cfg.h \
-	utilities.c utilities.h \
 	settings_xml.c settings.c settings.h

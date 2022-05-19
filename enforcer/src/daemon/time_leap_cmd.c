@@ -72,12 +72,11 @@ help(int sockfd)
 }
 
 static int
-run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 {
 	db_connection_t* dbconn;
 	struct tm strtime_struct;
 	char strtime[64]; /* at least 26 according to docs plus a long integer */
-	char buf[ODS_SE_MAXLINE];
 	time_t now = time_now();
 	const char *time = NULL;
 	time_t time_leap = 0;
@@ -99,10 +98,7 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 
 	ods_log_debug("[%s] %s command", module_str, time_leap_funcblock.cmdname);
 
-	strncpy(buf, cmd, sizeof(buf));
-	buf[sizeof(buf)-1] = '\0';
-
-	argc = ods_str_explode(buf, NARGV, argv);
+	argc = ods_str_explode(cmd, NARGV, argv);
 	if (argc == -1) {
 		ods_log_error_and_printf(sockfd, module_str, "too many arguments");
 		return -1;

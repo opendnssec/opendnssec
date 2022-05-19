@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009-2011 NLNet Labs. All rights reserved.
+ * Copyright (c) 2009-2018 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -21,7 +21,6 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
 /**
@@ -38,7 +37,6 @@ ods_lookup_table ods_status_str[] = {
     { ODS_STATUS_OK, "All OK" },
     { ODS_STATUS_EOF, "End of file" },
     { ODS_STATUS_NOTIMPL, "Not implemented"},
-    { ODS_STATUS_UPTODATE, "Up to date"},
 
     { ODS_STATUS_ASSERT_ERR, "Assertion error"},
     { ODS_STATUS_CFG_ERR, "Configuration error"},
@@ -119,4 +117,3 @@ ods_status2str(ods_status status)
     }
     return "(Error code unknown)";
 }
-
