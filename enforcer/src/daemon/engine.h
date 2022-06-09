@@ -64,22 +64,6 @@ struct engine_struct {
     pthread_mutex_t signal_lock;
 };
 
-/**
- * Try to open a connection to the database.
- * \param engine, the engine containing database configuration
- * \return connection on success, NULL on failure.
- */
-extern db_connection_t* get_database_connection(engine_type* engine);
-
-/**
- * Setup the engine started by engine_create
- * \param[in] engine the engine returned from engine_start
- * \param[in] commands NULL terminated list of command functions for 
- *            the engine that the command handler can run.
- * \param[in] help NULL terminated list of help functions that print help 
- *            for the command to a socket.
- */
-
 extern ods_status engine_setup(void);
 
 /**
@@ -102,7 +86,7 @@ typedef void (*start_cb_t)(engine_type* engine);
  * \return 0 if terminated normally, 1 on unrecoverable error.
  *
  */
-extern int engine_run(engine_type* engine, start_cb_t start, int single_run);
+extern int engine_run(engine_type* engine, int single_run);
 
 /**
  * Stop the engine after engine_runloop returns.

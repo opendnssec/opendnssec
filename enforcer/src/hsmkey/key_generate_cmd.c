@@ -190,7 +190,7 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
         hsm_key_factory_schedule(engine, pkey, nr_keys);
       }
     }
-    dbw_free(db);
+    dbw_end_unmodified(&db);
     return 0;
 }
 

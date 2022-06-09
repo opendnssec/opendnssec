@@ -49,6 +49,7 @@
 #include "hsmkey/hsm_key_factory.h"
 #include "libhsm.h"
 #include "locks.h"
+#include "policy/policy_resalt_task.h"
 
 #include <errno.h>
 #include <libxml/parser.h>
@@ -201,7 +202,7 @@ engine_stop_workers(engine_type* engine)
     for (i=0; i < engine->config->num_worker_threads_enforcer; i++) {
         ods_log_debug("[%s] join worker %i", engine_str, i+1);
         janitor_thread_join(engine->workers[i]->thread_id);
-        db_connection_free(engine->workers[i]->context);
+        release_database_connection(engine->workers[i]->context);
     }
 }
 
@@ -215,40 +216,6 @@ engine_wakeup_workers(engine_type* engine)
     ods_log_assert(engine);
     ods_log_debug("[%s] wake up workers", engine_str);
     schedule_release_all(engine->taskq);
-}
-
-db_connection_t*
-get_database_connection(engine_type* engine)
-{
-    db_connection_t* dbconn;
-
-    if (!(dbconn = db_connection_new(engine->config->datastore,
-                                     engine->config->db_host,
-                                     engine->config->db_username,
-                                     engine->config->db_password)))
-    {
-        ods_log_crit("database connection failed");
-        return NULL;
-    }
-    return dbconn;
-}
-
-/*
- * Try to open a connection to the database and close it again.
- * \param dbcfg_list, database configuration list
- * \return 0 on success, 1 on failure.
- */
-static int
-probe_database(engine_type* engine)
-{
-    db_connection_t *conn;
-    int version;
-
-    conn = get_database_connection(engine);
-    if (!conn) return 1;
-    version = database_version_get_version(conn);
-    db_connection_free(conn);
-    return !version;
 }
 
 static void
@@ -299,13 +266,12 @@ engine_setup()
     }
     /* Probe the database, can we connect to it? */
     if (probe_database(engine)) {
-        ods_log_crit("Could not connect to database or database not set"
-            " up properly.");
+        ods_log_crit("Could not connect to database or database not set up properly.");
         return ODS_STATUS_DB_ERR;
     }
 
     /* create command handler (before chowning socket file) */
-    engine->cmdhandler = cmdhandler_create(engine->config->clisock_filename_enforcer, enforcercommands, engine, (void*(*)(void*)) &get_database_connection, (void(*)(void*))&db_connection_free);
+    engine->cmdhandler = cmdhandler_create(engine->config->clisock_filename_enforcer, enforcercommands, engine, (void*(*)(void*)) &get_database_connection, (void(*)(void*))&release_database_connection);
     if (!engine->cmdhandler) {
         ods_log_error("[%s] create command handler to %s failed",
             engine_str, engine->config->clisock_filename_enforcer);
@@ -490,14 +456,20 @@ engine_init(engine_type* engine, int daemonize)
  *
  */
 int
-engine_run(engine_type* engine, start_cb_t start, int single_run)
+engine_run(engine_type* engine, int single_run)
 {
     ods_log_assert(engine);
 
     engine_start_workers(engine);
 
-    /* call the external start callback function */
-    start(engine);
+    /* call the autostart function */
+    ods_log_debug("[%s] autostart", engine_str);
+    db_connection_t* dbconn = get_database_connection(engine);
+    schedule_purge(engine->taskq); /* Remove old tasks in queue */
+    if(resalt_task_schedule(engine, dbconn) != ODS_STATUS_OK)
+        ods_log_crit("[%s] failed to create resalt tasks", engine_str);
+    enforce_task_flush_all(engine, dbconn);
+    release_database_connection(dbconn);
 
     while (!engine->need_to_exit && !engine->need_to_reload) {
         if (single_run) {

@@ -80,14 +80,12 @@ purge_policies(int sockfd, db_connection_t *dbconn)
             db->policies[i] = NULL;
         }
     }
-    if (dbw_commit(db)) {
+    if (dbw_end_commit(&db)) {
         ods_log_crit("[%s] Failed to apply changes to the database", module_str);
         client_printf(sockfd, "Failed to apply changes to the database\n");
-        dbw_free(db);
         return 1;
-    }
-    dbw_free(db);
-    return 0;
+    } else
+        return 0;
 }
 
 static int

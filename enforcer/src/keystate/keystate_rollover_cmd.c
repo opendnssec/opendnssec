@@ -147,7 +147,7 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
             zone->roll_ksk_now = (keytype_int == DBW_KSK) || !keytype_int;
             zone->roll_csk_now = (keytype_int == DBW_CSK) || !keytype_int;
             zone->scratch = 1; /* Flush this zone later */
-            dbw_mark_dirty(zone);
+            dbw_mark_dirty(db, zone);
             client_printf(sockfd, "rolling %s for zone %s\n",
                 keytype_int?dbw_enum2txt(dbw_key_role_txt, keytype_int):"all keys",
                 zone->name);
@@ -163,8 +163,9 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
             client_printf_err(sockfd, "zone %s not found.\n", s_zone);
         else
             client_printf_err(sockfd, "No matching zone found.\n");
+        dbw_end_unmodified(&db);
     } else {
-        error = dbw_commit(db);
+        error = dbw_end_commit(&db);
         if (!error) {
             for (size_t z = 0; z < db->nzones; z++) {
                 struct dbw_zone *zone = db->zones[z];
@@ -173,7 +174,6 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
             }
         }
     }
-    dbw_free(db);
     return error;
 }
 

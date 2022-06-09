@@ -100,7 +100,7 @@ signconf_task_flush_policy(engine_type *engine, db_connection_t *dbconn,
             signconf_task_flush_zone(engine, dbconn, zone->name);
     }
     }
-    dbw_free(db);
+    dbw_end_unmodified(&db);
 }
 
 void

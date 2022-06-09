@@ -14,6 +14,7 @@ libcompat_a_SOURCES = \
 	file.c file.h \
 	locks.c locks.h \
 	log.c log.h \
+	tree.c tree.h \
 	privdrop.c privdrop.h \
 	pselect.c \
 	status.c status.h \

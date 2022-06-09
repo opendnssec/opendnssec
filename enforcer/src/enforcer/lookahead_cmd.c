@@ -168,7 +168,7 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
     struct dbw_zone *zone = dbw_FIND(struct dbw_zone*, db->zones, name, db->nzones, zonename);
     if (!zone) {
         client_printf_err(sockfd, "Could not find zone %s in database\n", zonename);
-        dbw_free(db);
+        dbw_end_unmodified(db);
         return 1;
     }
     /* TODO Tab completion */
@@ -235,7 +235,7 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
         now = t_next;
         /*dbw_dump_db(db);*/
     }
-    dbw_free(db);
+    dbw_end_rollback(&db);
     return 0;
 }
 

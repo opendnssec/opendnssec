@@ -142,10 +142,10 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 		client_printf_err(sockfd, "Unable to update zone, policy does not exist!\n");
 	} else {
             zone->policy = policy;
-            dbw_mark_dirty(zone);
-            dbw_commit(db);
+            dbw_mark_dirty(db, zone);
+            dbw_end_commit(&db);
         }
-        dbw_free(db);
+        dbw_end_unmodified(&db);
 
 	if (write_xml) {
 		if (zonelist_export(sockfd, dbconn, engine->config->zonelist_filename_enforcer, 1) != ZONELIST_EXPORT_OK) {

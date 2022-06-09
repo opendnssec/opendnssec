@@ -38,7 +38,6 @@
 #include "log.h"
 #include "duration.h"
 #include "locks.h"
-#include "enforcer/autostart_cmd.h"
 #include "confparser.h"
 
 #define AUTHOR_NAME "Matthijs Mekking, Yuri Schaeffer, René Post"
@@ -257,7 +256,7 @@ main(int argc, char* argv[])
             returncode = 3;
             engine->need_to_exit = 1;
         } else {
-            if (engine_run(engine, autostart, single_run)) {
+            if (engine_run(engine, single_run)) {
                 returncode = 4;
                 engine->need_to_exit = 1;
             }

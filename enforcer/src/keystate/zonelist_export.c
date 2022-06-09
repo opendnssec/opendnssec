@@ -45,54 +45,54 @@
 #include <errno.h>
 
 int zonelist_export(int sockfd, db_connection_t* dbconn, const char* filename, int comment) {
-    xmlDocPtr doc;
+    xmlDocPtr doc = NULL;
     xmlNodePtr root = NULL, node, node2, node3, node4;
-    char path[PATH_MAX];
-    char* dirname, *dirlast;
+    char path[PATH_MAX] = "";
+    char* dirname = NULL, *dirlast;
+    int ret = ZONELIST_EXPORT_OK;
 
     if (!dbconn || !filename) {
-        return ZONELIST_EXPORT_ERR_ARGS;
+        ret = ZONELIST_EXPORT_ERR_ARGS;
+        goto end;
     }
 
     if (access(filename, W_OK)) {
         if (errno != ENOENT) {
             client_printf_err(sockfd, "Write access to file denied: %s\n", strerror(errno));
-            return ZONELIST_EXPORT_ERR_FILE;
+            ret = ZONELIST_EXPORT_ERR_FILE;
+            goto end;
         }
         /* full path doesn't exist, try stripping filname */
         if (!(dirname = strdup(filename))) {
             client_printf_err(sockfd, "Memory error\n");
-            return ZONELIST_EXPORT_ERR_FILE;
+            ret = ZONELIST_EXPORT_ERR_FILE;
+            goto end;
         }
         if (!(dirlast = strrchr(dirname, '/'))) {
             client_printf_err(sockfd, "Unable to construct path.\n");
-            return ZONELIST_EXPORT_ERR_FILE;
+            ret = ZONELIST_EXPORT_ERR_FILE;
+            goto end;
         }
         *dirlast = 0;
         if (access(dirname, W_OK)) {
             client_printf_err(sockfd, "Write access to directory denied: %s\n", strerror(errno));
-            free(dirname);
-            return ZONELIST_EXPORT_ERR_FILE;
+            ret = ZONELIST_EXPORT_ERR_FILE;
+            goto end;
         }
-        free(dirname);
     }
 
-    if (!(doc = xmlNewDoc((xmlChar*)"1.0"))
-        || !(root = xmlNewNode(NULL, (xmlChar*)"ZoneList")))
+    if (!(doc = xmlNewDoc((xmlChar*)"1.0")) || !(root = xmlNewNode(NULL, (xmlChar*)"ZoneList")))
     {
         client_printf_err(sockfd, "Unable to create XML elements, memory allocation error!\n");
-        if (doc) {
-            xmlFreeDoc(doc);
-        }
-        return ZONELIST_EXPORT_ERR_MEMORY;
+        ret = ZONELIST_EXPORT_ERR_MEMORY;
+        goto end;
     }
 
     struct dbw_db *db = dbw_fetch(dbconn);
     if (!db) {
-        client_printf_err(sockfd, "Unable to get list of zones, memory"
-            "allocation or database error!\n");
-        xmlFreeDoc(doc);
-        return ZONELIST_EXPORT_ERR_DATABASE ;
+        client_printf_err(sockfd, "Unable to get list of zones, memory allocation or database error!\n");
+        ret = ZONELIST_EXPORT_ERR_DATABASE ;
+        goto end;
     }
 
     if (comment) {
@@ -139,37 +139,42 @@ int zonelist_export(int sockfd, db_connection_t* dbconn, const char* filename, i
             || !xmlNewProp(node4, (xmlChar*)"type", (xmlChar*)zone->output_adapter_type))
         {
             client_printf_err(sockfd, "Unable to create XML elements for zone %s!\n", zone->name);
-            xmlFreeDoc(doc);
-            dbw_free(db);
-            return ZONELIST_EXPORT_ERR_XML;
+            ret = ZONELIST_EXPORT_ERR_XML;
+            goto end;
         }
     }
-    dbw_free(db);
 
     if (snprintf(path, sizeof(path), "%s.new", filename) >= (int)sizeof(path)) {
         client_printf_err(sockfd, "Unable to write zonelist, memory allocation error!\n");
-        xmlFreeDoc(doc);
-        return ZONELIST_EXPORT_ERR_MEMORY;
+        ret = ZONELIST_EXPORT_ERR_MEMORY;
+        goto end;
     }
     unlink(path);
     if (xmlSaveFormatFileEnc(path, doc, "UTF-8", 1) == -1) {
         client_printf_err(sockfd, "Unable to write zonelist, LibXML error!\n");
-        xmlFreeDoc(doc);
-        return ZONELIST_EXPORT_ERR_FILE;
+        ret = ZONELIST_EXPORT_ERR_FILE;
+        goto end;
     }
-    xmlFreeDoc(doc);
 
     if (check_zonelist(path, 0, NULL, 0)) {
         client_printf_err(sockfd, "Unable to validate the exported zonelist XML!\n");
-        unlink(path);
-        return ZONELIST_EXPORT_ERR_XML;
+        ret = ZONELIST_EXPORT_ERR_XML;
+        goto end;
     }
 
     if (rename(path, filename)) {
         client_printf_err(sockfd, "Unable to write zonelist, rename failed!\n");
-        unlink(path);
-        return ZONELIST_EXPORT_ERR_FILE;
+        ret = ZONELIST_EXPORT_ERR_FILE;
+        goto end;
     }
+    *path = '\0';
 
-    return ZONELIST_EXPORT_OK;
+  end:
+    if(dirname)
+        free(dirname);
+    if(doc)
+        xmlFreeDoc(doc);
+    if(*path)
+        unlink(path);
+    return ret;
 }

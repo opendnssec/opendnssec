@@ -16,7 +16,6 @@ AM_CFLAGS = \
 	-I$(builddir)/../../libhsm/src/lib \
 	@XML2_CFLAGS@ \
 	@LDNS_INCLUDES@
-AM_LDFLAGS = -lm
 
 enforcerdir =	@libdir@/opendnssec/enforcer
 
@@ -72,7 +71,6 @@ ods_enforcerd_SOURCES = \
 	signconf/signconf_cmd.c signconf/signconf_cmd.h \
 	signconf/signconf_task.c signconf/signconf_task.h \
 	signconf/signconf_xml.c signconf/signconf_xml.h \
-	enforcer/autostart_cmd.c enforcer/autostart_cmd.h \
 	enforcer/enforce_cmd.c enforcer/enforce_cmd.h \
 	enforcer/enforce_task.c enforcer/enforce_task.h \
 	enforcer/enforcer.c enforcer/enforcer.h \
@@ -81,7 +79,7 @@ ods_enforcerd_SOURCES = \
 	enforcer/update_all_cmd.c enforcer/update_all_cmd.h \
 	enforcer/update_conf_cmd.c enforcer/update_conf_cmd.h \
 	utils/kc_helper.c utils/kc_helper.h \
-	db/dbw.c db/dbw.h
+	db/dbw.c db/dbw.h db/dbsimple.c db/dbsimple.h db/dbsimplebase.c db/dbsimplebase.h db/dbsimple_sqlite3.c
 
 ods_enforcerd_LDADD = \
 	$(LIBHSM) \
@@ -100,6 +98,9 @@ ods_enforcer_LDADD = \
 	@LDNS_LIBS@ \
 	@XML2_LIBS@ \
 	@READLINE_LIBS@
+
+ods_enforcerd_LDADD += @ENFORCER_DB_LIBS@ -lm
+AM_CFLAGS += @ENFORCER_DB_INCLUDES@
 
 ods_kaspcheck_SOURCES = utils/kaspcheck.c utils/kc_helper.c utils/kc_helper.h
 

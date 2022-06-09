@@ -289,7 +289,6 @@ signconf_xml_export(int sockfd, struct dbw_zone *zone, int force)
     }
 
     zone->signconf_needs_writing = 0;
-    dbw_mark_dirty(zone);
 
     return SIGNCONF_EXPORT_OK;
 }
@@ -308,9 +307,10 @@ signconf_export_zone(char const *zonename, db_connection_t* dbconn)
     /* We always force. Since now it is scheduled per zone */
     int ret = signconf_xml_export(-1, zone, 1);
     if (ret == SIGNCONF_EXPORT_OK) {
-        ret = dbw_commit(db);
-    }
-    dbw_free(db);
+        dbw_mark_dirty(db, zone);
+        ret = dbw_end_commit(&db);
+    } else
+        dbw_end_unmodified(&db);
     return ret;
 }
 

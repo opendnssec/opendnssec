@@ -134,25 +134,26 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
     int purged = 0;
     if (zone_name) {
         struct dbw_zone *zone = dbw_FINDSTR(struct dbw_zone *, db->zones, name, db->nzones, zone_name);
-        if (!zone) {
+        if (zone) {
+            purged = removeDeadKeysNow_zone(sockfd, db, zone);
+        } else {
+            error = -1;
             client_printf_err(sockfd, "unknown zone %s\n", zone_name);
-            dbw_free(db);
-            return -1;
         }
-        purged = removeDeadKeysNow_zone(sockfd, db, zone);
     } else {
         /* have policy_name since it is mutually exclusive with zone_name */
         struct dbw_policy *policy = dbw_FINDSTR(struct dbw_policy *, db->policies, name, db->npolicies, policy_name);
-        if (!policy) {
+        if (policy) {
+            purged = removeDeadKeysNow_policy(sockfd, db, policy, hsmPurge);
+        } else {
+            error = -1;
             client_printf_err(sockfd, "unknown policy %s\n", policy_name);
-            dbw_free(db);
-            return -1;
         }
-        purged = removeDeadKeysNow_policy(sockfd, db, policy, hsmPurge);
     }
     if (purged)
-        error = dbw_commit(db);
-    dbw_free(db);
+        error = dbw_end_commit(&db);
+    else
+        dbw_end_unmodified(&db);
     return error;
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 NLNet Labs.
+ * Copyright (c) 2021 A.W. van Halderen
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,12 +31,15 @@
 #error "never define NOTDEFINED"
 #endif
 
+#define QUOTE(ARG) #ARG
+
 #ifdef __cplusplus
 #include <cstdio>
 #include <string>
 #include <sstream>
 #endif
 #include <stdarg.h>
+#include <stddef.h>
 
 #if !defined(__GNUC__) || __GNUC__ < 2 || \
     (__GNUC__ == 2 && __GNUC_MINOR__ < 7) ||\
@@ -47,20 +50,30 @@
 #endif
 
 #ifdef __cplusplus
-extern "C" {
-#endif
-extern void diagnostic_set(char *file, int line);
-extern void diagnostic_print(char *fmt, ...)
+class mkstring
+{
+private:
+  std::ostringstream os;
+public:
+  template <class T> mkstring &operator<<(const T &t) {
+    os << t;
+    return *this;
+  }
+  mkstring& operator<<(const char* m) {
+    os << m;
+    return *this;
+  }
+  mkstring& operator<<(const std::string& s) {
+    os << s;
+    return *this;
+  }
+  static std::string format(const char *fmt, va_list ap);
+  static std::string format(const char *fmt, ...)
      __attribute__ ((__format__ (__printf__, 1, 2)));
-#ifdef __cplusplus
-}
-#endif
-
-#define DIAG(LEVEL,ARG) do { if(DIAGLEVEL >= DIAG##LEVEL) { diagnostic_set(__FILE__,__LINE__); diagnostic_print ARG; } } while(0);
-#define DIAGWARN 1
-#define DIAGINFO 0
-#ifndef DIAGLEVEL
-#define DIAGLEVEL DIAGINFO
+  operator std::string() const { return os.str(); }
+  const std::string str() const { return os.str(); };
+  const char* c_str() const { return os.str().c_str(); };
+};
 #endif
 
 #ifdef DEBUG
@@ -81,17 +94,27 @@ extern void diagnostic_print(char *fmt, ...)
 
 extern char* argv0;
 
-typedef void (*functioncast_t)(void);
-extern functioncast_t functioncast(void*generic);
+typedef void (*functioncast_type)(void);
+extern functioncast_type functioncast(void*generic);
 
-static inline void*
-ralloc(void** ptr, size_t size)
-{
-    void* nptr;
-    nptr = realloc(*ptr, size);
-    if(nptr)
-        *ptr = nptr;
-    return nptr;
-}
+typedef void (*voidfunc)(void);
+
+/**                
+ * Clamp an integer value between a lower and an upper bound.
+ *
+ * In effect a combination of a min() and max() call this function
+ * will return the value as long as it lies between the lower and
+ * upper bound.  If smaller (or equal) to the lower bound it will
+ * return the lower bound and likewise if larger or equal to the
+ * upper, the upper bound.  The result may be either lower or
+ * upper bound if the upper bound is smaller than the lower bound.
+ */
+extern int clamp(int value, int lbnd, int ubnd);
+
+extern unsigned long long int rnd(void);
+
+extern int alloc(void* ptr, size_t size, int* countptr, int newcount);
+
+extern char* dupstr(const char* ptr);
 
 #endif

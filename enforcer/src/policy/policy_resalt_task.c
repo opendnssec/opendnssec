@@ -111,27 +111,27 @@ perform_policy_resalt(task_type* task, char const *policyname, void *userdata,
     struct dbw_db *db = dbw_fetch(dbconn, "single policy writeable, with all zone names, without zone keys nor keys with policy", policyname);
     struct dbw_policy *policy = dbw_FIND(struct dbw_policy*, db->policies, name, db->npolicies, policyname);
     if (!policy) {
-        dbw_free(db);
-        return -1;
+        resalt_time = schedule_DEFER;
+        goto failure;
     }
 
     if (policy->passthrough || policy->denial_type != POLICY_DENIAL_TYPE_NSEC3 || policy->denial_salt_length == 0) {
-        dbw_free(db);
-        return schedule_SUCCESS;
+        resalt_time = schedule_SUCCESS;
+        goto failure;
     }
 
 #ifdef BERRY
     resalt_type = policy->denial_salt_last_change + policy->denial_resalt;
     if (now < resalt_time) {
-        dbw_free(db);
-        return schedule_;
+        resalt_time = schedule_DEFER; /* should not be getting here */
+        goto failure;
     }
 #endif
 
     if (policy->denial_salt_length <= 0 || policy->denial_salt_length > 255) {
         ods_log_error("[%s] policy %s has an invalid salt length. Must be in range [0..255]", module_str, policy->name);
-        dbw_free(db);
-        return schedule_SUCCESS; /* no point in rescheduling */
+        resalt_time =  schedule_SUCCESS; /* no point in rescheduling */
+        goto failure;
     }
 
 #ifndef HAVE_ARC4RANDOM
@@ -142,20 +142,22 @@ perform_policy_resalt(task_type* task, char const *policyname, void *userdata,
     to_hex(salt, policy->denial_salt_length, salthex);
     policy->denial_salt = strdup(salthex);
     policy->denial_salt_last_change = now;
-    dbw_mark_dirty(policy);
+    dbw_mark_dirty(db, policy);
 
     if (policy->denial_resalt <= 0)
         resalt_time = -1;
     else
         resalt_time = now + policy->denial_resalt;
-    int r = dbw_commit(db);
-    if (r) {
+    if (dbw_end_commit(&db)) {
         ods_log_error("[%s] unable to update DB", module_str);
     } else {
         signconf_task_flush_policy(engine, dbconn, policy->name);
         ods_log_debug("[%s] policy %s resalted successfully", module_str, policyname);
     }
-    dbw_free(db);
+    return resalt_time;
+
+  failure:
+    dbw_end_unmodified(&db);
     return resalt_time;
 }
 
@@ -190,6 +192,6 @@ resalt_task_schedule(engine_type *engine, db_connection_t *dbconn)
         task = policy_resalt_task(db->policies[i]->name, engine, resalt_time);
         status |= schedule_task(engine->taskq, task, 1, 0);
     }
-    dbw_free(db);
+    dbw_end_unmodified(&db);
     return status;
 }

@@ -315,7 +315,7 @@ generate_one_key(engine_type *engine, struct dbw_db *db,
         hsm_destroy_context(hsm_ctx);
         return 1;
     }
-    dbw_add(&policykey->policy->hsmkey, &policykey->policy->hsmkey_count, hsmkey);
+    dbw_add(db, &policykey->policy->hsmkey, &policykey->policy->hsmkey_count, hsmkey);
 
     hsm_destroy_context(hsm_ctx);
     return 0;
@@ -357,8 +357,7 @@ generate_cb(task_type* task, char const *owner, void *userdata,
                 enforce_task_flush_policy(engine, policy);
             }
         }
-        (void)dbw_commit(db);
-        dbw_free(db);
+        dbw_end_commit(&db);
     }
     (void) pthread_mutex_lock(__hsm_key_factory_lock);
         struct generate_request *req = genq;
@@ -448,7 +447,7 @@ hsm_key_factory_get_key(engine_type *engine, struct dbw_db *db,
     } else {
          /* Update the state of the returned HSM key */
         hkey->state = policy->keys_shared? DBW_HSMKEY_SHARED : DBW_HSMKEY_PRIVATE;
-        dbw_mark_dirty(hkey);
+        dbw_mark_dirty(db, hkey);
         ods_log_debug("[hsm_key_factory_get_key] key allocated");
     }
     if (!engine->config->manual_keygen)

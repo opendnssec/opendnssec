@@ -131,7 +131,7 @@ perform_rollover_list(int sockfd, const char *listed_zone,
             }
         }
     }
-    dbw_free(db);
+    dbw_end_unmodified(&db);
     return 0;
 }
 

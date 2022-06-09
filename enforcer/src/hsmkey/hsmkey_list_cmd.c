@@ -59,7 +59,6 @@ static int
 run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 {
     db_connection_t* dbconn = getconnectioncontext(context);
-    engine_type* engine = getglobalcontext(context);
     (void) cmd;
 
     struct dbw_db *db = dbw_fetch(dbconn);
@@ -75,7 +74,7 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
                     hsmkey->algorithm, dbw_enum2txt(dbw_key_role_txt, hsmkey->role));
         }
     }
-    dbw_free(db);
+    dbw_end_unmodified(&db);
     return 0;
 }
 

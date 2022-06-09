@@ -99,7 +99,7 @@ perform_hsmkey_import(int sockfd, struct dbw_db *db,
      */
     
     struct dbw_hsmkey *hsmkey = calloc(1, sizeof (struct dbw_hsmkey));
-    dbw_add(&zone->policy->hsmkey, &zone->policy->hsmkey_count, hsmkey);
+    dbw_add(db, &zone->policy->hsmkey, &zone->policy->hsmkey_count, hsmkey);
     hsmkey->key_count = 0;
     hsmkey->key = NULL;
     hsmkey->locator = strdup(ckaid);
@@ -117,7 +117,7 @@ perform_hsmkey_import(int sockfd, struct dbw_db *db,
     return hsmkey;
 }
 
-static int
+static void
 perform_keydata_import(int sockfd, struct dbw_db *db,
     struct dbw_zone *zone, int alg, int keystate_14, int keytype,
     unsigned int time, int setmin, struct dbw_hsmkey *hsmkey)
@@ -128,8 +128,8 @@ perform_keydata_import(int sockfd, struct dbw_db *db,
             module_str, hsmkey->locator);
     }
     struct dbw_key *key = calloc(1, sizeof (struct dbw_key));
-    dbw_add(&zone->key, zone->key_count, key);
-    dbw_add(&hsmkey->key, hsmkey->key_count, key);
+    dbw_add(db, &zone->key, &zone->key_count, key);
+    dbw_add(db, &hsmkey->key, &hsmkey->key_count, key);
     key->zone = zone;
     key->hsmkey = hsmkey;
     key->keystate_count = 0;
@@ -158,10 +158,10 @@ perform_keydata_import(int sockfd, struct dbw_db *db,
     keystate_dk->key = key;
     keystate_rd->key = key;
     keystate_rs->key = key;
-    dbw_add(&key->keystate, &key->keystate_count, keystate_ds);
-    dbw_add(&key->keystate, &key->keystate_count, keystate_dk);
-    dbw_add(&key->keystate, &key->keystate_count, keystate_rd);
-    dbw_add(&key->keystate, &key->keystate_count, keystate_rs);
+    dbw_add(db, &key->keystate, &key->keystate_count, keystate_ds);
+    dbw_add(db, &key->keystate, &key->keystate_count, keystate_dk);
+    dbw_add(db, &key->keystate, &key->keystate_count, keystate_rd);
+    dbw_add(db, &key->keystate, &key->keystate_count, keystate_rs);
 
     keystate_ds->type = DBW_DS;
     keystate_ds->last_change = time;
@@ -194,7 +194,6 @@ perform_keydata_import(int sockfd, struct dbw_db *db,
     keystate_rd->state = (keytype & DBW_KSK) ? ksk_mapping[keystate_14][3] : zsk_mapping[keystate_14][3];
 
     ods_log_debug("[%s] key data with this locator %s is created successfully", module_str, hsmkey->locator);
-    return 0;
 }
 
 static void
@@ -342,28 +341,15 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
         client_printf_err(sockfd, "expected --zone \n");
         return -1;
     }
-    struct dbw_db *db = dbw_fetch(dbconn);
-    if (!db) return 1;
-    struct dbw_zone *zone = dbw_FINDSTR(struct dbw_zone*, db->zones, name, db->nzones, zonename);
-    if (!zone) {
-        ods_log_error("[%s] Unknown zone: %s", module_str, zonename);
-        client_printf_err(sockfd, "Unknown zone: %s\n", zonename);
-        dbw_free(db);
-        return -1;
-    }
-    free(zone);
-    zone = NULL;
 
     if (!algorithm) {
         ods_log_error("[%s] specify an algorithm for command %s", module_str, cmd);
         client_printf_err(sockfd, "specify an algorithm\n");
-        dbw_free(db);
         return -1;
     }
     if (!bits) {
         ods_log_error("[%s] specify bits for command %s", module_str, cmd);
         client_printf_err(sockfd, "specify bits\n");
-        dbw_free(db);
         return -1;
     }
     if (!repository) {
@@ -378,7 +364,6 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
     } else {
         ods_log_error("[%s] specify inception time for command %s", module_str, cmd);
         client_printf_err(sockfd, "specify inception time YYYY-MM-DD-HH:MM:SS\n");
-        dbw_free(db);
         return -1;
     }
 
@@ -399,6 +384,15 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 
     int type = dbw_txt2enum(dbw_key_role_txt, keytype);
 
+    struct dbw_db *db = dbw_fetch(dbconn);
+    if (!db) return 1;
+    struct dbw_zone *zone = dbw_FINDSTR(struct dbw_zone*, db->zones, name, db->nzones, zonename);
+    if (!zone) {
+        ods_log_error("[%s] Unknown zone: %s", module_str, zonename);
+        client_printf_err(sockfd, "Unknown zone: %s\n", zonename);
+        goto failure;
+    }
+
     /* Find relevant policykey */
     struct dbw_policykey *policykey = NULL;
     for (size_t pk = 0; pk < zone->policy->policykey_count; pk++) {
@@ -411,24 +405,27 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
     if (!policykey) {
         ods_log_error("Error: Could not find a policykey with specified type and algorithm.");
         client_printf_err(sockfd, "Could not find a policykey with specified type and algorithm.\n");
-        dbw_free(db);
-        return 1;
+        goto failure;
     }
 
     /* perform task immediately */
-    struct dbw_hsmkey * hsmkey = perform_hsmkey_import(sockfd, db, ckaid,
-        repository, zone, atoi(bits), atoi(algorithm), type, (unsigned int)inception);
-    if (!hsmkey || perform_keydata_import(sockfd, db, zone, atoi(algorithm),
-        state, type, (unsigned int)inception, policykey->minimize, hsmkey) ||
-        dbw_commit(db))
+    struct dbw_hsmkey * hsmkey = perform_hsmkey_import(sockfd, db, ckaid, repository, zone, atoi(bits), atoi(algorithm), type, (unsigned int)inception);
+    if (!hsmkey)
     {
-        ods_log_error("[%s] Error: Unable to add key to the database", module_str);
-        dbw_free(db);
-        return 1;
+        ods_log_error("[%s] Error: Unable to locate keyt o add", module_str);
+        goto failure;
     }
-    dbw_free(db);
+    perform_keydata_import(sockfd, db, zone, atoi(algorithm), state, type, (unsigned int)inception, policykey->minimize, hsmkey);
+    if(dbw_end_commit(&db)) {
+        ods_log_error("[%s] Error: Unable to add key to database", module_str);
+        client_printf_err(sockfd, "Unable to add key to database.\n");
+        goto failure;
+    }
     client_printf(sockfd, "Key imported into zone %s\n", zonename);
     return 0;
+  failure:
+    dbw_end_unmodified(&db);
+    return 1;
 }
 
 struct cmd_func_block key_import_funcblock = {

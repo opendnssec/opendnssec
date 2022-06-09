@@ -70,7 +70,7 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
     for (int i = 0; i < db->npolicies; i++) {
         client_printf(sockfd, fmt, db->policies[i]->name, db->policies[i]->description);
     }
-    dbw_free(db);
+    dbw_end_unmodified(&db);
     return 0;
 }
 

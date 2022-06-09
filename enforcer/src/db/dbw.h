@@ -2,12 +2,10 @@
 #define DBW_H
 
 #include <time.h>
+#include <db/dbsimple.h>
+#include "daemon/engine.h"
 
-struct db_connection_struct;
-typedef struct db_connection_struct db_connection_t;
-
-db_connection_t* db_connection_new(const char* database, const char* hostname, const char*username, const char*password);
-int db_connection_free(db_connection_t*conn);
+typedef struct dbsimple_session_struct db_connection_t;
 
 typedef enum key_data_role {
   KEY_DATA_ROLE_INVALID = -1,
@@ -287,6 +285,7 @@ struct dbw_db {
     struct dbw_zone** zones;
     int nhsmkeys;
     struct dbw_hsmkey** hsmkeys;
+    dbsimple_session_type session;
 };
 
 /* DB operations */
@@ -305,7 +304,7 @@ struct dbw_db *dbw_fetch(db_connection_t *conn, ...);
  *
  * return 0 on success. 1 otherwise.
  */
-int dbw_commit(struct dbw_db *db);
+int dbw_end_commit(struct dbw_db** db);
 
 /**
  * Deep free this structure
@@ -316,10 +315,35 @@ void dbw_free(struct dbw_db *db);
  * Mark database object as dirty. Clean objects will never be written to the
  * database
  */
-void dbw_mark_dirty(void *obj);
+void dbw_mark_dirty(struct dbw_db *db, void *obj);
 
-int database_version_get_version(db_connection_t* connection);
+extern void dbw_add(struct dbw_db *db, void* array, int* count, void* ptr);
+extern void dbw_end_unmodified(struct dbw_db** db);
+extern void dbw_end_rollback(struct dbw_db** db);
 
-void dbw_add(void*,...);
+/**
+ * Try to open a connection to the database.
+ * \param engine, the engine containing database configuration
+ * \return connection on success, NULL on failure.
+ */
+extern db_connection_t* get_database_connection(engine_type* engine);
+
+/**
+ * Setup the engine started by engine_create
+ * \param[in] engine the engine returned from engine_start
+ * \param[in] commands NULL terminated list of command functions for 
+ *            the engine that the command handler can run.
+ * \param[in] help NULL terminated list of help functions that print help 
+ *            for the command to a socket.
+ */
+
+extern void release_database_connection(db_connection_t* dbconn);
+
+/*
+ * Try to open a connection to the database and close it again.
+ * \param dbcfg_list, database configuration list
+ * \return 0 on success, 1 on failure.
+ */
+extern int probe_database(engine_type* engine);
 
 #endif /*DBW_H*/

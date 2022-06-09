@@ -54,14 +54,12 @@ hsmkeys_from_to_state(db_connection_t *dbconn, char const *repository,
         if (repository && strcmp(repository, hsmkeys[i]->repository)) continue;
         if (hsmkeys[i]->backup != from_state) continue;
         hsmkeys[i]->backup = to_state;
-        dbw_mark_dirty(hsmkeys[i]);
+        dbw_mark_dirty(db, hsmkeys[i]);
         keys_marked++;
     }
-    int r = dbw_commit(db);
-    dbw_free(db);
-    if (r) {
+    if (dbw_end_commit(&db)) {
         ods_log_error("[%s] database error", module_str);
-        return -1;
+        keys_marked = -1;
     }
     return keys_marked;
 }
@@ -115,7 +113,7 @@ list(int sockfd, db_connection_t *dbconn, char const *repository)
         client_printf(sockfd, fmt, hsmkeys[i]->locator, hsmkeys[i]->repository,
             dbw_backup_txt[hsmkeys[i]->backup]);
     }
-    dbw_free(db);
+    dbw_end_unmodified(&db);
     return 0;
 }
 

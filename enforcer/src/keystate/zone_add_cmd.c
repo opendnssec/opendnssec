@@ -239,13 +239,14 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
     struct dbw_db *db = dbw_fetch(dbconn);
     if (!db) {
         client_printf_err(sockfd, "Error reading database\n");
-        return 1;
+        ret = 1;
+        goto end;
     }
     struct dbw_policy* policy = dbw_FINDSTR(struct dbw_policy*, db->policies, name, db->npolicies, policy_name);
     if (!policy) {
         client_printf_err(sockfd, "Unable to find policy %s needed for adding the zone!\n", policy_name);
-        dbw_free(db);
-        return 1;
+        ret = 1;
+        goto end;
     }
 
     /* input looks okay, lets add it to the database */
@@ -261,12 +262,12 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
     zone->signconf_path = strdup(signconf);
     zone->next_change = suspend?-1:0;
     zone->policy = policy;
-    dbw_add(&db->zones, &db->nzones, zone);
-    dbw_add(&policy->zone, &policy->zone_count, zone);
-    if (dbw_commit(db)) {
+    dbw_add(db, &db->zones, &db->nzones, zone);
+    dbw_add(db, &policy->zone, &policy->zone_count, zone);
+    if (dbw_end_commit(&db)) {
         client_printf(sockfd, "Failed to add zone to database.\n");
-        dbw_free(db);
-        return 1;
+        ret = 1;
+        goto end;
     }
 
     ods_log_info("[%s] zone %s added [policy: %s]", module_str, zone_name, policy_name);
@@ -303,8 +304,9 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
         ods_log_debug("[%s] Flushing enforce task", module_str);
         (void)schedule_task(engine->taskq, enforce_task(engine, zone->name), 1, 0);
     }
-
-    dbw_free(db);
+    
+  end:
+    dbw_end_unmodified(&db);
     return ret;
 }
 

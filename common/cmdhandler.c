@@ -481,7 +481,7 @@ self_pipe_trick(cmdhandler_type* cmdhandler)
             return 1;
         } else {
             /* self-pipe trick */
-            client_printf(sockfd, "");
+            client_printf(sockfd, "%s", "");
             close(sockfd);
         }
     }

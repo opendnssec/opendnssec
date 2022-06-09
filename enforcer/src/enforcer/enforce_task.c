@@ -88,13 +88,12 @@ perform_enforce(int sockfd, engine_type *engine, char const *zonename,
     struct dbw_db *db = dbw_fetch(dbconn);
     if (!db) {
         ods_log_error("[%s] Error reading database", module_str);
-        return -1;
+        return schedule_DEFER;
     }
     struct dbw_zone *zone = dbw_FINDSTR(struct dbw_zone*, db->zones, name, db->nzones, zonename);
     if (!zone) {
         ods_log_error("[%s] Could not find zone %s in database", module_str, zonename);
-        dbw_free(db);
-        return -1;
+        goto failure;
     }
     time_t t_next;
     int zone_updated = 0;
@@ -107,15 +106,15 @@ perform_enforce(int sockfd, engine_type *engine, char const *zonename,
     /* Commit zone to database before we schedule signconf */
     if (zone->next_change != t_next && t_next >= 0) {
         zone_updated = 1;
-        dbw_mark_dirty(zone);
+        dbw_mark_dirty(db, zone);
     }
     if (zone_updated) {
         zone->next_change = t_next;
-        if (dbw_commit(db)) {
+        if (dbw_end_commit(&db)) {
+            db = NULL;
             ods_log_error("[%s] Unable to commit changes to zone %s to "
                 "database, deferring.", module_str, zonename);
-            dbw_free(db);
-            return schedule_DEFER;
+            goto failure;
         }
     }
     if (zone->signconf_needs_writing || zone->policy->passthrough) {
@@ -127,8 +126,10 @@ perform_enforce(int sockfd, engine_type *engine, char const *zonename,
         ods_log_info("[%s] No changes to signconf file required for zone %s", module_str, zonename);
     }
     schedule_ds_tasks(engine, zone);
-    dbw_free(db);
     return t_next;
+  failure:
+    dbw_end_rollback(&db);
+    return schedule_DEFER;
 }
 
 time_t
@@ -169,5 +170,5 @@ enforce_task_flush_all(engine_type *engine, db_connection_t *dbconn)
         struct dbw_zone *zone = db->zones[z];
         (void)schedule_task(engine->taskq, enforce_task(engine, zone->name), 1, 0);
     }
-    dbw_free(db);
+    dbw_end_unmodified(&db);
 }

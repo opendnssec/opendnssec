@@ -538,48 +538,41 @@ xmlequal(void* a, void* b)
 int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
     int do_delete)
 {
-    ods_log_assert(dbconn);
-    ods_log_assert(engine);
-    ods_log_assert(engine->config);
-    ods_log_assert(engine->config->policy_filename);
-
-    xmlDocPtr doc;
+    int ret = POLICY_IMPORT_OK;
+    xmlDocPtr doc = NULL;
     xmlNodePtr root;
     struct dbw_db *db = dbw_fetch(dbconn, "policies fully writeable, without zone access");
     if (!db) return POLICY_IMPORT_ERR_DATABASE;
 
-    char **hsm_names;
+    char **hsm_names = NULL;
     int hsm_count;
     repository_names(engine->config->repositories, &hsm_names, &hsm_count);
 
     /* Validate, parse and walk the XML. */
     if (check_kasp(engine->config->policy_filename, hsm_names, hsm_count, 0, NULL, NULL)) {
         client_printf_err(sockfd, "Unable to validate the KASP XML, please run ods-kaspcheck for more details!\n");
-        free(hsm_names);
-        dbw_free(db);
-        return POLICY_IMPORT_ERR_XML;
+        ret = POLICY_IMPORT_ERR_XML;
+        goto end;
     }
     free(hsm_names);
     if (!(doc = xmlParseFile(engine->config->policy_filename))) {
         client_printf_err(sockfd, "Unable to read/parse KASP XML file %s!\n",
             engine->config->policy_filename);
-        dbw_free(db);
-        return POLICY_IMPORT_ERR_XML;
+        ret = POLICY_IMPORT_ERR_XML;
+        goto end;
     } else if (!(root = xmlDocGetRootElement(doc))) {
         client_printf_err(sockfd, "Unable to get the root element in the KASP XML!\n");
-        xmlFreeDoc(doc);
-        dbw_free(db);
-        return POLICY_IMPORT_ERR_XML;
+        ret = POLICY_IMPORT_ERR_XML;
+        goto end;
     }
 
     struct xml_policy* xpolicies;
     int count;
-    int r = process_xml(sockfd, root, &xpolicies, &count);
-    xmlFreeDoc(doc);
-    if (r) {
-        dbw_free(db);
-        return POLICY_IMPORT_ERR_XML;
+    if(process_xml(sockfd, root, &xpolicies, &count)) {
+        ret = POLICY_IMPORT_ERR_XML;
+        goto end;
     }
+    xmlFreeDoc(doc);
 
     struct dbw_policy** policies;
     int npolicies;
@@ -605,7 +598,7 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
                     resalt_task_flush(engine, (struct dbw_policy*)merged[i].item2);
                 }
                 xml2db((struct dbw_policy*)merged[i].item2, xpolicies+i);
-                dbw_mark_dirty((struct dbw_policy*)merged[i].item2);
+                dbw_mark_dirty(db, (struct dbw_policy*)merged[i].item2);
                 break;
             case merge_INSERT:
                 p = calloc(1, sizeof (struct dbw_policy));
@@ -613,7 +606,7 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
                 xml2db(p, xpolicies+i);
                 p->denial_salt = strdup("");
                 xml2db(p, &xpolicies[i]);
-                dbw_add(&db->policies, &db->npolicies, p);
+                dbw_add(db, &db->policies, &db->npolicies, p);
                 break;
             case merge_DELETE:
                 if(do_delete) {
@@ -635,7 +628,7 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
                 struct xml_policykey *xpolicykey = (xpolicies+i)->policykey[j];
                 struct dbw_policykey *policykey = calloc(1, sizeof (struct dbw_policykey));
                 policykey->policy = p;
-                dbw_add(&p->policykey, &p->policykey_count, policykey);
+                dbw_add(db, &p->policykey, &p->policykey_count, policykey);
                 policykey->repository       = strdup(xpolicykey->repository?xpolicykey->repository:"");
                 policykey->role             = xpolicykey->role;
                 policykey->algorithm        = xpolicykey->algorithm;
@@ -659,9 +652,15 @@ int policy_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
         free((xpolicies+i)->policykey);
     }
     free(xpolicies);
-    if (dbw_commit(db)) {
-        r = POLICY_IMPORT_ERR_DATABASE;
+    if (dbw_end_commit(&db)) {
+        ret = POLICY_IMPORT_ERR_DATABASE;
     }
-    dbw_free(db);
-    return r;
+  end:
+    if(doc)
+        xmlFreeDoc(doc);
+    if(hsm_names)
+        free(hsm_names);
+    dbw_end_unmodified(&db);
+    return ret;
+
 }

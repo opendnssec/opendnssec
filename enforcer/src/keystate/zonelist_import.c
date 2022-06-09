@@ -207,8 +207,8 @@ process_xml(int sockfd, xmlNodePtr root, struct dbw_db *db)
                 zone->input_adapter_type  = xz.inadapter_type;
                 zone->output_adapter_uri  = xz.outadapter_uri;
                 zone->output_adapter_type = xz.outadapter_type;
-                dbw_add(&p->zone, &p->zone_count, zone);
-                dbw_add(&db->zones, &db->nzones, zone);
+                dbw_add(db, &p->zone, &p->zone_count, zone);
+                dbw_add(db, &db->zones, &db->nzones, zone);
             } else {
                 if (!zone_xml_cmp(db, zone, &xz)) {
                     zone->scratch = 1;
@@ -216,7 +216,7 @@ process_xml(int sockfd, xmlNodePtr root, struct dbw_db *db)
                     client_printf(sockfd, "Zone %s already up-to-date\n", zone->name);
                 } else {
                     zone->scratch = 3;
-                    dbw_mark_dirty(&zone);
+                    dbw_mark_dirty(db, &zone);
                     free(zone->signconf_path);
                     free(zone->input_adapter_uri);
                     free(zone->input_adapter_type);
@@ -239,7 +239,8 @@ process_xml(int sockfd, xmlNodePtr root, struct dbw_db *db)
 int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
     int do_delete, const char* zonelist_path)
 {
-    xmlDocPtr doc;
+    int ret;
+    xmlDocPtr doc = NULL;
     xmlNodePtr root;
     struct dbw_db *db = dbw_fetch(dbconn);
     if (!db) return ZONELIST_IMPORT_ERR_DATABASE;
@@ -250,29 +251,28 @@ int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
 
     if (check_zonelist(zonelist_path, 0, NULL, 0)) {
         client_printf_err(sockfd, "Unable to validate the zonelist XML!\n");
-        dbw_free(db);
-        return ZONELIST_IMPORT_ERR_XML;
-    } else if (!(doc = xmlParseFile(zonelist_path))) {
+        ret = ZONELIST_IMPORT_ERR_XML;
+        goto end;
+    }
+    if (!(doc = xmlParseFile(zonelist_path))) {
         client_printf_err(sockfd, "Unable to read/parse zonelist XML file %s!\n",
             zonelist_path);
-        dbw_free(db);
-        return ZONELIST_IMPORT_ERR_XML;
-    } else if (!(root = xmlDocGetRootElement(doc))) {
+        ret = ZONELIST_IMPORT_ERR_XML;
+        goto end;
+    }
+    if (!(root = xmlDocGetRootElement(doc))) {
         client_printf_err(sockfd, "Unable to get the root element in the zonelist XML!\n");
-        xmlFreeDoc(doc);
-        dbw_free(db);
-        return ZONELIST_IMPORT_ERR_XML;
+        ret = ZONELIST_IMPORT_ERR_XML;
+        goto end;
     }
 
     for (size_t z = 0; z < db->nzones; z++) {
         /* All zones not mentioned xml will be deleted */
         db->zones[z]->scratch = 0;
     }
-    int r = process_xml(sockfd, root, db);
-    xmlFreeDoc(doc);
-    if (r) {
-        dbw_free(db);
-        return ZONELIST_IMPORT_ERR_XML;
+    if(process_xml(sockfd, root, db)) {
+        ret = ZONELIST_IMPORT_ERR_XML;
+        goto end;
     }
     int updates = 0; /* did anything change at all?  */
     for (size_t z = 0; z < db->nzones; z++) {
@@ -287,10 +287,12 @@ int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
              */
         }
     }
-    if (dbw_commit(db)) {
+    if (dbw_end_commit(&db)) {
         /* If the import failed, but deleted the keys from the HSM anyway.  Lovely broken. */
-        r = ZONELIST_IMPORT_ERR_DATABASE;
-    } else if (updates) {
+        ret = ZONELIST_IMPORT_ERR_DATABASE;
+        goto end;
+    }
+    if (updates) {
         /** export zonelist */
         if (zonelist_export(sockfd, dbconn, zonelist_path, 0) != ZONELIST_EXPORT_OK) {
             ods_log_error("[%s] internal zonelist update failed", module_str);
@@ -319,10 +321,14 @@ int zonelist_import(int sockfd, engine_type* engine, db_connection_t *dbconn,
 
             enforce_task_flush_zone(engine, zone->name);
         }
-        r = ZONELIST_IMPORT_OK;
+        ret = ZONELIST_IMPORT_OK;
     } else {
-        r = ZONELIST_IMPORT_NO_CHANGE;
+        ret = ZONELIST_IMPORT_NO_CHANGE;
     }
-    dbw_free(db);
-    return r;
+    
+  end:
+    if(doc)
+        xmlFreeDoc(doc);
+    dbw_end_unmodified(&db);
+    return ret;
 }

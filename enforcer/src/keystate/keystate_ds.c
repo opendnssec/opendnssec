@@ -239,7 +239,7 @@ ds_list_keys(db_connection_t *dbconn, int sockfd, enum dbw_ds_at_parent state)
                 key->hsmkey->locator);
         }
     }
-    dbw_free(db);
+    dbw_end_unmodified(&db);
     return 0;
 }
 
@@ -281,18 +281,17 @@ change_keys_from_to(db_connection_t *dbconn, int sockfd, const char *zonename,
 
             if (status == 0) {
                 key->ds_at_parent = state_to;
-                dbw_mark_dirty(key);
+                dbw_mark_dirty(db, key);
                 zone->scratch = 1;
                 struct dbw_keystate *dnskey = dbw_FIND(struct dbw_keystate*, key->keystate, state,key->keystate_count, DBW_DS);
                 dnskey->last_change = time_now();
-                dbw_mark_dirty(dnskey);
+                dbw_mark_dirty(db, dnskey);
                 need_commit = 1;
             }
         }
     }
     if (need_commit) {
-        if (dbw_commit(db)) {
-            dbw_free(db);
+        if (dbw_end_commit(&db)) {
             client_printf_err(sockfd, "Error committing to database");
             return 1;
         }
@@ -301,8 +300,9 @@ change_keys_from_to(db_connection_t *dbconn, int sockfd, const char *zonename,
             if (!zone->scratch) continue;
             enforce_task_flush_zone(engine, zone->name);
         }
+    } else {
+        dbw_end_unmodified(&db);
     }
-    dbw_free(db);
     client_printf(sockfd, "%d KSK matches found.\n", key_match);
     client_printf(sockfd, "%d KSKs changed.\n", key_match);
     return (!key_match);

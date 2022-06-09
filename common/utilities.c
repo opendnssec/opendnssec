@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 NLNet Labs.
+ * Copyright (c) 2021 A.W. van Halderen
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,8 +32,71 @@
 #include <time.h>
 #include "utilities.h"
 
-functioncast_t
+functioncast_type
 functioncast(void*generic) {
-    functioncast_t* function = (functioncast_t*)&generic;
+    functioncast_type* function = (functioncast_type*)&generic;
     return *function;
+}
+
+int
+clamp(int value, int lbnd, int ubnd)
+{
+    if(value < lbnd)
+        return lbnd;
+    else if(value > ubnd)
+        return ubnd;
+    else
+        return value;
+}
+#ifdef __amd64
+unsigned long long int
+rnd(void)
+{
+  unsigned long long int foo;
+  int cf_error_status;
+
+  asm("rdrand %%rax; \
+        mov $1,%%edx; \
+        cmovae %%rax,%%rdx; \
+        mov %%edx,%1; \
+        mov %%rax, %0;":"=r"(foo),"=r"(cf_error_status)::"%rax","%rdx");
+  return  (!cf_error_status ? 0 : foo);
+}
+#endif
+
+int
+alloc(void* p, size_t size, int* countptr, int newcount)
+{
+    char** ptr = (char**)p;
+    char* newptr;
+    if(*ptr == NULL) {
+	*ptr = malloc(size * newcount);
+	if(*ptr) {
+	    if(countptr)
+		*countptr = newcount;
+            return 0;
+	} else {
+	    if(countptr)
+		*countptr = 0;
+            return -1;
+	}
+    } else {
+	newptr = realloc(*ptr, size * newcount);
+	if(newptr) {
+	    if(countptr) {
+	        if(newcount > *countptr)
+                    memset(&newptr[size*(*countptr)], 0, size * (newcount - *countptr));
+	        *countptr = newcount;
+	    }
+	    *ptr = newptr;
+	    return 0;
+	} else
+            return -1;
+    }
+}
+
+char*
+dupstr(const char* ptr)
+{
+    return (ptr ? strdup(ptr) : NULL);
 }

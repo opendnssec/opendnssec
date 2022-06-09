@@ -86,11 +86,7 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 
     client_printf(sockfd, "Database set to: %s\n", engine->config->datastore);
 
-    if (!db->nzones) {
-        client_printf(sockfd, "No zones in database.\n");
-        dbw_free(db);
-        return 0;
-    }
+    if (db->nzones) {
     client_printf(sockfd, "Zones:\n");
     client_printf(sockfd, fmt, "Zone:", "Policy:", "Next change:",
         "Signer Configuration:");
@@ -103,7 +99,10 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
                 time_to_human(z->next_change, buf, sizeof(buf)), z->signconf_path);
         }
     }
-    dbw_free(db);
+    } else {
+        client_printf(sockfd, "No zones in database.\n");
+    }
+    dbw_end_unmodified(&db);
     return 0;
 }
 

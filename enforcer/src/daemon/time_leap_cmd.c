@@ -197,7 +197,7 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 		task_perform(engine->taskq, task, dbconn);
 		ods_log_debug("[timeleap] finished working");
 	}
-    db_connection_free(dbconn);
+    release_database_connection(dbconn);
 	return 0;
 }
 

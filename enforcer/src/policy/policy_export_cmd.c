@@ -69,6 +69,7 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
     int argc = 0, long_index = 0, opt = 0;
     const char* policy_name = NULL;
     int all = 0;
+    int returnStatus = 0;
     db_connection_t* dbconn = getconnectioncontext(context);;
     engine_type* engine = getglobalcontext(context);
 
@@ -111,27 +112,25 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 
     if (all) {
         if (policy_export_all(sockfd, dbconn, NULL) != POLICY_EXPORT_OK) {
-            return 1;
+            returnStatus = 1;
         }
     } else if (policy_name) {
         struct dbw_db *db = dbw_fetch(dbconn, "single policy ro with policykeys but without zone, or further keys");
         struct dbw_policy *policy = dbw_FIND(struct dbw_policy*, db->policies, name, db->npolicies, policy_name);
-        if (!policy) {
+        if (policy) {
+            if (policy_export(sockfd, policy, NULL) != POLICY_EXPORT_OK)
+                returnStatus = 1;
+        } else {
             client_printf_err(sockfd, "Unable to find policy %s!\n", policy_name);
-            dbw_free(db);
-            return 1;
+            returnStatus = 1;
         }
-        if (policy_export(sockfd, policy, NULL) != POLICY_EXPORT_OK) {
-            dbw_free(db);
-            return 1;
-        }
-        dbw_free(db);
+        dbw_end_unmodified(&db);
     } else {
         client_printf_err(sockfd, "Either --all or --policy needs to be given!\n");
-        return 1;
+        returnStatus = 1;
     }
 
-    return 0;
+    return returnStatus;
 }
 
 struct cmd_func_block policy_export_funcblock = {

@@ -149,12 +149,11 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
         client_printf(sockfd, "Deleted zone %s successfully\n", zone->name);
     }
     //todo handle error
-    if (dbw_commit(db)) {
+    if (dbw_end_commit(&db)) {
         client_printf(sockfd, "Error committing changes to database.\n");
-        dbw_free(db);
-        return 1;
+        ret = 1;
+        goto end;
     }
-    dbw_free(db);
 
     if (!zones_deleted && zonename) {
         client_printf_err(sockfd, "Unable to delete zone, zone %s not found\n", zonename);
@@ -188,6 +187,8 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
         ods_log_error("[%s] unable to notify signer of zone deletion!", module_str);
     }
 
+  end:
+    dbw_end_unmodified(&db);
     return ret;
 }
 

@@ -464,12 +464,12 @@ int policy_export_all(int sockfd, db_connection_t* connection, const char* filen
     for (int i = 0; i < db->npolicies; i++) {
         ret = __policy_export(sockfd, db->policies[i], root);
         if (ret != POLICY_EXPORT_OK) {
-            dbw_free(db);
+            dbw_end_unmodified(&db);
             xmlFreeDoc(doc);
             return ret;
         }
     }
-    dbw_free(db);
+    dbw_end_unmodified(&db);
 
     if (filename) {
         unlink(path);

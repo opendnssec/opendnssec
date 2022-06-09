@@ -756,8 +756,8 @@ newdependency(struct dbw_db *db, struct dbw_key *fromkey,
     dep->tokey = tokey;
     dep->fromkey = fromkey;
     dep->type = type;
-    dbw_add(&fromkey->from_keydependency, fromkey->from_keydependency_count, dep);
-    dbw_add(&tokey->to_keydependency,     tokey->to_keydependency_count, dep);
+    dbw_add(db, &fromkey->from_keydependency, &fromkey->from_keydependency_count, dep);
+    dbw_add(db, &tokey->to_keydependency,     &tokey->to_keydependency_count, dep);
     return dep;
 }
 
@@ -819,9 +819,10 @@ has_omnipresent_dnskey(struct dbw_zone *zone)
     return 0;
 }
 
-static void
+static int
 track_ttls(struct dbw_zone *zone, const time_t now)
 {
+    int changed = 0;
     struct dbw_policy *policy = zone->policy;
     /*
      * This code keeps track of TTL changes. If in the past a large TTL is used,
@@ -831,7 +832,7 @@ track_ttls(struct dbw_zone *zone, const time_t now)
      */
     if (zone->ttl_end_ds <= now) { /*DS*/
         zone->ttl_end_ds = addtime(now, policy->parent_ds_ttl);
-        dbw_mark_dirty(zone);
+        changed = 1;
     }
     if (zone->ttl_end_dk <= now) { /*DNSKEY*/
         unsigned int ttl;
@@ -852,8 +853,9 @@ track_ttls(struct dbw_zone *zone, const time_t now)
         }
         zone->ttl_end_rs = addtime(now, max(ttl,
             min(policy->zone_soa_ttl, policy->zone_soa_minimum)));
-        dbw_mark_dirty(zone);
+        changed = 1;
     }
+    return changed;
 }
 
 static unsigned int
@@ -905,7 +907,7 @@ generate_missing_keystates(struct dbw_db *db, struct dbw_zone *zone, time_t now)
             keystate->last_change = now;
             keystate->ttl = getZoneTTL(zone, i, now);
             keystate->key = zone->key[k];
-            dbw_add(&zone->key[k]->keystate, &zone->key[k]->keystate_count, keystate);
+            dbw_add(db, &zone->key[k]->keystate, &zone->key[k]->keystate_count, keystate);
         }
     }
 }
@@ -992,7 +994,8 @@ updateZone(struct dbw_db *db, struct dbw_zone *zone, const time_t now,
 
      ods_log_verbose("[%s] %s: processing %s with policyName %s",
          module_str, scmd, zone->name, policy->name);
-    track_ttls(zone, now);
+    if(track_ttls(zone, now))
+        dbw_mark_dirty(db, zone);        
     generate_missing_keystates(db, zone, now);
 
     int stable = 0;
@@ -1074,7 +1077,7 @@ updateZone(struct dbw_db *db, struct dbw_zone *zone, const time_t now,
                 }
 
                 if (keystate->type == DBW_DS && handle_ds_at_parent(key, next_state))
-                    dbw_mark_dirty(key);
+                    dbw_mark_dirty(db, key);
 
                 /* We've passed all tests! Make the transition. */
                 ods_log_verbose("[%s] %s: Transitioning %s %s %s from %s to %s", module_str, scmd,
@@ -1088,14 +1091,14 @@ updateZone(struct dbw_db *db, struct dbw_zone *zone, const time_t now,
                 keystate->last_change = now;
                 keystate->ttl = getZoneTTL(zone, keystate->type, now);
                 /* we don't want DELETED or INSERTED to be marked UPDATE */
-                dbw_mark_dirty(keystate);
+                dbw_mark_dirty(db, keystate);
                 stable = 0; /* There have been changes. Keep processing */
                 /* Let the caller know there have been changes to the zone */
                 *zone_updated = 1;
 
                 if (!zone->signconf_needs_writing) {
                     zone->signconf_needs_writing = 1;
-                    dbw_mark_dirty(zone);
+                    dbw_mark_dirty(db, zone);
                 }
                 markSuccessors(db, zone, key, keystate->type, next_state);
             }
@@ -1223,7 +1226,6 @@ setnextroll(struct dbw_zone *zone, enum dbw_key_role role, time_t t)
         default:
             ods_log_assert(0);
     }
-    dbw_mark_dirty(zone);
 }
 
 static int
@@ -1255,7 +1257,6 @@ set_roll(struct dbw_zone *zone, enum dbw_key_role role, int roll_flag)
         default:
             ods_log_assert(0);
     }
-    dbw_mark_dirty(zone);
 }
 
 static int
@@ -1309,7 +1310,7 @@ updatePolicy(engine_type *engine, struct dbw_db *db, struct dbw_zone *zone, cons
         if (!key->introducing) continue; /* already know as old */
         if (!existsPolicyForKey(policy, key)) {
             key->introducing = 0;
-            dbw_mark_dirty(key);
+            dbw_mark_dirty(db, key);
         }
     }
 
@@ -1322,7 +1323,7 @@ updatePolicy(engine_type *engine, struct dbw_db *db, struct dbw_zone *zone, cons
         if (!zone->signconf_needs_writing) {
             zone->signconf_needs_writing = 1;
             *zone_updated = 1;
-            dbw_mark_dirty(zone);
+            dbw_mark_dirty(db, zone);
         }
     } else {
         *allow_unsigned = 0;
@@ -1344,6 +1345,7 @@ updatePolicy(engine_type *engine, struct dbw_db *db, struct dbw_zone *zone, cons
             if (inception != -1 && t_ret > now) {
                 minTime(t_ret, &return_at);
                 setnextroll(zone, pkey->role, t_ret);
+                dbw_mark_dirty(db, zone);
                 *zone_updated = 1;
                 continue;
             }
@@ -1357,6 +1359,7 @@ updatePolicy(engine_type *engine, struct dbw_db *db, struct dbw_zone *zone, cons
          * work to do otherwise. */
         if (lifetime_too_short(policy, pkey)) {
             setnextroll(zone, pkey->role, now);
+            dbw_mark_dirty(db, zone);
             *zone_updated = 1;
             continue;
         }
@@ -1375,6 +1378,7 @@ updatePolicy(engine_type *engine, struct dbw_db *db, struct dbw_zone *zone, cons
                 "policy %s, retry in %d seconds",
                 module_str, scmd, policy->name, NOKEY_TIMEOUT);
             minTime(now + NOKEY_TIMEOUT, &return_at);
+            dbw_mark_dirty(db, zone);
             setnextroll(zone, pkey->role, now);
             *zone_updated = 1;
             continue;
@@ -1391,8 +1395,8 @@ updatePolicy(engine_type *engine, struct dbw_db *db, struct dbw_zone *zone, cons
         }
 
         struct dbw_key *key = calloc(1, sizeof (struct dbw_key));
-        dbw_add(&zone->key, &zone->key_count, key);
-        dbw_add(&hkey->key, &hkey->key_count, key);
+        dbw_add(db, &zone->key, &zone->key_count, key);
+        dbw_add(db, &hkey->key, &hkey->key_count, key);
         key->zone = zone;
         key->hsmkey = hkey;
         key->keystate_count = 0;
@@ -1407,6 +1411,7 @@ updatePolicy(engine_type *engine, struct dbw_db *db, struct dbw_zone *zone, cons
 
         time_t t_ret = addtime(now, pkey->lifetime);
         minTime(t_ret, &return_at);
+        dbw_mark_dirty(db, zone);
         setnextroll(zone, pkey->role, t_ret);
         *zone_updated = 1;
 
@@ -1427,7 +1432,7 @@ updatePolicy(engine_type *engine, struct dbw_db *db, struct dbw_zone *zone, cons
             if (oldkey == key) continue;
 
             oldkey->introducing = 0;
-            dbw_mark_dirty(oldkey);
+            dbw_mark_dirty(db, oldkey);
             *zone_updated = 1;
             ods_log_verbose("[%s] %s: decommissioning old key: %s",
                 module_str, scmd, oldkey->hsmkey->locator);
@@ -1437,14 +1442,14 @@ updatePolicy(engine_type *engine, struct dbw_db *db, struct dbw_zone *zone, cons
         if (enforce_roll(zone, pkey)) {
             set_roll(zone, pkey->role, 0);
             *zone_updated = 1;
-            dbw_mark_dirty(zone);
+            dbw_mark_dirty(db, zone);
         }
     }
     return return_at;
 }
 
 static time_t
-removeDeadKeys(struct dbw_zone *zone, const time_t now)
+removeDeadKeys(struct dbw_db* db, struct dbw_zone *zone, const time_t now)
 {
     static const char *scmd = "removeDeadKeys";
     time_t first_purge = -1;
@@ -1480,14 +1485,14 @@ removeDeadKeys(struct dbw_zone *zone, const time_t now)
 
         if (!zone->signconf_needs_writing) {
             zone->signconf_needs_writing = 1;
-            dbw_mark_dirty(zone);
+            dbw_mark_dirty(db, zone);
         }
     }
     return first_purge;
 }
 
 static int
-set_key_flags(struct dbw_zone *zone)
+set_key_flags(struct dbw_db* db, struct dbw_zone *zone)
 {
     /* Always set these flags. Normally this needs to be done _only_ when the
      * Signer config needs writing. However a previous Signer config might not
@@ -1520,7 +1525,7 @@ set_key_flags(struct dbw_zone *zone)
         }
         if (mod_key) {
             mod_zone = 1;
-            dbw_mark_dirty(key);
+            dbw_mark_dirty(db, key);
         }
     }
     return mod_zone;
@@ -1567,10 +1572,10 @@ update(engine_type *engine, struct dbw_db *db, struct dbw_zone *zone, time_t now
     /*Only purge old keys if the policy says so.*/
     time_t purge_return_time = -1;
     if (zone->policy->keys_purge_after) {
-        purge_return_time = removeDeadKeys(zone, now);
+        purge_return_time = removeDeadKeys(db, zone, now);
     }
 
-    if (set_key_flags(zone)) { /* active and publish flags in signconf */
+    if (set_key_flags(db, zone)) { /* active and publish flags in signconf */
         *zone_updated = 1;
     }
 

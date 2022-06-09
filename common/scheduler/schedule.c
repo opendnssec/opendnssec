@@ -48,6 +48,7 @@
 #include "log.h"
 #include "locks.h"
 #include "util.h"
+#include "utilities.h"
 
 static const char* schedule_str = "scheduler";
 

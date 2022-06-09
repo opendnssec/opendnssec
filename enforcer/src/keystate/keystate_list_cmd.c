@@ -182,33 +182,21 @@ perform_keystate_list(int sockfd, db_connection_t *dbconn, const char* zonename,
     int keyrole, const char* keystate, void (printheader)(int sockfd),
     void (printkey)(int sockfd, struct dbw_key *key, char* tchange))
 {
+    struct dbw_db *db;
     if (printheader) (*printheader)(sockfd);
-
-    char** zonenames = NULL;
-    int nzonenames;
-    if (!zonename) {
-        struct dbw_db *db = dbw_fetch(dbconn, "policies and zone names ro");
-        nzonenames = 0;
-        int k = 0;
-        for (int i = 0; i < db->npolicies; i++)
-            nzonenames += db->policies[i]->zone_count;
-        zonenames = malloc(sizeof(char*)*nzonenames);
-        for (int i = 0; i < db->npolicies; i++)
-            for (int j = 0; j < db->policies[i]->zone_count; j++)
-                zonenames[k++] = strdup(db->policies[i]->zone[j]->name);
-        dbw_free(db);
-    } else {
-        zonenames = malloc(sizeof(char*));
-        zonenames[0] = strdup(zonename);
-        nzonenames = 1;
-    }
-    for(int i=0; i<nzonenames; i++) {
-        struct dbw_db *db = dbw_fetch(dbconn, "zone with keys ro", zonenames[i]);
-        struct dbw_zone *zone = dbw_FIND(struct dbw_zone*, db->zones, name, db->nzones, zonenames[i]);
+    if(zonename) {
+        db = dbw_fetch(dbconn, "specific zone with keys ro", zonename);
+        struct dbw_zone *zone = dbw_FIND(struct dbw_zone*, db->zones, name, db->nzones, zonename);
         if (zone)
             print_sorted_keys(sockfd, keyrole, keystate, zone, printkey);
-        dbw_free(db);
-        free(zonenames[i]);
+        dbw_end_unmodified(&db);
+    } else {
+        db = dbw_fetch(dbconn, "all policies and zones with keys");
+        for (int i = 0; i < db->npolicies; i++)
+            for (int j = 0; j < db->policies[i]->zone_count; j++)
+                if(db->policies[i]->zone[j])
+                    print_sorted_keys(sockfd, keyrole, keystate, db->policies[i]->zone[j], printkey);
+        dbw_end_unmodified(&db);
     }
     return 0;
 }

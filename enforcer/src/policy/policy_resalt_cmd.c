@@ -124,13 +124,13 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
     }
     struct dbw_db *db = dbw_fetch(dbconn, "all policies readonly");
     if (policy) {
-        struct dbw_policy* policy = dbw_FINDSTR(struct dbw_policy*, db->policies, name, db->npolicies, policy->name);
-        resalt_task_flush(engine, policy);
+        struct dbw_policy* policyptr = dbw_FINDSTR(struct dbw_policy*, db->policies, name, db->npolicies, policy);
+        resalt_task_flush(engine, policyptr);
     } else {
         for(int i=0; i<db->npolicies; i++)
             resalt_task_flush(engine, db->policies[i]);
     }
-    dbw_free(db);
+    dbw_end_unmodified(&db);
     return 0;
 }
 

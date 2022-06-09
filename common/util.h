@@ -124,17 +124,4 @@ size_t util_b64_pton_calculate_size(size_t srcsize);
  */
 int util_pidfile_avail(const char* pidfile);
 
-/**
- * Clamp an integer value between a lower and an upper bound.
- *
- * In effect a combination of a min() and max() call this function
- * will return the value as long as it lies between the lower and
- * upper bound.  If smaller (or equal) to the lower bound it will
- * return the lower bound and likewise if larger or equal to the
- * upper, the upper bound.  The result may be either lower or 
- * upper bound if the upper bound is smaller than the lower bound.
- */
-int clamp(int value, int lbnd, int ubnd);
-
-
 #endif /* UTIL_UTIL_H */
