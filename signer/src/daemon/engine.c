@@ -47,6 +47,7 @@
 #include "signertasks.h"
 #include "signercommands.h"
 
+#include <ctype.h>
 #include <errno.h>
 #include <libxml/parser.h>
 #include <signal.h>
@@ -785,6 +786,18 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize, int info
         goto earlyexit;
     }
     if (info) {
+        char* stacktrace;
+        char* stacktraceptr;
+        stacktrace = janitor_backtrace_string();
+        stacktraceptr = strchr(stacktrace,'\n');
+        if(stacktraceptr)
+            *stacktraceptr = '\0';
+        stacktraceptr = stacktrace;
+        while(*stacktraceptr && isspace(*stacktraceptr))
+            ++stacktraceptr;
+        fprintf(stdout, "Stacktrace check: %s\n",stacktraceptr);
+        free(stacktrace);
+        fprintf(stdout, "Configuration:\n");
         engine_config_print(stdout, engine->config); /* for debugging */
         goto earlyexit;
     }
