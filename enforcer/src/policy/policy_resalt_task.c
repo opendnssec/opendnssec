@@ -55,7 +55,6 @@
 #include "signconf/signconf_task.h"
 
 static const char *module_str = "policy_resalt_task";
-static const time_t TIME_INF = ((time_t)-1);
 
 /**
  * Generate salt of len bytes, make sure prng is seeded.
@@ -101,8 +100,8 @@ to_hex(const char *buf, int len, char *out)
  * when done.
  */
 static time_t 
-perform_policy_resalt(task_type* task, char const *policyname, void *userdata,
-	void *context)
+performresalt(task_type* task, char const *policyname, void *userdata,
+	void *context, int do_now)
 {
 	policy_t *policy;
         db_connection_t *dbconn = (db_connection_t *) context;
@@ -129,9 +128,9 @@ perform_policy_resalt(task_type* task, char const *policyname, void *userdata,
 	resalt_time = policy_denial_salt_last_change(policy) +
 		policy_denial_resalt(policy);
 
-	if (now >= resalt_time) {
+	if (now >= resalt_time || do_now) {
 		saltlength = policy_denial_salt_length(policy);
-		if (saltlength <= 0 || saltlength > 255) {
+		if (saltlength < 0 || saltlength > 255) {
 			ods_log_error("[%s] policy %s has an invalid salt length. "
 				"Must be in range [0..255]", module_str, policy_name(policy));
 			policy_free(policy);
@@ -157,22 +156,27 @@ perform_policy_resalt(task_type* task, char const *policyname, void *userdata,
 		resalt_time = now + policy_denial_resalt(policy);
 		ods_log_debug("[%s] policy %s resalted successfully", module_str, policy_name(policy));
 		signconf_task_flush_policy(engine, dbconn, policy);
-	}
+        }
 	if (policy_denial_resalt(policy) <= 0) resalt_time = -1;
 	policy_free(policy);
 	return resalt_time;
 }
 
-static task_type *
-policy_resalt_task(char const *owner, engine_type *engine)
+static time_t 
+perform_policy_resalt(task_type* task, char const *policyname, void *userdata, void *context)
 {
-	return task_create(strdup(owner), TASK_CLASS_ENFORCER, TASK_TYPE_RESALT,
-		perform_policy_resalt, engine, NULL, time_now());
+    return performresalt(task, policyname, userdata, context, 0);
+}
+
+static time_t 
+perform_policy_forceresalt(task_type* task, char const *policyname, void *userdata, void *context)
+{
+    return performresalt(task, policyname, userdata, context, 1);
 }
 
 /*
  * Schedule resalt tasks for all policies. 
- * */
+ */
 int
 flush_resalt_task_all(engine_type *engine, db_connection_t *dbconn)
 {
@@ -191,8 +195,33 @@ flush_resalt_task_all(engine_type *engine, db_connection_t *dbconn)
 	}
 
 	while ((policy = policy_list_next(policylist))) {
-		task = policy_resalt_task(policy_name(policy), engine);
-		status |= schedule_task(engine->taskq, task, 1, 0);
+            task = task_create(strdup(policy_name(policy)), TASK_CLASS_ENFORCER, TASK_TYPE_RESALT, perform_policy_resalt, engine, NULL, time_now());
+            status |= schedule_task(engine->taskq, task, 1, 0);
+	}
+	policy_list_free(policylist);
+	return status;
+}
+
+int
+flush_resalt_task_now(engine_type *engine, db_connection_t *dbconn)
+{
+
+	policy_list_t *policylist;
+	const policy_t *policy;
+	task_type *task;
+	int status = ODS_STATUS_OK;
+
+	policylist = policy_list_new(dbconn);
+	if (policy_list_get(policylist)) {
+		ods_log_error("[%s] Unable to get list of policies from database",
+			module_str);
+		policy_list_free(policylist);
+		return ODS_STATUS_ERR;
+	}
+
+	while ((policy = policy_list_next(policylist))) {
+            task = task_create(strdup(policy_name(policy)), TASK_CLASS_ENFORCER, TASK_TYPE_RESALT, perform_policy_forceresalt, engine, NULL, time_now());
+            status |= schedule_task(engine->taskq, task, 1, 0);
 	}
 	policy_list_free(policylist);
 	return status;

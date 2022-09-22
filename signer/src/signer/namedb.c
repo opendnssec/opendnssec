@@ -987,7 +987,7 @@ namedb_wipe_denial(namedb_type* db)
         zone = (zone_type*) db->zone;
         ods_log_assert(zone);
         ods_log_assert(zone->name);
-        ods_log_debug("[%s] wipe denial of existence space zone %s", db_str,
+        ods_log_info("[%s] wipe denial of existence space zone %s", db_str,
             zone->name);
         node = ldns_rbtree_first(db->denials);
         while (node && node != LDNS_RBTREE_NULL) {
