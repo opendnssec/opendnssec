@@ -1948,7 +1948,8 @@ getLastReusableKey(key_data_list_t *key_list, const policy_key_t *pkey)
 		if ((~hsm_key_role(hkey) & policy_key_role(pkey)) != 0 ||
 			/** hsmkey must be in use already. Allocating UNUSED keys is a
 			 * job for the keyfactory */
-			hkey->state == HSM_KEY_STATE_UNUSED )
+			hkey->state == HSM_KEY_STATE_UNUSED ||
+			hkey->state == HSM_KEY_STATE_DELETE )
 		{
 			hsm_key_free(hkey);
 			continue;

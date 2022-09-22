@@ -64,7 +64,7 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
     engine_type* engine = getglobalcontext(context);
     (void)cmd;
 	
-	return flush_resalt_task_all(engine, dbconn);
+	return flush_resalt_task_now(engine, dbconn);
 }
 
 struct cmd_func_block resalt_funcblock = {

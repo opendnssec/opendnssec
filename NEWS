@@ -1,3 +1,12 @@
+OpenDNSSEC 2 1.11 - 2022-09-TBD
+
+* Improper re-use of already used keys when using <SharedKeys/> as
+  a consequence of previous bug in 2.1.6
+* Improved reporting upon segmentation faults or similar aborts.
+* Fix for migration to resalt of length 0.
+* Fix for upstream nameserver, implementing IXFR but without support
+  for IXFR for that specific zone and responding without AXFR.
+
 OpenDNSSEC 2.1.10 - 2021-09-10
 
 * OPENDNSSEC-957: Fix exit code signer daemon to not always report failure.

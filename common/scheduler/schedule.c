@@ -385,6 +385,7 @@ schedule_task(schedule_type* schedule, task_type* task, int replace, int log)
                 existing_task->freedata(existing_task->userdata);
             existing_task->userdata = task->userdata;
             existing_task->freedata = task->freedata;
+            existing_task->callback = task->callback;
             task->userdata = NULL; /* context is now assigned to existing_task, prevent it from freeing */
             task_destroy(task);
             ods_log_assert(ldns_rbtree_insert(schedule->tasks, node1));
