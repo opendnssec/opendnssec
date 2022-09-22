@@ -834,6 +834,23 @@ hsm_key_factory_delete_key(const db_connection_t* connection)
     db_clause_list_free(clause_list);
 
     while((hsm_key = hsm_key_list_get_next(hsm_key_list))) {
+
+    key_data_t* key_data;
+    int count;
+    db_clause_list_t* lookup_clause_list;
+    if (!(lookup_clause_list = db_clause_list_new())
+        || !(key_data = key_data_new(connection))
+        || !key_data_hsm_key_id_clause(lookup_clause_list, hsm_key_id(hsm_key))
+        || key_data_count(key_data, lookup_clause_list, &count))
+    {
+        ods_log_debug("[hsm_key_factory_delete_key] unable to check usage of hsm_key, database or memory allocation error");
+        count = -1;
+    }
+    key_data_free(key_data);
+    db_clause_list_free(lookup_clause_list);
+    if(count != 0)
+        continue;
+
         hsmkey = hsm_find_key_by_id(hsm_ctx, hsm_key_locator(hsm_key));
         if(hsm_remove_key(hsm_ctx, hsmkey)) {
             // report on error
