@@ -1818,7 +1818,7 @@ updateZone(db_connection_t *dbconn, policy_t const *policy, zone_db_t* zone,
                      */
                     if (key_data_updated) {
                         if (key_data_update(keylist[i])) {
-                            ods_log_error("[%s] %s: key data update failed", module_str, scmd);
+                            ods_log_info("[%s] %s: key data update failed", module_str, scmd);
                             process = 0;
                             break;
                         }
@@ -2667,7 +2667,11 @@ removeDeadKeys(db_connection_t *dbconn, key_data_t** keylist,
     int deleteCount = hsm_key_factory_delete_key(dbconn);
     ods_log_info("[%s] %s: keys deleted from HSM: %d", module_str, scmd, deleteCount);
 
-	return first_purge;
+    if(deleteCount > 0) {
+        return -1 - deleteCount;
+    } else {
+        return first_purge;
+    }
 }
 
 time_t
@@ -2802,6 +2806,11 @@ update(engine_type *engine, db_connection_t *dbconn, zone_db_t *zone, policy_t c
 	if (policy_keys_purge_after(policy) && keylist) {
 	    purge_return_time = removeDeadKeys(dbconn, keylist, keylist_size, deplist, now,
 	        policy_keys_purge_after(policy));
+            if(purge_return_time < -1) {
+                ods_log_error("[%s] reschedule enforcing policy due to deleting keys", module_str, scmd);
+                /* Keys have been deleted, we cannot continue in this same session, reschedule. */
+                return now + 60;
+            }
 	}
     
     
