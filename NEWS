@@ -1,4 +1,4 @@
-OpenDNSSEC 2 1.11 - 2022-09-TBD
+OpenDNSSEC 2.1.11 - 2022-09-17
 
 * Improper re-use of already used keys when using <SharedKeys/> as
   a consequence of previous bug in 2.1.6
@@ -6,6 +6,7 @@ OpenDNSSEC 2 1.11 - 2022-09-TBD
 * Fix for migration to resalt of length 0.
 * Fix for upstream nameserver, implementing IXFR but without support
   for IXFR for that specific zone and responding without AXFR.
+* Degraded log message key_update_failed because this action is retried.
 
 OpenDNSSEC 2.1.10 - 2021-09-10
 
