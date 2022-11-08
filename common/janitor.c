@@ -665,6 +665,13 @@ char*
 janitor_backtrace_string(void)
 {
     char* string = NULL;
+#ifdef HAVE_BACKTRACE
+    Dl_info btinfo;
+    void *bt[20];
+    const char* symb;
+    int count, i, siz, len;
+#endif
+
 #ifdef HAVE_BACKTRACE_FULL
     if(frames == NULL) {
         frames = backtrace_create_state(NULL, 0, (backtrace_error_callback) errorhandler, NULL);
@@ -672,6 +679,30 @@ janitor_backtrace_string(void)
     pthread_mutex_lock(&frameslock);
     backtrace_full(frames, 1, (backtrace_full_callback) callbackstring, (backtrace_error_callback) errorhandler, &string);
     pthread_mutex_unlock(&frameslock);
+#else
+#ifdef HAVE_BACKTRACE
+    count = backtrace(bt, sizeof (bt) / sizeof (void*));
+    for (i = 1; i < count; i++) {
+        dladdr(bt[i], &btinfo);
+        if (btinfo.dli_sname != NULL) {
+            symb = btinfo.dli_sname;
+            if (!strcmp(btinfo.dli_sname, "main"))
+                break;
+        } else
+            symb = "unknown";
+        siz = 2 + strlen(symb) + 1;
+        if (string != NULL) {
+            len = strlen(string);
+            siz += len + 1;
+            string = realloc(string, siz);
+        } else {
+            len = 0;
+            siz += 1;
+            string = malloc(siz);
+        }
+        snprintf(&(string[len]), siz-len, "  %s\n", symb);
+    }
+#endif
 #endif
     return string;
 }
