@@ -1,20 +1,24 @@
 #global prever rcX
 %global _hardened_build 1
  
+%global _enable_debug_package 0
+%global debug_package %{nil}
+%define __spec_install_post %{nil}
+ 
 Summary: DNSSEC key and zone management software
 Name: opendnssec
-Version: 2.1.10
+Version: 2.1.12
 Release: 1%{?dist}
 License: BSD
-Url: http://www.opendnssec.org/
-Source0: http://www.opendnssec.org/files/source/%{?prever:testing/}%{name}-%{version}%{?prever}.tar.gz
+Url: https://www.opendnssec.org/
+Source0: https://www.opendnssec.org/files/source/%{?prever:testing/}%{name}-%{version}%{?prever}.tar.gz
 Source1: ods-enforcerd.service
 Source2: ods-signerd.service
 Source3: ods.sysconfig
 Source4: tmpfiles-opendnssec.conf
 Source5: opendnssec.cron
  
-Requires: softhsm >= 2.1.0, systemd-units, libxml2, sqlite
+Requires: softhsm >= 2.1.0, systemd-units, libxml2, sqlite, libunwind, libunwind-devel
 BuildRequires: make
 BuildRequires: gcc
 BuildRequires: ldns-devel >= 1.6.12, sqlite-devel >= 3.0.0, openssl-devel
@@ -50,7 +54,7 @@ export CXXFLAGS="$RPM_OPT_FLAGS -fPIE -pie -Wformat-nonliteral -Wformat-security
 %if 0%{?prever:1}
 sh ./autogen.sh
 %endif
-%configure --with-ldns=%{_libdir} --enable-installation-user=ods --enable-installation-group=ods --with-pkcs11-softhsm=/usr/lib64/libsofthsm2.so
+%configure --with-ldns=%{_libdir} --enable-installation-user=ods --enable-installation-group=ods --with-pkcs11-softhsm=/usr/lib64/libsofthsm2.so --with-libunwind
 make %{?_smp_mflags}
  
 %check
@@ -58,6 +62,7 @@ make %{?_smp_mflags}
 # make check
  
 %install
+export DONT_STRIP=1
 rm -rf %{buildroot}
 make DESTDIR=%{buildroot} install
 mkdir -p %{buildroot}%{_localstatedir}/opendnssec/{signer,signed,signconf,enforcer}
@@ -174,6 +179,10 @@ ods-enforcer update all >/dev/null 2>/dev/null ||:
 %systemd_postun_with_restart ods-signerd.service
  
 %changelog
+* Fri Nov 04 2022 Berry A.W. van Halderen <berry@halderen.net> - 2.1.12-1
+- Upstream release 2.1.12
+- Produce non-stripped binaries with symbols and include libunwind
+
 * Mon Sep 06 2021 Berry A.W. van Halderen <berry@halderen.net> - 2.1.10-1
 - Upstream release 2.1.10
 
