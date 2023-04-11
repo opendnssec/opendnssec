@@ -14,26 +14,17 @@ http://wiki.opendnssec.org/.
 Information about announcements, bug reporting and mailing lists can be found
 at http://www.opendnssec.org/support/.
 
-## Dependencies
+## Notice:
 
-OpenDNSSEC depends on  a number of external packages:
 
-- libxml2 (including xmllint)
-- LDNS
-- SQLite3
+    The develop branch is not the develop branch that is up for coming release, rather is for a future ODS-3.0 release.  The 2.1/develop branch is the current branch with fixes and active new developments for near term releases.
 
-To run OpenDNSSEC, one must have at least one crypto module providing a PKCS#11
-library, e.g. SoftHSM (http://www.opendnssec.org/softHSM)
+## Road Map
 
-When building from the source code repository, the following dependencies are
-also needed:
+Mid May: release OpenDNSSEC with High Availability and ZoneMD.  Also contains some new hooks (for next release).
 
-- A Java runtime environment (JRE/JDK)
+Early July: release OpenDNSSEC with CNDKEY and user available monitor and signalling hooks
 
-## Building from the source code repository
+Begin May: community commits based SoftHSMv2 release (pending Windows build currently).
 
-If the code is downloaded directly from the source code repository (git), you
-have to prepare the configuration scripts before continuing with build:
-
-1. Install automake, autoconf and libtool.
-2. Run the command autogen.sh to build configure scripts etc.
+August/September: Better insights in key rollover state (might be merged in July release in case July release runs late or already developed database migration proves to be already stable).
