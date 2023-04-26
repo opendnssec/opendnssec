@@ -1373,6 +1373,25 @@ hsm_get_id_for_object(hsm_ctx_t *ctx,
     return template[0].pValue;
 }
 
+/* returns an libhsm_key_t object for the given private/public key object handles
+ * the module, private key, and public key handle are set
+ */
+static libhsm_key_t *
+libhsm_key_new_privpubkey_object_handle(hsm_ctx_t *ctx,
+                                  const hsm_session_t *session,
+                                  CK_OBJECT_HANDLE priv_object,
+                                  CK_OBJECT_HANDLE pub_object)
+{
+    libhsm_key_t *key;
+
+    key = libhsm_key_new();
+    key->modulename = strdup(session->module->name);
+    key->private_key = priv_object;
+    key->public_key = pub_object;
+
+    return key;
+}
+
 /* returns an libhsm_key_t object for the given *private key* object handle
  * the module, private key, and public key handle are set
  * The session needs to be free to perform a search for the public key
@@ -1382,7 +1401,7 @@ libhsm_key_new_privkey_object_handle(hsm_ctx_t *ctx,
                                   const hsm_session_t *session,
                                   CK_OBJECT_HANDLE object)
 {
-    libhsm_key_t *key;
+    CK_OBJECT_HANDLE public_key;
     CK_BYTE *id;
     size_t len;
 
@@ -1390,11 +1409,7 @@ libhsm_key_new_privkey_object_handle(hsm_ctx_t *ctx,
 
     if (!id) return NULL;
 
-    key = libhsm_key_new();
-    key->modulename = strdup(session->module->name);
-    key->private_key = object;
-
-    key->public_key = hsm_find_object_handle_for_id(
+    public_key = hsm_find_object_handle_for_id(
                           ctx,
                           session,
                           CKO_PUBLIC_KEY,
@@ -1402,8 +1417,14 @@ libhsm_key_new_privkey_object_handle(hsm_ctx_t *ctx,
                           len);
 
     free(id);
-    return key;
+    return libhsm_key_new_privpubkey_object_handle(ctx, session, object, public_key);
 }
+
+typedef struct {
+    CK_OBJECT_HANDLE handle;
+    CK_BYTE *id;
+    size_t id_len;
+} libhsm_list_pubkey_t;
 
 /* helper function to find both key counts or the keys themselves
  * if the argument store is 0, results are not returned; the
@@ -1426,12 +1447,15 @@ hsm_list_keys_session_internal(hsm_ctx_t *ctx,
     };
     CK_ULONG total_count = 0;
     CK_ULONG objectCount = 1;
+    CK_ULONG total_pub_count = 0;
+    CK_ULONG new_total_pub_count;
     /* find 100 keys at a time (and loop until there are none left) */
     CK_ULONG max_object_count = 100;
     CK_ULONG i, j;
     CK_OBJECT_HANDLE object[max_object_count];
     CK_OBJECT_HANDLE *key_handles = NULL, *new_key_handles = NULL;
-  
+    libhsm_list_pubkey_t *pub_keys = NULL, *new_pub_keys = NULL;
+    int success = 0;
 
     rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_FindObjectsInit(session->session,
                                                  template, 1);
@@ -1487,27 +1511,125 @@ hsm_list_keys_session_internal(hsm_ctx_t *ctx,
                 goto err;
         } 
 
+        /* Query for all public key handles and match the IDs locally instead of
+         * individually querying the HSM to find every public key handle. This
+         * is faster if the HSM has an inefficient C_FindObjects implementation.
+         */
+        key_class = CKO_PUBLIC_KEY;
+        objectCount = 1;
+
+        rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_FindObjectsInit(session->session,
+                                                     template, 1);
+        if (hsm_pkcs11_check_error(ctx, rv, "Find objects init")) {
+            goto err;
+        }
+
+        j = 0;
+        while (objectCount > 0) {
+            rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_FindObjects(session->session,
+                                                     object,
+                                                     max_object_count,
+                                                     &objectCount);
+            if (hsm_pkcs11_check_error(ctx, rv, "Find first object")) {
+                rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_FindObjectsFinal(session->session);
+                hsm_pkcs11_check_error(ctx, rv, "Find objects cleanup");
+                goto err;
+            }
+
+            new_total_pub_count = total_pub_count + objectCount;
+            if (objectCount > 0) {
+                if (SIZE_MAX / sizeof(*pub_keys) < new_total_pub_count) {
+                    hsm_ctx_set_error(ctx, -1, "hsm_list_keys_session_internal",
+                        "Too much object handle returned by HSM to allocate pub_keys");
+                    goto err;
+                }
+
+                new_pub_keys = realloc(pub_keys, new_total_pub_count * sizeof(*pub_keys));
+                if (new_pub_keys != NULL) {
+                    pub_keys = new_pub_keys;
+                } else {
+                    hsm_ctx_set_error(ctx, -1, "hsm_list_keys_session_internal",
+                        "Error allocating memory for public key (OOM)");
+                    goto err;
+                }
+
+                total_pub_count = new_total_pub_count;
+
+                for (i = 0; i < objectCount; i++) {
+                    pub_keys[j].handle = object[i];
+                    pub_keys[j].id = NULL;
+                    pub_keys[j].id_len = 0;
+                    j++;
+                }
+            }
+        }
+
+        rv = ((CK_FUNCTION_LIST_PTR)session->module->sym)->C_FindObjectsFinal(session->session);
+        if (hsm_pkcs11_check_error(ctx, rv, "Find objects final")) {
+            goto err;
+        }
+
+        for (i = 0; i < total_pub_count; i++) {
+            pub_keys[i].id = hsm_get_id_for_object(ctx, session,
+                                        pub_keys[i].handle,
+                                        &pub_keys[i].id_len);
+        }
+
         CHECKALLOC(keys = malloc(total_count * sizeof(libhsm_key_t *)));
 
         for (i = 0; i < total_count; i++) {
-            key = libhsm_key_new_privkey_object_handle(ctx, session,
-                                                    key_handles[i]);
-            if(!key) {
-		    libhsm_key_list_free(keys, i);
-		    goto err;
-	    }
+            CK_BYTE *priv_id;
+            size_t priv_len;
+
+            priv_id = hsm_get_id_for_object(ctx, session, key_handles[i], &priv_len);
+            if (!priv_id) goto err;
+
+            for (j = 0; j < total_pub_count; j++) {
+                if (!pub_keys[j].id || pub_keys[j].id_len != priv_len)
+                    continue;
+
+                if (!memcmp(pub_keys[j].id, priv_id, priv_len))
+                    break;
+            }
+
+            free(priv_id);
+
+            if (j < total_pub_count) {
+                key = libhsm_key_new_privpubkey_object_handle(ctx, session,
+                        key_handles[i], pub_keys[j].handle);
+
+                // Use each public key once
+                free(pub_keys[j].id);
+                pub_keys[j].id = NULL;
+                pub_keys[j].id_len = 0;
+            } else {
+                // Fallback to querying the HSM again if the pubkey is somehow missing
+                key = libhsm_key_new_privkey_object_handle(ctx, session,
+                        key_handles[i]);
+            }
+            if (!key) goto err;
             keys[i] = key;
         }
     }
-    free(key_handles);
 
-    *count = total_count;
-    return keys;
+    success = 1;
 
 err:
     free(key_handles);
-    *count = 0;
-    return NULL;
+    for (i = 0; i < total_pub_count; i++)
+        free(pub_keys[j].id);
+    free(pub_keys);
+
+    if (success) {
+        *count = total_count;
+        return keys;
+    } else {
+        if (keys)
+            libhsm_key_list_free(keys, i);
+
+        *count = 0;
+        return NULL;
+    }
 }
 
 
