@@ -821,7 +821,7 @@ hsm_key_factory_delete_key(const db_connection_t* connection)
         return -1;
     }
     
-    ods_log_error("[hsm_key_factory_delete_key] looking for keys to purge from HSM");
+    ods_log_info("[hsm_key_factory_delete_key] looking for keys to purge from HSM");
     if (!(clause_list = db_clause_list_new())
         || !hsm_key_state_clause(clause_list, HSM_KEY_STATE_DELETE)
         //|| !hsm_key_is_revoked_clause(clause_list, 0)
@@ -834,6 +834,22 @@ hsm_key_factory_delete_key(const db_connection_t* connection)
     db_clause_list_free(clause_list);
 
     while((hsm_key = hsm_key_list_get_next(hsm_key_list))) {
+
+        key_data_t* key_data;
+        size_t numhsmkeys = 0;
+        db_clause_list_t* lookup_clause_list;
+        if(!(lookup_clause_list = db_clause_list_new())
+                || !(key_data = key_data_new(connection))
+                || !key_data_hsm_key_id_clause(lookup_clause_list, hsm_key_id(hsm_key))
+                || key_data_count(key_data, lookup_clause_list, &numhsmkeys)) {
+            ods_log_error("[hsm_key_factory_delete_key] unable to check usage of hsm_key, database or memory allocation error");
+            numhsmkeys = -1;
+        }
+        key_data_free(key_data);
+        db_clause_list_free(lookup_clause_list);
+        if(numhsmkeys != 0)
+            continue;
+
         hsmkey = hsm_find_key_by_id(hsm_ctx, hsm_key_locator(hsm_key));
         if(hsm_remove_key(hsm_ctx, hsmkey)) {
             // report on error
@@ -855,7 +871,7 @@ hsm_key_factory_delete_key(const db_connection_t* connection)
             db_clause_list_add(clause_list, clause);
             db_object_delete(hsm_key->dbo, clause_list);
             db_clause_list_free(clause_list);
-            ods_log_info("[hsm_key_factory_get_key] removing key %s from HSM", hsm_key_locator(hsm_key));
+            ods_log_info("[hsm_key_factory_delete_key] removing key %s from HSM", hsm_key_locator(hsm_key));
             ++count;
         }
     }

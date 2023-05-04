@@ -1195,6 +1195,7 @@ xfrd_handle_packet(xfrd_type* xfrd, buffer_type* buffer)
             /* continue with commit */
             break;
         case XFRD_PKT_NEWLEASE:
+	    xfrd->serial_notify_acquired = 0;
         case XFRD_PKT_TC:
             return res;
             break;
