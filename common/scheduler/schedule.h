@@ -66,7 +66,7 @@ struct schedule_struct {
     ldns_rbtree_t* tasks_by_name;
     /* For every ttuple contains a task structure with an unique lock */
     ldns_rbtree_t* locks_by_name;
-    fifoq_type* signq;
+    fifoq_type signq;
     pthread_cond_t schedule_cond;
     pthread_mutex_t schedule_lock;
     /* For testing. So we can verify al workers are waiting and nothing

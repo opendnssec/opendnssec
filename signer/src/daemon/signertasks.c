@@ -46,33 +46,16 @@
  *
  */
 static void
-worker_queue_rrset(struct worker_context* context, fifoq_type* q, rrset_type* rrset, long* nsubtasks)
+worker_queue_rrset(struct worker_context* context, signconf_type* sc, fifoq_type q, rrset_type* rrset, long* nsubtasks)
 {
-    ods_status status = ODS_STATUS_UNCHANGED;
-    int tries = 0;
-    ods_log_assert(q);
-    ods_log_assert(rrset);
-
-    pthread_mutex_lock(&q->q_lock);
-    status = fifoq_push(q, (void*) rrset, context, &tries);
-    while (status == ODS_STATUS_UNCHANGED) {
-        tries++;
-        if (context->worker->need_to_exit) {
-            pthread_mutex_unlock(&q->q_lock);
-            return;
-        }
-        /**
-         * Apparently the queue is full. Lets take a small break to not hog CPU.
-         * The worker will release the signq lock while sleeping and will
-         * automatically grab the lock when the queue is nonfull.
-         * Queue is nonfull at 10% of the queue size.
-         */
-        ods_thread_wait(&q->q_nonfull, &q->q_lock, 5);
-        status = fifoq_push(q, (void*) rrset, context, &tries);
+    struct fifoq_item item;
+    item.rrset = rrset;
+    item.jitter = duration2time(sc->sig_jitter);
+    if (item.jitter) {
+        item.jitter = ods_rand(item.jitter * 2) - item.jitter;;
     }
-    pthread_mutex_unlock(&q->q_lock);
-
-    ods_log_assert(status == ODS_STATUS_OK);
+    item.superior = context;
+    fifoq_push(q, item);
     *nsubtasks += 1;
 }
 
@@ -82,7 +65,7 @@ worker_queue_rrset(struct worker_context* context, fifoq_type* q, rrset_type* rr
  *
  */
 static void
-worker_queue_domain(struct worker_context* context, fifoq_type* q, domain_type* domain, long* nsubtasks)
+worker_queue_domain(struct worker_context* context, signconf_type* sc, fifoq_type q, domain_type* domain, long* nsubtasks)
 {
     rrset_type* rrset = NULL;
     denial_type* denial = NULL;
@@ -92,13 +75,13 @@ worker_queue_domain(struct worker_context* context, fifoq_type* q, domain_type* 
     rrset = domain->rrsets;
     while (rrset) {
         if (rrset->rrtype != LDNS_RR_TYPE_ZONEMD) {
-            worker_queue_rrset(context, q, rrset, nsubtasks);
+            worker_queue_rrset(context, sc, q, rrset, nsubtasks);
         }
         rrset = rrset->next;
     }
     denial = (denial_type*) domain->denial;
     if (denial && denial->rrset) {
-        worker_queue_rrset(context, q, denial->rrset, nsubtasks);
+        worker_queue_rrset(context, sc, q, denial->rrset, nsubtasks);
     }
 }
 
@@ -108,7 +91,7 @@ worker_queue_domain(struct worker_context* context, fifoq_type* q, domain_type* 
  *
  */
 static void
-worker_queue_zone(struct worker_context* context, fifoq_type* q, zone_type* zone, long* nsubtasks)
+worker_queue_zone(struct worker_context* context, fifoq_type q, zone_type* zone, long* nsubtasks)
 {
     ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     domain_type* domain = NULL;
@@ -123,7 +106,7 @@ worker_queue_zone(struct worker_context* context, fifoq_type* q, zone_type* zone
     }
     while (node && node != LDNS_RBTREE_NULL) {
         domain = (domain_type*) node->data;
-        worker_queue_domain(context, q, domain, nsubtasks);
+        worker_queue_domain(context, zone->signconf, q, domain, nsubtasks);
         node = ldns_rbtree_next(node);
     }
 }
@@ -153,40 +136,25 @@ worker_check_jobs(worker_type* worker, task_type* task, int ntasks, long ntasksf
 void
 drudge(worker_type* worker)
 {
-    rrset_type* rrset;
+    int count;
+    struct fifoq_item item;
+    
     ods_status status;
-    struct worker_context* superior;
     hsm_ctx_t* ctx = NULL;
     engine_type* engine;
-    fifoq_type* signq = worker->taskq->signq;
+    fifoq_type signq = worker->taskq->signq;
 
     while (worker->need_to_exit == 0) {
         ods_log_deeebug("[%s] report for duty", worker->name);
-        pthread_mutex_lock(&signq->q_lock);
-        superior = NULL;
-        rrset = (rrset_type*) fifoq_pop(signq, (void**)&superior);
-        if (!rrset) {
-            ods_log_deeebug("[%s] nothing to do, wait", worker->name);
-            /**
-             * Apparently the queue is empty. Wait until new work is queued.
-             * The drudger will release the signq lock while sleeping and
-             * will automatically grab the lock when the threshold is reached.
-             * Threshold is at 1 and MAX (after a number of tries).
-             */
-            pthread_cond_wait(&signq->q_threshold, &signq->q_lock);
-            if(worker->need_to_exit == 0)
-                rrset = (rrset_type*) fifoq_pop(signq, (void**)&superior);
-        }
-        pthread_mutex_unlock(&signq->q_lock);
-        /* do some work */
-        if (rrset) {
-            ods_log_assert(superior);
+        count = 1;
+        fifoq_pop(signq, &item, &count);
+        if (count > 0) {
             if (!ctx) {
                 ods_log_debug("[%s] create hsm context", worker->name);
                 ctx = hsm_create_context();
             }
             if (!ctx) {
-                engine = superior->engine;
+                engine = item.superior->engine;
                 ods_log_crit("[%s] error creating libhsm context", worker->name);
                 engine->need_to_reload = 1;
                 pthread_mutex_lock(&engine->signal_lock);
@@ -195,9 +163,9 @@ drudge(worker_type* worker)
                 ods_log_error("signer instructed to reload due to hsm reset while signing");
                 status = ODS_STATUS_HSM_ERR;
             } else {
-                status = rrset_sign(ctx, rrset, superior->clock_in);
+                status = rrset_sign(ctx, &item);
             }
-            fifoq_report(signq, superior->worker, status);
+            fifoq_report(signq, item.superior->worker, status);
         }
         /* done work */
     }
@@ -397,9 +365,13 @@ zomemdprocess(struct worker_context* context, zone_type* zone, rrset_type* zonem
 
     long nsubtasks = 0;
     long nsubtasksfailed = 0;
-    worker_queue_rrset(context, context->signq, zonemdrr, &nsubtasks);
+    worker_queue_rrset(context, zone->signconf, context->signq, zonemdrr, &nsubtasks);
     fifoq_waitfor(context->signq, context->worker, nsubtasks, &nsubtasksfailed);
 }
+
+struct signtaskargs {
+    time_t signtime;
+};
 
 time_t
 do_signzone(task_type* task, const char* zonename, void* zonearg, void *contextarg)
@@ -415,7 +387,14 @@ do_signzone(task_type* task, const char* zonename, void* zonearg, void *contexta
     long nsubtasks = 0;
     long nsubtasksfailed = 0;
 
-    context->clock_in = time_now();
+    struct signtaskargs* signtaskargs;
+    signtaskargs = task->userdata;
+
+    if(signtaskargs && signtaskargs->signtime > 0) {
+        context->signtime = signtaskargs->signtime;
+    } else {
+        context->signtime = time_now();
+    }
 
     status = zone_update_serial(zone);
     if (status != ODS_STATUS_OK) {
@@ -576,8 +555,9 @@ do_writezone(task_type* task, const char* zonename, void* zonearg, void *context
     worker_type* worker = context->worker;
     zone_type* zone = zonearg;
     ods_status status;
-    time_t resign;
-    context->clock_in = time_now(); /* TODO this means something different */
+    time_t resign = 0;
+    time_t signedtime = time_now(); /* TODO this means something different */
+
     /* perform write to output adapter task */
     status = tools_output(zone, engine);
     if (status != ODS_STATUS_OK) {
@@ -585,17 +565,16 @@ do_writezone(task_type* task, const char* zonename, void* zonearg, void *context
                 worker->name, task->owner, ods_status2str(status));
         return schedule_DEFER;
     }
-    if (zone->signconf &&
-            duration2time(zone->signconf->sig_resign_interval)) {
-        resign = context->clock_in +
-                duration2time(zone->signconf->sig_resign_interval);
-    } else {
+    if (zone->signconf && zone->signconf->sig_resign_interval) {
+        resign = signedtime + duration2time(zone->signconf->sig_resign_interval);
+    }
+    if(resign == 0) {
         ods_log_error("[%s] unable to retrieve resign interval "
                 "for zone %s: duration2time() failed",
                 worker->name, task->owner);
         ods_log_info("[%s] defaulting to 1H resign interval for "
                 "zone %s", worker->name, task->owner);
-        resign = context->clock_in + 3600;
+        resign = signedtime + 3600;
     }
     /* backup the last successful run */
     status = zone_backup2(zone, resign);

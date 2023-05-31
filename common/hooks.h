@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 NLNet Labs. All rights reserved.
+ * Copyright (c) 2023 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -24,32 +24,26 @@
  *
  */
 
-#ifndef SIGNERTASKS_H
-#define SIGNERTASKS_H
+#ifndef SCHEDULER_HOOKS_H
+#define SCHEDULER_HOOKS_H
 
 #include "config.h"
-#include <time.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <stdlib.h>
+#include <pthread.h>
+#include "log.h"
+#include "janitor.h"
 
-#include "scheduler/task.h"
-#include "scheduler/fifoq.h"
-#include "status.h"
-#include "locks.h"
+typedef void* hook_t;
 
-struct worker_context {
-    engine_type* engine;
-    worker_type* worker;
-    fifoq_type signq;
-    time_t signtime;
-};
+extern void hook_trigger(hook_t, const char* arg);
+extern int hook_ablock(hook_t);
+extern int hook_ablockrange(hook_t, long minimum, long maximum);
+extern int hook_ablockvalue(hook_t, long value);
+extern int hook_satisfy(hook_t);
+// extern int hook_satisfyvalue(hook_t long value);
+// extern int hook_satisfyrange(hook_t long minimum, long maximum);
 
-extern void drudge(worker_type* worker);
-extern void task_schedule_easy(const char* zonename, task_id class, task_id type, time_t(*fn)(task_type*,const char*,void*,void*), void*, time_t time);
-
-extern time_t do_readsignconf(task_type* task, const char* zonename, void* zonearg, void *contextarg);
-extern time_t do_forcereadsignconf(task_type* task, const char* zonename, void* zonearg, void *contextarg);
-extern time_t do_signzone(task_type* task, const char* zonename, void* zonearg, void *contextarg);
-extern time_t do_readzone(task_type* task, const char* zonename, void* zonearg, void *contextarg);
-extern time_t do_forcereadzone(task_type* task, const char* zonename, void* zonearg, void *contextarg);
-extern time_t do_writezone(task_type* task, const char* zonename, void* zonearg, void *contextarg);
-
-#endif /* SIGNERTASKS_H */
+#endif

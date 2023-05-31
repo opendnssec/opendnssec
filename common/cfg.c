@@ -266,7 +266,7 @@ engine_config(const char* cfgfile,
         valid |= settings_getstring(cfghandle, (char**)&ecfg->chroot_enforcer, settings_value_NULL, "//Configuration/Enforcer/Privileges/Directory");
         valid |= settings_getstring(cfghandle, (char**)&ecfg->chroot_signer, settings_value_NULL, "//Configuration/Signer/Privileges/Directory");
         valid |= settings_getstringdefault(cfghandle, (char**)&ecfg->pid_filename_enforcer, OPENDNSSEC_ENFORCER_PIDFILE, "//Configuration/Enforcer/PidFile");
-        valid |= settings_getstringdefault(cfghandle, (char**)&ecfg->pid_filename_signer, ODS_SE_PIDFILE, "//Configuration/Signer/PidFile");
+        valid |= settings_getstringdefault(cfghandle, (char**)&ecfg->pid_filename_signer, OPENDNSSEC_SIGNER_PIDFILE, "//Configuration/Signer/PidFile");
         valid |= settings_getstringdefault(cfghandle, (char**)&ecfg->datastore, "KASP", "//Configuration/Enforcer/Datastore/MySQL/Database");
         valid |= settings_getstring(cfghandle, (char**)&ecfg->db_host, settings_value_NULL, "//Configuration/Enforcer/Datastore/MySQL/Host");
         valid |= settings_getstring(cfghandle, (char**)&ecfg->db_username, settings_value_NULL, "//Configuration/Enforcer/Datastore/MySQL/Username");
@@ -619,7 +619,7 @@ int
 parse_conf_logging(const char* cfgfile, int cmdline_verbosity, int* verbosity, int* use_syslog, char**log_filename)
 {
     int valid = 0;
-    settings_handle cfghandle;
+    settings_handle cfghandle = NULL;
     settings_access(&cfghandle, -1, cfgfile);
     valid |= engine_config_logging(cfghandle, cmdline_verbosity, verbosity, use_syslog, log_filename);
     settings_access(&cfghandle, -1, NULL);

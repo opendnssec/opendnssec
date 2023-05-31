@@ -273,6 +273,7 @@ engine_stop_threads(engine_type* engine)
         engine->workers[i]->need_to_exit = 1;
     }
     ods_log_debug("[%s] notify workers and drudgers", engine_str);
+    fifoq_terminate(engine->taskq->signq);
     schedule_release_all(engine->taskq);
 
     for (i=0; i < numTotalWorkers; i++) {

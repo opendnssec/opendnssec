@@ -157,7 +157,7 @@ settings__parselocate_xml(document_type document, node_type node, const char* fm
             }
         }
     }
-    
+
     xpathCtx = xmlXPathNewContext(document);
     xpathObj = xmlXPathEvalExpression((unsigned char*)path, xpathCtx);
     if (xpathObj == NULL || xpathObj->nodesetval == NULL || xpathObj->nodesetval->nodeNr <= 0) {
@@ -193,102 +193,3 @@ settings__access_xml(document_type olddocument, int fd)
     document = xmlReadFd(fd, "xml", NULL, 0);
     return document;
 }
-
-
-
-#ifdef NOTDEFINED
-    {
-      XercesDOMParser domParser;
-      bfs::path pXSD = absolute(schemaFilePath);      
-      if (domParser.loadGrammar(pXSD.string().c_str(), Grammar::SchemaGrammarType) == NULL)
-      {
-        throw Except("couldn't load schema");
-      }
-
-      ParserErrorHandler parserErrorHandler;
-
-      domParser.setErrorHandler(&parserErrorHandler);
-      domParser.setValidationScheme(XercesDOMParser::Val_Always);
-      domParser.setDoNamespaces(true);
-      domParser.setDoSchema(true);
-      domParser.setValidationSchemaFullChecking(true);
-
-      domParser.setExternalNoNamespaceSchemaLocation(pXSD.string().c_str());
-
-      domParser.parse(xmlFilePath.c_str());
-      if(domParser.getErrorCount() != 0)
-      {     
-        throw Except("Invalid XML vs. XSD: " + parserErrorHandler.getErrors()); //merge a error coming from my interceptor ....
-      }
-    }
-    XMLPlatformUtils::Terminate();
-
-    int	xmlValidateDtdFinal		(xmlValidCtxtPtr ctxt, 
-					 xmlDocPtr doc)
-    int	xmlValidateDtd			(xmlValidCtxtPtr ctxt, 
-					 xmlDocPtr doc, 
-					 xmlDtdPtr dtd)
-#ifdef NOTDEFINED
-extern int settings_xflong(settings_handle, long* value, const long* defaultvalue, const char* fmt,...);
-extern int settings_xflong(settings_handle, long** value, const char* fmt,...);
-
-update
-write
-read
-free
-#endif
-
-#endif
-
-int
-testxml(void)
-{
-    char* cfgfile = "ROOT/etc/opendnssec/kasp.xml";
-    char* expr = "/KASP/Policy[@name=\"labs\"]/Keys/ZSK";
-    const char* value;
-    int required = 1;
-
-    int status = 1;
-    xmlDocPtr doc = NULL;
-    xmlXPathContextPtr xpathCtx = NULL;
-    xmlXPathObjectPtr xpathObj = NULL;
-    xmlNode* curNode;
-
-    doc = xmlParseFile(cfgfile);
-    if (doc == NULL)
-        goto exit;
-    xpathCtx = xmlXPathNewContext(doc);
-    if (xpathCtx == NULL)
-        goto exit;
-
-    xpathObj = xmlXPathEvalExpression((unsigned char*)expr, xpathCtx);
-    if (xpathObj == NULL || xpathObj->nodesetval == NULL || xpathObj->nodesetval->nodeNr <= 0) {
-        if (required)
-            goto exit;
-        else
-            goto exit;
-    }
-    if(xpathObj->nodesetval->nodeNr > 0) {
-        value = (const char*) xmlXPathCastToString(xpathObj);
-        printf("%s\n",value);
-        for(int i=0; i<xpathObj->nodesetval->nodeNr; i++) {
-            for(curNode = xpathObj->nodesetval->nodeTab[i]->xmlChildrenNode; curNode; curNode=curNode->next) {
-                printf("\t%d=%s\n",i,curNode->content);
-            }
-        }
-    }
-    //name = (char *) xmlGetProp(xpathObj->nodesetval->nodeTab[i], (const xmlChar *)"name");
-    //value = (const char*) xmlXPathCastToString(xpathObj);
-    
-    status = 0;
-
-  exit:
-    if (xpathObj)
-        xmlXPathFreeObject(xpathObj);
-    if(xpathCtx)
-        xmlXPathFreeContext(xpathCtx);
-    if(doc)
-        xmlFreeDoc(doc);
-    return status;
-}
-

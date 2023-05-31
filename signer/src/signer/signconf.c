@@ -90,7 +90,7 @@ parse_conf_signconf(signconf_type* signconf, const char* scfile)
     int nsec;
     int count;
     int intvalue;
-    int valid = 0;
+    int invalid = 0;
 
     settings_access(&handle, -1, scfile);
     signconf->filename = strdup(scfile);
@@ -98,13 +98,22 @@ parse_conf_signconf(signconf_type* signconf, const char* scfile)
     settings_getbool(handle, &passthrough, "//SignerConfiguration/Zone/Passthrough");
     settings_getbool(handle, &zonemd, "//SignerConfiguration/Zone/ZoneMD/@algorithm");
     signconf->zonemodus = passthrough|(zonemd<<1);
-    settings_getduration2(handle, &signconf->sig_resign_interval, "//SignerConfiguration/Zone/Signatures/Resign");
-    settings_getduration2(handle, &signconf->sig_refresh_interval, "//SignerConfiguration/Zone/Signatures/Refresh");
-    settings_getduration2(handle, &signconf->sig_validity_default, "//SignerConfiguration/Zone/Signatures/Validity/Default");
-    settings_getduration2(handle, &signconf->sig_validity_denial, "//SignerConfiguration/Zone/Signatures/Validity/Denial");
-    settings_getduration2(handle, &signconf->sig_validity_keyset, "//SignerConfiguration/Zone/Signatures/Validity/Keyset");
-    settings_getduration2(handle, &signconf->sig_jitter, "//SignerConfiguration/Zone/Signatures/Jitter");
-    settings_getduration2(handle, &signconf->sig_inception_offset, "//SignerConfiguration/Zone/Signatures/InceptionOffset");
+    
+    // settings_getstring(handle, &signconf->sig_resign_interval, settings_value_NULL, "//SignerConfiguration/Zone/Signatures/Resign");
+    /* BERRY if(signconf->sig_resign_interval) {
+        if(intrvl_verify(signconf->sig_resign_interval)) {
+            free(signconf->sig_resign_interval);
+            signconf->sig_resign_interval = NULL;
+        }
+    } */
+    
+    settings_getduration2(handle, &(signconf->sig_resign_interval), "//SignerConfiguration/Zone/Signatures/Resign");
+    settings_getduration2(handle, &(signconf->sig_refresh_interval), "//SignerConfiguration/Zone/Signatures/Refresh");
+    settings_getduration2(handle, &(signconf->sig_validity_default), "//SignerConfiguration/Zone/Signatures/Validity/Default");
+    settings_getduration2(handle, &(signconf->sig_validity_denial), "//SignerConfiguration/Zone/Signatures/Validity/Denial");
+    settings_getduration2(handle, &(signconf->sig_validity_keyset), "//SignerConfiguration/Zone/Signatures/Validity/Keyset");
+    settings_getduration2(handle, &(signconf->sig_jitter), "//SignerConfiguration/Zone/Signatures/Jitter");
+    settings_getduration2(handle, &(signconf->sig_inception_offset), "//SignerConfiguration/Zone/Signatures/InceptionOffset");
 
     signconf->nsec_type = LDNS_RR_TYPE_FIRST;
     settings_getbool(handle, &nsec, "//SignerConfiguration/Zone/Denial/NSEC");
@@ -147,16 +156,16 @@ parse_conf_signconf(signconf_type* signconf, const char* scfile)
         int zsk;
         int publish;
         char* resourcerecord;
-        settings_getstring(handle, &locator, settings_value_NULL, "//SignerConfiguration/Zone/Keys/Key[%d]/Locator");
-        settings_getint(handle, &algorithm, NULL, "//SignerConfiguration/Zone/Keys/Key[%d]/Algorithm");
-        settings_getint(handle, &flags, NULL, "//SignerConfiguration/Zone/Keys/Key[%d]/Flags");
-        settings_getbool(handle, &ksk, "//SignerConfiguration/Zone/Keys/Key[%d]/KSK");
-        settings_getbool(handle, &zsk, "//SignerConfiguration/Zone/Keys/Key[%d]/ZSK");
-        settings_getbool(handle, &publish, "//SignerConfiguration/Zone/Keys/Key[%d]/Publish");
-        settings_getstring(handle, &resourcerecord, settings_value_NULL, "//SignerConfiguration/Zone/Keys/Key[%d]/ResourceRecord");
+        settings_getstring(handle, &locator, settings_value_NULL, "//SignerConfiguration/Zone/Keys/Key[%d]/Locator", i+1);
+        settings_getint(handle, &algorithm, NULL, "//SignerConfiguration/Zone/Keys/Key[%d]/Algorithm", i+1);
+        settings_getint(handle, &flags, NULL, "//SignerConfiguration/Zone/Keys/Key[%d]/Flags", i+1);
+        settings_getbool(handle, &ksk, "//SignerConfiguration/Zone/Keys/Key[%d]/KSK", i+1);
+        settings_getbool(handle, &zsk, "//SignerConfiguration/Zone/Keys/Key[%d]/ZSK", i+1);
+        settings_getbool(handle, &publish, "//SignerConfiguration/Zone/Keys/Key[%d]/Publish", i+1);
+        settings_getstring(handle, &resourcerecord, settings_value_NULL, "//SignerConfiguration/Zone/Keys/Key[%d]/ResourceRecord", i+1);
         if(!locator && !resourcerecord)
-            valid |= 1;
-        if(!valid) {
+            invalid |= 1;
+        if(!invalid) {
             key_type* new_key = keylist_lookup_by_locator(signconf->keys, locator);
             if(new_key&&
                     new_key->algorithm==algorithm && new_key->flags==flags && new_key->publish==publish && new_key->ksk==ksk && new_key->zsk==zsk) {
@@ -170,7 +179,7 @@ parse_conf_signconf(signconf_type* signconf, const char* scfile)
     }
 
     settings_access(&handle, -1, NULL);
-    return (valid ? ODS_STATUS_ERR : ODS_STATUS_OK);
+    return (invalid ? ODS_STATUS_ERR : ODS_STATUS_OK);
 }
 
 /**
@@ -427,7 +436,7 @@ signconf_log(signconf_type* sc, const char* name)
     char* paramttl = NULL;
 
     if (sc) {
-        resign = duration2string(sc->sig_resign_interval);
+        resign = sc->sig_resign_interval; // BERRY SIGNCONF NOT READ UPON STARTUP AND MISSING SYNC???
         refresh = duration2string(sc->sig_refresh_interval);
         validity = duration2string(sc->sig_validity_default);
         denial = duration2string(sc->sig_validity_denial);

@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2009 NLNet Labs. All rights reserved.
+ * Copyright (c) 2023 NLNet Labs.
+ * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -21,35 +22,89 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
-#ifndef SIGNERTASKS_H
-#define SIGNERTASKS_H
-
 #include "config.h"
-#include <time.h>
-
-#include "scheduler/task.h"
-#include "scheduler/fifoq.h"
-#include "status.h"
+#include <stdio.h>
+#include <stdarg.h>
+#include <limits.h>
+#include <syslog.h>
+#include <unistd.h>
+#include <errno.h>
+#include <signal.h> /* sigfillset(), sigprocmask() */
+#include <string.h> /* strerror() */
+#include <time.h> /* gettimeofday() */
 #include "locks.h"
+#include "log.h"
+#include "utilities.h"
+#include "err.h"
+#include "hooks.h"
 
-struct worker_context {
-    engine_type* engine;
-    worker_type* worker;
-    fifoq_type signq;
-    time_t signtime;
+// typedef struct hook_struct* hook_t;
+
+struct hook_struct {
+    pthread_mutex_t lock;
+    int latch;
+    long value;
+    long minimum;
+    long maximum;
 };
 
-extern void drudge(worker_type* worker);
-extern void task_schedule_easy(const char* zonename, task_id class, task_id type, time_t(*fn)(task_type*,const char*,void*,void*), void*, time_t time);
+void
+hook_trigger(hook_t hook, const char* arg)
+{
+    char* cmd;
+    int rcode;
+    asprintf(&cmd, "%s %s", SIGNER_CLI_UPDATE, arg);
+    rcode = system(cmd);
+    if (rcode) {
+        ods_log_error("unable to notify signer of signconf changes for zone %s!", arg);
+    }
+    free(cmd);
+}
 
-extern time_t do_readsignconf(task_type* task, const char* zonename, void* zonearg, void *contextarg);
-extern time_t do_forcereadsignconf(task_type* task, const char* zonename, void* zonearg, void *contextarg);
-extern time_t do_signzone(task_type* task, const char* zonename, void* zonearg, void *contextarg);
-extern time_t do_readzone(task_type* task, const char* zonename, void* zonearg, void *contextarg);
-extern time_t do_forcereadzone(task_type* task, const char* zonename, void* zonearg, void *contextarg);
-extern time_t do_writezone(task_type* task, const char* zonename, void* zonearg, void *contextarg);
+int
+hook_ablock(hook_t hook)
+{
+    return 0;
+}
 
-#endif /* SIGNERTASKS_H */
+#ifdef NOTDEFINED
+
+int
+hook_ablock(hook_t)
+{
+}
+
+int
+hook_ablockrange(hook_t, long minimum, long maximum)
+{
+}
+
+int
+hook_ablockvalue(hook_t, long value)
+{
+}
+
+void
+hook_satisfy(hook_t)
+{
+}
+
+void
+hook_satisfyvalue(hook_t long value)
+{
+}
+
+void
+hook_satisfyrange(hook_t long minimum, long maximum)
+{
+}
+
+typedef int satifyfn_type(hook_t, void*, va_list);
+// yes no
+// eat keep
+
+hook_define(satifyfn_type);
+
+#endif

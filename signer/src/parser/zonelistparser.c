@@ -60,20 +60,21 @@ parse_conf_zonelist(struct zonelist_struct* zlist, const char* zlfile)
     int mode;
 
     settings_handle h;
-    settings_access(&h, -1, zlfile);
-    valid |= settings_getcompound(h, &count, "//Zonelist/Zone");
+    valid = settings_access(&h, -1, zlfile);
+    valid |= settings_getcompound(h, &count, "//ZoneList/Zone");
     for(int i = 0; i<count; i++) {
-        valid |= settings_getstring(h, &zone_name, NULL, "//Zonelist/Zone[%d]/@name", i+1);
+        valid |= settings_getstring(h, &zone_name, NULL, "//ZoneList/Zone[%d]/@name", i+1);
+        assert(zone_name);
         new_zone = zone_create(zone_name, LDNS_RR_CLASS_IN);
-        valid |= settings_getstring(h, (char**)&new_zone->policy_name, NULL, "//Zonelist/Zone[%d]/Policy", i+1);
-        valid |= settings_getstring(h, (char**)&new_zone->signconf_filename, NULL, "//Zonelist/Zone[%d]/SignerConfiguration", i+1);
+        valid |= settings_getstring(h, &(new_zone->policy_name), NULL, "//ZoneList/Zone[%d]/Policy", i+1);
+        valid |= settings_getstring(h, (char**)&(new_zone->signconf_filename), NULL, "//ZoneList/Zone[%d]/SignerConfiguration", i+1);
         for(int isinbound = 0; isinbound<=1; isinbound++) {
             char* adapter_direction = adapter_directions[isinbound];
-            if(!settings_getstring(h, &content, NULL, "//Zonelist/Zone[%d]/Adapters/%s/File", i+1, adapter_direction)) {
+            if(!settings_getstring(h, &content, NULL, "//ZoneList/Zone[%d]/Adapters/%s/File", i+1, adapter_direction)) {
                 mode = ADAPTER_FILE;
-            } else if(!settings_getstring(h, &content, NULL, "//Zonelist/Zone[%d]/Adapters/%s/Adapter", i+1, adapter_direction)) {
-                valid |= settings_getenum2(h, &mode, &adapter_default, adapter_names, adapter_values, "//Zonelist/Zone[%d]/Adapters/%s/Adapter/@type", i+1, adapter_direction);
-                valid |= settings_getstring(h, &content, NULL, "//Zonelist/Zone[%d]/Adapters/%s/Adapter", i+1, adapter_direction);
+            } else if(!settings_getstring(h, &content, NULL, "//ZoneList/Zone[%d]/Adapters/%s/Adapter", i+1, adapter_direction)) {
+                valid |= settings_getenum2(h, &mode, &adapter_default, adapter_names, adapter_values, "//ZoneList/Zone[%d]/Adapters/%s/Adapter/@type", i+1, adapter_direction);
+                valid |= settings_getstring(h, &content, NULL, "//ZoneList/Zone[%d]/Adapters/%s/Adapter", i+1, adapter_direction);
                 adapter = adapter_create(content, mode, isinbound);
                 switch(isinbound) {
                     case 0:
