@@ -63,11 +63,18 @@ start = element Configuration {
 		# Configuration parameters for logging
 		element Logging {
 			element Verbosity { xsd:nonNegativeInteger }? &
-			
-			element Syslog {
-				# syslog facility
-				element Facility { syslogFacility }
-			}?
+
+			(
+				element Syslog {
+					# syslog facility
+					element Facility { syslogFacility }
+				} |
+
+				element File {
+					# log to file
+					element Filename { xsd:string }
+				}
+			)?
 		}? &
 
 		# Location to find the KASP file
