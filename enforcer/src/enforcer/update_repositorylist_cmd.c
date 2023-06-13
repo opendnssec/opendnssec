@@ -38,6 +38,7 @@
 #include "file.h"
 #include "daemon/engine.h"
 #include "clientpipe.h"
+#include "longgetopt.h"
 #include "status.h"
 #include "cfg.h"
 #include "utils/kc_helper.h"
@@ -124,12 +125,10 @@ help(int sockfd)
 }
 
 static int
-run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
+run(cmdhandler_ctx_type* context, int argc, char* argv[])
 {
-        engine_type* engine = getglobalcontext(context);
-        (void)cmd;
-	ods_log_debug("[%s] %s command", module_str, 
-		update_repositorylist_funcblock.cmdname);
+     int sockfd = context->sockfd;
+       engine_type* engine = getglobalcontext(context);
 
 	if (!perform_update_repositorylist(sockfd, engine)) {
 		ods_log_error_and_printf(sockfd, module_str,
@@ -140,5 +139,5 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 }
 
 struct cmd_func_block update_repositorylist_funcblock = {
-	"update repositorylist", &usage, &help, NULL, &run
+	"update repositorylist", &usage, &help, NULL, NULL, &run, NULL
 };

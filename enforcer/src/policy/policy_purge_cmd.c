@@ -30,6 +30,7 @@
 #include "log.h"
 #include "str.h"
 #include "clientpipe.h"
+#include "longgetopt.h"
 #include "enforcer/enforce_task.h"
 #include "db/policy.h"
 
@@ -54,15 +55,11 @@ help(int sockfd)
 	);
 }
 
-/**
- * Purge
- * @param dbconn, Active database connection
- *
- * @return: error status, >0 on error
- */
 static int
-purge_policies(int sockfd, db_connection_t *dbconn)
+run(cmdhandler_ctx_type* context, int argc, char* argv[])
 {
+    int sockfd = context->sockfd;
+    db_connection_t* dbconn = getconnectioncontext(context);
 	policy_list_t* policy_list;
 	policy_t* policy;
 	zone_list_db_t* zonelist;
@@ -100,16 +97,6 @@ purge_policies(int sockfd, db_connection_t *dbconn)
 	return result;
 }
 
-static int
-run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
-{
-    db_connection_t* dbconn = getconnectioncontext(context);;
-    engine_type* engine = getglobalcontext(context);
-    (void) cmd;
-    ods_log_debug("[%s] %s command", module_str, policy_purge_funcblock.cmdname);
-	return purge_policies(sockfd, dbconn);
-}
-
 struct cmd_func_block policy_purge_funcblock = {
-	"policy purge", &usage, &help, NULL, &run
+	"policy purge", &usage, &help, NULL, NULL, &run, NULL
 };

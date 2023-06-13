@@ -42,7 +42,6 @@
 ldns_algorithm  algorithm = LDNS_RSASHA1;
 const char     *algoname  = "RSA/SHA1";
 
-extern char *optarg;
 char *progname = NULL;
 
 typedef struct {

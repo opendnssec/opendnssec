@@ -14,7 +14,6 @@
 /* commands to handle */
 #include "policy/policy_resalt_cmd.h"
 #include "policy/policy_list_cmd.h"
-#include "daemon/help_cmd.h"
 #include "daemon/time_leap_cmd.h"
 #include "daemon/queue_cmd.h"
 #include "daemon/verbosity_cmd.h"
@@ -46,8 +45,6 @@
 #include "signconf/signconf_cmd.h"
 #include "hsmkey/backup_hsmkeys_cmd.h"
 #include "hsmkey/key_generate_cmd.h"
-
-static char const * cmdh_str = "cmdhandler";
 
 static struct cmd_func_block* enforcecommands[] = {
         /* Thoughts has gone into the ordering of this list, it affects 
@@ -94,7 +91,7 @@ static struct cmd_func_block* enforcecommands[] = {
         &flush_funcblock,
         &ctrl_funcblock,
         &verbosity_funcblock,
-        &help_funcblock,
+
         NULL
 };
 

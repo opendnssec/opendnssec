@@ -643,7 +643,6 @@ engine_init(engine_type* engine, int daemonize)
 int
 engine_run(engine_type* engine, start_cb_t start, int single_run)
 {
-    int error;
     ods_log_assert(engine);
 
     engine_start_workers(engine);

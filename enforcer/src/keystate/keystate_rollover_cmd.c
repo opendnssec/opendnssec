@@ -39,6 +39,7 @@
 #include "db/zone_db.h"
 #include "log.h"
 #include "file.h"
+#include "longgetopt.h"
 
 #include "keystate/keystate_rollover_cmd.h"
 
@@ -162,11 +163,11 @@ help(int sockfd)
 }
 
 static int
-run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
+run(cmdhandler_ctx_type* context, int argc, char* argv[])
 {
-	#define NARGV 6
-	const char *argv[NARGV];
-	int argc = 0, error, nkeytype = 0;
+    int sockfd = context->sockfd;
+    struct longgetopt optctx;
+	int error, nkeytype = 0;
 	int long_index = 0, opt = 0;
 	const char *zone = NULL, *keytype = NULL, *policy = NULL;
         db_connection_t* dbconn = getconnectioncontext(context);
@@ -179,46 +180,32 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 		{0, 0, 0, 0}
 	};
 
-	ods_log_debug("[%s] %s command", module_str, key_rollover_funcblock.cmdname);
-
-	/* separate the arguments */
-	argc = ods_str_explode(cmd, NARGV, argv);
-	if (argc == -1) {
-		client_printf_err(sockfd, "too many arguments\n");
-		ods_log_error("[%s] too many arguments for %s command",
-				module_str, key_rollover_funcblock.cmdname);
-		return -1;
-	}
-
-	optind = 0;
-	while ((opt = getopt_long(argc, (char* const*)argv, "p:z:t:", long_options, &long_index)) != -1) {
+	for(opt = longgetopt(argc, argv, "p:z:t:", long_options, &long_index, &optctx); opt != -1;
+	    opt = longgetopt(argc, argv, NULL,     long_options, &long_index, &optctx)) {
 		switch (opt) {
 			case 'z':
-				zone = optarg;
+				zone = optctx.optarg;
 				break;
 			case 'p':
-				policy = optarg;
+				policy = optctx.optarg;
 				break;
 			case 't':
-				keytype = optarg;
+				keytype = optctx.optarg;
 				break;
 			default:
 				client_printf_err(sockfd, "unknown arguments\n");
-				ods_log_error("[%s] unknown arguments for %s command",
-						module_str, key_rollover_funcblock.cmdname);
+				ods_log_error("[%s] unknown arguments for key rollover command", module_str);
 				return -1;
 		}
 	}
 
 	if (!zone && !policy) {
-		ods_log_warning("[%s] expected either --zone <zone> or --policy <policy> for %s command",
-			module_str, key_rollover_funcblock.cmdname);
+		ods_log_warning("[%s] expected either --zone <zone> or --policy <policy> for key rollover command", module_str);
 		client_printf(sockfd,"expected either --zone <zone> or --policy <policy> option\n");
 		return -1;
 	}
 	else if (zone && policy) {
-		 ods_log_warning("[%s] expected either --zone <zone> or --policy <policy> for %s command",
-                        module_str, key_rollover_funcblock.cmdname);
+		 ods_log_warning("[%s] expected either --zone <zone> or --policy <policy> for key rollover command", module_str);
                 client_printf(sockfd,"expected either --zone <zone> or --policy <policy> option\n");
                 return -1;
 	}
@@ -247,5 +234,5 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 }
 
 struct cmd_func_block key_rollover_funcblock = {
-	"key rollover", &usage, &help, NULL, &run
+	"key rollover", &usage, &help, NULL, NULL, &run, NULL
 };

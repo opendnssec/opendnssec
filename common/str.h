@@ -38,20 +38,6 @@
 
 
 /**
- * Tokenize string
- * 
- * A return value > argc indicates there where 1 or 
- * more tokens available that did not fit in argv; Function is
- * destructive wrt buf.
- * 
- * \param[in/out] buf, string to tokenize
- * \param[in] argc, length of argv array
- * \param[out] argv, where the tokens are stored.
- * \return number of tokens processed.
- */
-int ods_str_explode(char *buf, int argc, const char *argv[]);
-
-/**
  * Concatenate characters without custom allocators.
  * 
  * Will always allocate at least 1 byte (when catting empty strings) so

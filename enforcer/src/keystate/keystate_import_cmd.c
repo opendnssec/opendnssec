@@ -35,6 +35,7 @@
 #include "log.h"
 #include "str.h"
 #include "clientpipe.h"
+#include "longgetopt.h"
 #include "duration.h"
 #include "libhsm.h"
 #include "libhsmdns.h"
@@ -378,12 +379,11 @@ help(int sockfd)
 }
 
 static int
-run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
+run(cmdhandler_ctx_type* context, int argc, char* argv[])
 {
-    #define NARGV 18
-    char buf[ODS_SE_MAXLINE];
-    const char *argv[NARGV];
-    int argc = 0, long_index = 0, opt = 0;
+    int sockfd = context->sockfd;
+    struct longgetopt optctx;
+    int long_index = 0, opt = 0;
     const char *ckaid = NULL;
     const char *repository = NULL;
     const char *zonename = NULL;
@@ -412,52 +412,36 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
         {0, 0, 0, 0}
     };
 	
-    ods_log_debug("[%s] %s command", module_str, key_import_funcblock.cmdname);
-	
-    /* Use buf as an intermediate buffer for the command.*/
-    strncpy(buf, cmd, sizeof(buf));
-    buf[sizeof(buf)-1] = '\0';
-	
-    /* separate the arguments*/
-    argc = ods_str_explode(buf, NARGV, argv);
-    if (argc == -1) {
-        client_printf_err(sockfd, "too many arguments\n");
-        ods_log_error("[%s] too many arguments for %s command",
-                      module_str, key_import_funcblock.cmdname);
-        return -1;
-    }
-
-    optind = 0;
-    while ((opt = getopt_long(argc, (char* const*)argv, "z:k:r:b:g:t:e:w:", long_options, &long_index)) != -1) {
+    for(opt = longgetopt(argc, argv, "z:k:r:b:g:t:e:w:", long_options, &long_index, &optctx); opt != -1;
+        opt = longgetopt(argc, argv, NULL,               long_options, &long_index, &optctx)) {
         switch (opt) {
             case 'z':
-                zonename = optarg;
+                zonename = optctx.optarg;
                 break;
             case 'k':
-                ckaid = optarg;
+                ckaid = optctx.optarg;
                 break;
             case 'r':
-                repository = optarg;
+                repository = optctx.optarg;
                 break;
             case 'b':
-                bits = optarg;
+                bits = optctx.optarg;
                 break;
             case 'g':
-                algorithm = optarg;
+                algorithm = optctx.optarg;
                 break;
             case 't':
-                keytype = optarg;
+                keytype = optctx.optarg;
                 break;
             case 'e':
-                keystate = optarg;
+                keystate = optctx.optarg;
                 break;
             case 'w':
-                time = optarg;
+                time = optctx.optarg;
                 break;
             default:
                 client_printf_err(sockfd, "unknown arguments\n");
-                ods_log_error("[%s] unknown arguments for %s command",
-                                module_str, key_import_funcblock.cmdname);
+                ods_log_error("[%s] unknown arguments for key import command", module_str);
                 return -1;
         }
     }
@@ -470,7 +454,7 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
         }	
     }
     else {
-        ods_log_error("[%s] specify keytype for command %s", module_str, cmd);
+        ods_log_error("[%s] specify keytype for command %s", module_str, argv[0]);
         client_printf_err(sockfd, "specify keytype: ZSK, KSK or CSK\n");
         return -1;
     }
@@ -483,13 +467,13 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
         } 
     }
     else {
-        ods_log_error("[%s] specify keystate for command %s", module_str, cmd);
+        ods_log_error("[%s] specify keystate for command %s", module_str, argv[0]);
         client_printf_err(sockfd, "specify keystate: generate, publish, ready, active or retire\n");
         return -1;
     }
 
     if (!zonename) {
-        ods_log_error("[%s] expected --zone for %s command", module_str, key_import_funcblock.cmdname);
+        ods_log_error("[%s] expected --zone for key import command", module_str);
         client_printf_err(sockfd, "expected --zone \n");
         return -1;
     }
@@ -502,17 +486,17 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
     zone = NULL;
 
     if (!algorithm) {
-        ods_log_error("[%s] specify an algorithm for command %s", module_str, cmd);
+        ods_log_error("[%s] specify an algorithm for command %s", module_str, argv[0]);
         client_printf_err(sockfd, "specify an algorithm\n");
         return -1;
     }
     if (!bits) {
-        ods_log_error("[%s] specify bits for command %s", module_str, cmd);
+        ods_log_error("[%s] specify bits for command %s", module_str, argv[0]);
         client_printf_err(sockfd, "specify bits\n");
         return -1;
     }
     if (!repository) {
-        ods_log_error("[%s] specify repository for command %s", module_str, cmd);
+        ods_log_error("[%s] specify repository for command %s", module_str, argv[0]);
         client_printf_err(sockfd, "specify repository \n");
         return -1;
     }
@@ -521,7 +505,7 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
         tm.tm_isdst = -1;
         inception = mktime(&tm);
     } else {
-        ods_log_error("[%s] specify inception time for command %s", module_str, cmd);
+        ods_log_error("[%s] specify inception time for command %s", module_str, argv[0]);
         client_printf_err(sockfd, "specify inception time YYYY-MM-DD-HH:MM:SS\n");
         return -1;
     }
@@ -585,5 +569,5 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 }
 
 struct cmd_func_block key_import_funcblock = {
-    "key import", &usage, &help, NULL, &run
+    "key import", &usage, &help, NULL, NULL, &run, NULL
 };

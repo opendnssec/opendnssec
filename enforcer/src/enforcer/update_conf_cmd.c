@@ -32,13 +32,13 @@
 #include "log.h"
 #include "str.h"
 #include "clientpipe.h"
+#include "longgetopt.h"
 #include "utils/kc_helper.h"
 
 #include "enforcer/update_conf_cmd.h"
 
 #include <pthread.h>
 
-static const char *module_str = "update_conf_cmd";
 
 static void
 usage(int sockfd)
@@ -56,18 +56,15 @@ help(int sockfd)
 }
 
 static int
-run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
+run(cmdhandler_ctx_type* context, int argc, char* argv[])
 {
+    int sockfd = context->sockfd;
     char *kasp = NULL;
     char *zonelist = NULL;
     char **repositories = NULL;
     int repository_count = 0;
     int i;
-    db_connection_t* dbconn = getconnectioncontext(context);
     engine_type* engine = getglobalcontext(context);
-    (void)cmd;
-
-	ods_log_debug("[%s] %s command", module_str, update_conf_funcblock.cmdname);
 
     if (check_conf(engine->config->cfg_filename, &kasp, &zonelist, &repositories, &repository_count, (ods_log_verbosity() >= 3))) {
         client_printf_err(sockfd, "Unable to validate '%s' consistency.",
@@ -100,5 +97,5 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 }
 
 struct cmd_func_block update_conf_funcblock = {
-	"update conf", &usage, &help, NULL, &run
+	"update conf", &usage, &help, NULL, NULL, &run, NULL
 };

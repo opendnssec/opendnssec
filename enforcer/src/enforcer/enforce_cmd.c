@@ -38,12 +38,11 @@
 #include "log.h"
 #include "str.h"
 #include "clientpipe.h"
+#include "longgetopt.h"
 
 #include "enforcer/enforce_cmd.h"
 
 static const char *module_str = "enforce_cmd";
-
-#define MAX_ARGS 4
 
 /**
  * Print help for the 'enforce' command
@@ -74,15 +73,12 @@ help(int sockfd)
  *
  */
 static int
-run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
+run(cmdhandler_ctx_type* context, int argc, char* argv[])
 {
-	time_t t_next;
-	task_type *task;
-	int argc = 0;
-	char const *argv[MAX_ARGS];
+    int sockfd = context->sockfd;
+    struct longgetopt optctx;
 	int long_index = 0, opt = 0;
 	char const *zone_name = NULL;
-	int pos;
         db_connection_t* dbconn = getconnectioncontext(context);
         engine_type* engine = getglobalcontext(context);
 
@@ -91,26 +87,15 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 		{0, 0, 0, 0}
 	};
 
-	ods_log_debug("[%s] %s command", module_str, enforce_funcblock.cmdname);
-	if (!cmd) return -1;
-	argc = ods_str_explode(cmd, MAX_ARGS, argv);
-	if (argc == -1) {
-		client_printf_err(sockfd, "too many arguments\n");
-		ods_log_error("[%s] too many arguments for %s command",
-				module_str, enforce_funcblock.cmdname);
-		return -1;
-	}
-
-	optind = 0;
-	while ((opt = getopt_long(argc, (char* const*)argv, "z:", long_options, &long_index)) != -1) {
+	for(opt = longgetopt(argc, argv, "z:", long_options, &long_index, &optctx); opt != -1;
+	    opt = longgetopt(argc, argv, NULL, long_options, &long_index, &optctx)) {
 		switch (opt) {
 			case 'z':
-				zone_name = optarg;
+				zone_name = optctx.optarg;
 				break;
 			default:
 				client_printf_err(sockfd, "unknown arguments\n");
-				ods_log_error("[%s] unknown arguments for %s command",
-						module_str, enforce_funcblock.cmdname);
+				ods_log_error("[%s] unknown arguments for enforce command", module_str);
 				return -1;
 
 		}
@@ -125,5 +110,5 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 }
 
 struct cmd_func_block enforce_funcblock = {
-	"enforce", &usage, &help, NULL, &run
+	"enforce", &usage, &help, NULL, NULL, &run, NULL
 };

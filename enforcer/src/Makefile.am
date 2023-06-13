@@ -44,7 +44,6 @@ ods_enforcerd_SOURCES = \
 	ods-enforcerd.c \
 	daemon/enforcercommands.c daemon/enforcercommands.h \
 	daemon/engine.c daemon/engine.h \
-	daemon/help_cmd.c daemon/help_cmd.h \
 	daemon/time_leap_cmd.c daemon/time_leap_cmd.h \
 	daemon/queue_cmd.c daemon/queue_cmd.h \
 	daemon/verbosity_cmd.c daemon/verbosity_cmd.h \

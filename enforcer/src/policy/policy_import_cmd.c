@@ -33,6 +33,7 @@
 #include "log.h"
 #include "str.h"
 #include "clientpipe.h"
+#include "longgetopt.h"
 #include "policy/policy_import.h"
 #include "policy/policy_resalt_task.h"
 #include "enforcer/enforce_task.h"
@@ -72,15 +73,15 @@ help(int sockfd)
 
 
 static int
-run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
+run(cmdhandler_ctx_type* context, int argc, char* argv[])
 {
-    #define NARGV 3
+    int sockfd = context->sockfd;
+    struct longgetopt optctx;
     db_connection_t* dbconn = getconnectioncontext(context);;
     engine_type* engine = getglobalcontext(context);
 
-    int remove_missing_policies = 0, argc = 0;
+    int remove_missing_policies = 0;
     int long_index = 0, opt = 0;
-    char const *argv[NARGV];
 
     static struct option long_options[] = {
         {"remove-missing-policies", no_argument, 0, 'r'},
@@ -93,27 +94,15 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
         return 1;
     }
 
-    ods_log_debug("[%s] %s command", module_str, policy_import_funcblock.cmdname);
-
-    /* separate the arguments*/
-    argc = ods_str_explode(cmd, NARGV, argv);
-    if (argc == -1) {
-        ods_log_error("[%s] too many arguments for %s command",
-                        module_str, policy_import_funcblock.cmdname);
-        client_printf_err(sockfd,"too many arguments\n");
-        return -1;
-    }
-
-    optind = 0;
-    while ((opt = getopt_long(argc, (char* const*)argv, "r", long_options, &long_index)) != -1 ) {
+    for(opt = longgetopt(argc, argv, "r", long_options, &long_index, &optctx); opt != -1;
+        opt = longgetopt(argc, argv, NULL,long_options, &long_index, &optctx)) {
         switch (opt) {
             case 'r':
                 remove_missing_policies = 1;
                 break;
             default:
                 client_printf_err(sockfd, "unknown arguments\n");
-                ods_log_error("[%s] unknown arguments for %s command",
-                                module_str, policy_import_funcblock.cmdname);
+                ods_log_error("[%s] unknown arguments for policy import command", module_str);
                 return -1;
         }
     }
@@ -143,5 +132,5 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 }
 
 struct cmd_func_block policy_import_funcblock = {
-    "policy import", &usage, &help, NULL, &run
+    "policy import", &usage, &help, NULL, NULL, &run, NULL
 };

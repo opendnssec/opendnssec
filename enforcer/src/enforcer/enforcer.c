@@ -2807,7 +2807,7 @@ update(engine_type *engine, db_connection_t *dbconn, zone_db_t *zone, policy_t c
 	    purge_return_time = removeDeadKeys(dbconn, keylist, keylist_size, deplist, now,
 	        policy_keys_purge_after(policy));
             if(purge_return_time < -1) {
-                ods_log_info("[%s] reschedule enforcing policy due to deleting keys", module_str, scmd);
+                ods_log_info("[%s] %s: reschedule enforcing policy due to deleting keys", module_str, scmd);
                 /* Keys have been deleted, we cannot continue in this same session, reschedule. */
                 return now + 60;
             }

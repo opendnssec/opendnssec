@@ -37,6 +37,7 @@
 #include "daemon/enforcercommands.h"
 #include "daemon/engine.h"
 #include "clientpipe.h"
+#include "longgetopt.h"
 
 #include "daemon/ctrl_cmd.h"
 
@@ -74,19 +75,20 @@ handles(const char *cmd)
 
 
 static int
-run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
+run(cmdhandler_ctx_type* context, int argc, char* argv[])
 {
+    int sockfd = context->sockfd;
         engine_type* engine = getglobalcontext(context);
-	if (ods_check_command(cmd, "start")) {
+	if (ods_check_command(argv[0], "start")) {
 		ods_log_debug("[cmdhandler] start command");
 		client_printf(sockfd, "Engine already running.\n");
 		/* if you asked us to start, we are already started */
 		return 1; /* error */
-	} else if (ods_check_command(cmd, "running")) {
+	} else if (ods_check_command(argv[0], "running")) {
 		ods_log_debug("[cmdhandler] running command");
 		client_printf(sockfd, "Engine running.\n");
 		return 0;
-	} else if (ods_check_command(cmd, "reload")) {
+	} else if (ods_check_command(argv[0], "reload")) {
 		ods_log_debug("[cmdhandler] reload command");
 		ods_log_assert(engine);
 		engine->need_to_reload = 1;
@@ -95,7 +97,7 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 		pthread_mutex_unlock(&engine->signal_lock);
 		client_printf(sockfd, "Reloading engine.\n");
 		return 0;
-	} else if (ods_check_command(cmd, "stop")) {
+	} else if (ods_check_command(argv[0], "stop")) {
 		ods_log_debug("[cmdhandler] stop command");
 		ods_log_assert(engine);
 		engine->need_to_exit = 1;
@@ -110,5 +112,5 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 }
 
 struct cmd_func_block ctrl_funcblock = {
-	"ctrl", &usage, &help, &handles, &run
+	"ctrl", &usage, &help, &handles, NULL, &run, NULL
 };

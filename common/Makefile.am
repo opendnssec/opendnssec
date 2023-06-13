@@ -30,4 +30,5 @@ libcompat_a_SOURCES = \
 	janitor.c janitor.h \
 	cfg.c cfg.h \
 	hooks.c hooks.h \
+	longgetopt.c longgetopt.h \
 	settings_xml.c settings.c settings.h
