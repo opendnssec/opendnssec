@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2009 NLNet Labs. All rights reserved.
+ * Copyright (c) 2009-2018 NLNet Labs.
+ * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -21,7 +22,6 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
 /**
@@ -328,15 +328,4 @@ util_pidfile_avail(const char* pidfile)
 	}
 	(void) close(fd);
 	return available;
-}
-
-int
-clamp(int value, int lbnd, int ubnd)
-{
-    if(value < lbnd)
-        return lbnd;
-    else if(value > ubnd)
-        return ubnd;
-    else
-        return value;
 }

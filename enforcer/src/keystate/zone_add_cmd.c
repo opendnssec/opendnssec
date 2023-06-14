@@ -84,10 +84,9 @@ help(int sockfd)
 }
 
 static int
-run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 {
     #define NARGV 18
-    char* buf;
     const char* argv[NARGV];
     int argc = 0;
     const char *zone_name = NULL;
@@ -122,16 +121,11 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 
     ods_log_debug("[%s] %s command", module_str, zone_add_funcblock.cmdname);
 
-    if (!(buf = strdup(cmd))) {
-        client_printf_err(sockfd, "memory error\n");
-        return -1;
-    }
-    argc = ods_str_explode(buf, NARGV, argv);
+    argc = ods_str_explode(cmd, NARGV, argv);
     if (argc == -1) {
         client_printf_err(sockfd, "too many arguments\n");
         ods_log_error("[%s] too many arguments for %s command",
                       module_str, zone_add_funcblock.cmdname);
-        free(buf);
         return -1;
     }
 
@@ -169,27 +163,23 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
                 client_printf_err(sockfd, "unknown arguments\n");
                 ods_log_error("[%s] unknown arguments for %s command",
                                 module_str, zone_add_funcblock.cmdname);
-                free(buf);
                 return -1;
         }
     }
 
     if (!zone_name) {
         client_printf_err(sockfd, "expected option --zone <zone>\n");
-        free(buf);
         return -1;
     }
 
     if ((zone = zone_db_new_get_by_name(dbconn, zone_name))) {
         client_printf_err(sockfd, "Unable to add zone, zone already exists!\n");
         zone_db_free(zone);
-        free(buf);
         return 1;
     }
 
     if (!(policy = policy_new_get_by_name(dbconn, (policy_name ? policy_name : "default")))) {
         client_printf_err(sockfd, "Unable to find policy %s needed for adding the zone!\n", (policy_name ? policy_name : "default"));
-        free(buf);
         return 1;
     }
 
@@ -361,12 +351,10 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
         client_printf_err(sockfd, "Unable to add zone, database error!\n");
         zone_db_free(zone);
         policy_free(policy);
-        free(buf);
         return 1;
     }
     ods_log_info("[%s] zone %s added [policy: %s]", module_str, zone_name, (policy_name ? policy_name : "default"));
     client_printf(sockfd, "Zone %s added successfully\n", zone_name);
-    free(buf);
 
     if (write_xml) {
         if (zonelist_update_add(sockfd, engine->config->zonelist_filename, zone, 1) != ZONELIST_UPDATE_OK) {

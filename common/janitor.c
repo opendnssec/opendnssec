@@ -368,7 +368,6 @@ janitor_thread_start(janitor_thread_t thread)
 int
 janitor_thread_join(janitor_thread_t thread)
 {
-    janitor_thread_t info;
     int status;
     status = pthread_join(thread->thread, NULL);
     janitor_thread_dispose(thread);

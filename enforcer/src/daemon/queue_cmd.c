@@ -71,7 +71,6 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 	struct tm strtime_struct;
 	char strtime[64]; /* at least 26 according to docs plus a long integer */
     char* taskdescription;
-	size_t i = 0;
         int count;
 	time_t now;
 	time_t nextFireTime;

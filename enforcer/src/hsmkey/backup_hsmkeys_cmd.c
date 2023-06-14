@@ -188,7 +188,7 @@ handles(const char *cmd)
 }
 
 static int
-run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 {
     #define NARGV 4
     const char *argv[NARGV];

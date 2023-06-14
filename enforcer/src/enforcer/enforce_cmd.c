@@ -74,11 +74,10 @@ help(int sockfd)
  *
  */
 static int
-run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 {
 	time_t t_next;
 	task_type *task;
-	char *buf;
 	int argc = 0;
 	char const *argv[MAX_ARGS];
 	int long_index = 0, opt = 0;
@@ -93,19 +92,12 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 	};
 
 	ods_log_debug("[%s] %s command", module_str, enforce_funcblock.cmdname);
-
 	if (!cmd) return -1;
-
-	if (!(buf = strdup(cmd))) {
-		client_printf_err(sockfd, "memory error\n");
-		return -1;
-	}
-	argc = ods_str_explode(buf, MAX_ARGS, argv);
+	argc = ods_str_explode(cmd, MAX_ARGS, argv);
 	if (argc == -1) {
 		client_printf_err(sockfd, "too many arguments\n");
 		ods_log_error("[%s] too many arguments for %s command",
 				module_str, enforce_funcblock.cmdname);
-		free(buf);
 		return -1;
 	}
 
@@ -129,7 +121,6 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 	} else {
 		enforce_task_flush_all(engine, dbconn);
 	}
-	free(buf);
 	return 0;
 }
 

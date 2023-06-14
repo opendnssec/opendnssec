@@ -57,7 +57,7 @@ help(int sockfd)
 }
 
 static int
-run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 {
     const char *fmt = "%-31s %-48s\n";
     policy_list_t *pol_list;
