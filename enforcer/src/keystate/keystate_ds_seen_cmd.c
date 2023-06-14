@@ -37,6 +37,7 @@
 #include "log.h"
 #include "str.h"
 #include "clientpipe.h"
+#include "longgetopt.h"
 #include "db/key_data.h"
 #include "keystate/keystate_ds.h"
 
@@ -67,12 +68,12 @@ help(int sockfd)
 }
 
 static int
-run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
+run(cmdhandler_ctx_type* context, int argc, char* argv[])
 {
 	int error;
         db_connection_t* dbconn = getconnectioncontext(context);
         engine_type* engine = getglobalcontext(context);
-	error = run_ds_cmd(sockfd, cmd, dbconn,
+	error = run_ds_cmd(context, argc, argv, dbconn,
 		KEY_DATA_DS_AT_PARENT_SUBMITTED,
 		KEY_DATA_DS_AT_PARENT_SEEN, engine);
 	if (error == 0) {
@@ -84,5 +85,5 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 }
 
 struct cmd_func_block key_ds_seen_funcblock = {
-	"key ds-seen", &usage, &help, NULL, &run
+	"key ds-seen", &usage, &help, NULL, NULL, &run, NULL
 };

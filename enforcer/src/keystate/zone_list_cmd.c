@@ -36,6 +36,7 @@
 #include "str.h"
 #include "duration.h"
 #include "clientpipe.h"
+#include "longgetopt.h"
 #include "db/zone_db.h"
 #include "db/policy.h"
 #include "db/db_value.h"
@@ -60,8 +61,9 @@ help(int sockfd)
 }
 
 static int
-run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
+run(cmdhandler_ctx_type* context, int argc, char* argv[])
 {
+    int sockfd = context->sockfd;
     const char* fmt = "%-31s %-13s %-26s %-34s\n";
     zone_list_db_t* zone_list;
     const zone_db_t* zone;
@@ -71,9 +73,6 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
     int cmp;
     db_connection_t* dbconn = getconnectioncontext(context);
     engine_type* engine = getglobalcontext(context);
-    (void)cmd;
-
-	ods_log_debug("[%s] %s command", module_str, zone_list_funcblock.cmdname);
 
 	if (!(zone_list = zone_list_db_new_get(dbconn))) {
 	    client_printf_err(sockfd, "Unable to get list of zones, memory allocation or database error!\n");
@@ -136,5 +135,5 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 }
 
 struct cmd_func_block zone_list_funcblock = {
-	"zone list", &usage, &help, NULL, &run
+	"zone list", &usage, &help, NULL, NULL, &run, NULL
 };

@@ -36,6 +36,7 @@
 #include "log.h"
 #include "str.h"
 #include "clientpipe.h"
+#include "longgetopt.h"
 #include "enforcer/enforce_task.h"
 #include "keystate/zonelist_import.h"
 #include "keystate/zonelist_export.h"
@@ -68,13 +69,13 @@ help(int sockfd)
 }
 
 static int
-run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
+run(cmdhandler_ctx_type* context, int argc, char* argv[])
 {
+    int sockfd = context->sockfd;
+    struct longgetopt optctx;
     char path[PATH_MAX];
-    int ret, argc = 0, remove_missing_zones = 0;
-    #define NARGV 5
+    int ret, remove_missing_zones = 0;
     int long_index = 0, opt = 0;
-    const char *argv[NARGV];
     const char* zonelist_path = NULL;
     db_connection_t* dbconn = getconnectioncontext(context);
     engine_type* engine = getglobalcontext(context);
@@ -85,36 +86,24 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
         {0, 0, 0, 0}
     };
 
-    ods_log_debug("[%s] %s command", module_str, zonelist_import_funcblock.cmdname);
-
     if (!engine || !engine->config ||
         !engine->config->zonelist_filename || !dbconn)
     {
         return 1;
     }
 
-    /* separate the arguments*/
-    argc = ods_str_explode(cmd, NARGV, argv);
-    if (argc == -1) {
-        client_printf_err(sockfd, "too many arguments\n");
-        ods_log_error("[%s] too many arguments for %s command",
-                      module_str, zonelist_import_funcblock.cmdname);
-        return -1;
-    }
-
-    optind = 0;
-    while ((opt = getopt_long(argc, (char* const*)argv, "rf:", long_options, &long_index)) != -1) {
+    for(opt = longgetopt(argc, argv, "rf:", long_options, &long_index, &optctx); opt != -1;
+        opt = longgetopt(argc, argv, NULL,  long_options, &long_index, &optctx)) {
         switch (opt) {
             case 'r':
                 remove_missing_zones = 1;
                 break;
             case 'f':
-                zonelist_path = optarg;
+                zonelist_path = optctx.optarg;
                 break;
             default:
                 client_printf_err(sockfd, "unknown arguments\n");
-                ods_log_error("[%s] unknown arguments for %s command",
-                                module_str, zonelist_import_funcblock.cmdname);
+                ods_log_error("[%s] unknown arguments for zonelist import command", module_str);
                 return -1;
         }
     }
@@ -143,5 +132,5 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 }
 
 struct cmd_func_block zonelist_import_funcblock = {
-    "zonelist import", &usage, &help, NULL, &run
+    "zonelist import", &usage, &help, NULL, NULL, &run, NULL
 };

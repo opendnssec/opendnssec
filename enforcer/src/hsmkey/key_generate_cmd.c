@@ -33,6 +33,7 @@
 #include "log.h"
 #include "str.h"
 #include "clientpipe.h"
+#include "longgetopt.h"
 #include "hsmkey/hsm_key_factory.h"
 #include "db/policy.h"
 #include "duration.h"
@@ -64,11 +65,11 @@ help(int sockfd)
 }
 
 static int
-run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
+run(cmdhandler_ctx_type* context, int argc, char* argv[])
 {
-    #define NARGV 6
-    const char* argv[NARGV];
-    int argc = 0, long_index =0, opt = 0;
+    int sockfd = context->sockfd;
+    struct longgetopt optctx;
+    int long_index =0, opt = 0;
     const char* policy_name = NULL;
     const char* duration_text = NULL;
     time_t duration_time = 0;
@@ -85,32 +86,23 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
         {0, 0, 0, 0}
     };
 
-    ods_log_debug("[%s] %s command", module_str, key_generate_funcblock.cmdname);
+    ods_log_debug("[%s] key generate command", module_str);
 
-    argc = ods_str_explode(cmd, NARGV, argv);
-    if (argc == -1) {
-        client_printf_err(sockfd, "too many arguments\n");
-        ods_log_error("[%s] too many arguments for %s command",
-                      module_str, key_generate_funcblock.cmdname);
-        return -1;
-    }
-
-    optind = 0;
-    while ((opt = getopt_long(argc, (char* const*)argv, "p:ad:", long_options, &long_index)) != -1) {
+    for(opt = longgetopt(argc, argv, "p:ad:", long_options, &long_index, &optctx); opt != -1;
+        opt = longgetopt(argc, argv, NULL,    long_options, &long_index, &optctx)) {
         switch (opt) {
             case 'd':
-                duration_text = optarg;
+                duration_text = optctx.optarg;
                 break;
             case 'p':
-                policy_name = optarg;
+                policy_name = optctx.optarg;
                 break;
             case 'a':
                 all = 1;
                 break;
             default:
                 client_printf_err(sockfd, "unknown arguments\n");
-                ods_log_error("[%s] unknown arguments for %s command",
-                                module_str, key_generate_funcblock.cmdname);
+                ods_log_error("[%s] unknown arguments for key generate command", module_str);
                 return -1;
         }
     }
@@ -146,5 +138,5 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 }
 
 struct cmd_func_block key_generate_funcblock = {
-    "key generate", &usage, &help, NULL, &run
+    "key generate", &usage, &help, NULL, NULL, &run, NULL
 };

@@ -40,7 +40,7 @@
 #include "daemon/enforcercommands.h"
 #include "daemon/engine.h"
 #include "clientpipe.h"
-#include "clientpipe.h"
+#include "longgetopt.h"
 
 #include "daemon/queue_cmd.h"
 #include "scheduler/task.h"
@@ -66,8 +66,9 @@ help(int sockfd)
 }
 
 static int
-run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+run(cmdhandler_ctx_type* context, int argc, char* argv[])
 {
+    int sockfd = context->sockfd;
 	struct tm strtime_struct;
 	char strtime[64]; /* at least 26 according to docs plus a long integer */
     char* taskdescription;
@@ -78,7 +79,6 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 	task_type* task = NULL;
 	int num_waiting;
         engine_type* engine = getglobalcontext(context);
-	(void)cmd;
 
 	ods_log_debug("[%s] list tasks command", module_str);
 
@@ -121,7 +121,7 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 }
 
 struct cmd_func_block queue_funcblock = {
-	"queue", &usage, &help, NULL, &run
+	"queue", &usage, &help, NULL, NULL, &run, NULL
 };
 
 static void
@@ -140,10 +140,10 @@ help_flush(int sockfd)
 }
 
 static int
-run_flush(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+run_flush(cmdhandler_ctx_type* context, int argc, char* argv[])
 {
+    int sockfd = context->sockfd;
         engine_type* engine = getglobalcontext(context);
-	(void)cmd;
 	ods_log_debug("[%s] flush tasks command", module_str);
 	ods_log_assert(engine);
 	ods_log_assert(engine->taskq);
@@ -156,5 +156,5 @@ run_flush(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 }
 
 struct cmd_func_block flush_funcblock = {
-	"flush", &usage_flush, &help_flush, NULL, &run_flush
+	"flush", &usage_flush, &help_flush, NULL, NULL, &run_flush, NULL
 };

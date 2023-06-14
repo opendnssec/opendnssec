@@ -59,92 +59,205 @@
 #include "util.h"
 #include "clientpipe.h"
 #include "cmdhandler.h"
-
-#define SE_CMDH_CMDLEN 7
+#include "longgetopt.h"
 
 static char const * module_str = "cmdhandler";
 
-typedef struct cmd_func_block* (*fbgetfunctype)(void);
+static struct cmd_func_block*
+findcommand(const char *arg, int argc, char* argv[], int argi, struct cmd_func_block** commands, void* user)
+{
+    const char* cmdname;
+    struct cmd_func_block* command = NULL;
+
+    for(int i=0; commands[i]; i++) {
+        cmdname = commands[i]->name;
+        int match = 1;
+        int ncmdwords = 0;
+        if(commands[i]->handles) {
+            match = commands[i]->handles(arg);
+        } else if(commands[i]->names) {
+            while(match && commands[i]->names[ncmdwords]) {
+                if(strcmp(argv[argi+ncmdwords], commands[i]->names[ncmdwords])) {
+                    match = 0;
+                    break;
+                } else if(argi+ncmdwords >= argc) {
+                    match = 0;
+                    break;
+                } else
+                    ++ncmdwords;
+            }
+        } else {
+            while(match && *cmdname) {
+                char* nextcmdname = strchr(cmdname,' ');
+                if(nextcmdname) {
+                    if(strncmp(argv[argi+ncmdwords], cmdname, nextcmdname-cmdname) || argv[argi+ncmdwords][nextcmdname-cmdname]==' ') {
+                        match = 0;
+                        break;
+                    } else if(argi+ncmdwords >= argc) {
+                        match = 0;
+                        break;
+                    } else {
+                        cmdname = strchr(cmdname,' ') + 1;
+                        ++ncmdwords;
+                    }
+                } else {
+                    if(strcmp(argv[argi+ncmdwords], cmdname)) {
+                        match = 0;
+                        break;
+                    } else {
+                        cmdname = "";
+                        ++ncmdwords;
+                    }
+                }
+            }
+        }
+        if(match) {
+            command = commands[i];
+            argi += ncmdwords;
+            break;
+        }
+    }
+    return command;
+}
+
+static struct option genericoptions[] = {
+    { NULL,        0, NULL, 0   }
+};
 
 static int
-defaulthandles(const char* cmdname, const char* cmd)
+cmdhandler_perform_command(const char *arg, struct cmdhandler_ctx_struct* context)
 {
-    int len = strlen(cmdname);
-    if (!strncmp(cmdname, cmd, len) && (isspace(cmd[len]) || cmd[len] == '\0')) {
-        return 1;
-    } else {
+    struct cmd_func_block** commands = context->cmdhandler->commands;
+    void* user = NULL;
+    char** errormessageptr = NULL;
+
+    int status = 0;
+    char* statusstr = NULL;
+    int help = 0;;
+    int version = 0;
+    int opt;
+    int longindex;
+    int argc;
+    char** argv;
+    int argi;
+    struct longgetopt optctx;
+    struct cmd_func_block* command = NULL;
+
+    int verbosity = 0;
+
+    if (strlen(arg) == 0)
         return 0;
+    strtoargs(arg, &argc, &argv);
+    for(opt = longgetopt(argc, argv, "+vh", genericoptions, &longindex, &optctx); opt != -1;
+        opt = longgetopt(argc, argv, NULL,  genericoptions, &longindex, &optctx)) {
+        switch(opt) {
+            case 'v':
+                ++verbosity;
+                break;
+            case 1: // --verbosity
+                verbosity = atoi(optctx.optarg);
+                break;
+            case 'h':
+                help = 1;
+                break;
+            case 2: // --version
+                version = 1;
+                break;
+        }
     }
-}
-
-void
-cmdhandler_get_usage(int sockfd, cmdhandler_type* cmdc)
-{
-    int i;
-    for (i=0; cmdc->commands[i]; i++) {
-        if (!(cmdc->commands[i]->handles ? cmdc->commands[i]->handles("time leap") : defaulthandles(cmdc->commands[i]->cmdname, "time leap"))) {
-            if (cmdc->commands[i]->usage) {
-                cmdc->commands[i]->usage(sockfd);
+    argi = optctx.optind;
+    if(!help && !version) {
+        if (argi >= argc) {
+            asprintf(&statusstr, "unknown generic arguments");
+        }
+        if(!strcmp(argv[argi], "help")) {
+            help = 1;
+        } else if(!strcmp(argv[argi], "version")) {
+            version = 1;
+        }
+    }
+    if(help) {
+        for(int i=0; commands[i]; i++)
+            if(commands[i]->name && !strcmp("help",commands[i]->name)) {
+                command = commands[i];
+                break;
             }
-        }
-    }
-}
-
-struct cmd_func_block*
-get_funcblock(const char *cmd, cmdhandler_type* cmdc)
-{
-    int cmdlen, i;
-    for (cmdlen=0; cmd[cmdlen] && !isspace(cmd[cmdlen]); cmdlen++)
-        ;
-    for (i=0; cmdc->commands[i]; i++) {
-        if (cmdc->commands[i]->handles ? cmdc->commands[i]->handles(cmd) : defaulthandles(cmdc->commands[i]->cmdname, cmd)) {
-            return cmdc->commands[i];
-        }
-    }
-    return NULL;
-}
-
-/**
- * Perform command
- * 
- * \param sockfd, pipe to client
- * \param engine, central enigine object
- * \param cmd, command to evaluate
- * \param n, length of command.
- * \return exit code for client, 0 for no errors, -1 for syntax errors
- */
-static int
-cmdhandler_perform_command(const char *cmd, struct cmdhandler_ctx_struct* context)
-{
-    struct cmd_func_block* fb;
-    int ret;
-    int sockfd = context->sockfd;
-
-    ods_log_verbose("received command %s", cmd);
-    if (strlen(cmd) == 0) return 0;
-
-    /* Find function claiming responsibility */
-    if ((fb = get_funcblock(cmd, context->cmdhandler))) {
-        ods_log_debug("[%s] %s command", module_str, fb->cmdname);
-        ret = fb->run(sockfd, context, cmd);
-        if (ret == -1) {
-            /* Syntax error, print usage for cmd */
-            client_printf_err(sockfd, "Error parsing arguments %s command line %s\n",
-                fb->cmdname, cmd);
-            if (fb->usage != NULL) {
-                client_printf(sockfd, "Usage:\n\n");
-                fb->usage(sockfd);
+    } else if(version) {
+        for(int i=0; commands[i]; i++)
+            if(commands[i]->name && !strcmp("version",commands[i]->name)) {
+                command = commands[i];
+                break;
             }
+    } else {
+        command = findcommand(arg, argc, argv, argi, commands, user);
+    }
+    if(command) {
+        if(command->runargs) {
+            status = command->runargs(context, argc-argi, &argv[argi]);
+        } else {
+            char *buf;
+            if (!(buf = strdup(arg))) {
+                asprintf(&statusstr, "memory error");
+                return 1;
+            }
+            status = command->runarg(context, buf);
+            if (status == -1) {
+                /* Syntax error, print usage for cmd */
+                if(!statusstr)
+                    asprintf(&statusstr, "Error parsing arguments %s command line %s", command->name, arg);
+            }
+            free(buf);
         }
-        ods_log_debug("[%s] done handling command %s", module_str, cmd);
-        return ret;
     } else {
         /* Unhandled command, print general error */
-        client_printf_err(sockfd, "Unknown command %s.\n", cmd);
-        client_printf(sockfd, "Commands:\n");
-        cmdhandler_get_usage(sockfd, context->cmdhandler);
-        return 1;
+        if(!strcmp(argv[argi], "help")) {
+            if(argi+1<argc) {
+                command = findcommand(arg, argc, argv, argi+1, commands, user);
+                if(command) {
+                    if(command->help) {
+                        status = 0;
+                        client_printf(context->sockfd, "Usage:\n");
+                        command->usage(context->sockfd);
+                        client_printf(context->sockfd, "\nHelp:\n");
+                        command->help(context->sockfd);
+                    } else if(command->usage) {
+                        status = 0;
+                        client_printf(context->sockfd, "Usage:\n");
+                        command->usage(context->sockfd);
+                    } else {
+                        status = 1;
+                        asprintf(&statusstr, "no help for command  %s.", arg);
+                    }
+                } else {
+                    client_printf(context->sockfd, "Help: command '%s' unknown. Type 'help' without arguments to get a list of supported commands.\n", argv[argi+1]);                    
+                }
+            } else {
+                status = 0;
+                for(int i=0; commands[i]; i++) {
+                    if(commands[i]->usage)
+                        commands[i]->usage(context->sockfd);
+                }
+            }
+        } else {
+            status = 1;
+            asprintf(&statusstr, "Unknown command %s.", arg);
+            for(int i=0; commands[i]; i++) {
+                if(commands[i]->usage)
+                    commands[i]->usage(context->sockfd);
+            }
+        }
+        goto exit;
     }
+
+  exit:
+    free(argv);
+    if(errormessageptr) {
+        *errormessageptr = statusstr;
+    } else if(statusstr) {
+        fprintf(stderr,"%s\n",statusstr);
+        free(statusstr);
+    }
+    return status;
 }
 
 /**

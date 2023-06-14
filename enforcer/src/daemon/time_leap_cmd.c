@@ -38,6 +38,7 @@
 #include "daemon/engine.h"
 #include "clientpipe.h"
 #include "hsmkey/hsm_key_factory.h"
+#include "longgetopt.h"
 
 #include "daemon/time_leap_cmd.h"
 
@@ -72,8 +73,10 @@ help(int sockfd)
 }
 
 static int
-run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
+run(cmdhandler_ctx_type* context, int argc, char* argv[])
 {
+    int sockfd = context->sockfd;
+    struct longgetopt optctx;
 	db_connection_t* dbconn;
 	struct tm strtime_struct;
 	char strtime[64]; /* at least 26 according to docs plus a long integer */
@@ -81,10 +84,8 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 	const char *time = NULL;
 	time_t time_leap = 0;
 	struct tm tm;
-	const int NARGV = MAX_ARGS;
-	const char *argv[MAX_ARGS];
         int taskcount;
-	int argc = 0, attach = 0;
+	int attach = 0;
 	int long_index = 0, opt = 0;
 	int processed_enforce;
 	task_type* task = NULL;
@@ -96,27 +97,18 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 		{0, 0, 0, 0}
 	};
 
-	ods_log_debug("[%s] %s command", module_str, time_leap_funcblock.cmdname);
-
-	argc = ods_str_explode(cmd, NARGV, argv);
-	if (argc == -1) {
-		ods_log_error_and_printf(sockfd, module_str, "too many arguments");
-		return -1;
-	}
-
-	optind = 0;
-	while ((opt = getopt_long(argc, (char* const*)argv, "t:a", long_options, &long_index)) != -1) {
+	for (opt = longgetopt(argc, argv, "t:a", long_options, &long_index, &optctx); opt != -1;
+             opt = longgetopt(argc, argv, NULL,	 long_options, &long_index, &optctx)) {
 		switch (opt) {
 			case 't':
-				time = optarg;
+				time = optctx.optarg;
 				break;
 			case 'a':
 				attach = 1;
 				break;
 			default:
 				client_printf_err(sockfd, "unknown arguments\n");
-				ods_log_error("[%s] unknown arguments for %s command",
-						module_str, time_leap_funcblock.cmdname);
+				ods_log_error("[%s] unknown arguments for time leap command", module_str);
 				return -1;
 		}
 	}
@@ -203,5 +195,5 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 
 
 struct cmd_func_block time_leap_funcblock = {
-	"time leap", &usage, &help, NULL, &run
+	"time leap", &usage, &help, NULL, NULL, &run, NULL
 };

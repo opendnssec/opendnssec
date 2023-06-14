@@ -28,6 +28,7 @@
 #include "enforcer/repositorylist_cmd.h"
 #include "daemon/engine.h"
 #include "clientpipe.h"
+#include "longgetopt.h"
 #include "log.h"
 #include "str.h"
 #include <libxml/xpath.h>
@@ -122,12 +123,9 @@ help(int sockfd)
 }
 
 static int
-run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
+run(cmdhandler_ctx_type* context, int argc, char* argv[])
 {
-	(void)cmd;
-	ods_log_debug("[%s] %s command", module_str, 
-		repositorylist_funcblock.cmdname);
-
+    int sockfd = context->sockfd;
 	if (perform_repositorylist(sockfd)) {
 		ods_log_error_and_printf(sockfd, module_str,
 			"unable to list repositories ");
@@ -137,5 +135,5 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 }
 
 struct cmd_func_block repositorylist_funcblock = {
-	"repository list", &usage, &help, NULL, &run
+	"repository list", &usage, &help, NULL, NULL, &run, NULL
 };

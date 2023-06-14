@@ -38,6 +38,7 @@
 #include "log.h"
 #include "str.h"
 #include "clientpipe.h"
+#include "longgetopt.h"
 
 #include "db/key_state.h"
 #include "db/hsm_key.h"
@@ -356,12 +357,12 @@ printdebugparsablekey(int sockfd, zone_db_t* zone, key_data_t* key, char* tchang
 }
 
 static int
-run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
+run(cmdhandler_ctx_type* context, int argc, char* argv[])
 {
-    #define NARGV 12
-    const char *argv[NARGV];
-    int success, argIndex;
-    int argc = 0, bVerbose = 0, bDebug = 0, bFull = 0, bParsable = 0, bAll = 0;
+    int sockfd = context->sockfd;
+    struct longgetopt optctx;
+    int success;
+    int bVerbose = 0, bDebug = 0, bFull = 0, bParsable = 0, bAll = 0;
     int long_index = 0, opt = 0;
     const char* keytype = NULL;
     const char* keystate = NULL;
@@ -380,18 +381,8 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
         {0, 0, 0, 0}
     };
 
-    ods_log_debug("[%s] %s command", module_str, key_list_funcblock.cmdname);
-
-    /* separate the arguments */
-    argc = ods_str_explode(cmd, NARGV, argv);
-    if (argc == -1) {
-        ods_log_error("[%s] too many arguments for %s command",
-                module_str, key_list_funcblock.cmdname);
-        client_printf_err(sockfd, "too many arguments\n");
-        return -1;
-    }
-    optind = 0;
-    while ((opt = getopt_long(argc, (char* const*)argv, "vdfpz:t:e:a", long_options, &long_index) ) != -1) {
+    for(opt = longgetopt(argc, argv, "vdfpz:t:e:a", long_options, &long_index, &optctx); opt != -1;
+        opt = longgetopt(argc, argv, NULL,          long_options, &long_index, &optctx)) {
         switch (opt) {
             case 'v':
                 bVerbose = 1;
@@ -406,21 +397,20 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
                 bParsable = 1;
                 break;
             case 'z':
-                zonename = optarg;
+                zonename = optctx.optarg;
                 break;
             case 't':
-                keytype = optarg;
+                keytype = optctx.optarg;
                 break;
             case 'e':
-                keystate = optarg;
+                keystate = optctx.optarg;
                 break;
             case 'a':
                 bAll = 1;
                 break;
             default:
                 client_printf_err(sockfd, "unknown arguments\n");
-                ods_log_error("[%s] unknown arguments for %s command",
-                              module_str, key_list_funcblock.cmdname);
+                ods_log_error("[%s] unknown arguments for key list command", module_str);
                 return -1;
         }
     }
@@ -453,5 +443,5 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 }
 
 struct cmd_func_block key_list_funcblock = {
-	"key list", &usage, &help, NULL, &run
+	"key list", &usage, &help, NULL, NULL, &run, NULL
 };

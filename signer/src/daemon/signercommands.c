@@ -6,6 +6,7 @@
 #include "log.h"
 #include "status.h"
 #include "util.h"
+#include "longgetopt.h"
 #include "daemon/engine.h"
 #include "cmdhandler.h"
 #include "signercommands.h"
@@ -277,63 +278,99 @@ forceread(engine_type* engine, zone_type *zone, int force_serial, uint32_t seria
         return 0;
 }
 
-/**
- * Handle the 'sign' command.
- *
- */
+static struct option signoptions[] = {
+    { "all",     0, NULL, 'a' },
+    { "zone",    1, NULL, 'z' },
+    { "serial",  1, NULL, 's' },
+    { "time",    1, NULL, 't' },
+    { NULL,      0, NULL, 0 }
+};
+
+int
+getlong(char* s, char** endptr, long *result)
+{
+    char *end;
+    while(isspace(*s))
+        ++s;
+    errno = 0;
+    *result = strtol(s, &end, 0);
+    if(errno == ERANGE) {
+        *endptr = NULL;
+        return -1;
+    }
+    if(end) {
+        if(s == end) {
+            if(endptr)
+                *endptr = end;
+            return -1;
+        }
+        while(isspace(*end))
+            ++end;
+        if(endptr) {
+            *endptr = end;
+            return 0;
+        } else if(*end)
+            return -1;
+        else
+            return 0;
+    } else {
+        *endptr = end;
+        return -1;
+    }
+}
+
 static int
-cmdhandler_handle_cmd_sign(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+cmdhandler_handle_cmd_sign(cmdhandler_ctx_type* context, int argc, char* argv[])
 {
     engine_type* engine;
-    zone_type *zone = NULL;
-    ods_status status = ODS_STATUS_OK;
-    char buf[ODS_SE_MAXLINE];
+    struct longgetopt optctx;
+    int allzones = 0;
+    int longindex;
+    char* zonename = NULL;
+    zone_type *zone;
+    int force_serial = 0;
+    long serial = 0;
+    char* signtime = NULL;
+    int opt;
 
     engine = getglobalcontext(context);
-    ods_log_assert(engine->taskq);
-    if (cmdargument(cmd, "--all", NULL)) {
+    /* Skip the "sign" command itself, then parse options */
+    ++argv;
+    --argc;
+    for(opt = longgetopt(argc, argv, "az:s:t:", signoptions, &longindex, &optctx); opt != -1;
+        opt = longgetopt(argc, argv, NULL,      signoptions, &longindex, &optctx)) {
+        switch(opt) {
+            case 'a':
+                allzones = 1;
+                break;
+            case 'z':
+                zonename = optctx.optarg;
+                break;
+            case 's':
+                getlong(optctx.optarg, NULL, &serial);
+                force_serial = 1;
+                break;
+            case 't':
+                signtime = optctx.optarg;
+                break;
+            default:
+                client_printf_err(context->sockfd, "unknown arguments\n",opt,opt);
+                return -1;
+        }
+    }
+    if(allzones) {
         pthread_mutex_lock(&engine->zonelist->zl_lock);
         ldns_rbnode_t* node;
         for (node = ldns_rbtree_first(engine->zonelist->zones); node != LDNS_RBTREE_NULL && node != NULL; node = ldns_rbtree_next(node)) {
             zone = (zone_type*)node->data;
-            forceread(engine, zone, 0, 0, sockfd);
+            forceread(engine, zone, 0, 0, context->sockfd);
         }
         pthread_mutex_unlock(&engine->zonelist->zl_lock);
         engine_wakeup_workers(engine);
-        client_printf(sockfd, "All zones scheduled for immediate re-sign.\n");
+        client_printf(context->sockfd, "All zones scheduled for immediate re-sign.\n");
     } else {
-        char* delim1 = strchr(cmdargument(cmd, NULL, ""), ' ');
-        char* delim2 = NULL;
-        int force_serial = 0;
-        uint32_t serial = 0;
-        if (delim1) {
-            char* end = NULL;
-            /** Some trailing text, could it be --serial? */
-            if (strncmp(delim1+1, "--serial ", 9) != 0) {
-                (void)snprintf(buf, ODS_SE_MAXLINE, "Error: Expecting <zone> "
-                    "--serial <nr>, got %s.\n", cmdargument(cmd, NULL, ""));
-                client_printf(sockfd, "%s", buf);
-                return -1;
-            }
-            delim2 = strchr(delim1+1, ' ');
-            if (!delim2) {
-                (void)snprintf(buf, ODS_SE_MAXLINE, "Error: Expecting serial.\n");
-                client_printf(sockfd, "%s", buf);
-                return -1;
-            }
-            serial = (uint32_t) strtol(delim2+1, &end, 10);
-            if (*end != '\0') {
-                (void)snprintf(buf, ODS_SE_MAXLINE, "Error: Expecting serial, "
-                    "got %s.\n", delim2+1);
-                client_printf(sockfd, "%s", buf);
-                return -1;
-            }
-            force_serial = 1;
-            *delim1 = '\0';
-        }
         pthread_mutex_lock(&engine->zonelist->zl_lock);
-        zone = zonelist_lookup_zone_by_name(engine->zonelist, cmdargument(cmd, NULL, ""),
-            LDNS_RR_CLASS_IN);
+        zone = zonelist_lookup_zone_by_name(engine->zonelist, zonename, LDNS_RR_CLASS_IN);
         /* If this zone is just added, don't update (it might not have a task
          * yet).
          */
@@ -343,16 +380,14 @@ cmdhandler_handle_cmd_sign(int sockfd, cmdhandler_ctx_type* context, const char 
         pthread_mutex_unlock(&engine->zonelist->zl_lock);
 
         if (!zone) {
-            (void)snprintf(buf, ODS_SE_MAXLINE, "Error: Zone %s not found.\n",
-                cmdargument(cmd, NULL, ""));
-            client_printf(sockfd, "%s", buf);
+            client_printf(context->sockfd, "Error: Zone %s not found.\n", zonename);
             return 1;
         }
 
-        forceread(engine, zone, force_serial, serial, sockfd);
+        forceread(engine, zone, force_serial, serial, context->sockfd);
         engine_wakeup_workers(engine);
-        client_printf(sockfd, "Zone %s scheduled for immediate re-sign.\n", cmdargument(cmd, NULL, ""));
-        ods_log_verbose("zone %s scheduled for immediate re-sign", cmdargument(cmd, NULL, ""));
+        client_printf(context->sockfd, "Zone %s scheduled for immediate re-sign.\n", zonename);
+        ods_log_verbose("zone %s scheduled for immediate re-sign", zonename);
     }
     return 0;
 }
@@ -608,20 +643,6 @@ cmdhandler_handle_cmd_error(int sockfd, cmdhandler_ctx_type* context, const char
 
 
 /**
- * Handle unknown command.
- *
- */
-static void
-cmdhandler_handle_cmd_unknown(int sockfd, cmdhandler_ctx_type* context, const char* str)
-{
-    char buf[ODS_SE_MAXLINE];
-    (void)snprintf(buf, ODS_SE_MAXLINE, "Unknown command %s.\n",
-        str?str:"(null)");
-    client_printf(sockfd, "%s", buf);
-}
-
-
-/**
  * Handle the 'time leap' command.
  *
  */
@@ -669,20 +690,20 @@ cmdhandler_handle_cmd_timeleap(int sockfd, cmdhandler_ctx_type* context, char *c
     return 0;
 }
 
-struct cmd_func_block helpCmdDef = { "help", NULL, NULL, NULL, &cmdhandler_handle_cmd_help };
-struct cmd_func_block zonesCmdDef = { "zones", NULL, NULL, NULL, &cmdhandler_handle_cmd_zones };
-struct cmd_func_block signCmdDef = { "sign", NULL, NULL, NULL, &cmdhandler_handle_cmd_sign };
-struct cmd_func_block clearCmdDef = { "clear", NULL, NULL, NULL, &cmdhandler_handle_cmd_clear };
-struct cmd_func_block queueCmdDef = { "queue", NULL, NULL, NULL, &cmdhandler_handle_cmd_queue };
-struct cmd_func_block flushCmdDef = { "flush", NULL, NULL, NULL, &cmdhandler_handle_cmd_flush };
-struct cmd_func_block updateCmdDef = { "update", NULL, NULL, NULL, &cmdhandler_handle_cmd_update };
-struct cmd_func_block stopCmdDef = { "stop", NULL, NULL, NULL, &cmdhandler_handle_cmd_stop };
-struct cmd_func_block startCmdDef = { "start", NULL, NULL, NULL, &cmdhandler_handle_cmd_start };
-struct cmd_func_block reloadCmdDef = { "reload", NULL, NULL, NULL, &cmdhandler_handle_cmd_reload };
-struct cmd_func_block retransferCmdDef = { "retransfer", NULL, NULL, NULL, &cmdhandler_handle_cmd_retransfer };
-struct cmd_func_block runningCmdDef = { "running", NULL, NULL, NULL, &cmdhandler_handle_cmd_running };
-struct cmd_func_block verbosityCmdDef = { "verbosity", NULL, NULL, NULL, &cmdhandler_handle_cmd_verbosity };
-struct cmd_func_block timeleapCmdDef = { "time leap", NULL, NULL, NULL, &cmdhandler_handle_cmd_timeleap };
+struct cmd_func_block helpCmdDef = { "help", NULL, NULL, NULL, &cmdhandler_handle_cmd_help, NULL };
+struct cmd_func_block zonesCmdDef = { "zones", NULL, NULL, NULL, &cmdhandler_handle_cmd_zones, NULL };
+struct cmd_func_block signCmdDef = { "sign", NULL, NULL, NULL, NULL, &cmdhandler_handle_cmd_sign };
+struct cmd_func_block clearCmdDef = { "clear", NULL, NULL, NULL, &cmdhandler_handle_cmd_clear, NULL };
+struct cmd_func_block queueCmdDef = { "queue", NULL, NULL, NULL, &cmdhandler_handle_cmd_queue, NULL };
+struct cmd_func_block flushCmdDef = { "flush", NULL, NULL, NULL, &cmdhandler_handle_cmd_flush, NULL };
+struct cmd_func_block updateCmdDef = { "update", NULL, NULL, NULL, &cmdhandler_handle_cmd_update, NULL };
+struct cmd_func_block stopCmdDef = { "stop", NULL, NULL, NULL, &cmdhandler_handle_cmd_stop, NULL };
+struct cmd_func_block startCmdDef = { "start", NULL, NULL, NULL, &cmdhandler_handle_cmd_start, NULL };
+struct cmd_func_block reloadCmdDef = { "reload", NULL, NULL, NULL, &cmdhandler_handle_cmd_reload, NULL };
+struct cmd_func_block retransferCmdDef = { "retransfer", NULL, NULL, NULL, &cmdhandler_handle_cmd_retransfer, NULL };
+struct cmd_func_block runningCmdDef = { "running", NULL, NULL, NULL, &cmdhandler_handle_cmd_running, NULL };
+struct cmd_func_block verbosityCmdDef = { "verbosity", NULL, NULL, NULL, &cmdhandler_handle_cmd_verbosity, NULL };
+struct cmd_func_block timeleapCmdDef = { "time leap", NULL, NULL, NULL, &cmdhandler_handle_cmd_timeleap, NULL };
 
 struct cmd_func_block* signcommands[] = {
     &helpCmdDef,
