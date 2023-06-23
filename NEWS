@@ -1,3 +1,11 @@
+OpenDNSSEC 2.1.13 - 2023-06-26
+
+* Emit warning when using ods-kaspcheck for RFC 5155
+* Fix concurrent usage of command line.
+* When using "keep" soa numbering policy mode and the input zone isn't
+  available, change from exponential back-off to retry upon next resign
+  interval and only emit a warning, unless this occurs a second time.
+
 OpenDNSSEC 2.1.12 - 2022-11-08
 
 * Ensure debug symbols on RPM-style builds.

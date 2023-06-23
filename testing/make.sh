@@ -8,9 +8,9 @@ fi
 
 if [ \! -f $INSTALL_ROOT/.softhsm2.ok ] ; then
   rm -f softhsm-*tar.gz
-  wget 'https://dist.opendnssec.org/source/softhsm-2.5.0.tar.gz'
-  gzip -d < softhsm-2.5.0.tar.gz | tar xf -
-  cd softhsm-2.5.0
+  wget 'https://dist.opendnssec.org/source/softhsm-2.6.1.tar.gz'
+  gzip -d < softhsm-2.6.1.tar.gz | tar xf -
+  cd softhsm-2.6.1
   ./configure --prefix="$INSTALL_ROOT" \
               --disable-non-paged-memory \
               --with-migrate --disable-p11-kit \
