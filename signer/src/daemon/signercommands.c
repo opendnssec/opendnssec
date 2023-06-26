@@ -41,8 +41,9 @@ cmdargument(const char* cmd, const char* matchValue, const char* defaultValue)
  *
  */
 static int
-cmdhandler_handle_cmd_help(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+cmdhandler_handle_cmd_help(cmdhandler_ctx_type* context, char *cmd)
 {
+    int sockfd = context->sockfd;
     char buf[ODS_SE_MAXLINE];
 
     (void) snprintf(buf, ODS_SE_MAXLINE,
@@ -90,8 +91,9 @@ cmdhandler_handle_cmd_help(int sockfd, cmdhandler_ctx_type* context, const char 
  *
  */
 static int
-cmdhandler_handle_cmd_zones(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+cmdhandler_handle_cmd_zones(cmdhandler_ctx_type* context, char *cmd)
 {
+    int sockfd = context->sockfd;
     engine_type* engine;
     char buf[ODS_SE_MAXLINE];
     size_t i;
@@ -129,14 +131,15 @@ cmdhandler_handle_cmd_zones(int sockfd, cmdhandler_ctx_type* context, const char
  *
  */
 static int
-cmdhandler_handle_cmd_update(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+cmdhandler_handle_cmd_update(cmdhandler_ctx_type* context, char *cmd)
 {
+    int sockfd = context->sockfd;
     engine_type* engine;
     char buf[ODS_SE_MAXLINE];
-    ods_status status = ODS_STATUS_OK;
     zone_type* zone = NULL;
     ods_status zl_changed = ODS_STATUS_OK;
     engine = getglobalcontext(context);
+    ods_log_assert(engine);
     ods_log_assert(engine->taskq);
     if (cmdargument(cmd, "--all", NULL)) {
         pthread_mutex_lock(&engine->zonelist->zl_lock);
@@ -187,7 +190,7 @@ cmdhandler_handle_cmd_update(int sockfd, cmdhandler_ctx_type* context, const cha
                 cmdargument(cmd, NULL, ""));
             client_printf(sockfd, "%s", buf);
             /* update all */
-            cmdhandler_handle_cmd_update(sockfd, context, "update --all");
+            cmdhandler_handle_cmd_update(context, "update --all");
             return 1;
         }
 
@@ -211,8 +214,9 @@ cmdhandler_handle_cmd_update(int sockfd, cmdhandler_ctx_type* context, const cha
  *
  */
 static int
-cmdhandler_handle_cmd_retransfer(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+cmdhandler_handle_cmd_retransfer(cmdhandler_ctx_type* context, char *cmd)
 {
+    int sockfd = context->sockfd;
     engine_type* engine;
     char buf[ODS_SE_MAXLINE];
     zone_type* zone = NULL;
@@ -354,9 +358,15 @@ cmdhandler_handle_cmd_sign(cmdhandler_ctx_type* context, int argc, char* argv[])
                 signtime = optctx.optarg;
                 break;
             default:
-                client_printf_err(context->sockfd, "unknown arguments\n",opt,opt);
+                client_printf_err(context->sockfd, "unknown arguments\n");
                 return -1;
         }
+    }
+    if(optctx.optind < argc)
+        zonename = argv[optctx.optind];
+    if(!allzones && (zonename == NULL || *zonename == '\0')) {
+        client_printf_err(context->sockfd, "No zone name provided to zone sign command.\n");
+        return -1;
     }
     if(allzones) {
         pthread_mutex_lock(&engine->zonelist->zl_lock);
@@ -412,8 +422,9 @@ unlink_backup_file(const char* filename, const char* extension)
  *
  */
 static int
-cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+cmdhandler_handle_cmd_clear(cmdhandler_ctx_type* context, char *cmd)
 {
+    int sockfd = context->sockfd;
     engine_type* engine;
     char buf[ODS_SE_MAXLINE];
     zone_type* zone = NULL;
@@ -478,8 +489,9 @@ cmdhandler_handle_cmd_clear(int sockfd, cmdhandler_ctx_type* context, const char
  *
  */
 static int
-cmdhandler_handle_cmd_queue(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+cmdhandler_handle_cmd_queue(cmdhandler_ctx_type* context, char *cmd)
 {
+    int sockfd = context->sockfd;
     engine_type* engine;
     char* strtime = NULL;
     char buf[ODS_SE_MAXLINE];
@@ -528,8 +540,9 @@ cmdhandler_handle_cmd_queue(int sockfd, cmdhandler_ctx_type* context, const char
  *
  */
 static int
-cmdhandler_handle_cmd_flush(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+cmdhandler_handle_cmd_flush(cmdhandler_ctx_type* context, char *cmd)
 {
+    int sockfd = context->sockfd;
     engine_type* engine;
     char buf[ODS_SE_MAXLINE];
     engine = getglobalcontext(context);
@@ -548,8 +561,9 @@ cmdhandler_handle_cmd_flush(int sockfd, cmdhandler_ctx_type* context, const char
  *
  */
 static int
-cmdhandler_handle_cmd_reload(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+cmdhandler_handle_cmd_reload(cmdhandler_ctx_type* context, char *cmd)
 {
+    int sockfd = context->sockfd;
     engine_type* engine;
     char buf[ODS_SE_MAXLINE];
     engine = getglobalcontext(context);
@@ -569,8 +583,9 @@ cmdhandler_handle_cmd_reload(int sockfd, cmdhandler_ctx_type* context, const cha
  *
  */
 static int
-cmdhandler_handle_cmd_stop(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+cmdhandler_handle_cmd_stop(cmdhandler_ctx_type* context, char *cmd)
 {
+    int sockfd = context->sockfd;
     engine_type* engine;
     char buf[ODS_SE_MAXLINE];
     engine = getglobalcontext(context);
@@ -589,8 +604,9 @@ cmdhandler_handle_cmd_stop(int sockfd, cmdhandler_ctx_type* context, const char 
  *
  */
 static int
-cmdhandler_handle_cmd_start(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+cmdhandler_handle_cmd_start(cmdhandler_ctx_type* context, char *cmd)
 {
+    int sockfd = context->sockfd;
     char buf[ODS_SE_MAXLINE];
     (void)snprintf(buf, ODS_SE_MAXLINE, "Engine already running.\n");
     client_printf(sockfd, "%s", buf);
@@ -603,8 +619,9 @@ cmdhandler_handle_cmd_start(int sockfd, cmdhandler_ctx_type* context, const char
  *
  */
 static int
-cmdhandler_handle_cmd_running(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+cmdhandler_handle_cmd_running(cmdhandler_ctx_type* context, char *cmd)
 {
+    int sockfd = context->sockfd;
     char buf[ODS_SE_MAXLINE];
     (void)snprintf(buf, ODS_SE_MAXLINE, "Engine running.\n");
     client_printf(sockfd, "%s", buf);
@@ -617,8 +634,9 @@ cmdhandler_handle_cmd_running(int sockfd, cmdhandler_ctx_type* context, const ch
  *
  */
 static int
-cmdhandler_handle_cmd_verbosity(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+cmdhandler_handle_cmd_verbosity(cmdhandler_ctx_type* context, char *cmd)
 {
+    int sockfd = context->sockfd;
     char buf[ODS_SE_MAXLINE];
     int val;
     val = atoi(cmdargument(cmd, NULL, "1"));
@@ -634,7 +652,7 @@ cmdhandler_handle_cmd_verbosity(int sockfd, cmdhandler_ctx_type* context, const 
  *
  */
 static void
-cmdhandler_handle_cmd_error(int sockfd, cmdhandler_ctx_type* context, const char* str)
+cmdhandler_handle_cmd_error(int sockfd, cmdhandler_ctx_type* context, char* str)
 {
     char buf[ODS_SE_MAXLINE];
     (void)snprintf(buf, ODS_SE_MAXLINE, "Error: %s.\n", str?str:"(null)");
@@ -647,8 +665,9 @@ cmdhandler_handle_cmd_error(int sockfd, cmdhandler_ctx_type* context, const char
  *
  */
 static int
-cmdhandler_handle_cmd_timeleap(int sockfd, cmdhandler_ctx_type* context, char *cmd)
+cmdhandler_handle_cmd_timeleap(cmdhandler_ctx_type* context, char *cmd)
 {
+    int sockfd = context->sockfd;
     struct tm strtime_struct;
     char strtime[64]; /* at least 26 according to docs plus a long integer */
     time_t now = time_now();
@@ -690,20 +709,20 @@ cmdhandler_handle_cmd_timeleap(int sockfd, cmdhandler_ctx_type* context, char *c
     return 0;
 }
 
-struct cmd_func_block helpCmdDef = { "help", NULL, NULL, NULL, &cmdhandler_handle_cmd_help, NULL };
-struct cmd_func_block zonesCmdDef = { "zones", NULL, NULL, NULL, &cmdhandler_handle_cmd_zones, NULL };
-struct cmd_func_block signCmdDef = { "sign", NULL, NULL, NULL, NULL, &cmdhandler_handle_cmd_sign };
-struct cmd_func_block clearCmdDef = { "clear", NULL, NULL, NULL, &cmdhandler_handle_cmd_clear, NULL };
-struct cmd_func_block queueCmdDef = { "queue", NULL, NULL, NULL, &cmdhandler_handle_cmd_queue, NULL };
-struct cmd_func_block flushCmdDef = { "flush", NULL, NULL, NULL, &cmdhandler_handle_cmd_flush, NULL };
-struct cmd_func_block updateCmdDef = { "update", NULL, NULL, NULL, &cmdhandler_handle_cmd_update, NULL };
-struct cmd_func_block stopCmdDef = { "stop", NULL, NULL, NULL, &cmdhandler_handle_cmd_stop, NULL };
-struct cmd_func_block startCmdDef = { "start", NULL, NULL, NULL, &cmdhandler_handle_cmd_start, NULL };
-struct cmd_func_block reloadCmdDef = { "reload", NULL, NULL, NULL, &cmdhandler_handle_cmd_reload, NULL };
+struct cmd_func_block helpCmdDef       = { "help",       NULL, NULL, NULL, &cmdhandler_handle_cmd_help, NULL };
+struct cmd_func_block zonesCmdDef      = { "zones",      NULL, NULL, NULL, &cmdhandler_handle_cmd_zones, NULL };
+struct cmd_func_block signCmdDef       = { "sign",       NULL, NULL, NULL, NULL, &cmdhandler_handle_cmd_sign };
+struct cmd_func_block clearCmdDef      = { "clear",      NULL, NULL, NULL, &cmdhandler_handle_cmd_clear, NULL };
+struct cmd_func_block queueCmdDef      = { "queue",      NULL, NULL, NULL, &cmdhandler_handle_cmd_queue, NULL };
+struct cmd_func_block flushCmdDef      = { "flush",      NULL, NULL, NULL, &cmdhandler_handle_cmd_flush, NULL };
+struct cmd_func_block updateCmdDef     = { "update",     NULL, NULL, NULL, &cmdhandler_handle_cmd_update, NULL };
+struct cmd_func_block stopCmdDef       = { "stop",       NULL, NULL, NULL, &cmdhandler_handle_cmd_stop, NULL };
+struct cmd_func_block startCmdDef      = { "start",      NULL, NULL, NULL, &cmdhandler_handle_cmd_start, NULL };
+struct cmd_func_block reloadCmdDef     = { "reload",     NULL, NULL, NULL, &cmdhandler_handle_cmd_reload, NULL };
 struct cmd_func_block retransferCmdDef = { "retransfer", NULL, NULL, NULL, &cmdhandler_handle_cmd_retransfer, NULL };
-struct cmd_func_block runningCmdDef = { "running", NULL, NULL, NULL, &cmdhandler_handle_cmd_running, NULL };
-struct cmd_func_block verbosityCmdDef = { "verbosity", NULL, NULL, NULL, &cmdhandler_handle_cmd_verbosity, NULL };
-struct cmd_func_block timeleapCmdDef = { "time leap", NULL, NULL, NULL, &cmdhandler_handle_cmd_timeleap, NULL };
+struct cmd_func_block runningCmdDef    = { "running",    NULL, NULL, NULL, &cmdhandler_handle_cmd_running, NULL };
+struct cmd_func_block verbosityCmdDef  = { "verbosity",  NULL, NULL, NULL, &cmdhandler_handle_cmd_verbosity, NULL };
+struct cmd_func_block timeleapCmdDef   = { "time leap",  NULL, NULL, NULL, &cmdhandler_handle_cmd_timeleap, NULL };
 
 struct cmd_func_block* signcommands[] = {
     &helpCmdDef,
