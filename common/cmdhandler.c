@@ -87,7 +87,7 @@ findcommand(const char *arg, int argc, char* argv[], int argi, struct cmd_func_b
                     ++ncmdwords;
             }
         } else {
-            while(match && *cmdname) {
+            while(match && *cmdname && argi+ncmdwords < argc) {
                 char* nextcmdname = strchr(cmdname,' ');
                 if(nextcmdname) {
                     if(strncmp(argv[argi+ncmdwords], cmdname, nextcmdname-cmdname) || argv[argi+ncmdwords][nextcmdname-cmdname]==' ') {
@@ -110,6 +110,8 @@ findcommand(const char *arg, int argc, char* argv[], int argi, struct cmd_func_b
                     }
                 }
             }
+            if(match && *cmdname)
+                match = 0;
         }
         if(match) {
             command = commands[i];
@@ -209,6 +211,7 @@ cmdhandler_perform_command(const char *arg, struct cmdhandler_ctx_struct* contex
             free(buf);
         }
     } else {
+        client_printf_err(context->sockfd, "Unknown command %s\n", argv[argi]);
         /* Unhandled command, print general error */
         if(!strcmp(argv[argi], "help")) {
             if(argi+1<argc) {
