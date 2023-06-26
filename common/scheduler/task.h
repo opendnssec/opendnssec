@@ -68,6 +68,9 @@ struct task_struct {
      * the past interpret it as *now* */
     time_t due_date;
 
+    /* time this tasks has been delayed from its original due_date */
+    time_t backoff;
+
     /* if returned time >= 0 the task is rescheduled for that time.
      * keeping context. otherwise scheduler will free context, owner,
      * and task. */
@@ -85,8 +88,6 @@ struct task_struct {
      * on scheduler_push_task(). All tasks with the same ttuple will
      * get the same lock. */
     pthread_mutex_t *lock;
-
-    time_t backoff;
 };
 
 extern const char* TASK_CLASS_ENFORCER;
