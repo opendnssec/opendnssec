@@ -39,6 +39,7 @@
 #include "str.h"
 #include "utils/kc_helper.h"
 #include "clientpipe.h"
+#include "longgetopt.h"
 #include "policy/policy_import.h"
 #include "keystate/zonelist_import.h"
 
@@ -98,14 +99,12 @@ check_all(int sockfd, engine_type* engine)
 }
 
 static int
-run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+run(cmdhandler_ctx_type* context, int argc, char* argv[])
 {
+    int sockfd = context->sockfd;
 	int error;
         db_connection_t* dbconn = getconnectioncontext(context);
         engine_type* engine = getglobalcontext(context);
-	(void)cmd;
-
-	ods_log_debug("[%s] %s command", module_str, update_all_funcblock.cmdname);
 
 	/*
 	 * Check conf.xml, KASP and zonelist. If there are no errors we stop all
@@ -134,5 +133,5 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 }
 
 struct cmd_func_block update_all_funcblock = {
-	"update all", &usage, &help, NULL, &run
+	"update all", &usage, &help, NULL, NULL, &run, NULL
 };

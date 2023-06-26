@@ -1,9 +1,35 @@
+/*
+ * Copyright (c) 2017 NLNet Labs. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+ * GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+ * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+ * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ */
 #include "daemon/engine.h"
 #include "cmdhandler.h"
 #include "daemon/enforcercommands.h"
 #include "log.h"
 #include "str.h"
 #include "clientpipe.h"
+#include "longgetopt.h"
 #include "enforcer/enforce_task.h"
 #include "db/key_data.h"
 #include "keystate/key_purge.h"
@@ -11,8 +37,6 @@
 #include "keystate/key_purge_cmd.h"
 
 #include <getopt.h>
-
-#define MAX_ARGS 4
 
 static const char *module_str = "key_purge_cmd";
 
@@ -47,15 +71,14 @@ help(int sockfd)
  */
 
 static int
-run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+run(cmdhandler_ctx_type* context, int argc, char* argv[])
 {
+    int sockfd = context->sockfd;
+    struct longgetopt optctx;
 	zone_db_t *zone;
 	policy_t *policy;
 	const char *zone_name = NULL;
 	const char *policy_name = NULL;
-	char *buf;
-	int argc = 0;
-	const char *argv[MAX_ARGS];
 	int long_index = 0, opt = 0;
 	int error = 0;
         int hsmPurge = 0;
@@ -70,39 +93,21 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 
         if (!dbconn) return 1;
 
-	ods_log_debug("[%s] %s command", module_str, key_purge_funcblock.cmdname);
-
-	if (!(buf = strdup(cmd))) {
-        	client_printf_err(sockfd, "memory error\n");
-	        return -1;
-   	}
-
-	argc = ods_str_explode(buf, MAX_ARGS, argv);
-	if (argc == -1) {
-	client_printf_err(sockfd, "too many arguments\n");
-	ods_log_error("[%s] too many arguments for %s command",
-                      module_str, key_purge_funcblock.cmdname);
-        free(buf);
-        return -1;
-	}
-
-	optind = 0;
-	while ((opt = getopt_long(argc, (char* const*)argv, "z:p:d", long_options, &long_index)) != -1) {
+	for(opt = longgetopt(argc, argv, "z:p:d", long_options, &long_index, &optctx); opt != -1;
+	    opt = longgetopt(argc, argv, NULL,    long_options, &long_index, &optctx)) {
 		switch (opt) {
 			case 'z':
-				zone_name = optarg;
+				zone_name = optctx.optarg;
 				break;
 			case 'p':
-				policy_name = optarg;
+				policy_name = optctx.optarg;
 				break;
 			case 'd':
 				hsmPurge = 1;
 				break;
 			default:
 				client_printf_err(sockfd, "unknown arguments\n");
-				ods_log_error("[%s] unknown arguments for %s command",
-						module_str, key_purge_funcblock.cmdname);
-				free(buf);
+				ods_log_error("[%s] unknown arguments for key purge command", module_str);
 				return -1;
 		}
 	}
@@ -110,7 +115,6 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
         if ((!zone_name && !policy_name) || (zone_name && policy_name)) {
                 ods_log_error("[%s] expected either --zone or --policy", module_str);
                 client_printf_err(sockfd, "expected either --zone or --policy \n");
-		free(buf);
                 return -1;
         }
 	
@@ -120,13 +124,11 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 			client_printf_err(sockfd, "unknown zone %s\n", zone_name);
 			zone_db_free(zone);
 			zone = NULL;
-			free(buf);
 			return -1;
 		}
 		error = removeDeadKeysNow(sockfd, dbconn, NULL, zone, hsmPurge);
 		zone_db_free(zone);
 		zone = NULL;
-		free(buf);
 		return error;
 	}
 
@@ -135,17 +137,14 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 	if (policy_get_by_name(policy, policy_name)){
 		policy_free(policy);
 		policy = NULL;
-		free(buf);
 		client_printf_err(sockfd, "unknown policy %s\n", policy_name);
 		return -1;
 	}
 	error = removeDeadKeysNow(sockfd, dbconn, policy, NULL, hsmPurge);
 	policy_free(policy);
 	policy = NULL;
-	free(buf);
 	return error;
 }
 
 struct cmd_func_block key_purge_funcblock = {
-	"key purge", &usage, &help, NULL, &run
-};
+	"key purge", &usage, &help, NULL, NULL, &run, NULL};

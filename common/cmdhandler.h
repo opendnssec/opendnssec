@@ -48,13 +48,13 @@ typedef struct cmdhandler_ctx_struct {
 
 struct cmd_func_block {
     /* Name of command */
-    const char* cmdname;
+    char* name;
     /* print usage information */
     void (*usage)(int sockfd);
     /* print help, more elaborate than usage. Allowed to be
      * NULL to indicate no help is available */
     void (*help)(int sockfd);
-    /* 1 if module claims responibility for command
+    /* 1 if module claims responsibility for command
      * 0 otherwise */
     int (*handles)(const char *cmd);
     /** Run the handler
@@ -68,7 +68,9 @@ struct cmd_func_block {
      *      -1 Errors parsing commandline / missing params
      *       positive error code to return to user.
      */
-    int (*run)(int sockfd, cmdhandler_ctx_type*, const char *cmd);
+    int (*runarg)(__attribute__((unused)) cmdhandler_ctx_type*, __attribute__((unused)) char *cmd);
+    int (*runargs)(__attribute__((unused)) cmdhandler_ctx_type*, __attribute__((unused)) int argc, __attribute__((unused)) char**argv);
+    char** names;
 };
 
 struct cmdhandler_struct {
@@ -105,27 +107,6 @@ void cmdhandler_cleanup(cmdhandler_type* cmdhandler);
  */
 void cmdhandler_start(cmdhandler_type* cmdhandler);
 void cmdhandler_stop(cmdhandler_type* cmdhandler);
-
-/**
- * Print usage of all known commands to file descriptor
- * 
- * \param[in] sockfd, file descriptor to print to.
- * 
- */
-void cmdhandler_get_usage(int sockfd, cmdhandler_type* cmdc);
-
-/**
- * Retrieve function block responsible for cmd
- * 
- * Loops over all known commands, first command to claim to be 
- * responsible will have its function block returned. If not claimed
- * return NULL.
- * 
- * \param[in] cmd, command to look for
- * \param[in] n, length of cmd string.
- * \return function block or NULL
- */
-struct cmd_func_block* get_funcblock(const char *cmd, cmdhandler_type* cmdc);
 
 /**
  * Compare commandline with command, return arguments if found.

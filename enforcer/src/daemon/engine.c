@@ -448,8 +448,7 @@ engine_setup()
     if (setup_database(engine)) return ODS_STATUS_DB_ERR;
     /* Probe the database, can we connect to it? */
     if (probe_database(engine)) {
-        ods_log_crit("Could not connect to database or database not set"
-            " up properly.");
+        ods_log_crit("Could not connect to database or database not set up properly.");
         return ODS_STATUS_DB_ERR;
     }
 
@@ -644,7 +643,6 @@ engine_init(engine_type* engine, int daemonize)
 int
 engine_run(engine_type* engine, start_cb_t start, int single_run)
 {
-    int error;
     ods_log_assert(engine);
 
     engine_start_workers(engine);

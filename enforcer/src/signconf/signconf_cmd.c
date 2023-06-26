@@ -37,10 +37,9 @@
 #include "log.h"
 #include "str.h"
 #include "clientpipe.h"
+#include "longgetopt.h"
 
 #include "signconf/signconf_cmd.h"
-
-static const char *module_str = "signconf_cmd";
 
 static void
 usage(int sockfd)
@@ -59,18 +58,15 @@ help(int sockfd)
 }
 
 static int
-run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+run(cmdhandler_ctx_type* context, int argc, char* argv[])
 {
     db_connection_t* dbconn = getconnectioncontext(context);
     engine_type* engine = getglobalcontext(context);
-    (void)cmd;
-
-	ods_log_debug("[%s] %s command", module_str, signconf_funcblock.cmdname);
 
 	signconf_task_flush_all(engine, dbconn);
 	return 0;
 }
 
 struct cmd_func_block signconf_funcblock = {
-	"signconf", &usage, &help, NULL, &run
+	"signconf", &usage, &help, NULL, NULL, &run, NULL
 };

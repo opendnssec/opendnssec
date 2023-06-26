@@ -38,6 +38,7 @@
 #include "str.h"
 #include "duration.h"
 #include "clientpipe.h"
+#include "longgetopt.h"
 #include "libhsm.h"
 #include "db/hsm_key.h"
 #include "db/hsm_key_ext.h"
@@ -188,13 +189,12 @@ handles(const char *cmd)
 }
 
 static int
-run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+run(cmdhandler_ctx_type* context, int argc, char* argv[])
 {
-    #define NARGV 4
-    const char *argv[NARGV];
-    int argc = 0, long_index = 0, opt = 0;
+    int sockfd = context->sockfd;
+    struct longgetopt optctx;
+    int long_index = 0, opt = 0;
     const char *repository = NULL;
-    char buf[ODS_SE_MAXLINE];
     int status;
     db_clause_list_t* clause_list;
     db_connection_t* dbconn = getconnectioncontext(context);
@@ -204,27 +204,15 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
         {0, 0, 0, 0}
     };
 
-    strncpy(buf, cmd, ODS_SE_MAXLINE);
-    buf[sizeof(buf)-1] = '\0';
-
-    argc = ods_str_explode(buf, NARGV, argv);
-    if (argc == -1) {
-        client_printf_err(sockfd, "too many arguments\n");
-        ods_log_error("[%s] too many arguments for %s command",
-                      module_str, backup_funcblock.cmdname);
-        return -1;
-    }
-
-    optind = 0;
-    while ((opt = getopt_long(argc, (char* const*)argv, "r:", long_options, &long_index)) != -1) {
+    for(opt = longgetopt(argc, argv, "r:", long_options, &long_index, &optctx); opt != -1;
+        opt = longgetopt(argc, argv, NULL, long_options, &long_index, &optctx)) {
         switch (opt) {
             case 'r':
-                repository = optarg;
+                repository = optctx.optarg;
                 break;
             default:
                 client_printf_err(sockfd, "unknown arguments\n");
-                ods_log_error("[%s] unknown arguments for %s command",
-                               module_str, backup_funcblock.cmdname);
+                ods_log_error("[%s] unknown arguments for backup command", module_str);
                 return -1;
         }
     }
@@ -241,13 +229,13 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
     }
     
     /* Find out what we need to do */
-    if (ods_check_command(cmd,"backup prepare"))
+    if (ods_check_command(argv[1],"prepare"))
         status = prepare(sockfd, dbconn, clause_list);
-    else if (ods_check_command(cmd,"backup commit"))
+    else if (ods_check_command(argv[1],"commit"))
         status = commit(sockfd, dbconn, clause_list);
-    else if (ods_check_command(cmd,"backup rollback"))
+    else if (ods_check_command(argv[1],"rollback"))
         status = rollback(sockfd, dbconn, clause_list);
-    else if (ods_check_command(cmd,"backup list"))
+    else if (ods_check_command(argv[1],"list"))
         status = list(sockfd, dbconn, clause_list);
     else
         status = -1;
@@ -257,5 +245,5 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 }
 
 struct cmd_func_block backup_funcblock = {
-    "backup", &usage, &help, &handles, &run
+    "backup", &usage, &help, &handles, NULL, &run, NULL
 };

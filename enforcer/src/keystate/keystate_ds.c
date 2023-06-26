@@ -37,6 +37,7 @@
 #include "log.h"
 #include "str.h"
 #include "clientpipe.h"
+#include "longgetopt.h"
 #include "duration.h"
 #include "db/key_data.h"
 #include "db/zone_db.h"
@@ -430,11 +431,12 @@ change_keys_from_to(db_connection_t *dbconn, int sockfd,
 }
 
 int
-run_ds_cmd(int sockfd, const char *cmd,
+run_ds_cmd(cmdhandler_ctx_type* context, int argc, char* argv[],
 	db_connection_t *dbconn, key_data_ds_at_parent_t state_from,
 	key_data_ds_at_parent_t state_to, engine_type *engine)
 {
-	#define NARGV 6
+    int sockfd = context->sockfd;
+    struct longgetopt optctx;
 	const char *zonename = NULL, *cka_id = NULL, *keytag_s = NULL;
 	int keytag = -1;
 	hsm_key_t* hsmkey = NULL;
@@ -442,8 +444,7 @@ run_ds_cmd(int sockfd, const char *cmd,
 	char buf[ODS_SE_MAXLINE];
 	zone_db_t* zone = NULL;
 	int all = 0;
-	int argc = 0, long_index = 0, opt = 0;
-	const char* argv[NARGV];
+	int long_index = 0, opt = 0;
 
 	static struct option long_options[] = {
 		{"zone", required_argument, 0, 'z'},
@@ -453,27 +454,17 @@ run_ds_cmd(int sockfd, const char *cmd,
 		{0, 0, 0, 0}
 	};
 
-	strncpy(buf, cmd, ODS_SE_MAXLINE);
-	buf[sizeof(buf)-1] = '\0';
-	argc = ods_str_explode(buf, NARGV, argv);
-	if (argc == -1) {
-		client_printf_err(sockfd, "too many arguments\n");
-		ods_log_error("[%s] too many arguments for %s command",
-				module_str, cmd);
-		return -1;
-	}
-
-	optind = 0;
-	while ((opt = getopt_long(argc, (char* const*)argv, "z:k:x:a", long_options, &long_index)) != -1) {
+	for(opt = longgetopt(argc, argv, "z:k:x:a", long_options, &long_index, &optctx); opt != -1;
+	    opt = longgetopt(argc, argv, NULL,      long_options, &long_index, &optctx)) {
 		switch (opt) {
 			case 'z':
-				zonename = optarg;
+				zonename = optctx.optarg;
 				break;
 			case 'k':
-				cka_id = optarg;
+				cka_id = optctx.optarg;
 				break;
 			case 'x':
-				keytag_s = optarg;
+				keytag_s = optctx.optarg;
 				break;
 			case 'a':
 				all = 1;
@@ -481,7 +472,7 @@ run_ds_cmd(int sockfd, const char *cmd,
 			default:
 				client_printf_err(sockfd, "unknown arguments\n");
 				ods_log_error("[%s] unknown arguments for %s command",
-						module_str, cmd);
+						module_str, argv[0]);
 				return -1;
 		}
 	}

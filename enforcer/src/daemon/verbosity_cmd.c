@@ -36,6 +36,7 @@
 #include "cmdhandler.h"
 #include "daemon/engine.h"
 #include "clientpipe.h"
+#include "longgetopt.h"
 
 #include "daemon/verbosity_cmd.h"
 
@@ -59,18 +60,11 @@ help(int sockfd)
 }
 
 static int
-run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+run(cmdhandler_ctx_type* context, int argc, char* argv[])
 {
-	const int NARGV = MAX_ARGS;
-	const char *argv[MAX_ARGS];
-	char buf[ODS_SE_MAXLINE];
-	int argc;
+    int sockfd = context->sockfd;
 	long val;
 	char *endptr, *errorstr;
-
-	strncpy(buf, cmd, sizeof(buf));
-	buf[sizeof(buf)-1] = '\0';
-	argc = ods_str_explode(buf, NARGV, argv);
 
 	ods_log_debug("[%s] verbosity command", module_str);
 	if (argc == 1) {
@@ -114,5 +108,5 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 
 
 struct cmd_func_block verbosity_funcblock = {
-	"verbosity", &usage, &help, NULL, &run
+	"verbosity", &usage, &help, NULL, NULL, &run, NULL
 };

@@ -35,6 +35,7 @@
 #include "str.h"
 #include "log.h"
 #include "clientpipe.h"
+#include "longgetopt.h"
 #include "db/zone_db.h" 
 #include "keystate/zonelist_export.h"
 
@@ -98,11 +99,10 @@ static int set_zone_policy(int sockfd, db_connection_t* dbconn, zone_db_t* zone,
 }
 
 static int
-run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
+run(cmdhandler_ctx_type* context, int argc, char* argv[])
 {
-	#define NARGV 18
-	const char* argv[NARGV];
-	int argc = 0;
+    int sockfd = context->sockfd;
+    struct longgetopt optctx;
 	const char *zone_name = NULL;
 	char *policy_name = NULL;
 	int write_xml = 0;
@@ -119,32 +119,21 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 		{0, 0, 0, 0}
 	};
 
-	ods_log_debug("[%s] %s command", module_str, zone_set_policy_funcblock.cmdname);
-
-	argc = ods_str_explode(cmd, NARGV, argv);
-	if (argc == -1) {
-		client_printf_err(sockfd, "too many arguments\n");
-		ods_log_error("[%s] too many arguments for %s command",
-					  module_str, zone_set_policy_funcblock.cmdname);
-		return -1;
-	}
-
-	optind = 0;
-	while ((opt = getopt_long(argc, (char* const*)argv, "z:p:u", long_options, &long_index)) != -1) {
+	for(opt = longgetopt(argc, argv, "z:p:u", long_options, &long_index, &optctx); opt != -1;
+	    opt = longgetopt(argc, argv, NULL,    long_options, &long_index, &optctx)) {
 		switch (opt) {
 			case 'z':
-				zone_name = optarg;
+				zone_name = optctx.optarg;
 				break;
 			case 'p':
-				policy_name = strdup(optarg);
+				policy_name = strdup(optctx.optarg);
 				break;
 			case 'u':
 				write_xml = 1;
 				break;
 			default:
 				client_printf_err(sockfd, "unknown arguments\n");
-				ods_log_error("[%s] unknown arguments for %s command",
-							  module_str, zone_set_policy_funcblock.cmdname);
+				ods_log_error("[%s] unknown arguments for zone set-policy command", module_str);
 				return -1;
 		}
 	}
@@ -208,5 +197,5 @@ run(int sockfd, cmdhandler_ctx_type* context, char *cmd)
 }
 
 struct cmd_func_block zone_set_policy_funcblock = {
-	"zone set-policy", &usage, &help, NULL, &run
+	"zone set-policy", &usage, &help, NULL, NULL, &run, NULL
 };
