@@ -92,11 +92,11 @@ static int min(int a, int b) { return a<b?a:b; }
  * 
  * \param t[in], some time to test
  * \param min[in,out], smallest of t and min.
- * */
+ */
 static inline void
 minTime(const time_t t, time_t* min)
 {
-	assert(min); /* TODO: proper error */
+	ods_log_assert(min);
 	if ( (t < *min || *min < 0) && t >= 0 ) *min = t;
 }
 
@@ -108,7 +108,7 @@ minTime(const time_t t, time_t* min)
  * \param[in] t, base time
  * \param[in] seconds, seconds to add to base
  * \return sum
- * */
+ */
 static time_t
 addtime(const time_t t, const int seconds)
 {
@@ -2807,7 +2807,7 @@ update(engine_type *engine, db_connection_t *dbconn, zone_db_t *zone, policy_t c
 	    purge_return_time = removeDeadKeys(dbconn, keylist, keylist_size, deplist, now,
 	        policy_keys_purge_after(policy));
             if(purge_return_time < -1) {
-                ods_log_info("[%s] reschedule enforcing policy due to deleting keys", module_str, scmd);
+                ods_log_info("[%s] %s: reschedule enforcing policy due to deleting keys", module_str, scmd);
                 /* Keys have been deleted, we cannot continue in this same session, reschedule. */
                 return now + 60;
             }

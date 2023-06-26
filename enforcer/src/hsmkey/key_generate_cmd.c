@@ -33,6 +33,7 @@
 #include "log.h"
 #include "str.h"
 #include "clientpipe.h"
+#include "longgetopt.h"
 #include "hsmkey/hsm_key_factory.h"
 #include "db/policy.h"
 #include "duration.h"
@@ -64,12 +65,11 @@ help(int sockfd)
 }
 
 static int
-run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+run(cmdhandler_ctx_type* context, int argc, char* argv[])
 {
-    #define NARGV 6
-    char* buf;
-    const char* argv[NARGV];
-    int argc = 0, long_index =0, opt = 0;
+    int sockfd = context->sockfd;
+    struct longgetopt optctx;
+    int long_index =0, opt = 0;
     const char* policy_name = NULL;
     const char* duration_text = NULL;
     time_t duration_time = 0;
@@ -86,50 +86,32 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
         {0, 0, 0, 0}
     };
 
-    ods_log_debug("[%s] %s command", module_str, key_generate_funcblock.cmdname);
+    ods_log_debug("[%s] key generate command", module_str);
 
-    if (!(buf = strdup(cmd))) {
-        client_printf_err(sockfd, "memory error\n");
-        return -1;
-    }
-
-    argc = ods_str_explode(buf, NARGV, argv);
-    if (argc == -1) {
-        client_printf_err(sockfd, "too many arguments\n");
-        ods_log_error("[%s] too many arguments for %s command",
-                      module_str, key_generate_funcblock.cmdname);
-        free(buf);
-        return -1;
-    }
-
-    optind = 0;
-    while ((opt = getopt_long(argc, (char* const*)argv, "p:ad:", long_options, &long_index)) != -1) {
+    for(opt = longgetopt(argc, argv, "p:ad:", long_options, &long_index, &optctx); opt != -1;
+        opt = longgetopt(argc, argv, NULL,    long_options, &long_index, &optctx)) {
         switch (opt) {
             case 'd':
-                duration_text = optarg;
+                duration_text = optctx.optarg;
                 break;
             case 'p':
-                policy_name = optarg;
+                policy_name = optctx.optarg;
                 break;
             case 'a':
                 all = 1;
                 break;
             default:
                 client_printf_err(sockfd, "unknown arguments\n");
-                ods_log_error("[%s] unknown arguments for %s command",
-                                module_str, key_generate_funcblock.cmdname);
-                free(buf);
+                ods_log_error("[%s] unknown arguments for key generate command", module_str);
                 return -1;
         }
     }
-
     if (duration_text) {
         if (!(duration = duration_create_from_string(duration_text))
             || !(duration_time = duration2time(duration)))
         {
             client_printf_err(sockfd, "Error parsing the specified duration!\n");
             duration_cleanup(duration);
-            free(buf);
             return 1;
         }
         duration_cleanup(duration);
@@ -141,7 +123,6 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
     else if (policy_name) {
         if (!(policy = policy_new_get_by_name(dbconn, policy_name))) {
             client_printf_err(sockfd, "Unable to find policy %s!\n", policy_name);
-            free(buf);
             return 1;
         }
         hsm_key_factory_schedule_generate_policy(engine, policy, duration_time);
@@ -149,15 +130,13 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
     }
     else {
         client_printf_err(sockfd, "Either --all or --policy needs to be given!\n");
-        free(buf);
         return 1;
     }
 
     client_printf(sockfd, "Key generation task scheduled.\n");
-    free(buf);
     return 0;
 }
 
 struct cmd_func_block key_generate_funcblock = {
-    "key generate", &usage, &help, NULL, &run
+    "key generate", &usage, &help, NULL, NULL, &run, NULL
 };

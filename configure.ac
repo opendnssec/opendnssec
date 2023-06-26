@@ -1,7 +1,7 @@
 m4_sinclude([version.m4])
 
 AC_PREREQ([2.69])
-AC_INIT([opendnssec],[OPENDNSSEC_VERSION],[http://bugs.opendnssec.org/])
+AC_INIT([opendnssec],[OPENDNSSEC_VERSION],[https://issues.opendnssec.org/])
 AM_DEFAULT_VERBOSITY="0"
 AC_SUBST([AM_DEFAULT_VERBOSITY])
 AM_INIT_AUTOMAKE([foreign subdir-objects])
@@ -38,12 +38,15 @@ AX_CFLAGS_WARN_ALL
 AX_CHECK_COMPILE_FLAG([-rdynamic], [CFLAGS="$CFLAGS -rdynamic"])
 
 # checks for header files
+AC_HEADER_STDC
 AC_HEADER_STDBOOL
+AC_HEADER_TIME
 AC_CHECK_HEADERS([fcntl.h inttypes.h stdio.h stdlib.h string.h syslog.h unistd.h])
 AC_CHECK_HEADERS(getopt.h,, [AC_INCLUDES_DEFAULT])
 AC_CHECK_HEADERS([errno.h getopt.h pthread.h signal.h stdarg.h stdint.h strings.h])
 AC_CHECK_HEADERS([sys/select.h sys/socket.h sys/stat.h sys/time.h sys/types.h sys/wait.h])
 AC_CHECK_HEADERS([libxml/parser.h libxml/relaxng.h libxml/xmlreader.h libxml/xpath.h])
+AC_SEARCH_LIBS([sqrt], [m])
 
 # checks for typedefs, structures, and compiler characteristics
 AC_C_CONST
@@ -93,6 +96,7 @@ AC_CHECK_FUNCS([xmlInitParser xmlCleanupParser xmlCleanupThreads])
 AC_CHECK_FUNCS([pthread_mutex_init pthread_mutex_destroy pthread_mutex_lock pthread_mutex_unlock])
 AC_CHECK_FUNCS([pthread_cond_init pthread_cond_signal pthread_cond_destroy pthread_cond_wait pthread_cond_timedwait])
 AC_CHECK_FUNCS([pthread_create pthread_detach pthread_self pthread_join pthread_sigmask pthread_barrier_wait])
+AC_CHECK_FUNCS([getopt_long])
 
 AC_FUNC_CHOWN
 AC_FUNC_FORK

@@ -32,6 +32,7 @@
 #include "log.h"
 #include "str.h"
 #include "clientpipe.h"
+#include "longgetopt.h"
 #include "keystate/zonelist_export.h"
 
 #include "keystate/zonelist_export_cmd.h"
@@ -55,11 +56,11 @@ help(int sockfd)
 }
 
 static int
-run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+run(cmdhandler_ctx_type* context, int argc, char* argv[])
 {
+    int sockfd = context->sockfd;
     db_connection_t* dbconn = getconnectioncontext(context);
     engine_type* engine = getglobalcontext(context);
-    (void)cmd;
 
     if (!engine) {
         return 1;
@@ -74,8 +75,6 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
         return 1;
     }
 
-    ods_log_debug("[%s] %s command", module_str, zonelist_export_funcblock.cmdname);
-
     if (zonelist_export(sockfd, dbconn, engine->config->zonelist_filename, 1) != ZONELIST_EXPORT_OK) {
         ods_log_error("[%s] zonelist exported to %s failed", module_str, engine->config->zonelist_filename);
         client_printf_err(sockfd, "Exported zonelist to %s failed!\n", engine->config->zonelist_filename);
@@ -88,5 +87,5 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 }
 
 struct cmd_func_block zonelist_export_funcblock = {
-    "zonelist export", &usage, &help, NULL, &run
+    "zonelist export", &usage, &help, NULL, NULL, &run, NULL
 };
