@@ -33,6 +33,7 @@
 #include "log.h"
 #include "str.h"
 #include "clientpipe.h"
+#include "longgetopt.h"
 #include "policy/policy_export.h"
 
 #include "policy/policy_export_cmd.h"
@@ -61,18 +62,15 @@ help(int sockfd)
 }
 
 static int
-run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+run(cmdhandler_ctx_type* context, int argc, char* argv[])
 {
-    #define NARGV 4
-    char* buf;
-    const char* argv[NARGV];
-    int returnCode;
-    int argc = 0, long_index = 0, opt = 0;
+    int sockfd = context->sockfd;
+    struct longgetopt optctx;
+    int long_index = 0, opt = 0;
     const char* policy_name = NULL;
     int all = 0;
     policy_t* policy;
     db_connection_t* dbconn = getconnectioncontext(context);;
-    engine_type* engine = getglobalcontext(context);
 
     static struct option long_options[] = {
         {"policy", required_argument, 0, 'p'},
@@ -80,74 +78,50 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
         {0, 0, 0, 0}
     };
 
-    ods_log_debug("[%s] %s command", module_str, policy_export_funcblock.cmdname);
-
-    if (!cmd || !(buf = strdup(cmd))) {
-        client_printf_err(sockfd, "memory error\n");
-        return -1;
-    }
-
-    argc = ods_str_explode(buf, NARGV, argv);
-    if (argc == -1) {
-        client_printf_err(sockfd, "too many arguments\n");
-        ods_log_error("[%s] too many arguments for %s command",
-                      module_str, policy_export_funcblock.cmdname);
-        free(buf);
-        return -1;
-    }
-
-    optind = 0;
-    while ((opt = getopt_long(argc, (char* const*)argv, "p:a", long_options, &long_index)) != -1) {
+    for(opt = longgetopt(argc, argv, "p:a", long_options, &long_index, &optctx); opt != -1;
+        opt = longgetopt(argc, argv, NULL,  long_options, &long_index, &optctx)) {
         switch (opt) {
             case 'p':
-                policy_name = optarg;
+                policy_name = optctx.optarg;
                 break;
             case 'a':
                 all = 1;
                 break;
             default:
                 client_printf_err(sockfd, "unknown arguments\n");
-                ods_log_error("[%s] unknown arguments for %s command",
-                                module_str, policy_export_funcblock.cmdname);
-                free(buf);
+                ods_log_error("[%s] unknown arguments for policy export command", module_str);
                 return -1;
         }
     }
 
     if (!dbconn) {
-        free(buf);
         return 1;
     }
 
     if (all) {
         if (policy_export_all(sockfd, dbconn, NULL) != POLICY_EXPORT_OK) {
-            free(buf);
             return 1;
         }
     }
     else if (policy_name) {
         if (!(policy = policy_new_get_by_name(dbconn, policy_name))) {
             client_printf_err(sockfd, "Unable to find policy %s!\n", policy_name);
-            free(buf);
             return 1;
         }
         if (policy_export(sockfd, policy, NULL) != POLICY_EXPORT_OK) {
             policy_free(policy);
-            free(buf);
             return 1;
         }
         policy_free(policy);
     }
     else {
         client_printf_err(sockfd, "Either --all or --policy needs to be given!\n");
-        free(buf);
         return 1;
     }
 
-    free(buf);
     return 0;
 }
 
 struct cmd_func_block policy_export_funcblock = {
-    "policy export", &usage, &help, NULL, &run
+    "policy export", &usage, &help, NULL, NULL, &run, NULL
 };

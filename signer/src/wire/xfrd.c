@@ -697,7 +697,6 @@ xfrd_commit_packet(xfrd_type* xfrd)
             (util_serial_gt(xfrd->serial_disk, xfrd->serial_xfr) &&
              xfrd->serial_disk_acquired > xfrd->serial_xfr_acquired)) {
         /* reschedule task */
-        int ret = 0;
         xfrhandler_type* xfrhandler = (xfrhandler_type*) xfrd->xfrhandler;
         engine_type* engine = (engine_type*) xfrhandler->engine;
         ods_log_assert(xfrhandler);
@@ -1195,6 +1194,7 @@ xfrd_handle_packet(xfrd_type* xfrd, buffer_type* buffer)
             /* continue with commit */
             break;
         case XFRD_PKT_NEWLEASE:
+	    xfrd->serial_notify_acquired = 0;
         case XFRD_PKT_TC:
             return res;
             break;

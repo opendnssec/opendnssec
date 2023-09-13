@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2009 NLNet Labs. All rights reserved.
+ * Copyright (c) 2009-2018 NLNet Labs.
+ * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -21,7 +22,6 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
 #include "scheduler/schedule.h"
@@ -36,7 +36,7 @@
  *
  */
 worker_type*
-worker_create(char* name, schedule_type* taskq)
+worker_create(const char* name, schedule_type* taskq)
 {
     worker_type* worker;
     CHECKALLOC(worker = (worker_type*) malloc(sizeof(worker_type)));
@@ -57,8 +57,8 @@ worker_create(char* name, schedule_type* taskq)
 void
 worker_start(worker_type* worker)
 {
-    ods_log_assert(worker);
     task_type *task;
+    ods_log_assert(worker);
 
     while (worker->need_to_exit == 0) {
         ods_log_debug("[%s]: report for duty", worker->name);
@@ -82,6 +82,6 @@ worker_start(worker_type* worker)
 void
 worker_cleanup(worker_type* worker)
 {
-    free(worker->name);
+    free((void*)worker->name);
     free(worker);
 }

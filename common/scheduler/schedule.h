@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2009 NLNet Labs. All rights reserved.
+ * Copyright (c) 2009-2018 NLNet Labs.
+ * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -21,7 +22,6 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
 /**
@@ -165,11 +165,12 @@ int schedule_task_istype(task_type* task, task_id type);
 char* schedule_describetask(task_type* task);
 void task_perform(schedule_type* sched, task_type* task, void* context);
 
-#define schedule_PROMPTLY     1
-#define schedule_IMMEDIATELY  0
-#define schedule_SUCCESS     -1
-#define schedule_DEFER       -2
-#define schedule_FAILED      -3
+#define schedule_PROMPTLY     1     /* now */
+#define schedule_IMMEDIATELY  0     /* !! Priority !! */
+#define schedule_SUCCESS     -1     /* Don't reschedule */
+#define schedule_DEFER       -2     /* Retry with backoff */
+#define schedule_FAILED      -3     /* Don't reschedule */
+
 #define schedule_WHATEVER    "[any]"
 #define schedule_WHENEVER    -1
 

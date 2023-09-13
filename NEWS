@@ -1,3 +1,27 @@
+OpenDNSSEC 2.1.13 - 2023-06-26
+
+* Emit warning when using ods-kaspcheck for RFC 5155
+* Fix concurrent usage of command line.
+* When using "keep" soa numbering policy mode and the input zone isn't
+  available, change from exponential back-off to retry upon next resign
+  interval and only emit a warning, unless this occurs a second time.
+
+OpenDNSSEC 2.1.12 - 2022-11-08
+
+* Ensure debug symbols on RPM-style builds.
+* Bug fix that prevented restoring state from when salt length was zero.
+* Bug fix for enforcer daemon crash after deleting key on some systems.
+
+OpenDNSSEC 2.1.11 - 2022-09-17
+
+* Improper re-use of already used keys when using <SharedKeys/> as
+  a consequence of previous bug in 2.1.6
+* Improved reporting upon segmentation faults or similar aborts.
+* Fix for migration to resalt of length 0.
+* Fix for upstream nameserver, implementing IXFR but without support
+  for IXFR for that specific zone and responding without AXFR.
+* Degraded log message key_update_failed because this action is retried.
+
 OpenDNSSEC 2.1.10 - 2021-09-10
 
 * OPENDNSSEC-957: Fix exit code signer daemon to not always report failure.

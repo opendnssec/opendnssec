@@ -35,6 +35,7 @@
 #include "str.h"
 #include "log.h"
 #include "clientpipe.h"
+#include "longgetopt.h"
 #include "db/policy.h"
 #include "db/zone_db.h"
 #include "keystate/zonelist_update.h"
@@ -84,12 +85,10 @@ help(int sockfd)
 }
 
 static int
-run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+run(cmdhandler_ctx_type* context, int argc, char* argv[])
 {
-    #define NARGV 18
-    char* buf;
-    const char* argv[NARGV];
-    int argc = 0;
+    int sockfd = context->sockfd;
+    struct longgetopt optctx;
     const char *zone_name = NULL;
     const char *policy_name = NULL;
     const char *signconf = NULL;
@@ -120,44 +119,29 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
         {0, 0, 0, 0}
     };
 
-    ods_log_debug("[%s] %s command", module_str, zone_add_funcblock.cmdname);
-
-    if (!(buf = strdup(cmd))) {
-        client_printf_err(sockfd, "memory error\n");
-        return -1;
-    }
-    argc = ods_str_explode(buf, NARGV, argv);
-    if (argc == -1) {
-        client_printf_err(sockfd, "too many arguments\n");
-        ods_log_error("[%s] too many arguments for %s command",
-                      module_str, zone_add_funcblock.cmdname);
-        free(buf);
-        return -1;
-    }
-
-    optind = 0;
-    while ((opt = getopt_long(argc, (char* const*)argv, "z:p:s:i:o:j:q:un", long_options, &long_index)) != -1) {
+    for(opt = longgetopt(argc, argv, "z:p:s:i:o:j:q:un", long_options, &long_index, &optctx); opt != -1;
+        opt = longgetopt(argc, argv, NULL,               long_options, &long_index, &optctx)) {
         switch (opt) {
             case 'z':
-                zone_name = optarg;
+                zone_name = optctx.optarg;
                 break;
             case 'p':
-                policy_name = optarg;
+                policy_name = optctx.optarg;
                 break;
             case 's':
-                signconf = optarg;
+                signconf = optctx.optarg;
                 break;
             case 'i':
-                input = optarg;
+                input = optctx.optarg;
                 break;
             case 'o':
-                output = optarg;
+                output = optctx.optarg;
                 break;
             case 'j':
-                input_type = optarg;
+                input_type = optctx.optarg;
                 break;
             case 'q':
-                output_type = optarg;
+                output_type = optctx.optarg;
                 break;
             case 'u':
                 write_xml = 1;
@@ -167,29 +151,24 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
                 break;
             default:
                 client_printf_err(sockfd, "unknown arguments\n");
-                ods_log_error("[%s] unknown arguments for %s command",
-                                module_str, zone_add_funcblock.cmdname);
-                free(buf);
+                ods_log_error("[%s] unknown arguments for zone add command", module_str);
                 return -1;
         }
     }
 
     if (!zone_name) {
         client_printf_err(sockfd, "expected option --zone <zone>\n");
-        free(buf);
         return -1;
     }
 
     if ((zone = zone_db_new_get_by_name(dbconn, zone_name))) {
         client_printf_err(sockfd, "Unable to add zone, zone already exists!\n");
         zone_db_free(zone);
-        free(buf);
         return 1;
     }
 
     if (!(policy = policy_new_get_by_name(dbconn, (policy_name ? policy_name : "default")))) {
         client_printf_err(sockfd, "Unable to find policy %s needed for adding the zone!\n", (policy_name ? policy_name : "default"));
-        free(buf);
         return 1;
     }
 
@@ -361,12 +340,10 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
         client_printf_err(sockfd, "Unable to add zone, database error!\n");
         zone_db_free(zone);
         policy_free(policy);
-        free(buf);
         return 1;
     }
     ods_log_info("[%s] zone %s added [policy: %s]", module_str, zone_name, (policy_name ? policy_name : "default"));
     client_printf(sockfd, "Zone %s added successfully\n", zone_name);
-    free(buf);
 
     if (write_xml) {
         if (zonelist_update_add(sockfd, engine->config->zonelist_filename, zone, 1) != ZONELIST_UPDATE_OK) {
@@ -409,5 +386,5 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 }
 
 struct cmd_func_block zone_add_funcblock = {
-	"zone add", &usage, &help, NULL, &run
+	"zone add", &usage, &help, NULL, NULL, &run, NULL
 };

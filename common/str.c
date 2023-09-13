@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2011 NLNet Labs. All rights reserved.
+ * Copyright (c) 2011-2018 NLNet Labs.
+ * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -21,7 +22,6 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
 /**
@@ -44,21 +44,6 @@
 #include <getopt.h>
 
 static const char *module_str = "str";
-
-int
-ods_str_explode(char *buf, int argc, const char *argv[])
-{
-    int narg = 0;
-    char *p = strtok(buf, " ");
-    while(p != NULL) {
-        if (narg > argc)
-            return -1;
-        argv[narg] = p;
-        p = strtok(NULL, " ");
-        narg++;
-    }
-    return narg;
-}
 
 /**
  * Concatenate characters without custom allocators.

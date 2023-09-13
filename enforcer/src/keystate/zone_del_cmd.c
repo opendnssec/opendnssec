@@ -35,6 +35,7 @@
 #include "log.h"
 #include "str.h"
 #include "clientpipe.h"
+#include "longgetopt.h"
 #include "db/zone_db.h"
 #include "hsmkey/hsm_key_factory.h"
 #include "keystate/zonelist_update.h"
@@ -118,12 +119,10 @@ static int delete_key_data(zone_db_t* zone, db_connection_t *dbconn, int sockfd)
 }
 
 static int
-run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+run(cmdhandler_ctx_type* context, int argc, char* argv[])
 {
-    #define NARGV 6
-    char* buf;
-    const char* argv[NARGV];
-    int argc = 0;
+    int sockfd = context->sockfd;
+    struct longgetopt optctx;
     const char *zone_name2 = NULL;
     int all = 0;
     int write_xml = 0;
@@ -143,27 +142,11 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
         {0, 0, 0, 0}
     };
 
-    ods_log_debug("[%s] %s command", module_str, zone_del_funcblock.cmdname);
-
-    if (!(buf = strdup(cmd))) {
-        client_printf_err(sockfd, "memory error\n");
-        return -1;
-    }
-
-    argc = ods_str_explode(buf, NARGV, argv);
-    if (argc == -1) {
-        client_printf_err(sockfd, "too many arguments\n");
-        ods_log_error("[%s] too many arguments for %s command",
-                      module_str, zone_del_funcblock.cmdname);
-        free(buf);
-        return -1;
-    }
-
-    optind = 0;
-    while ((opt = getopt_long(argc, (char* const*)argv, "z:au", long_options, &long_index)) != -1) {
+    for(opt = longgetopt(argc, argv, "z:au", long_options, &long_index, &optctx); opt != -1;
+        opt = longgetopt(argc, argv, NULL,   long_options, &long_index, &optctx)) {
         switch (opt) {
             case 'z':
-                zone_name2 = optarg;
+                zone_name2 = optctx.optarg;
                 break;
             case 'a':
                 all = 1;
@@ -173,9 +156,7 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
                 break;
            default:
                client_printf_err(sockfd, "unknown arguments\n");
-               ods_log_error("[%s] unknown arguments for %s command",
-                                module_str, zone_del_funcblock.cmdname);
-               free(buf);
+               ods_log_error("[%s] unknown arguments for zone delete command", module_str);
                return -1;
         }
     }
@@ -183,19 +164,16 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
     if (zone_name2 && !all) {
         if (!(zone = zone_db_new_get_by_name(dbconn, zone_name2))) {
             client_printf_err(sockfd, "Unable to delete zone, zone %s not found!\n", zone_name2);
-            free(buf);
             return 1;
         }
 
         if (!delete_key_data(zone, dbconn, sockfd)) {
             zone_db_free(zone);
-            free(buf);
             return 1;
         }
         if (zone_db_delete(zone)) {
             client_printf_err(sockfd, "Unable to delete zone %s from database!\n", zone_name2);
             zone_db_free(zone);
-            free(buf);
             return 1;
         }
         signconf_del = (char*) calloc(strlen(zone_db_signconf_path(zone)) +
@@ -203,7 +181,6 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
         if (!signconf_del) {
             ods_log_error("[%s] malloc failed", module_str);
             zone_db_free(zone);
-            free(buf);
             return 1;
         }
         strncpy(signconf_del, zone_db_signconf_path(zone), strlen(zone_db_signconf_path(zone)));
@@ -220,7 +197,6 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
     } else if (!zone_name2 && all) {
         if (!(zone_list = zone_list_db_new_get(dbconn))) {
             client_printf_err(sockfd, "Unable to get list of zones from database!\n");
-            free(buf);
             return 1;
         }
         for (zone = zone_list_db_get_next(zone_list); zone; zone_db_free(zone), zone = zone_list_db_get_next(zone_list)) {
@@ -238,7 +214,6 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
                 ods_log_error("[%s] malloc failed", module_str);
                 zone_db_free(zone);
                 zone_list_db_free(zone_list);
-                free(buf);
                 return 1;
             }
             strncpy(signconf_del, zone_db_signconf_path(zone), strlen(zone_db_signconf_path(zone)));
@@ -258,10 +233,8 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
         client_printf(sockfd, "All zones deleted successfully\n");
     } else {
         client_printf_err(sockfd, "expected either --zone <zone> or --all\n");
-        free(buf);
         return -1;
     }
-    free(buf);
 
     if (write_xml) {
         if (zone) {
@@ -312,5 +285,5 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 }
 
 struct cmd_func_block zone_del_funcblock = {
-    "zone delete", &usage, &help, NULL, &run
+    "zone delete", &usage, &help, NULL, NULL, &run, NULL
 };

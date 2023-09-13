@@ -35,6 +35,7 @@
 #include "str.h"
 #include "daemon/engine.h"
 #include "clientpipe.h"
+#include "longgetopt.h"
 #include "db/policy.h"
 
 #include "policy/policy_list_cmd.h"
@@ -57,14 +58,13 @@ help(int sockfd)
 }
 
 static int
-run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+run(cmdhandler_ctx_type* context, int argc, char* argv[])
 {
+    int sockfd = context->sockfd;
     const char *fmt = "%-31s %-48s\n";
     policy_list_t *pol_list;
     const policy_t *policy;
     db_connection_t* dbconn = getconnectioncontext(context);;
-    engine_type* engine = getglobalcontext(context);
-    (void)cmd;
 
 	if (!(pol_list = policy_list_new_get(dbconn)))
 		return 1;
@@ -85,5 +85,5 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
     }
 
 struct cmd_func_block policy_list_funcblock = {
-	"policy list", &usage, &help, NULL, &run
+	"policy list", &usage, &help, NULL, NULL, &run, NULL
 };

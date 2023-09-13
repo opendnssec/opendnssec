@@ -37,6 +37,7 @@
 #include "log.h"
 #include "str.h"
 #include "clientpipe.h"
+#include "longgetopt.h"
 #include "duration.h"
 #include "libhsm.h"
 #include "libhsmdns.h"
@@ -277,12 +278,10 @@ help(int sockfd)
 }
 
 static int
-run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+run(cmdhandler_ctx_type* context, int argc, char* argv[])
 {
-    #define NARGV 11
-    char buf[ODS_SE_MAXLINE];
-    const char *argv[NARGV];
-    int argc = 0;
+    int sockfd = context->sockfd;
+    struct longgetopt optctx;
     const char *zonename = NULL;
     const char* keytype = NULL;
     const char* keystate = NULL;
@@ -306,35 +305,20 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
         {0, 0, 0, 0}
     };
 	
-    ods_log_debug("[%s] %s command", module_str, key_export_funcblock.cmdname);
-
-    /* Use buf as an intermediate buffer for the command.*/
-    strncpy(buf, cmd, sizeof(buf));
-    buf[sizeof(buf)-1] = '\0';
-
-    /* separate the arguments*/
-    argc = ods_str_explode(buf, NARGV, argv);
-    if (argc == -1) {
-        client_printf_err(sockfd, "too many arguments\n");
-        ods_log_error("[%s] too many arguments for %s command",
-                      module_str, key_export_funcblock.cmdname);
-        return -1;
-    }
-
-    optind = 0;
-    while ((opt = getopt_long(argc, (char* const*)argv, "z:t:e:k:ads", long_options, &long_index)) != -1) {
+    for(opt = longgetopt(argc, argv, "z:t:e:k:ads", long_options, &long_index, &optctx); opt != -1;
+        opt = longgetopt(argc, argv, NULL,          long_options, &long_index, &optctx)) {
         switch (opt) {
             case 'z':
-                zonename = optarg;
+                zonename = optctx.optarg;
                 break;
             case 't':
-                keytype = optarg;
+                keytype = optctx.optarg;
                 break;
             case 'e':
-                keystate = optarg;
+                keystate = optctx.optarg;
                 break;
             case 'k':
-                cka_id = optarg;
+                cka_id = optctx.optarg;
                 break;
             case 'a':
                 all = 1;
@@ -347,8 +331,7 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
                 break; 
             default:
                 client_printf_err(sockfd, "unknown arguments\n");
-                ods_log_error("[%s] unknown arguments for %s command",
-                                module_str, key_export_funcblock.cmdname);
+                ods_log_error("[%s] unknown arguments for key export command", module_str);
                 return -1;
         }
     }
@@ -371,7 +354,7 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 
 
     if ((!zonename && !all) || (zonename && all)) {
-        ods_log_error("[%s] expected either --zone or --all for %s command", module_str, key_export_funcblock.cmdname);
+        ods_log_error("[%s] expected either --zone or --all for key export command", module_str);
         client_printf_err(sockfd, "expected either --zone or --all \n");
         return -1;
     }
@@ -403,5 +386,5 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 }
 
 struct cmd_func_block key_export_funcblock = {
-    "key export", &usage, &help, NULL, &run
+    "key export", &usage, &help, NULL, NULL, &run, NULL
 };

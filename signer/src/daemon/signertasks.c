@@ -279,10 +279,21 @@ do_signzone(task_type* task, const char* zonename, void* zonearg, void *contexta
     context->clock_in = time_now();
     status = zone_update_serial(zone);
     if (status != ODS_STATUS_OK) {
-        ods_log_error("[%s] unable to sign zone %s: failed to increment serial", worker->name, task->owner);
-        ods_log_crit("[%s] CRITICAL: failed to sign zone %s: %s",
-                worker->name, task->owner, ods_status2str(status));
-        return schedule_DEFER; /* backoff */
+        if(!strcmp(zone->signconf->soa_serial,"keep") && (status == ODS_STATUS_FOPEN_ERR || status == ODS_STATUS_CONFLICT_ERR)) {
+            if(task->backoff > 0) {
+                ods_log_error("[%s] unable to sign zone %s: failed to increment serial", worker->name, task->owner);
+                ods_log_crit("[%s] CRITICAL: repeatedly failed to sign zone %s: %s", worker->name, task->owner, ods_status2str(status));
+            } else {
+                ods_log_warning("[%s] unable to sign zone %s: failed to increment serial", worker->name, task->owner);
+                ods_log_warning("[%s] CRITICAL: failed to sign zone %s: %s", worker->name, task->owner, ods_status2str(status));
+            }
+            task->backoff = duration2time(zone->signconf->sig_resign_interval);
+            return time_now() + duration2time(zone->signconf->sig_resign_interval);
+        } else {
+            ods_log_error("[%s] unable to sign zone %s: failed to increment serial", worker->name, task->owner);
+            ods_log_crit("[%s] CRITICAL: failed to sign zone %s: %s", worker->name, task->owner, ods_status2str(status));
+            return schedule_DEFER;
+        }
     }
     /* start timer */
     start = time(NULL);
@@ -304,8 +315,7 @@ do_signzone(task_type* task, const char* zonename, void* zonearg, void *contexta
         pthread_mutex_lock(&engine->signal_lock);
         pthread_cond_signal(&engine->signal_cond);
         pthread_mutex_unlock(&engine->signal_lock);
-        ods_log_crit("[%s] CRITICAL: failed to sign zone %s: %s",
-                worker->name, task->owner, ods_status2str(status));
+        ods_log_crit("[%s] CRITICAL: failed to sign zone %s: %s", worker->name, task->owner, ods_status2str(status));
         return schedule_DEFER; /* backoff */
     }
     /* prepare keys */
@@ -330,8 +340,7 @@ do_signzone(task_type* task, const char* zonename, void* zonearg, void *contexta
         pthread_mutex_unlock(&zone->stats->stats_lock);
     }
     if (status != ODS_STATUS_OK) {
-        ods_log_crit("[%s] CRITICAL: failed to sign zone %s: %s",
-                worker->name, task->owner, ods_status2str(status));
+        ods_log_crit("[%s] CRITICAL: failed to sign zone %s: %s", worker->name, task->owner, ods_status2str(status));
         return schedule_DEFER; /* backoff */
     }
 
@@ -361,11 +370,22 @@ do_readzone(task_type* task, const char* zonename, void* zonearg, void *contexta
     if (status != ODS_STATUS_OK) {
         if (!zone->signconf->last_modified) {
             ods_log_warning("WARNING: unable to sign zone %s, signconf is not ready", task->owner);
+            return schedule_DEFER;
         } else if (status != ODS_STATUS_XFR_NOT_READY) {
             /* other statuses is critical, and we know it is not ODS_STATUS_OK */
-            ods_log_crit("CRITICAL: failed to sign zone %s: %s", task->owner, ods_status2str(status));
+            if(!strcmp(zone->signconf->soa_serial,"keep") && (status == ODS_STATUS_FOPEN_ERR || status == ODS_STATUS_CONFLICT_ERR)) {
+                if(task->backoff > 0) {
+                    ods_log_crit("CRITICAL: repeatedly failed to sign zone %s: %s", task->owner, ods_status2str(status));
+                } else {
+                    ods_log_warning("Warning: failed to sign zone %s: %s", task->owner, ods_status2str(status));
+                }
+                task->backoff = duration2time(zone->signconf->sig_resign_interval);
+                return time_now() + duration2time(zone->signconf->sig_resign_interval);
+            } else {
+                ods_log_crit("CRITICAL: failed to sign zone %s: %s", task->owner, ods_status2str(status));
+                return schedule_DEFER;
+            }
         }
-        return schedule_DEFER;
     } else {
         /* unscheduling an existing sign task should no be necessary.  After a read (this action)
          * the logical next step is a sign.  No other regular procedure that does not explicitly
@@ -408,7 +428,18 @@ do_forcereadzone(task_type* task, const char* zonename, void* zonearg, void *con
             ods_log_warning("WARNING: unable to sign zone %s, signconf is not ready", task->owner);
         } else if (status != ODS_STATUS_XFR_NOT_READY) {
             /* other statuses is critical, and we know it is not ODS_STATUS_OK */
-            ods_log_crit("CRITICAL: failed to sign zone %s: %s", task->owner, ods_status2str(status));
+            if(!strcmp(zone->signconf->soa_serial,"keep") && (status == ODS_STATUS_FOPEN_ERR || status == ODS_STATUS_CONFLICT_ERR)) {
+                if(task->backoff > 0) {
+                    ods_log_crit("CRITICAL: repeatedly failed to sign zone %s: %s", task->owner, ods_status2str(status));
+                } else {
+                    ods_log_warning("Warning: failed to sign zone %s: %s", task->owner, ods_status2str(status));
+                }
+                task->backoff = duration2time(zone->signconf->sig_resign_interval);
+                return time_now() + duration2time(zone->signconf->sig_resign_interval);
+            } else {
+                ods_log_crit("CRITICAL: failed to sign zone %s: %s", task->owner, ods_status2str(status));
+                return schedule_DEFER;
+            }
         }
         return schedule_SUCCESS;
     } else {

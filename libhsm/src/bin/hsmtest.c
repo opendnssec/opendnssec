@@ -30,8 +30,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <ldns/ldns.h>
-#include <ldns/util.h>
 
 #include "libhsm.h"
 #include <libhsmdns.h>

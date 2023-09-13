@@ -38,6 +38,7 @@
 #include "str.h"
 #include "daemon/engine.h"
 #include "clientpipe.h"
+#include "longgetopt.h"
 
 #include "policy/policy_resalt_cmd.h"
 
@@ -58,15 +59,14 @@ help(int sockfd)
 }
 
 static int
-run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+run(cmdhandler_ctx_type* context, int argc, char* argv[])
 {
     db_connection_t* dbconn = getconnectioncontext(context);;
     engine_type* engine = getglobalcontext(context);
-    (void)cmd;
 	
-	return flush_resalt_task_all(engine, dbconn);
+	return flush_resalt_task_now(engine, dbconn);
 }
 
 struct cmd_func_block resalt_funcblock = {
-	"policy resalt", &usage, &help, NULL, &run
+	"policy resalt", &usage, &help, NULL, NULL, &run, NULL
 };

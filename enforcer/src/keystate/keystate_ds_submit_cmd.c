@@ -36,6 +36,7 @@
 #include "log.h"
 #include "str.h"
 #include "clientpipe.h"
+#include "longgetopt.h"
 #include "db/key_data.h"
 #include "keystate/keystate_ds.h"
 #include "keystate/keystate_ds_submit_task.h"
@@ -66,15 +67,13 @@ help(int sockfd)
 }
 
 static int
-run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
+run(cmdhandler_ctx_type* context, int argc, char* argv[])
 {
 	int error;
         db_connection_t* dbconn = getconnectioncontext(context);
         engine_type* engine = getglobalcontext(context);
 	/* TODO, this changes the state, but sbmt cmd is not exec. */
-	error = run_ds_cmd(sockfd, cmd, dbconn,
-		KEY_DATA_DS_AT_PARENT_SUBMIT,
-		KEY_DATA_DS_AT_PARENT_SUBMITTED, engine);
+	error = run_ds_cmd(context, argc, argv, dbconn, KEY_DATA_DS_AT_PARENT_SUBMIT, KEY_DATA_DS_AT_PARENT_SUBMITTED, engine);
 	if (error == 0) {
 		/* YBS: TODO only affected zones */
 		enforce_task_flush_all(engine, dbconn);
@@ -84,5 +83,5 @@ run(int sockfd, cmdhandler_ctx_type* context, const char *cmd)
 }
 
 struct cmd_func_block key_ds_submit_funcblock = {
-	"key ds-submit", &usage, &help, NULL, &run
+	"key ds-submit", &usage, &help, NULL, NULL, &run, NULL
 };
