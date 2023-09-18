@@ -219,6 +219,9 @@ hsm_ctx_set_error(hsm_ctx_t *ctx, int error, const char *action,
         vsnprintf(ctx->error_message, sizeof(ctx->error_message),
             message, args);
         va_end(args);
+        va_start(args, message);
+        syslog(LOG_ERR, "HSM operation failed: %s", ctx->error_message);
+        va_end(args);
     }
 }
 
@@ -241,6 +244,7 @@ hsm_pkcs11_check_error(hsm_ctx_t *ctx, CK_RV rv, const char *action)
             ctx->error = (int) rv;
             ctx->error_action = action;
             strlcpy(ctx->error_message, ldns_pkcs11_rv_str(rv), sizeof(ctx->error_message));
+            syslog(LOG_ERR, "HSM operation %s returned error: %s (%ld)", action, ldns_pkcs11_rv_str(rv), rv);
         }
         return 1;
     }
@@ -633,6 +637,7 @@ hsm_session_init(hsm_ctx_t *ctx, hsm_session_t **session,
 		    "Incorrect PIN for repository %s", repository);
             return HSM_PIN_INCORRECT;
         default:
+            hsm_pkcs11_check_error(ctx, rv_login, "Clone session");
             return HSM_ERROR;
         }
     }
@@ -2404,6 +2409,17 @@ hsm_check_context()
         if (hsm_pkcs11_check_error(ctx, rv, "get session info")) {
             pthread_mutex_unlock(&_hsm_ctx_mutex);
             return HSM_ERROR;
+        }
+        switch (info.state) {
+            case CKS_RO_PUBLIC_SESSION:
+            case CKS_RW_PUBLIC_SESSION:
+                pthread_mutex_unlock(&_hsm_ctx_mutex);
+                hsm_ctx_set_error(ctx, -1, "Verify HSM connection", "Sessions got logged out");
+                return HSM_ERROR;
+            case CKS_RO_USER_FUNCTIONS:
+            case CKS_RW_USER_FUNCTIONS:
+            case CKS_RW_SO_FUNCTIONS:
+                break;
         }
 
         /* Check session info */
