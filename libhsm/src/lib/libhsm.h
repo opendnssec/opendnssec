@@ -430,6 +430,8 @@ needs to be freed.
 extern int
 hsm_remove_key(hsm_ctx_t *context, libhsm_key_t *key);
 
+extern int hsm_copy_key(hsm_ctx_t *ctx, libhsm_key_t* key, const char* id_str);
+
 
 /*! Free the memory of an array of key structures, as returned by
 hsm_list_keys()
