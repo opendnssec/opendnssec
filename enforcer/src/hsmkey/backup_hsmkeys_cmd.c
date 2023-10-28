@@ -199,6 +199,12 @@ run(cmdhandler_ctx_type* context, int argc, char* argv[])
     db_clause_list_t* clause_list;
     db_connection_t* dbconn = getconnectioncontext(context);
 
+    if (argc < 2) {
+        client_printf_err(sockfd, "too few arguments\n");
+        ods_log_error("[%s] too few arguments for backup command", module_str);
+        return -1;
+    }
+
     static struct option long_options[] = {
         {"repository", required_argument, 0, 'r'},
         {0, 0, 0, 0}
