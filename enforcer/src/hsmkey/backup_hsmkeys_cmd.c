@@ -210,8 +210,9 @@ run(cmdhandler_ctx_type* context, int argc, char* argv[])
         {0, 0, 0, 0}
     };
 
-    for(opt = longgetopt(argc, argv, "r:", long_options, &long_index, &optctx); opt != -1;
-        opt = longgetopt(argc, argv, NULL, long_options, &long_index, &optctx)) {
+    /* Note: longgetopt reorders argv, only pass args after "backup" "prepare|commit|..." to it. */
+    for(opt = longgetopt(argc-2, argv+2, "r:", long_options, &long_index, &optctx); opt != -1;
+        opt = longgetopt(argc-2, argv+2, NULL, long_options, &long_index, &optctx)) {
         switch (opt) {
             case 'r':
                 repository = optctx.optarg;
