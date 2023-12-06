@@ -541,7 +541,7 @@ SELECT
 	NULL, 1, REMOTE.dnsseckeys.zone_id,
 	REMOTE.dnsseckeys.keypair_id, REMOTE.keypairs.algorithm,
 	CASE WHEN REMOTE.dnsseckeys.publish IS NOT NULL THEN
-		UNIX_TIMESTAMP(REMOTE.dnsseckeys.publish)
+		UNIX_TIMESTAMP( (SELECT REMOTE.keypairs.generate WHERE REMOTE.keypairs.id=REMOTE.dnsseckeys.keypair_id) ) 
 		ELSE UNIX_TIMESTAMP() END,
 	(~REMOTE.dnsseckeys.keytype&1)+1,
 	REMOTE.dnsseckeys.state <= 4, -- introducing
