@@ -58,6 +58,8 @@ name server. It requires a PKCS#11 crypto module library, such as SoftHSM
 %setup -q -n %{name}-%{version}%{?prever}
 # bump default policy ZSK keysize to 2048
 sed -i "s/1024/2048/" conf/kasp.xml.in
+# We want MariaDB/MySQL backend, so use correct config template
+cp conf/conf-mysql.xml.in conf/conf.xml.in
 # patch1 -p2
 # patch2 -p2
 # patch3 -p2
@@ -75,8 +77,6 @@ sh ./autogen.sh
 # This is either-or: default is SQLite, need --with-enforcer-database=mysql for MySQL/MariaDB
 %configure --with-ldns=%{_libdir} --with-pkcs11-softhsm=/usr/lib64/pkcs11/libsofthsm2.so \
  --with-enforcer-database=mysql --with-mysql=yes --with-libunwind
-# configure --with-ldns=%{_libdir} --with-pkcs11-softhsm=/usr/lib64/pkcs11/libsofthsm2.so \
-#  --with-libunwind
 %make_build
 
 %check
@@ -193,8 +193,8 @@ fi
 #
 if [ -e %{_localstatedir}/opendnssec/kasp.db ]; then
    if [ -z "$(%{_bindir}/sqlite3 %{_localstatedir}/opendnssec/kasp.db 'select * from databaseVersion;' 2>/dev/null)" ]; then
-     # Migrate version 1.4 db to version 2.1 db
-     printf "Found OpenDNSSEC 1.4 sqlite db '%s', attempting conversion.. " "%{_localstatedir}/opendnssec/kasp.db"
+      # Migrate version 1.4 db to version 2.1 db
+      printf "Found OpenDNSSEC 1.4 sqlite db '%s', attempting conversion.. " "%{_localstatedir}/opendnssec/kasp.db"
 
       if [ -d %{_localstatedir}/opendnssec/tmp ]; then
          [[ -e %{_localstatedir}/opendnssec/signer ]] && rm -rf %{_localstatedir}/opendnssec/signer
@@ -202,9 +202,7 @@ if [ -e %{_localstatedir}/opendnssec/kasp.db ]; then
       fi
  
       mv -n %{_localstatedir}/opendnssec/kasp.db %{_localstatedir}/opendnssec/kasp.db-1.4
-      %{_datadir}/opendnssec/migration/1.4-2.0_db_convert/convert_sqlite -i %{_localstatedir}/opendnssec/kasp.db-1.4 -o %{_localstatedir}/opendnssec/kasp.db || 
-
-ERR="convert_sqlite error"
+      %{_datadir}/opendnssec/migration/1.4-2.0_db_convert/convert_sqlite -i %{_localstatedir}/opendnssec/kasp.db-1.4 -o %{_localstatedir}/opendnssec/kasp.db || ERR="convert_sqlite error"
       [[ -z "${ERR}" ]] && printf "OK.\n"
       chown ods.ods %{_localstatedir}/opendnssec/kasp.db
    fi
@@ -260,8 +258,9 @@ fi
 %systemd_postun_with_restart ods-signerd.service
 
 %changelog
-* Mon Sep 18 2023 Mikko 'dogo' Rantanen <dogo@nxme.net> - 2.1.13-1
+* Thu Dec 07 2023 Mikko 'dogo' Rantanen <dogo@nxme.net> - 2.1.13-1
 - Upstream release 2.1.13
+- .spec file change to allow for MariaDB/MySQL specific conf.xml
 
 * Sun Jan 29 2023 Mikko 'dogo' Rantanen <dogo@nxme.net> - 2.1.12-3
 - Upstream release 2.1.12
