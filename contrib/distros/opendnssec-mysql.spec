@@ -209,12 +209,6 @@ printf "file README.md there if you're upgrading from 1.4-release.\n\n"
 - .spec file change to allow for MariaDB/MySQL specific conf.xml
 - Provide 1.4->2.x migration and SQLite->MariaDB conversion help text
 
-* Sun Jan 29 2023 Mikko 'dogo' Rantanen <dogo@nxme.net> - 2.1.12-3
-- Upstream release 2.1.12
-- SUPPORT-278, SUPPORT-289, SUPPORT-291 locally included
-- SUPPORT-283 resolved locally
-- .spec-file adapted to RHEL9, 'rpm_migration' table removed, post-script enhancements
-
 * Fri Nov 04 2022 Berry A.W. van Halderen <berry@halderen.net> - 2.1.12-1
 - Upstream release 2.1.12
 - Produce non-stripped binaries with symbols and include libunwind
