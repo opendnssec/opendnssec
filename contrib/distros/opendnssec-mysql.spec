@@ -204,7 +204,9 @@ printf "done.\n\n"
 %changelog
 * Fri Dec 08 2023 Mikko 'dogo' Rantanen <dogo@nxme.net> - 2.1.13-1
 - Upstream release 2.1.13
-- .spec file change to allow for MariaDB/MySQL specific conf.xml
+- .spec file change to use MariaDB/MySQL as enforcer backend instead of SQLite
+- Sample kasp.xml change to use 2048 bit RSA keys instead of 1024 bit
+- Sample conf.xml changed for MariaDB/MySQL backend
 - Provide 1.4->2.x migration and SQLite->MariaDB conversion help text
 
 * Fri Nov 04 2022 Berry A.W. van Halderen <berry@halderen.net> - 2.1.12-1
