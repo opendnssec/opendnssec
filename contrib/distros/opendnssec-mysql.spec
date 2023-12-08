@@ -155,42 +155,40 @@ exit 0
 
 %post
 #
-# Initialize a slot on the softhsm on first install
+# Initialize slots in the softhsm upon first install. softhsm is a 
+# prerequisite and it creates directory '/var/lib/softhsm/tokens'
+# upon installation, so it should exist.
 #
+if [ -z "$(find /var/lib/softhsm/tokens -mindepth 1)" ]; then
+  %{_sbindir}/runuser -u ods -- %{_bindir}/softhsm2-util --init-token \
+               --free --label "OpenDNSSEC_KSK" --pin 1234 --so-pin 1234
+  %{_sbindir}/runuser -u ods -- %{_bindir}/softhsm2-util --init-token \
+               --free --label "OpenDNSSEC_ZSK" --pin 1234 --so-pin 1234
 
-if [ "$1" -eq 1 ]; then
-   if [ -z "$(find /var/lib/softhsm/tokens -mindepth 1)" ]; then
-     %{_sbindir}/runuser -u ods -- %{_bindir}/softhsm2-util --init-token \
-                  --free --label "OpenDNSSEC_KSK" --pin 1234 --so-pin 1234
-     %{_sbindir}/runuser -u ods -- %{_bindir}/softhsm2-util --init-token \
-                  --free --label "OpenDNSSEC_ZSK" --pin 1234 --so-pin 1234
-   fi
-
-   printf "\n***\n  If this is your first-time install with MariaDB/MySQL backend:\n"
-   printf "  Please edit your '/etc/opendnssec/conf.xml',\n"
-   printf "  configure GRANTs in your MariaDB/MySQL and run\n\n"
-   printf "  ods-enforcer-db-setup -f\n\n"
-   printf "  to create initial OpenDNSSEC database.\n\n"
-   printf "  Example GRANTs:\n"
-   printf "  GRANT USAGE ON *.* TO 'kasp_user'@'127.0.0.1' IDENTIFIED BY PASSWORD '....'\n"
-   printf "  GRANT ALL PRIVILEGES ON 'kasp26'.* TO 'kasp_user'@'127.0.0.1'\n\n"
-   printf "  For 1.4->2.x migration and SQLite -> MariaDB conversion details, please see\n"
-   printf "  https://wiki.opendnssec.org/pages/viewpage.action?pageId=10125376\n"
-   printf "***\n\n"
-
+  printf "\n***\n  If this is your first-time install with MariaDB/MySQL backend:\n"
+  printf "  Please edit your '/etc/opendnssec/conf.xml',\n"
+  printf "  configure GRANTs in your MariaDB/MySQL and run\n\n"
+  printf "  ods-enforcer-db-setup -f\n\n"
+  printf "  to create initial OpenDNSSEC database.\n\n"
+  printf "  Example GRANTs:\n"
+  printf "  GRANT USAGE ON *.* TO 'kasp_user'@'127.0.0.1' IDENTIFIED BY PASSWORD '....'\n"
+  printf "  GRANT ALL PRIVILEGES ON 'kasp26'.* TO 'kasp_user'@'127.0.0.1'\n"
+  printf "***\n"
+else
+  printf "If you have a previous 1.4 installation, please note that\n"
+  printf "MariaDB/MySQL users have to do manual migration. See directory\n"
+  printf "/usr/share/opendnssec/migration/1.4-2.0_db_convert/ and the\n"
+  printf "file README.md there if you're upgrading from 1.4-release.\n\n"
+  printf "  For 1.4->2.x migration and SQLite -> MariaDB conversion details, please see\n"
+  printf "  https://wiki.opendnssec.org/pages/viewpage.action?pageId=10125376\n\n"
 fi
 
 # Do this here - it is needed anyway
 #
-printf "Configuring SELinux, please wait for about 30 seconds..."
+printf "\nConfiguring SELinux, please wait for about 30 seconds..."
 semanage permissive -a opendnssec_t >/dev/null 2>&1
 semanage permissive -a named_t >/dev/null 2>&1
 printf "done.\n\n"
-
-printf "If you have a previous 1.4 installation, please note that\n"
-printf "MariaDB/MySQL users have to do manual migration. See directory\n"
-printf "/usr/share/opendnssec/migration/1.4-2.0_db_convert/ and the\n"
-printf "file README.md there if you're upgrading from 1.4-release.\n\n"
 
 %systemd_post ods-enforcerd.service
 %systemd_post ods-signerd.service
