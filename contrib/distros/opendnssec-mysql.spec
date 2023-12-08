@@ -18,9 +18,9 @@ Source0: https://www.opendnssec.org/files/source/%{?prever:testing/}%{name}-%{ve
 Source1: ods-enforcerd.service
 Source2: ods-signerd.service
 Source3: ods.sysconfig
-Source4: conf.xml
-Source5: tmpfiles-opendnssec.conf
-Source6: opendnssec.cron
+Source4: tmpfiles-opendnssec.conf
+Source5: opendnssec.cron
+# Source6: conf.xml
 # Source7: opendnssec-2.1.sqlite_convert.sql
 # Source8: opendnssec-2.1.sqlite_rpmversion.sql
 
@@ -44,10 +44,11 @@ Requires(pre): shadow-utils
 Requires(post): systemd-units
 Requires(preun): systemd-units
 Requires(postun): systemd-units
-%if 0%{?prever:1}
+# #if 0#{?prever:1}
 # For building development snapshots
-Buildrequires: autoconf, automake, libtool, java
-%endif
+# Buildrequires: autoconf, automake, libtool, java
+Buildrequires: autoconf, automake, libtool
+# #endif
 
 %description
 OpenDNSSEC was created as an open-source turn-key solution for DNSSEC.
@@ -70,10 +71,10 @@ cp conf/conf-mysql.xml.in conf/conf.xml.in
 export LDFLAGS="-Wl,-z,relro,-z,now -pie -specs=/usr/lib/rpm/redhat/redhat-hardened-ld"
 export CFLAGS="$RPM_OPT_FLAGS -fPIE -pie -Wextra -Wformat -Wformat-nonliteral -Wformat-security -std=gnu11"
 export CXXFLAGS="$RPM_OPT_FLAGS -fPIE -pie -Wformat-nonliteral -Wformat-security"
-%if 0%{?prever:1}
+# #if 0#{?prever:1}
 # for development snapshots
 sh ./autogen.sh
-%endif
+# #endif
 # This is either-or: default is SQLite, need --with-enforcer-database=mysql for MySQL/MariaDB
 %configure --with-ldns=%{_libdir} --with-pkcs11-softhsm=/usr/lib64/pkcs11/libsofthsm2.so \
  --with-enforcer-database=mysql --with-mysql=yes --with-libunwind
@@ -91,16 +92,16 @@ rm -rf %{buildroot}
 make DESTDIR=%{buildroot} install
 mkdir -p %{buildroot}%{_localstatedir}/opendnssec/{tmp,signer,signed,signconf,enforcer}
 install -d -m 0755 %{buildroot}%{_initrddir} %{buildroot}%{_sysconfdir}/cron.d/
-install -m 0644 %{SOURCE6} %{buildroot}/%{_sysconfdir}/cron.d/opendnssec
+install -m 0644 %{SOURCE5} %{buildroot}/%{_sysconfdir}/cron.d/opendnssec
 rm -f %{buildroot}/%{_sysconfdir}/opendnssec/*.sample
 install -d -m 0755 %{buildroot}/%{_sysconfdir}/sysconfig
 install -d -m 0755 %{buildroot}%{_unitdir}
 install -m 0644 %{SOURCE1} %{buildroot}%{_unitdir}/
 install -m 0644 %{SOURCE2} %{buildroot}%{_unitdir}/
 install -m 0644 %{SOURCE3} %{buildroot}/%{_sysconfdir}/sysconfig/ods
-install -m 0644 %{SOURCE4} %{buildroot}/%{_sysconfdir}/opendnssec/
+# install -m 0644 %{SOURCE4} %{buildroot}/%{_sysconfdir}/opendnssec/
 mkdir -p %{buildroot}%{_tmpfilesdir}/
-install -m 0644 %{SOURCE5} %{buildroot}%{_tmpfilesdir}/opendnssec.conf
+install -m 0644 %{SOURCE4} %{buildroot}%{_tmpfilesdir}/opendnssec.conf
 mkdir -p %{buildroot}%{_localstatedir}/run/opendnssec
 mkdir -p %{buildroot}%{_datadir}/opendnssec/
 
@@ -149,7 +150,7 @@ sed -i "s:sqlite_convert.sql:%{_datadir}/opendnssec/migration/1.4-2.0_db_convert
 getent group ods >/dev/null || groupadd -r ods
 getent passwd ods >/dev/null || \
 useradd -r -g ods -d /etc/opendnssec -s /sbin/nologin \
--c "opendnssec daemon account" ods
+-c "OpenDNSSEC daemon account" ods
 exit 0
 
 %post
@@ -160,91 +161,36 @@ exit 0
 if [ "$1" -eq 1 ]; then
    if [ -z "$(find /var/lib/softhsm/tokens -mindepth 1)" ]; then
      %{_sbindir}/runuser -u ods -- %{_bindir}/softhsm2-util --init-token \
-                  --free --label "OpenDNSSEC" --pin 1234 --so-pin 1234
+                  --free --label "OpenDNSSEC_KSK" --pin 1234 --so-pin 1234
+     %{_sbindir}/runuser -u ods -- %{_bindir}/softhsm2-util --init-token \
+                  --free --label "OpenDNSSEC_ZSK" --pin 1234 --so-pin 1234
    fi
-   if [ ! -s %{_localstatedir}/opendnssec/kasp.db ]; then
-      %{_sbindir}/ods-enforcer-db-setup -f
-   fi
+
+   printf "\n***\n  If this is your first-time install with MariaDB/MySQL backend:\n"
+   printf "  Please edit your '/etc/opendnssec/conf.xml',\n"
+   printf "  configure GRANTs in your MariaDB/MySQL and run\n\n"
+   printf "  ods-enforcer-db-setup -f\n\n"
+   printf "  to create initial OpenDNSSEC database.\n\n"
+   printf "  Example GRANTs:\n"
+   printf "  GRANT USAGE ON *.* TO 'kasp_user'@'127.0.0.1' IDENTIFIED BY PASSWORD '....'\n"
+   printf "  GRANT ALL PRIVILEGES ON 'kasp26'.* TO 'kasp_user'@'127.0.0.1'\n\n"
+   printf "  For 1.4->2.x migration and SQLite -> MariaDB conversion details, please see\n"
+   printf "  https://wiki.opendnssec.org/pages/viewpage.action?pageId=10125376\n"
+   printf "***\n\n"
+
 fi
 
-if [ -e %{_localstatedir}/opendnssec/rpm-migration-in-progress ]; then
-   printf "Previous (partial?) migration attempted - human intervention is needed.\n"
-   exit 0
-fi
-
-# Do this here - it is needed anyway, and we might 'exit' down the road.
+# Do this here - it is needed anyway
 #
+printf "Configuring SELinux, please wait for about 30 seconds..."
 semanage permissive -a opendnssec_t >/dev/null 2>&1
 semanage permissive -a named_t >/dev/null 2>&1
+printf "done.\n\n"
 
-touch %{_localstatedir}/opendnssec/rpm-migration-in-progress
-ERR=""
-
-#
-# Reinstall or upgrade? Don't overwrite existing zonelist.xml.
-#
-if [ ! -e %{_localstatedir}/opendnssec/enforcer/zones.xml -a -e %{_sysconfdir}/opendnssec/zonelist.xml ]; then
-   cp -n %{_sysconfdir}/opendnssec/zonelist.xml %{_localstatedir}/opendnssec/enforcer/zones.xml
-fi
-
-#
-# Some installations might have rm'd/mv'd sqlite kasp.db,
-# and have only MySQL / MariaDB, so check -e also
-#
-if [ -e %{_localstatedir}/opendnssec/kasp.db ]; then
-   if [ -z "$(%{_bindir}/sqlite3 %{_localstatedir}/opendnssec/kasp.db 'select * from databaseVersion;' 2>/dev/null)" ]; then
-      # Migrate version 1.4 db to version 2.1 db
-      printf "Found OpenDNSSEC 1.4 sqlite db '%s', attempting conversion.. " "%{_localstatedir}/opendnssec/kasp.db"
-
-      if [ -d %{_localstatedir}/opendnssec/tmp ]; then
-         [[ -e %{_localstatedir}/opendnssec/signer ]] && rm -rf %{_localstatedir}/opendnssec/signer
-         ln -s %{_localstatedir}/opendnssec/tmp %{_localstatedir}/opendnssec/signer
-      fi
- 
-      mv -n %{_localstatedir}/opendnssec/kasp.db %{_localstatedir}/opendnssec/kasp.db-1.4
-      %{_datadir}/opendnssec/migration/1.4-2.0_db_convert/convert_sqlite -i %{_localstatedir}/opendnssec/kasp.db-1.4 -o %{_localstatedir}/opendnssec/kasp.db || ERR="convert_sqlite error"
-      [[ -z "${ERR}" ]] && printf "OK.\n"
-      chown ods.ods %{_localstatedir}/opendnssec/kasp.db
-   fi
-
-else
-   printf "\nNo SQLite db 'kasp.db' found!\n\n"
-   printf "MySQL/MariaDB users have to do manual migration. See directory\n"
-   printf "/usr/share/opendnssec/migration/1.4-2.0_db_convert/ and README.md there\n"
-   printf "if you're upgrading from 1.4-release.\n\n"
-   ERR="Not an SQLite backend enforcer: no kasp.db found."
-   printf "Not an SQLite backend enforcer: no kasp.db found.\n"
-   rm %{_localstatedir}/opendnssec/rpm-migration-in-progress
-fi
-
-if [ -z "${ERR}" ]; then
-   printf "Removing element 'Interval' from '%s'.\n" "%{_sysconfdir}/opendnssec/conf.xml"
-   cp -n %{_sysconfdir}/opendnssec/conf.xml %{_sysconfdir}/opendnssec/conf.xml-1.4
-   retval=$(sed -i "/<Interval>.*Interval>/d" %{_sysconfdir}/opendnssec/conf.xml 2>&1)
-   [[ ${?} == 0 ]] || { ERR="${retval}"; printf "Problem: '${retval}' - human intervention needed.\n"; exit 0; }
-
-   printf "Calling ods-migrate.\n\n"
-   retval=$(sudo -u ods /sbin/ods-migrate 2>&1)
-   [[ ${?} == 0 ]] || ERR="ods-migrate failed"
-
-   if [ -z "$ERR" ]; then
-      printf "OpenDNSSEC 1.4 to 2.x migration finished.\n"
-      rm %{_localstatedir}/opendnssec/rpm-migration-in-progress
-   else
-      printf "Problem: '${retval}' - ods-migrate process failed, human intervention is needed.\n"
-      exit 0
-   fi
-
-# Ensure any changes to XML config files are read
-   printf "Running 'sudo -u ods ods-enforcer update all'.\n"
-# systemctl start ods-enforcerd
-   sudo -u ods ods-enforcer update all ||:
-# systemctl stop ods-enforcerd
-fi
-
-
-# MySQL/MariaDB migration would likely need user interaction
-# for credentials and other db-related information
+printf "If you have a previous 1.4 installation, please note that\n"
+printf "MariaDB/MySQL users have to do manual migration. See directory\n"
+printf "/usr/share/opendnssec/migration/1.4-2.0_db_convert/ and the\n"
+printf "file README.md there if you're upgrading from 1.4-release.\n\n"
 
 %systemd_post ods-enforcerd.service
 %systemd_post ods-signerd.service
@@ -258,9 +204,10 @@ fi
 %systemd_postun_with_restart ods-signerd.service
 
 %changelog
-* Thu Dec 07 2023 Mikko 'dogo' Rantanen <dogo@nxme.net> - 2.1.13-1
+* Fri Dec 08 2023 Mikko 'dogo' Rantanen <dogo@nxme.net> - 2.1.13-1
 - Upstream release 2.1.13
 - .spec file change to allow for MariaDB/MySQL specific conf.xml
+- Provide 1.4->2.x migration and SQLite->MariaDB conversion help text
 
 * Sun Jan 29 2023 Mikko 'dogo' Rantanen <dogo@nxme.net> - 2.1.12-3
 - Upstream release 2.1.12
