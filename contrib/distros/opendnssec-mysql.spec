@@ -30,10 +30,10 @@ Source5: opendnssec.cron
 # Patch4: patch-keystate-import-cmd-20231021.patch
 # Patch5: patch-1.4-2.0-mysql-convert-sql-20231025.patch
 
-Requires: opencryptoki, softhsm >= 2.6.1, systemd-units, libxml2, libxslt, sqlite, libunwind, ldns, policycoreutils-python-utils
+Requires: opencryptoki, softhsm >= 2.6.1, systemd-units, libxml2, libxslt, libunwind, ldns, policycoreutils-python-utils
 BuildRequires: make
 BuildRequires: gcc
-BuildRequires: ldns-devel >= 1.7.1, ldns >= 1.7.1, sqlite-devel >= 3.0.0, openssl-devel, libunwind, libunwind-devel, mariadb-devel
+BuildRequires: ldns-devel >= 1.7.1, ldns >= 1.7.1, openssl-devel, libunwind, libunwind-devel, mariadb-devel
 BuildRequires: libxml2-devel
 # It tests for pkill/killall and would use /bin/false if not found
 BuildRequires: procps-ng
