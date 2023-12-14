@@ -183,12 +183,13 @@ else
   printf "  https://wiki.opendnssec.org/pages/viewpage.action?pageId=10125376\n"
 fi
 
-# Do this here - it is needed anyway
+# This _probably_ works without settings these to permissive, but
+# if not, create your custom SELinux module(s) / 20231214 / dogo
 #
-printf "\nConfiguring SELinux, please wait for about 30 seconds..."
-semanage permissive -a opendnssec_t >/dev/null 2>&1
-semanage permissive -a named_t >/dev/null 2>&1
-printf "done.\n\n"
+# printf "\nConfiguring SELinux, please wait for about 30 seconds..."
+# semanage permissive -a opendnssec_t >/dev/null 2>&1
+# semanage permissive -a named_t >/dev/null 2>&1
+# printf "done.\n\n"
 
 %systemd_post ods-enforcerd.service
 %systemd_post ods-signerd.service
