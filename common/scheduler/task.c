@@ -40,6 +40,7 @@
 #include "duration.h"
 #include "file.h"
 #include "log.h"
+#include "utilities.h"
 
 static const char* task_str = "task";
 static pthread_mutex_t worklock = PTHREAD_MUTEX_INITIALIZER;
