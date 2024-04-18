@@ -32,7 +32,6 @@
 #include "daemon/engine.h"
 #include "hsm.h"
 #include "log.h"
-#include "cryptoki_compat/pkcs11.h"
 
 static const char* hsm_str = "hsm";
 

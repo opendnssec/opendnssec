@@ -1,3 +1,9 @@
+OpenDNSSEC 2.1.14 RC 1 - 2023-09-10
+
+* Extra logging in case of HSM issues
+* Extra check on HSM availability when starting signing
+* Copy key function in hsmutil program
+
 OpenDNSSEC 2.1.13 - 2023-06-26
 
 * Emit warning when using ods-kaspcheck for RFC 5155

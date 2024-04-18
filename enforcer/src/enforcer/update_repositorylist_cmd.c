@@ -128,7 +128,7 @@ static int
 run(cmdhandler_ctx_type* context, int argc, char* argv[])
 {
      int sockfd = context->sockfd;
-       engine_type* engine = getglobalcontext(context);
+        engine_type* engine = getglobalcontext(context);
 
 	if (!perform_update_repositorylist(sockfd, engine)) {
 		ods_log_error_and_printf(sockfd, module_str,
