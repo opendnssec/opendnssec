@@ -229,7 +229,10 @@ run(cmdhandler_ctx_type* context, int argc, char* argv[])
     }
     
     /* Find out what we need to do */
-    if (ods_check_command(argv[1],"prepare"))
+    if (argc < 2) {
+        client_printf_err(sockfd, "incomplete command\n");
+        status = -1;
+    } else if (ods_check_command(argv[1],"prepare"))
         status = prepare(sockfd, dbconn, clause_list);
     else if (ods_check_command(argv[1],"commit"))
         status = commit(sockfd, dbconn, clause_list);
