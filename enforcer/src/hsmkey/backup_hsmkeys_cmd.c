@@ -240,8 +240,10 @@ run(cmdhandler_ctx_type* context, int argc, char* argv[])
         status = rollback(sockfd, dbconn, clause_list);
     else if (ods_check_command(argv[1],"list"))
         status = list(sockfd, dbconn, clause_list);
-    else
+    else {
+        client_printf_err(sockfd, "Usage:\n\nbackup [list|prepare|commit|rollback]\n   --repository <repository>                    aka -r\n\n");
         status = -1;
+    }
 
     db_clause_list_free(clause_list);
     return status;
