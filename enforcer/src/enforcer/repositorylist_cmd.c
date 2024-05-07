@@ -31,83 +31,7 @@
 #include "longgetopt.h"
 #include "log.h"
 #include "str.h"
-#include <libxml/xpath.h>
-#include <libxml/xmlreader.h>
 #include "file.h"
-
-static const char *module_str = "repositorylist_cmd";
-
-static int
-perform_repositorylist(int sockfd)
-{
-	const char* cfgfile = ODS_SE_CFGFILE;
-	xmlDocPtr doc = NULL;
-        xmlNode *curNode;
-        xmlXPathContextPtr xpathCtx = NULL;
-        xmlXPathObjectPtr xpathObj = NULL;
-
-	const char *fmt = "%-31s %-13s %-13s\n";
-	char *capacity = NULL;
-	int backup;
-	char *repository = NULL;
-	int i;
-
-
-	xmlChar *xexpr = (unsigned char *)"//Configuration/RepositoryList/Repository";	
-	doc = xmlParseFile(cfgfile);
-	if (doc == NULL) {
-        	ods_log_error("[%s] unable to read cfgfile %s", module_str, cfgfile);
-	        return -1;
-    	}
-
-	xpathCtx = xmlXPathNewContext(doc);
-	if (xpathCtx == NULL) {
-        	ods_log_error("[%s] unable to create new XPath context for cfgfile"
-            	"%s expr %s", module_str, cfgfile, xexpr);
-        	xmlFreeDoc(doc);
-        	return -1;
-    	}
-
-	xpathObj = xmlXPathEvalExpression(xexpr, xpathCtx);
-	if(xpathObj == NULL) {
-		ods_log_error("[%s] unable to evaluate required element %s in "
-                "cfgfile %s", module_str, xexpr, cfgfile);
-	        xmlXPathFreeContext(xpathCtx);
-        	xmlFreeDoc(doc);
-	        return -1;
-    	}
-
-	client_printf(sockfd, "Repositories:\n");
-	client_printf(sockfd, fmt, "Name:", "Capacity:", "RequireBackup:");
-
-	if (xpathObj->nodesetval){
-		for (i = 0; i < xpathObj->nodesetval->nodeNr; i++) {
-			curNode = xpathObj->nodesetval->nodeTab[i]->xmlChildrenNode;
-			repository = (char*)xmlGetProp(xpathObj->nodesetval->nodeTab[i], (const xmlChar *)"name");
-
-			backup = 0;
-			while (curNode) {
-				if (xmlStrEqual(curNode->name, (const xmlChar *)"Capacity"))
-					capacity = (char*) xmlNodeGetContent(curNode);
-				if (xmlStrEqual(curNode->name, (const xmlChar *)"RequireBackup"))
-					backup = 1;
-				curNode = curNode->next;
-			}
-			client_printf(sockfd, fmt, repository, capacity?capacity:"-", backup?"Yes":"No");
-			free(repository);
-			repository = NULL;
-			free(capacity);
-			capacity = NULL;
-		}
-	}
-
-	xmlXPathFreeObject(xpathObj);
-	xmlXPathFreeContext(xpathCtx);
-	xmlFreeDoc(doc);
-	
-	
-	return 0;
-}
 
 static void
 usage(int sockfd)
@@ -126,12 +50,16 @@ static int
 run(cmdhandler_ctx_type* context, int argc, char* argv[])
 {
     int sockfd = context->sockfd;
-	if (perform_repositorylist(sockfd)) {
-		ods_log_error_and_printf(sockfd, module_str,
-			"unable to list repositories ");
-		return 1;
-	}
-	return 0;
+    engine_type* engine = (engine_type*)context->globalcontext;
+
+    client_printf(sockfd, "Repositories:\n");
+    client_printf(sockfd, "%-31s %-13s %-13s\n", "Name:", "Capacity:", "RequireBackup:");
+
+    for(struct engineconfig_repository*repo = engine->config->repositories; repo; repo=repo->next) {
+        client_printf(sockfd, "%-31s %-13s %-13s\n", repo->name, /* capacity */ "-", repo->require_backup?"Yes":"No");
+    }
+
+    return 0;
 }
 
 struct cmd_func_block repositorylist_funcblock = {

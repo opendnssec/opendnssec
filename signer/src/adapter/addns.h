@@ -45,24 +45,11 @@
  * DNS input adapter.
  *
  */
-typedef struct dnsin_struct dnsin_type;
-struct dnsin_struct {
-    acl_type* request_xfr;
-    acl_type* allow_notify;
+typedef struct dnsio_struct dnsio_type;
+struct dnsio_struct {
+    acl_type* xfr_acl;
+    acl_type* notify_acl;
     tsig_type* tsig;
-    time_t last_modified;
-};
-
-/**
- * DNS output adapter.
- *
- */
-typedef struct dnsout_struct dnsout_type;
-struct dnsout_struct {
-    acl_type* provide_xfr;
-    acl_type* do_notify;
-    tsig_type* tsig;
-    time_t last_modified;
 };
 
 /**
@@ -70,14 +57,7 @@ struct dnsout_struct {
  * \return dnsin_type* DNS input adapter
  *
  */
-extern dnsin_type* dnsin_create(void);
-
-/**
- * Create DNS output adapter.
- * \return dnsout_type* DNS output adapter
- *
- */
-extern dnsout_type* dnsout_create(void);
+extern dnsio_type* dnsio_create(void);
 
 /**
  * Update DNS input adapter.
@@ -87,19 +67,7 @@ extern dnsout_type* dnsout_create(void);
  * \return ods_status status
  *
  */
-extern ods_status dnsin_update(dnsin_type** addns, const char* filename,
-    time_t* last_mod);
-
-/**
- * Update DNS output adapter.
- * \param[out] addns DNS output adapter
- * \param[in] filename filename
- * \param[out] last_mod last modified
- * \return ods_status status
- *
- */
-extern ods_status dnsout_update(dnsout_type** addns, const char* filename,
-    time_t* last_mod);
+extern ods_status dnsio_update(int unbound, dnsio_type* addns, const char* filename);
 
 /**
  * Read the next RR from zone file.
@@ -138,13 +106,6 @@ extern ods_status addns_write(void* zone);
  * \param[in] addns DNS input adapter
  *
  */
-extern void dnsin_cleanup(dnsin_type* addns);
-
-/**
- * Clean up DNS output adapter.
- * \param[in] addns DNS output adapter
- *
- */
-extern void dnsout_cleanup(dnsout_type* addns);
+extern void dnsio_cleanup(dnsio_type* addns);
 
 #endif /* ADAPTER_ADDNS_H */

@@ -35,9 +35,6 @@
 #include "adapter/adapter.h"
 #include "status.h"
 
-#include <libxml/xpath.h>
-#include <libxml/xmlreader.h>
-
 /**
  * Parse the zonelist file.
  * \param[in] zlist zone list storage

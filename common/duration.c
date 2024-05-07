@@ -128,7 +128,7 @@ duration_create_from_string(const char* str)
         ods_log_error("[%s] cannot create from string %s: P not found",
             duration_str, str);
         duration_cleanup(duration);
-        return NULL;
+	return NULL;
     }
 
     T = strchr(str, 'T');
@@ -306,7 +306,7 @@ duration2string(duration_type* duration)
         }
     }
     if (T) {
-        str = strncat(str, "T", 1);
+        str = strcat(str, "T");
     }
     if (duration->hours > 0) {
         count = digits_in_number(duration->hours);

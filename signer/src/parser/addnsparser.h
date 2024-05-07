@@ -34,57 +34,8 @@
 
 #include "wire/acl.h"
 #include "wire/tsig.h"
+#include "adapter/addns.h"
 
-#include <libxml/xpath.h>
-#include <libxml/xmlreader.h>
-
-/**
- * Parse <RequestTransfer/>.
- * \param[in] allocator memory allocator
- * \param[in] filename filename
- * \param[in] tsig list of TSIGs
- * \return acl_type* ACL
- *
- */
-extern acl_type* parse_addns_request_xfr(const char* filename, tsig_type* tsig);
-
-/**
- * Parse <AllowNotify/>.
- * \param[in] allocator memory allocator
- * \param[in] filename filename
- * \param[in] tsig list of TSIGs
- * \return acl_type* ACL
- *
- */
-extern acl_type* parse_addns_allow_notify(const char* filename, tsig_type* tsig);
-
-/**
- * Parse <ProvideTransfer/>.
- * \param[in] allocator memory allocator
- * \param[in] filename filename
- * \param[in] tsig list of TSIGs
- * \return acl_type* ACL
- *
- */
-extern acl_type* parse_addns_provide_xfr(const char* filename, tsig_type* tsig);
-
-/**
- * Parse <Notify/>.
- * \param[in] allocator memory allocator
- * \param[in] filename filename
- * \param[in] tsig list of TSIGs
- * \return acl_type* ACL
- *
- */
-extern acl_type* parse_addns_do_notify(const char* filename, tsig_type* tsig);
-
-/**
- * Parse <TSIG/>.
- * \param[in] allocator memory allocator
- * \param[in] filename filename
- * \return tsig_type* TSIG
- *
- */
-extern tsig_type* parse_addns_tsig(const char* filename);
+extern int parse_conf_dnsio(int inbound, const char* filename, dnsio_type* adapter);
 
 #endif /* PARSER_ADDNSPARSER_H */

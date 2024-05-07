@@ -30,12 +30,15 @@
 #ifndef __policy_h
 #define __policy_h
 
-#include "db_object.h"
-
 struct policy;
 struct policy_list;
 typedef struct policy policy_t;
 typedef struct policy_list policy_list_t;
+
+#include "db_object.h"
+#include "zone_db.h"
+#include "policy_key.h"
+#include "hsm_key.h"
 
 typedef enum policy_denial_type {
     POLICY_DENIAL_TYPE_INVALID = -1,
@@ -51,8 +54,6 @@ typedef enum policy_zone_soa_serial {
     POLICY_ZONE_SOA_SERIAL_UNIXTIME = 2,
     POLICY_ZONE_SOA_SERIAL_KEEP = 3
 } policy_zone_soa_serial_t;
-
-#include "policy_ext.h"
 
 /**
  * A policy object.

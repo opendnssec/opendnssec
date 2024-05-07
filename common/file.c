@@ -146,7 +146,7 @@ ods_build_path(const char* file, const char* suffix, int dir, int no_slash)
                 strncat(openf, suffix, len_suffix);
             }
             if (dir) {
-                strncat(openf, "/", 1);
+                strcat(openf, "/");
             }
             openf[len_total] = '\0';
         }

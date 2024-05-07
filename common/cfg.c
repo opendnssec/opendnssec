@@ -172,7 +172,7 @@ engine_config_listener(settings_handle h, struct engineconfig_listener** target)
 {
     int count;
     int valid = 0;
-    char* defaultport = "15354";
+    const char* defaultport = "15354";
     struct engineconfig_listener* cur;
     valid |= settings_getcompound(h, &count, "//Configuration/Signer/Listener/Interface");
     for(int i=0; i<count; i++) {

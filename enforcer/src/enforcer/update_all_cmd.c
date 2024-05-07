@@ -40,7 +40,7 @@
 #include "utils/kc_helper.h"
 #include "clientpipe.h"
 #include "longgetopt.h"
-#include "policy/policy_import.h"
+#include "policy/policy_io.h"
 #include "keystate/zonelist_import.h"
 
 #include "enforcer/update_all_cmd.h"

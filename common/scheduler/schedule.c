@@ -78,7 +78,6 @@ static task_type*
 schedule_get_first_task(schedule_type* schedule)
 {
     ldns_rbnode_t* first_node = LDNS_RBTREE_NULL;
-    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     task_type* pop = NULL;
     if (!schedule || !schedule->tasks) {
         return NULL;
@@ -471,7 +470,7 @@ schedule_pop_task(schedule_type* schedule)
 task_type*
 schedule_pop_task_nowait(schedule_type* schedule)
 {
-    time_t timeout, now = time_now();
+    time_t now = time_now();
     task_type* task;
 
     pthread_mutex_lock(&schedule->schedule_lock);

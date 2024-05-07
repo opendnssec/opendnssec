@@ -99,14 +99,6 @@ parse_conf_signconf(signconf_type* signconf, const char* scfile)
     settings_getbool(handle, &zonemd, "//SignerConfiguration/Zone/ZoneMD/@algorithm");
     signconf->zonemodus = passthrough|(zonemd<<1);
     
-    // settings_getstring(handle, &signconf->sig_resign_interval, settings_value_NULL, "//SignerConfiguration/Zone/Signatures/Resign");
-    /* BERRY if(signconf->sig_resign_interval) {
-        if(intrvl_verify(signconf->sig_resign_interval)) {
-            free(signconf->sig_resign_interval);
-            signconf->sig_resign_interval = NULL;
-        }
-    } */
-    
     settings_getduration2(handle, &(signconf->sig_resign_interval), "//SignerConfiguration/Zone/Signatures/Resign");
     settings_getduration2(handle, &(signconf->sig_refresh_interval), "//SignerConfiguration/Zone/Signatures/Refresh");
     settings_getduration2(handle, &(signconf->sig_validity_default), "//SignerConfiguration/Zone/Signatures/Validity/Default");
@@ -436,7 +428,7 @@ signconf_log(signconf_type* sc, const char* name)
     char* paramttl = NULL;
 
     if (sc) {
-        resign = sc->sig_resign_interval; // BERRY SIGNCONF NOT READ UPON STARTUP AND MISSING SYNC???
+        resign = sc->sig_resign_interval;
         refresh = duration2string(sc->sig_refresh_interval);
         validity = duration2string(sc->sig_validity_default);
         denial = duration2string(sc->sig_validity_denial);

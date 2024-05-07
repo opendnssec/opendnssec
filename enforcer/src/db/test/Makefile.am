@@ -47,7 +47,6 @@ test_LDADD = \
 	../key_data.o ../key_data_ext.o \
 	../key_state.o ../key_state_ext.o \
 	../key_dependency.o ../key_dependency_ext.o \
-	../policy.o ../policy_ext.o \
 	../policy_key.o ../policy_key_ext.o \
 	../database_version.o ../database_version_ext.o \
 	../zone_db.o ../zone_db_ext.o \

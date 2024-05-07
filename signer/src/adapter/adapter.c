@@ -53,7 +53,6 @@ adapter_create(const char* str, adapter_mode type, unsigned in)
     adapter->inbound = in;
     adapter->error = 0;
     adapter->config = NULL;
-    adapter->config_last_modified = 0;
     adapter->configstr = strdup(str);
     if (!adapter->configstr) {
         ods_log_error("[%s] unable to create adapter: allocator_strdup() "
@@ -66,22 +65,11 @@ adapter_create(const char* str, adapter_mode type, unsigned in)
         case ADAPTER_FILE:
             break;
         case ADAPTER_DNS:
-            if (adapter->inbound) {
-                adapter->config = (void*) dnsin_create();
-                if (!adapter->config) {
-                    ods_log_error("[%s] unable to create adapter: "
-                        "dnsin_create() failed", adapter_str);
-                    adapter_cleanup(adapter);
-                    return NULL;
-                }
-            } else {
-                adapter->config = (void*) dnsout_create();
-                if (!adapter->config) {
-                    ods_log_error("[%s] unable to create adapter: "
-                        "dnsout_create() failed", adapter_str);
-                    adapter_cleanup(adapter);
-                    return NULL;
-                }
+            adapter->config = dnsio_create();
+            if (!adapter->config) {
+                ods_log_error("[%s] unable to create adapter: dnsin_create() failed", adapter_str);
+                adapter_cleanup(adapter);
+                return NULL;
             }
             break;
         default:
@@ -98,8 +86,6 @@ adapter_create(const char* str, adapter_mode type, unsigned in)
 ods_status
 adapter_load_config(adapter_type* adapter)
 {
-    dnsin_type* dnsin = NULL;
-    dnsout_type* dnsout = NULL;
     ods_status status = ODS_STATUS_OK;
 
     if (!adapter || !adapter->configstr) {
@@ -111,31 +97,15 @@ adapter_load_config(adapter_type* adapter)
             break;
         case ADAPTER_DNS:
             ods_log_assert(adapter->config);
-            if (adapter->inbound) {
-		dnsin = (dnsin_type*)adapter->config;
-                status = dnsin_update(&dnsin, adapter->configstr,
-                    &adapter->config_last_modified);
-                if (status == ODS_STATUS_OK) {
-                    ods_log_assert(dnsin);
-                } else if (status != ODS_STATUS_UNCHANGED) {
-                    return status;
-                }
-                return ODS_STATUS_OK;
-            } else { /* outbound */
-		dnsout = (dnsout_type*)adapter->config;
-                status = dnsout_update(&dnsout, adapter->configstr,
-                    &adapter->config_last_modified);
-                if (status == ODS_STATUS_OK) {
-                    ods_log_assert(dnsout);
-                } else if (status != ODS_STATUS_UNCHANGED) {
-                    return status;
-                }
+            status = dnsio_update(adapter->inbound, adapter->config, adapter->configstr);
+            if (status == ODS_STATUS_UNCHANGED) {
+                status = ODS_STATUS_OK;
             }
             break;
         default:
             break;
     }
-    return ODS_STATUS_OK;
+    return status;
 }
 
 
@@ -242,9 +212,9 @@ adapter_cleanup(adapter_type* adapter)
             break;
         case ADAPTER_DNS:
             if (adapter->inbound) {
-                dnsin_cleanup((dnsin_type*) adapter->config);
+                dnsio_cleanup((dnsio_type*) adapter->config);
             } else { /* outbound */
-                dnsout_cleanup((dnsout_type*) adapter->config);
+                dnsio_cleanup((dnsio_type*) adapter->config);
             }
             break;
         default:

@@ -31,4 +31,5 @@ libcompat_a_SOURCES = \
 	cfg.c cfg.h \
 	hooks.c hooks.h \
 	longgetopt.c longgetopt.h \
+	xmlconf.c xmlconf.h \
 	settings_xml.c settings.c settings.h

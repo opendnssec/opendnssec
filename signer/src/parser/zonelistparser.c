@@ -37,8 +37,6 @@
 #include "signer/zonelist.h"
 #include "signer/zone.h"
 
-#include <libxml/xpath.h>
-#include <libxml/xmlreader.h>
 #include <stdlib.h>
 #include <string.h>
 

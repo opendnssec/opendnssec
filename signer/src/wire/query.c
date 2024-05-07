@@ -264,7 +264,7 @@ query_parse_soa(buffer_type* buffer, uint32_t* serial)
 static query_state
 query_process_notify(query_type* q, ldns_rr_type qtype, engine_type* engine)
 {
-    dnsin_type* dnsin = NULL;
+    dnsio_type* dnsin = NULL;
     uint16_t count = 0;
     uint16_t rrcount = 0;
     uint32_t serial = 0;
@@ -296,8 +296,8 @@ query_process_notify(query_type* q, ldns_rr_type qtype, engine_type* engine)
         return query_notauth(q);
     }
     ods_log_assert(q->zone->adinbound->config);
-    dnsin = (dnsin_type*) q->zone->adinbound->config;
-    if (!acl_find(dnsin->allow_notify, &q->addr, q->tsig_rr)) {
+    dnsin = (dnsio_type*) q->zone->adinbound->config;
+    if (!acl_find(dnsin->notify_acl, &q->addr, q->tsig_rr)) {
         if (addr2ip(q->addr, address, sizeof(address))) {
             ods_log_info("[%s] unauthorized notify for zone %s from %s: "
                 "no acl matches", query_str, q->zone->name, address);
@@ -635,7 +635,7 @@ query_prepare(query_type* q)
 static query_state
 query_process_query(query_type* q, ldns_rr_type qtype, engine_type* engine)
 {
-    dnsout_type* dnsout = NULL;
+    dnsio_type* dnsout = NULL;
     if (!q || !q->zone) {
         return QUERY_DISCARDED;
     }
@@ -659,9 +659,9 @@ query_process_query(query_type* q, ldns_rr_type qtype, engine_type* engine)
         return query_refused(q);
     }
     ods_log_assert(q->zone->adoutbound->config);
-    dnsout = (dnsout_type*) q->zone->adoutbound->config;
+    dnsout = (dnsio_type*) q->zone->adoutbound->config;
     /* acl also in use for soa and other queries */
-    if (!acl_find(dnsout->provide_xfr, &q->addr, q->tsig_rr)) {
+    if (!acl_find(dnsout->xfr_acl, &q->addr, q->tsig_rr)) {
         ods_log_debug("[%s] zone %s acl query refused", query_str,
             q->zone->name);
         return query_refused(q);

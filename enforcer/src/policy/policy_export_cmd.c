@@ -34,7 +34,7 @@
 #include "str.h"
 #include "clientpipe.h"
 #include "longgetopt.h"
-#include "policy/policy_export.h"
+#include "policy/policy_io.h"
 
 #include "policy/policy_export_cmd.h"
 
@@ -99,7 +99,7 @@ run(cmdhandler_ctx_type* context, int argc, char* argv[])
     }
 
     if (all) {
-        if (policy_export_all(sockfd, dbconn, NULL) != POLICY_EXPORT_OK) {
+        if (policy_export_all(sockfd, dbconn, NULL)) {
             return 1;
         }
     }
@@ -108,7 +108,7 @@ run(cmdhandler_ctx_type* context, int argc, char* argv[])
             client_printf_err(sockfd, "Unable to find policy %s!\n", policy_name);
             return 1;
         }
-        if (policy_export(sockfd, policy, NULL) != POLICY_EXPORT_OK) {
+        if (policy_export(sockfd, policy, NULL)) {
             policy_free(policy);
             return 1;
         }

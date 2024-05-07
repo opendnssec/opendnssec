@@ -30,12 +30,12 @@
 #ifndef __hsm_key_h
 #define __hsm_key_h
 
-#include "db_object.h"
-
 struct hsm_key;
 struct hsm_key_list;
 typedef struct hsm_key hsm_key_t;
 typedef struct hsm_key_list hsm_key_list_t;
+
+#include "db_object.h"
 
 typedef enum hsm_key_state {
     HSM_KEY_STATE_INVALID = -1,

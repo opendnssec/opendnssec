@@ -165,7 +165,7 @@ AC_ARG_ENABLE(enforcer,
 		[enable_enforcer="${enableval}"],
 		[enable_enforcer="yes"])
 if test "x${enable_enforcer}" = "xyes"; then
-	AC_DEFINE_UNQUOTED(SIGNER_CLI_UPDATE, "$OPENDNSSEC_SIGNER_CLI update", [Path to the OpenDNSSEC signer engine cli])
+	AC_DEFINE_UNQUOTED(SIGNER_CLI_UPDATE, "$OPENDNSSEC_SBIN_DIR/ods-signer update", [Path to the OpenDNSSEC signer engine cli])
 	ACX_ENFORCER_DATABASE
 	ACX_LIBREADLINE
 fi

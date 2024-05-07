@@ -464,7 +464,7 @@ settings_access(settings_handle* handleptr, int basefd, const char* filename)
         fd = openat(basefd, filename, O_RDONLY);
     if(filename != NULL && fd >= 0) {
         document = (*handleptr)->access(olddocument, fd);
-        root = parselocate(*handleptr, NULL, NULL, NULL, NULL);
+        root = parselocate(*handleptr, document, NULL, NULL, NULL);
         returncode = 0;
     } else {
         document = NULL;

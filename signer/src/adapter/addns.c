@@ -499,62 +499,38 @@ addns_read_file(FILE* fd, zone_type* zone)
  * Create DNS input adapter.
  *
  */
-dnsin_type*
-dnsin_create(void)
+dnsio_type*
+dnsio_create(void)
 {
-    dnsin_type* addns = NULL;
-    CHECKALLOC(addns = (dnsin_type*) malloc(sizeof(dnsin_type)));
-    addns->request_xfr = NULL;
-    addns->allow_notify = NULL;
+    dnsio_type* addns = NULL;
+    CHECKALLOC(addns = (dnsio_type*) malloc(sizeof(dnsio_type)));
+    addns->xfr_acl = NULL;
+    addns->notify_acl = NULL;
     addns->tsig = NULL;
     return addns;
 }
 
 
 /**
- * Create DNS output adapter.
- *
- */
-dnsout_type*
-dnsout_create(void)
-{
-    dnsout_type* addns = NULL;
-    CHECKALLOC(addns = (dnsout_type*) malloc(sizeof(dnsout_type)));
-    addns->provide_xfr = NULL;
-    addns->do_notify = NULL;
-    addns->tsig = NULL;
-    return addns;
-}
-
-
-/**
- * Read DNS input adapter.
+ * Read DNS I/O adapter.
  *
  */
 static ods_status
-dnsin_read(dnsin_type* addns, const char* filename)
+dnsio_read(int inbound, dnsio_type* addns, const char* filename)
 {
     const char* rngfile = ODS_SE_RNGDIR "/addns.rng";
     ods_status status = ODS_STATUS_OK;
-    FILE* fd = NULL;
     if (!filename || !addns) {
         return ODS_STATUS_ASSERT_ERR;
     }
-    ods_log_debug("[%s] read dnsin file %s", adapter_str, filename);
+    ods_log_debug("[%s] read dnsio file %s", adapter_str, filename);
     status = parse_file_check(filename, rngfile);
     if (status != ODS_STATUS_OK) {
-        ods_log_error("[%s] unable to read dnsin: parse error in "
+        ods_log_error("[%s] unable to read dnsio: parse error in "
             "file %s (%s)", adapter_str, filename, ods_status2str(status));
         return status;
     }
-    fd = ods_fopen(filename, NULL, "r");
-    if (fd) {
-        addns->tsig = parse_addns_tsig(filename);
-        addns->request_xfr = parse_addns_request_xfr(filename, addns->tsig);
-        addns->allow_notify = parse_addns_allow_notify(filename, addns->tsig);
-        ods_fclose(fd);
-        return ODS_STATUS_OK;
-    }
+    parse_conf_dnsio(inbound, filename, addns);
     ods_log_error("[%s] unable to read dnsout: failed to open file %s",
         adapter_str, filename);
     return ODS_STATUS_ERR;
@@ -562,82 +538,21 @@ dnsin_read(dnsin_type* addns, const char* filename)
 
 
 /**
- * Update DNS input adapter.
+ * Update DNS in-/output adapter.
  *
  */
 ods_status
-dnsin_update(dnsin_type** addns, const char* filename, time_t* last_mod)
+dnsio_update(int inbound, dnsio_type* addns, const char* filename)
 {
-    time_t st_mtime = 0;
     ods_status status = ODS_STATUS_OK;
 
-    if (!filename || !addns || !last_mod) {
+    if (!filename) {
         return ODS_STATUS_UNCHANGED;
     }
     /* read the new signer configuration */
-    status = dnsin_read(*addns, filename);
-    if (status == ODS_STATUS_OK) {
-        *last_mod = st_mtime;
-    } else {
-        ods_log_error("[%s] unable to update dnsin: dnsin_read(%s) "
-            "failed (%s)", adapter_str, filename, ods_status2str(status));
-    }
-    return status;
-}
-
-/**
- * Read DNS output adapter.
- *
- */
-static ods_status
-dnsout_read(dnsout_type* addns, const char* filename)
-{
-    const char* rngfile = ODS_SE_RNGDIR "/addns.rng";
-    ods_status status = ODS_STATUS_OK;
-    FILE* fd = NULL;
-    if (!filename || !addns) {
-        return ODS_STATUS_ASSERT_ERR;
-    }
-    ods_log_debug("[%s] read dnsout file %s", adapter_str, filename);
-    status = parse_file_check(filename, rngfile);
+    status = dnsio_read(inbound, addns, filename);
     if (status != ODS_STATUS_OK) {
-        ods_log_error("[%s] unable to read dnsout: parse error in "
-            "file %s (%s)", adapter_str, filename, ods_status2str(status));
-        return status;
-    }
-    fd = ods_fopen(filename, NULL, "r");
-    if (fd) {
-        addns->tsig = parse_addns_tsig(filename);
-        addns->provide_xfr = parse_addns_provide_xfr(filename, addns->tsig);
-        addns->do_notify = parse_addns_do_notify(filename, addns->tsig);
-        ods_fclose(fd);
-        return ODS_STATUS_OK;
-    }
-    ods_log_error("[%s] unable to read dnsout: failed to open file %s",
-        adapter_str, filename);
-    return ODS_STATUS_ERR;
-}
-
-
-/**
- * Update DNS output adapter.
- *
- */
-ods_status
-dnsout_update(dnsout_type** addns, const char* filename, time_t* last_mod)
-{
-    time_t st_mtime = 0;
-    ods_status status = ODS_STATUS_OK;
-
-    if (!filename || !addns || !last_mod) {
-        return ODS_STATUS_UNCHANGED;
-    }
-    /* read the new signer configuration */
-    status = dnsout_read(*addns, filename);
-    if (status == ODS_STATUS_OK) {
-        *last_mod = st_mtime;
-    } else {
-        ods_log_error("[%s] unable to update dnsout: dnsout_read(%s) "
+        ods_log_error("[%s] unable to update dnsio: dnsio_read(%s) "
             "failed (%s)", adapter_str, filename, ods_status2str(status));
         /* Don't do this cleanup. Signer will crash on exit and will
          * access the wrong memory runtime. Leak is only once per badly
@@ -890,30 +805,13 @@ addns_write(void* zone)
  *
  */
 void
-dnsin_cleanup(dnsin_type* addns)
+dnsio_cleanup(dnsio_type* addns)
 {
     if (!addns) {
         return;
     }
-    acl_cleanup(addns->request_xfr);
-    acl_cleanup(addns->allow_notify);
-    tsig_cleanup(addns->tsig);
-    free(addns);
-}
-
-
-/**
- * Clean up DNS output adapter.
- *
- */
-void
-dnsout_cleanup(dnsout_type* addns)
-{
-    if (!addns) {
-        return;
-    }
-    acl_cleanup(addns->provide_xfr);
-    acl_cleanup(addns->do_notify);
+    acl_cleanup(addns->xfr_acl);
+    acl_cleanup(addns->notify_acl);
     tsig_cleanup(addns->tsig);
     free(addns);
 }
