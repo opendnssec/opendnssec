@@ -49,7 +49,6 @@
 
 #include <ctype.h>
 #include <errno.h>
-#include <libxml/parser.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>

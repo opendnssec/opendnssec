@@ -167,7 +167,7 @@ void engine_config_cleanup(engineconfig_type* config);
 extern ods_status parse_file_check(const char* cfgfile, const char* rngfile);
 
 extern struct engineconfig_repository* parse_conf_repositories(const char* cfgfile);
-extern int parse_conf_logging(const char* cfgfile, int cmdline_verbosity, int* verbosity, int* use_syslog, char**log_filename);
+extern int parse_conf_logging(const char* cfgfile, int cmdline_verbosity, int* verbosity, int* use_syslog, const char**log_filename);
 
 #endif /* CFG_CONFIG_H */
 

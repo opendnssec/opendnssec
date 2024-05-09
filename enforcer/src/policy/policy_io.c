@@ -220,10 +220,6 @@ transportPolicy(int sockfd, const db_connection_t* dbconn, xmlconf_type h, char*
     int npolicies = 0;
     policy_t** policies = NULL;
     policy_list_t* policy_list;
-    /*
-    struct policylist* headPtr = NULL;
-    struct policylist** tailPtr = &headPtr;
-    */
     unsigned int zonemodus;
 
     xmlconf_compound(h, "/KASP");    

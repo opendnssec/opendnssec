@@ -187,7 +187,7 @@ engine_config_listener(settings_handle h, struct engineconfig_listener** target)
 }
 
 static int
-engine_config_logging(settings_handle cfghandle, int cmdline_verbosity, int* verbosity, int* use_syslog, char**log_filename)
+engine_config_logging(settings_handle cfghandle, int cmdline_verbosity, int* verbosity, int* use_syslog, const char**log_filename)
 {
     int intvalue;
     int valid = 0;
@@ -293,7 +293,7 @@ engine_config(const char* cfgfile,
     asprintf((char**)&ecfg->zonelist_filename_signer, "%s%s%s", strvalue, ((strlen(strvalue) > 0 && strvalue[strlen(strvalue) - 1] != '/') ? "/" : ""), OPENDNSSEC_ENFORCER_ZONELIST);
     valid |= settings_getstring(cfghandle, (char**)&ecfg->zonefetch_filename, settings_value_NULL, "//Configuration/Common/ZoneFetchFile");
 
-    engine_config_logging(cfghandle, cmdline_verbosity, &ecfg->verbosity, &ecfg->use_syslog, (char**)&ecfg->log_filename);
+    engine_config_logging(cfghandle, cmdline_verbosity, &ecfg->verbosity, &ecfg->use_syslog, &ecfg->log_filename);
 
     valid |= settings_getstring(cfghandle, (char**)&ecfg->delegation_signer_submit_command, settings_value_NULL, "//Configuration/Enforcer/DelegationSignerSubmitCommand");
     valid |= settings_getstring(cfghandle, (char**)&ecfg->delegation_signer_retract_command, settings_value_NULL, "//Configuration/Enforcer/DelegationSignerRetractCommand");
@@ -616,7 +616,7 @@ parse_conf_repositories(const char* cfgfile)
 }
 
 int
-parse_conf_logging(const char* cfgfile, int cmdline_verbosity, int* verbosity, int* use_syslog, char**log_filename)
+parse_conf_logging(const char* cfgfile, int cmdline_verbosity, int* verbosity, int* use_syslog, const char**log_filename)
 {
     int valid = 0;
     settings_handle cfghandle = NULL;
