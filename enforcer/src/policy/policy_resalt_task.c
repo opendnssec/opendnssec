@@ -119,7 +119,9 @@ performresalt(task_type* task, char const *policyname, void *userdata,
 		return schedule_DEFER;
 	}
 
+	saltlength = policy_denial_salt_length(policy);
 	if  (policy_denial_type(policy) != POLICY_DENIAL_TYPE_NSEC3
+		|| saltlength == 0
 		|| policy_passthrough(policy) & 0x01)
 	{
 		policy_free(policy);
