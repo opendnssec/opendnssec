@@ -2533,10 +2533,12 @@ hsm_generate_rsa_key(hsm_ctx_t *ctx,
     CK_BBOOL cfalse = CK_FALSE;
     CK_BBOOL ctoken = CK_TRUE;
     CK_BBOOL cextractable = CK_FALSE;
+    CK_BBOOL csensitive = CK_TRUE;
 
     session = hsm_find_repository_session(ctx, repository);
     if (!session) return NULL;
     cextractable = session->module->config->allow_extract ? CK_TRUE : CK_FALSE;
+    csensitive = session->module->config->allow_extract ? CK_FALSE : CK_TRUE;
 
     generate_unique_id(ctx, id, 16);
 
@@ -2567,7 +2569,7 @@ hsm_generate_rsa_key(hsm_ctx_t *ctx,
         { CKA_SIGN,        &ctrue,   sizeof (ctrue) },
         { CKA_DECRYPT,     &cfalse,  sizeof (cfalse) },
         { CKA_UNWRAP,      &cfalse,  sizeof (cfalse) },
-        { CKA_SENSITIVE,   &ctrue,   sizeof (ctrue) },
+        { CKA_SENSITIVE,   &csensitive,   sizeof (csensitive) },
         { CKA_TOKEN,       &ctrue,   sizeof (ctrue)  },
         { CKA_PRIVATE,     &ctrue,   sizeof (ctrue)  },
         { CKA_EXTRACTABLE, &cextractable,  sizeof (cextractable) }
