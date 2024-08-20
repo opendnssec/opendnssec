@@ -99,6 +99,7 @@ extern const char* TASK_TYPE_HSMKEYGEN;
 extern const char* TASK_TYPE_DSSUBMIT;
 extern const char* TASK_TYPE_DSRETRACT;
 extern const char* TASK_TYPE_SIGNCONF;
+extern const char* TASK_TYPE_DELKEYS;
 
 extern const char* TASK_NONE;
 extern const char* TASK_SIGNCONF;
