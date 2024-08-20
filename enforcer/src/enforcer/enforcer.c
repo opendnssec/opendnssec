@@ -62,6 +62,8 @@
 #include "db/db_error.h"
 
 #include "enforcer/enforcer.h"
+#include "signconf/signconf_xml.h"
+#include "file.h"
 
 #define HIDDEN      KEY_STATE_STATE_HIDDEN
 #define RUMOURED    KEY_STATE_STATE_RUMOURED
@@ -1022,7 +1024,6 @@ static int
 policyApproval(key_data_t** keylist, size_t keylist_size,
     struct future_key* future_key, key_dependency_list_t* deplist)
 {
-    static const key_state_state_t dnskey_algorithm_rollover[4] = { OMNIPRESENT, OMNIPRESENT, OMNIPRESENT, NA };
     static const key_state_state_t mask[14][4] = {
         /*ZSK*/
         { NA, OMNIPRESENT, NA, OMNIPRESENT },   /*This indicates a good key state.*/
@@ -1917,7 +1918,7 @@ updateZone(db_connection_t *dbconn, policy_t const *policy, zone_db_t* zone,
                     break;
                 }
 
-                change = true;
+                change = 1;
 			}
 		}
 	} while (process && change);
@@ -2670,14 +2671,14 @@ removeDeadKeys(db_connection_t *dbconn, key_data_t** keylist,
     if(deleteCount > 0) {
         return -1 - deleteCount;
     } else {
-        return first_purge;
-    }
+    return first_purge;
+}
 }
 
 time_t
 update(engine_type *engine, db_connection_t *dbconn, zone_db_t *zone, policy_t const *policy, time_t now, int *zone_updated)
 {
-	int allow_unsigned = 0;
+    int allow_unsigned = 0;
     time_t policy_return_time, zone_return_time, purge_return_time = -1, return_time;
     key_data_list_t *key_list;
     const key_data_t* key;
@@ -2701,8 +2702,8 @@ update(engine_type *engine, db_connection_t *dbconn, zone_db_t *zone, policy_t c
 	}
 	if (!policy) {
 		ods_log_error("[%s] no policy", module_str);
-		return now + 60;
-	}
+		return now + 60;	
+        }
 	if (!zone_updated) {
 		ods_log_error("[%s] no zone_updated", module_str);
 		return now + 60;
@@ -2813,7 +2814,7 @@ update(engine_type *engine, db_connection_t *dbconn, zone_db_t *zone, policy_t c
             }
 	}
     
-    
+  
     /*
      * Update zone.
      */
