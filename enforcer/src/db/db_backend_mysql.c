@@ -945,9 +945,6 @@ static int __db_backend_mysql_bind_clause(db_backend_mysql_bind_t** bind, const 
     if (!bind) {
         return DB_ERROR_UNKNOWN;
     }
-    if (!*bind) {
-        return DB_ERROR_UNKNOWN;
-    }
     if (!clause_list) {
         return DB_ERROR_UNKNOWN;
     }

@@ -78,7 +78,6 @@ static task_type*
 schedule_get_first_task(schedule_type* schedule)
 {
     ldns_rbnode_t* first_node = LDNS_RBTREE_NULL;
-    ldns_rbnode_t* node = LDNS_RBTREE_NULL;
     task_type* pop = NULL;
     if (!schedule || !schedule->tasks) {
         return NULL;
@@ -578,7 +577,7 @@ schedule_describetask(task_type* task)
         strtask = (char*) calloc(ODS_SE_MAXLINE, sizeof(char));
         if (strtask) {
             snprintf(strtask, ODS_SE_MAXLINE, "On %s I will %s zone %s\n",
-                    strtime ? strtime : "(null)", task->type, task->owner);
+                    (strtime ? strtime : "first moment in time"), task->type, task->owner);
             return strtask;
         } else {
             ods_log_error("unable to convert task to string: malloc error");

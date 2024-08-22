@@ -1,8 +1,11 @@
-OpenDNSSEC 2.1.14 RC 1 - 2023-09-10
+OpenDNSSEC 2.1.14 - 2024-08-22
 
-* Extra logging in case of HSM issues
-* Extra check on HSM availability when starting signing
-* Copy key function in hsmutil program
+* OPENDNSSEC-965: Extra logging in case of HSM issues
+* OPENDNSSEC-965: Extra check on HSM availability when starting signing
+* OPENDNSSEC-966: Copy key function in hsmutil program
+* OPENDNSSEC-960: Fix backup keys command when called with improper arguments
+* OPENDNSSEC-964: No keys exported when exporting all keys with mysql back-end
+* OPENDNSSEC-963: Keys not published in case of shared keys in combination with purging keys
 
 OpenDNSSEC 2.1.13 - 2023-06-26
 
