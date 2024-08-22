@@ -62,6 +62,8 @@
 #include "db/db_error.h"
 
 #include "enforcer/enforcer.h"
+#include "signconf/signconf_xml.h"
+#include "file.h"
 
 #define HIDDEN      KEY_STATE_STATE_HIDDEN
 #define RUMOURED    KEY_STATE_STATE_RUMOURED
@@ -1022,7 +1024,6 @@ static int
 policyApproval(key_data_t** keylist, size_t keylist_size,
     struct future_key* future_key, key_dependency_list_t* deplist)
 {
-    static const key_state_state_t dnskey_algorithm_rollover[4] = { OMNIPRESENT, OMNIPRESENT, OMNIPRESENT, NA };
     static const key_state_state_t mask[14][4] = {
         /*ZSK*/
         { NA, OMNIPRESENT, NA, OMNIPRESENT },   /*This indicates a good key state.*/
@@ -1917,7 +1918,7 @@ updateZone(db_connection_t *dbconn, policy_t const *policy, zone_db_t* zone,
                     break;
                 }
 
-                change = true;
+                change = 1;
 			}
 		}
 	} while (process && change);
@@ -2667,22 +2668,138 @@ removeDeadKeys(db_connection_t *dbconn, key_data_t** keylist,
     int deleteCount = hsm_key_factory_delete_key(dbconn);
     ods_log_info("[%s] %s: keys deleted from HSM: %d", module_str, scmd, deleteCount);
 
-    if(deleteCount > 0) {
-        return -1 - deleteCount;
-    } else {
-        return first_purge;
+    return first_purge;
+}
+
+static time_t
+getkeysasarray(zone_db_t *zone, key_dependency_list_t *deplist, const char* scmd, key_data_t*** keyarrayptr, size_t* keyarraysizeptr)
+{
+    size_t keylist_size = 0;
+    key_data_list_t *key_list;
+    key_data_t** keylist = NULL;
+    const key_data_t* key;
+    if (!(key_list = zone_db_get_keys(zone))) {
+        ods_log_error("[%s] %s: error zone_db_get_keys()", module_str, scmd);
+        key_data_list_free(key_list);
+        key_dependency_list_free(deplist);
+        return -1;
     }
+    if (!(keylist_size = key_data_list_size(key_list))) {
+        if ((key = key_data_list_begin(key_list))) {
+            while (key) {
+                keylist_size++;
+                key = key_data_list_next(key_list);
+            }
+        }
+    }
+    if (keylist_size) {
+        if (!(keylist = (key_data_t**)calloc(keylist_size, sizeof(key_data_t*)))) {
+            /* TODO: better log error */
+            ods_log_error("[%s] %s: error calloc(keylist_size)", module_str, scmd);
+            key_data_list_free(key_list);
+            key_dependency_list_free(deplist);
+            return -1;
+        }
+        for (int i = 0; i < keylist_size; i++) {
+            if (!i) {
+                keylist[i] = key_data_list_get_begin(key_list);
+            }
+            else {
+                keylist[i] = key_data_list_get_next(key_list);
+            }
+            if (!keylist[i]
+                || key_data_cache_hsm_key(keylist[i])
+                || key_data_cache_key_states(keylist[i]))
+            {
+                ods_log_error("[%s] %s: error key_data_list cache", module_str, scmd);
+                for (i = 0; i < keylist_size; i++) {
+                    if (keylist[i]) {
+                        key_data_free(keylist[i]);
+                    }
+                }
+                free(keylist);
+                key_data_list_free(key_list);
+                key_dependency_list_free(deplist);
+                return -1;
+            }
+        }
+    }
+    key_data_list_free(key_list);
+    *keyarrayptr = keylist;
+    *keyarraysizeptr = keylist_size;
+    return 0;
+}
+
+static time_t
+performpurge(task_type* task, char const *zonename, void *userdata, void *context)
+{
+    time_t ret = schedule_SUCCESS;
+    (void)userdata;
+    db_connection_t* dbconn = (db_connection_t*)context;
+    static const char *scmd = "purge";
+    key_data_t** keyarray = NULL;
+    size_t keyarraysize;
+    zone_db_t *zone = NULL;
+    policy_t *policy = NULL;
+    key_dependency_list_t *deplist = NULL;
+    time_t now = time_now();
+
+    ods_log_info("[%s] performing key purge for zone %s", module_str, zonename);
+
+    if (!(zone = zone_db_new_get_by_name(dbconn, zonename))) {
+        ret = schedule_DEFER;
+        goto end;
+    }
+    if (!(policy = zone_db_get_policy(zone))) {
+        ret = schedule_DEFER;
+        goto end;
+    }
+    if (policy_passthrough(policy)) {
+        ret = schedule_SUCCESS;
+        goto end;
+    }
+    if (!(deplist = zone_db_get_key_dependencies(zone))) {
+        ret = schedule_DEFER;
+        goto end;
+    }
+
+    if(getkeysasarray(zone, deplist, scmd, &keyarray, &keyarraysize) < 0) {
+        ret = schedule_DEFER;
+        goto end;
+    }
+
+    /*
+     * Only purge old keys if the policy says so.
+     */
+    if(policy_keys_purge_after(policy) && keyarray) {
+        ret = removeDeadKeys(dbconn, keyarray, keyarraysize, deplist, now, policy_keys_purge_after(policy));
+    }
+            
+  end:
+    if (keyarray) {
+        for (int i = 0; i < keyarraysize; i++) {
+            if (keyarray[i])
+                key_data_free(keyarray[i]);
+        }
+        free(keyarray);
+    }
+    if (deplist)
+        key_dependency_list_free(deplist);
+    if (policy)
+        policy_free(policy);
+    if (zone)
+        zone_db_free(zone);
+    return ret;
 }
 
 time_t
 update(engine_type *engine, db_connection_t *dbconn, zone_db_t *zone, policy_t const *policy, time_t now, int *zone_updated)
 {
-	int allow_unsigned = 0;
+    int allow_unsigned = 0;
     time_t policy_return_time, zone_return_time, purge_return_time = -1, return_time;
-    key_data_list_t *key_list;
-    const key_data_t* key;
-    key_data_t** keylist = NULL;
-    size_t keylist_size, i;
+    key_data_t** keylist;
+    size_t keylist_size;
+    size_t i;
     key_dependency_list_t *deplist;
     static const char *scmd = "update";
     int key_data_updated;
@@ -2701,8 +2818,8 @@ update(engine_type *engine, db_connection_t *dbconn, zone_db_t *zone, policy_t c
 	}
 	if (!policy) {
 		ods_log_error("[%s] no policy", module_str);
-		return now + 60;
-	}
+		return now + 60;	
+        }
 	if (!zone_updated) {
 		ods_log_error("[%s] no zone_updated", module_str);
 		return now + 60;
@@ -2749,76 +2866,13 @@ update(engine_type *engine, db_connection_t *dbconn, zone_db_t *zone, policy_t c
         key_dependency_list_free(deplist);
         return now + 60;
     }
-    if (!(key_list = zone_db_get_keys(zone))) {
-        /* TODO: better log error */
-        ods_log_error("[%s] %s: error zone_db_get_keys()", module_str, scmd);
-        key_data_list_free(key_list);
-        key_dependency_list_free(deplist);
-        return now + 60;
-    }
-    /*WTF DOES THIS CODE DO?*/
-    if (!(keylist_size = key_data_list_size(key_list))) {
-        if ((key = key_data_list_begin(key_list))) {
-            while (key) {
-                keylist_size++;
-                key = key_data_list_next(key_list);
-            }
-        }
-    }
-    if (keylist_size) {
-        if (!(keylist = (key_data_t**)calloc(keylist_size, sizeof(key_data_t*)))) {
-            /* TODO: better log error */
-            ods_log_error("[%s] %s: error calloc(keylist_size)", module_str, scmd);
-            key_data_list_free(key_list);
-            key_dependency_list_free(deplist);
-            return now + 60;
-        }
-        for (i = 0; i < keylist_size; i++) {
-            if (!i) {
-                keylist[i] = key_data_list_get_begin(key_list);
-            }
-            else {
-                keylist[i] = key_data_list_get_next(key_list);
-            }
-            if (!keylist[i]
-                || key_data_cache_hsm_key(keylist[i])
-                || key_data_cache_key_states(keylist[i]))
-            {
-                ods_log_error("[%s] %s: error key_data_list cache", module_str, scmd);
-                for (i = 0; i < keylist_size; i++) {
-                    if (keylist[i]) {
-                        key_data_free(keylist[i]);
-                    }
-                }
-                free(keylist);
-                key_data_list_free(key_list);
-                key_dependency_list_free(deplist);
-                return now + 60;
-            }
-        }
-    }
-    key_data_list_free(key_list);
 
-
-    /*
-     * Only purge old keys if the policy says so.
-     */
-	if (policy_keys_purge_after(policy) && keylist) {
-	    purge_return_time = removeDeadKeys(dbconn, keylist, keylist_size, deplist, now,
-	        policy_keys_purge_after(policy));
-            if(purge_return_time < -1) {
-                ods_log_info("[%s] %s: reschedule enforcing policy due to deleting keys", module_str, scmd);
-                /* Keys have been deleted, we cannot continue in this same session, reschedule. */
-                return now + 60;
-            }
-	}
-    
-    
+    getkeysasarray(zone, deplist, scmd, &keylist, &keylist_size);
+  
     /*
      * Update zone.
      */
-    zone_return_time = updateZone(dbconn, policy, zone, now, allow_unsigned, zone_updated,
-	    keylist, keylist_size, deplist);
+    zone_return_time = updateZone(dbconn, policy, zone, now, allow_unsigned, zone_updated, keylist, keylist_size, deplist);
 
 
     /*
@@ -2921,5 +2975,8 @@ update(engine_type *engine, db_connection_t *dbconn, zone_db_t *zone, policy_t c
     }
 
     minTime(purge_return_time, &return_time);
+
+    schedule_task(engine->taskq, task_create(strdup(zone->name), TASK_CLASS_ENFORCER, TASK_TYPE_DELKEYS, performpurge, NULL, NULL, time_now()+30), 1, 0);
+
     return return_time;
 }
