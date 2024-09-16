@@ -31,20 +31,12 @@
 
 #define FIFOQ_MAX_COUNT 1000
 
-#ifdef NOTDEFINED
-#define pthread_mutex_lock(ARG)
-#define pthread_mutex_unlock(ARG)
-#define pthread_cond_wait(ARG,ARG2)
-#define pthread_cond_signal(ARG)
-#define pthread_cond_broadcast(ARG)
-#endif
-
 struct fifoq_struct {
     struct fifoq_item queue[FIFOQ_MAX_COUNT];
-    int head;
-    int tail;
-    int capacity;
-    int size;
+    int head;       // index to the first to be popped item in the queue
+    int tail;       // index to the first open item in the queue
+    int capacity;   // size/capacity of queue left open and filled
+    int size;       // number of items left open in queue
     int terminate;
     pthread_mutex_t lock;
     pthread_cond_t headwait;
@@ -93,11 +85,11 @@ fifoq_pop(fifoq_type fifoq, struct fifoq_item* items, int* count)
     }
     current = fifoq->head;
     assert(*count > 0);
-    if(fifoq->head > fifoq->tail) {
+    if(fifoq->head >= fifoq->tail) {
         if(fifoq->capacity - fifoq->head < *count) {
             *count = fifoq->capacity - fifoq->head;
         }
-    } else {
+    } else if(fifoq->head < fifoq->tail) {
         if(fifoq->tail - fifoq->head < *count) {
             *count = fifoq->tail - fifoq->head;
         }
