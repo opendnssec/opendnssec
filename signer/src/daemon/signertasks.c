@@ -387,15 +387,42 @@ do_signzone(task_type* task, const char* zonename, void* zonearg, void *contexta
     long nsubtasks = 0;
     long nsubtasksfailed = 0;
 
-    struct signtaskargs* signtaskargs;
-    signtaskargs = task->userdata;
-
-    if(signtaskargs && signtaskargs->signtime > 0) {
-        context->signtime = signtaskargs->signtime;
+    time_t lastsigntime;
+    if(zone->db->forcesigntime > 0) {
+        context->signtime = zone->db->forcesigntime;
+        lastsigntime = context->signtime;
+        zone->db->forcesigntime = 0;
     } else {
         context->signtime = time_now();
+        lastsigntime = zone->db->outsigntime;
     }
-
+    if (zone->signconf->sig_resign_offset) {
+        context->signtime = duration_floor(context->signtime, zone->signconf->sig_resign_offset);
+    }
+    switch(engine->config->interruptionmode) {
+        case SIGNER_INTRMODE_NONE:
+            break;
+        case SIGNER_INTRMODE_NAIVE:
+            if(zone->db->outsigntime == 0 && lastsigntime == 0) {
+                ods_log_crit("Unable to continue due to outage, no previous signed zone known BERRY#1");
+                task->backoff = duration2time(zone->signconf->sig_resign_interval);
+                return schedule_FAILED;
+            }
+            break;
+        case SIGNER_INTRMODE_FULLCONT:
+            if(zone->db->outsigntime == 0 && lastsigntime == 0) {
+                ods_log_crit("Unable to continue due to outage, no previous signed zone known BERRY#2");
+                task->backoff = duration2time(zone->signconf->sig_resign_interval);
+                return schedule_FAILED;
+            } else if(lastsigntime + duration2time(zone->signconf->sig_resign_interval) < zone->db->outsigntime) {
+                ods_log_crit("Unable to continue due to outage, last resign too old %ld %ld %ld",lastsigntime, duration2time(zone->signconf->sig_resign_interval), zone->db->outsigntime);
+                task->backoff = duration2time(zone->signconf->sig_resign_interval);
+                return schedule_FAILED;
+            }
+            break;
+        default: 
+           break;
+    }
     status = zone_update_serial(zone);
     if (status != ODS_STATUS_OK) {
         if(!strcmp(zone->signconf->soa_serial,"keep") && (status == ODS_STATUS_FOPEN_ERR || status == ODS_STATUS_CONFLICT_ERR)) {
@@ -469,6 +496,7 @@ do_signzone(task_type* task, const char* zonename, void* zonearg, void *contexta
         return schedule_DEFER; /* backoff */
     }
 
+    zone->db->outsigntime = context->signtime;
     schedule_scheduletask(engine->taskq, TASK_WRITE, zone->name, zone, &zone->zone_lock, schedule_PROMPTLY);
     return schedule_SUCCESS;
 }
@@ -485,6 +513,39 @@ do_readzone(task_type* task, const char* zonename, void* zonearg, void *contexta
         ods_log_debug("no signconf.xml for zone %s yet", task->owner);
         status = ODS_STATUS_ERR;
     }
+    time_t lastsigntime, readsigntime;
+    if(zone->db->forcesigntime > 0) {
+        readsigntime = zone->db->forcesigntime;
+        lastsigntime = readsigntime;
+    } else {
+        readsigntime = time_now();
+        lastsigntime = zone->db->outsigntime;
+    }
+    switch(engine->config->interruptionmode) {
+        case SIGNER_INTRMODE_NONE:
+            break;
+        case SIGNER_INTRMODE_NAIVE:
+            if(zone->db->outsigntime == 0 && lastsigntime == 0) {
+                ods_log_crit("Unable to continue due to outage, no previous signed zone known");
+                task->backoff = duration2time(zone->signconf->sig_resign_interval);
+                return schedule_FAILED;
+            }
+            break;
+        case SIGNER_INTRMODE_FULLCONT:
+            if(zone->db->outsigntime == 0 && lastsigntime == 0) {
+                ods_log_crit("Unable to continue due to outage, no previous signed zone known");
+                task->backoff = duration2time(zone->signconf->sig_resign_interval);
+                return schedule_FAILED;
+            } else if(lastsigntime + duration2time(zone->signconf->sig_resign_interval) < zone->db->outsigntime) {
+                ods_log_crit("Unable to continue due to outage, last resign too old %ld %ld %ld",lastsigntime, duration2time(zone->signconf->sig_resign_interval), zone->db->outsigntime);
+                task->backoff = duration2time(zone->signconf->sig_resign_interval);
+                return schedule_FAILED;
+            }
+            break;
+        default:
+            break;
+    }
+
     if (status == ODS_STATUS_OK) {
         status = tools_input(zone);
         if (status == ODS_STATUS_UNCHANGED) {
@@ -510,7 +571,8 @@ do_readzone(task_type* task, const char* zonename, void* zonearg, void *contexta
                 ods_log_crit("CRITICAL: failed to sign zone %s: %s", task->owner, ods_status2str(status));
                 return schedule_DEFER;
             }
-        }
+        } else
+            return schedule_DEFER;
     } else {
         /* unscheduling an existing sign task should no be necessary.  After a read (this action)
          * the logical next step is a sign.  No other regular procedure that does not explicitly

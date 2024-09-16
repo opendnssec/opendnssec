@@ -53,6 +53,8 @@
 
 static const char* conf_str = "config";
 
+static const char* engineconfig_intrmode_strings[] = { "", "fullcontinuous", "naive" };
+
 ods_status
 parse_file_check(const char* cfgfile, const char* rngfile)
 {
@@ -267,6 +269,7 @@ engine_config(const char* cfgfile,
         valid |= settings_getstring(cfghandle, (char**)&ecfg->chroot_signer, settings_value_NULL, "//Configuration/Signer/Privileges/Directory");
         valid |= settings_getstringdefault(cfghandle, (char**)&ecfg->pid_filename_enforcer, OPENDNSSEC_ENFORCER_PIDFILE, "//Configuration/Enforcer/PidFile");
         valid |= settings_getstringdefault(cfghandle, (char**)&ecfg->pid_filename_signer, OPENDNSSEC_SIGNER_PIDFILE, "//Configuration/Signer/PidFile");
+        valid |= settings_getenum(cfghandle, (int*)&ecfg->interruptionmode, SIGNER_INTRMODE_NONE, engineconfig_intrmode_strings, "//Configuration/Signer/InterruptionMode");
         valid |= settings_getstringdefault(cfghandle, (char**)&ecfg->datastore, "KASP", "//Configuration/Enforcer/Datastore/MySQL/Database");
         valid |= settings_getstring(cfghandle, (char**)&ecfg->db_host, settings_value_NULL, "//Configuration/Enforcer/Datastore/MySQL/Host");
         valid |= settings_getstring(cfghandle, (char**)&ecfg->db_username, settings_value_NULL, "//Configuration/Enforcer/Datastore/MySQL/Username");

@@ -458,10 +458,13 @@ settings_access(settings_handle* handleptr, int basefd, const char* filename)
         (*handleptr)->access      = settings__access_xml;
     }
     
-    if(basefd < 0 || !strncmp(filename,"/",strlen("/")))
-        fd = open(filename, O_RDONLY);
-    else
-        fd = openat(basefd, filename, O_RDONLY);
+    if(filename != NULL) {
+        if(basefd < 0 || !strncmp(filename,"/",strlen("/")))
+            fd = open(filename, O_RDONLY);
+        else
+            fd = openat(basefd, filename, O_RDONLY);
+    } else
+        fd = -1;
     if(filename != NULL && fd >= 0) {
         document = (*handleptr)->access(olddocument, fd);
         root = parselocate(*handleptr, document, NULL, NULL, NULL);
@@ -508,7 +511,8 @@ settings_getduration2(settings_handle handle, duration_type** resultvalue, const
     if(rc == 0) {
         *resultvalue = duration_create_from_string(s);
         free(s);
-    }
+    } else
+        *resultvalue = NULL;
     va_end(ap);
     return rc;
 }

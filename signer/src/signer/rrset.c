@@ -479,16 +479,6 @@ rrset2rrlist(rrset_type* rrset)
     return rr_list;
 }
 
-time_t
-compute_jitter(duration_type* duration)
-{
-    time_t jitter = 0;
-    jitter = duration2time(duration);
-    if (jitter) {
-        jitter = ods_rand(jitter*2) - jitter;
-    }
-}
-
 /**
  * Calculate the signature validation period.
  *
@@ -498,13 +488,11 @@ rrset_sigvalid_period(signconf_type* sc, ldns_rr_type rrtype, time_t signtime,
     time_t jitter, time_t* inception, time_t* expiration)
 {
     time_t offset = 0;
-    time_t random_jitter;
     time_t validity = 0;
     if (!sc || !rrtype || !signtime) {
         return;
     }
 
-    random_jitter = compute_jitter(sc->sig_jitter);
     offset = duration2time(sc->sig_inception_offset);
     switch (rrtype) {
         case LDNS_RR_TYPE_NSEC:
@@ -522,7 +510,7 @@ rrset_sigvalid_period(signconf_type* sc, ldns_rr_type rrtype, time_t signtime,
             validity = duration2time(sc->sig_validity_default);
     }
     *inception = signtime - offset;
-    *expiration = signtime + validity + random_jitter;
+    *expiration = signtime + validity + jitter;
 }
 
 
@@ -590,11 +578,10 @@ rrset_sign(hsm_ctx_t* ctx, struct fifoq_item* signitem)
     const char* locator = NULL;
     time_t inception = 0;
     time_t expiration = 0;
-    size_t i = 0, j;
+    size_t i = 0;
     domain_type* domain = NULL;
     ldns_rr_type dstatus = LDNS_RR_TYPE_FIRST;
     ldns_rr_type delegpt = LDNS_RR_TYPE_FIRST;
-    uint8_t algorithm = 0;
 
     ods_log_assert(ctx);
     ods_log_assert(rrset);

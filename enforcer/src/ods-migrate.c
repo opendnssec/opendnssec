@@ -361,9 +361,7 @@ main(int argc, char* argv[])
 
     ods_log_init("ods-migrate", 0, NULL, verbosity);
 
-    xmlInitGlobals();
     xmlInitParser();
-    xmlInitThreads();
 
     tzset(); /* for portability */
 
@@ -432,7 +430,6 @@ main(int argc, char* argv[])
     ods_log_close();
 
     xmlCleanupParser();
-    xmlCleanupGlobals();
 
     return 0;
 }

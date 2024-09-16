@@ -198,8 +198,7 @@ tools_output(zone_type* zone, engine_type* engine)
                 zone->db->intserial);
             stats_clear(zone->stats);
             pthread_mutex_unlock(&zone->stats->stats_lock);
-            zone->db->intserial =
-                zone->db->outserial;
+            zone->db->intserial = zone->db->outserial;
             return ODS_STATUS_OK;
         }
         pthread_mutex_unlock(&zone->stats->stats_lock);

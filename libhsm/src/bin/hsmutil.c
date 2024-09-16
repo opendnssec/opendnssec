@@ -277,7 +277,6 @@ cmd_copy (int argc, char *argv[])
 {
     char* id;
     char* newid;
-    char* repository;
     int result;
 
     libhsm_key_t *key = NULL;

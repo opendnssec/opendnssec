@@ -97,9 +97,7 @@ program_setup(const char* cfgfile, int cmdline_verbosity)
     ods_log_verbose("[engine] starting signer");
 
     /* initialize */
-    xmlInitGlobals();
     xmlInitParser();
-    xmlInitThreads();
 
     tzset(); /* for portability */
     free((void*)file);
@@ -109,7 +107,6 @@ static void
 program_teardown()
 {
     xmlCleanupParser();
-    xmlCleanupGlobals();
     ods_log_close();
 }
 

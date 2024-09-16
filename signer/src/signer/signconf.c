@@ -52,6 +52,7 @@ signconf_create(void)
     sc->zonemodus = 0;
     /* Signatures */
     sc->sig_resign_interval = NULL;
+    sc->sig_resign_offset = NULL;
     sc->sig_refresh_interval = NULL;
     sc->sig_validity_default = NULL;
     sc->sig_validity_denial = NULL;
@@ -80,7 +81,6 @@ signconf_create(void)
     return sc;
 }
 
-
 static ods_status
 parse_conf_signconf(signconf_type* signconf, const char* scfile)
 {
@@ -100,6 +100,7 @@ parse_conf_signconf(signconf_type* signconf, const char* scfile)
     signconf->zonemodus = passthrough|(zonemd<<1);
     
     settings_getduration2(handle, &(signconf->sig_resign_interval), "//SignerConfiguration/Zone/Signatures/Resign");
+    settings_getduration2(handle, &(signconf->sig_resign_offset), "//SignerConfiguration/Zone/Signatures/ResignOffset");
     settings_getduration2(handle, &(signconf->sig_refresh_interval), "//SignerConfiguration/Zone/Signatures/Refresh");
     settings_getduration2(handle, &(signconf->sig_validity_default), "//SignerConfiguration/Zone/Signatures/Validity/Default");
     settings_getduration2(handle, &(signconf->sig_validity_denial), "//SignerConfiguration/Zone/Signatures/Validity/Denial");
@@ -228,7 +229,7 @@ static void
 signconf_backup_duration(FILE* fd, const char* opt, duration_type* duration)
 {
     char* str = (duration == NULL ? NULL : duration2string(duration));
-    fprintf(fd, "%s %s ", opt, (str?str:"0"));
+    fprintf(fd, "%s %s ", opt, ((str&&*str)?str:"PT0S"));
     free(str);
 }
 
@@ -264,6 +265,9 @@ signconf_backup(FILE* fd, signconf_type* sc, const char* version)
     fprintf(fd, "serial %s ", sc->soa_serial?sc->soa_serial:"(null)");
     if (strcmp(version, ODS_SE_FILE_MAGIC_V2) == 0) {
         fprintf(fd, "audit 0");
+    } else {
+        if (sc->sig_resign_offset)
+            signconf_backup_duration(fd, "resignoffset", sc->sig_resign_offset);        
     }
     fprintf(fd, "\n");
 }
@@ -416,6 +420,7 @@ void
 signconf_log(signconf_type* sc, const char* name)
 {
     char* resign = NULL;
+    char* resignoffset = NULL;
     char* refresh = NULL;
     char* validity = NULL;
     char* denial = NULL;
@@ -428,7 +433,8 @@ signconf_log(signconf_type* sc, const char* name)
     char* paramttl = NULL;
 
     if (sc) {
-        resign = sc->sig_resign_interval;
+        resign = duration2string(sc->sig_resign_interval);
+        resignoffset = (sc->sig_resign_offset ? duration2string(sc->sig_resign_offset) : NULL);
         refresh = duration2string(sc->sig_refresh_interval);
         validity = duration2string(sc->sig_validity_default);
         denial = duration2string(sc->sig_validity_denial);
@@ -442,12 +448,15 @@ signconf_log(signconf_type* sc, const char* name)
         soattl = duration2string(sc->soa_ttl);
         soamin = duration2string(sc->soa_min);
         /* signconf */
-        ods_log_info("[%s] zone %s signconf: RESIGN[%s] REFRESH[%s] "
+        ods_log_info("[%s] zone %s signconf: RESIGN[%s]%s%s%s REFRESH[%s] "
             "%sVALIDITY[%s] DENIAL[%s] KEYSET[%s] JITTER[%s] OFFSET[%s] NSEC[%i] "
             "DNSKEYTTL[%s] SOATTL[%s] MINIMUM[%s] SERIAL[%s]",
             sc_str,
             name?name:"(null)",
             resign?resign:"(null)",
+            resignoffset?" RESIGNOFFSET[":"",
+            resignoffset?resignoffset:"",
+            resignoffset?"]":"",
             refresh?refresh:"(null)",
             (sc->zonemodus&0x01)?"PASSTHROUGH ":"",
             validity?validity:"(null)",
@@ -476,6 +485,7 @@ signconf_log(signconf_type* sc, const char* name)
         keylist_log(sc->keys, name);
         /* cleanup */
         free((void*)resign);
+        free((void*)resignoffset);
         free((void*)refresh);
         free((void*)validity);
         free((void*)denial);
@@ -501,6 +511,7 @@ signconf_cleanup(signconf_type* sc)
         return;
     }
     duration_cleanup(sc->sig_resign_interval);
+    duration_cleanup(sc->sig_resign_offset);
     duration_cleanup(sc->sig_refresh_interval);
     duration_cleanup(sc->sig_validity_default);
     duration_cleanup(sc->sig_validity_denial);

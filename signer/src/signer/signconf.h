@@ -44,6 +44,7 @@ struct signconf_struct {
     int zonemodus;
     /* Signatures */
     duration_type* sig_resign_interval;
+    duration_type* sig_resign_offset;
     duration_type* sig_refresh_interval;
     duration_type* sig_validity_default;
     duration_type* sig_validity_denial;

@@ -59,6 +59,7 @@
 #include <sys/un.h>
 #include <time.h>
 #include <unistd.h>
+#include <libxml/parser.h>
 
 static const char* engine_str = "engine";
 

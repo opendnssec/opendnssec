@@ -55,7 +55,6 @@ zone_type*
 zone_create(char* name, ldns_rr_class klass)
 {
     zone_type* zone = NULL;
-    int err;
 
     if (!name || !klass) {
         return NULL;
@@ -292,6 +291,7 @@ zone_rollback_dnskeys(zone_type* zone)
             /* always remove the DNSKEY record when rollback is requested, as we don't know how to
              * distinguish reading an empty file or reading a failed input set.
              */
+            (void)dnskey;
             zone->signconf->keys->keys[i].dnskey = NULL;
         }
     }
@@ -305,8 +305,6 @@ zone_rollback_dnskeys(zone_type* zone)
 ods_status
 zone_publish_nsec3param(zone_type* zone)
 {
-    rrset_type* rrset = NULL;
-    rr_type* n3prr = NULL;
     ldns_rr* rr = NULL;
     ods_status status = ODS_STATUS_OK;
 
@@ -851,6 +849,13 @@ zone_recover2(engine_type* engine, zone_type* zone)
                 "error", zone_str, zone->name);
             goto recover_error2;
         }
+        if(backup_read_check_str(fd, "signtime")) {
+            if(!backup_read_time_t(fd, &zone->db->outsigntime)) {
+                ods_log_error("[%s] corrupted backup file zone %s: read signtime error", zone_str, zone->name);
+                goto recover_error2;
+            }
+        } else
+            zone->db->outsigntime = 0;
         zone->klass = (ldns_rr_class) klass;
         zone->db->inbserial = inbound;
         zone->db->intserial = internal;
@@ -889,6 +894,13 @@ zone_recover2(engine_type* engine, zone_type* zone)
                 "error", zone_str, zone->name);
             goto recover_error2;
         }
+        if(backup_read_check_str(fd, "resignoffset")) {
+            if(!backup_read_duration(fd, &zone->signconf->sig_resign_offset)) {
+                ods_log_error("[%s] corrupted backup file zone %s: read signconf error", zone_str, zone->name);
+                goto recover_error2;
+            }
+        } else
+            zone->signconf->sig_resign_offset = NULL;
         /* nsec3params part */
         if (zone->signconf->nsec_type == LDNS_RR_TYPE_NSEC3) {
             if (!backup_read_check_str(fd, ";;Nsec3parameters:") |
@@ -900,8 +912,7 @@ zone_recover2(engine_type* engine, zone_type* zone)
                 !backup_read_int(fd, &zone->signconf->nsec3_optout) |
                 !backup_read_check_str(fd, "iterations") |
                 !backup_read_uint32_t(fd, &zone->signconf->nsec3_iterations)) {
-                ods_log_error("[%s] corrupted backup file zone %s: read "
-                    "nsec3parameters error", zone_str, zone->name);
+                ods_log_error("[%s] corrupted backup file zone %s: read nsec3parameters error", zone_str, zone->name);
                 goto recover_error2;
             }
             zone->signconf->nsec3_salt = strdup(salt);
@@ -1063,10 +1074,11 @@ zone_backup2(zone_type* zone, time_t nextResign)
         fprintf(fd, ";;Time: %u\n", (unsigned) nextResign);
         /** Backup zone */
         fprintf(fd, ";;Zone: name %s class %i inbound %u internal %u "
-            "outbound %u\n", zone->name, (int) zone->klass,
+            "outbound %u signtime %u\n", zone->name, (int) zone->klass,
             (unsigned) zone->db->inbserial,
             (unsigned) zone->db->intserial,
-            (unsigned) zone->db->outserial);
+            (unsigned) zone->db->outserial,
+            (unsigned) zone->db->outsigntime);
         /** Backup signconf */
         signconf_backup(fd, zone->signconf, ODS_SE_FILE_MAGIC_V3);
         /** Backup NSEC3 parameters */

@@ -64,6 +64,8 @@ typedef enum {
     ENFORCER_DATABASE_TYPE_MYSQL
 } engineconfig_database_type_t;
 
+enum engineconfig_intrmode_enum { SIGNER_INTRMODE_NONE, SIGNER_INTRMODE_FULLCONT, SIGNER_INTRMODE_NAIVE };
+
 /**
  * Engine configuration.
  *
@@ -90,6 +92,7 @@ struct engineconfig_struct {
     const char* group_signer;
     const char* chroot_enforcer;
     const char* chroot_signer;
+    enum engineconfig_intrmode_enum interruptionmode;
     const char* datastore; /* Datastore/SQLite or Datastore/MySQL/Database */
     const char* db_host; /* Datastore/MySQL/Host */
     const char* db_username; /* Datastore/MySQL/Username */
