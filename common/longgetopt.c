@@ -142,7 +142,7 @@ longgetopt(int argc, char** argv, const char* optstring, const struct option* lo
             context->_permute = 0;
         if(optstring[0] == '+') {
             context->_permute = 0;
-            context->_optstring = (optstring[0] == '\0' ? optstring : &optstring[1]);
+            context->_optstring = &optstring[1];
         } else
             context->_optstring = optstring;
         context->_optarray = longopts;

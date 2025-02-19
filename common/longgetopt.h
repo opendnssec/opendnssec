@@ -8,6 +8,15 @@ struct option
   int *flag;
   int val;
 };
+# ifndef  no_argument
+#  define no_argument 0
+# endif
+# ifndef  required_argument
+#  define required_argument 1
+# endif
+# ifndef  optional_argument
+#  define optional_argument 2
+# endif
 #endif
 
 struct longgetopt {
