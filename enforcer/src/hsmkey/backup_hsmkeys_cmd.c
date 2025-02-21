@@ -216,6 +216,8 @@ run(cmdhandler_ctx_type* context, int argc, char* argv[])
                 return -1;
         }
     }
+    argv += optctx.optind;
+    argc -= optctx.optind;
 
     /* iterate the keys */
     if (!(clause_list = db_clause_list_new())) {
