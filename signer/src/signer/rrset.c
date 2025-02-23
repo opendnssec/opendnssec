@@ -35,8 +35,10 @@
 #include "log.h"
 #include "util.h"
 #include "compat.h"
+#include "duration.h"
 #include "signer/rrset.h"
 #include "signer/zone.h"
+#include "daemon/signertasks.h"
 
 static const char* rrset_str = "rrset";
 
@@ -477,26 +479,20 @@ rrset2rrlist(rrset_type* rrset)
     return rr_list;
 }
 
-
 /**
  * Calculate the signature validation period.
  *
  */
 static void
 rrset_sigvalid_period(signconf_type* sc, ldns_rr_type rrtype, time_t signtime,
-    time_t* inception, time_t* expiration)
+    time_t jitter, time_t* inception, time_t* expiration)
 {
-    time_t jitter = 0;
     time_t offset = 0;
     time_t validity = 0;
-    time_t random_jitter = 0;
     if (!sc || !rrtype || !signtime) {
         return;
     }
-    jitter = duration2time(sc->sig_jitter);
-    if (jitter) {
-        random_jitter = ods_rand(jitter*2);
-    }
+
     offset = duration2time(sc->sig_inception_offset);
     switch (rrtype) {
         case LDNS_RR_TYPE_NSEC:
@@ -514,7 +510,7 @@ rrset_sigvalid_period(signconf_type* sc, ldns_rr_type rrtype, time_t signtime,
             validity = duration2time(sc->sig_validity_default);
     }
     *inception = signtime - offset;
-    *expiration = (signtime + validity + random_jitter) - jitter;
+    *expiration = signtime + validity + jitter;
 }
 
 
@@ -567,12 +563,14 @@ rrsigkeymatching(signconf_type* signconf, int nrrsigs, rrsig_type** rrsigs, stru
  *
  */
 ods_status
-rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
+rrset_sign(hsm_ctx_t* ctx, struct fifoq_item* signitem)
 {
     ods_status status;
     zone_type* zone = NULL;
     uint32_t newsigs = 0;
     uint32_t reusedsigs = 0;
+    rrset_type* rrset = signitem->rrset;
+    time_t signtime = signitem->superior->signtime;
     ldns_rr* rrsig = NULL;
     rrsig_type* signature;
     ldns_rr_list* rr_list = NULL;
@@ -580,15 +578,14 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
     const char* locator = NULL;
     time_t inception = 0;
     time_t expiration = 0;
-    size_t i = 0, j;
+    size_t i = 0;
     domain_type* domain = NULL;
     ldns_rr_type dstatus = LDNS_RR_TYPE_FIRST;
     ldns_rr_type delegpt = LDNS_RR_TYPE_FIRST;
-    uint8_t algorithm = 0;
 
     ods_log_assert(ctx);
     ods_log_assert(rrset);
-    zone = (zone_type*) rrset->zone;
+    zone = rrset->zone;
     ods_log_assert(zone);
     ods_log_assert(zone->signconf);
     /* Recycle signatures */
@@ -667,8 +664,7 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
 
     assert(zone->signconf);
     /* Calculate signature validity */
-    rrset_sigvalid_period(zone->signconf, rrset->rrtype, signtime,
-         &inception, &expiration);
+    rrset_sigvalid_period(zone->signconf, rrset->rrtype, signtime, signitem->jitter, &inception, &expiration);
     uint32_t refresh = 0;
     if (zone->signconf && zone->signconf->sig_refresh_interval) {
         refresh = (uint32_t) (signtime + duration2time(zone->signconf->sig_refresh_interval));
@@ -782,7 +778,7 @@ rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime)
     free(rrsigs);
 
     /* Calculate signature validity for new signatures */
-    rrset_sigvalid_period(zone->signconf, rrset->rrtype, signtime, &inception, &expiration);
+    rrset_sigvalid_period(zone->signconf, rrset->rrtype, signtime, signitem->jitter, &inception, &expiration);
     /* for each missing signature (no signature, but with key in the tuplie list) produce a signature */
     for (int i = 0; i < nmatchedsignatures; i++) {
         if (!matchedsignatures[i].signature && matchedsignatures[i].key) {

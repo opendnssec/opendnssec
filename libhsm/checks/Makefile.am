@@ -17,7 +17,7 @@ EXTRA_DIST =	*.xml $(srcdir)/softhsm2.conf
 
 noinst_PROGRAMS = hsmcheck
  
-hsmcheck_SOURCES = hsmcheck.c confparser.c
+hsmcheck_SOURCES = hsmcheck.c
 hsmcheck_LDADD = ../src/lib/libhsm.a @LDNS_LIBS@ @XML2_LIBS@ $(LIBCOMPAT)
 hsmcheck_LDFLAGS = -no-install
 

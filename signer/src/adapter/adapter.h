@@ -56,9 +56,8 @@ typedef struct adapter_struct adapter_type;
  */
 struct adapter_struct {
     adapter_mode type;
-    time_t config_last_modified;
     const char* configstr;
-    void* config; /* TODO used either as dnsin_t* or dnsout_t* */
+    dnsio_type* config;
     unsigned inbound : 1;
     unsigned error : 1;
 };

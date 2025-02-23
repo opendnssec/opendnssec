@@ -1,4 +1,4 @@
-/*
+ /*
  * Copyright (c) 2009 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -58,6 +58,8 @@ struct namedb_struct {
     unsigned serial_updated : 1;
     unsigned force_serial : 1;
     unsigned have_serial : 1;
+    time_t forcesigntime;
+    time_t outsigntime;
 };
 
 /**

@@ -134,6 +134,9 @@ start = element Configuration {
 		# DEFAULT: 4
 		element SignerThreads { xsd:positiveInteger }? &
 
+		# High Availability mode, empty of fullcontinuous
+		element InterruptionMode { xsd:string }? &
+
 		# Listener
 		# DEFAULT PORT: 15354
 		element Listener {

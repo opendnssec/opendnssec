@@ -34,6 +34,7 @@
 
 #include "config.h"
 #include "log.h"
+#include "utilities.h"
 
 enum ods_enum_status {
     ODS_STATUS_OK,
@@ -117,7 +118,5 @@ ods_lookup_table* ods_lookup_by_id(ods_lookup_table *table, int id);
  *
  */
 const char *ods_status2str(ods_status status);
-
-#define CHECKALLOC(PTR) if(!(PTR)) { ods_fatal_exit("Out of memory when executing %s at %s:%d\n", #PTR, __FILE__, __LINE__); }
 
 #endif /* UTIL_STATUS_H */

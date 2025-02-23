@@ -89,7 +89,7 @@ run(cmdhandler_ctx_type* context, int argc, char* argv[])
 	}
 
         schedule_info(engine->taskq, &nextFireTime, &num_waiting, &count);
-	if (num_waiting == engine->config->num_worker_threads) {
+	if (num_waiting == engine->config->num_worker_threads_enforcer) {
 		client_printf(sockfd, "All worker threads idle.\n");
 	}
 

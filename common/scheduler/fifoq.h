@@ -43,27 +43,18 @@
 #endif
 #include <ldns/ldns.h>
 
-typedef struct fifoq_struct fifoq_type;
+struct fifoq_struct;
+typedef struct fifoq_struct* fifoq_type;
+struct fifoq_item {
+    void* rrset;
+    time_t jitter;
+    struct worker_context* superior;
+};
 
 #include "scheduler/schedule.h"
 #include "worker.h"
 #include "locks.h"
 #include "status.h"
-
-#define FIFOQ_MAX_COUNT 1000
-#define FIFOQ_TRIES_COUNT 10
-
-/**
- * FIFO Queue.
- */
-struct fifoq_struct {
-    void* blob[FIFOQ_MAX_COUNT];
-    void* owner[FIFOQ_MAX_COUNT];
-    size_t count;
-    pthread_mutex_t q_lock;
-    pthread_cond_t q_threshold;
-    pthread_cond_t q_nonfull;
-};
 
 /**
  * Create new FIFO queue.
@@ -71,14 +62,7 @@ struct fifoq_struct {
  * \return fifoq_type* created queue
  *
  */
-fifoq_type* fifoq_create(void);
-
-/**
- * Wipe queue.
- * \param[in] q queue to be wiped
- *
- */
-void fifoq_wipe(fifoq_type* q);
+extern fifoq_type fifoq_create(void);
 
 /**
  * Pop item from queue.
@@ -87,7 +71,7 @@ void fifoq_wipe(fifoq_type* q);
  * \return void* popped item
  *
  */
-void* fifoq_pop(fifoq_type* q, void** worker);
+extern void fifoq_pop(fifoq_type fifoq, struct fifoq_item* items, int* count);
 
 /**
  * Push item to queue.
@@ -98,17 +82,18 @@ void* fifoq_pop(fifoq_type* q, void** worker);
  * \return ods_status status
  *
  */
-ods_status fifoq_push(fifoq_type* q, void* item, void* worker, int* tries);
+extern int fifoq_push(fifoq_type fifoq, struct fifoq_item qs);
 
 /**
  * Clean up queue.
  * \param[in] q queue to be cleaned up
  *
  */
-void fifoq_cleanup(fifoq_type* q);
+extern void fifoq_cleanup(fifoq_type q);
 
-void fifoq_report(fifoq_type* q, worker_type* superior, ods_status subtaskstatus);
-void fifoq_waitfor(fifoq_type* q, worker_type* worker, long nsubtasks, long* nsubtasksfailed);
-void fifoq_notifyall(fifoq_type* q);
+extern void fifoq_report(fifoq_type q, worker_type* superior, ods_status subtaskstatus);
+extern void fifoq_waitfor(fifoq_type q, worker_type* worker, long nsubtasks, long* nsubtasksfailed);
+extern void fifoq_notifyall(fifoq_type q);
+extern void fifoq_terminate(fifoq_type q);
 
 #endif /* SCHEDULER_FIFOQ_H */

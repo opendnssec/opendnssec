@@ -30,12 +30,15 @@
 #ifndef __policy_h
 #define __policy_h
 
-#include "db_object.h"
-
 struct policy;
 struct policy_list;
 typedef struct policy policy_t;
 typedef struct policy_list policy_list_t;
+
+#include "db_object.h"
+#include "zone_db.h"
+#include "policy_key.h"
+#include "hsm_key.h"
 
 typedef enum policy_denial_type {
     POLICY_DENIAL_TYPE_INVALID = -1,
@@ -52,8 +55,6 @@ typedef enum policy_zone_soa_serial {
     POLICY_ZONE_SOA_SERIAL_KEEP = 3
 } policy_zone_soa_serial_t;
 
-#include "policy_ext.h"
-
 /**
  * A policy object.
  */
@@ -62,9 +63,7 @@ struct policy {
     db_value_t id;
     db_value_t rev;
     char* name;
-    /* if passthrough set, no modifications to the zonefile should
-     * be made. I.e. No signatures added or removed */
-    unsigned int passthrough;
+    unsigned int zonemodus;
     char* description;
     unsigned int signatures_resign;
     unsigned int signatures_refresh;

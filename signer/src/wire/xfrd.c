@@ -1896,7 +1896,7 @@ static void
 xfrd_make_request(xfrd_type* xfrd)
 {
     zone_type* zone = NULL;
-    dnsin_type* dnsin = NULL;
+    dnsio_type* dnsin = NULL;
     if (!xfrd || !xfrd->xfrhandler) {
         return;
     }
@@ -1907,14 +1907,14 @@ xfrd_make_request(xfrd_type* xfrd)
     ods_log_assert(zone->adinbound->type == ADAPTER_DNS);
     ods_log_assert(zone->adinbound->config);
 
-    dnsin = (dnsin_type*) zone->adinbound->config;
+    dnsin = (dnsio_type*) zone->adinbound->config;
     if (xfrd->next_master != -1) {
         /* we are told to use this next master */
         xfrd->master_num = xfrd->next_master;
         xfrd->master = NULL; /* acl_find_num(...) */
         /* if there is no next master, fallback to use the first one */
         if (!xfrd->master) {
-            xfrd->master = dnsin->request_xfr;
+            xfrd->master = dnsin->xfr_acl;
             xfrd->master_num = 0;
         }
         /* fallback to cycle master */
@@ -1929,7 +1929,7 @@ xfrd_make_request(xfrd_type* xfrd)
             xfrd->master_num++;
         } else {
             /* start a new round */
-            xfrd->master = dnsin->request_xfr;
+            xfrd->master = dnsin->xfr_acl;
             xfrd->master_num = 0;
             xfrd->round_num++;
         }

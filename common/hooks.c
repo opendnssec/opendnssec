@@ -1,7 +1,5 @@
 /*
- * Copyright (c) 2014 Jerry Lundström <lundstrom.jerry@gmail.com>
- * Copyright (c) 2014 .SE (The Internet Infrastructure Foundation).
- * Copyright (c) 2014 OpenDNSSEC AB (svb)
+ * Copyright (c) 2023 NLNet Labs.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,40 +22,89 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
-#ifndef __policy_ext_h
-#define __policy_ext_h
+#include "config.h"
+#include <stdio.h>
+#include <stdarg.h>
+#include <limits.h>
+#include <syslog.h>
+#include <unistd.h>
+#include <errno.h>
+#include <signal.h> /* sigfillset(), sigprocmask() */
+#include <string.h> /* strerror() */
+#include <time.h> /* gettimeofday() */
+#include "locks.h"
+#include "log.h"
+#include "utilities.h"
+#include "err.h"
+#include "hooks.h"
 
-#include <libxml/tree.h>
+// typedef struct hook_struct* hook_t;
 
-#include "zone_db.h"
-#include "policy_key.h"
+struct hook_struct {
+    pthread_mutex_t lock;
+    int latch;
+    long value;
+    long minimum;
+    long maximum;
+};
 
-/**
- * Create a policy object from XML.
- * \param[in] policy a policy_t object being created.
- * \param[in] policy_node a xmlNodePtr to the XML for the policy.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-extern int policy_create_from_xml(policy_t* policy, xmlNodePtr policy_node);
+void
+hook_trigger(hook_t hook, const char* arg)
+{
+    char* cmd;
+    int rcode;
+    asprintf(&cmd, "%s %s", SIGNER_CLI_UPDATE, arg);
+    rcode = system(cmd);
+    if (rcode) {
+        ods_log_error("unable to notify signer of signconf changes for zone %s!", arg);
+    }
+    free(cmd);
+}
 
-/**
- * Update a policy object from XML.
- * \param[in] policy a policy_t object being updated.
- * \param[in] policy_node a xmlNodePtr to the XML for the policy.
- * \param[out] updated an integer pointer that will be set to non-zero if any
- * values in the policy was updated.
- * \return DB_ERROR_* on failure, otherwise DB_OK.
- */
-extern int policy_update_from_xml(policy_t* policy, xmlNodePtr policy_node, int* updated);
+int
+hook_ablock(hook_t hook)
+{
+    return 0;
+}
 
-/**
- * Get the policy keys for a policy.
- * \param[in] policy a policy_t object.
- * \return a policy_key_list_t pointer or NULL on error.
- */
-extern policy_key_list_t* policy_get_policy_keys(const policy_t* policy);
+#ifdef NOTDEFINED
+
+int
+hook_ablock(hook_t)
+{
+}
+
+int
+hook_ablockrange(hook_t, long minimum, long maximum)
+{
+}
+
+int
+hook_ablockvalue(hook_t, long value)
+{
+}
+
+void
+hook_satisfy(hook_t)
+{
+}
+
+void
+hook_satisfyvalue(hook_t long value)
+{
+}
+
+void
+hook_satisfyrange(hook_t long minimum, long maximum)
+{
+}
+
+typedef int satifyfn_type(hook_t, void*, va_list);
+// yes no
+// eat keep
+
+hook_define(satifyfn_type);
 
 #endif

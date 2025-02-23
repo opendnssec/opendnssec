@@ -38,8 +38,8 @@
 #include "log.h"
 #include "duration.h"
 #include "locks.h"
+#include "cfg.h"
 #include "enforcer/autostart_cmd.h"
-#include "parser/confparser.h"
 
 #define AUTHOR_NAME "Matthijs Mekking, Yuri Schaeffer, René Post"
 #define COPYRIGHT_STR "Copyright (C) 2010-2011 NLnet Labs OpenDNSSEC"
@@ -91,20 +91,22 @@ version(FILE* out)
 static void
 program_setup(const char* cfgfile, int cmdline_verbosity)
 {
-    const char* file;
-    /* fully initialized log with parameters in conf file*/
-    file = parse_conf_log_filename(cfgfile);
-    ods_log_init("ods-enforcerd", parse_conf_use_syslog(cfgfile), file, cmdline_verbosity?cmdline_verbosity:parse_conf_verbosity(cfgfile));
+    int logverbosity;
+    int logmode;
+    char* logfilename;
+
+    parse_conf_logging(cfgfile, cmdline_verbosity, &logverbosity, &logmode, &logfilename);
+    ods_log_init("ods-enforcerd", logmode, logfilename, logverbosity);
     ods_log_verbose("[%s] starting enforcer", enforcerd_str);
 
     /* initialize */
     xmlInitGlobals();
     xmlInitParser();
     xmlInitThreads();
-    
+
     /* setup */
     tzset(); /* for portability */
-    free((void*)file);
+    free((void*)logfilename);
 }
 
 static void

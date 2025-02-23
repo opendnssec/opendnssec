@@ -48,13 +48,14 @@ static void dnshandler_handle_xfr(netio_type* netio,
  *
  */
 dnshandler_type*
-dnshandler_create(listener_type* interfaces)
+dnshandler_create(struct engineconfig_listener* interfaces)
 {
     dnshandler_type* dnsh = NULL;
-    if (!interfaces || interfaces->count <= 0) {
+    if (!interfaces) {
         return NULL;
     }
     CHECKALLOC(dnsh = (dnshandler_type*) malloc(sizeof(dnshandler_type)));
+    
     if (!dnsh) {
         ods_log_error("[%s] unable to create dnshandler: "
             "allocator_alloc() failed", dnsh_str);
@@ -62,11 +63,20 @@ dnshandler_create(listener_type* interfaces)
     }
     dnsh->need_to_exit = 0;
     dnsh->engine = NULL;
-    dnsh->interfaces = interfaces;
+    dnsh->interfaces = listener_create();
     dnsh->socklist = NULL;
     dnsh->netio = NULL;
     dnsh->query = NULL;
     dnsh->tcp_accept_handlers = NULL;
+    while(interfaces) {
+        if(interfaces->address) {
+            listener_push(dnsh->interfaces, interfaces->address, acl_parse_family(interfaces->address), interfaces->port);
+        } else {
+            listener_push(dnsh->interfaces, "", AF_INET, interfaces->port);
+            listener_push(dnsh->interfaces, "", AF_INET6, interfaces->port);
+        }
+        interfaces = interfaces->next;
+    }
     /* setup */
     CHECKALLOC(dnsh->socklist = (socklist_type*) malloc(sizeof(socklist_type)));
     if (!dnsh->socklist) {
@@ -296,6 +306,7 @@ dnshandler_cleanup(dnshandler_type* dnshandler)
             freeaddrinfo((void*)dnshandler->socklist->tcp[i].addr);
         }  
     }
+    listener_cleanup(dnshandler->interfaces);
     free(dnshandler->tcp_accept_handlers);
     free(dnshandler->socklist);
     free(dnshandler);

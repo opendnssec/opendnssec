@@ -58,7 +58,11 @@
 #   modified version of the Autoconf Macro, you may extend this special
 #   exception to the GPL to apply to your modified version as well.
 
+<<<<<<< HEAD
+#serial 32
+=======
 #serial 30
+>>>>>>> upstream/2.1/develop
 
 AC_DEFUN([AX_COMPILER_VENDOR], [dnl
     AC_CACHE_CHECK([for _AC_LANG compiler vendor], ax_cv_[]_AC_LANG_ABBREV[]_compiler_vendor, [dnl
@@ -78,6 +82,10 @@ AC_DEFUN([AX_COMPILER_VENDOR], [dnl
 		fujitsu:	__FUJITSU
 		sdcc:		SDCC,__SDCC
 		sx:		_SX
+<<<<<<< HEAD
+		nvhpc:		__NVCOMPILER
+=======
+>>>>>>> upstream/2.1/develop
 		portland:	__PGI
 		gnu:		__GNUC__
 		sun:		__SUNPRO_C,__SUNPRO_CC,__SUNPRO_F90,__SUNPRO_F95

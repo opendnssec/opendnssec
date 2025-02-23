@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2009 NLNet Labs. All rights reserved.
+ * Copyright (c) 2009-2018 NLNet Labs.
+ * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -21,7 +22,6 @@
  * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  */
 
 /**
@@ -293,7 +293,7 @@ extract_msg(char* buf, int *pos, int buflen, int *exitcode, struct cmdhandler_ct
     assert(*pos <= buflen);
     assert(ODS_SE_MAXLINE >= buflen);
     
-    while (1) {
+    for(;;) {
         if (*pos < 3) return 0;
         opc = buf[0];
 
@@ -383,7 +383,6 @@ cmdhandler_handle_client_conversation(struct cmdhandler_ctx_struct* context)
 static void
 cmdhandler_accept_client(void* arg)
 {
-    int err;
     cmdhandler_ctx_type* context = (cmdhandler_ctx_type*) arg;
 
     ods_log_debug("[%s] accept client %i", module_str, context->sockfd);
@@ -506,7 +505,6 @@ cmdhandler_start(cmdhandler_type* cmdhandler)
     janitor_thread_t cmdclientthread;
     fd_set rset;
     int flags, connfd = 0, ret = 0;
-    ssize_t i;
 
     ods_log_assert(cmdhandler);
     ods_log_debug("[%s] start", module_str);
@@ -593,7 +591,7 @@ self_pipe_trick(cmdhandler_type* cmdhandler)
             return 1;
         } else {
             /* self-pipe trick */
-            client_printf(sockfd, "");
+            client_printf(sockfd, "%s", "");
             close(sockfd);
         }
     }

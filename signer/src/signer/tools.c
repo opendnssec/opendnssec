@@ -112,7 +112,7 @@ tools_input(zone_type* zone)
         return status;
     }
     /* Denial of Existence Rollover? */
-    if (!zone->signconf->passthrough)
+    if (!(zone->signconf->zonemodus & 0x01))
         status = zone_publish_nsec3param(zone);
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] unable to read zone %s: failed to "
@@ -198,8 +198,7 @@ tools_output(zone_type* zone, engine_type* engine)
                 zone->db->intserial);
             stats_clear(zone->stats);
             pthread_mutex_unlock(&zone->stats->stats_lock);
-            zone->db->intserial =
-                zone->db->outserial;
+            zone->db->intserial = zone->db->outserial;
             return ODS_STATUS_OK;
         }
         pthread_mutex_unlock(&zone->stats->stats_lock);

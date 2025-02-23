@@ -152,4 +152,6 @@ time_t time_now(void);
  */
 void duration_cleanup(duration_type* duration);
 
+extern time_t duration_floor(time_t unrounded, duration_type* roundingFactor);
+
 #endif /* UTIL_DURATION_H */

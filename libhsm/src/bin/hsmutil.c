@@ -37,8 +37,7 @@
 #include "hsmtest.h"
 
 #include <libhsmdns.h>
-
-extern hsm_repository_t* parse_conf_repositories(const char* cfgfile);
+#include "cfg.h"
 
 extern char *optarg;
 char *progname = NULL;
@@ -278,7 +277,6 @@ cmd_copy (int argc, char *argv[])
 {
     char* id;
     char* newid;
-    char* repository;
     int result;
 
     libhsm_key_t *key = NULL;

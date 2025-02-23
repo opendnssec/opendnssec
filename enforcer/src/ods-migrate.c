@@ -39,12 +39,12 @@
 
 #include "log.h"
 #include "libhsm.h"
-#include "daemon/cfg.h"
+#include "cfg.h"
 #include "libhsmdns.h"
 #include "db/key_data.h"
 #include "utilities.h"
 
-extern hsm_repository_t* parse_conf_repositories(const char* cfgfile);
+extern struct engineconfig_repository* parse_conf_repositories(const char* cfgfile);
 
 int verbosity;
 char* argv0;
@@ -361,9 +361,7 @@ main(int argc, char* argv[])
 
     ods_log_init("ods-migrate", 0, NULL, verbosity);
 
-    xmlInitGlobals();
     xmlInitParser();
-    xmlInitThreads();
 
     tzset(); /* for portability */
 
@@ -432,7 +430,6 @@ main(int argc, char* argv[])
     ods_log_close();
 
     xmlCleanupParser();
-    xmlCleanupGlobals();
 
     return 0;
 }

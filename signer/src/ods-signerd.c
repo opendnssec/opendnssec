@@ -37,7 +37,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <libxml/parser.h>
-#include "parser/confparser.h"
+#include "cfg.h"
 
 
 #define AUTHOR_NAME "Matthijs Mekking"
@@ -87,16 +87,17 @@ static void
 program_setup(const char* cfgfile, int cmdline_verbosity)
 {
     const char* file = NULL;
-    /* open log */
-    file = parse_conf_log_filename(cfgfile);
-    ods_log_init("ods-signerd", parse_conf_use_syslog(cfgfile), file, cmdline_verbosity?cmdline_verbosity:parse_conf_verbosity(cfgfile));
+    int logverbosity;
+    int logmode;
+    char* logfilename;
+
+    parse_conf_logging(cfgfile, cmdline_verbosity, &logverbosity, &logmode, &logfilename);
+    ods_log_init("ods-signerd", logmode, logfilename, logverbosity);
 
     ods_log_verbose("[engine] starting signer");
 
     /* initialize */
-    xmlInitGlobals();
     xmlInitParser();
-    xmlInitThreads();
 
     tzset(); /* for portability */
     free((void*)file);
@@ -106,7 +107,6 @@ static void
 program_teardown()
 {
     xmlCleanupParser();
-    xmlCleanupGlobals();
     ods_log_close();
 }
 
@@ -131,6 +131,7 @@ main(int argc, char* argv[])
         {"help", no_argument, 0, 'h'},
         {"info", no_argument, 0, 'i'},
         {"verbose", no_argument, 0, 'v'},
+        {"single-run", no_argument, 0, '1'},
         {"version", no_argument, 0, 'V'},
         {"set-time", required_argument, 0, 256},
         { 0, 0, 0, 0}
@@ -145,7 +146,7 @@ main(int argc, char* argv[])
     }
 
     /* parse the commandline */
-    while ((c=getopt_long(argc, argv, "c:dhivV",
+    while ((c=getopt_long(argc, argv, "c:dh1ivV",
         long_options, &options_index)) != -1) {
         switch (c) {
             case 'c':
@@ -159,7 +160,17 @@ main(int argc, char* argv[])
                 exit(0);
                 break;
             case 'i':
-                info = 1;
+                if(info == 0)
+                    info = 1;
+                else
+                    fprintf(stderr, "Error: Option -1|--single-run and -i|--info are mutually exclusive.\n");
+                break;
+            case '1':
+                if(info == 0) {
+                    daemonize = 0;
+                    info = 2;
+                } else
+                    fprintf(stderr, "Error: Option -1|--single-run and -i|--info are mutually exclusive.\n");
                 break;
             case 'v':
                 cmdline_verbosity++;

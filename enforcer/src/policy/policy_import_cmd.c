@@ -34,7 +34,7 @@
 #include "str.h"
 #include "clientpipe.h"
 #include "longgetopt.h"
-#include "policy/policy_import.h"
+#include "policy/policy_io.h"
 #include "policy/policy_resalt_task.h"
 #include "enforcer/enforce_task.h"
 
@@ -107,25 +107,17 @@ run(cmdhandler_ctx_type* context, int argc, char* argv[])
         }
     }
 
-    switch (policy_import(sockfd, engine, dbconn, remove_missing_policies)) {
-    case POLICY_IMPORT_OK:
-        /* only zones in policy, and force! */
-        enforce_task_flush_all(engine, dbconn);
-        (void)flush_resalt_task_all(engine, dbconn);
-        return 0;
-        break;
-
-    case POLICY_IMPORT_ERR_ARGS:
-    case POLICY_IMPORT_ERR_XML:
-    case POLICY_IMPORT_ERR_MEMORY:
-        break;
-
-    case POLICY_IMPORT_ERR_DATABASE:
-        database_error_help(sockfd);
-        break;
-
-    default:
-        break;
+    switch(policy_import(sockfd, engine, dbconn, remove_missing_policies)) {
+        case 0:
+            /* only zones in policy, and force! */
+            enforce_task_flush_all(engine, dbconn);
+            (void)flush_resalt_task_all(engine, dbconn);
+            return 0;
+        case -1:
+            database_error_help(sockfd);
+            break;
+        default:
+            break;
     }
 
     return 1;

@@ -76,6 +76,8 @@ backup_read_token(FILE* in)
 int
 backup_read_check_str(FILE* in, const char* str)
 {
+    long location;
+    location = ftell(in);
     char *p = backup_read_token(in);
     if (!p) {
         ods_log_debug("[%s] cannot read check string \'%s\'", backup_str, str);
@@ -83,13 +85,18 @@ backup_read_check_str(FILE* in, const char* str)
     }
     if (ods_strcmp(p, str) != 0) {
         if (!strcmp(p, "rfc5011") && !strcmp(str, "keytag")) {
-            return 1;
-        }
+            return 1; 
+       }
         if (!strcmp(p, "jitter") && !strcmp(str, "keyset")) {
             return fseek(in, -7, SEEK_CUR) == 0;
         }
-
-        ods_log_debug("[%s] \'%s\' does not match \'%s\'", backup_str, p, str);
+        if (!strcmp(str, "resignoffset")) {
+            return fseek(in, location, SEEK_SET);
+        }
+        if (!strcmp(str, "signtime")) {
+            return fseek(in, location, SEEK_SET);
+        }
+        ods_log_error("[%s] \'%s\' does not match \'%s\'", backup_str, p, str);
         return 0;
     }
     return 1;

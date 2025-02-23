@@ -24,123 +24,123 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/**
- * FIFO Queue.
- *
- */
-
 #include "config.h"
+#include <ldns/ldns.h>
 #include "scheduler/fifoq.h"
 #include "log.h"
 
-#include <ldns/ldns.h>
+#define FIFOQ_MAX_COUNT 1000
 
-static const char* fifoq_str = "fifo";
+struct fifoq_struct {
+    struct fifoq_item queue[FIFOQ_MAX_COUNT];
+    int head;       // index to the first to be popped item in the queue
+    int tail;       // index to the first open item in the queue
+    int capacity;   // size/capacity of queue left open and filled
+    int size;       // number of items left open in queue
+    int terminate;
+    pthread_mutex_t lock;
+    pthread_cond_t headwait;
+    pthread_cond_t tailwait;
+};
 
-
-/**
- * Create new FIFO queue.
- *
- */
-fifoq_type*
-fifoq_create()
+fifoq_type
+fifoq_create(void)
 {
-    fifoq_type* fifoq;
-    CHECKALLOC(fifoq = (fifoq_type*) malloc(sizeof(fifoq_type)));
-    fifoq_wipe(fifoq);
-    pthread_mutex_init(&fifoq->q_lock, NULL);
-    pthread_cond_init(&fifoq->q_threshold, NULL);
-    pthread_cond_init(&fifoq->q_nonfull, NULL);
+    fifoq_type fifoq;
+    CHECKALLOC(fifoq = (fifoq_type) malloc(sizeof(struct fifoq_struct)));
+    fifoq->capacity = FIFOQ_MAX_COUNT;
+    fifoq->head = 0;
+    fifoq->tail = 0;
+    fifoq->size = 0;
+    fifoq->terminate = 0;
+    pthread_mutex_init(&fifoq->lock, NULL);
+    pthread_cond_init(&fifoq->headwait, NULL);
+    pthread_cond_init(&fifoq->tailwait, NULL);
     return fifoq;
 }
 
-
-/**
- * Wipe queue.
- *
- */
 void
-fifoq_wipe(fifoq_type* q)
+fifoq_cleanup(fifoq_type fifoq)
 {
-    size_t i = 0;
-    for (i=0; i < FIFOQ_MAX_COUNT; i++) {
-        q->blob[i] = NULL;
-        q->owner[i] = NULL;
-    }
-    q->count = 0;
+    pthread_cond_destroy(&fifoq->headwait);
+    pthread_cond_destroy(&fifoq->tailwait);
+    pthread_mutex_destroy(&fifoq->lock);
+    free(fifoq);
 }
 
-
-/**
- * Pop item from queue.
- *
- */
-void*
-fifoq_pop(fifoq_type* q, void** context)
+void
+fifoq_pop(fifoq_type fifoq, struct fifoq_item* items, int* count)
 {
-    void* pop = NULL;
-    size_t i = 0;
-    if (!q || q->count <= 0) {
-        return NULL;
-    }
-    pop = q->blob[0];
-    *context = q->owner[0];
-    for (i = 0; i < q->count-1; i++) {
-        q->blob[i] = q->blob[i+1];
-        q->owner[i] = q->owner[i+1];
-    }
-    q->count -= 1;
-    if (q->count <= (size_t) FIFOQ_MAX_COUNT * 0.1) {
-        /**
-         * Notify waiting workers that they can start queuing again
-         * If no workers are waiting, this call has no effect.
-         */
-        pthread_cond_broadcast(&q->q_nonfull);
-    }
-    return pop;
-}
-
-
-/**
- * Push item to queue.
- *
- */
-ods_status
-fifoq_push(fifoq_type* q, void* item, void* context, int* tries)
-{
-    if (!q || !item) {
-        return ODS_STATUS_ASSERT_ERR;
-    }
-    if (q->count >= FIFOQ_MAX_COUNT) {
-        /**
-         * #262:
-         * If drudgers remain on hold, do additional broadcast.
-         * If no drudgers are waiting, this call has no effect.
-         */
-        if (*tries > FIFOQ_TRIES_COUNT) {
-            pthread_cond_broadcast(&q->q_threshold);
-            ods_log_debug("[%s] queue full, notify drudgers again", fifoq_str);
-            /* reset tries */
-            *tries = 0;
+    int current;
+    assert(*count > 0);
+    pthread_mutex_lock(&fifoq->lock);
+    while(fifoq->size <= 0) {
+        int r = pthread_cond_wait(&fifoq->headwait, &fifoq->lock);
+        assert(r==0);
+        if(fifoq->terminate) {
+            pthread_mutex_unlock(&fifoq->lock);
+            *count = 0;
+            return;
         }
-        return ODS_STATUS_UNCHANGED;
     }
-    q->blob[q->count] = item;
-    q->owner[q->count] = context;
-    q->count += 1;
-    if (q->count == 1) {
-        ods_log_deeebug("[%s] threshold %lu reached, notify drudgers",
-            fifoq_str, (unsigned long) q->count);
-        /* If no drudgers are waiting, this call has no effect. */
-        pthread_cond_broadcast(&q->q_threshold);
+    current = fifoq->head;
+    assert(*count > 0);
+    if(fifoq->head >= fifoq->tail) {
+        if(fifoq->capacity - fifoq->head < *count) {
+            *count = fifoq->capacity - fifoq->head;
+        }
+    } else if(fifoq->head < fifoq->tail) {
+        if(fifoq->tail - fifoq->head < *count) {
+            *count = fifoq->tail - fifoq->head;
+        }
     }
-    return ODS_STATUS_OK;
+    assert(*count > 0);
+    fifoq->head = (fifoq->head + *count) % fifoq->capacity;
+    fifoq->size -= *count;
+    memcpy(items, &fifoq->queue[current], sizeof(struct fifoq_item) * *count);
+    pthread_cond_signal(&fifoq->tailwait);
+    pthread_mutex_unlock(&fifoq->lock);
+}
+
+
+int
+fifoq_push(fifoq_type fifoq, struct fifoq_item qs)
+{
+    int current;
+    pthread_mutex_lock(&fifoq->lock);
+    while(fifoq->size == fifoq->capacity) {
+        pthread_cond_wait(&fifoq->tailwait, &fifoq->lock);
+        if(fifoq->terminate) {
+            pthread_mutex_unlock(&fifoq->lock);
+            return 1;
+        }
+    }
+    current = fifoq->tail;
+    fifoq->tail = (fifoq->tail + 1) % fifoq->capacity;
+    fifoq->size += 1;
+    fifoq->queue[current] = qs;
+    pthread_cond_signal(&fifoq->headwait);
+    pthread_mutex_unlock(&fifoq->lock);
+    return 0;
 }
 
 void
-fifoq_report(fifoq_type* q, worker_type* superior, ods_status subtaskstatus)
+fifoq_waitfor(fifoq_type fifoq, worker_type* worker, long nsubtasks, long* nsubtasksfailed)
 {
-    pthread_mutex_lock(&q->q_lock);
+    pthread_mutex_lock(&fifoq->lock);
+    worker->tasksOutstanding += nsubtasks;
+    while (worker->tasksOutstanding > 0 && !worker->need_to_exit) {
+        pthread_cond_wait(&worker->tasksBlocker, &fifoq->lock);
+    }
+    *nsubtasksfailed = worker->tasksFailed;
+    worker->tasksFailed = 0;
+    pthread_mutex_unlock(&fifoq->lock);
+}
+
+void
+fifoq_report(fifoq_type fifoq, worker_type* superior, ods_status subtaskstatus)
+{
+    pthread_mutex_lock(&fifoq->lock);
     if (subtaskstatus != ODS_STATUS_OK) {
         superior->tasksFailed += 1;
     }
@@ -148,44 +148,24 @@ fifoq_report(fifoq_type* q, worker_type* superior, ods_status subtaskstatus)
     if (superior->tasksOutstanding == 0) {
         pthread_cond_signal(&superior->tasksBlocker);
     }
-    pthread_mutex_unlock(&q->q_lock);
+    pthread_mutex_unlock(&fifoq->lock);
 }
 
 void
-fifoq_waitfor(fifoq_type* q, worker_type* worker, long nsubtasks, long* nsubtasksfailed)
+fifoq_notifyall(fifoq_type fifoq)
 {
-    pthread_mutex_lock(&q->q_lock);
-    worker->tasksOutstanding += nsubtasks;
-    while (worker->tasksOutstanding > 0 && !worker->need_to_exit) {
-        pthread_cond_wait(&worker->tasksBlocker, &q->q_lock);
-    }
-    *nsubtasksfailed = worker->tasksFailed;
-    worker->tasksFailed = 0;
-    pthread_mutex_unlock(&q->q_lock);
-}
-
-
-/**
- * Clean up queue.
- *
- */
-void
-fifoq_cleanup(fifoq_type* q)
-{
-    if (!q) {
-        return;
-    }
-    pthread_cond_destroy(&q->q_threshold);
-    pthread_cond_destroy(&q->q_nonfull);
-    pthread_mutex_destroy(&q->q_lock);
-    free(q);
+    pthread_mutex_lock(&fifoq->lock);
+    pthread_cond_broadcast(&fifoq->headwait);
+    pthread_cond_broadcast(&fifoq->tailwait);
+    pthread_mutex_unlock(&fifoq->lock);
 }
 
 void
-fifoq_notifyall(fifoq_type* q)
+fifoq_terminate(fifoq_type fifoq)
 {
-    pthread_mutex_lock(&q->q_lock);
-    pthread_cond_broadcast(&q->q_threshold);
-    pthread_cond_broadcast(&q->q_nonfull);
-    pthread_mutex_unlock(&q->q_lock);
+    pthread_mutex_lock(&fifoq->lock);
+    fifoq->terminate = 1;
+    pthread_cond_broadcast(&fifoq->headwait);
+    pthread_cond_broadcast(&fifoq->tailwait);
+    pthread_mutex_unlock(&fifoq->lock);
 }

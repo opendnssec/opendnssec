@@ -24,6 +24,7 @@ AC_PROG_CXX
 AC_PATH_PROG(XMLLINT, xmllint)
 AC_PATH_PROG(XSLTPROC, xsltproc)
 AC_PATH_PROG(JAVA, java)
+PKG_CHECK_MODULES([XML2],[libxml-2.0])
 AC_PATH_PROG(CP, cp)
 AC_DEFINE_UNQUOTED(CP_COMMAND, "$CP", [System cp(3) command])
 
@@ -164,7 +165,7 @@ AC_ARG_ENABLE(enforcer,
 		[enable_enforcer="${enableval}"],
 		[enable_enforcer="yes"])
 if test "x${enable_enforcer}" = "xyes"; then
-	AC_DEFINE_UNQUOTED(SIGNER_CLI_UPDATE, "$OPENDNSSEC_SIGNER_CLI update", [Path to the OpenDNSSEC signer engine cli])
+	AC_DEFINE_UNQUOTED(SIGNER_CLI_UPDATE, "$OPENDNSSEC_SBIN_DIR/ods-signer update", [Path to the OpenDNSSEC signer engine cli])
 	ACX_ENFORCER_DATABASE
 	ACX_LIBREADLINE
 fi

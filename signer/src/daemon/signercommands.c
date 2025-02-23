@@ -144,7 +144,7 @@ cmdhandler_handle_cmd_update(cmdhandler_ctx_type* context, char *cmd)
     if (cmdargument(cmd, "--all", NULL)) {
         pthread_mutex_lock(&engine->zonelist->zl_lock);
         zl_changed = zonelist_update(engine->zonelist,
-            engine->config->zonelist_filename);
+            engine->config->zonelist_filename_signer);
         if (zl_changed == ODS_STATUS_UNCHANGED) {
             (void)snprintf(buf, ODS_SE_MAXLINE, "Zone list has not changed."
                 " Signer configurations updated.\n");
@@ -263,20 +263,23 @@ max(uint32_t a, uint32_t b)
 }
 
 static ods_status
-forceread(engine_type* engine, zone_type *zone, int force_serial, uint32_t serial, int sockfd)
+forceread(engine_type* engine, zone_type *zone, int force_serial, uint32_t serial, time_t signtime, int sockfd)
 {
         pthread_mutex_lock(&zone->zone_lock);
         if (force_serial) {
             ods_log_assert(zone->db);
-            if (!util_serial_gt(serial, max(zone->db->outserial,
-                zone->db->inbserial))) {
-                pthread_mutex_unlock(&zone->zone_lock);
-                client_printf(sockfd, "Error: Unable to enforce serial %u for zone %s.\n", serial, zone->name);
-                return 1;
+            if (!util_serial_gt(serial, max(zone->db->outserial, zone->db->inbserial))) {
+                if(force_serial < 2) {
+                    pthread_mutex_unlock(&zone->zone_lock);
+                    client_printf(sockfd, "Error: Unable to enforce serial %u for zone %s.\n", serial, zone->name);
+                    return 1;
+                } else
+                    client_printf(sockfd, "Warning: Forcing old serial %u for zone %s.\n", serial, zone->name);
             }
             zone->db->altserial = serial;
-            zone->db->force_serial = 1;
+            zone->db->force_serial = force_serial;
         }
+        zone->db->forcesigntime = signtime;
         schedule_scheduletask(engine->taskq, TASK_FORCEREAD, zone->name, zone, &zone->zone_lock, schedule_IMMEDIATELY);
         pthread_mutex_unlock(&zone->zone_lock);
         return 0;
@@ -334,14 +337,15 @@ cmdhandler_handle_cmd_sign(cmdhandler_ctx_type* context, int argc, char* argv[])
     zone_type *zone;
     int force_serial = 0;
     long serial = 0;
-    char* signtime = NULL;
+    time_t signtime = 0;
+    char* signtimestr = NULL;
+    struct tm tm;
     int opt;
-
     engine = getglobalcontext(context);
     /* Skip the "sign" command itself, then parse options */
     ++argv;
     --argc;
-    for(opt = longgetopt(argc, argv, "az:s:t:", signoptions, &longindex, &optctx); opt != -1;
+    for(opt = longgetopt(argc, argv, "az:s:S:t:", signoptions, &longindex, &optctx); opt != -1;
         opt = longgetopt(argc, argv, NULL,      signoptions, &longindex, &optctx)) {
         switch(opt) {
             case 'a':
@@ -354,8 +358,12 @@ cmdhandler_handle_cmd_sign(cmdhandler_ctx_type* context, int argc, char* argv[])
                 getlong(optctx.optarg, NULL, &serial);
                 force_serial = 1;
                 break;
+            case 'S':
+                getlong(optctx.optarg, NULL, &serial);
+                force_serial = 2;
+                break;
             case 't':
-                signtime = optctx.optarg;
+                signtimestr = optctx.optarg;
                 break;
             default:
                 client_printf_err(context->sockfd, "unknown arguments\n");
@@ -368,12 +376,23 @@ cmdhandler_handle_cmd_sign(cmdhandler_ctx_type* context, int argc, char* argv[])
         client_printf_err(context->sockfd, "No zone name provided to zone sign command.\n");
         return -1;
     }
+    if(signtimestr) {
+        if(strcmp(signtimestr, "now")) {
+            signtime = time_now();
+        } else if(strptime(signtimestr, "%Y-%m-%d-%H:%M:%S", &tm)) {
+            tm.tm_isdst = -1;
+            signtime = mktime(&tm);
+        } else {
+            client_printf_err(context->sockfd, "Error - could not convert '%s' to a time. Format is YYYY-MM-DD-HH:MM:SS or \"now\"\n", signtimestr);
+            return -1;
+        }
+    }
     if(allzones) {
         pthread_mutex_lock(&engine->zonelist->zl_lock);
         ldns_rbnode_t* node;
         for (node = ldns_rbtree_first(engine->zonelist->zones); node != LDNS_RBTREE_NULL && node != NULL; node = ldns_rbtree_next(node)) {
             zone = (zone_type*)node->data;
-            forceread(engine, zone, 0, 0, context->sockfd);
+            forceread(engine, zone, 0, 0, signtime, context->sockfd);
         }
         pthread_mutex_unlock(&engine->zonelist->zl_lock);
         engine_wakeup_workers(engine);
@@ -394,14 +413,14 @@ cmdhandler_handle_cmd_sign(cmdhandler_ctx_type* context, int argc, char* argv[])
             return 1;
         }
 
-        forceread(engine, zone, force_serial, serial, context->sockfd);
+        forceread(engine, zone, force_serial, serial, signtime, context->sockfd);
         engine_wakeup_workers(engine);
         client_printf(context->sockfd, "Zone %s scheduled for immediate re-sign.\n", zonename);
         ods_log_verbose("zone %s scheduled for immediate re-sign", zonename);
     }
     return 0;
 }
-
+ 
 /**
  * Unlink backup file.
  *
@@ -431,6 +450,7 @@ cmdhandler_handle_cmd_clear(cmdhandler_ctx_type* context, char *cmd)
     uint32_t inbserial = 0;
     uint32_t intserial = 0;
     uint32_t outserial = 0;
+    uint32_t outsigntime = 0;
     engine = getglobalcontext(context);
     unlink_backup_file(cmdargument(cmd, NULL, ""), ".inbound");
     unlink_backup_file(cmdargument(cmd, NULL, ""), ".backup");
@@ -445,6 +465,7 @@ cmdhandler_handle_cmd_clear(cmdhandler_ctx_type* context, char *cmd)
         inbserial = zone->db->inbserial;
         intserial = zone->db->intserial;
         outserial = zone->db->outserial;
+        outsigntime = zone->db->outsigntime;
         namedb_cleanup(zone->db);
         ixfr_cleanup(zone->ixfr);
         signconf_cleanup(zone->signconf);
@@ -462,6 +483,7 @@ cmdhandler_handle_cmd_clear(cmdhandler_ctx_type* context, char *cmd)
         zone->db->inbserial = inbserial;
         zone->db->intserial = intserial;
         zone->db->outserial = outserial;
+        zone->db->outsigntime = outsigntime;
         zone->db->have_serial = 1;
 
         /* If a zone does not have a task we probably never read a signconf
@@ -644,19 +666,6 @@ cmdhandler_handle_cmd_verbosity(cmdhandler_ctx_type* context, char *cmd)
     (void)snprintf(buf, ODS_SE_MAXLINE, "Verbosity level set to %i.\n", val);
     client_printf(sockfd, "%s", buf);
     return 0;
-}
-
-
-/**
- * Handle erroneous command.
- *
- */
-static void
-cmdhandler_handle_cmd_error(int sockfd, cmdhandler_ctx_type* context, char* str)
-{
-    char buf[ODS_SE_MAXLINE];
-    (void)snprintf(buf, ODS_SE_MAXLINE, "Error: %s.\n", str?str:"(null)");
-    client_printf(sockfd, "%s", buf);
 }
 
 

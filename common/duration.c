@@ -63,6 +63,58 @@ duration_create(void)
 }
 
 
+
+time_t
+duration_floor(time_t unrounded, duration_type* roundingFactor)
+{
+    time_t result;
+    duration_type d;
+    duration_set_time(&d, unrounded);
+    if (roundingFactor->seconds) {
+        d.seconds = d.seconds % roundingFactor->seconds;
+    } else {
+        d.seconds = 0;
+        if (roundingFactor->minutes) {
+            d.minutes = d.minutes % roundingFactor->minutes;
+        } else {
+            d.minutes = 0;
+            if(roundingFactor->hours) {
+                d.hours = d.hours % roundingFactor->hours;
+            } else {
+                d.hours = 0;
+                if(roundingFactor->days) {
+                    d.days = d.days % roundingFactor->days;
+                } else {
+                    d.days = 0;
+                    if(roundingFactor->months) {
+                        d.months = d.months % roundingFactor->months;
+                    } else {
+                        d.months = 0;
+                        if(roundingFactor->years) {
+                            d.years = d.years % roundingFactor->years;
+                        } else {
+                            if(roundingFactor->weeks) {
+                                duration_set_time(&d, unrounded);
+                                d.seconds = 0;
+                                d.minutes = 0; 
+                                d.hours   = 0;
+                                result = duration2time(&d);
+                                result = result % (roundingFactor->weeks * (60*60*2*7));
+                                return result;
+                            } else {
+                                return unrounded;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    result = duration2time(&d);
+    return result;
+}
+
+
 /**
  * Compare durations.
  *
@@ -115,20 +167,18 @@ duration_create_from_string(const char* str)
     int not_weeks = 0;
 
     if (!duration) {
-        ods_log_error("[%s] cannot create from string %s: create failed",
-            duration_str, str);
+        ods_log_error("[%s] cannot create from string %s: create failed", duration_str, str);
         return NULL;
     }
-    if (!str) {
+    if (!str || *str=='\0' || !strcmp(str,"0")) {
         return duration;
     }
 
     P = strchr(str, 'P');
     if (!P) {
-        ods_log_error("[%s] cannot create from string %s: P not found",
-            duration_str, str);
+        ods_log_error("[%s] cannot create from string %s: P not found", duration_str, str);
         duration_cleanup(duration);
-        return NULL;
+	return NULL;
     }
 
     T = strchr(str, 'T');
@@ -176,8 +226,7 @@ duration_create_from_string(const char* str)
     W = strchr(str, 'W');
     if (W) {
         if (not_weeks) {
-            ods_log_error("[%s] cannot create from string: parse error",
-                duration_str);
+            ods_log_error("[%s] cannot create from string: parse error", duration_str);
             duration_cleanup(duration);
             return NULL;
         } else {
@@ -190,164 +239,42 @@ duration_create_from_string(const char* str)
 
 
 /**
- * Get the number of digits in a number.
- *
- */
-static size_t
-digits_in_number(time_t duration)
-{
-    uint32_t period = (uint32_t) duration;
-    size_t count = 0;
-    if (!period) {
-        return 1;
-    }
-    while (period > 0) {
-        count++;
-        period /= 10;
-    }
-    return count;
-}
-
-
-/**
  * Convert a duration to a string.
  *
  */
 char*
 duration2string(duration_type* duration)
 {
-    char* str = NULL, *num = NULL;
-    size_t count = 2;
-    int T = 0, D = 0;
-
-    if (!duration) {
+    char* s;
+    char* durationstring = NULL;
+    if (!duration)
         return NULL;
-    }
-
-    if (duration->years > 0) {
-        count = count + 1 + digits_in_number(duration->years);
-        D = 1;
-    }
-    if (duration->months > 0) {
-        count = count + 1 + digits_in_number(duration->months);
-        D = 1;
-    }
-    if (duration->weeks > 0) {
-        count = count + 1 + digits_in_number(duration->weeks);
-        D = 1;
-    }
-    if (duration->days > 0) {
-        count = count + 1 + digits_in_number(duration->days);
-        D = 1;
-    }
-    if (duration->hours > 0) {
-        count = count + 1 + digits_in_number(duration->hours);
-        T = 1;
-    }
-    if (duration->minutes > 0) {
-        count = count + 1 + digits_in_number(duration->minutes);
-        T = 1;
-    }
-    if (duration->seconds > 0 ||
-        (!D && !duration->hours && !duration->minutes)) {
-        count = count + 1 + digits_in_number(duration->seconds);
-        T = 1;
-    }
-    if (T) {
-        count++;
-    }
-
-    str = (char*) calloc(count, sizeof(char));
-    str[0] = 'P';
-    str[1] = '\0';
-
-    if (duration->years > 0) {
-        count = digits_in_number(duration->years);
-        num = (char*) calloc(count+2, sizeof(char));
-        if (num) {
-        snprintf(num, count+2, "%uY", (uint32_t) duration->years);
-        str = strncat(str, num, count+2);
-        free((void*) num);
+    if (duration->years==0 && duration->months==0 && duration->weeks==0 && duration->days==0 && duration->hours==0 && duration->minutes==0 && duration->seconds==0)
+        return strdup("PT0S");
+    asprintf(&durationstring, "P%uY%uM%uW%uD%s%uH%iM%uS",
+            (uint32_t) duration->years,
+            (uint32_t) duration->months,
+            (uint32_t) duration->weeks,
+            (uint32_t) duration->days,
+            ((duration->hours!=0||duration->minutes!=0||duration->seconds!=0) ? "T" : ""),
+            (uint32_t) duration->hours,
+            (uint32_t) duration->minutes,
+            (uint32_t) duration->seconds);
+    if (!durationstring)
+        return NULL;
+    s = durationstring;
+    while (*s) {
+        if (*s=='0') {
+            memmove(s, &s[2], strlen(&s[2])+1);
         } else {
-            goto duration2string_num_calloc_failed;
+            while (*s && isdigit(*s))
+                ++s;
+            ++s; // also skip the unit ( Y M W D H M or S)
         }
     }
-    if (duration->months > 0) {
-        count = digits_in_number(duration->months);
-        num = (char*) calloc(count+2, sizeof(char));
-        if (num) {
-        snprintf(num, count+2, "%uM", (uint32_t) duration->months);
-        str = strncat(str, num, count+2);
-        free((void*) num);
-        } else {
-            goto duration2string_num_calloc_failed;
-        }
-    }
-    if (duration->weeks > 0) {
-        count = digits_in_number(duration->weeks);
-        num = (char*) calloc(count+2, sizeof(char));
-        if (num) {
-            snprintf(num, count+2, "%uW", (uint32_t) duration->weeks);
-            str = strncat(str, num, count+2);
-            free((void*) num);
-        } else {
-            goto duration2string_num_calloc_failed;
-        }
-    }
-    if (duration->days > 0) {
-        count = digits_in_number(duration->days);
-        num = (char*) calloc(count+2, sizeof(char));
-        if (num) {
-        snprintf(num, count+2, "%uD", (uint32_t) duration->days);
-        str = strncat(str, num, count+2);
-        free((void*) num);
-        } else {
-            goto duration2string_num_calloc_failed;
-        }
-    }
-    if (T) {
-        str = strncat(str, "T", 1);
-    }
-    if (duration->hours > 0) {
-        count = digits_in_number(duration->hours);
-        num = (char*) calloc(count+2, sizeof(char));
-        if (num) {
-        snprintf(num, count+2, "%uH", (uint32_t) duration->hours);
-        str = strncat(str, num, count+2);
-        free((void*) num);
-        } else {
-            goto duration2string_num_calloc_failed;
-        }
-    }
-    if (duration->minutes > 0) {
-        count = digits_in_number(duration->minutes);
-        num = (char*) calloc(count+2, sizeof(char));
-        if (num) {
-        snprintf(num, count+2, "%uM", (uint32_t) duration->minutes);
-        str = strncat(str, num, count+2);
-        free((void*) num);
-        } else {
-            goto duration2string_num_calloc_failed;
-    }
-    }
-    if (duration->seconds > 0 ||
-        (!D && !duration->hours && !duration->minutes)) {
-        count = digits_in_number(duration->seconds);
-        num = (char*) calloc(count+2, sizeof(char));
-        if (num) {
-        snprintf(num, count+2, "%uS", (uint32_t) duration->seconds);
-        str = strncat(str, num, count+2);
-        free((void*) num);
-        } else {
-            goto duration2string_num_calloc_failed;
-        }
-    }
-    return str;
-
-duration2string_num_calloc_failed:
-    ods_log_error("[%s] cannot create string: malloc error", duration_str);
-    free((void*) str);
-    return NULL;
+    s = strdup(durationstring);
+    free(durationstring);
+    return s;
 }
 
 

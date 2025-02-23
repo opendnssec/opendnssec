@@ -1,7 +1,8 @@
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
 AM_CPPFLAGS = \
-	@LDNS_INCLUDES@
+	@LDNS_INCLUDES@ @XML2_CFLAGS@
+
 
 noinst_LIBRARIES = libcompat.a
 
@@ -27,4 +28,8 @@ libcompat_a_SOURCES = \
 	utilities.c utilities.h \
 	cmdhandler.c cmdhandler.h \
 	janitor.c janitor.h \
-	longgetopt.c longgetopt.h
+	cfg.c cfg.h \
+	hooks.c hooks.h \
+	longgetopt.c longgetopt.h \
+	xmlconf.c xmlconf.h \
+	settings_xml.c settings.c settings.h

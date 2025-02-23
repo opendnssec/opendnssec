@@ -179,7 +179,7 @@ void rrset_diff(rrset_type* rrset, unsigned is_ixfr, unsigned more_coming);
  * \return ods_status status
  *
  */
-ods_status rrset_sign(hsm_ctx_t* ctx, rrset_type* rrset, time_t signtime);
+ods_status rrset_sign(hsm_ctx_t* ctx, struct fifoq_item* signitem);
 
 /**
  * Obtain a resource record (containing a signature of a dnskeyset or

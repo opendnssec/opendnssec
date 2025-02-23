@@ -155,6 +155,8 @@ namedb_create(void* zone)
     db->have_serial = 0;
     db->serial_updated = 0;
     db->force_serial = 0;
+    db->forcesigntime = 0;
+    db->outsigntime = 0;
     return db;
 }
 
@@ -206,11 +208,13 @@ namedb_update_serial(namedb_type* db, const char* zone_name, const char* format,
     ods_log_debug("[%s] zone %s update serial: format=%s in=%u internal=%u "
         "out=%u now=%u", db_str, zone_name, format, db->inbserial,
         db->intserial, db->outserial, (uint32_t) time_now());
-    if (db->force_serial) {
+    if (db->force_serial == 2) {
+        soa = db->altserial;
+        ods_log_info("[%s] zone %s enforcing serial %u", db_str, zone_name, soa);
+    } else if (db->force_serial) {
         soa = db->altserial;
         if (!util_serial_gt(soa, prev)) {
-            ods_log_warning("[%s] zone %s unable to enforce serial: %u does not "
-                " increase %u. Serial set to %u", db_str, zone_name, soa, prev,
+            ods_log_warning("[%s] zone %s unable to enforce serial: %u does not  increase %u. Serial set to %u", db_str, zone_name, soa, prev,
                 (prev+1));
             soa = prev + 1;
         } else {
@@ -548,7 +552,7 @@ namedb_add_denial_trigger(namedb_type* db, domain_type* domain)
         zone = domain->zone;
         ods_log_assert(zone);
         ods_log_assert(zone->signconf);
-        if (!zone->signconf->passthrough) {
+        if (!(zone->signconf->zonemodus & 0x01)) {
             if (zone->signconf->nsec_type == LDNS_RR_TYPE_NSEC) {
                 namedb_add_nsec_trigger(db, domain);
             } else {

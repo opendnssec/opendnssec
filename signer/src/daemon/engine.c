@@ -30,7 +30,7 @@
  */
 
 #include "config.h"
-#include "daemon/cfg.h"
+#include "cfg.h"
 #include "daemon/engine.h"
 #include "duration.h"
 #include "file.h"
@@ -49,7 +49,6 @@
 
 #include <ctype.h>
 #include <errno.h>
-#include <libxml/parser.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -60,6 +59,7 @@
 #include <sys/un.h>
 #include <time.h>
 #include <unistd.h>
+#include <libxml/parser.h>
 
 static const char* engine_str = "engine";
 
@@ -188,25 +188,25 @@ engine_privdrop(engine_type* engine)
     ods_log_assert(engine);
     ods_log_assert(engine->config);
     ods_log_debug("[%s] drop privileges", engine_str);
-    if (engine->config->username && engine->config->group) {
+    if (engine->config->username_signer && engine->config->group_signer) {
         ods_log_verbose("[%s] drop privileges to user %s, group %s",
-           engine_str, engine->config->username, engine->config->group);
-    } else if (engine->config->username) {
+           engine_str, engine->config->username_signer, engine->config->group_signer);
+    } else if (engine->config->username_signer) {
         ods_log_verbose("[%s] drop privileges to user %s", engine_str,
-           engine->config->username);
-    } else if (engine->config->group) {
+           engine->config->username_signer);
+    } else if (engine->config->group_signer) {
         ods_log_verbose("[%s] drop privileges to group %s", engine_str,
-           engine->config->group);
+           engine->config->group_signer);
     }
-    if (engine->config->chroot) {
+    if (engine->config->chroot_signer) {
         ods_log_verbose("[%s] chroot to %s", engine_str,
-            engine->config->chroot);
+            engine->config->chroot_signer);
     }
-    status = privdrop(engine->config->username, engine->config->group,
-        engine->config->chroot, &uid, &gid);
+    status = privdrop(engine->config->username_signer, engine->config->group_signer,
+        engine->config->chroot_signer, &uid, &gid);
     engine->uid = uid;
     engine->gid = gid;
-    privclose(engine->config->username, engine->config->group);
+    privclose(engine->config->username_signer, engine->config->group_signer);
     return status;
 }
 
@@ -224,9 +224,9 @@ engine_create_workers(engine_type* engine)
     int threadCount = 0;
     ods_log_assert(engine);
     ods_log_assert(engine->config);
-    numTotalWorkers = engine->config->num_worker_threads + engine->config->num_signer_threads;
+    numTotalWorkers = engine->config->num_worker_threads_signer + engine->config->num_signer_threads;
     CHECKALLOC(engine->workers = (worker_type**) malloc(numTotalWorkers * sizeof(worker_type*)));
-    for (i=0; i < engine->config->num_worker_threads; i++) {
+    for (i=0; i < engine->config->num_worker_threads_signer; i++) {
         asprintf(&name, "worker[%d]", i+1);
         engine->workers[threadCount++] = worker_create(name, engine->taskq);
     }
@@ -245,7 +245,7 @@ engine_start_workers(engine_type* engine)
     ods_log_assert(engine);
     ods_log_assert(engine->config);
     ods_log_debug("[%s] start workers", engine_str);
-    for (i=0; i < engine->config->num_worker_threads; i++,threadCount++) {
+    for (i=0; i < engine->config->num_worker_threads_signer; i++,threadCount++) {
         CHECKALLOC(context = malloc(sizeof(struct worker_context)));
         context->engine = engine;
         context->worker = engine->workers[threadCount];
@@ -268,11 +268,12 @@ engine_stop_threads(engine_type* engine)
     ods_log_assert(engine);
     ods_log_assert(engine->config);
     ods_log_debug("[%s] stop workers and drudgers", engine_str);
-    numTotalWorkers = engine->config->num_worker_threads + engine->config->num_signer_threads;
+    numTotalWorkers = engine->config->num_worker_threads_signer + engine->config->num_signer_threads;
     for (i=0; i < numTotalWorkers; i++) {
         engine->workers[i]->need_to_exit = 1;
     }
     ods_log_debug("[%s] notify workers and drudgers", engine_str);
+    fifoq_terminate(engine->taskq->signq);
     schedule_release_all(engine->taskq);
 
     for (i=0; i < numTotalWorkers; i++) {
@@ -290,7 +291,6 @@ engine_stop_threads(engine_type* engine)
 void
 engine_wakeup_workers(engine_type* engine)
 {
-    size_t i = 0;
     ods_log_assert(engine);
     ods_log_assert(engine->config);
     ods_log_debug("[%s] wake up workers", engine_str);
@@ -337,7 +337,6 @@ engine_setup(void)
     int sockets[2] = {0,0};
     int pipefd[2];
     char buff = '\0';
-    int fd, error;
 
     ods_log_debug("[%s] setup signer engine", engine_str);
     if (!engine || !engine->config) {
@@ -347,7 +346,7 @@ engine_setup(void)
     edns_init(&engine->edns, EDNS_MAX_MESSAGE_LEN);
 
     /* create command handler (before chowning socket file) */
-    engine->cmdhandler = cmdhandler_create(engine->config->clisock_filename, signercommands, engine, NULL, NULL);
+    engine->cmdhandler = cmdhandler_create(engine->config->clisock_filename_signer, signercommands, engine, NULL, NULL);
     if (!engine->cmdhandler) {
         return ODS_STATUS_CMDHANDLER_ERR;
     }
@@ -370,20 +369,20 @@ engine_setup(void)
         }
     }
     /* privdrop */
-    engine->uid = privuid(engine->config->username);
-    engine->gid = privgid(engine->config->group);
+    engine->uid = privuid(engine->config->username_signer);
+    engine->gid = privgid(engine->config->group_signer);
     /* TODO: does piddir exists? */
     /* remove the chown stuff: piddir? */
-    ods_chown(engine->config->pid_filename, engine->uid, engine->gid, 1);
-    ods_chown(engine->config->clisock_filename, engine->uid, engine->gid, 0);
-    ods_chown(engine->config->working_dir, engine->uid, engine->gid, 0);
+    ods_chown(engine->config->pid_filename_signer, engine->uid, engine->gid, 1);
+    ods_chown(engine->config->clisock_filename_signer, engine->uid, engine->gid, 0);
+    ods_chown(engine->config->working_dir_signer, engine->uid, engine->gid, 0);
     if (engine->config->log_filename && !engine->config->use_syslog) {
         ods_chown(engine->config->log_filename, engine->uid, engine->gid, 0);
     }
-    if (engine->config->working_dir &&
-        chdir(engine->config->working_dir) != 0) {
+    if (engine->config->working_dir_signer &&
+        chdir(engine->config->working_dir_signer) != 0) {
         ods_log_error("[%s] setup: unable to chdir to %s (%s)", engine_str,
-            engine->config->working_dir, strerror(errno));
+            engine->config->working_dir_signer, strerror(errno));
         return ODS_STATUS_CHDIR_ERR;
     }
     if (engine_privdrop(engine) != ODS_STATUS_OK) {
@@ -434,7 +433,7 @@ engine_setup(void)
     }
     engine->pid = getpid();
     /* write pidfile */
-    if (util_write_pidfile(engine->config->pid_filename, engine->pid) == -1) {
+    if (util_write_pidfile(engine->config->pid_filename_signer, engine->pid) == -1) {
         if (engine->daemonize) {
             ods_writeln(pipefd[1], "Unable to write pid file");
             write(pipefd[1], "\0", 1);
@@ -480,27 +479,49 @@ engine_setup(void)
 static void
 engine_run(engine_type* engine)
 {
-    if (!engine) {
-        return;
-    }
-    engine_start_workers(engine);
-
-    while (!engine->need_to_exit && !engine->need_to_reload) {
-        /* We must use locking here to avoid race conditions. We want
-         * to sleep indefinitely and want to wake up on signal. This
-         * is to make sure we never mis the signal. */
-        pthread_mutex_lock(&engine->signal_lock);
-        if (!engine->need_to_exit && !engine->need_to_reload) {
-            /* TODO: this silly. We should be handling the commandhandler
-             * connections. No reason to spawn that as a thread.
-             * Also it would be easier to wake up the command hander
-             * as signals will reach it if it is the main thread! */
-            ods_log_debug("[%s] taking a break", engine_str);
-            pthread_cond_wait(&engine->signal_cond, &engine->signal_lock);
+    if (engine->config->num_worker_threads_signer == 0) {
+        task_type* task;
+        worker_type singleworker;
+        struct worker_context singleworkercontext;
+        engine_start_workers(engine);
+        singleworker.context = &singleworkercontext;
+        singleworker.name = "single";
+        singleworker.need_to_exit = 0;
+        singleworker.taskq = engine->taskq;
+        singleworker.thread_id = 0;
+        singleworker.tasksOutstanding = 0;
+        singleworker.tasksFailed = 0;
+        pthread_cond_init(&singleworker.tasksBlocker, NULL);
+        singleworkercontext.engine = engine;
+        singleworkercontext.worker = &singleworker;
+        singleworkercontext.signq  = engine->taskq->signq;
+        do {
+            task = schedule_pop_task_nowait(engine->taskq);
+            if(task) {
+                task_perform(engine->taskq, task, &singleworkercontext);
+            }
+        } while(task && !engine->need_to_reload);
+        if(!task)
+            engine->need_to_exit = 1;
+    } else {
+        engine_start_workers(engine);
+        while (!engine->need_to_exit && !engine->need_to_reload) {
+            /* We must use locking here to avoid race conditions. We want
+             * to sleep indefinitely and want to wake up on signal. This
+             * is to make sure we never mis the signal. */
+            pthread_mutex_lock(&engine->signal_lock);
+            if (!engine->need_to_exit && !engine->need_to_reload) {
+                /* TODO: this silly. We should be handling the commandhandler
+                 * connections. No reason to spawn that as a thread.
+                 * Also it would be easier to wake up the command hander
+                 * as signals will reach it if it is the main thread! */
+                ods_log_debug("[%s] taking a break", engine_str);
+                pthread_cond_wait(&engine->signal_cond, &engine->signal_lock);
+            }
+            pthread_mutex_unlock(&engine->signal_lock);
         }
-        pthread_mutex_unlock(&engine->signal_lock);
+        ods_log_debug("[%s] signer halted", engine_str);
     }
-    ods_log_debug("[%s] signer halted", engine_str);
     engine_stop_threads(engine);
 }
 
@@ -779,7 +800,7 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize, int info
     engine->daemonize = daemonize;
 
     /* config */
-    engine->config = engine_config(cfgfile, cmdline_verbosity);
+    engine->config = engine_config(cfgfile, cmdline_verbosity, NULL);
     status = engine_config_check(engine->config);
     if (status != ODS_STATUS_OK) {
         ods_log_error("[%s] cfgfile %s has errors", engine_str, cfgfile);
@@ -800,9 +821,11 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize, int info
         fprintf(stdout, "Configuration:\n");
         engine_config_print(stdout, engine->config); /* for debugging */
         goto earlyexit;
+    } else if (info == 2) {
+        engine->config->num_worker_threads_signer = 0;
     }
     /* check pidfile */
-    if (!util_check_pidfile(engine->config->pid_filename)) {
+    if (!util_check_pidfile(engine->config->pid_filename_signer)) {
         exit(1);
     }
     /* setup */
@@ -818,7 +841,7 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize, int info
         /* update zone list */
         pthread_mutex_lock(&engine->zonelist->zl_lock);
         zl_changed = zonelist_update(engine->zonelist,
-            engine->config->zonelist_filename);
+            engine->config->zonelist_filename_signer);
         engine->zonelist->just_removed = 0;
         engine->zonelist->just_added = 0;
         engine->zonelist->just_updated = 0;
@@ -867,11 +890,11 @@ engine_start(const char* cfgfile, int cmdline_verbosity, int daemonize, int info
 
 earlyexit:
     if (engine && engine->config) {
-        if (engine->config->pid_filename) {
-            (void)unlink(engine->config->pid_filename);
+        if (engine->config->pid_filename_signer) {
+            (void)unlink(engine->config->pid_filename_signer);
         }
-        if (engine->config->clisock_filename) {
-            (void)unlink(engine->config->clisock_filename);
+        if (engine->config->clisock_filename_signer) {
+            (void)unlink(engine->config->clisock_filename_signer);
         }
     }
     tsig_handler_cleanup();
@@ -896,7 +919,7 @@ engine_cleanup(engine_type* engine)
         return;
     }
     if (engine->config) {
-        numTotalWorkers = engine->config->num_worker_threads + engine->config->num_signer_threads;
+        numTotalWorkers = engine->config->num_worker_threads_signer + engine->config->num_signer_threads;
         if (engine->workers) {
             for (i=0; i < (size_t) numTotalWorkers; i++) {
                 worker_cleanup(engine->workers[i]);

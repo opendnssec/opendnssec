@@ -62,6 +62,7 @@
 #include "db/db_error.h"
 
 #include "enforcer/enforcer.h"
+#include "policy/policy_io.h"
 #include "signconf/signconf_xml.h"
 #include "file.h"
 
@@ -2235,7 +2236,7 @@ updatePolicy(engine_type *engine, db_connection_t *dbconn, policy_t const *polic
 	 * Get all policy keys (configurations) for the given policy and fetch all
 	 * the policy key database objects so we can iterate over it more then once.
 	 */
-	if (!(policykeylist = policy_get_policy_keys(policy))) {
+	if (!(policykeylist = policy_key_list_new_get_by_policy_id(db_object_connection(policy->dbo), &(policy->id)))) {
 		/* TODO: better log error */
 		ods_log_error("[%s] %s: error policy_get_policy_keys()", module_str, scmd);
 		policy_key_list_free(policykeylist);

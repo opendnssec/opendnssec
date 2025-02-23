@@ -38,8 +38,8 @@
 struct worker_context {
     engine_type* engine;
     worker_type* worker;
-    fifoq_type* signq;
-    time_t clock_in;
+    fifoq_type signq;
+    time_t signtime;
 };
 
 extern void drudge(worker_type* worker);

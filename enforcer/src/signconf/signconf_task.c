@@ -27,11 +27,14 @@
  *
  */
 
-#include "signconf/signconf_xml.h"
+#include "config.h"
+#include <stdio.h>
+#include <time.h>
 #include "duration.h"
 #include "log.h"
 #include "file.h"
-
+#include "hooks.h"
+#include "signconf/signconf_xml.h"
 #include "signconf/signconf_task.h"
 
 static const char *module_str = "signconf_cmd";
@@ -41,7 +44,6 @@ perform(task_type* task, char const *zonename, void *userdata, void *context)
 {
     (void)userdata;
     int ret;
-    char cmd[SYSTEM_MAXLEN];
     db_connection_t* dbconn = (db_connection_t*) context;
 
     ods_log_info("[%s] performing signconf for zone %s", module_str,
@@ -63,12 +65,7 @@ perform(task_type* task, char const *zonename, void *userdata, void *context)
         module_str, zonename);
         
     /* TODO: do this better, connect directly or use execve() */
-    if (snprintf(cmd, sizeof(cmd), "%s %s", SIGNER_CLI_UPDATE, zonename) >= (int)sizeof(cmd)
-        || system(cmd))
-    {
-        ods_log_error("[%s] unable to notify signer of signconf changes for zone %s!",
-            module_str, zonename);
-    }
+    hook_trigger("ods-signer-update", zonename);
     return schedule_SUCCESS;
 }
 

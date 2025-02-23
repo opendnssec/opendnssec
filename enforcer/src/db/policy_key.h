@@ -45,7 +45,6 @@ typedef enum policy_key_role {
 } policy_key_role_t;
 extern const db_enum_t policy_key_enum_set_role[];
 
-#include "policy_key_ext.h"
 #include "policy.h"
 
 /**
@@ -68,6 +67,12 @@ struct policy_key {
     unsigned int rfc5011;
     unsigned int minimize;
 };
+
+#define POLICY_KEY_MINIMIZE_NONE          0
+#define POLICY_KEY_MINIMIZE_RRSIG         (1<<0)
+#define POLICY_KEY_MINIMIZE_DNSKEY        (1<<1)
+#define POLICY_KEY_MINIMIZE_DS            (1<<2)
+#define POLICY_KEY_MINIMIZE_DS_AND_RRSIG  (POLICY_KEY_MINIMIZE_DS|POLICY_KEY_MINIMIZE_RRSIG)
 
 /**
  * Create a new policy key object.

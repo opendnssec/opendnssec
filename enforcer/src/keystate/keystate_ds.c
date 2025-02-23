@@ -441,7 +441,6 @@ run_ds_cmd(cmdhandler_ctx_type* context, int argc, char* argv[],
 	int keytag = -1;
 	hsm_key_t* hsmkey = NULL;
 	int ret;
-	char buf[ODS_SE_MAXLINE];
 	zone_db_t* zone = NULL;
 	int all = 0;
 	int long_index = 0, opt = 0;

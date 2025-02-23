@@ -66,7 +66,7 @@ struct schedule_struct {
     ldns_rbtree_t* tasks_by_name;
     /* For every ttuple contains a task structure with an unique lock */
     ldns_rbtree_t* locks_by_name;
-    fifoq_type* signq;
+    fifoq_type signq;
     pthread_cond_t schedule_cond;
     pthread_mutex_t schedule_lock;
     /* For testing. So we can verify al workers are waiting and nothing
@@ -135,10 +135,20 @@ void schedule_unscheduletask(schedule_type* schedule, task_id task, const char* 
  * NULL when the caller is awoken. 
  *
  * \param[in] schedule schedule
+ * \return task_type* popped task, or NULL when no task available
+                      */
+task_type* schedule_pop_task(schedule_type* schedule);
+
+/**
+ * Pop the first scheduled task that is due. If an item is directly
+ * available it will be returned, in case there is no task NULL
+ * is returned.
+ *
+ * \param[in] schedule schedule
  * \return task_type* popped task, or NULL when no task available or
  * no task due
  */
-task_type* schedule_pop_task(schedule_type* schedule);
+task_type* schedule_pop_task_nowait(schedule_type* schedule);
 
 /**
  * Pop the first scheduled task. regardless of its due time.

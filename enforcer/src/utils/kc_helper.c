@@ -23,7 +23,6 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#define _GNU_SOURCE
 #include <syslog.h>
 #include <stdarg.h>
 #include <stdio.h>

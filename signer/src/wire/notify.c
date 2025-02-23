@@ -142,7 +142,7 @@ static void
 notify_setup(notify_type* notify)
 {
     zone_type* zone = NULL;
-    dnsout_type* dnsout = NULL;
+    dnsio_type* dnsout = NULL;
     if (!notify) {
         return;
     }
@@ -151,9 +151,9 @@ notify_setup(notify_type* notify)
     ods_log_assert(zone->adoutbound);
     ods_log_assert(zone->adoutbound->config);
     ods_log_assert(zone->adoutbound->type == ADAPTER_DNS);
-    dnsout = (dnsout_type*) zone->adoutbound->config;
+    dnsout = (dnsio_type*) zone->adoutbound->config;
     notify->retry = 0;
-    notify->secondary = dnsout->do_notify;
+    notify->secondary = dnsout->notify_acl;
     ods_log_debug("[%s] setup notify for zone %s", notify_str, zone->name);
     notify_set_timer(notify, notify_time(notify));
 }
@@ -545,7 +545,7 @@ notify_enable(notify_type* notify, ldns_rr* soa)
 {
     xfrhandler_type* xfrhandler = NULL;
     zone_type* zone = NULL;
-    dnsout_type* dnsout = NULL;
+    dnsio_type* dnsout = NULL;
     if (!notify) {
         return;
     }
@@ -557,8 +557,8 @@ notify_enable(notify_type* notify, ldns_rr* soa)
     ods_log_assert(zone->adoutbound);
     ods_log_assert(zone->adoutbound->config);
     ods_log_assert(zone->adoutbound->type == ADAPTER_DNS);
-    dnsout = (dnsout_type*) zone->adoutbound->config;
-    if (!dnsout->do_notify) {
+    dnsout = (dnsio_type*) zone->adoutbound->config;
+    if (!dnsout->notify_acl) {
         ods_log_warning("[%s] zone %s has no notify acl", notify_str,
             zone->name);
         return; /* nothing to do */
@@ -577,7 +577,7 @@ notify_enable(notify_type* notify, ldns_rr* soa)
         return;
     }
     /* put it in waiting list */
-    notify->secondary = dnsout->do_notify;
+    notify->secondary = dnsout->notify_acl;
     notify->is_waiting = 1;
     notify->waiting_next = NULL;
     if (xfrhandler->notify_waiting_last) {

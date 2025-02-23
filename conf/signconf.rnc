@@ -35,6 +35,9 @@ zone = element Zone {
 		# Do not touch contents of zonefile.
 		& element Passthrough { empty }?
 
+		# Add or update ZoneMD scheme
+		& element ZoneMD { attribute algorithm { xsd:nonNegativeInteger } }*
+
 		# this section is taken directly from the corresponding KASP policy
 		& element Signatures {
 			element Resign { xsd:duration }

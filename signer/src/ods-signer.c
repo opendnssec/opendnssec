@@ -31,7 +31,7 @@
 
 #include "config.h"
 
-#include<signal.h>
+#include <signal.h>
 #include <errno.h>
 #include <fcntl.h> /* fcntl() */
 #include <stdio.h> /* fprintf() */
@@ -394,11 +394,6 @@ main(int argc, char* argv[])
         argv0 = argv[0];
     else
         ++argv0;
-
-    if (argc > 5) {
-        fprintf(stderr,"error, too many arguments (%d)\n", argc);
-        exit(1);
-    }
 
    /* parse the commandline. The + in the arg string tells getopt
      * to stop parsing when an unknown command is found not starting 

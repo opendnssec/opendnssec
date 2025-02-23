@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 NLNet Labs. All rights reserved.
+ * Copyright (c) 2023 NLNet Labs. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -24,24 +24,26 @@
  *
  */
 
-/**
- * Parsing zonelist files.
- *
- */
+#ifndef SCHEDULER_HOOKS_H
+#define SCHEDULER_HOOKS_H
 
-#ifndef PARSER_ZONELISTPARSER_H
-#define PARSER_ZONELISTPARSER_H
+#include "config.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <stdlib.h>
+#include <pthread.h>
+#include "log.h"
+#include "janitor.h"
 
-#include "adapter/adapter.h"
-#include "status.h"
+typedef void* hook_t;
 
-/**
- * Parse the zonelist file.
- * \param[in] zlist zone list storage
- * \param[in] zlfile zonelist file name
- * \return ods_status status
- *
- */
-extern ods_status parse_conf_zonelist(struct zonelist_struct* zlist, const char* zlfile);
+extern void hook_trigger(hook_t, const char* arg);
+extern int hook_ablock(hook_t);
+extern int hook_ablockrange(hook_t, long minimum, long maximum);
+extern int hook_ablockvalue(hook_t, long value);
+extern int hook_satisfy(hook_t);
+// extern int hook_satisfyvalue(hook_t long value);
+// extern int hook_satisfyrange(hook_t long minimum, long maximum);
 
-#endif /* PARSER_ZONELISTPARSER_H */
+#endif
