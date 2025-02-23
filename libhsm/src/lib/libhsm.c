@@ -1311,11 +1311,10 @@ hsm_hex_parse(const char *hex, size_t *len)
 static void
 hsm_hex_unparse(char *dst, const unsigned char *src, size_t len)
 {
-    size_t dst_len = len*2 + 1;
     size_t i;
 
     for (i = 0; i < len; i++) {
-        snprintf(dst + (2*i), dst_len, "%02x", src[i]);
+        snprintf(dst + (2*i), 3, "%02x", src[i]);
     }
     dst[len*2] = '\0';
 }

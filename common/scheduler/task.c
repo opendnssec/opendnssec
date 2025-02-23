@@ -56,6 +56,7 @@ const char* TASK_TYPE_HSMKEYGEN = "hsmkeygen";
 const char* TASK_TYPE_DSSUBMIT  = "ds-submit";
 const char* TASK_TYPE_DSRETRACT = "ds-retract";
 const char* TASK_TYPE_SIGNCONF  = "signconf";
+const char* TASK_TYPE_DELKEYS   = "deletekeys";
 
 const char* TASK_SIGNCONF       = "[configure]";
 const char* TASK_READ           = "[read]";

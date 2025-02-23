@@ -377,7 +377,7 @@ cmdhandler_handle_cmd_sign(cmdhandler_ctx_type* context, int argc, char* argv[])
         return -1;
     }
     if(signtimestr) {
-        if(strcmp(signtimestr, "now", &tm)) {
+        if(strcmp(signtimestr, "now")) {
             signtime = time_now();
         } else if(strptime(signtimestr, "%Y-%m-%d-%H:%M:%S", &tm)) {
             tm.tm_isdst = -1;
