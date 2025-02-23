@@ -404,14 +404,14 @@ do_signzone(task_type* task, const char* zonename, void* zonearg, void *contexta
             break;
         case SIGNER_INTRMODE_NAIVE:
             if(zone->db->outsigntime == 0 && lastsigntime == 0) {
-                ods_log_crit("Unable to continue due to outage, no previous signed zone known BERRY#1");
+                ods_log_crit("Unable to continue due to outage, no previous signed zone known");
                 task->backoff = duration2time(zone->signconf->sig_resign_interval);
                 return schedule_FAILED;
             }
             break;
         case SIGNER_INTRMODE_FULLCONT:
             if(zone->db->outsigntime == 0 && lastsigntime == 0) {
-                ods_log_crit("Unable to continue due to outage, no previous signed zone known BERRY#2");
+                ods_log_crit("Unable to continue due to outage, no previous signed zone known");
                 task->backoff = duration2time(zone->signconf->sig_resign_interval);
                 return schedule_FAILED;
             } else if(lastsigntime + duration2time(zone->signconf->sig_resign_interval) < zone->db->outsigntime) {

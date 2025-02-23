@@ -377,11 +377,13 @@ cmdhandler_handle_cmd_sign(cmdhandler_ctx_type* context, int argc, char* argv[])
         return -1;
     }
     if(signtimestr) {
-        if(strptime(signtimestr, "%Y-%m-%d-%H:%M:%S", &tm)) {
+        if(strcmp(signtimestr, "now", &tm)) {
+            signtime = time_now();
+        } else if(strptime(signtimestr, "%Y-%m-%d-%H:%M:%S", &tm)) {
             tm.tm_isdst = -1;
             signtime = mktime(&tm);
         } else {
-            client_printf_err(context->sockfd, "Error - could not convert '%s' to a time. Format is YYYY-MM-DD-HH:MM:SS \n", signtimestr);
+            client_printf_err(context->sockfd, "Error - could not convert '%s' to a time. Format is YYYY-MM-DD-HH:MM:SS or \"now\"\n", signtimestr);
             return -1;
         }
     }
@@ -418,7 +420,7 @@ cmdhandler_handle_cmd_sign(cmdhandler_ctx_type* context, int argc, char* argv[])
     }
     return 0;
 }
-
+ 
 /**
  * Unlink backup file.
  *
