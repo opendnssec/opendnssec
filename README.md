@@ -16,4 +16,4 @@ at http://www.opendnssec.org/support/.
 
 ## Notice:
 
-    The develop branch is not the develop branch that is up for coming release, rather is for a future ODS-3.0 release.  The 2.1/develop branch is the current branch with fixes and active new developments for near term releases.
+The develop branch is not the develop branch that is up for coming release, rather is for a future ODS-3.0 release.  The 2.1/develop branch is the current branch with fixes and active new developments for near term releases.
