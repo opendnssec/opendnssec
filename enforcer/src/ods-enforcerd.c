@@ -60,6 +60,7 @@ usage(FILE* out)
     fprintf(out, " -c | --config <cfgfile> Read configuration from file.\n");
     fprintf(out, " -d | --no-daemon        Do not daemonize the enforcer "
             "engine.\n");
+    fprintf(out, " -s | --stderr           Log to standard error output.\n");
     fprintf(out, " -1 | --single-run       Run once, then exit.\n");
     fprintf(out, " -h | --help             Show this help and exit.\n");
     fprintf(out, " -i | --info             Print configuration and exit.\n");
@@ -89,12 +90,22 @@ version(FILE* out)
 }
 
 static void
-program_setup(const char* cfgfile, int cmdline_verbosity)
+program_setup(const char* cfgfile, int cmdline_verbosity, int log_stderr)
 {
     const char* file;
+    int use_syslog;
+
+    /* bypass log directives from the configuration file is stderr logging is required */
+    if(log_stderr) {
+        file = NULL;
+        use_syslog = 0;
+    } else {
+        file = parse_conf_log_filename(cfgfile);
+        use_syslog = parse_conf_use_syslog(cfgfile);
+    }
+
     /* fully initialized log with parameters in conf file*/
-    file = parse_conf_log_filename(cfgfile);
-    ods_log_init("ods-enforcerd", parse_conf_use_syslog(cfgfile), file, cmdline_verbosity?cmdline_verbosity:parse_conf_verbosity(cfgfile));
+    ods_log_init("ods-enforcerd", use_syslog, file, cmdline_verbosity?cmdline_verbosity:parse_conf_verbosity(cfgfile));
     ods_log_verbose("[%s] starting enforcer", enforcerd_str);
 
     /* initialize */
@@ -136,6 +147,7 @@ main(int argc, char* argv[])
     int info = 0;
     int single_run = 0;
     int daemonize = 1;
+    int log_stderr = 0;
     int cmdline_verbosity = 0;
     char *time_arg = NULL;
     const char* cfgfile = ODS_SE_CFGFILE;
@@ -143,6 +155,7 @@ main(int argc, char* argv[])
         {"single-run", no_argument, 0, '1'},
         {"config", required_argument, 0, 'c'},
         {"no-daemon", no_argument, 0, 'd'},
+        {"stderr", no_argument, 0, 's'},
         {"help", no_argument, 0, 'h'},
         {"info", no_argument, 0, 'i'},
         {"verbose", no_argument, 0, 'v'},
@@ -160,7 +173,7 @@ main(int argc, char* argv[])
     }
 
     /* parse the commandline */
-    while ((c=getopt_long(argc, argv, "1c:dhivV",
+    while ((c=getopt_long(argc, argv, "1c:dshivV",
         long_options, &options_index)) != -1) {
         switch (c) {
             case '1':
@@ -171,6 +184,9 @@ main(int argc, char* argv[])
                 break;
             case 'd':
                 daemonize = 0;
+                break;
+            case 's':
+                log_stderr = 0;
                 break;
             case 'h':
                 usage(stdout);
@@ -211,7 +227,7 @@ main(int argc, char* argv[])
         PACKAGE_VERSION);
     
     ods_janitor_initialize(argv0);
-    program_setup(cfgfile, cmdline_verbosity); /* setup basic logging, xml, PB */
+    program_setup(cfgfile, cmdline_verbosity, log_stderr); /* setup basic logging, xml, PB */
     engine = engine_alloc(); /* Let's create an engine only once */
     if (!engine) {
         ods_log_crit("Could not start engine");
