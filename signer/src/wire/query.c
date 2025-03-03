@@ -277,6 +277,13 @@ query_process_notify(query_type* q, ldns_rr_type qtype, engine_type* engine)
     ods_log_assert(q->zone->name);
     ods_log_verbose("[%s] incoming notify for zone %s", query_str,
         q->zone->name);
+
+    // Ensure that we read the message from the start as the read cursor
+    // may have been advanced past any OPT record present causing the skip
+    // past the header that happens below to attempt to move beyond the end
+    // of the buffer.
+    buffer_set_position(q->buffer, 0);
+
     if (buffer_pkt_rcode(q->buffer) != LDNS_RCODE_NOERROR ||
         buffer_pkt_qr(q->buffer) ||
         !buffer_pkt_aa(q->buffer) ||
