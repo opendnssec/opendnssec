@@ -1,0 +1,8 @@
+--artifact-server-path=./artifacts
+--container-options --init --mount type=volume,src=ods-root,dst=/home/runner/ROOT
+--platform ubuntu-latest=catthehacker/ubuntu:full-latest
+--platform ods-build-job=ximon18/ods-build-job
+--platform ods-test-job=ximon18/ods-test-job
+--use-gitignore
+--pull=false
+--rm
