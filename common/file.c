@@ -392,8 +392,8 @@ ods_replace(const char *str, const char *oldstr, const char *newstr)
 
     // Characters preceeding oldstr exist in str. Copy them to the output buffer.
     strncat(buffer, str, part1_len);
-    strcat(buffer, newstr);
-    strcat(buffer, part3);
+    strlcat(buffer, newstr, part1_len+part2_len+part3_len+1);
+    strlcat(buffer, part3, part1_len+part2_len+part3_len+1);
 
     return buffer;
 }
