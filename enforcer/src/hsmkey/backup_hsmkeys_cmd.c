@@ -216,6 +216,8 @@ run(cmdhandler_ctx_type* context, int argc, char* argv[])
                 return -1;
         }
     }
+    argv += optctx.optind;
+    argc -= optctx.optind;
 
     /* iterate the keys */
     if (!(clause_list = db_clause_list_new())) {
@@ -229,7 +231,7 @@ run(cmdhandler_ctx_type* context, int argc, char* argv[])
     }
     
     /* Find out what we need to do */
-    if (argc < 2) {
+    if (argc != 2) {
         client_printf_err(sockfd, "Usage:\n\nbackup [list|prepare|commit|rollback]\n   --repository <repository>                    aka -r\n\n");
         status = -1;
     } else if (ods_check_command(argv[1],"prepare"))
