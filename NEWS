@@ -1,3 +1,7 @@
+OpenDNSSEC 2.1.15 - 2025-??-??
+
+* Merge #858: Fix ods-enforcer backup -r or --repository usage
+
 OpenDNSSEC 2.1.14 - 2024-08-22
 
 * OPENDNSSEC-965: Extra logging in case of HSM issues
