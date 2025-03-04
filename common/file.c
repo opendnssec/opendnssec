@@ -381,7 +381,8 @@ ods_replace(const char *str, const char *oldstr, const char *newstr)
     part2_len = strlen(newstr);
 
     // Length of the string that follows oldstr
-    part3_len = strlen(ch+strlen(oldstr));
+    char* part3 = ch+strlen(oldstr);
+    part3_len = strlen(part3);
 
     buffer = calloc(part1_len+part2_len+part3_len+1, sizeof(char));
     if (!buffer) {
@@ -390,18 +391,9 @@ ods_replace(const char *str, const char *oldstr, const char *newstr)
     buffer[0] = '\0';
 
     // Characters preceeding oldstr exist in str. Copy them to the output buffer.
-    if (part1_len) {
-        strncpy(buffer, str, part1_len);
-        buffer[part1_len] = '\0';
-    }
-
-    // Append newstr.
-    strncat(buffer, newstr, part2_len);
-
-    // Append the string in str that follows the first match of oldstr, if any.
-    if (part3_len) {
-        strncat(buffer, ch+strlen(oldstr), part3_len);
-    }
+    strncat(buffer, str, part1_len);
+    strcat(buffer, newstr);
+    strcat(buffer, part3);
 
     return buffer;
 }
