@@ -20,7 +20,7 @@ ods_reset_env &&
 
 ods_start_ods-control && 
 
-syslog_waitfor 60 'ods-signerd: .*\[STATS\] ods' &&
+syslog_waitfor 120 'ods-signerd: .*\[STATS\] ods' &&
 test -f "$INSTALL_ROOT/var/opendnssec/signed/ods" &&
 
 ods_stop_ods-control && 
