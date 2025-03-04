@@ -41,7 +41,7 @@ perform(task_type* task, char const *zonename, void *userdata, void *context)
 {
     (void)userdata;
     int ret;
-    char cmd[SYSTEM_MAXLEN];
+    char cmd[1024];
     db_connection_t* dbconn = (db_connection_t*) context;
 
     ods_log_info("[%s] performing signconf for zone %s", module_str,
