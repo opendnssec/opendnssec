@@ -374,37 +374,29 @@ ods_replace(const char *str, const char *oldstr, const char *newstr)
         return buffer;
     }
 
+    // Length of str upto the first occurence of oldstr
     part1_len = ch-str;
+
+    // Length of newstr (which will be inserted after part 1)
     part2_len = strlen(newstr);
-    part3_len = strlen(ch+strlen(oldstr));
+
+    // Length of the string that follows oldstr
+    char* part3 = ch+strlen(oldstr);
+    part3_len = strlen(part3);
+
     buffer = calloc(part1_len+part2_len+part3_len+1, sizeof(char));
     if (!buffer) {
         return NULL;
     }
+    buffer[0] = '\0';
 
-    if (part1_len) {
-        strncpy(buffer, str, part1_len);
-        buffer[part1_len] = '\0';
+    // Characters preceeding oldstr exist in str. Copy them to the output buffer.
+    strncat(buffer, str, part1_len);
+    strlcat(buffer, newstr, part1_len+part2_len+part3_len+1);
+    strlcat(buffer, part3, part1_len+part2_len+part3_len+1);
 
-        if (part2_len) {
-            strncat(buffer, str, part2_len);
-            buffer[part1_len+part2_len] = '\0';
-        }
-    } else {
-        strncpy(buffer, newstr, part2_len);
-        buffer[part2_len] = '\0';
-    }
-
-    if (part3_len) {
-        strncat(buffer, ch+strlen(oldstr), part3_len);
-        buffer[part1_len+part2_len+part3_len] = '\0';
-    }
-
-    buffer[ch-str] = '\0';
-    snprintf(buffer+(ch-str), SYSTEM_MAXLEN, "%s%s", newstr, ch+strlen(oldstr));
     return buffer;
 }
-
 
 /**
  * File copy.
