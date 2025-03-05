@@ -1,6 +1,10 @@
 OpenDNSSEC 2.1.15 - 2025-??-??
 
 * Merge #858: Fix ods-enforcer backup -r or --repository usage
+* Merge #859: Fix ods-enforcer backup to no longer ignore excess arguments
+* Merge #865: Don't crash if a NOTIFY query has EDNS(0) OPT RRs
+* Merge #861: Internal: Remove futile condition
+* Merge #866: Internal: Fix some incorrect use of `snprintf()` which caused an abort in debug builds
 
 OpenDNSSEC 2.1.14 - 2024-08-22
 
