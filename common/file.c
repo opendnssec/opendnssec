@@ -30,6 +30,7 @@
  */
 
 #include "config.h"
+#include "compat.h"
 #include "file.h"
 #include "log.h"
 #include "clientpipe.h"
