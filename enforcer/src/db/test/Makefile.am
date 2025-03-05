@@ -1,4 +1,5 @@
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
+LIBCOMPAT = ${top_builddir}/common/libcompat.a
 
 AM_CPPFLAGS = \
 	-I$(top_srcdir)/common \
@@ -54,7 +55,8 @@ test_LDADD = \
 	${top_builddir}/common/duration.o \
 	${top_builddir}/common/log.o \
 	${top_builddir}/common/file.o \
-	$(BACKEND_LDADD_CUSTOM)
+	$(BACKEND_LDADD_CUSTOM) \
+	${LIBCOMPAT}
 
 test_LDFLAGS = -no-install \
 	@XML2_LIBS@ \
