@@ -1065,6 +1065,11 @@ ods_start_ods-control ()
 	ods_enforcer_waitfor_starts "$(( ODS_ENFORCER_START_COUNT + 1 ))" "$timeout" &&
 
 	echo "ods_start_ods-control: ods-control started OK" &&
+	if [ -n "$ODS_TEST_MIN_VERBOSITY" ]; then
+		echo "ods_start_ods-control: Forcing ODS verbosity to ${ODS_TEST_MIN_VERBOSITY} because env var ODS_TEST_MIN_VERBOSITY is set."
+		ods_enforcer_verbosity $ODS_TEST_MIN_VERBOSITY &&
+		ods_signer_verbosity $ODS_TEST_MIN_VERBOSITY
+	fi &&
 	return 0
 
 	echo "ods_start_ods-control: ods-control started FAILED" >&2
@@ -1719,4 +1724,46 @@ END
 	fi
 	echo "comparing file '$1' to '$2'."
 	diff -rw "$1~" "$2~"
+}
+
+ods_enforcer_verbosity() {
+	if [ -z "$1" ]; then
+		echo "usage: ods_enforcer_verbosity <verbosity>" >&2
+		exit 1
+	fi
+	ods_set_verbosity enforcer $1
+}
+
+ods_signer_verbosity() {
+	if [ -z "$1" ]; then
+		echo "usage: ods_signer_verbosity <verbosity>" >&2
+		exit 1
+	fi
+	ods_set_verbosity signer $1
+}
+
+ods_set_verbosity() {
+	if [ -z "$1" -o -z "$2" ]; then
+		echo "usage: ods_set_verbosity signer|enforcer <verbosity>" >&2
+		exit 1
+	fi
+
+	local daemon="$1"
+	local verbosity="$2"
+
+	if [ -n "$ODS_TEST_MIN_VERBOSITY" ]; then
+		verbosity=$(( verbosity > ODS_TEST_MIN_VERBOSITY ? verbosity : ODS_TEST_MIN_VERBOSITY ))
+		if [ $verbosity -ne $2 ]; then
+			echo "ods_set_verbosity: Requested verbosity $1 increased to ${ODS_TEST_MIN_VERBOSITY} because env var ODS_TEST_MIN_VERBOSITY is set."
+		fi
+	fi
+
+	case $daemon in
+		enforcer)
+			ods-enforcer verbosity $verbosity
+			;;
+		signer)
+			ods-signer verbosity $verbosity
+			;;
+	esac
 }
