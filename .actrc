@@ -1,0 +1,6 @@
+--artifact-server-path=./artifacts
+--container-options --init
+--platform ubuntu-latest=catthehacker/ubuntu:full-latest
+--use-gitignore
+--rm
+--input run-in-parallel=false
