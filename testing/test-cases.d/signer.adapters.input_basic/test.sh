@@ -23,7 +23,7 @@ ods_ldns_testns 15353 ods.datafile &&
 ## Start OpenDNSSEC
 ods_start_ods-control && 
 
-ods-signer verbosity 5 &&
+ods_signer_verbosity 5 &&
 
 ## Wait for signed zone file
 syslog_waitfor 300 'ods-signerd: .*\[STATS\] ods' &&
