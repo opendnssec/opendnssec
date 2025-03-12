@@ -60,9 +60,9 @@ log_grep ixfr stdout ods\..*3600.*IN.*SOA.*ns1\.ods\..*postmaster\.ods\..*1001.*
 ! (log_grep ixfr stdout ods\..*600.*IN.*MX.*10.*mail\.ods\.) &&
 
 ## See if we fallback to AXFR if IXFR not available.
-log_this_timeout ixfr-tcp 10 drill -t -p 15354 @127.0.0.1 ixfr ods &&
-log_grep ixfr-tcp stdout 'ods\..*3600.*IN.*SOA.*ns1\.ods\..*postmaster\.ods\..*1001.*9000.*4500.*1209600.*3600' &&
-log_grep ixfr-tcp stdout 'ods\..*600.*IN.*MX.*10.*mail\.ods\.' &&
+log_this_timeout ixfr-tcp 10 dnsi xfr --format dig -p 15354 -s 127.0.0.1 --ixfr 1000 ods &&
+log_grep ixfr-tcp stdout ods\..*3600.*IN.*SOA.*ns1\.ods\..*postmaster\.ods\..*1001.*9000.*4500.*1209600.*3600 &&
+log_grep ixfr-tcp stdout ods\..*600.*IN.*MX.*10.*mail\.ods\. &&
 
 ## Update zonefile to create journal
 cp -- ./unsigned/ods.2 "$INSTALL_ROOT/var/opendnssec/unsigned/ods" &&
