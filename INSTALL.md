@@ -21,9 +21,9 @@ only once for any future download.  Obtain the PGP public key by downloading it 
 
     https://github.com/opendnssec/opendnssec/releases/latest/download/opendnssec-secring.asc
 
-to the
-source download URL. Save the key to a file named "opendnssec.asc" and import it
-using "gpg --import opendnssec.asc".
+And import it using:
+
+    gpg --import opendnssec.asc
 
 OpenDNSSEC is build using automake/autoconf, and thus includes a configure
 script to detect the right compilation requirements and configure any
