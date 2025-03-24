@@ -274,7 +274,7 @@ jobs:
           sudo apt-get install -y build-essential curl libssl-dev pkg-config
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sudo sh -s -- -y --profile minimal --default-toolchain stable
           . "$HOME/.cargo/env"
-          cargo install --git https://github.com/NLnetLabs/dnsi --branch xfr-with-udp
+          cargo install --git https://github.com/NLnetLabs/dnsi --branch xfr
           cargo install --git https://github.com/NLnetLabs/dnst --branch ldns-testns
           P=$HOME/.cargo/bin/dnst
           [ -h /usr/bin/ldns-testns ] || sudo ln -s $P /usr/bin/ldns-testns
