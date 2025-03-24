@@ -8,7 +8,7 @@ fi
 
 if [ \! -f $INSTALL_ROOT/.softhsm2.ok ] ; then
   rm -f softhsm-*tar.gz
-  wget 'https://dist.opendnssec.org/source/softhsm-2.6.1.tar.gz'
+  wget 'https://github.com/opendnssec/opendnssec/releases/latest/download/softhsm-2.6.1.tar.gz'
   gzip -d < softhsm-2.6.1.tar.gz | tar xf -
   cd softhsm-2.6.1
   ./configure --prefix="$INSTALL_ROOT" \

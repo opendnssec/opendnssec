@@ -3,25 +3,27 @@ General Installation Guide
 
 # Installation from source
 
-Fetch the sources from:
-    <URL:https://dist.opendnssec.org/source/testing/opendnssec-2.0.0a6.tar.gz>
-Verify the integrity of the distribution using one of the three commands:
-* sha256sum opendnssec-2.0.0a6.tar.gz
-* sha1sum opendnssec-2.0.0a6.tar.gz
-* gpg --verify opendnssec-2.0.0a6.tar.gz.sig
+Fetch the sources for the latest version from the following URL (remember to replace ``${VER}`` with the version number to download, e.g. 2.1.14):
 
-These three should result respectively in:
-* "SHA256(opendnssec-2.0.0a6.tar.gz)= 4da0bca47e8d17099a69f10d27f22fb3616fb8c6c2d361301ddf0dfeb0d89758";
-* "SHA1(opendnssec-2.0.0a6.tar.gz)= f71a413936dd3f03b80c550bdefe0dde9a73e6b0";
-* exit with a success (ie. with a zero execution status).
+    https://github.com/opendnssec/opendnssec/releases/latest/download/opendnssec-${VER}.tar.gz
+
+Verify the integrity of the distribution using one of the three commands:
+* ``sha256sum opendnssec-${VER}.ar.gz``
+* ``sha1sum opendnssec-${VER}.tar.gz``
+* ``gpg --verify opendnssec-${VER}.tar.gz.sig``
+
+The outputs of these commands should match the hashes and signature available available for
+download by appending ``.sha256``, ``.sha1`` and ``.sig`` to the source download URL.
 
 In order to use GPG you should first have imported the PGP
 public signing key of OpenDNSSEC.  This needs to be performed
-only once for any future download.  Obtain the PGP public key
-from <URL:https://wiki.opendnssec.org/display/OpenDNSSEC/PGP>, in
-the quotation box of the most recent distribution key on that page.
-Save the key to a file named "opendnssec.asc" and import it
-using "gpg --import opendnssec.asc".
+only once for any future download.  Obtain the PGP public key by downloading it from:
+
+    https://github.com/opendnssec/opendnssec/releases/latest/download/opendnssec-secring.asc
+
+And import it using:
+
+    gpg --import opendnssec.asc
 
 OpenDNSSEC is build using automake/autoconf, and thus includes a configure
 script to detect the right compilation requirements and configure any
