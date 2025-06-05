@@ -1,7 +1,8 @@
 m4_sinclude([version.m4])
 
-AC_PREREQ([2.69])
+AC_PREREQ([2.71])
 AC_INIT([opendnssec],[OPENDNSSEC_VERSION],[https://issues.opendnssec.org/])
+AC_CANONICAL_TARGET
 AM_DEFAULT_VERBOSITY="0"
 AC_SUBST([AM_DEFAULT_VERBOSITY])
 AM_INIT_AUTOMAKE([foreign subdir-objects])
@@ -37,10 +38,7 @@ ACX_RUNTIME_PATH_ADD
 AX_CFLAGS_WARN_ALL
 AX_CHECK_COMPILE_FLAG([-rdynamic], [CFLAGS="$CFLAGS -rdynamic"])
 
-# checks for header files
-AC_HEADER_STDC
 AC_HEADER_STDBOOL
-AC_HEADER_TIME
 AC_CHECK_HEADERS([fcntl.h inttypes.h stdio.h stdlib.h string.h syslog.h unistd.h])
 AC_CHECK_HEADERS(getopt.h,, [AC_INCLUDES_DEFAULT])
 AC_CHECK_HEADERS([errno.h getopt.h pthread.h signal.h stdarg.h stdint.h strings.h])
