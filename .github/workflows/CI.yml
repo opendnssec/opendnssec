@@ -1,13 +1,401 @@
+# Continuous integration test & build workflow for GitHub Actions.
+# Tested locally with https://github.com/nektos/act
+# Command to run all tests locally in serial: act -j test-build workflow_dispatch
+# Command to run one test locally: act  -j test-build --input run-one-test=test-cases.d/signer.conf.notify_command workflow_dispatch
+# For timestamps pipe through 'ts', e.g.: act workflow_dispatch | ts
+# See also: .actrc
 name: CI
 
 on:
+  # Run workflows on each push to any branch.
   push:
+
+  # Run workflows on manual invocation via the GitHub Actions UI "Run Workflow" button.
   workflow_dispatch:
+    inputs:
+      run-in-parallel:
+        # .actrc sets this to true because parallel invocation with act
+        # caused spurious disk space errors in local testing.
+        description: 'True to run tests in parallel (default), false to run tests sequentially'
+        default: false
+        type: boolean
+
+      run-one-test:
+        description: 'Run only the named single test, e.g. test-cases.d/general.basic.start_stop'
+        default: ''
+        type: string
+
+      build-runs-on:
+        # This is primarily intended for local act usage if for example you
+        # want to manually run some of the unchanging installation steps the
+        # 'test-build' job in an ubuntu:latest Docker container and commit it
+        # with a name, you can then use that image name here to avoid doing
+        # those install steps on every run.
+        description: 'The runner type to run the build job on, or when using act a local Docker image name'
+        default: 'ubuntu-latest'
+        type: string
+
+      test-runs-on:
+        # This is primarily intended for local act usage. The comment
+        # on build-runs-on applies equally here, but for the 'test' job.
+        description: 'The runner type to run the build job on, or when using act a local Docker image name'
+        default: 'ubuntu-latest'
+        type: string
+
+      min-verbosity:
+        description: 'The mininmum ODS verbosity to log at, higher values cause more logging'
+        default: '4'
+        type: choice
+        options:
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+      
+defaults:
+  run:
+    # see: https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions#using-a-specific-shell
+    shell: bash --noprofile --norc -eo pipefail -x {0}
+
+env:
+  # Prevent warnings from apt-get about not running in an interactive
+  # terminal.
+  DEBIAN_FRONTEND: noninteractive
+
+  # Pass through the min-verbosity input as an env var which
+  # functions-opendnssec.sh detects and acts upon.
+  ODS_TEST_MIN_VERBOSITY: ${{ inputs.min-verbosity }}
 
 jobs:
+  # Build only OpenDNSSEC, on various platforms.
+  # Skipped when run-one-test has been supplied via inputs above.
   build:
+    if: ${{ inputs.run-one-test == '' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ["ubuntu:24.04", "fedora:41"]
     runs-on: ubuntu-latest
+    container: ${{ matrix.os }}
+  
     steps:
-      - name: Placeholder
+      - name: Checkout
+        uses: actions/checkout@v4
+  
+      - name: Install pre-requisites
         run: |
-          echo "Placeholder workflow"
+          case ${{ matrix.os }} in
+            ubuntu*)
+              apt-get update
+
+              # default-jre is needed for relaxng XML schema support
+              # libldns-dev is needed by OpenDNSSEC
+              apt-get -y install \
+                automake \
+                default-jre \
+                gcc \
+                libldns-dev \
+                libtool \
+                libxml2-dev \
+                libsqlite3-dev \
+                make
+              ;;
+
+            fedora*)
+              dnf -y update
+              dnf -y install \
+                automake \
+                gcc \
+                ldns-devel \
+                libtool \
+                libxml2-devel \
+                make
+
+              ;;
+          esac
+  
+      - name: Build and install OpenDNSSEC
+        run: |
+          sh autogen.sh
+          ./configure
+          make
+          make install
+
+  # Build OpenDNSSEC and other tools such as SoftHSMv2 with settings
+  # compatible for the test suite. The 'test' job depends on this job.
+  test-build:
+    runs-on: ${{ inputs.build-runs-on || 'ubuntu-latest' }}
+
+    outputs:
+      tests: ${{ steps.matrix.outputs.tests }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: workspace
+
+      - name: Install pre-requisites
+        run: |
+          sudo apt-get update
+
+          # default-jre is needed for relaxng XML schema support
+          # libcunit1-dev is needed for running unit tests
+          # libldns-dev is needed by OpenDNSSEC
+          # psmisc is needed by the test scripts to run killall
+          # sqlite3 is needed when using SQLite3 as the database for ODS
+
+          sudo apt-get install \
+              -y \
+              --no-install-recommends \
+              --no-install-suggests \
+            default-jre   \
+            libcunit1-dev \
+            libldns-dev   \
+            psmisc        \
+            sqlite3
+
+      - name: Setup environment for subsequent steps
+        working-directory: workspace
+        run: |
+          WORKSPACE=$(pwd)
+          INSTALL_ROOT=$HOME/ROOT
+          PATH=$PATH:${INSTALL_ROOT}/bin/
+
+          mkdir -p ${INSTALL_ROOT}
+
+          echo "${INSTALL_ROOT}/bin/" >> "$GITHUB_PATH"
+          echo "WORKSPACE=${WORKSPACE}" >> "$GITHUB_ENV"
+          echo "INSTALL_ROOT=${INSTALL_ROOT}" >> "$GITHUB_ENV"
+
+          sudo chown -R runner: ${INSTALL_ROOT}
+
+      - name: Build and install OpenDNSSEC
+        working-directory: workspace
+        run: |
+          ls -la ${INSTALL_ROOT}
+          testing/build-opendnssec.sh
+
+      - name: Tar ROOT
+        working-directory: workspace
+        run: |
+          tar -zcvf ROOT.tgz build -C $HOME ROOT
+
+      - name: Upload ROOT tarball
+        uses: actions/upload-artifact@v4
+        with:
+          name: root
+          path: workspace/ROOT.tgz
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Create test matrix
+        id: matrix
+        working-directory: workspace
+        run: |
+          if [[ "${{ inputs.run-one-test }}" != "" ]]; then
+            MATRIX_JSON='tests=["${{ inputs.run-one-test }}"]'
+          elif [[ "${{ inputs.run-in-parallel }}" == "false" ]]; then
+            MATRIX_JSON='tests=["test-cases.d"]'
+          else
+            MATRIX_JSON='tests='
+            SEP_CHAR='['
+            cd testing
+            for TEST_DIR in test-cases.d/*; do
+              echo "${TEST_DIR}"
+              if [ ! -f "${TEST_DIR}/OFF" ]; then
+                # TEST_NAME=$(basename $TEST_DIR)
+                MATRIX_JSON="${MATRIX_JSON}""${SEP_CHAR}"'"'$TEST_DIR'"'
+                SEP_CHAR=','
+              fi
+            done
+            MATRIX_JSON="${MATRIX_JSON}]"
+          fi
+
+          echo "${MATRIX_JSON}" >> "${GITHUB_OUTPUT}"
+
+  # Run the specified test or tests, after the 'test-build' job built
+  # OpenDNSSEC and SoftHSMv2 etc ready for testing.
+  test:
+    runs-on: ${{ inputs.test-runs-on || 'ubuntu-latest' }}
+    needs: test-build
+    strategy:
+      matrix:
+        test: ${{ fromJSON(needs.test-build.outputs.tests) }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: workspace
+
+      - name: Download ROOT tarball
+        uses: actions/download-artifact@v4
+        with:
+          name: root
+
+      - name: Unpack ROOT tarball
+        run: |
+          tar -zxvf ROOT.tgz -C $HOME
+
+      - name: Install pre-requisites
+        run: |
+          sudo apt-get update
+
+          # bind9 is needed for named used by test-cases.d/signer.adapters.bind_stress_test
+          # default-jre is needed for relaxng XML schema support
+          # ldnsutils is needed for ldns-testns used by test-cases.d/signer.adapters.input_basic
+          #                     for ldns-notify used by test-cases.d/signer.adapters.input_ixfr_notimpl
+          # libcunit1-dev is needed for running unit tests
+          # libldns-dev is needed by OpenDNSSEC
+          # libxml2-utils is needed for xmllint used by functions-opendnssec.sh used by test-cases.d/enforcer.ods-enforcer.zones_and_zonelist
+          # perl is used by test-cases.d/signer.adapters.bind_stress_test
+          # psmisc is needed by the test scripts to run killall
+          # sqlite3 is needed when using SQLite3 as the database for ODS
+          # xsltproc is needed for xsltproc used by functions-opendnssec.sh used by test-cases.d/enforcer.ods-enforcer.zones_and_zonelist
+
+          sudo apt-get install \
+              -y \
+              --no-install-recommends \
+              --no-install-suggests \
+            bind9         \
+            default-jre   \
+            libcunit1-dev \
+            libldns-dev   \
+            libxml2-utils \
+            perl          \
+            psmisc        \
+            sqlite3       \
+            tshark        \
+            xsltproc
+
+          # Install dnsi and dnst
+          sudo apt-get install -y build-essential curl libssl-dev pkg-config
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sudo sh -s -- -y --profile minimal --default-toolchain stable
+          . "$HOME/.cargo/env"
+          cargo install --git https://github.com/NLnetLabs/dnsi --branch xfr
+          cargo install --git https://github.com/NLnetLabs/dnst --branch ldns-testns
+          P=$HOME/.cargo/bin/dnst
+          [ -h /usr/bin/ldns-testns ] || sudo ln -s $P /usr/bin/ldns-testns
+          [ -h /usr/bin/ldns-notify ] || sudo ln -s $P /usr/bin/ldns-notify
+
+      # OpenDNSSEC tests are based on monitoring syslog for specific strings
+      # logged by OpenDNSSEC while it runs. We therefore need logging to the
+      # correct file setup, to allow all log levels, and with the expected
+      # log format. Set that up in this step.
+      - name: Install and start the syslog daemon
+        run: |
+          wget -qO - https://ose-repo.syslog-ng.com/apt/syslog-ng-ose-pub.asc | sudo apt-key add -
+          OS_CODENAME=$(lsb_release -c -s 2>/dev/null)
+          echo "deb https://ose-repo.syslog-ng.com/apt/ stable ubuntu-${OS_CODENAME}" | sudo tee -a /etc/apt/sources.list.d/syslog-ng-ose.list
+          sudo apt-get update
+          sudo apt-get install \
+            -y \
+            --no-install-recommends \
+            --no-install-suggests \
+            syslog-ng-core \
+            syslog-ng-scl
+  
+          # Remove PIDs from syslog lines so that ODS test suite syslog line matching works.
+          # See: https://serverfault.com/questions/981150/disable-process-id-showing-in-syslog-ng-logs
+          sudo sed -i -e 's|file("/var/log/syslog")|file("/var/log/syslog" template("$DATE $HOST $PROGRAM: $MESSAGE\\n"))|' /etc/syslog-ng/syslog-ng.conf
+
+          # Prevent filtering of debug logs to /var/log/syslog.
+          #sudo sed -i -e 's|filter f_syslog3 { not facility(auth, authpriv, mail) and not filter(f_debug); };|filter f_syslog3 { not facility(auth, authpriv, mail) };|' /etc/syslog-ng/syslog-ng.conf
+          sudo sed -i -e 's|log { source(s_src); filter(f_syslog3); destination(d_syslog); };|log { source(s_src); destination(d_syslog); };|' /etc/syslog-ng/syslog-ng.conf
+  
+          sudo syslog-ng
+  
+          sleep 1s
+
+          # Dump the config in case for some reason syslog matching by tests
+          # fails unexpectedly, then we can examine the config for problems.
+          sudo syslog-ng-ctl config
+  
+          sudo chmod a+rw /var/log/syslog
+
+      - name: Setup environment for subsequent steps
+        run: |
+          WORKSPACE=$(pwd)
+          INSTALL_ROOT=$HOME/ROOT
+          PATH=$PATH:${INSTALL_ROOT}/bin/
+
+          echo "${INSTALL_ROOT}/bin/" >> "$GITHUB_PATH"
+          echo "WORKSPACE=${WORKSPACE}" >> "$GITHUB_ENV"
+          echo "INSTALL_ROOT=${INSTALL_ROOT}" >> "$GITHUB_ENV"
+
+      - name: Prepare OpenDNSSEC test suite environment
+        run: |
+          cd $HOME/build
+          echo "SVN_REVISION=1" >> "$GITHUB_ENV"
+          echo "" > $INSTALL_ROOT/.botan.ok
+          echo "1" > $INSTALL_ROOT/.botan.build
+          echo "" > $INSTALL_ROOT/.softhsm2.ok
+          echo "1-openssl:1" > $INSTALL_ROOT/.softhsm2.build
+          echo "" > $INSTALL_ROOT/.opendnssec.ok
+          echo "1" > $INSTALL_ROOT/.opendnssec.build
+          cat > $INSTALL_ROOT/etc/softhsm2.conf.build <<-END
+          directories.tokendir = $INSTALL_ROOT/var/lib/softhsm/tokens/
+          objectstore.backend = file
+          log.level = INFO
+          END
+          for f in conf/{addns,conf,kasp,zonelist}.xml
+          do
+            cp $f $INSTALL_ROOT/etc/opendnssec/`basename $f`.build
+          done
+
+      - name: Run test ${{ matrix.test }}
+        id: run_test
+        working-directory: workspace
+        run: |
+          export PATH=${INSTALL_ROOT}/sbin:$PATH
+
+          # When using nektos/act to run locally and using a ROOT volume to
+          # cache built artifacts, state from previous runs can get left
+          # behind so cleanup a bit first.
+          pushd ${INSTALL_ROOT}
+          find . -name \*.pid -delete || true
+          find . -name \*.sock -delete || true
+          killall -9 ods-signerd || true
+          killall -9 ods-enforcerd || true
+          find . -name \*core -delete || true
+          rm -rf var/lib/softhsm/tokens/* || true
+          rm -f $root/var/opendnssec/enforcer/zones.xml || true
+          rm -f $root/var/opendnssec/signed/* || true
+          rm -f $root/var/opendnssec/signer/* || true
+          rm -f $root/var/opendnssec/signconf/* || true
+          rm -f $root/var/opendnssec/kasp.db || true
+          popd
+
+          cd testing
+          if [[ "${{ matrix.test }}" == "test-cases.d" ]]; then
+            ./test-opendnssec.sh
+          else
+            cd ${{ matrix.test }}
+            sudo tshark -t ad -i any -d udp.port==15353,dns -d udp.port==15354,dns -d tcp.port==15353,dns -d tcp.port==15354,dns port 15353 or port 15354 &> _tshark.log &
+            ../../test-this.sh || echo "test_result=FAILED" >> "${GITHUB_OUTPUT}"
+          fi
+
+      - name: Dump diagnostics on single test failure
+        if: steps.run_test.outputs.test_result == 'FAILED'
+        working-directory: workspace
+        run: |
+          cd testing/${{ matrix.test }}
+
+          echo "::notice::Listing test directory contents"
+          ls -la
+
+          echo "::notice::Dumping left over _log files"
+          for F in $(ls -1 _*); do
+            echo "::notice::Dumping $F"
+            cat $F
+          done
+
+          echo "::notice::Listing $INSTALL_ROOT directory contents"
+          ls -lR $INSTALL_ROOT
+
+          echo "::notice::Dumping running processes tree"
+          pstree -n -p
+
+          exit 1

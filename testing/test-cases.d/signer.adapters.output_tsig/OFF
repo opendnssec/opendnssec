@@ -1,0 +1,1 @@
+Reason: uses drill for TSIG enabled SOA query which dnsi doesn't support yet and only dnsi is supported, not drill.
