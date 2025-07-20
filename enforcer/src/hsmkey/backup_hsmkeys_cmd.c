@@ -199,13 +199,20 @@ run(cmdhandler_ctx_type* context, int argc, char* argv[])
     db_clause_list_t* clause_list;
     db_connection_t* dbconn = getconnectioncontext(context);
 
+    if (argc < 2) {
+        client_printf_err(sockfd, "too few arguments\n");
+        ods_log_error("[%s] too few arguments for backup command", module_str);
+        return -1;
+    }
+
     static struct option long_options[] = {
         {"repository", required_argument, 0, 'r'},
         {0, 0, 0, 0}
     };
 
-    for(opt = longgetopt(argc, argv, "r:", long_options, &long_index, &optctx); opt != -1;
-        opt = longgetopt(argc, argv, NULL, long_options, &long_index, &optctx)) {
+    /* Note: longgetopt reorders argv, only pass args after "backup" "prepare|commit|..." to it. */
+    for(opt = longgetopt(argc-2, argv+2, "r:", long_options, &long_index, &optctx); opt != -1;
+        opt = longgetopt(argc-2, argv+2, NULL, long_options, &long_index, &optctx)) {
         switch (opt) {
             case 'r':
                 repository = optctx.optarg;
