@@ -210,6 +210,15 @@ cmdhandler_perform_command(const char *arg, struct cmdhandler_ctx_struct* contex
             }
             free(buf);
         }
+        if (status == -1) {
+            /* Syntax error, print usage for cmd */
+            client_printf_err(context->sockfd, "Error parsing arguments %s command line %s\n",
+                command->name, arg);
+            if (command->usage != NULL) {
+                client_printf(context->sockfd, "Usage:\n\n");
+                command->usage(context->sockfd);
+            }
+        }
     } else {
         client_printf_err(context->sockfd, "Unknown command %s\n", argv[argi]);
         /* Unhandled command, print general error */
