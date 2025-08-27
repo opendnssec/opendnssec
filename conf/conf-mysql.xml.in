@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<Configuration>
+        <RepositoryList>
+                <Repository name="SoftHSM_KSK">
+                        <Module>@pkcs11_softhsm_module@</Module>
+                        <TokenLabel>OpenDNSSEC_KSK</TokenLabel>
+                        <!--
+                        <PIN>1234</PIN>
+                        <SkipPublicKey/>
+                        <AllowExtraction/>
+                        -->
+                </Repository>
+
+                <Repository name="SoftHSM_ZSK">
+                        <Module>@pkcs11_softhsm_module@</Module>
+                        <TokenLabel>OpenDNSSEC_ZSK</TokenLabel>
+                        <!--
+                        <PIN>1234</PIN>
+                        <SkipPublicKey/>
+                        <AllowExtraction/>
+                        -->
+                </Repository>
+<!--
+                <Repository name="sca6000">
+                        <Module>@pkcs11_sca6000_module@</Module>
+                        <TokenLabel>Sun Metaslot</TokenLabel>
+                        <PIN>test:1234</PIN>
+                        <Capacity>255</Capacity>
+                        <RequireBackup/>
+                        <SkipPublicKey/>
+                        </Repository>
+-->
+        </RepositoryList>
+
+        <Common>
+                <Logging>
+			<!-- Command line verbosity will overwrite configure file -->
+                        <Verbosity>3</Verbosity>
+                        <Syslog><Facility>local0</Facility></Syslog>
+                </Logging>
+
+                <PolicyFile>@OPENDNSSEC_CONFIG_DIR@/kasp.xml</PolicyFile>
+                <ZoneListFile>@OPENDNSSEC_CONFIG_DIR@/zonelist.xml</ZoneListFile>
+        </Common>
+
+        <Enforcer>
+<?xmlif if condition privdrop="user|group|both"?>		<Privileges>
+<?xmlif fi?><?xmlif if condition privdrop="user|both"?>			<User>@INSTALLATIONUSER@</User>
+<?xmlif fi?><?xmlif if condition privdrop="group|both"?>			<Group>@INSTALLATIONGROUP@</Group>
+<?xmlif fi?><?xmlif if condition privdrop="user|group|both"?>		</Privileges><?xmlif fi?>
+
+                <Datastore>
+                        <MySQL>
+                                <Host Port="3306">127.0.0.1</Host>
+                                <Database>kasp26</Database>
+                                <Username>kasp_user</Username>
+                                <Password>HERE_BE_YOUR_PASSWORD</Password>
+                        </MySQL>
+                </Datastore>
+
+                <!-- If you generate key material outside HSM/ODS and then        -->
+                <!-- import them into the ODS/HSM combo, use ManualKeyGeneration. -->
+                <!-- <ManualKeyGeneration/> -->
+
+                <!-- Otherwise, you can autogenerate your keys for some time      -->
+                <!-- period in future. Here one year's worth of keys are          -->
+                <!-- generated.                                                   -->
+                <AutomaticKeyGenerationPeriod>P1Y</AutomaticKeyGenerationPeriod>
+
+                <!-- <RolloverNotification>P14D</RolloverNotification> -->
+		
+                <!-- the <DelegationSignerSubmitCommand> will get all current
+                DNSKEYs (as a RRset) on standard input (with optional CKA_ID) -->
+                <!-- <DelegationSignerSubmitCommand>@OPENDNSSEC_SBIN_DIR@/simple-dnskey-mailer.sh</DelegationSignerSubmitCommand> -->
+
+                <WorkingDirectory>@OPENDNSSEC_STATE_DIR@/enforcer</WorkingDirectory>
+
+                <!--<WorkerThreads>4</WorkerThreads>-->
+        </Enforcer>
+
+        <Signer>
+<?xmlif if condition privdrop="user|group|both"?>                <Privileges>
+<?xmlif fi?><?xmlif if condition privdrop="user|both"?>                        <User>@INSTALLATIONUSER@</User>
+<?xmlif fi?><?xmlif if condition privdrop="group|both"?>                        <Group>@INSTALLATIONGROUP@</Group>
+<?xmlif fi?><?xmlif if condition privdrop="user|group|both"?>                </Privileges><?xmlif fi?>
+
+                <WorkingDirectory>@OPENDNSSEC_STATE_DIR@/signer</WorkingDirectory>
+                <WorkerThreads>4</WorkerThreads>
+<!--
+                <SignerThreads>4</SignerThreads>
+-->
+<!--
+                <Listener>
+                        <Interface><Port>53</Port></Interface>
+                </Listener>
+-->
+		<!-- the <NotifyCommmand> will expand the following variables:
+
+		     %zone      the name of the zone that was signed
+		     %zonefile  the filename of the signed zone
+		-->
+    <!-- After the zone is signed, you may want to validate it with tools like   -->
+    <!-- ldns-verify-zone and perhaps use bind return values or zone file        -->
+    <!-- parser scripts to determine if the zone is publishable.                 -->
+    <!-- If your script does something fancy such as load the zone files into    -->
+    <!-- bind using some template config and needs to stop/start bind, you       -->
+    <!-- need to mutex the script so that only instance runs at a time.          -->
+    <!-- Simple things like "/usr/sbin/rndc reload %zone" are OK.                -->
+<!--
+                <NotifyCommand>/etc/opendnssec/validate-dnssec.sh %zone %zonefile</NotifyCommand>
+-->
+<!--
+                <NotifyCommand>/usr/sbin/rndc reload %zone</NotifyCommand>
+-->
+<!--
+                <NotifyCommand>/usr/local/bin/my_nameserver_reload_command</NotifyCommand>
+-->
+        </Signer>
+
+</Configuration>
