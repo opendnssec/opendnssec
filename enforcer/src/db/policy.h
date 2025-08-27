@@ -62,9 +62,7 @@ struct policy {
     db_value_t id;
     db_value_t rev;
     char* name;
-    /* if passthrough set, no modifications to the zonefile should
-     * be made. I.e. No signatures added or removed */
-    unsigned int passthrough;
+    unsigned int zonemodus;
     char* description;
     unsigned int signatures_resign;
     unsigned int signatures_refresh;

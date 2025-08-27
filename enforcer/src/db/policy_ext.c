@@ -130,7 +130,7 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
             }
         }
         else if (!strcmp((char*)node->name, "Passthrough")) {
-            passthrough = 1;
+            passthrough |= 0x01;
         }
         else if (!strcmp((char*)node->name, "Signatures")) {
             for (node2 = node->children; node2; node2 = node2->next) {
@@ -785,7 +785,6 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                 if (node2->type != XML_ELEMENT_NODE) {
                     continue;
                 }
-
                 if (!strcmp((char*)node2->name, "PropagationDelay")) {
                     if (!(xml_text = xmlNodeGetContent(node2))) {
                         return DB_ERROR_UNKNOWN;
@@ -914,6 +913,19 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
                             ods_log_deeebug("[policy_*_from_xml] unknown %s", (char*)node3->name);
                             return DB_ERROR_UNKNOWN;
                         }
+                    }
+                }
+                else if (!strcmp((char*)node2->name, "ZoneMD")) {
+                    if (!(xml_text = xmlGetProp(node2, (xmlChar*)"algorithm"))) {
+                        passthrough |= 0x02;
+                    } else {
+                        if(atoi((char*)xml_text) == 2) {
+                            passthrough |= 0x04;
+                        } else {
+                            passthrough |= 0x02;
+                        }
+                        xmlFree(xml_text);
+                        xml_text = NULL;
                     }
                 }
                 else {
@@ -1201,8 +1213,6 @@ static int __xmlNode2policy(policy_t* policy, xmlNodePtr policy_node, int* updat
     }
     /* Check if passtrough has toggled */
     if (passthrough != policy_passthrough(policy)) {
-        ods_log_deeebug("[policy_*_from_xml] - passthrough set to %d",
-            passthrough);
         if (check_if_updated)
             *updated = 1;
         if (policy_set_passthrough(policy, passthrough)) {
