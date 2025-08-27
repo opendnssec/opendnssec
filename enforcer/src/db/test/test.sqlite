@@ -28,11 +28,11 @@ CREATE TABLE test (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name VARCHAR(255)
 );
-INSERT INTO test ( name ) VALUES ( "test" );
+INSERT INTO test ( name ) VALUES ( 'test' );
 
 CREATE TABLE test2 (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     rev INTEGER NOT NULL,
     name VARCHAR(255)
 );
-INSERT INTO test2 ( rev, name ) VALUES ( 1, "test" );
+INSERT INTO test2 ( rev, name ) VALUES ( 1, 'test' );
