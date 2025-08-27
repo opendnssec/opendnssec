@@ -33,6 +33,10 @@
 #include "hsm.h"
 #include "log.h"
 
+#include <pthread.h>
+
+pthread_mutex_t _hsm_get_dnskey_mutex = PTHREAD_MUTEX_INITIALIZER;
+
 static const char* hsm_str = "hsm";
 
 /**
@@ -108,7 +112,9 @@ llibhsm_key_start:
 
     /* get dnskey */
     if (!key_id->dnskey) {
+        pthread_mutex_lock(&_hsm_get_dnskey_mutex);
         key_id->dnskey = hsm_get_dnskey(ctx, keylookup(ctx, key_id->locator), key_id->params);
+        pthread_mutex_unlock(&_hsm_get_dnskey_mutex);
     }
     if (!key_id->dnskey) {
         error = hsm_get_error(ctx);
