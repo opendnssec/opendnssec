@@ -62,7 +62,7 @@ static int min(int a, int b) { return a<b?a:b; }
 int
 perform_hsmkey_import(int sockfd, db_connection_t *dbconn,
 	const char *ckaid, const char *rep, const char *zonename, 
-	int bits, int alg, int keytype, unsigned int time)
+	int bits, int alg, int keytype, hsm_key_state_t keystate, unsigned int time)
 {
     hsm_ctx_t *hsm_ctx;
     hsm_key_t *hsm_key = NULL;
@@ -114,7 +114,7 @@ perform_hsmkey_import(int sockfd, db_connection_t *dbconn,
                 || hsm_key_set_policy_id(hsm_key, zone_db_policy_id(zone))
                 || hsm_key_set_repository(hsm_key, rep)
                 || hsm_key_set_role(hsm_key, keytype)
-                || hsm_key_set_state(hsm_key, (hsm_key_state_t)HSM_KEY_STATE_PRIVATE)
+                || hsm_key_set_state(hsm_key, keystate)
                 || hsm_key_create(hsm_key))
     {
         ods_log_error("[%s] hsm key creation failed, database or memory error", module_str);
@@ -556,15 +556,29 @@ run(cmdhandler_ctx_type* context, int argc, char* argv[])
     policy_key_free(policy_key);
 
     /* perform task immediately */
-    if (perform_hsmkey_import(sockfd, dbconn, ckaid, repository, zonename, atoi(bits), atoi(algorithm), type, (unsigned int)inception)
-        || perform_keydata_import(sockfd, dbconn, ckaid, repository, zonename, atoi(algorithm), state, type, (unsigned int)inception, setmin, hsmkey_id)
-        || perform_keystate_import(sockfd, dbconn, ckaid, repository, zonename, state, type, (unsigned int)inception, hsmkey_id)) {
-        ods_log_error("[%s] Error: Unable to add key to the database", module_str);
-        db_value_free((void*)hsmkey_id);
-        return -1;
-    } 
-    db_value_free((void*)hsmkey_id);
-    client_printf(sockfd, "Key imported into zone %s\n", zonename);
+    /* This should be fixed to cover other cases as well. However,
+       I'm uncertain what is use case for importing keys in other than
+       HSM_KEY_STATE_UNUSED state (i.e. when one would be importing
+       keys that are actively being used or 'taken' from HSM), except
+       for restoring some previously exported state. That should
+       probably be done with mysqldump / copying SQLite files. */
+	
+    if (state == 0) {  /* keys generated outside HSM and ODS, but already imported into HSM */
+        if (perform_hsmkey_import(sockfd, dbconn, ckaid, repository, zonename, atoi(bits), atoi(algorithm), type, (hsm_key_state_t)HSM_KEY_STATE_UNUSED, (unsigned int)inception)) {
+            ods_log_error("[%s] Error: Unable to add key to the database", module_str);
+            db_value_free((void*)hsmkey_id);
+            return -1;
+        }
+    } else {
+        if (perform_hsmkey_import(sockfd, dbconn, ckaid, repository, zonename, atoi(bits), atoi(algorithm), type, (hsm_key_state_t)HSM_KEY_STATE_PRIVATE, (unsigned int)inception)
+            || perform_keydata_import(sockfd, dbconn, ckaid, repository, zonename, atoi(algorithm), state, type, (unsigned int)inception, setmin, hsmkey_id)
+            || perform_keystate_import(sockfd, dbconn, ckaid, repository, zonename, state, type, (unsigned int)inception, hsmkey_id)) {
+            ods_log_error("[%s] Error: Unable to add key to the database", module_str);
+            db_value_free((void*)hsmkey_id);
+            return -1;
+        }
+    }
+    db_value_free((void*)hsmkey_id);    client_printf(sockfd, "Key imported into zone %s\n", zonename);
     return 0;
 }
 
